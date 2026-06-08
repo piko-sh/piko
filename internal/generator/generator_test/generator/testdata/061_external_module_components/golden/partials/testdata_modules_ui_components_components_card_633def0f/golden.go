@@ -157,7 +157,7 @@ var (
 )
 
 func init() {
-	staticAttrs_1 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "card"}, pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_card_633def0f"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/ui-components/components/Card"}}
+	staticAttrs_1 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "card"}, pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_card_633def0f"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "components/Card"}}
 	staticAttrs_2 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_card_633def0f"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "card-header"}}
 	staticAttrs_3 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_card_633def0f"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:0:0"}}
 	staticAttrs_4 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_card_633def0f"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:1"}, pikoruntime.HTMLAttribute{Name: "class", Value: "card-body"}}

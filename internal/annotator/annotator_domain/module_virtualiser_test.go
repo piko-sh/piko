@@ -1281,9 +1281,9 @@ func TestResolvePartialPaths(t *testing.T) {
 		pathsConfig: pathsConfig,
 	}
 	baseDir := "/project"
-	sourcePath := filepath.Join("/project", "partials", "card.pk")
+	parsedComp := &annotator_dto.ParsedComponent{SourcePath: filepath.Join("/project", "partials", "card.pk")}
 
-	targetSubDir, partialName, partialSrc := vc.resolvePartialPaths(context.Background(), sourcePath, baseDir)
+	targetSubDir, partialName, partialSrc := vc.resolvePartialPaths(context.Background(), parsedComp, baseDir)
 
 	assert.Equal(t, "dist/partials", targetSubDir)
 	assert.Equal(t, "card", partialName, "Partial name should strip .pk extension")
@@ -1330,10 +1330,74 @@ func TestCalculateRelativePartialPath(t *testing.T) {
 			vc := &virtualisationContext{
 				pathsConfig: pathsConfig,
 			}
-			result := vc.calculateRelativePartialPath(context.Background(), tc.sourcePath, tc.baseDir)
+			result := vc.calculateRelativePartialPath(context.Background(), &annotator_dto.ParsedComponent{SourcePath: tc.sourcePath}, tc.baseDir)
 			assert.Equal(t, tc.expectedPath, result)
 		})
 	}
+}
+
+func TestCalculateRelativePartialPath_External(t *testing.T) {
+	t.Parallel()
+
+	pathsConfig := AnnotatorPathsConfig{PartialsSourceDir: "partials"}
+
+	t.Run("external partial resolves module-relative without escaping the prefix", func(t *testing.T) {
+		t.Parallel()
+		const sourcePath = "/cache/github.com/org/ui@v1/partials/layout.pk"
+		resolver := &resolver_domain.MockResolver{
+			FindModuleBoundaryFunc: func(_ context.Context, importPath string) (string, string, error) {
+				assert.Equal(t, sourcePath, importPath)
+				return "github.com/org/ui", "partials/layout.pk", nil
+			},
+		}
+		vc := &virtualisationContext{pathsConfig: pathsConfig, resolver: resolver}
+
+		result := vc.calculateRelativePartialPath(context.Background(),
+			&annotator_dto.ParsedComponent{
+				SourcePath: sourcePath,
+				IsExternal: true,
+			}, "/project")
+
+		assert.Equal(t, "layout.pk", result)
+		assert.NotContains(t, result, "..")
+	})
+
+	t.Run("external partial outside a partials dir keeps its module subpath", func(t *testing.T) {
+		t.Parallel()
+		resolver := &resolver_domain.MockResolver{
+			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
+				return "github.com/org/ui", "lib/widgets/card.pk", nil
+			},
+		}
+		vc := &virtualisationContext{pathsConfig: pathsConfig, resolver: resolver}
+
+		result := vc.calculateRelativePartialPath(context.Background(),
+			&annotator_dto.ParsedComponent{
+				SourcePath: "/cache/github.com/org/ui@v1/lib/widgets/card.pk",
+				IsExternal: true,
+			}, "/project")
+
+		assert.Equal(t, "lib/widgets/card.pk", result)
+		assert.NotContains(t, result, "..")
+	})
+
+	t.Run("external partial falls back to base-relative path when boundary is unknown", func(t *testing.T) {
+		t.Parallel()
+		resolver := &resolver_domain.MockResolver{
+			FindModuleBoundaryFunc: func(_ context.Context, _ string) (string, string, error) {
+				return "", "", assert.AnError
+			},
+		}
+		vc := &virtualisationContext{pathsConfig: pathsConfig, resolver: resolver}
+
+		result := vc.calculateRelativePartialPath(context.Background(),
+			&annotator_dto.ParsedComponent{
+				SourcePath: "/elsewhere/widgets/card.pk",
+				IsExternal: true,
+			}, "/project")
+
+		assert.Equal(t, filepath.Join("..", "elsewhere", "widgets", "card.pk"), result)
+	})
 }
 
 func TestCreateVirtualInstance(t *testing.T) {

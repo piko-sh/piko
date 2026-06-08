@@ -92,6 +92,11 @@ type emitter struct {
 	// AnnotationResult holds the parsed annotation data used for code generation.
 	AnnotationResult *annotator_dto.AnnotationResult
 
+	// guardedKeys caches the conditionally-guarded invocation keys for the current
+	// annotation result. It is computed once per emission and read by the hoist, loop, and
+	// conditional render paths so the annotated tree is not re-walked at every scope.
+	guardedKeys map[string]bool
+
 	// ctx holds the state that changes during code generation.
 	ctx *EmitterContext
 
@@ -156,6 +161,7 @@ func (em *emitter) EmitCode(
 	}
 	em.ctx = NewEmitterContext()
 	em.AnnotationResult = result
+	em.guardedKeys = nil
 
 	em.resetState(ctx)
 	defer em.cleanup()
@@ -180,6 +186,20 @@ func (em *emitter) EmitCode(
 
 	l.Trace("Successfully generated Go code.", logger_domain.String("source", request.SourcePath))
 	return generatedBytes, allDiags, nil
+}
+
+// conditionallyGuardedKeys returns the conditionally-guarded invocation keys for the
+// current annotation result, computing them once on first use and caching them for the
+// emission. The annotated tree is immutable during emission, so the cached set is safe to
+// reuse across the hoist, loop, and conditional render paths.
+//
+// Returns map[string]bool which is the set of conditionally-guarded invocation keys, or
+// nil when no annotation result is present.
+func (em *emitter) conditionallyGuardedKeys() map[string]bool {
+	if em.guardedKeys == nil && em.AnnotationResult != nil {
+		em.guardedKeys = collectConditionallyGuardedKeys(em.AnnotationResult.AnnotatedAST)
+	}
+	return em.guardedKeys
 }
 
 // validateMainComponent checks that the main component exists in the result.

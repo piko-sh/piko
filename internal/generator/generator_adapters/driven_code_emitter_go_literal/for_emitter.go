@@ -525,7 +525,11 @@ func (fe *forEmitter) buildLoopBody(
 func (fe *forEmitter) generateLoopDependentPartialCalls(
 	originalNode *ast_domain.TemplateNode,
 ) ([]goast.Stmt, []*ast_domain.Diagnostic) {
-	allInvocations := fe.collectPartialInvocationsInLoop(originalNode)
+	if fe.emitter.AnnotationResult == nil {
+		return nil, nil
+	}
+
+	allInvocations := collectGovernedPartialInvocations(originalNode, fe.emitter.AnnotationResult.UniqueInvocations)
 	if len(allInvocations) == 0 {
 		return nil, nil
 	}
@@ -540,13 +544,16 @@ func (fe *forEmitter) generateLoopDependentPartialCalls(
 		invocationsByKey[inv.InvocationKey] = inv
 	}
 
+	guardedKeys := fe.emitter.conditionallyGuardedKeys()
+
 	var statements []goast.Stmt
 	var diagnostics []*ast_domain.Diagnostic
 	diagnostics = append(diagnostics, sortDiags...)
 
 	for _, invocation := range sortedInvocations {
 		visited := make(map[string]bool)
-		if !isInvocationLoopDependentRecursive(invocation, invocationsByKey, visited) {
+
+		if !isInvocationLoopDependentRecursive(invocation, invocationsByKey, visited) && !guardedKeys[invocation.InvocationKey] {
 			continue
 		}
 
@@ -556,68 +563,6 @@ func (fe *forEmitter) generateLoopDependentPartialCalls(
 	}
 
 	return statements, diagnostics
-}
-
-// collectPartialInvocationsInLoop walks the node tree and collects all partial
-// invocations.
-//
-// Takes originalNode (*ast_domain.TemplateNode) which is the root node to walk.
-//
-// Returns []*annotator_dto.PartialInvocation which contains all partial invocations found
-// in the tree. Nested for loops are not searched, but their siblings are still processed.
-func (fe *forEmitter) collectPartialInvocationsInLoop(
-	originalNode *ast_domain.TemplateNode,
-) []*annotator_dto.PartialInvocation {
-	var allInvocations []*annotator_dto.PartialInvocation
-	fe.collectPartialInvocationsRecursive(originalNode, originalNode, &allInvocations)
-	return allInvocations
-}
-
-// collectPartialInvocationsRecursive walks the node tree to gather partial invocations.
-// It skips nested loops but still visits their siblings.
-//
-// Takes node (*ast_domain.TemplateNode) which is the current node to process.
-// Takes originalNode (*ast_domain.TemplateNode) which is the root loop node, used to tell
-// it apart from nested loops.
-// Takes allInvocations (*[]*annotator_dto.PartialInvocation) which gathers the found
-// invocations.
-func (fe *forEmitter) collectPartialInvocationsRecursive(
-	node *ast_domain.TemplateNode,
-	originalNode *ast_domain.TemplateNode,
-	allInvocations *[]*annotator_dto.PartialInvocation,
-) {
-	if node == nil {
-		return
-	}
-
-	if node != originalNode && node.DirFor != nil {
-		return
-	}
-
-	if node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil {
-		if invocation := fe.findCanonicalInvocation(node.GoAnnotations.PartialInfo.InvocationKey); invocation != nil {
-			*allInvocations = append(*allInvocations, invocation)
-		}
-	}
-
-	for _, child := range node.Children {
-		fe.collectPartialInvocationsRecursive(child, originalNode, allInvocations)
-	}
-}
-
-// findCanonicalInvocation finds the matching invocation data from AnnotationResult.
-//
-// Takes invocationKey (string) which identifies the invocation to find.
-//
-// Returns *annotator_dto.PartialInvocation which is the matching invocation, or nil if
-// not found.
-func (fe *forEmitter) findCanonicalInvocation(invocationKey string) *annotator_dto.PartialInvocation {
-	for _, inv := range fe.emitter.AnnotationResult.UniqueInvocations {
-		if inv.InvocationKey == invocationKey {
-			return inv
-		}
-	}
-	return nil
 }
 
 // generatePartialRenderCall creates the render call for a partial invocation.
@@ -630,16 +575,7 @@ func (fe *forEmitter) findCanonicalInvocation(invocationKey string) *annotator_d
 func (fe *forEmitter) generatePartialRenderCall(
 	invocation *annotator_dto.PartialInvocation,
 ) ([]goast.Stmt, []*ast_domain.Diagnostic) {
-	pInfo := &ast_domain.PartialInvocationInfo{
-		InvocationKey:        invocation.InvocationKey,
-		PartialAlias:         invocation.PartialAlias,
-		PartialPackageName:   invocation.PartialHashedName,
-		RequestOverrides:     invocation.RequestOverrides,
-		PassedProps:          invocation.PassedProps,
-		InvokerPackageAlias:  invocation.InvokerHashedName,
-		InvokerInvocationKey: invocation.InvokerInvocationKey,
-		Location:             invocation.Location,
-	}
+	pInfo := partialInfoFromInvocation(invocation)
 	return fe.astBuilder.emitPartialRenderCall(pInfo, fe.emitter.AnnotationResult)
 }
 

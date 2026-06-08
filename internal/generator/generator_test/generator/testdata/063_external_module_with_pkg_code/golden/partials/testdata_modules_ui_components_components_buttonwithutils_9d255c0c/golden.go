@@ -106,7 +106,7 @@ var (
 )
 
 func init() {
-	staticAttrs_1 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}, pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/ui-components/components/ButtonWithUtils"}}
+	staticAttrs_1 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}, pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "components/ButtonWithUtils"}}
 	staticAttrs_2 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:0"}}
 }
 func init() {

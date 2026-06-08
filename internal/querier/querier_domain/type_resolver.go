@@ -340,11 +340,11 @@ func (r *typeResolver) resolveExpressionOutput(
 // is a column reference wrapped in nothing but CASTs, so a cast-only projection such as
 // page_id::content.uuid_v4 keeps the source metadata a bare column reference would carry.
 //
-// A CAST only relabels a column's type, so a cast over a column remains the same filterable
-// and orderable column: it must stay in a dynamic runtime builder's allow-list and resolve
-// the same nullability and array-wrap source as the bare column would. Any other expression
-// shape, such as a function call, an arithmetic operand or a COALESCE, is not the column and
-// is left without a source.
+// A CAST only relabels a column's type, so a cast over a column remains the same
+// filterable and orderable column: it must stay in a dynamic runtime builder's allow-list
+// and resolve the same nullability and array-wrap source as the bare column would. Any
+// other expression shape, such as a function call, an arithmetic operand or a COALESCE,
+// is not the column and is left without a source.
 //
 // Takes output (*querier_dto.OutputColumn) which receives the resolved source metadata.
 // Takes expression (querier_dto.Expression) which is the output column's expression.
@@ -371,8 +371,8 @@ func applyCastColumnSource(
 }
 
 // unwrapCastToColumnRef peels any chain of CAST expressions and returns the column
-// reference they wrap, or nil when the expression is not a column reference behind zero or
-// more casts.
+// reference they wrap, or nil when the expression is not a column reference behind zero
+// or more casts.
 //
 // Takes expression (querier_dto.Expression) which is the expression to peel.
 //
@@ -1044,16 +1044,14 @@ func (r *typeResolver) findColumnInCatalogue(
 }
 
 // findColumnInCatalogueFor is the catalogue-wide column lookup shared by the type
-// resolver's parameter path and the column-existence diagnostic pass. Holding a
-// single body keeps the match, ambiguity-refusal and view-skip rules identical for
-// both callers.
+// resolver's parameter path and the column-existence diagnostic pass. Holding a single
+// body keeps the match, ambiguity-refusal and view-skip rules identical for both callers.
 //
 // Takes catalogue (*querier_dto.Catalogue) which holds the schema state to search.
-// Takes reference (*querier_dto.ColumnReference) which specifies the column to look
-// up.
+// Takes reference (*querier_dto.ColumnReference) which specifies the column to look up.
 //
-// Returns catalogueColumnMatch which holds the matched column's type and nullability
-// when ok is true.
+// Returns catalogueColumnMatch which holds the matched column's type and nullability when
+// ok is true.
 // Returns bool which is true when exactly one column matched.
 func findColumnInCatalogueFor(
 	catalogue *querier_dto.Catalogue,

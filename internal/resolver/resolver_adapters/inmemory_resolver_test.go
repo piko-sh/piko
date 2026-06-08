@@ -418,13 +418,13 @@ func TestChainedResolver_FindModuleBoundary_AllFail(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to find module boundary")
 }
 
-func TestGoModuleCacheResolver_ResolveAssetPath(t *testing.T) {
+func TestGoModuleCacheResolver_ResolveAssetPath_NotInitialised(t *testing.T) {
 	t.Parallel()
 
 	r := NewGoModuleCacheResolver()
 	_, err := r.ResolveAssetPath(context.Background(), "mod/asset.svg", "")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "unsupported")
+	assert.Contains(t, err.Error(), "parsing asset path")
 }
 
 func TestGoModuleCacheResolver_findModulePath_NotInitialised(t *testing.T) {

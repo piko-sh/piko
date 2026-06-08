@@ -261,7 +261,7 @@ func init() {
 	staticNode_6_child_0.NodeType = pikoruntime.NodeText
 	staticNode_6_child_0.TextContent = "Primary Button"
 	staticNode_6.Children = append(staticNode_6.Children, staticNode_6_child_0)
-	staticAttrs_3 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/ui-components/components/ButtonWithUtils"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:1"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}}
+	staticAttrs_3 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "components/ButtonWithUtils"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:1"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}}
 	staticAttrs_4 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:1:0"}}
 	staticNode_7 = &pikoruntime.TemplateNode{}
 	staticNode_7.NodeType = pikoruntime.NodeElement
@@ -274,7 +274,7 @@ func init() {
 	staticNode_7_child_0.NodeType = pikoruntime.NodeText
 	staticNode_7_child_0.TextContent = "Secondary Button"
 	staticNode_7.Children = append(staticNode_7.Children, staticNode_7_child_0)
-	staticAttrs_5 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/ui-components/components/ButtonWithUtils"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:3"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}}
+	staticAttrs_5 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "components/ButtonWithUtils"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:3"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}}
 	staticAttrs_6 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:3:0"}}
 	staticNode_8 = &pikoruntime.TemplateNode{}
 	staticNode_8.NodeType = pikoruntime.NodeElement
@@ -287,7 +287,7 @@ func init() {
 	staticNode_8_child_0.NodeType = pikoruntime.NodeText
 	staticNode_8_child_0.TextContent = "Danger Button"
 	staticNode_8.Children = append(staticNode_8.Children, staticNode_8_child_0)
-	staticAttrs_7 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/ui-components/components/ButtonWithUtils"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:5"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}}
+	staticAttrs_7 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "components/ButtonWithUtils"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:5"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn"}, pikoruntime.HTMLAttribute{Name: "p-attr:class", Value: "state.CssClass"}}
 	staticAttrs_8 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_buttonwithutils_9d255c0c"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:5:5:0"}}
 }
 func init() {

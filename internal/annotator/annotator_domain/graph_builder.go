@@ -38,6 +38,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/pathutil"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
@@ -391,7 +392,7 @@ func (*GraphBuilder) processParseResultError(result *parseResult) ([]*ast_domain
 // Takes result (*parseResult) which contains the parsed component data.
 func (gb *GraphBuilder) registerParsedComponent(graph *annotator_dto.ComponentGraph, result *parseResult) {
 	baseDir := gb.resolver.GetBaseDir()
-	isExternal := !strings.HasPrefix(result.path, baseDir)
+	isExternal := !pathutil.Contains(baseDir, result.path)
 
 	result.parsedComponent.SourcePath = result.path
 	result.parsedComponent.IsExternal = isExternal
@@ -419,10 +420,11 @@ func (gb *GraphBuilder) registerBrokenComponent(ctx context.Context, graph *anno
 	graph.PathToHashedName[path] = hash
 	graph.HashedNameToPath[hash] = path
 
+	isExternal := !pathutil.Contains(baseDir, path)
 	graph.Components[hash] = &annotator_dto.ParsedComponent{
 		SourcePath:       path,
-		IsExternal:       !strings.HasPrefix(path, baseDir),
-		ModuleImportPath: gb.buildModuleImportPath(path, baseDir, !strings.HasPrefix(path, baseDir)),
+		IsExternal:       isExternal,
+		ModuleImportPath: gb.buildModuleImportPath(path, baseDir, isExternal),
 		ComponentType:    gb.determineComponentType(ctx, path),
 	}
 }
@@ -513,16 +515,16 @@ func (gb *GraphBuilder) determineComponentType(ctx context.Context, absolutePath
 	e2ePagesDir := filepath.Join(baseDir, gb.pathsConfig.E2ESourceDir, "pages")
 	e2ePartialsDir := filepath.Join(baseDir, gb.pathsConfig.E2ESourceDir, "partials")
 
-	if gb.pathsConfig.EmailsSourceDir != "" && strings.HasPrefix(absolutePath, emailsDir) {
+	if gb.pathsConfig.EmailsSourceDir != "" && pathutil.Contains(emailsDir, absolutePath) {
 		return "email"
 	}
-	if gb.pathsConfig.PdfsSourceDir != "" && strings.HasPrefix(absolutePath, pdfsDir) {
+	if gb.pathsConfig.PdfsSourceDir != "" && pathutil.Contains(pdfsDir, absolutePath) {
 		return "pdf"
 	}
-	if strings.HasPrefix(absolutePath, pagesDir) || strings.HasPrefix(absolutePath, e2ePagesDir) {
+	if pathutil.Contains(pagesDir, absolutePath) || pathutil.Contains(e2ePagesDir, absolutePath) {
 		return "page"
 	}
-	if strings.HasPrefix(absolutePath, partialsDir) || strings.HasPrefix(absolutePath, e2ePartialsDir) {
+	if pathutil.Contains(partialsDir, absolutePath) || pathutil.Contains(e2ePartialsDir, absolutePath) {
 		return "partial"
 	}
 

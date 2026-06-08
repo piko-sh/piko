@@ -150,9 +150,9 @@ var (
 )
 
 func init() {
-	staticAttrs_1 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "action-button-wrapper"}, pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/composite-widgets/widgets/ActionButton"}}
+	staticAttrs_1 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "action-button-wrapper"}, pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "widgets/ActionButton"}}
 	staticAttrs_2 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:0"}}
-	staticAttrs_3 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_button_127f2b1d"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/ui-components/components/Button"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:1"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn btn-primary"}}
+	staticAttrs_3 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_button_127f2b1d"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "components/Button"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:1"}, pikoruntime.HTMLAttribute{Name: "class", Value: "btn btn-primary"}}
 	staticAttrs_4 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_ui_components_components_button_127f2b1d"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:1:0"}}
 	staticAttrs_5 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2"}, pikoruntime.HTMLAttribute{Name: "class", Value: "help-text"}}
 }

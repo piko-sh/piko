@@ -446,21 +446,21 @@ func (vc *virtualisationContext) resolveComponentPaths(
 	if isPage || isErrorPage {
 		return config.CompiledPagesTargetDir, "", ""
 	}
-	return vc.resolvePartialPaths(ctx, parsedComp.SourcePath, baseDir)
+	return vc.resolvePartialPaths(ctx, parsedComp, baseDir)
 }
 
-// resolvePartialPaths works out the target folder and partial paths from a source file
-// path.
+// resolvePartialPaths works out the target folder and partial paths for a partial
+// component.
 //
-// Takes sourcePath (string) which is the full path to the partial source file.
+// Takes parsedComp (*annotator_dto.ParsedComponent) which is the partial component.
 // Takes baseDir (string) which is the base folder for path working out.
 //
 // Returns targetSubDir (string) which is the compiled partials target folder.
 // Returns partialName (string) which is the partial name without extension.
 // Returns partialSrc (string) which is the full serve path for the partial.
-func (vc *virtualisationContext) resolvePartialPaths(ctx context.Context, sourcePath, baseDir string) (targetSubDir, partialName, partialSrc string) {
+func (vc *virtualisationContext) resolvePartialPaths(ctx context.Context, parsedComp *annotator_dto.ParsedComponent, baseDir string) (targetSubDir, partialName, partialSrc string) {
 	targetSubDir = config.CompiledPartialsTargetDir
-	relToPartialsDir := vc.calculateRelativePartialPath(ctx, sourcePath, baseDir)
+	relToPartialsDir := vc.calculateRelativePartialPath(ctx, parsedComp, baseDir)
 
 	slashPath := filepath.ToSlash(relToPartialsDir)
 	partialName = strings.TrimSuffix(slashPath, ".pk")
@@ -468,19 +468,30 @@ func (vc *virtualisationContext) resolvePartialPaths(ctx context.Context, source
 	return targetSubDir, partialName, partialSrc
 }
 
-// calculateRelativePartialPath works out a relative path from the partials source folder
-// to the given source path.
+// calculateRelativePartialPath works out a partial's path relative to its source folder.
 //
-// Takes sourcePath (string) which is the full path to the partial file.
+// For a local partial this is its path under the project's PartialsSourceDir. A partial
+// imported from another Go module legitimately lives outside that folder, so it is
+// resolved relative to its owning module (no escaping "..") and does not warn; the
+// warning is reserved for a genuinely misplaced local partial.
+//
+// Takes parsedComp (*annotator_dto.ParsedComponent) which is the partial component.
 // Takes baseDir (string) which is the base folder for path calculation.
 //
 // Returns string which is the relative path from the partials folder.
-func (vc *virtualisationContext) calculateRelativePartialPath(ctx context.Context, sourcePath, baseDir string) string {
+func (vc *virtualisationContext) calculateRelativePartialPath(ctx context.Context, parsedComp *annotator_dto.ParsedComponent, baseDir string) string {
+	sourcePath := parsedComp.SourcePath
 	partialsSourceBase := filepath.Join(baseDir, vc.pathsConfig.PartialsSourceDir)
 	prefixToTrim := partialsSourceBase + string(filepath.Separator)
 
 	if relativePath, found := strings.CutPrefix(sourcePath, prefixToTrim); found {
 		return relativePath
+	}
+
+	if parsedComp.IsExternal {
+		if relativePath, ok := vc.externalPartialRelativePath(ctx, sourcePath); ok {
+			return relativePath
+		}
 	}
 
 	_, warnL := logger_domain.From(ctx, log)
@@ -490,6 +501,27 @@ func (vc *virtualisationContext) calculateRelativePartialPath(ctx context.Contex
 	)
 	relativePath, _ := filepath.Rel(baseDir, sourcePath)
 	return relativePath
+}
+
+// externalPartialRelativePath resolves a cross-module partial's on-disk source path to
+// its path within its owning module, trimming the partials directory prefix so the result
+// matches local-partial naming and never contains an escaping "..".
+//
+// Takes sourcePath (string) which is the partial's absolute source file path.
+//
+// Returns string which is the module-relative partial path.
+// Returns bool which is true when the source path could be resolved to a module subpath.
+func (vc *virtualisationContext) externalPartialRelativePath(ctx context.Context, sourcePath string) (string, bool) {
+	_, subpath, err := vc.resolver.FindModuleBoundary(ctx, sourcePath)
+	if err != nil || subpath == "" || subpath == "." {
+		return "", false
+	}
+
+	subpath = filepath.ToSlash(subpath)
+	if trimmed, found := strings.CutPrefix(subpath, vc.pathsConfig.PartialsSourceDir+"/"); found {
+		return trimmed, true
+	}
+	return subpath, true
 }
 
 // createVirtualInstance builds a VirtualPageInstance from an entry point.

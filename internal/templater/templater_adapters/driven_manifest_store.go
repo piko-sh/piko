@@ -478,10 +478,7 @@ func (pe *PageEntry) GetASTRootWithProps(r *templater_dto.RequestData, props any
 
 	ast, metadata, diagnostics := pe.astFunc(r, props)
 	if len(diagnostics) > 0 {
-		formattedErrors := generator_helpers.FormatRuntimeDiagnostics(diagnostics, pe.baseDir)
-		_, l := logger_domain.From(r.Context(), log)
-		l.Error("Error running AST function", logger_domain.Int("diagnostic_count", len(diagnostics)))
-		_, _ = fmt.Fprintf(os.Stderr, "\n%s\n", formattedErrors)
+		pe.logRenderDiagnostics(r.Context(), diagnostics)
 	}
 	return ast, metadata
 }
@@ -705,6 +702,28 @@ func (pe *PageEntry) GetCachePolicyFuncName() string {
 // Returns bool which is true if this is an E2E-only component.
 func (pe *PageEntry) GetIsE2EOnly() bool {
 	return pe.IsE2EOnly
+}
+
+// logRenderDiagnostics logs a component's render diagnostics at the most severe level.
+//
+// A healthy render may still emit advisory (warning or lower) diagnostics, so only an
+// error-or-above diagnostic is logged at Error and has its formatted detail written to
+// stderr; lesser diagnostics are logged quietly at Warn so they do not masquerade as
+// failures.
+//
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which are the render diagnostics
+// to log.
+func (pe *PageEntry) logRenderDiagnostics(ctx context.Context, diagnostics []*generator_dto.RuntimeDiagnostic) {
+	_, l := logger_domain.From(ctx, log)
+	diagnosticCount := logger_domain.Int("diagnostic_count", len(diagnostics))
+
+	if maxDiagnosticSeverity(diagnostics) >= generator_dto.Error {
+		l.Error("Error running AST function", diagnosticCount)
+		_, _ = fmt.Fprintf(os.Stderr, "\n%s\n", generator_helpers.FormatRuntimeDiagnostics(diagnostics, pe.baseDir))
+		return
+	}
+
+	l.Warn("AST function reported diagnostics", diagnosticCount)
 }
 
 // initialiseCachedJSScriptMetas pre-computes JS script metadata once during manifest load
@@ -1310,4 +1329,22 @@ func buildErrorAST(err error, filePath string) *ast_domain.TemplateAST {
 		SourceSize:  0,
 		Tidied:      false,
 	}
+}
+
+// maxDiagnosticSeverity returns the highest severity among the diagnostics, or Debug when
+// the slice is empty.
+//
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which are the diagnostics to
+// scan.
+//
+// Returns generator_dto.Severity which is the highest severity present, or Debug when the
+// slice is empty.
+func maxDiagnosticSeverity(diagnostics []*generator_dto.RuntimeDiagnostic) generator_dto.Severity {
+	highest := generator_dto.Debug
+	for _, diagnostic := range diagnostics {
+		if diagnostic != nil && diagnostic.Severity > highest {
+			highest = diagnostic.Severity
+		}
+	}
+	return highest
 }

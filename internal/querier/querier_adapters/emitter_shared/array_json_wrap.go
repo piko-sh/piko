@@ -168,10 +168,10 @@ func WrapArrayColumnsAsJSON(sql string, columns []querier_dto.OutputColumn, json
 	return wrapSelectProjection(sql, columns, jsonFunc, quote, mappings)
 }
 
-// wrapSelectProjection rewrites the array output columns of a top-level SELECT projection,
-// preserving a leading DISTINCT or DISTINCT ON (...) clause ahead of the rewrite. It
-// returns the original SQL and a nil set when the projection cannot be located or rewritten
-// with confidence.
+// wrapSelectProjection rewrites the array output columns of a top-level SELECT
+// projection, preserving a leading DISTINCT or DISTINCT ON (...) clause ahead of the
+// rewrite. It returns the original SQL and a nil set when the projection cannot be
+// located or rewritten with confidence.
 //
 // Takes sql (string) which is the query SQL.
 // Takes columns ([]querier_dto.OutputColumn) which are the analysed output columns.
@@ -214,9 +214,10 @@ func wrapSelectProjection(sql string, columns []querier_dto.OutputColumn, jsonFu
 	return result, wrapped
 }
 
-// wrapReturningProjection rewrites the array output columns of a top-level RETURNING list,
-// whose byte span the caller has already located. It mirrors wrapSelectProjection but has
-// no DISTINCT to preserve and ends at the statement terminator rather than a FROM clause.
+// wrapReturningProjection rewrites the array output columns of a top-level RETURNING
+// list, whose byte span the caller has already located. It mirrors wrapSelectProjection
+// but has no DISTINCT to preserve and ends at the statement terminator rather than a FROM
+// clause.
 //
 // Takes sql (string) which is the query SQL.
 // Takes projectionStart (int) which is the offset just after the RETURNING keyword.
@@ -261,10 +262,10 @@ func wrapReturningProjection(
 // topLevelReturningBounds locates the byte span of a top-level RETURNING projection, the
 // output projection of a data-modifying INSERT/UPDATE/DELETE statement.
 //
-// It matches the last depth-0 RETURNING keyword so a CTE-internal RETURNING (at paren depth
-// greater than zero) is ignored and a column named "returning" earlier in the statement
-// cannot be mistaken for the clause. The projection runs from just after the keyword to the
-// statement terminator, since RETURNING is always the final clause.
+// It matches the last depth-0 RETURNING keyword so a CTE-internal RETURNING (at paren
+// depth greater than zero) is ignored and a column named "returning" earlier in the
+// statement cannot be mistaken for the clause. The projection runs from just after the
+// keyword to the statement terminator, since RETURNING is always the final clause.
 //
 // Takes sql (string) which is the query SQL.
 //
@@ -281,13 +282,13 @@ func topLevelReturningBounds(sql string) (projectionStart int, projectionEnd int
 	return projectionStart, projectionEnd, true
 }
 
-// topLevelStatementTerminator returns the index of the first depth-0 semicolon at or after
-// start, or len(sql) when there is none.
+// topLevelStatementTerminator returns the index of the first depth-0 semicolon at or
+// after start, or len(sql) when there is none.
 //
-// String literals and comments are skipped with the shared advancePastSQLNoise primitive so
-// a semicolon inside a quoted value is not mistaken for the terminator. RETURNING is always
-// the final clause, so the first such semicolon ends the projection and everything before
-// it is the RETURNING list.
+// String literals and comments are skipped with the shared advancePastSQLNoise primitive
+// so a semicolon inside a quoted value is not mistaken for the terminator. RETURNING is
+// always the final clause, so the first such semicolon ends the projection and everything
+// before it is the RETURNING list.
 //
 // Takes sql (string) which is the query SQL.
 // Takes start (int) which is the offset to begin scanning from.
@@ -422,9 +423,9 @@ func topLevelProjectionBounds(sql string) (projectionStart int, projectionEnd in
 // topLevelProjectionEnd returns the end offset of a SELECT projection.
 //
 // The end is the earliest top-level clause keyword that can follow a projection, or the
-// statement terminator when the SELECT carries no trailing clause. A clause keyword nested
-// inside a projection item, such as the ORDER BY of an array_agg(...), sits at parenthesis
-// depth greater than zero and is not matched.
+// statement terminator when the SELECT carries no trailing clause. A clause keyword
+// nested inside a projection item, such as the ORDER BY of an array_agg(...), sits at
+// parenthesis depth greater than zero and is not matched.
 //
 // Takes sql (string) which is the query SQL.
 // Takes start (int) which is the projection start, just after the SELECT keyword.

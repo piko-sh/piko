@@ -35,13 +35,13 @@ var (
 )
 
 var (
-	// ErrInvalidSignature is returned when a signature did not verify against
-	// the supplied public key and message. Distinguished from key-parsing
-	// errors so hosts can surface "tampering" distinct from "malformed input".
+	// ErrInvalidSignature is returned when a signature did not verify against the supplied
+	// public key and message. Distinguished from key-parsing errors so hosts can surface
+	// "tampering" distinct from "malformed input".
 	ErrInvalidSignature = errors.New("crypto_signer_mldsa: signature did not verify")
 
-	// ErrInvalidKey indicates the supplied bytes are not a well-formed ML-DSA-65
-	// key for this scheme.
+	// ErrInvalidKey indicates the supplied bytes are not a well-formed ML-DSA-65 key for
+	// this scheme.
 	ErrInvalidKey = errors.New("crypto_signer_mldsa: invalid key bytes")
 )
 
@@ -74,12 +74,13 @@ func GenerateKeyPair() (*Signer, *Verifier, error) {
 	return &Signer{privateKey: privateKey}, &Verifier{publicKey: publicKey}, nil
 }
 
-// NewSignerFromBytes reconstructs a Signer from the bytes produced by Signer.MarshalBinary.
+// NewSignerFromBytes reconstructs a Signer from the bytes produced by
+// Signer.MarshalBinary.
 //
 // Takes data ([]byte) which is the private-key encoding from Signer.MarshalBinary.
 //
-// Returns a *Signer, or an error wrapping ErrInvalidKey when the bytes are not a well-formed
-// ML-DSA-65 private key.
+// Returns a *Signer, or an error wrapping ErrInvalidKey when the bytes are not a
+// well-formed ML-DSA-65 private key.
 func NewSignerFromBytes(data []byte) (*Signer, error) {
 	privateKey, err := scheme.UnmarshalBinaryPrivateKey(data)
 	if err != nil {
@@ -105,9 +106,9 @@ func NewVerifierFromBytes(data []byte) (*Verifier, error) {
 
 // Sign returns a detached ML-DSA-65 signature over the supplied message bytes.
 //
-// The error return mirrors the broader Signer contract so a host can treat the classical and
-// post-quantum signers uniformly; ML-DSA signing does not surface an error for a well-formed
-// Signer.
+// The error return mirrors the broader Signer contract so a host can treat the classical
+// and post-quantum signers uniformly; ML-DSA signing does not surface an error for a
+// well-formed Signer.
 //
 // Takes message ([]byte) which is the data to sign.
 //

@@ -1685,6 +1685,66 @@ func TestAddDiagnostic(t *testing.T) {
 	})
 }
 
+func TestOriginPathForNode(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                string
+		originComponentPath string
+		goAnnotations       *ast_domain.GoGeneratorAnnotation
+		want                string
+	}{
+		{
+			name:                "uses partial origin when stamped",
+			originComponentPath: "pages/home.pk",
+			goAnnotations:       &ast_domain.GoGeneratorAnnotation{OriginalSourcePath: new("github.com/org/ui/partials/appbar.pk")},
+			want:                "github.com/org/ui/partials/appbar.pk",
+		},
+		{
+			name:                "falls back to entry point when annotations nil",
+			originComponentPath: "pages/home.pk",
+			goAnnotations:       nil,
+			want:                "pages/home.pk",
+		},
+		{
+			name:                "falls back to entry point when source path nil",
+			originComponentPath: "pages/home.pk",
+			goAnnotations:       &ast_domain.GoGeneratorAnnotation{OriginalSourcePath: nil},
+			want:                "pages/home.pk",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ac := &assetCollectionContext{originComponentPath: tt.originComponentPath}
+			node := &ast_domain.TemplateNode{TagName: "piko:svg", GoAnnotations: tt.goAnnotations}
+
+			assert.Equal(t, tt.want, ac.originPathForNode(node))
+		})
+	}
+}
+
+func TestBuildDependency_UsesNodeOriginForCrossModulePartial(t *testing.T) {
+	t.Parallel()
+
+	ac := &assetCollectionContext{originComponentPath: "pages/home.pk"}
+	node := &ast_domain.TemplateNode{
+		TagName:  "piko:svg",
+		Location: ast_domain.Location{Line: 4, Column: 7},
+		GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+			OriginalSourcePath: new("github.com/org/ui/partials/appbar.pk"),
+		},
+	}
+
+	dependency := ac.buildDependency(node, "github.com/org/ui/lib/icons/logo.svg")
+
+	assert.Equal(t, "github.com/org/ui/lib/icons/logo.svg", dependency.SourcePath)
+	assert.Equal(t, "svg", dependency.AssetType)
+	assert.Equal(t, "github.com/org/ui/partials/appbar.pk", dependency.OriginComponentPath)
+}
+
 func TestMergeProfileAttributes(t *testing.T) {
 	t.Parallel()
 

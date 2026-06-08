@@ -91,7 +91,7 @@ func init() {
 	staticNode_1.Attributes = append(staticNode_1.Attributes, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0"})
 	staticNode_1.Attributes = append(staticNode_1.Attributes, pikoruntime.HTMLAttribute{Name: "class", Value: "container"})
 	staticNode_1.Attributes = append(staticNode_1.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "testdata_modules_layout_primitives_layouts_container_5c8b63f6"})
-	staticNode_1.Attributes = append(staticNode_1.Attributes, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "../../../testdata-modules/layout-primitives/layouts/Container"})
+	staticNode_1.Attributes = append(staticNode_1.Attributes, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "layouts/Container"})
 	staticNode_1.Children = make([]*pikoruntime.TemplateNode, 0, 1)
 	staticNode_1_child_0 = &pikoruntime.TemplateNode{}
 	staticNode_1_child_0.NodeType = pikoruntime.NodeElement

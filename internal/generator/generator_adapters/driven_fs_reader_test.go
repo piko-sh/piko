@@ -21,6 +21,8 @@ package generator_adapters
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -103,4 +105,71 @@ func TestFSReader_ReadFile(t *testing.T) {
 			assert.Equal(t, tt.wantData, data)
 		})
 	}
+}
+
+func TestFSReader_ReadFile_ExternalModule(t *testing.T) {
+	t.Parallel()
+
+	moduleDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "go.mod"), []byte("module example.com/ui\n\ngo 1.26\n"), 0o600))
+	require.NoError(t, os.MkdirAll(filepath.Join(moduleDir, "lib", "icons"), 0o750))
+	assetPath := filepath.Join(moduleDir, "lib", "icons", "logo.svg")
+	require.NoError(t, os.WriteFile(assetPath, []byte("<svg/>"), 0o600))
+
+	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+	defer sandbox.Close()
+	reader := NewFSReader(sandbox)
+	t.Cleanup(func() { _ = reader.Close() })
+
+	data, err := reader.ReadFile(context.Background(), assetPath)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("<svg/>"), data)
+
+	otherPath := filepath.Join(moduleDir, "go.mod")
+	_, err = reader.ReadFile(context.Background(), otherPath)
+	require.NoError(t, err)
+	assert.Len(t, reader.externalSandboxes, 1)
+
+	require.NoError(t, reader.Close())
+	assert.Empty(t, reader.externalSandboxes)
+}
+
+func TestFSReader_ReadFile_ExternalNoModuleRoot(t *testing.T) {
+	t.Parallel()
+
+	orphanDir := t.TempDir()
+	orphanPath := filepath.Join(orphanDir, "stray.svg")
+	require.NoError(t, os.WriteFile(orphanPath, []byte("x"), 0o600))
+
+	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+	defer sandbox.Close()
+	reader := NewFSReader(sandbox)
+	t.Cleanup(func() { _ = reader.Close() })
+
+	_, err := reader.ReadFile(context.Background(), orphanPath)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, errNoModuleRoot)
+}
+
+func TestFindModuleRoot(t *testing.T) {
+	t.Parallel()
+
+	moduleDir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(moduleDir, "go.mod"), []byte("module example.com/ui\n"), 0o600))
+	nestedDir := filepath.Join(moduleDir, "partials", "deep")
+	require.NoError(t, os.MkdirAll(nestedDir, 0o750))
+
+	t.Run("finds nearest go.mod above file", func(t *testing.T) {
+		t.Parallel()
+		root, err := findModuleRoot(filepath.Join(nestedDir, "card.pk"))
+		require.NoError(t, err)
+		assert.Equal(t, moduleDir, root)
+	})
+
+	t.Run("errors when no go.mod found", func(t *testing.T) {
+		t.Parallel()
+		orphan := t.TempDir()
+		_, err := findModuleRoot(filepath.Join(orphan, "stray.svg"))
+		require.ErrorIs(t, err, errNoModuleRoot)
+	})
 }

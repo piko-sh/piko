@@ -109,7 +109,11 @@ func (c *Container) createAnnotatorFSReader(baseDir string) (annotator_domain.FS
 	if err != nil {
 		return nil, fmt.Errorf("creating annotator source sandbox: %w", err)
 	}
-	return generator_adapters.NewFSReader(sourceSandbox), nil
+	fsReader := generator_adapters.NewFSReader(sourceSandbox)
+	shutdown.Register(c.GetAppContext(), "AnnotatorFSReader", func(_ context.Context) error {
+		return fsReader.Close()
+	})
+	return fsReader, nil
 }
 
 // createAnnotatorServiceInstance creates the annotator service with all its dependencies.
@@ -336,7 +340,11 @@ func (c *Container) createCoordinatorFSReader() (annotator_domain.FSReaderPort, 
 	if err != nil {
 		return nil, fmt.Errorf("creating coordinator source sandbox: %w", err)
 	}
-	return generator_adapters.NewFSReader(sourceSandbox), nil
+	fsReader := generator_adapters.NewFSReader(sourceSandbox)
+	shutdown.Register(c.GetAppContext(), "CoordinatorFSReader", func(_ context.Context) error {
+		return fsReader.Close()
+	})
+	return fsReader, nil
 }
 
 // getCoordinatorOptions returns the functional options for the coordinator service.
