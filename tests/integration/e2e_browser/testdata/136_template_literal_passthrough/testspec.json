@@ -1,0 +1,20 @@
+{
+  "description": "Probes whether a literal <template> element written in PK and PKC source leaks into the final rendered HTML, and contrasts it with an author-written declarative shadow DOM <template shadowrootmode>",
+  "requestURL": "/main",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "template-probe"
+    },
+    {
+      "action": "captureDOM",
+      "selector": "body",
+      "goldenFile": "initial.html"
+    }
+  ]
+}
