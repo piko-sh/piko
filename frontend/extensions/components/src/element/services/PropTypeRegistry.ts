@@ -86,12 +86,15 @@ function attributeToPropertyNameFn(
 /**
  * Checks whether a property should reflect its value to an HTML attribute.
  *
- * Primitive types (string, number, boolean) reflect by default.
+ * An explicit `reflectToAttribute` setting always wins. Otherwise,
+ * underscore-prefixed properties are treated as internal component state and do
+ * not reflect, and primitive types (string, number, boolean) reflect by default.
  *
+ * @param propertyName - The property name (used for the `_` internal-state convention).
  * @param propDef - The property type definition to check.
  * @returns Whether the property should reflect to an attribute.
  */
-export function shouldReflectProperty(propDef: PropTypeDefinition | undefined): boolean {
+export function shouldReflectProperty(propertyName: string, propDef: PropTypeDefinition | undefined): boolean {
     if (!propDef) {
         return false;
     }
@@ -99,6 +102,9 @@ export function shouldReflectProperty(propDef: PropTypeDefinition | undefined): 
         return true;
     }
     if (propDef.reflectToAttribute === false) {
+        return false;
+    }
+    if (propertyName.startsWith("_")) {
         return false;
     }
     return propDef.type === "string" || propDef.type === "number" || propDef.type === "boolean";
@@ -126,7 +132,7 @@ export function createPropTypeRegistry(options: PropTypeRegistryOptions): PropTy
             const attributesToObserve: string[] = [];
             for (const propName in propTypes) {
                 const propDef = propTypes[propName];
-                if (shouldReflectProperty(propDef)) {
+                if (shouldReflectProperty(propName, propDef)) {
                     attributesToObserve.push(propertyToAttributeName(propName));
                 }
             }
@@ -144,7 +150,7 @@ export function createPropTypeRegistry(options: PropTypeRegistryOptions): PropTy
         },
 
         shouldReflect(propertyName: string): boolean {
-            return shouldReflectProperty(propTypes[propertyName]);
+            return shouldReflectProperty(propertyName, propTypes[propertyName]);
         },
 
         propertyToAttributeName,

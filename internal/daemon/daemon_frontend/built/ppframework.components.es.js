@@ -970,7 +970,7 @@ function attributeToPropertyNameFn(attributeName, propTypes) {
   }
   return attributeName.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
 }
-function shouldReflectProperty(propDef) {
+function shouldReflectProperty(propertyName, propDef) {
   if (!propDef) {
     return false;
   }
@@ -978,6 +978,9 @@ function shouldReflectProperty(propDef) {
     return true;
   }
   if (propDef.reflectToAttribute === false) {
+    return false;
+  }
+  if (propertyName.startsWith("_")) {
     return false;
   }
   return propDef.type === "string" || propDef.type === "number" || propDef.type === "boolean";
@@ -995,7 +998,7 @@ function createPropTypeRegistry(options) {
       const attributesToObserve = [];
       for (const propName in propTypes) {
         const propDef = propTypes[propName];
-        if (shouldReflectProperty(propDef)) {
+        if (shouldReflectProperty(propName, propDef)) {
           attributesToObserve.push(propertyToAttributeName(propName));
         }
       }
@@ -1009,7 +1012,7 @@ function createPropTypeRegistry(options) {
       return typeof propDef.default === "function" ? propDef.default() : propDef.default;
     },
     shouldReflect(propertyName) {
-      return shouldReflectProperty(propTypes[propertyName]);
+      return shouldReflectProperty(propertyName, propTypes[propertyName]);
     },
     propertyToAttributeName,
     attributeToPropertyName(attributeName) {
@@ -1329,7 +1332,7 @@ function reflectToAttribute(propertyName, propertyValue, options, syncState) {
   }
   const { host, propTypeRegistry } = options;
   const propDef = propTypeRegistry.get(propertyName);
-  if (!shouldReflectProperty(propDef)) {
+  if (!shouldReflectProperty(propertyName, propDef)) {
     return;
   }
   syncState.reflectingToAttribute = true;

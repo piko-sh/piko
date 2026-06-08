@@ -296,7 +296,7 @@ function reflectToAttribute(
 
     const {host, propTypeRegistry} = options;
     const propDef = propTypeRegistry.get(propertyName);
-    if (!shouldReflectProperty(propDef)) {
+    if (!shouldReflectProperty(propertyName, propDef)) {
         return;
     }
 
