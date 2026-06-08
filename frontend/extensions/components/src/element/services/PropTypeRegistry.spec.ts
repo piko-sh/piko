@@ -182,6 +182,41 @@ describe("PropTypeRegistry", () => {
       });
     });
 
+    describe("internal (underscore-prefixed) properties", () => {
+      const internalPropTypes: Record<string, PropTypeDefinition> = {
+        label: { type: "string" },
+        _has_prefix_slot_content: { type: "boolean", default: false },
+        _internalCount: { type: "number", default: 0 },
+        _forcedReflect: { type: "boolean", reflectToAttribute: true },
+        _forcedHidden: { type: "string", reflectToAttribute: false },
+      };
+
+      it("should not reflect underscore-prefixed primitive state by default", () => {
+        const registry = createPropTypeRegistry({ propTypes: internalPropTypes });
+
+        expect(registry.shouldReflect("_has_prefix_slot_content")).toBe(false);
+        expect(registry.shouldReflect("_internalCount")).toBe(false);
+        expect(registry.shouldReflect("label")).toBe(true);
+      });
+
+      it("should exclude underscore-prefixed properties from observed attributes", () => {
+        const registry = createPropTypeRegistry({ propTypes: internalPropTypes });
+
+        const observed = registry.deriveObservedAttributes();
+        expect(observed).toContain("label");
+        expect(observed).not.toContain("_has_prefix_slot_content");
+        expect(observed).not.toContain("_internal-count");
+      });
+
+      it("should let an explicit reflectToAttribute setting override the underscore convention", () => {
+        const registry = createPropTypeRegistry({ propTypes: internalPropTypes });
+
+        expect(registry.shouldReflect("_forcedReflect")).toBe(true);
+        expect(registry.deriveObservedAttributes()).toContain("_forced-reflect");
+        expect(registry.shouldReflect("_forcedHidden")).toBe(false);
+      });
+    });
+
     describe("attributeToPropertyName()", () => {
       it("should find property name from propTypes mapping", () => {
         const registry = createPropTypeRegistry({ propTypes: samplePropTypes });
