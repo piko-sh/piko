@@ -468,7 +468,67 @@ func (s *coordinatorService) executeBuild(
 	if !ok {
 		return nil, errors.New("unexpected type from singleflight, expected *ProjectAnnotationResult")
 	}
+	s.rememberStyleDeps(result)
 	return result, nil
+}
+
+// rememberStyleDeps records each component's external stylesheet @import dependencies
+// from result.
+//
+// Later input-hash calculations fold the union of these paths into the cache key (see
+// includeKnownStyleDeps), so editing an imported stylesheet invalidates the cache even
+// though the component's .pk source is unchanged. Components that no longer import any
+// stylesheet are dropped so removed imports stop being tracked.
+//
+// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the per-component
+// annotation results.
+//
+// Concurrency: acquires styleDepsMu while updating the dependency map.
+func (s *coordinatorService) rememberStyleDeps(result *annotator_dto.ProjectAnnotationResult) {
+	if result == nil {
+		return
+	}
+	s.styleDepsMu.Lock()
+	defer s.styleDepsMu.Unlock()
+	if s.knownStyleDeps == nil {
+		s.knownStyleDeps = make(map[string][]string)
+	}
+	for hashedName, ar := range result.ComponentResults {
+		if ar == nil {
+			continue
+		}
+		if len(ar.ImportedStylePaths) == 0 {
+			delete(s.knownStyleDeps, hashedName)
+			continue
+		}
+		s.knownStyleDeps[hashedName] = ar.ImportedStylePaths
+	}
+}
+
+// getKnownStyleDeps returns the de-duplicated union of every component's recorded
+// external stylesheet @import dependencies.
+//
+// Returns []string which contains the absolute stylesheet paths (nil if none are known).
+//
+// Concurrency: read-locks styleDepsMu while building the union.
+func (s *coordinatorService) getKnownStyleDeps() []string {
+	s.styleDepsMu.RLock()
+	defer s.styleDepsMu.RUnlock()
+	if len(s.knownStyleDeps) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var out []string
+	for _, paths := range s.knownStyleDeps {
+		for _, p := range paths {
+			if _, ok := seen[p]; ok {
+				continue
+			}
+			seen[p] = struct{}{}
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // executePartialBuild implements the fast path for template-only changes. It skips the
@@ -695,16 +755,18 @@ func (s *coordinatorService) generateSingleArtefact(
 		OutputPath:                vc.VirtualGoFilePath,
 		PackagePrefix:             "",
 		PackageName:               vc.HashedName,
-		BaseDir:                   "",
+		BaseDir:                   s.resolver.GetBaseDir(),
 		HashedName:                hashedName,
 		CanonicalGoPackagePath:    vc.CanonicalGoPackagePath,
 		IsPage:                    vc.IsPage,
 		VirtualInstances:          generator_dto.ConvertVirtualInstances(vc.VirtualInstances),
 		CollectionName:            vc.Source.CollectionName,
-		ModuleName:                "",
+		CollectionParamName:       vc.Source.CollectionParamName,
+		ModuleName:                s.resolver.GetModuleName(),
 		VerifyGeneratedCode:       false,
 		IsEmail:                   vc.IsEmail,
-		EnablePrerendering:        s.enablePrerendering && !vc.IsEmail,
+		IsPdf:                     vc.IsPdf,
+		EnablePrerendering:        s.enablePrerendering && !vc.IsEmail && !vc.IsPdf,
 		EnableStaticHoisting:      s.enableStaticHoisting,
 		StripHTMLComments:         s.stripHTMLComments,
 		EnableDwarfLineDirectives: s.enableDwarfLineDirectives,

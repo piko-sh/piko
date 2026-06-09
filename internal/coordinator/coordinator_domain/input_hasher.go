@@ -23,6 +23,7 @@ package coordinator_domain
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"go/parser"
 	"go/token"
@@ -266,12 +267,41 @@ func (s *coordinatorService) discoverAndSortAllSourcePaths(
 		allSourceFiles[path] = struct{}{}
 	}
 
+	s.includeKnownStyleDeps(ctx, allSourceFiles)
+
 	sortedPaths := make([]string, 0, len(allSourceFiles))
 	for path := range allSourceFiles {
 		sortedPaths = append(sortedPaths, path)
 	}
 	slices.Sort(sortedPaths)
 	return sortedPaths, nil
+}
+
+// includeKnownStyleDeps adds previously discovered stylesheet @import dependencies to the
+// hashable file set.
+//
+// Takes ctx (context.Context) which controls cancellation for the stat checks.
+// Takes allSourceFiles (map[string]struct{}) which is the accumulating set of files to
+// hash; existing tracked stylesheets are added to it.
+func (s *coordinatorService) includeKnownStyleDeps(ctx context.Context, allSourceFiles map[string]struct{}) {
+	for _, cssPath := range s.getKnownStyleDeps() {
+		if ctx.Err() != nil {
+			return
+		}
+		if _, ok := allSourceFiles[cssPath]; ok {
+			continue
+		}
+		if _, err := s.statFile(ctx, cssPath); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				_, l := logger_domain.From(ctx, log)
+				l.Warn("Skipping imported stylesheet from input hash; stat failed",
+					logger_domain.String("path", cssPath),
+					logger_domain.Error(err))
+			}
+			continue
+		}
+		allSourceFiles[cssPath] = struct{}{}
+	}
 }
 
 // computeFileHashesWithCache computes xxhash digests for all paths using a stat-then-read

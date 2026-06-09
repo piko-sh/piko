@@ -94,6 +94,10 @@ func (ls *lifecycleService) handleFileEvent(ctx context.Context, event lifecycle
 	)
 	defer span.End()
 
+	if !initialSeed && ls.maybeHandleStyleDependencyChange(ctx, event) {
+		return
+	}
+
 	fec, ok := ls.buildFileEventContext(ctx, event)
 	if !ok {
 		return
@@ -105,6 +109,50 @@ func (ls *lifecycleService) handleFileEvent(ctx context.Context, event lifecycle
 	}
 
 	ls.handleAssetChange(fec)
+}
+
+// maybeHandleStyleDependencyChange checks whether the changed file is an external
+// stylesheet imported by one or more components via CSS @import. If so it triggers a
+// rebuild of the importing components (a targeted rebuild in dev-i, otherwise a full
+// rebuild) and returns true.
+//
+// Takes event (lifecycle_dto.FileEvent) which describes the file system event.
+//
+// Returns bool which is true when the event was handled as a stylesheet dependency
+// change.
+//
+// Concurrency: read-locks styleDepsMu via importersOfStyle and may launch a rebuild
+// goroutine tracked by rebuildWG.
+func (ls *lifecycleService) maybeHandleStyleDependencyChange(ctx context.Context, event lifecycle_dto.FileEvent) bool {
+	if !strings.HasSuffix(strings.ToLower(event.Path), ".css") {
+		return false
+	}
+	importers := ls.importersOfStyle(event.Path)
+	if len(importers) == 0 {
+		return false
+	}
+
+	ctx, l := logger_domain.From(ctx, log)
+	l.Internal("Imported stylesheet changed, rebuilding importing components",
+		logger_domain.String(fieldPath, event.Path),
+		logger_domain.Int("importer_count", len(importers)))
+
+	if ls.interpretedOrchestrator != nil && ls.interpretedOrchestrator.IsInitialised() && ls.coordinatorService != nil {
+		cssRelPath := event.Path
+		if rel, err := ls.fs.Rel(ls.pathsConfig.BaseDir, event.Path); err == nil {
+			cssRelPath = filepath.ToSlash(rel)
+		}
+		ls.rebuildWG.Add(1)
+		go ls.executeStyleDependencyRebuild(ctx, cssRelPath, importers)
+		return true
+	}
+
+	if ls.coordinatorService != nil {
+		ls.RequestRebuild(ctx, fmt.Sprintf("style-change:%s", event.Path))
+		return true
+	}
+
+	return false
 }
 
 // buildFileEventContext creates the context needed to process a file event.
@@ -406,7 +454,6 @@ func (ls *lifecycleService) removeEntryPoint(entryPointPath string) {
 func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath string) {
 	defer ls.rebuildWG.Done()
 	defer goroutine.RecoverPanic(ctx, "lifecycle.executeTargetedRebuild")
-	ctx, l := logger_domain.From(ctx, log)
 
 	affected := ls.interpretedOrchestrator.GetAffectedComponents(relPath)
 
@@ -414,26 +461,73 @@ func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath 
 	allPaths = append(allPaths, relPath)
 	allPaths = append(allPaths, affected...)
 
+	ls.runTargetedRebuild(ctx, relPath, allPaths)
+}
+
+// executeStyleDependencyRebuild rebuilds the components that import a changed external
+// stylesheet, plus their transitive dependents. The coordinator's input hash now folds in
+// imported-stylesheet contents, so the changed CSS makes the rebuild miss the cache and
+// re-inline the new styles.
+//
+// Takes cssRelPath (string) which is the project-relative path of the changed stylesheet,
+// used for logging and build causation.
+// Takes importers ([]string) which are the project-relative paths of components that
+// import the stylesheet.
+//
+// Designed to run in a goroutine; the caller must Add(1) on rebuildWG before launching
+// it.
+func (ls *lifecycleService) executeStyleDependencyRebuild(ctx context.Context, cssRelPath string, importers []string) {
+	defer ls.rebuildWG.Done()
+	defer goroutine.RecoverPanic(ctx, "lifecycle.executeStyleDependencyRebuild")
+
+	seen := make(map[string]bool, len(importers))
+	var allPaths []string
+	add := func(p string) {
+		if p == "" || seen[p] {
+			return
+		}
+		seen[p] = true
+		allPaths = append(allPaths, p)
+	}
+	for _, importer := range importers {
+		add(importer)
+		for _, dep := range ls.interpretedOrchestrator.GetAffectedComponents(importer) {
+			add(dep)
+		}
+	}
+
+	ls.runTargetedRebuild(ctx, cssRelPath, allPaths)
+}
+
+// runTargetedRebuild filters the entry points to allPaths, runs a synchronous coordinator
+// build for that subset, marks the rebuilt components dirty, and proactively recompiles.
+// It falls back to a full rebuild when no entry points match or the build fails.
+//
+// Takes changedLabel (string) which labels the rebuild for logging and build causation.
+// Takes allPaths ([]string) which are the project-relative paths to rebuild.
+func (ls *lifecycleService) runTargetedRebuild(ctx context.Context, changedLabel string, allPaths []string) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	targetedEntryPoints := ls.filterEntryPointsByPaths(allPaths)
 
 	if len(targetedEntryPoints) == 0 {
 		l.Warn("No entry points found for targeted rebuild, falling back to full rebuild",
-			logger_domain.String(fieldPath, relPath))
-		ls.RequestRebuild(ctx, fmt.Sprintf("fallback-file-change:%s", relPath))
+			logger_domain.String(fieldPath, changedLabel))
+		ls.RequestRebuild(ctx, fmt.Sprintf("fallback-file-change:%s", changedLabel))
 		return
 	}
 
 	l.Internal("Starting targeted rebuild",
-		logger_domain.String("changed", relPath),
+		logger_domain.String("changed", changedLabel),
 		logger_domain.Int("affected_count", len(targetedEntryPoints)))
 
 	result, err := ls.coordinatorService.GetOrBuildProject(ctx, targetedEntryPoints,
-		coordinator_domain.WithCausationID(fmt.Sprintf("targeted:%s", relPath)))
+		coordinator_domain.WithCausationID(fmt.Sprintf("targeted:%s", changedLabel)))
 	if err != nil {
 		l.Error("Targeted rebuild failed, falling back to full rebuild",
-			logger_domain.String(fieldPath, relPath),
+			logger_domain.String(fieldPath, changedLabel),
 			logger_domain.Error(err))
-		ls.RequestRebuild(ctx, fmt.Sprintf("fallback-file-change:%s", relPath))
+		ls.RequestRebuild(ctx, fmt.Sprintf("fallback-file-change:%s", changedLabel))
 		return
 	}
 
@@ -453,7 +547,7 @@ func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath 
 	}
 
 	l.Internal("Targeted rebuild complete",
-		logger_domain.String("changed", relPath))
+		logger_domain.String("changed", changedLabel))
 }
 
 // filterEntryPointsByPaths returns the subset of the lifecycle service's entry points

@@ -140,6 +140,10 @@ type lifecycleService struct {
 	// stopChan signals goroutines to stop; closed by Stop.
 	stopChan chan struct{}
 
+	// componentStyleDeps maps a component's project-relative path to the project-relative
+	// paths of the external stylesheets it pulled in via CSS @import.
+	componentStyleDeps map[string][]string
+
 	// pathsConfig holds the resolved source directory paths for this lifecycle instance. All
 	// fields are value types; pointer-to-value conversion is performed in the bootstrap
 	// layer.
@@ -161,6 +165,9 @@ type lifecycleService struct {
 	// rebuildWG tracks in-flight targeted rebuild goroutines so Stop can wait for them to
 	// drain before returning.
 	rebuildWG sync.WaitGroup
+
+	// styleDepsMu guards componentStyleDeps.
+	styleDepsMu sync.RWMutex
 
 	// stopOnce guards single execution of Stop.
 	stopOnce sync.Once
@@ -278,6 +285,8 @@ func (ls *lifecycleService) Start(ctx context.Context) error {
 		ls.unsubscribe = unsubscribe
 		go ls.handleBuildNotifications(ctx, notifications)
 		l.Internal("Subscribed to build notifications")
+
+		ls.registerInitialStyleDeps(ctx, entrypoints)
 	}
 
 	span.SetStatus(codes.Ok, "Lifecycle service started")
@@ -428,6 +437,24 @@ func (ls *lifecycleService) RequestRebuild(ctx context.Context, causationID stri
 
 	ls.coordinatorService.RequestRebuild(ctx, currentEntryPoints,
 		coordinator_domain.WithCausationID(causationID))
+}
+
+// registerInitialStyleDeps registers CSS @import dependency watches from the initial
+// build.
+//
+// Takes ctx (context.Context) which controls cancellation.
+// Takes entrypoints ([]annotator_dto.EntryPoint) which identify the project's entry
+// points.
+func (ls *lifecycleService) registerInitialStyleDeps(ctx context.Context, entrypoints []annotator_dto.EntryPoint) {
+	ls.rebuildWG.Go(func() {
+		defer goroutine.RecoverPanic(ctx, "lifecycle.registerInitialStyleDeps")
+
+		result, err := ls.coordinatorService.GetResult(ctx, entrypoints)
+		if err != nil || result == nil {
+			return
+		}
+		ls.updateWatchedFilesFromBuild(ctx, result)
+	})
 }
 
 // getAssetSourceDirs returns the full paths to all source directories.
