@@ -91,8 +91,14 @@ type PartialExpander struct {
 	// cssProcessor handles CSS minification and scoping for style blocks.
 	cssProcessor *CSSProcessor
 
-	// fsReader provides file system access for CSS processing.
+	// fsReader provides file system access for CSS processing. It is a recording wrapper so
+	// the expander can report which external stylesheets were pulled in via @import.
 	fsReader FSReaderPort
+
+	// styleRecorder records the external .css files read during CSS @import resolution. It
+	// is the same value stored in fsReader, retained with its concrete type so the expander
+	// can read back the recorded set after expansion.
+	styleRecorder *recordingFSReader
 }
 
 // styleProcessingContext groups parameters for style block processing to reduce argument
@@ -128,11 +134,26 @@ type styleProcessingContext struct {
 //
 // Returns *PartialExpander which is ready for use.
 func NewPartialExpander(resolver resolver_domain.ResolverPort, cssProcessor *CSSProcessor, fsReader FSReaderPort) *PartialExpander {
+	recorder := newRecordingFSReader(fsReader)
 	return &PartialExpander{
-		resolver:     resolver,
-		cssProcessor: cssProcessor,
-		fsReader:     fsReader,
+		resolver:      resolver,
+		cssProcessor:  cssProcessor,
+		fsReader:      recorder,
+		styleRecorder: recorder,
 	}
+}
+
+// ImportedStylePaths returns the absolute paths of external stylesheets that were pulled
+// into this expander's components via CSS @import. The build watches these files and
+// folds their contents into its input hash so edits trigger a rebuild in interpreted
+// mode.
+//
+// Returns []string which contains the recorded stylesheet paths (nil if none were read).
+func (exp *PartialExpander) ImportedStylePaths() []string {
+	if exp.styleRecorder == nil {
+		return nil
+	}
+	return exp.styleRecorder.recordedPaths()
 }
 
 // Expand runs the expansion stage starting from the given entry point.

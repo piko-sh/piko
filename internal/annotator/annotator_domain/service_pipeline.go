@@ -62,6 +62,11 @@ type componentAnnotationPipeline struct {
 
 	// diagnostics collects issues found during pipeline processing.
 	diagnostics []*ast_domain.Diagnostic
+
+	// importedStylePaths holds the external stylesheet files pulled in via CSS @import
+	// during the expansion stage, captured so they can be attached to the final
+	// AnnotationResult.
+	importedStylePaths []string
 }
 
 // run executes the full annotation pipeline through all stages.
@@ -103,6 +108,9 @@ func (p *componentAnnotationPipeline) run(ctx context.Context) (*annotator_dto.A
 	}
 
 	p.runFinalTransformations(ctx, analysisResult)
+	if analysisResult != nil {
+		analysisResult.ImportedStylePaths = p.importedStylePaths
+	}
 	return analysisResult, p.diagnostics, nil
 }
 
@@ -118,6 +126,7 @@ func (p *componentAnnotationPipeline) runExpansionStage(ctx context.Context) (*a
 	cssProc := p.service.cssProcessor.WithResolver(effectiveResolver)
 	partialExpander := NewPartialExpander(effectiveResolver, cssProc, p.service.fsReader)
 	result, diagnostics, err := partialExpander.Expand(ctx, p.componentGraph, p.vc.HashedName, p.vc.IsPage, p.vc.IsEmail)
+	p.importedStylePaths = partialExpander.ImportedStylePaths()
 	if err != nil {
 		return nil, p.handleStageError(ctx, err, "expansion", nil)
 	}

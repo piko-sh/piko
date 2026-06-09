@@ -23,6 +23,8 @@ package lifecycle_domain
 
 import (
 	"context"
+	"path/filepath"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -88,16 +90,181 @@ func (ls *lifecycleService) processBuildNotification(ctx context.Context, notifi
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the asset manifest
 // from which to extract file paths.
 func (ls *lifecycleService) updateWatchedFilesFromBuild(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) {
-	if ls.watcherAdapter == nil || result.FinalAssetManifest == nil {
+	ls.updateStyleDepsFromBuild(result)
+
+	if ls.watcherAdapter == nil {
 		return
 	}
 
 	ctx, l := logger_domain.From(ctx, log)
 
-	assetFiles := ls.extractAssetPathsFromManifest(result)
-	if err := ls.watcherAdapter.UpdateWatchedFiles(ctx, assetFiles); err != nil {
+	var watched []string
+	if result.FinalAssetManifest != nil {
+		watched = ls.extractAssetPathsFromManifest(result)
+	}
+
+	watched = append(watched, ls.allWatchedStyleFiles()...)
+	if len(watched) == 0 {
+		return
+	}
+
+	if err := ls.watcherAdapter.UpdateWatchedFiles(ctx, watched); err != nil {
 		l.Error("Failed to update watched files after build", logger_domain.Error(err))
 	}
+}
+
+// updateStyleDepsFromBuild merges the CSS @import dependencies reported by each annotated
+// component in result into componentStyleDeps. Each build updates only the components it
+// annotated (so targeted rebuilds do not erase other components' entries), and components
+// that no longer import any stylesheet are dropped.
+//
+// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the per-component
+// annotation results and the virtual module for path resolution.
+//
+// Concurrency: acquires styleDepsMu while merging the build's style dependencies.
+func (ls *lifecycleService) updateStyleDepsFromBuild(result *annotator_dto.ProjectAnnotationResult) {
+	if result == nil || result.VirtualModule == nil {
+		return
+	}
+
+	ls.styleDepsMu.Lock()
+	defer ls.styleDepsMu.Unlock()
+	if ls.componentStyleDeps == nil {
+		ls.componentStyleDeps = make(map[string][]string)
+	}
+
+	for hashedName, ar := range result.ComponentResults {
+		if ar == nil {
+			continue
+		}
+		relPath := ls.componentRelPath(hashedName, result.VirtualModule)
+		if relPath == "" {
+			continue
+		}
+		styleRelPaths := make([]string, 0, len(ar.ImportedStylePaths))
+		for _, p := range ar.ImportedStylePaths {
+			if rel := ls.projectRelPath(p); rel != "" {
+				styleRelPaths = append(styleRelPaths, rel)
+			}
+		}
+		if len(styleRelPaths) == 0 {
+			delete(ls.componentStyleDeps, relPath)
+			continue
+		}
+		ls.componentStyleDeps[relPath] = styleRelPaths
+	}
+}
+
+// projectRelPath converts an absolute path to a slash-separated path relative to the
+// project root, matching the form the file watcher reports (and the form asset paths
+// use). The project root is the configured base directory resolved to an absolute path.
+//
+// Takes absPath (string) which is the absolute path to relativise.
+//
+// Returns string which is the slash-separated project-relative path, or "" if it lies
+// outside the project root or cannot be relativised.
+func (ls *lifecycleService) projectRelPath(absPath string) string {
+	base := ls.pathsConfig.BaseDir
+	if abs, err := filepath.Abs(base); err == nil {
+		base = abs
+	}
+	rel, err := ls.fs.Rel(base, absPath)
+	if err != nil || !filepath.IsLocal(rel) {
+		return ""
+	}
+	return filepath.ToSlash(rel)
+}
+
+// componentRelPath resolves a component's project-relative source path (e.g.
+// "pages/index.pk") from its hashed name using the virtual module.
+//
+// Takes hashedName (string) which identifies the component.
+// Takes vm (*annotator_dto.VirtualModule) which maps hashed names to components.
+//
+// Returns string which is the slash-separated project-relative path, or "" if unresolved.
+func (ls *lifecycleService) componentRelPath(hashedName string, vm *annotator_dto.VirtualModule) string {
+	vc, ok := vm.ComponentsByHash[hashedName]
+	if !ok || vc == nil || vc.Source == nil {
+		return ""
+	}
+	return ls.projectRelPath(vc.Source.SourcePath)
+}
+
+// allWatchedStyleFiles returns the de-duplicated union of every component's imported
+// stylesheet paths, for registration with the file watcher.
+//
+// The paths are joined with the base directory so they take the same form as the asset
+// paths from extractAssetPathsFromManifest (project-relative when BaseDir is ".",
+// absolute otherwise), keeping one consistent representation in the watch set.
+//
+// Returns []string which contains the stylesheet paths to watch (nil if none).
+//
+// Concurrency: read-locks styleDepsMu while building the union.
+func (ls *lifecycleService) allWatchedStyleFiles() []string {
+	ls.styleDepsMu.RLock()
+	defer ls.styleDepsMu.RUnlock()
+	if len(ls.componentStyleDeps) == 0 {
+		return nil
+	}
+	baseDir := ls.pathsConfig.BaseDir
+	seen := make(map[string]struct{})
+	var out []string
+	for _, paths := range ls.componentStyleDeps {
+		for _, rel := range paths {
+			full := ls.fs.Join(baseDir, rel)
+			if _, ok := seen[full]; ok {
+				continue
+			}
+			seen[full] = struct{}{}
+			out = append(out, full)
+		}
+	}
+	return out
+}
+
+// normaliseStylePath converts a watcher-reported path into the canonical slash-separated
+// project-relative form used as the componentStyleDeps key and value.
+//
+// The watcher may report an absolute path (with an absolute base directory) or a
+// project-relative one (the default, where BaseDir is "."); both reduce to the same
+// project-relative form so lookups match regardless of configuration.
+//
+// Takes p (string) which is the path to normalise.
+//
+// Returns string which is the slash-separated project-relative path, or "" if an absolute
+// path lies outside the project root.
+func (ls *lifecycleService) normaliseStylePath(p string) string {
+	if filepath.IsAbs(p) {
+		return ls.projectRelPath(p)
+	}
+	return filepath.ToSlash(filepath.Clean(p))
+}
+
+// importersOfStyle returns the project-relative paths of components that import the
+// stylesheet at cssPath via CSS @import.
+//
+// Takes cssPath (string) which is the path of the changed stylesheet as reported by the
+// file watcher; it may be absolute or project-relative and is normalised before lookup.
+//
+// Returns []string which contains the importing components' relative paths (nil if none).
+//
+// Concurrency: read-locks styleDepsMu while scanning for importers.
+func (ls *lifecycleService) importersOfStyle(cssPath string) []string {
+	target := ls.normaliseStylePath(cssPath)
+	if target == "" {
+		return nil
+	}
+
+	ls.styleDepsMu.RLock()
+	defer ls.styleDepsMu.RUnlock()
+
+	var importers []string
+	for relPath, paths := range ls.componentStyleDeps {
+		if slices.Contains(paths, target) {
+			importers = append(importers, relPath)
+		}
+	}
+	return importers
 }
 
 // extractAssetPathsFromManifest converts asset manifest entries to absolute file paths.

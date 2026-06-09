@@ -71,6 +71,12 @@ type AnnotationResult struct {
 	// AssetDependencies lists the static assets that this component needs.
 	AssetDependencies []*StaticAssetDependency
 
+	// ImportedStylePaths lists the absolute paths of external stylesheet files this
+	// component pulled in via CSS @import during expansion. The interpreted-mode build
+	// watches these files and folds their contents into the build input hash, so editing an
+	// imported stylesheet triggers a rebuild even though the .pk source itself is unchanged.
+	ImportedStylePaths []string
+
 	// UsesCaptcha indicates the template contains a piko:captcha element and needs captcha
 	// provider scripts loaded at runtime.
 	UsesCaptcha bool

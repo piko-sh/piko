@@ -155,6 +155,7 @@ func TestTryGenerateArtefacts(t *testing.T) {
 		s := &coordinatorService{
 			codeEmitter: emitter,
 			status:      buildStatus{State: stateBuilding},
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -192,6 +193,7 @@ func TestTryGenerateArtefacts(t *testing.T) {
 		s := &coordinatorService{
 			codeEmitter: emitter,
 			status:      buildStatus{State: stateBuilding},
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -366,6 +368,7 @@ func TestGenerateArtefacts(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -402,6 +405,7 @@ func TestGenerateArtefacts(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -437,6 +441,7 @@ func TestGenerateArtefacts(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -468,6 +473,7 @@ func TestGenerateArtefacts(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -499,6 +505,7 @@ func TestGenerateSingleArtefact(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -533,6 +540,7 @@ func TestGenerateSingleArtefact(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		virtualModule := &annotator_dto.VirtualModule{}
@@ -566,6 +574,7 @@ func TestGenerateSingleArtefact(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{
@@ -600,6 +609,7 @@ func TestGenerateSingleArtefact(t *testing.T) {
 		}
 		s := &coordinatorService{
 			codeEmitter: emitter,
+			resolver:    &resolver_domain.MockResolver{},
 		}
 
 		buildResult := &annotator_dto.ProjectAnnotationResult{

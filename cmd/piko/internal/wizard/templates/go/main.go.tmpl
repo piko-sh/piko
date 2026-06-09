@@ -8,6 +8,7 @@ import (
 
 {{- if .EnableInterpreted }}
 	"{{ .ModuleName }}/internal/interpreted"
+	"piko.sh/piko/wdk/interp/interp_provider_piko"
 {{- end }}
 	_ "{{ .ModuleName }}/dist"
 )
@@ -26,7 +27,8 @@ func main() {
 
 	// You can optionally define your symbols for interpreted mode.
 	// This is required for interpreted mode.
-	ssr.WithSymbols(&interpreted.Symbols)
+	ssr.WithInterpreterProvider(interp_provider_piko.NewProvider())
+	ssr.WithSymbols(interpreted.Symbols)
 {{- end }}
 
 	// You can add your own chi middleware and routes here.

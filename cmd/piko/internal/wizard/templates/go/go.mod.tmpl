@@ -9,4 +9,7 @@ require (
 	piko.sh/piko/wdk/json/json_provider_sonic {{ .PikoVersion }}
 {{- end }}
 	piko.sh/piko/wdk/media/image_provider_imaging {{ .PikoVersion }}
+{{- if .EnableInterpreted }}
+	piko.sh/piko/wdk/interp/interp_provider_piko {{ .PikoVersion }}
+{{- end }}
 )

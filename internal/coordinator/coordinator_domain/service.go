@@ -155,6 +155,13 @@ type coordinatorService struct {
 	// rebuildTrigger receives build requests to handle in the build loop.
 	rebuildTrigger chan *coordinator_dto.BuildRequest
 
+	// knownStyleDeps maps a component's hashed name to the absolute paths of its CSS @import
+	// stylesheets, recorded by the most recent build that annotated it.
+	//
+	// The build folds the union of these paths into its input hash, so editing an imported
+	// stylesheet invalidates the cache (and, in dev-i mode, the files are watched).
+	knownStyleDeps map[string][]string
+
 	// status holds the current build state and most recent result.
 	status buildStatus
 
@@ -186,6 +193,9 @@ type coordinatorService struct {
 
 	// subMutex guards access to the subscribers map.
 	subMutex sync.RWMutex
+
+	// styleDepsMu guards knownStyleDeps.
+	styleDepsMu sync.RWMutex
 
 	// debounceMutex guards access to the debounce timer.
 	debounceMutex sync.Mutex

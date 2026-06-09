@@ -38,8 +38,14 @@ func TestNewPartialExpander(t *testing.T) {
 	if expander.cssProcessor != nil {
 		t.Error("Expected cssProcessor to be nil when passed nil")
 	}
-	if expander.fsReader != nil {
-		t.Error("Expected fsReader to be nil when passed nil")
+
+	if expander.fsReader == nil {
+		t.Error("Expected fsReader to be the recording wrapper, got nil")
+	}
+	if expander.styleRecorder == nil {
+		t.Error("Expected styleRecorder to be set")
+	} else if expander.styleRecorder.inner != nil {
+		t.Error("Expected the recording reader to wrap the nil reader passed in")
 	}
 }
 
@@ -987,7 +993,7 @@ func TestStampNodesWithPackageDirectivesAndDynAttrs(t *testing.T) {
 func TestNewPartialExpanderWithArgs(t *testing.T) {
 	t.Parallel()
 
-	t.Run("stores resolver, cssProcessor, and fsReader", func(t *testing.T) {
+	t.Run("stores resolver, cssProcessor, and a recording fsReader", func(t *testing.T) {
 		t.Parallel()
 
 		cssProc := &CSSProcessor{}
@@ -996,7 +1002,11 @@ func TestNewPartialExpanderWithArgs(t *testing.T) {
 		require.NotNil(t, expander)
 		assert.Nil(t, expander.resolver)
 		assert.Same(t, cssProc, expander.cssProcessor)
-		assert.Nil(t, expander.fsReader)
+
+		require.NotNil(t, expander.fsReader)
+		require.NotNil(t, expander.styleRecorder)
+		assert.Nil(t, expander.styleRecorder.inner)
+		assert.Empty(t, expander.ImportedStylePaths())
 	})
 }
 
