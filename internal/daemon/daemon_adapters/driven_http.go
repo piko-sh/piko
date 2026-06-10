@@ -97,7 +97,11 @@ func (builder *HTTPRouterBuilder) BuildRouter(
 		return nil, fmt.Errorf("setting up dynamic routes: %w", err)
 	}
 
-	mainRouter.NotFound(http.NotFound)
+	if deps.NotFoundHandler != nil {
+		mainRouter.NotFound(deps.NotFoundHandler.ServeHTTP)
+	} else {
+		mainRouter.NotFound(http.NotFound)
+	}
 
 	span.SetStatus(codes.Ok, "Router built successfully")
 	return mainRouter, nil

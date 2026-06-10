@@ -48,8 +48,8 @@ func (*AttributeAnalyser) isHelperCall(d *ast_domain.Directive) bool {
 // a MemberExpr to a simple Identifier, and resolves the argument expressions.
 //
 // Takes d (*ast_domain.Directive) which contains the helper directive.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
-func (aa *AttributeAnalyser) resolveHelperCall(goCtx context.Context, d *ast_domain.Directive, ctx *AnalysisContext) {
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
+func (aa *AttributeAnalyser) resolveHelperCall(ctx context.Context, d *ast_domain.Directive, analysisContext *AnalysisContext) {
 	d.Modifier = helperModifierName
 
 	helperName := extractHelperNameFromDirective(d)
@@ -63,7 +63,7 @@ func (aa *AttributeAnalyser) resolveHelperCall(goCtx context.Context, d *ast_dom
 		}
 
 		for _, argument := range callExpr.Args {
-			aa.typeResolver.Resolve(goCtx, ctx, argument, d.Location)
+			aa.typeResolver.Resolve(ctx, analysisContext, argument, d.Location)
 		}
 	}
 
@@ -79,16 +79,16 @@ func (aa *AttributeAnalyser) resolveHelperCall(goCtx context.Context, d *ast_dom
 // defining it as a special js.Event type that can only be passed as a whole value.
 //
 // Takes d (*ast_domain.Directive) which is the directive to process.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes validator (*PKValidator) which provides client script export data for parameter
 // type checking. May be nil.
-func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(goCtx context.Context, d *ast_domain.Directive, ctx *AnalysisContext, validator *PKValidator) {
+func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(ctx context.Context, d *ast_domain.Directive, analysisContext *AnalysisContext, validator *PKValidator) {
 	if d == nil || d.Expression == nil {
 		return
 	}
 
 	if callExpr, isCall := d.Expression.(*ast_domain.CallExpression); isCall {
-		eventCtx := ctx.ForChildScope()
+		eventCtx := analysisContext.ForChildScope()
 		eventCtx.Symbols.Define(Symbol{
 			Name: "$event",
 			TypeInfo: &ast_domain.ResolvedTypeInfo{
@@ -119,12 +119,12 @@ func (aa *AttributeAnalyser) resolveClientEventHandlerArgs(goCtx context.Context
 		})
 
 		for _, argument := range callExpr.Args {
-			aa.typeResolver.Resolve(goCtx, eventCtx, argument, d.Location)
+			aa.typeResolver.Resolve(ctx, eventCtx, argument, d.Location)
 		}
 
 		handlerName := extractHandlerName(d)
 		if handlerName != "" {
-			aa.validateClientHandlerArgs(callExpr, handlerName, validator, d, ctx)
+			aa.validateClientHandlerArgs(callExpr, handlerName, validator, d, analysisContext)
 		}
 	}
 
@@ -175,13 +175,13 @@ func (*AttributeAnalyser) validateClientHandlerArgs(
 // p-class and p-style directives which accept object literals with dynamic values (e.g.,
 // p-class="{ 'active': state.IsActive }").
 //
-// Takes ctx (*AnalysisContext) which provides the current analysis state.
+// Takes analysisContext (*AnalysisContext) which provides the current analysis state.
 // Takes expression (ast_domain.Expression) which is the expression to resolve.
 // Takes location (ast_domain.Location) which specifies the source location.
-func (aa *AttributeAnalyser) resolveObjectLiteralValues(goCtx context.Context, ctx *AnalysisContext, expression ast_domain.Expression, location ast_domain.Location) {
+func (aa *AttributeAnalyser) resolveObjectLiteralValues(ctx context.Context, analysisContext *AnalysisContext, expression ast_domain.Expression, location ast_domain.Location) {
 	if objLit, ok := expression.(*ast_domain.ObjectLiteral); ok {
 		for _, valueExpr := range objLit.Pairs {
-			aa.typeResolver.Resolve(goCtx, ctx, valueExpr, location)
+			aa.typeResolver.Resolve(ctx, analysisContext, valueExpr, location)
 		}
 	}
 }

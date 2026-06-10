@@ -243,26 +243,7 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 	_, l := logger_domain.From(ctx, log)
 	l.Internal("Hot-reloading Chi router with new manifest...")
 
-	newAppRouter := chi.NewRouter()
-	newAppRouter.Use(rm.appRouter.Middlewares()...)
-
-	MountRoutesFromManifest(ctx, &MountRoutesConfig{
-		Router:            newAppRouter,
-		Deps:              rm.deps,
-		Store:             store,
-		CSRFService:       rm.csrfService,
-		RouteSettings:     rm.routeSettings,
-		SiteSettings:      rm.siteSettings,
-		Actions:           rm.actions,
-		CacheMiddleware:   rm.cacheMiddleware,
-		AuthGuardConfig:   rm.authGuardConfig,
-		CaptchaService:    rm.captchaService,
-		SpamDetectService: rm.spamdetectService,
-	})
-
-	for _, provider := range rm.routeProviders {
-		provider.MountRoutes(newAppRouter)
-	}
+	newAppRouter, notFoundHandler := rm.buildReloadedAppRouter(ctx, store)
 
 	builder := NewHTTPRouterBuilder(rm.artefactCache)
 	finalRouter, err := builder.BuildRouter(
@@ -270,6 +251,7 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 		daemon_domain.RouterDependencies{
 			RegistryService:        rm.registryService,
 			UserRouter:             newAppRouter,
+			NotFoundHandler:        notFoundHandler,
 			VariantGenerator:       rm.variantGenerator,
 			CSPConfig:              rm.cspConfig,
 			PresignUploadHandler:   rm.presignUploadHandler,
@@ -309,4 +291,46 @@ func (rm *RouterManager) Close() {
 	if b != nil {
 		b.Close()
 	}
+}
+
+// buildReloadedAppRouter constructs a fresh application router for a hot reload: it
+// mounts the manifest routes and external route providers, then builds the matching
+// not-found handler bound to the new store.
+//
+// Takes ctx (context.Context) which carries logging and request context.
+// Takes store (templater_domain.ManifestStoreView) which provides the new manifest data.
+//
+// Returns chi.Router which is the populated application router.
+// Returns http.Handler which is the not-found handler resolving custom error pages
+// against store.
+func (rm *RouterManager) buildReloadedAppRouter(ctx context.Context, store templater_domain.ManifestStoreView) (chi.Router, http.Handler) {
+	newAppRouter := chi.NewRouter()
+	newAppRouter.Use(rm.appRouter.Middlewares()...)
+
+	MountRoutesFromManifest(ctx, &MountRoutesConfig{
+		Router:            newAppRouter,
+		Deps:              rm.deps,
+		Store:             store,
+		CSRFService:       rm.csrfService,
+		RouteSettings:     rm.routeSettings,
+		SiteSettings:      rm.siteSettings,
+		Actions:           rm.actions,
+		CacheMiddleware:   rm.cacheMiddleware,
+		AuthGuardConfig:   rm.authGuardConfig,
+		CaptchaService:    rm.captchaService,
+		SpamDetectService: rm.spamdetectService,
+	})
+
+	for _, provider := range rm.routeProviders {
+		provider.MountRoutes(newAppRouter)
+	}
+
+	notFoundHandler := createNotFoundHandler(newAppRouter, pageErrorContext{
+		Deps:          rm.deps,
+		Store:         store,
+		WebsiteConfig: rm.siteSettings,
+		Entry:         nil,
+		Span:          nil,
+	})
+	return newAppRouter, notFoundHandler
 }

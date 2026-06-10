@@ -150,3 +150,17 @@ func TestAllWatchedStyleFilesDeDuplicatesUnion(t *testing.T) {
 
 	assert.Equal(t, []string{"/proj/lib/theme.css"}, ls.allWatchedStyleFiles())
 }
+
+func TestRemoveComponentStyleDepsDropsEntry(t *testing.T) {
+	t.Parallel()
+
+	ls := newStyleDepsTestService()
+	ls.updateStyleDepsFromBuild(styleBuildResult("hashA", "/proj/pages/old.pk", "/proj/lib/theme.css"))
+
+	assert.Equal(t, []string{"pages/old.pk"}, ls.importersOfStyle("/proj/lib/theme.css"))
+
+	ls.removeComponentStyleDeps("pages/old.pk")
+
+	assert.Nil(t, ls.importersOfStyle("/proj/lib/theme.css"))
+	assert.Nil(t, ls.allWatchedStyleFiles())
+}

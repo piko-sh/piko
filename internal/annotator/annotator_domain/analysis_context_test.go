@@ -1048,7 +1048,7 @@ func TestProcessValueSpec(t *testing.T) {
 			Type:  goast.NewIdent("int"),
 		}
 
-		processValueSpec(ctx, spec)
+		processValueSpec(ctx, spec, token.VAR, nil)
 
 		_, found := ctx.Symbols.Find("PublicVar")
 		assert.True(t, found)
@@ -1069,7 +1069,7 @@ func TestProcessValueSpec(t *testing.T) {
 			Type: goast.NewIdent("string"),
 		}
 
-		processValueSpec(ctx, spec)
+		processValueSpec(ctx, spec, token.VAR, nil)
 
 		_, foundFirst := ctx.Symbols.Find("First")
 		_, foundSecond := ctx.Symbols.Find("Second")
@@ -1093,7 +1093,7 @@ func TestProcessValueSpec(t *testing.T) {
 			Type: goast.NewIdent("int"),
 		}
 
-		processValueSpec(ctx, spec)
+		processValueSpec(ctx, spec, token.VAR, nil)
 
 		_, foundPrivate := ctx.Symbols.Find("privateVar")
 		_, foundPublic := ctx.Symbols.Find("PublicVar")
@@ -1111,7 +1111,7 @@ func TestProcessValueSpec(t *testing.T) {
 			Path: &goast.BasicLit{Value: `"fmt"`},
 		}
 
-		processValueSpec(ctx, spec)
+		processValueSpec(ctx, spec, token.VAR, nil)
 
 		assert.Empty(t, ctx.Symbols.symbols)
 	})
@@ -1895,4 +1895,102 @@ func TestDefineAndValidateLocalFunctions_ShadowWarnings(t *testing.T) {
 		_, foundConst := ctx.Symbols.Find("ExportedConst")
 		assert.True(t, foundConst, "should define exported constant")
 	})
+}
+
+func TestProcessConstVarDecl_CarriesIotaGroupType(t *testing.T) {
+	t.Parallel()
+
+	diagnostics := &[]*ast_domain.Diagnostic{}
+	ctx := NewRootAnalysisContext(diagnostics, "", "", "", "")
+
+	genDecl := &goast.GenDecl{
+		Tok: token.CONST,
+		Specs: []goast.Spec{
+			&goast.ValueSpec{
+				Names:  []*goast.Ident{goast.NewIdent("ResultStatusUnknown")},
+				Type:   goast.NewIdent("ResultStatus"),
+				Values: []goast.Expr{goast.NewIdent("iota")},
+			},
+			&goast.ValueSpec{Names: []*goast.Ident{goast.NewIdent("ResultStatusWaiting")}},
+			&goast.ValueSpec{Names: []*goast.Ident{goast.NewIdent("ResultStatusDoing")}},
+		},
+	}
+
+	processConstVarDecl(ctx, genDecl)
+
+	for _, name := range []string{"ResultStatusUnknown", "ResultStatusWaiting", "ResultStatusDoing"} {
+		symbol, found := ctx.Symbols.Find(name)
+		require.True(t, found, "symbol %s should be registered", name)
+		ident, ok := symbol.TypeInfo.TypeExpression.(*goast.Ident)
+		require.True(t, ok, "symbol %s should have an identifier type", name)
+		assert.Equal(t, "ResultStatus", ident.Name, "symbol %s should inherit the const group type", name)
+	}
+}
+
+func TestProcessConstVarDecl_ResetsCarriedTypeAfterTypelessValue(t *testing.T) {
+	t.Parallel()
+
+	diagnostics := &[]*ast_domain.Diagnostic{}
+	ctx := NewRootAnalysisContext(diagnostics, "", "", "", "")
+
+	genDecl := &goast.GenDecl{
+		Tok: token.CONST,
+		Specs: []goast.Spec{
+			&goast.ValueSpec{
+				Names:  []*goast.Ident{goast.NewIdent("Typed")},
+				Type:   goast.NewIdent("Status"),
+				Values: []goast.Expr{goast.NewIdent("iota")},
+			},
+			&goast.ValueSpec{
+				Names:  []*goast.Ident{goast.NewIdent("Retyped")},
+				Values: []goast.Expr{&goast.BasicLit{Kind: token.INT, Value: "5"}},
+			},
+			&goast.ValueSpec{Names: []*goast.Ident{goast.NewIdent("Inherited")}},
+		},
+	}
+
+	processConstVarDecl(ctx, genDecl)
+
+	typed, found := ctx.Symbols.Find("Typed")
+	require.True(t, found)
+	typedIdent, ok := typed.TypeInfo.TypeExpression.(*goast.Ident)
+	require.True(t, ok)
+	assert.Equal(t, "Status", typedIdent.Name)
+
+	for _, name := range []string{"Retyped", "Inherited"} {
+		symbol, found := ctx.Symbols.Find(name)
+		require.True(t, found)
+		ident, ok := symbol.TypeInfo.TypeExpression.(*goast.Ident)
+		require.True(t, ok)
+		assert.Equal(t, "any", ident.Name, "a const with a value but no type is untyped, and the carried type does not leak past it")
+	}
+}
+
+func TestProcessConstVarDecl_VarGroupDoesNotCarryType(t *testing.T) {
+	t.Parallel()
+
+	diagnostics := &[]*ast_domain.Diagnostic{}
+	ctx := NewRootAnalysisContext(diagnostics, "", "", "", "")
+
+	genDecl := &goast.GenDecl{
+		Tok: token.VAR,
+		Specs: []goast.Spec{
+			&goast.ValueSpec{
+				Names: []*goast.Ident{goast.NewIdent("First")},
+				Type:  goast.NewIdent("string"),
+			},
+			&goast.ValueSpec{
+				Names:  []*goast.Ident{goast.NewIdent("Second")},
+				Values: []goast.Expr{&goast.BasicLit{Kind: token.INT, Value: "1"}},
+			},
+		},
+	}
+
+	processConstVarDecl(ctx, genDecl)
+
+	second, found := ctx.Symbols.Find("Second")
+	require.True(t, found)
+	secondIdent, ok := second.TypeInfo.TypeExpression.(*goast.Ident)
+	require.True(t, ok)
+	assert.Equal(t, "any", secondIdent.Name)
 }

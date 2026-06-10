@@ -378,6 +378,7 @@ func handleCallNativeReflect(vm *VM, registers *Registers, site *callSite, refle
 		return opPanicError
 	}
 	unwrapPikoNamedTypeArguments(reflectedFunction, arguments)
+	unwrapPikoAdapterArguments(reflectedFunction, arguments)
 	shimReflectMakeFuncImpl(reflectedFunction, arguments)
 	vm.globals.dispatchDepth.Add(1)
 	results, panicValue, err := safeReflectCallOrCallSlice(reflectedFunction, arguments, site.isEllipsisSpread)

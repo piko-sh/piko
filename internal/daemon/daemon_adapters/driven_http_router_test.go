@@ -1479,3 +1479,164 @@ func TestRedirectToCanonicalSlash_PreservesQuery(t *testing.T) {
 	assert.True(t, redirectToCanonicalSlash(router, rec, req))
 	assert.Equal(t, "/fr/articles/?page=2", rec.Header().Get("Location"))
 }
+
+const (
+	customNotFoundBody = "<h1>Custom 404</h1>"
+)
+
+func storeWithErrorPage() *templater_domain.MockManifestStoreView {
+	entry := &templater_domain.MockPageEntryView{
+		GetOriginalPathFunc: func() string { return "/pages/!404.pk" },
+	}
+	return &templater_domain.MockManifestStoreView{
+		FindErrorPageFunc: func(_ int, _ string) (templater_domain.PageEntryView, bool) {
+			return entry, true
+		},
+	}
+}
+
+func storeWithoutErrorPage() *templater_domain.MockManifestStoreView {
+	return &templater_domain.MockManifestStoreView{
+		FindErrorPageFunc: func(_ int, _ string) (templater_domain.PageEntryView, bool) {
+			return nil, false
+		},
+	}
+}
+
+func depsRenderingBody(body string) *daemon_domain.HTTPHandlerDependencies {
+	return &daemon_domain.HTTPHandlerDependencies{
+		Templater: &templater_domain.MockTemplaterService{
+			ProbePageFunc: func(_ context.Context, _ templater_dto.PageDefinition, _ *http.Request, _ *config.WebsiteConfig) (*templater_dto.PageProbeResult, error) {
+				return &templater_dto.PageProbeResult{}, nil
+			},
+			RenderPageFunc: func(_ context.Context, request templater_domain.RenderRequest) error {
+				_, _ = request.Writer.Write([]byte(body))
+				return nil
+			},
+		},
+	}
+}
+
+func mountAppRouterUnderCatchAll(notFound http.Handler) chi.Router {
+	appRouter := chi.NewRouter()
+	appRouter.NotFound(notFound.ServeHTTP)
+
+	parent := chi.NewRouter()
+	parent.Group(func(r chi.Router) {
+		r.Handle("/*", appRouter)
+	})
+	parent.NotFound(http.NotFound)
+	return parent
+}
+
+func TestNewNotFoundHandler_AppRouterThroughCatchAll_RendersCustomPage(t *testing.T) {
+	t.Parallel()
+
+	handler := NewNotFoundHandler(
+		chi.NewRouter(),
+		depsRenderingBody(customNotFoundBody),
+		storeWithErrorPage(),
+		&config.WebsiteConfig{},
+	)
+	parent := mountAppRouterUnderCatchAll(handler)
+
+	request := httptest.NewRequest(http.MethodGet, "/no-such-route", nil)
+	recorder := httptest.NewRecorder()
+	parent.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), customNotFoundBody)
+}
+
+func TestNewNotFoundHandler_AppRouterThroughCatchAll_PlainWhenNoErrorPage(t *testing.T) {
+	t.Parallel()
+
+	handler := NewNotFoundHandler(
+		chi.NewRouter(),
+		depsRenderingBody(customNotFoundBody),
+		storeWithoutErrorPage(),
+		&config.WebsiteConfig{},
+	)
+	parent := mountAppRouterUnderCatchAll(handler)
+
+	request := httptest.NewRequest(http.MethodGet, "/no-such-route", nil)
+	recorder := httptest.NewRecorder()
+	parent.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.NotContains(t, recorder.Body.String(), customNotFoundBody)
+	assert.Contains(t, recorder.Body.String(), "404 page not found")
+}
+
+func TestMountRoutesFromManifest_NotFound_RendersCustomPage(t *testing.T) {
+	t.Parallel()
+
+	appRouter := chi.NewRouter()
+	MountRoutesFromManifest(context.Background(), &MountRoutesConfig{
+		Router:        appRouter,
+		Deps:          depsRenderingBody(customNotFoundBody),
+		Store:         storeWithErrorPage(),
+		SiteSettings:  &config.WebsiteConfig{},
+		RouteSettings: RouteSettings{},
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/no-such-route", nil)
+	recorder := httptest.NewRecorder()
+	appRouter.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), customNotFoundBody)
+}
+
+func TestMountRoutesFromManifest_NotFound_PlainWhenNoErrorPage(t *testing.T) {
+	t.Parallel()
+
+	appRouter := chi.NewRouter()
+	MountRoutesFromManifest(context.Background(), &MountRoutesConfig{
+		Router:        appRouter,
+		Deps:          depsRenderingBody(customNotFoundBody),
+		Store:         storeWithoutErrorPage(),
+		SiteSettings:  &config.WebsiteConfig{},
+		RouteSettings: RouteSettings{},
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/no-such-route", nil)
+	recorder := httptest.NewRecorder()
+	appRouter.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.NotContains(t, recorder.Body.String(), customNotFoundBody)
+	assert.Contains(t, recorder.Body.String(), "404 page not found")
+}
+
+func TestBuildRouter_InstallsNotFoundHandlerOnMainRouter(t *testing.T) {
+	t.Parallel()
+
+	notFoundHandler := NewNotFoundHandler(
+		chi.NewRouter(),
+		depsRenderingBody(customNotFoundBody),
+		storeWithErrorPage(),
+		&config.WebsiteConfig{},
+	)
+
+	builder := NewHTTPRouterBuilder(nil)
+	mainRouter, err := builder.BuildRouter(
+		&daemon_domain.RouterConfig{
+			DistServePath:     "/_piko/dist",
+			ArtefactServePath: "/_piko/artefacts",
+			SecurityHeaders:   security_dto.SecurityHeadersValues{Enabled: false},
+			RateLimit:         security_dto.RateLimitValues{},
+		},
+		daemon_domain.RouterDependencies{
+			NotFoundHandler: notFoundHandler,
+		},
+	)
+	require.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodGet, "/no-such-route", nil)
+	recorder := httptest.NewRecorder()
+	mainRouter.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), customNotFoundBody)
+}

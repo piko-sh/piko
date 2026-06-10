@@ -113,93 +113,106 @@ const (
 // builtInHandler holds the validation and return type logic for a built-in function.
 type builtInHandler struct {
 	// ValidateArgs checks the arguments passed to a built-in function call.
-	ValidateArgs func(tr *TypeResolver, ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location)
+	ValidateArgs func(
+		ctx context.Context,
+		tr *TypeResolver,
+		analysisContext *AnalysisContext,
+		callExpr *ast_domain.CallExpression,
+		argAnns []*ast_domain.GoGeneratorAnnotation,
+		baseLocation ast_domain.Location,
+	)
 
 	// GetReturnType returns the result type for this built-in function handler.
-	GetReturnType func(tr *TypeResolver, ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo
+	GetReturnType func(
+		ctx context.Context,
+		tr *TypeResolver,
+		analysisContext *AnalysisContext,
+		callExpr *ast_domain.CallExpression,
+		argAnns []*ast_domain.GoGeneratorAnnotation,
+	) *ast_domain.ResolvedTypeInfo
 }
 
 var (
 	// builtInFunctions is the central registry for all special system functions.
 	builtInFunctions = map[string]builtInHandler{
 		"len": {
-			ValidateArgs:  (*TypeResolver).validateLenCapArgs,
+			ValidateArgs:  validateLenCapArgs,
 			GetReturnType: getLenCapReturnType,
 		},
 		"cap": {
-			ValidateArgs:  (*TypeResolver).validateLenCapArgs,
+			ValidateArgs:  validateLenCapArgs,
 			GetReturnType: getLenCapReturnType,
 		},
 		"append": {
-			ValidateArgs:  (*TypeResolver).validateAppendArgs,
-			GetReturnType: (*TypeResolver).getAppendReturnType,
+			ValidateArgs:  validateAppendArgs,
+			GetReturnType: getAppendReturnType,
 		},
 		"min": {
-			ValidateArgs:  (*TypeResolver).validateMinMaxArgs,
+			ValidateArgs:  validateMinMaxArgs,
 			GetReturnType: getMinMaxReturnType,
 		},
 		"max": {
-			ValidateArgs:  (*TypeResolver).validateMinMaxArgs,
+			ValidateArgs:  validateMinMaxArgs,
 			GetReturnType: getMinMaxReturnType,
 		},
 		"T": {
-			ValidateArgs:  (*TypeResolver).validateTranslationFuncArgs,
+			ValidateArgs:  validateTranslationFuncArgs,
 			GetReturnType: getTranslationFuncReturnType,
 		},
 		"LT": {
-			ValidateArgs:  (*TypeResolver).validateTranslationFuncArgs,
+			ValidateArgs:  validateTranslationFuncArgs,
 			GetReturnType: getTranslationFuncReturnType,
 		},
 		"F": {
-			ValidateArgs:  (*TypeResolver).validateFormatFuncArgs,
+			ValidateArgs:  validateFormatFuncArgs,
 			GetReturnType: getFormatFuncReturnType,
 		},
 		"LF": {
-			ValidateArgs:  (*TypeResolver).validateFormatFuncArgs,
+			ValidateArgs:  validateFormatFuncArgs,
 			GetReturnType: getFormatFuncReturnType,
 		},
 		"string": {
-			ValidateArgs:  (*TypeResolver).validateStringCoercionArgs,
+			ValidateArgs:  validateStringCoercionArgs,
 			GetReturnType: getStringReturnType,
 		},
 		"int": {
-			ValidateArgs:  (*TypeResolver).validateIntCoercionArgs,
+			ValidateArgs:  validateIntCoercionArgs,
 			GetReturnType: getIntReturnType,
 		},
 		"int64": {
-			ValidateArgs:  (*TypeResolver).validateInt64CoercionArgs,
+			ValidateArgs:  validateInt64CoercionArgs,
 			GetReturnType: getInt64ReturnType,
 		},
 		"int32": {
-			ValidateArgs:  (*TypeResolver).validateInt32CoercionArgs,
+			ValidateArgs:  validateInt32CoercionArgs,
 			GetReturnType: getInt32ReturnType,
 		},
 		"int16": {
-			ValidateArgs:  (*TypeResolver).validateInt16CoercionArgs,
+			ValidateArgs:  validateInt16CoercionArgs,
 			GetReturnType: getInt16ReturnType,
 		},
 		"float": {
-			ValidateArgs:  (*TypeResolver).validateFloatCoercionArgs,
+			ValidateArgs:  validateFloatCoercionArgs,
 			GetReturnType: getFloatReturnType,
 		},
 		"float64": {
-			ValidateArgs:  (*TypeResolver).validateFloat64CoercionArgs,
+			ValidateArgs:  validateFloat64CoercionArgs,
 			GetReturnType: getFloat64ReturnType,
 		},
 		"float32": {
-			ValidateArgs:  (*TypeResolver).validateFloat32CoercionArgs,
+			ValidateArgs:  validateFloat32CoercionArgs,
 			GetReturnType: getFloat32ReturnType,
 		},
 		"bool": {
-			ValidateArgs:  (*TypeResolver).validateBoolCoercionArgs,
+			ValidateArgs:  validateBoolCoercionArgs,
 			GetReturnType: getBoolReturnType,
 		},
 		"decimal": {
-			ValidateArgs:  (*TypeResolver).validateDecimalCoercionArgs,
+			ValidateArgs:  validateDecimalCoercionArgs,
 			GetReturnType: getDecimalReturnType,
 		},
 		"bigint": {
-			ValidateArgs:  (*TypeResolver).validateBigIntCoercionArgs,
+			ValidateArgs:  validateBigIntCoercionArgs,
 			GetReturnType: getBigIntReturnType,
 		},
 	}
@@ -230,41 +243,41 @@ var (
 // determineInspectorContext finds the correct package and file context for inspector
 // lookups.
 //
-// Takes ctx (*AnalysisContext) which provides the current analysis state.
+// Takes analysisContext (*AnalysisContext) which provides the current analysis state.
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which contains the resolved type details
 // to look up.
 //
 // Returns packagePath (string) which is the package path to use for lookups.
 // Returns filePath (string) which is the file path where the type is defined.
-func (tr *TypeResolver) determineInspectorContext(ctx *AnalysisContext, typeInfo *ast_domain.ResolvedTypeInfo) (packagePath, filePath string) {
+func (tr *TypeResolver) determineInspectorContext(ctx context.Context, analysisContext *AnalysisContext, typeInfo *ast_domain.ResolvedTypeInfo) (packagePath, filePath string) {
 	importerPackagePath := typeInfo.CanonicalPackagePath
-	importerFilePath := ctx.CurrentGoSourcePath
+	importerFilePath := analysisContext.CurrentGoSourcePath
 
-	ctx.Logger.Trace("[stringability] Determining inspector context...",
+	analysisContext.Logger.Trace("[stringability] Determining inspector context...",
 		logger_domain.String("initial_pkg_path", importerPackagePath),
 		logger_domain.String("initial_file_path", importerFilePath),
 	)
 
 	if importerPackagePath == "" {
-		importerPackagePath = ctx.CurrentGoFullPackagePath
-		ctx.Logger.Trace("[stringability] No canonical path on typeInfo, falling back to current context.",
+		importerPackagePath = analysisContext.CurrentGoFullPackagePath
+		analysisContext.Logger.Trace("[stringability] No canonical path on typeInfo, falling back to current context.",
 			logger_domain.String("using_pkg_path", importerPackagePath),
 		)
 		return importerPackagePath, importerFilePath
 	}
 
-	ctx.Logger.Trace("[stringability] Canonical path found. Looking up type DTO to find its defining file.",
+	analysisContext.Logger.Trace("[stringability] Canonical path found. Looking up type DTO to find its defining file.",
 		logger_domain.String("type_to_find", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
 		logger_domain.String("in_pkg", importerPackagePath),
 	)
-	dto, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(context.Background(), typeInfo.TypeExpression, importerPackagePath, importerFilePath)
+	dto, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(ctx, typeInfo.TypeExpression, importerPackagePath, importerFilePath)
 	if dto != nil && dto.DefinedInFilePath != "" {
 		importerFilePath = dto.DefinedInFilePath
-		ctx.Logger.Trace("[stringability] Found type DTO and its defining file.",
+		analysisContext.Logger.Trace("[stringability] Found type DTO and its defining file.",
 			logger_domain.String("resolved_file_path", importerFilePath),
 		)
 	} else {
-		ctx.Logger.Trace("[stringability] Could not find specific DTO for type, proceeding with best-effort file path.",
+		analysisContext.Logger.Trace("[stringability] Could not find specific DTO for type, proceeding with best-effort file path.",
 			logger_domain.String("best_effort_file_path", importerFilePath),
 		)
 	}
@@ -275,7 +288,7 @@ func (tr *TypeResolver) determineInspectorContext(ctx *AnalysisContext, typeInfo
 // checkPointerStringability checks if a pointer type can be converted to a string by
 // unwrapping the pointer and checking its base type.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and logger.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state and logger.
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which contains the resolved type details
 // for the pointer.
 // Takes starExpr (*goast.StarExpr) which is the pointer type expression to check.
@@ -284,8 +297,13 @@ func (tr *TypeResolver) determineInspectorContext(ctx *AnalysisContext, typeInfo
 // Returns isPointer (bool) which is true when the type is a pointer.
 // Returns isStringable (bool) which is true when the base type can be turned into a
 // string.
-func (tr *TypeResolver) checkPointerStringability(ctx *AnalysisContext, typeInfo *ast_domain.ResolvedTypeInfo, starExpr *goast.StarExpr) (stringability int, isPointer, isStringable bool) {
-	ctx.Logger.Trace("[stringability] Type is a pointer, unwrapping and recursing.",
+func (tr *TypeResolver) checkPointerStringability(
+	ctx context.Context,
+	analysisContext *AnalysisContext,
+	typeInfo *ast_domain.ResolvedTypeInfo,
+	starExpr *goast.StarExpr,
+) (stringability int, isPointer, isStringable bool) {
+	analysisContext.Logger.Trace("[stringability] Type is a pointer, unwrapping and recursing.",
 		logger_domain.String("pointer_type", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
 	)
 
@@ -299,74 +317,74 @@ func (tr *TypeResolver) checkPointerStringability(ctx *AnalysisContext, typeInfo
 		InitialFilePath:         "",
 	}
 
-	baseStringability, _ := tr.determineStringability(ctx, elementTypeInfo)
+	baseStringability, _ := tr.determineStringability(ctx, analysisContext, elementTypeInfo)
 	if baseStringability != int(inspector_dto.StringableNone) {
-		ctx.Logger.Trace("[stringability] Found stringability on pointer's base type.",
+		analysisContext.Logger.Trace("[stringability] Found stringability on pointer's base type.",
 			logger_domain.Int("stringability_code", baseStringability),
 		)
 		return baseStringability, true, true
 	}
 
-	ctx.Logger.Trace("[stringability] Pointer's base type was not stringable, continuing check on pointer itself.")
+	analysisContext.Logger.Trace("[stringability] Pointer's base type was not stringable, continuing check on pointer itself.")
 	return 0, false, false
 }
 
 // determineStringability checks whether a type can be turned into a string. It looks for
 // types that implement the Stringer interface or are otherwise convertible to a string.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
 //
 // Returns int which shows the stringability level of the type.
 // Returns bool which is true when stringability is via a pointer receiver.
-func (tr *TypeResolver) determineStringability(ctx *AnalysisContext, typeInfo *ast_domain.ResolvedTypeInfo) (int, bool) {
+func (tr *TypeResolver) determineStringability(ctx context.Context, analysisContext *AnalysisContext, typeInfo *ast_domain.ResolvedTypeInfo) (int, bool) {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return int(inspector_dto.StringableNone), false
 	}
 
-	ctx.Logger.Trace("[stringability] Starting check",
+	analysisContext.Logger.Trace("[stringability] Starting check",
 		logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
 		logger_domain.String("type_info_pkg_alias", typeInfo.PackageAlias),
 		logger_domain.String("type_info_canonical_path", typeInfo.CanonicalPackagePath),
 	)
 
 	if starExpr, isPointer := typeInfo.TypeExpression.(*goast.StarExpr); isPointer {
-		if stringability, isViaPointer, found := tr.checkPointerStringability(ctx, typeInfo, starExpr); found {
+		if stringability, isViaPointer, found := tr.checkPointerStringability(ctx, analysisContext, typeInfo, starExpr); found {
 			return stringability, isViaPointer
 		}
 	}
 
 	typeString := goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)
 	if goastutil.IsPrimitiveOrBuiltin(typeString) {
-		ctx.Logger.Trace("[stringability] Type is a primitive or built-in.",
+		analysisContext.Logger.Trace("[stringability] Type is a primitive or built-in.",
 			logger_domain.String("type", typeString),
 		)
 		return int(inspector_dto.StringablePrimitive), false
 	}
 
-	if tr.isJSONStringableType(ctx, typeInfo.TypeExpression) {
-		ctx.Logger.Trace("[stringability] Type is a map or slice, using JSON stringability.",
+	if tr.isJSONStringableType(ctx, analysisContext, typeInfo.TypeExpression) {
+		analysisContext.Logger.Trace("[stringability] Type is a map or slice, using JSON stringability.",
 			logger_domain.String("type", typeString),
 		)
 		return int(inspector_dto.StringableViaJSON), false
 	}
 
-	importerPackagePath, importerFilePath := tr.determineInspectorContext(ctx, typeInfo)
+	importerPackagePath, importerFilePath := tr.determineInspectorContext(ctx, analysisContext, typeInfo)
 
-	ctx.Logger.Trace("[stringability] Calling ResolveExprToNamedTypeWithMemoization for final lookup.",
+	analysisContext.Logger.Trace("[stringability] Calling ResolveExprToNamedTypeWithMemoization for final lookup.",
 		logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
 		logger_domain.String("using_pkg_context", importerPackagePath),
 		logger_domain.String("using_file_context", importerFilePath),
 	)
 	namedType, packageName := tr.inspector.ResolveExprToNamedTypeWithMemoization(
-		context.Background(),
+		ctx,
 		typeInfo.TypeExpression,
 		importerPackagePath,
 		importerFilePath,
 	)
 
 	if namedType != nil {
-		ctx.Logger.Trace("[stringability] SUCCESS: Inspector found named type DTO.",
+		analysisContext.Logger.Trace("[stringability] SUCCESS: Inspector found named type DTO.",
 			logger_domain.String("found_type_name", namedType.Name),
 			logger_domain.String("found_in_pkg_alias", packageName),
 			logger_domain.Int("stringability_from_dto", int(namedType.Stringability)),
@@ -374,7 +392,7 @@ func (tr *TypeResolver) determineStringability(ctx *AnalysisContext, typeInfo *a
 		return int(namedType.Stringability), false
 	}
 
-	ctx.Logger.Trace("[stringability] FAILURE: Inspector could not resolve a named type DTO. Type is not stringable.",
+	analysisContext.Logger.Trace("[stringability] FAILURE: Inspector could not resolve a named type DTO. Type is not stringable.",
 		logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
 	)
 	return int(inspector_dto.StringableNone), false
@@ -382,16 +400,23 @@ func (tr *TypeResolver) determineStringability(ctx *AnalysisContext, typeInfo *a
 
 // validateLenCapArgs checks arguments for len and cap built-in calls.
 //
-// Takes ctx (*AnalysisContext) which collects diagnostics.
+// Takes analysisContext (*AnalysisContext) which collects diagnostics.
 // Takes callExpr (*ast_domain.CallExpression) which is the call to validate.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds argument types.
 // Takes baseLocation (ast_domain.Location) which anchors diagnostic positions.
-func (tr *TypeResolver) validateLenCapArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
+func validateLenCapArgs(
+	_ context.Context,
+	tr *TypeResolver,
+	analysisContext *AnalysisContext,
+	callExpr *ast_domain.CallExpression,
+	argAnns []*ast_domain.GoGeneratorAnnotation,
+	baseLocation ast_domain.Location,
+) {
 	functionName := callExpr.Callee.String()
 	if len(argAnns) != 1 {
 		finalLocation := baseLocation.Add(callExpr.GetRelativeLocation())
 		msg := fmt.Sprintf("Built-in function '%s' expects exactly one argument", functionName)
-		ctx.addDiagnosticForExpression(
+		analysisContext.addDiagnosticForExpression(
 			ast_domain.Error, msg, callExpr, finalLocation,
 			callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError,
 		)
@@ -405,7 +430,7 @@ func (tr *TypeResolver) validateLenCapArgs(ctx *AnalysisContext, callExpr *ast_d
 		typeName := goastutil.ASTToTypeString(argAnn.ResolvedType.TypeExpression, argAnn.ResolvedType.PackageAlias)
 		message := fmt.Sprintf("Invalid argument for '%s': type '%s' is not an array, slice, map, or string", functionName, typeName)
 		finalLocation := baseLocation.Add(callExpr.Args[0].GetRelativeLocation())
-		ctx.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[0], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
+		analysisContext.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[0], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
 	}
 }
 
@@ -413,18 +438,25 @@ func (tr *TypeResolver) validateLenCapArgs(ctx *AnalysisContext, callExpr *ast_d
 // at least one argument is present, the first argument is an ordered type, and all
 // subsequent arguments match the first argument's type.
 //
-// Takes ctx (*AnalysisContext) which collects diagnostics during validation.
+// Takes analysisContext (*AnalysisContext) which collects diagnostics during validation.
 // Takes callExpr (*ast_domain.CallExpression) which is the min or max call to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides type info for each
 // argument.
 // Takes baseLocation (ast_domain.Location) which is the base position for error
 // reporting.
-func (*TypeResolver) validateMinMaxArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
+func validateMinMaxArgs(
+	_ context.Context,
+	_ *TypeResolver,
+	analysisContext *AnalysisContext,
+	callExpr *ast_domain.CallExpression,
+	argAnns []*ast_domain.GoGeneratorAnnotation,
+	baseLocation ast_domain.Location,
+) {
 	functionName := callExpr.Callee.String()
 	if len(argAnns) < 1 {
 		finalLocation := baseLocation.Add(callExpr.GetRelativeLocation())
 		msg := fmt.Sprintf("Built-in function '%s' requires at least one argument", functionName)
-		ctx.addDiagnosticForExpression(
+		analysisContext.addDiagnosticForExpression(
 			ast_domain.Error, msg, callExpr, finalLocation,
 			callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError,
 		)
@@ -438,7 +470,7 @@ func (*TypeResolver) validateMinMaxArgs(ctx *AnalysisContext, callExpr *ast_doma
 		typeName := goastutil.ASTToTypeString(firstArgAnn.ResolvedType.TypeExpression, firstArgAnn.ResolvedType.PackageAlias)
 		message := fmt.Sprintf("Invalid argument for '%s': type '%s' is not an ordered type (e.g., number or string)", functionName, typeName)
 		finalLocation := baseLocation.Add(callExpr.Args[0].GetRelativeLocation())
-		ctx.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[0], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
+		analysisContext.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[0], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
 		return
 	}
 	for i := 1; i < len(argAnns); i++ {
@@ -451,7 +483,7 @@ func (*TypeResolver) validateMinMaxArgs(ctx *AnalysisContext, callExpr *ast_doma
 					"but argument %d is type '%s' while first argument is type '%s'",
 				functionName, i+1, sourceType, destType)
 			finalLocation := baseLocation.Add(callExpr.Args[i].GetRelativeLocation())
-			ctx.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[i], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
+			analysisContext.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[i], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
 		}
 	}
 }
@@ -465,7 +497,7 @@ func (*TypeResolver) validateMinMaxArgs(ctx *AnalysisContext, callExpr *ast_doma
 //
 // Returns *ast_domain.ResolvedTypeInfo which is the slice type from the first argument,
 // or "any" as a fallback.
-func (*TypeResolver) getAppendReturnType(_ *AnalysisContext, _ *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
+func getAppendReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	if len(argAnns) > 0 && argAnns[0] != nil && argAnns[0].ResolvedType != nil {
 		return argAnns[0].ResolvedType
 	}
@@ -474,16 +506,23 @@ func (*TypeResolver) getAppendReturnType(_ *AnalysisContext, _ *ast_domain.CallE
 
 // validateAppendArgs checks that arguments to the built-in append function are valid.
 //
-// Takes ctx (*AnalysisContext) which collects diagnostics.
+// Takes analysisContext (*AnalysisContext) which collects diagnostics.
 // Takes callExpr (*ast_domain.CallExpression) which is the append call to validate.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides resolved type
 // information for each argument.
 // Takes baseLocation (ast_domain.Location) which is the base position for error
 // reporting.
-func (tr *TypeResolver) validateAppendArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
+func validateAppendArgs(
+	_ context.Context,
+	tr *TypeResolver,
+	analysisContext *AnalysisContext,
+	callExpr *ast_domain.CallExpression,
+	argAnns []*ast_domain.GoGeneratorAnnotation,
+	baseLocation ast_domain.Location,
+) {
 	if len(argAnns) < 1 {
 		finalLocation := baseLocation.Add(callExpr.GetRelativeLocation())
-		ctx.addDiagnosticForExpression(
+		analysisContext.addDiagnosticForExpression(
 			ast_domain.Error, "Built-in function 'append' requires at least one argument",
 			callExpr, finalLocation,
 			callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError,
@@ -496,7 +535,7 @@ func (tr *TypeResolver) validateAppendArgs(ctx *AnalysisContext, callExpr *ast_d
 		typeName := goastutil.ASTToTypeString(sliceAnn.ResolvedType.TypeExpression, sliceAnn.ResolvedType.PackageAlias)
 		message := fmt.Sprintf("Invalid first argument for 'append': type '%s' is not a slice", typeName)
 		finalLocation := baseLocation.Add(callExpr.Args[0].GetRelativeLocation())
-		ctx.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[0], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
+		analysisContext.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[0], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
 		return
 	}
 	for i := 1; i < len(argAnns); i++ {
@@ -506,7 +545,7 @@ func (tr *TypeResolver) validateAppendArgs(ctx *AnalysisContext, callExpr *ast_d
 			destType := goastutil.ASTToTypeString(sliceElementType.TypeExpression, sliceElementType.PackageAlias)
 			message := fmt.Sprintf("Cannot use type '%s' as a value of type '%s' in argument to 'append'", sourceType, destType)
 			finalLocation := baseLocation.Add(callExpr.Args[i].GetRelativeLocation())
-			ctx.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[i], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
+			analysisContext.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[i], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeBuiltinFunctionError)
 		}
 	}
 }
@@ -563,19 +602,26 @@ func (tr *TypeResolver) getSliceElementType(typeInfo *ast_domain.ResolvedTypeInf
 // If a TranslationKeySet is available in the context, it also checks that the translation
 // key exists and emits a warning if not.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and diagnostics
-// collector.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state and
+// diagnostics collector.
 // Takes callExpr (*ast_domain.CallExpression) which is the function call to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains type annotations for
 // each argument.
 // Takes baseLocation (ast_domain.Location) which is the base location for working out
 // diagnostic positions.
-func (*TypeResolver) validateTranslationFuncArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
+func validateTranslationFuncArgs(
+	_ context.Context,
+	_ *TypeResolver,
+	analysisContext *AnalysisContext,
+	callExpr *ast_domain.CallExpression,
+	argAnns []*ast_domain.GoGeneratorAnnotation,
+	baseLocation ast_domain.Location,
+) {
 	functionName := callExpr.Callee.String()
 	if len(argAnns) < 1 {
 		finalLocation := baseLocation.Add(callExpr.GetRelativeLocation())
 		msg := fmt.Sprintf("Built-in function '%s' expects at least one argument", functionName)
-		ctx.addDiagnosticForExpression(
+		analysisContext.addDiagnosticForExpression(
 			ast_domain.Error, msg, callExpr, finalLocation,
 			callExpr.GoAnnotations, annotator_dto.CodeTranslationFunctionError,
 		)
@@ -593,11 +639,11 @@ func (*TypeResolver) validateTranslationFuncArgs(ctx *AnalysisContext, callExpr 
 			}
 			message := fmt.Sprintf("Invalid %s for '%s': expected a string, but got type '%s'", argLabel, functionName, typeName)
 			finalLocation := baseLocation.Add(callExpr.Args[i].GetRelativeLocation())
-			ctx.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[i], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeTranslationFunctionError)
+			analysisContext.addDiagnosticForExpression(ast_domain.Error, message, callExpr.Args[i], finalLocation, callExpr.GoAnnotations, annotator_dto.CodeTranslationFunctionError)
 		}
 	}
 
-	validateTranslationKeyExists(ctx, callExpr, functionName, baseLocation)
+	validateTranslationKeyExists(analysisContext, callExpr, functionName, baseLocation)
 }
 
 // isJSONStringableType checks if a type expression is a map or slice that can be safely
@@ -617,11 +663,11 @@ func (*TypeResolver) validateTranslationFuncArgs(ctx *AnalysisContext, callExpr 
 //   - []SomeStruct is not allowed (struct without json.Marshaler could loop)
 //   - map[string]chan int is not allowed (channels cannot be turned into JSON)
 //
-// Takes ctx (*AnalysisContext) which provides inspector lookups.
+// Takes analysisContext (*AnalysisContext) which provides inspector lookups.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
 // Returns bool which is true if the type can be safely turned into JSON.
-func (tr *TypeResolver) isJSONStringableType(ctx *AnalysisContext, typeExpr goast.Expr) bool {
+func (tr *TypeResolver) isJSONStringableType(ctx context.Context, analysisContext *AnalysisContext, typeExpr goast.Expr) bool {
 	if typeExpr == nil {
 		return false
 	}
@@ -630,11 +676,11 @@ func (tr *TypeResolver) isJSONStringableType(ctx *AnalysisContext, typeExpr goas
 		if !isJSONSafeKeyType(t.Key) {
 			return false
 		}
-		return tr.isSafeJSONLeafOrCollection(ctx, t.Value)
+		return tr.isSafeJSONLeafOrCollection(ctx, analysisContext, t.Value)
 	case *goast.ArrayType:
-		return tr.isSafeJSONLeafOrCollection(ctx, t.Elt)
+		return tr.isSafeJSONLeafOrCollection(ctx, analysisContext, t.Elt)
 	case *goast.StarExpr:
-		return tr.isJSONStringableType(ctx, t.X)
+		return tr.isJSONStringableType(ctx, analysisContext, t.X)
 	}
 	return false
 }
@@ -646,11 +692,11 @@ func (tr *TypeResolver) isJSONStringableType(ctx *AnalysisContext, typeExpr goas
 // inspector to see if they support JSON-compatible string output (TextMarshaler,
 // PikoFormatter, and similar).
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
 // Returns bool which is true if the type can be safely turned into JSON.
-func (tr *TypeResolver) isSafeJSONLeafOrCollection(ctx *AnalysisContext, typeExpr goast.Expr) bool {
+func (tr *TypeResolver) isSafeJSONLeafOrCollection(ctx context.Context, analysisContext *AnalysisContext, typeExpr goast.Expr) bool {
 	if typeExpr == nil {
 		return false
 	}
@@ -659,16 +705,16 @@ func (tr *TypeResolver) isSafeJSONLeafOrCollection(ctx *AnalysisContext, typeExp
 		if isJSONPrimitive(t.Name) {
 			return true
 		}
-		return tr.isNamedTypeJSONSafe(ctx, typeExpr)
+		return tr.isNamedTypeJSONSafe(ctx, analysisContext, typeExpr)
 	case *goast.SelectorExpr:
-		return tr.isNamedTypeJSONSafe(ctx, typeExpr)
+		return tr.isNamedTypeJSONSafe(ctx, analysisContext, typeExpr)
 	case *goast.StarExpr:
-		return tr.isSafeJSONLeafOrCollection(ctx, t.X)
+		return tr.isSafeJSONLeafOrCollection(ctx, analysisContext, t.X)
 	case *goast.ArrayType:
-		return tr.isSafeJSONLeafOrCollection(ctx, t.Elt)
+		return tr.isSafeJSONLeafOrCollection(ctx, analysisContext, t.Elt)
 	case *goast.MapType:
 		if isJSONSafeKeyType(t.Key) {
-			return tr.isSafeJSONLeafOrCollection(ctx, t.Value)
+			return tr.isSafeJSONLeafOrCollection(ctx, analysisContext, t.Value)
 		}
 	}
 	return false
@@ -678,12 +724,12 @@ func (tr *TypeResolver) isSafeJSONLeafOrCollection(ctx *AnalysisContext, typeExp
 // safe if it implements json.Marshaler, TextMarshaler, or is a special Piko type with a
 // known formatter.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and scope.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state and scope.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
 // Returns bool which is true if the type is JSON-safe.
-func (tr *TypeResolver) isNamedTypeJSONSafe(ctx *AnalysisContext, typeExpr goast.Expr) bool {
-	importerPackagePath, importerFilePath := tr.determineInspectorContext(ctx, &ast_domain.ResolvedTypeInfo{
+func (tr *TypeResolver) isNamedTypeJSONSafe(ctx context.Context, analysisContext *AnalysisContext, typeExpr goast.Expr) bool {
+	importerPackagePath, importerFilePath := tr.determineInspectorContext(ctx, analysisContext, &ast_domain.ResolvedTypeInfo{
 		TypeExpression:          typeExpr,
 		PackageAlias:            "",
 		CanonicalPackagePath:    "",
@@ -694,7 +740,7 @@ func (tr *TypeResolver) isNamedTypeJSONSafe(ctx *AnalysisContext, typeExpr goast
 	})
 
 	namedType, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(
-		context.Background(),
+		ctx,
 		typeExpr,
 		importerPackagePath,
 		importerFilePath,
@@ -754,7 +800,7 @@ func newSimpleTypeInfoWithAlias(typeExpr goast.Expr, packageAlias string) *ast_d
 // getLenCapReturnType returns the type for the built-in len and cap functions.
 //
 // Returns *ast_domain.ResolvedTypeInfo which represents the int type.
-func getLenCapReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
+func getLenCapReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	return newSimpleTypeInfo(goast.NewIdent(typeInt))
 }
 
@@ -766,7 +812,7 @@ func getLenCapReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.Call
 //
 // Returns *ast_domain.ResolvedTypeInfo which is the type of the first argument, or "any"
 // if no arguments are available.
-func getMinMaxReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
+func getMinMaxReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	if len(argAnns) > 0 && argAnns[0] != nil && argAnns[0].ResolvedType != nil {
 		return argAnns[0].ResolvedType
 	}
@@ -1370,7 +1416,7 @@ func isNumeric(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 // functions. These functions always return a string.
 //
 // Returns *ast_domain.ResolvedTypeInfo which holds the string type.
-func getTranslationFuncReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
+func getTranslationFuncReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	return newSimpleTypeInfo(goast.NewIdent(typeString))
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"{{ .ModuleName }}/internal"
@@ -36,6 +37,7 @@ func main() {
 	// ssr.AppRouter.Get(...)
 
 	if err := ssr.Run(command); err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "piko: %v\n", err)
+		os.Exit(1)
 	}
 }

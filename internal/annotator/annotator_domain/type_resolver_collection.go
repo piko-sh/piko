@@ -41,7 +41,7 @@ import (
 //
 // This is called early in call expression resolution to handle special collection calls.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and logger.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state and logger.
 // Takes n (*ast_domain.CallExpression) which is the call expression to check.
 // Takes location (ast_domain.Location) which specifies the source location.
 //
@@ -51,7 +51,8 @@ import (
 // not), or false if this is not a GetCollection call and normal resolution should
 // continue.
 func (tr *TypeResolver) tryResolveGetCollectionCall(
-	ctx *AnalysisContext,
+	ctx context.Context,
+	analysisContext *AnalysisContext,
 	n *ast_domain.CallExpression,
 	location ast_domain.Location,
 ) (*ast_domain.GoGeneratorAnnotation, bool) {
@@ -60,29 +61,29 @@ func (tr *TypeResolver) tryResolveGetCollectionCall(
 		return nil, false
 	}
 
-	ctx.Logger.Trace("Detected r.GetCollection() call, delegating to CollectionService",
+	analysisContext.Logger.Trace("Detected r.GetCollection() call, delegating to CollectionService",
 		logger_domain.Int("line", location.Line),
 		logger_domain.Int("column", location.Column))
 
 	if tr.collectionService == nil {
-		return tr.handleMissingCollectionService(ctx, n, location), true
+		return tr.handleMissingCollectionService(analysisContext, n, location), true
 	}
 
-	semantics, err := tr.extractGetCollectionSemantics(ctx, n, memberExprForExtraction)
+	semantics, err := tr.extractGetCollectionSemantics(analysisContext, n, memberExprForExtraction)
 	if err != nil {
-		return tr.handleCollectionSemanticsError(ctx, n, location, err), true
+		return tr.handleCollectionSemanticsError(analysisContext, n, location, err), true
 	}
 	collectionName := semantics.CollectionName
 	targetTypeName := semantics.TargetTypeName
 	targetTypeExpr := semantics.TargetTypeExpression
 	options := semantics.Options
 
-	ctx.Logger.Trace("Extracted GetCollection semantics",
+	analysisContext.Logger.Trace("Extracted GetCollection semantics",
 		logger_domain.String("collection", collectionName),
 		logger_domain.String("targetType", targetTypeName))
 
 	annotation, err := tr.collectionService.ProcessGetCollectionCall(
-		context.Background(),
+		ctx,
 		collectionName,
 		targetTypeName,
 		targetTypeExpr,
@@ -90,10 +91,10 @@ func (tr *TypeResolver) tryResolveGetCollectionCall(
 	)
 
 	if err != nil {
-		return tr.handleCollectionProcessError(ctx, n, location, err), true
+		return tr.handleCollectionProcessError(analysisContext, n, location, err), true
 	}
 
-	ctx.Logger.Trace("GetCollection call processed successfully")
+	analysisContext.Logger.Trace("GetCollection call processed successfully")
 	return annotation, true
 }
 

@@ -157,6 +157,14 @@ type InterpretedBuildOrchestrator interface {
 	//
 	// Returns error when compilation fails for any component.
 	ProactiveRecompile(ctx context.Context) error
+
+	// RemoveComponent drops a component from the orchestrator's caches so its page key is no
+	// longer reported by the runner. Used when a page is deleted or renamed away so the
+	// stale route disappears on the next route reload.
+	//
+	// Takes relPath (string) which is the project-relative source path of the removed
+	// component (e.g. "pages/old.pk").
+	RemoveComponent(ctx context.Context, relPath string)
 }
 
 // TemplaterRunnerSwapper allows lifecycle to update the templater's manifest runner. Used

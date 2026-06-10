@@ -299,17 +299,40 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 
 	mountActionRoutes(mountConfig)
 
-	mountConfig.Router.NotFound(func(w http.ResponseWriter, request *http.Request) {
-		if redirectToCanonicalSlash(mountConfig.Router, w, request) {
+	mountConfig.Router.NotFound(createNotFoundHandler(mountConfig.Router, pageErrorContext{
+		Deps:          mountConfig.Deps,
+		Store:         mountConfig.Store,
+		WebsiteConfig: mountConfig.SiteSettings,
+		Entry:         nil,
+		Span:          nil,
+	}))
+
+	span.SetStatus(codes.Ok, "Routes successfully mounted")
+}
+
+// createNotFoundHandler builds the not-found response handler shared by both routers.
+//
+// It attempts a canonical trailing-slash redirect, then a custom error page from the
+// manifest store, then a developer-profile error page, and finally the standard plain
+// 404, so an unmatched route renders the same custom 404 regardless of which router
+// resolves it.
+//
+// Takes router (chi.Router) whose registered routes are consulted for the canonical
+// trailing-slash redirect.
+// Takes pageCtx (pageErrorContext) which provides the manifest store, templater, and
+// website settings used to render a custom error page.
+//
+// Returns http.HandlerFunc which serves the not-found response chain.
+func createNotFoundHandler(router chi.Router, pageCtx pageErrorContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, request *http.Request) {
+		if redirectToCanonicalSlash(router, w, request) {
 			return
 		}
-		if renderErrorPage(request.Context(), w, request, pageErrorContext{
-			Deps:          mountConfig.Deps,
-			Store:         mountConfig.Store,
-			WebsiteConfig: mountConfig.SiteSettings,
-		}, errorPageRequest{
-			StatusCode:   http.StatusNotFound,
-			OriginalPath: request.URL.Path,
+		if renderErrorPage(request.Context(), w, request, pageCtx, errorPageRequest{
+			Message:         "",
+			InternalMessage: "",
+			OriginalPath:    request.URL.Path,
+			StatusCode:      http.StatusNotFound,
 		}) {
 			return
 		}
@@ -317,9 +340,37 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 			return
 		}
 		http.NotFound(w, request)
-	})
+	}
+}
 
-	span.SetStatus(codes.Ok, "Routes successfully mounted")
+// NewNotFoundHandler builds the shared not-found handler from its public ingredients.
+//
+// External callers install it on the outer system router so an unmatched route renders
+// the same custom 404 as the application router, resolving the error page from the
+// manifest store at request time.
+//
+// Takes router (chi.Router) whose registered routes are consulted for the canonical
+// trailing-slash redirect.
+// Takes deps (*daemon_domain.HTTPHandlerDependencies) which supplies the templater used
+// to render a custom error page.
+// Takes store (templater_domain.ManifestStoreView) which provides the error page lookup.
+// Takes websiteConfig (*config.WebsiteConfig) which holds the site settings used during
+// error page rendering.
+//
+// Returns http.Handler which serves the not-found response chain.
+func NewNotFoundHandler(
+	router chi.Router,
+	deps *daemon_domain.HTTPHandlerDependencies,
+	store templater_domain.ManifestStoreView,
+	websiteConfig *config.WebsiteConfig,
+) http.Handler {
+	return createNotFoundHandler(router, pageErrorContext{
+		Deps:          deps,
+		Store:         store,
+		WebsiteConfig: websiteConfig,
+		Entry:         nil,
+		Span:          nil,
+	})
 }
 
 // registerPageRoute registers routes for a page entry with all its locale variants.

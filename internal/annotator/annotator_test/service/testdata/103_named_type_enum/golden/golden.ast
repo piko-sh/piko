@@ -1,0 +1,26 @@
+/*
+--- BEGIN AST DUMP ---
+
+<div [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <span [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ int(state.Status) }}
+    </RichText>
+  </span>
+  <span [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ ResultStatusWaiting.String() }}
+    </RichText>
+  </span>
+  <span [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <RichText>
+      {{ (state.Status == ResultStatusWaiting) }}
+    </RichText>
+  </span>
+  <span [p-if: (state.Status == ResultStatus(1))] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "conv"
+  </span>
+</div>
+
+--- END AST DUMP ---
+*/

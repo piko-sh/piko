@@ -668,7 +668,7 @@ func TestBuildAnnotationFromSignatureResult(t *testing.T) {
 			Results: []string{},
 		}
 
-		result := h.Resolver.buildAnnotationFromSignatureResult(h.Context, sig, nil, nil)
+		result := h.Resolver.buildAnnotationFromSignatureResult(t.Context(), h.Context, sig, nil, nil)
 
 		require.NotNil(t, result)
 		require.NotNil(t, result.ResolvedType)
@@ -687,7 +687,7 @@ func TestBuildAnnotationFromSignatureResult(t *testing.T) {
 			Results: []string{"string"},
 		}
 
-		result := h.Resolver.buildAnnotationFromSignatureResult(h.Context, sig, nil, nil)
+		result := h.Resolver.buildAnnotationFromSignatureResult(t.Context(), h.Context, sig, nil, nil)
 
 		require.NotNil(t, result)
 		require.NotNil(t, result.ResolvedType)
@@ -1635,7 +1635,7 @@ func TestResolveIdentifierExpr_BlankIdentifier(t *testing.T) {
 	defer putAnalyser(analyser)
 
 	n := &ast_domain.Identifier{Name: "_"}
-	result := h.Resolver.resolveIdentifierExpression(h.Context, analyser, n, ast_domain.Location{}, 0)
+	result := h.Resolver.resolveIdentifierExpression(t.Context(), h.Context, analyser, n, ast_domain.Location{}, 0)
 
 	require.NotNil(t, result)
 	assert.False(t, h.HasDiagnostics())
@@ -1649,7 +1649,7 @@ func TestResolveIdentifierExpr_UndefinedIdentifier(t *testing.T) {
 	defer putAnalyser(analyser)
 
 	n := &ast_domain.Identifier{Name: "undefined_var"}
-	result := h.Resolver.resolveIdentifierExpression(h.Context, analyser, n, ast_domain.Location{}, 0)
+	result := h.Resolver.resolveIdentifierExpression(t.Context(), h.Context, analyser, n, ast_domain.Location{}, 0)
 
 	require.NotNil(t, result)
 	require.True(t, h.HasDiagnostics())
@@ -1790,7 +1790,7 @@ func TestTryResolveSymbol(t *testing.T) {
 
 		h := newTypeResolverTestHarness()
 		n := &ast_domain.Identifier{Name: "unknown"}
-		ann, found := h.Resolver.tryResolveSymbol(h.Context, n, ast_domain.Location{})
+		ann, found := h.Resolver.tryResolveSymbol(t.Context(), h.Context, n, ast_domain.Location{})
 		assert.Nil(t, ann)
 		assert.False(t, found)
 	})
@@ -1802,7 +1802,7 @@ func TestTryResolveSymbol(t *testing.T) {
 		h.DefineSymbol("myVar", goast.NewIdent("int"))
 
 		n := &ast_domain.Identifier{Name: "myVar"}
-		ann, found := h.Resolver.tryResolveSymbol(h.Context, n, ast_domain.Location{Line: 5, Column: 3, Offset: 0})
+		ann, found := h.Resolver.tryResolveSymbol(t.Context(), h.Context, n, ast_domain.Location{Line: 5, Column: 3, Offset: 0})
 
 		require.True(t, found)
 		require.NotNil(t, ann)
@@ -1826,7 +1826,7 @@ func TestTryResolveSymbol(t *testing.T) {
 		})
 
 		n := &ast_domain.Identifier{Name: "propVar"}
-		ann, found := h.Resolver.tryResolveSymbol(h.Context, n, ast_domain.Location{})
+		ann, found := h.Resolver.tryResolveSymbol(t.Context(), h.Context, n, ast_domain.Location{})
 
 		require.True(t, found)
 		require.NotNil(t, ann)

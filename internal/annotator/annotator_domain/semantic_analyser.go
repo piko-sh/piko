@@ -149,13 +149,13 @@ func NewSemanticAnalyser(
 //
 // Returns ast_domain.Visitor which is the visitor for processing child nodes.
 // Returns error when the for directive cannot be handled.
-func (sa *SemanticAnalyser) Enter(goCtx context.Context, node *ast_domain.TemplateNode) (ast_domain.Visitor, error) {
+func (sa *SemanticAnalyser) Enter(ctx context.Context, node *ast_domain.TemplateNode) (ast_domain.Visitor, error) {
 	if node == nil {
 		return nil, nil
 	}
 
 	if isPartialInvocationNode(node) && node.DirFor != nil {
-		sa.resolveForDirectiveInContext(goCtx, node, sa.ctx)
+		sa.resolveForDirectiveInContext(ctx, node, sa.ctx)
 	}
 
 	ctxForThisNode, activePInfo := sa.contextManager.DetermineNodeContext(node, sa.ctx, sa.currentPartialInfo, sa.depth)
@@ -164,13 +164,13 @@ func (sa *SemanticAnalyser) Enter(goCtx context.Context, node *ast_domain.Templa
 		sa.attributeManager.MarkPartialRendered(node.GoAnnotations.PartialInfo.PartialAlias)
 	}
 
-	ctxForAttributes, err := sa.handleForDirective(goCtx, node, ctxForThisNode)
+	ctxForAttributes, err := sa.handleForDirective(ctx, node, ctxForThisNode)
 	if err != nil {
 		return nil, fmt.Errorf("handling for-directive on tag %q: %w", node.TagName, err)
 	}
 
 	partialMap := sa.buildPartialInvocationMap(activePInfo)
-	sa.attributeManager.AnalyseNodeAttributes(goCtx, node, ctxForAttributes, activePInfo, partialMap)
+	sa.attributeManager.AnalyseNodeAttributes(ctx, node, ctxForAttributes, activePInfo, partialMap)
 
 	ctxForInternalsAndChildren := ctxForAttributes
 
@@ -184,7 +184,7 @@ func (sa *SemanticAnalyser) Enter(goCtx context.Context, node *ast_domain.Templa
 	if sa.analysisMap != nil {
 		sa.analysisMap[node] = ctxForInternalsAndChildren
 	}
-	sa.internalsManager.AnalyseInternalExpressions(goCtx, node, ctxForInternalsAndChildren, activePInfo)
+	sa.internalsManager.AnalyseInternalExpressions(ctx, node, ctxForInternalsAndChildren, activePInfo)
 
 	effectiveKeyForChildren := determineEffectiveKeyForChildren(node)
 	return sa.newVisitorForChild(ctxForInternalsAndChildren, activePInfo, effectiveKeyForChildren), nil
@@ -236,16 +236,16 @@ func (sa *SemanticAnalyser) newVisitorForChild(newCtx *AnalysisContext, pInfo *a
 // be resolved in the parent context before any context switch happens.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the directive to resolve.
-// Takes ctx (*AnalysisContext) which provides the context for resolution.
-func (sa *SemanticAnalyser) resolveForDirectiveInContext(goCtx context.Context, node *ast_domain.TemplateNode, ctx *AnalysisContext) {
+// Takes analysisContext (*AnalysisContext) which provides the context for resolution.
+func (sa *SemanticAnalyser) resolveForDirectiveInContext(ctx context.Context, node *ast_domain.TemplateNode, analysisContext *AnalysisContext) {
 	if node.DirFor == nil {
 		return
 	}
 
-	resolveAndValidate(goCtx, node.DirFor, ctx, sa.typeResolver, validateForDirective)
+	resolveAndValidate(ctx, node.DirFor, analysisContext, sa.typeResolver, validateForDirective)
 
 	if forExpr, ok := node.DirFor.Expression.(*ast_domain.ForInExpression); ok {
-		loopVarManager := getLoopVariableManager(ctx)
+		loopVarManager := getLoopVariableManager(analysisContext)
 		if forExpr.ItemVariable != nil {
 			loopVarManager.ValidateLoopVariable(forExpr.ItemVariable, node.DirFor)
 		}
@@ -254,7 +254,7 @@ func (sa *SemanticAnalyser) resolveForDirectiveInContext(goCtx context.Context, 
 		}
 		putLoopVariableManager(loopVarManager)
 
-		sa.keyAnalyser.AnalyseAndSetEffectiveKey(node, sa.parentEffectiveKey, ctx, sa.depth)
+		sa.keyAnalyser.AnalyseAndSetEffectiveKey(node, sa.parentEffectiveKey, analysisContext, sa.depth)
 	}
 }
 
@@ -267,13 +267,13 @@ func (sa *SemanticAnalyser) resolveForDirectiveInContext(goCtx context.Context, 
 //
 // Returns *AnalysisContext which is the loop scope context for analysing attributes.
 // Returns error when the loop context cannot be created.
-func (sa *SemanticAnalyser) handleForDirective(goCtx context.Context, node *ast_domain.TemplateNode, ctxForThisNode *AnalysisContext) (*AnalysisContext, error) {
+func (sa *SemanticAnalyser) handleForDirective(ctx context.Context, node *ast_domain.TemplateNode, ctxForThisNode *AnalysisContext) (*AnalysisContext, error) {
 	if node.DirFor == nil {
 		return ctxForThisNode, nil
 	}
 
 	if !isPartialInvocationNode(node) {
-		resolveAndValidate(goCtx, node.DirFor, ctxForThisNode, sa.typeResolver, validateForDirective)
+		resolveAndValidate(ctx, node.DirFor, ctxForThisNode, sa.typeResolver, validateForDirective)
 
 		if forExpr, ok := node.DirFor.Expression.(*ast_domain.ForInExpression); ok {
 			loopVarManager := getLoopVariableManager(ctxForThisNode)
@@ -289,7 +289,7 @@ func (sa *SemanticAnalyser) handleForDirective(goCtx context.Context, node *ast_
 		}
 	}
 
-	return sa.contextManager.CreateForLoopContext(goCtx, node, ctxForThisNode)
+	return sa.contextManager.CreateForLoopContext(ctx, node, ctxForThisNode)
 }
 
 // buildPartialInvocationMap creates the partial invocation map for a node.
@@ -664,16 +664,16 @@ func determineEffectiveKeyForChildren(node *ast_domain.TemplateNode) ast_domain.
 // When d is nil or has no expression, returns at once without action.
 //
 // Takes d (*ast_domain.Directive) which is the directive to process.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes resolver (*TypeResolver) which resolves type annotations.
 // Takes validateFunction (func(...)) which validates the directive after resolution.
-func resolveAndValidate(goCtx context.Context, d *ast_domain.Directive, ctx *AnalysisContext, resolver *TypeResolver, validateFunction func(*ast_domain.Directive, *AnalysisContext)) {
+func resolveAndValidate(ctx context.Context, d *ast_domain.Directive, analysisContext *AnalysisContext, resolver *TypeResolver, validateFunction func(*ast_domain.Directive, *AnalysisContext)) {
 	if d == nil || d.Expression == nil {
 		return
 	}
-	d.GoAnnotations = resolver.Resolve(goCtx, ctx, d.Expression, d.Location)
+	d.GoAnnotations = resolver.Resolve(ctx, analysisContext, d.Expression, d.Location)
 	if validateFunction != nil {
-		validateFunction(d, ctx)
+		validateFunction(d, analysisContext)
 	}
 }
 

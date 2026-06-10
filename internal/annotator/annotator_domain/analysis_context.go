@@ -38,6 +38,11 @@ const (
 	// typeBuiltInFunction is the type name used for Go built-in functions.
 	typeBuiltInFunction = "builtin_function"
 
+	// typeNamedType marks a symbol that names a user-defined type from the script block, so
+	// the template type system can treat `MyType(x)` as a Go-style type conversion rather
+	// than an undefined variable.
+	typeNamedType = "named_type"
+
 	// initialSymbolCapacity is the starting size for symbol maps in a symbol table.
 	initialSymbolCapacity = 8
 )
@@ -603,6 +608,48 @@ func defineAndValidateLocalFunctions(ctx *AnalysisContext, virtualComponent *ann
 	}
 
 	defineExportedConstantsAndVariables(ctx, virtualComponent)
+	defineExportedTypeNames(ctx, virtualComponent)
+}
+
+// defineExportedTypeNames registers exported named types declared in the script block as
+// symbols so the template type system recognises `MyType(value)` as a type conversion.
+// The symbol carries the typeNamedType sentinel; resolveIdentifierCallee detects it and
+// resolves the call to the named type.
+//
+// Takes ctx (*AnalysisContext) which provides the analysis state and symbol table.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which contains the script AST
+// to process.
+func defineExportedTypeNames(ctx *AnalysisContext, virtualComponent *annotator_dto.VirtualComponent) {
+	if virtualComponent.Source.Script == nil || virtualComponent.Source.Script.AST == nil {
+		return
+	}
+
+	for _, declaration := range virtualComponent.Source.Script.AST.Decls {
+		genDecl, ok := declaration.(*goast.GenDecl)
+		if !ok || genDecl.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			typeSpec, ok := spec.(*goast.TypeSpec)
+			if !ok || !token.IsExported(typeSpec.Name.Name) {
+				continue
+			}
+			ctx.Symbols.Define(Symbol{
+				Name:           typeSpec.Name.Name,
+				CodeGenVarName: typeSpec.Name.Name,
+				TypeInfo: &ast_domain.ResolvedTypeInfo{
+					TypeExpression:          goast.NewIdent(typeNamedType),
+					PackageAlias:            ctx.CurrentGoPackageName,
+					CanonicalPackagePath:    ctx.CurrentGoFullPackagePath,
+					IsSynthetic:             false,
+					IsExportedPackageSymbol: true,
+					InitialPackagePath:      "",
+					InitialFilePath:         "",
+				},
+				SourceInvocationKey: "",
+			})
+		}
+	}
 }
 
 // defineExportedConstantsAndVariables adds exported package-level constants and variables
@@ -635,24 +682,51 @@ func processConstVarDecl(ctx *AnalysisContext, declaration goast.Decl) {
 		return
 	}
 
+	var carriedType goast.Expr
 	for _, spec := range genDecl.Specs {
-		processValueSpec(ctx, spec)
+		carriedType = processValueSpec(ctx, spec, genDecl.Tok, carriedType)
 	}
 }
 
-// processValueSpec handles a single value spec from a const or var declaration.
+// processValueSpec registers the exported symbols of one const or var value spec.
+//
+// It applies Go const-group semantics so a typed const propagates its type to following
+// untyped entries (as in an iota enumeration); without this, every const after the first
+// in an iota block would lose its named type and fall back to "any".
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
 // Takes spec (goast.Spec) which is the value spec to process.
-func processValueSpec(ctx *AnalysisContext, spec goast.Spec) {
+// Takes groupToken (token.Token) which is the enclosing declaration's CONST or VAR token.
+// Takes carriedType (goast.Expr) which is the type carried from earlier specs in the
+// group, or nil when none applies.
+//
+// Returns goast.Expr which is the type a subsequent untyped const spec in the same group
+// would inherit.
+func processValueSpec(ctx *AnalysisContext, spec goast.Spec, groupToken token.Token, carriedType goast.Expr) goast.Expr {
 	valueSpec, ok := spec.(*goast.ValueSpec)
 	if !ok {
-		return
+		return carriedType
+	}
+
+	effectiveType := valueSpec.Type
+	if effectiveType == nil && groupToken == token.CONST && len(valueSpec.Values) == 0 {
+		effectiveType = carriedType
 	}
 
 	for _, name := range valueSpec.Names {
-		defineExportedSymbol(ctx, name.Name, valueSpec.Type)
+		defineExportedSymbol(ctx, name.Name, effectiveType)
 	}
+
+	if groupToken != token.CONST {
+		return nil
+	}
+	if valueSpec.Type != nil {
+		return valueSpec.Type
+	}
+	if len(valueSpec.Values) > 0 {
+		return nil
+	}
+	return carriedType
 }
 
 // defineExportedSymbol defines a symbol if it is exported.

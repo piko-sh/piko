@@ -19,6 +19,7 @@
 package annotator_domain
 
 import (
+	"context"
 	goast "go/ast"
 	"testing"
 
@@ -369,7 +370,7 @@ func TestCoercibleToBigIntMap(t *testing.T) {
 func TestGetStringReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getStringReturnType(nil, nil, nil, nil)
+	result := getStringReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -381,7 +382,7 @@ func TestGetStringReturnType(t *testing.T) {
 func TestGetIntReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getIntReturnType(nil, nil, nil, nil)
+	result := getIntReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -393,7 +394,7 @@ func TestGetIntReturnType(t *testing.T) {
 func TestGetInt64ReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getInt64ReturnType(nil, nil, nil, nil)
+	result := getInt64ReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -405,7 +406,7 @@ func TestGetInt64ReturnType(t *testing.T) {
 func TestGetInt32ReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getInt32ReturnType(nil, nil, nil, nil)
+	result := getInt32ReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -417,7 +418,7 @@ func TestGetInt32ReturnType(t *testing.T) {
 func TestGetInt16ReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getInt16ReturnType(nil, nil, nil, nil)
+	result := getInt16ReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -429,7 +430,7 @@ func TestGetInt16ReturnType(t *testing.T) {
 func TestGetFloatReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getFloatReturnType(nil, nil, nil, nil)
+	result := getFloatReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -441,7 +442,7 @@ func TestGetFloatReturnType(t *testing.T) {
 func TestGetFloat64ReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getFloat64ReturnType(nil, nil, nil, nil)
+	result := getFloat64ReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -453,7 +454,7 @@ func TestGetFloat64ReturnType(t *testing.T) {
 func TestGetFloat32ReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getFloat32ReturnType(nil, nil, nil, nil)
+	result := getFloat32ReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -465,7 +466,7 @@ func TestGetFloat32ReturnType(t *testing.T) {
 func TestGetBoolReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getBoolReturnType(nil, nil, nil, nil)
+	result := getBoolReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -477,7 +478,7 @@ func TestGetBoolReturnType(t *testing.T) {
 func TestGetDecimalReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getDecimalReturnType(nil, nil, nil, nil)
+	result := getDecimalReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -496,7 +497,7 @@ func TestGetDecimalReturnType(t *testing.T) {
 func TestGetBigIntReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getBigIntReturnType(nil, nil, nil, nil)
+	result := getBigIntReturnType(nil, nil, nil, nil, nil)
 	require.NotNil(t, result)
 	require.NotNil(t, result.TypeExpression)
 
@@ -516,7 +517,7 @@ func TestReturnTypeFunctionSignatures(t *testing.T) {
 	t.Parallel()
 
 	returnTypeFuncs := []struct {
-		function func(*TypeResolver, *AnalysisContext, *ast_domain.CallExpression, []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo
+		function func(context.Context, *TypeResolver, *AnalysisContext, *ast_domain.CallExpression, []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo
 		name     string
 	}{
 		{name: "getStringReturnType", function: getStringReturnType},
@@ -536,7 +537,7 @@ func TestReturnTypeFunctionSignatures(t *testing.T) {
 		t.Run(tc.name+" returns non-nil with nil arguments", func(t *testing.T) {
 			t.Parallel()
 
-			result := tc.function(nil, nil, nil, nil)
+			result := tc.function(nil, nil, nil, nil, nil)
 			assert.NotNil(t, result, "%s should return non-nil result", tc.name)
 			assert.NotNil(t, result.TypeExpression, "%s should return non-nil TypeExpr", tc.name)
 		})
@@ -631,7 +632,7 @@ func TestValidateCoercionArg_WrongArgCount(t *testing.T) {
 				}
 			}
 
-			validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "string", "string", coercibleToString)
+			(&TypeResolver{}).validateCoercionArg(t.Context(), ctx, callExpr, argAnns, baseLocation, coercionSpec{functionName: "string", targetType: "string", coercibleTypes: coercibleToString})
 
 			require.Len(t, *ctx.Diagnostics, 1, "should produce one diagnostic for wrong argument count")
 			assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -707,7 +708,7 @@ func TestValidateCoercionArg_ValidTypes(t *testing.T) {
 					},
 				}
 
-				validateCoercionArg(ctx, callExpr, argAnns, baseLocation, tc.targetType, tc.targetType, tc.coercibleTypes)
+				(&TypeResolver{}).validateCoercionArg(t.Context(), ctx, callExpr, argAnns, baseLocation, coercionSpec{functionName: tc.targetType, targetType: tc.targetType, coercibleTypes: tc.coercibleTypes})
 
 				assert.Empty(t, *ctx.Diagnostics, "should produce no diagnostics for valid type %s", inputType)
 			})
@@ -776,7 +777,7 @@ func TestValidateCoercionArg_InvalidTypes(t *testing.T) {
 					},
 				}
 
-				validateCoercionArg(ctx, callExpr, argAnns, baseLocation, tc.functionName, tc.targetType, tc.coercibleTypes)
+				(&TypeResolver{}).validateCoercionArg(t.Context(), ctx, callExpr, argAnns, baseLocation, coercionSpec{functionName: tc.functionName, targetType: tc.targetType, coercibleTypes: tc.coercibleTypes})
 
 				require.Len(t, *ctx.Diagnostics, 1, "should produce one diagnostic for invalid type %s", invalidType)
 				diagnostic := (*ctx.Diagnostics)[0]
@@ -819,7 +820,7 @@ func TestValidateCoercionArg_NilAnnotations(t *testing.T) {
 			}
 			baseLocation := ast_domain.Location{Line: 1, Column: 1}
 
-			validateCoercionArg(ctx, callExpr, tc.argAnns, baseLocation, "string", "string", coercibleToString)
+			(&TypeResolver{}).validateCoercionArg(t.Context(), ctx, callExpr, tc.argAnns, baseLocation, coercionSpec{functionName: "string", targetType: "string", coercibleTypes: coercibleToString})
 
 			assert.Empty(t, *ctx.Diagnostics, "should produce no diagnostics when annotations are nil")
 		})
@@ -859,7 +860,7 @@ func TestValidateStringCoercionArgs(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent(tc.inputType)}},
 			}
 
-			resolver.validateStringCoercionArgs(ctx, callExpr, argAnns, baseLocation)
+			validateStringCoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 			if tc.expectError {
 				require.Len(t, *ctx.Diagnostics, 1)
@@ -902,7 +903,7 @@ func TestValidateIntCoercionArgs(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent(tc.inputType)}},
 			}
 
-			resolver.validateIntCoercionArgs(ctx, callExpr, argAnns, baseLocation)
+			validateIntCoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 			if tc.expectError {
 				require.Len(t, *ctx.Diagnostics, 1)
@@ -945,7 +946,7 @@ func TestValidateFloatCoercionArgs(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent(tc.inputType)}},
 			}
 
-			resolver.validateFloatCoercionArgs(ctx, callExpr, argAnns, baseLocation)
+			validateFloatCoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 			if tc.expectError {
 				require.Len(t, *ctx.Diagnostics, 1)
@@ -988,7 +989,7 @@ func TestValidateBoolCoercionArgs(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent(tc.inputType)}},
 			}
 
-			resolver.validateBoolCoercionArgs(ctx, callExpr, argAnns, baseLocation)
+			validateBoolCoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 			if tc.expectError {
 				require.Len(t, *ctx.Diagnostics, 1)
@@ -1032,7 +1033,7 @@ func TestValidateDecimalCoercionArgs(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent(tc.inputType)}},
 			}
 
-			resolver.validateDecimalCoercionArgs(ctx, callExpr, argAnns, baseLocation)
+			validateDecimalCoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 			if tc.expectError {
 				require.Len(t, *ctx.Diagnostics, 1)
@@ -1079,7 +1080,7 @@ func TestValidateBigIntCoercionArgs(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent(tc.inputType)}},
 			}
 
-			resolver.validateBigIntCoercionArgs(ctx, callExpr, argAnns, baseLocation)
+			validateBigIntCoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 			if tc.expectError {
 				require.Len(t, *ctx.Diagnostics, 1)
@@ -1106,7 +1107,7 @@ func TestValidateInt64CoercionArgs(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("string")}},
 	}
 
-	resolver.validateInt64CoercionArgs(ctx, callExpr, argAnns, baseLocation)
+	validateInt64CoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics, "string should be coercible to int64")
 }
@@ -1126,7 +1127,7 @@ func TestValidateInt32CoercionArgs(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("float64")}},
 	}
 
-	resolver.validateInt32CoercionArgs(ctx, callExpr, argAnns, baseLocation)
+	validateInt32CoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics, "float64 should be coercible to int32")
 }
@@ -1146,7 +1147,7 @@ func TestValidateInt16CoercionArgs(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	resolver.validateInt16CoercionArgs(ctx, callExpr, argAnns, baseLocation)
+	validateInt16CoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics, "int should be coercible to int16")
 }
@@ -1166,7 +1167,7 @@ func TestValidateFloat64CoercionArgs(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	resolver.validateFloat64CoercionArgs(ctx, callExpr, argAnns, baseLocation)
+	validateFloat64CoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics, "int should be coercible to float64")
 }
@@ -1186,7 +1187,7 @@ func TestValidateFloat32CoercionArgs(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("string")}},
 	}
 
-	resolver.validateFloat32CoercionArgs(ctx, callExpr, argAnns, baseLocation)
+	validateFloat32CoercionArgs(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics, "string should be coercible to float32")
 }
@@ -1194,23 +1195,23 @@ func TestValidateFloat32CoercionArgs(t *testing.T) {
 func TestAllCoercionValidatorsSameSignature(t *testing.T) {
 	t.Parallel()
 
-	type validatorFunc func(*TypeResolver, *AnalysisContext, *ast_domain.CallExpression, []*ast_domain.GoGeneratorAnnotation, ast_domain.Location)
+	type validatorFunc func(context.Context, *TypeResolver, *AnalysisContext, *ast_domain.CallExpression, []*ast_domain.GoGeneratorAnnotation, ast_domain.Location)
 
 	validators := []struct {
 		validatorFunction validatorFunc
 		name              string
 	}{
-		{name: "validateStringCoercionArgs", validatorFunction: (*TypeResolver).validateStringCoercionArgs},
-		{name: "validateIntCoercionArgs", validatorFunction: (*TypeResolver).validateIntCoercionArgs},
-		{name: "validateInt64CoercionArgs", validatorFunction: (*TypeResolver).validateInt64CoercionArgs},
-		{name: "validateInt32CoercionArgs", validatorFunction: (*TypeResolver).validateInt32CoercionArgs},
-		{name: "validateInt16CoercionArgs", validatorFunction: (*TypeResolver).validateInt16CoercionArgs},
-		{name: "validateFloatCoercionArgs", validatorFunction: (*TypeResolver).validateFloatCoercionArgs},
-		{name: "validateFloat64CoercionArgs", validatorFunction: (*TypeResolver).validateFloat64CoercionArgs},
-		{name: "validateFloat32CoercionArgs", validatorFunction: (*TypeResolver).validateFloat32CoercionArgs},
-		{name: "validateBoolCoercionArgs", validatorFunction: (*TypeResolver).validateBoolCoercionArgs},
-		{name: "validateDecimalCoercionArgs", validatorFunction: (*TypeResolver).validateDecimalCoercionArgs},
-		{name: "validateBigIntCoercionArgs", validatorFunction: (*TypeResolver).validateBigIntCoercionArgs},
+		{name: "validateStringCoercionArgs", validatorFunction: validateStringCoercionArgs},
+		{name: "validateIntCoercionArgs", validatorFunction: validateIntCoercionArgs},
+		{name: "validateInt64CoercionArgs", validatorFunction: validateInt64CoercionArgs},
+		{name: "validateInt32CoercionArgs", validatorFunction: validateInt32CoercionArgs},
+		{name: "validateInt16CoercionArgs", validatorFunction: validateInt16CoercionArgs},
+		{name: "validateFloatCoercionArgs", validatorFunction: validateFloatCoercionArgs},
+		{name: "validateFloat64CoercionArgs", validatorFunction: validateFloat64CoercionArgs},
+		{name: "validateFloat32CoercionArgs", validatorFunction: validateFloat32CoercionArgs},
+		{name: "validateBoolCoercionArgs", validatorFunction: validateBoolCoercionArgs},
+		{name: "validateDecimalCoercionArgs", validatorFunction: validateDecimalCoercionArgs},
+		{name: "validateBigIntCoercionArgs", validatorFunction: validateBigIntCoercionArgs},
 	}
 
 	for _, v := range validators {
@@ -1230,7 +1231,7 @@ func TestAllCoercionValidatorsSameSignature(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("any")}},
 			}
 
-			v.validatorFunction(resolver, ctx, callExpr, argAnns, baseLocation)
+			v.validatorFunction(t.Context(), resolver, ctx, callExpr, argAnns, baseLocation)
 
 			assert.Empty(t, *ctx.Diagnostics, "%s should accept 'any' type", v.name)
 		})

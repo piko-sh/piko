@@ -1,0 +1,32 @@
+{
+  "description": "Custom named int enum type from the script block: int() coercion, MyType(x) conversion, package-const method call, and == comparison all annotate without diagnostics.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "expectedCombinedCSSContains": [],
+  "assertNodes": [
+    {
+      "select": "div",
+      "description": "int() coercion of a named int type resolves to int.",
+      "assertOnInterpolation": {
+        "rawExpression": "int(state.Status)",
+        "resolvedTypeIs": "int"
+      }
+    },
+    {
+      "select": "div",
+      "description": "Calling String() on a package-level const of a named type resolves to string.",
+      "assertOnInterpolation": {
+        "rawExpression": "ResultStatusWaiting.String()",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "div",
+      "description": "Comparing a named-type field to a package const resolves to bool.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Status == ResultStatusWaiting",
+        "resolvedTypeIs": "bool"
+      }
+    }
+  ]
+}

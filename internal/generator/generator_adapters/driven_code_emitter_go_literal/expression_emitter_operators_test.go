@@ -985,6 +985,14 @@ func TestGetNativeBinaryOp(t *testing.T) {
 			wantOk:    true,
 		},
 		{
+			name:      "named type equality defers to the runtime helper",
+			op:        ast_domain.OpEq,
+			leftType:  "ResultStatus",
+			rightType: "ResultStatus",
+			wantToken: token.ILLEGAL,
+			wantOk:    false,
+		},
+		{
 			name:      "coalesce has no native equivalent",
 			op:        ast_domain.OpCoalesce,
 			leftType:  "int",
