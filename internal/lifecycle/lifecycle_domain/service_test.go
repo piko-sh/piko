@@ -774,6 +774,8 @@ func (m *mockInterpretedBuildOrchestrator) GetAffectedComponents(_ string) []str
 
 func (m *mockInterpretedBuildOrchestrator) ProactiveRecompile(_ context.Context) error { return nil }
 
+func (m *mockInterpretedBuildOrchestrator) RemoveComponent(_ context.Context, _ string) {}
+
 type mockTemplaterRunnerSwapper struct{}
 
 func (m *mockTemplaterRunnerSwapper) SetRunner(_ templater_domain.ManifestRunnerPort) {}
@@ -2180,12 +2182,14 @@ func (m *mockTrackingAssetPipeline) ProcessBuildResult(_ context.Context, _ *ann
 }
 
 type mockTrackingInterpretedOrchestrator struct {
-	buildError      error
-	markDirtyError  error
-	runner          templater_domain.ManifestRunnerPort
-	initialised     bool
-	buildCalled     bool
-	markDirtyCalled bool
+	buildError            error
+	markDirtyError        error
+	runner                templater_domain.ManifestRunnerPort
+	removedComponentPath  string
+	initialised           bool
+	buildCalled           bool
+	markDirtyCalled       bool
+	removeComponentCalled bool
 }
 
 func (m *mockTrackingInterpretedOrchestrator) BuildRunner(_ context.Context, _ *annotator_dto.ProjectAnnotationResult) (templater_domain.ManifestRunnerPort, error) {
@@ -2213,6 +2217,11 @@ func (m *mockTrackingInterpretedOrchestrator) GetAffectedComponents(_ string) []
 
 func (m *mockTrackingInterpretedOrchestrator) ProactiveRecompile(_ context.Context) error {
 	return nil
+}
+
+func (m *mockTrackingInterpretedOrchestrator) RemoveComponent(_ context.Context, relPath string) {
+	m.removeComponentCalled = true
+	m.removedComponentPath = relPath
 }
 
 type mockTrackingTemplaterSwapper struct {
@@ -3908,4 +3917,270 @@ func TestSandboxedFileSystem_IsNotExist(t *testing.T) {
 
 		assert.False(t, fsys.IsNotExist(nil))
 	})
+}
+
+func TestGetStaticWatchDirsIncludesAssetsDir(t *testing.T) {
+	t.Parallel()
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.Resolver = &resolver_domain.MockResolver{
+		GetModuleNameFunc: func() string { return "test-module" },
+		GetBaseDirFunc:    func() string { return "/test" },
+	}
+	deps.PathsConfig.AssetsSourceDir = "assets"
+	deps.PathsConfig.PagesSourceDir = "pages"
+	deps.FileSystem = NewMockFileSystem()
+
+	service := mustBuildLifecycleService(t, deps)
+
+	dirs := service.getStaticWatchDirs()
+
+	assert.Contains(t, dirs, "/test/assets")
+}
+
+func TestGetStaticWatchDirsOmitsAssetsDirWhenUnset(t *testing.T) {
+	t.Parallel()
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.Resolver = &resolver_domain.MockResolver{
+		GetModuleNameFunc: func() string { return "test-module" },
+		GetBaseDirFunc:    func() string { return "/test" },
+	}
+	deps.PathsConfig.AssetsSourceDir = ""
+	deps.PathsConfig.PagesSourceDir = "pages"
+	deps.FileSystem = NewMockFileSystem()
+
+	service := mustBuildLifecycleService(t, deps)
+
+	dirs := service.getStaticWatchDirs()
+
+	assert.NotContains(t, dirs, "/test/assets")
+	assert.Contains(t, dirs, "/test/pages")
+}
+
+func TestHandleIncrementalBuildReloadsRoutes(t *testing.T) {
+	t.Parallel()
+
+	mockRunner := &mockInterpretedRunner{
+		keys: []string{"pages/new.pk"},
+		entries: map[string]templater_domain.PageEntryView{
+			"pages/new.pk": &templater_domain.MockPageEntryView{},
+		},
+	}
+	mockOrchestrator := &mockTrackingInterpretedOrchestrator{initialised: true}
+	mockRouter := &mockTrackingRouterManager{}
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.InterpretedOrchestrator = mockOrchestrator
+	deps.RouterManager = mockRouter
+
+	service := mustBuildLifecycleService(t, deps)
+	service.currentRunner = mockRunner
+
+	service.handleIncrementalBuild(context.Background(), &annotator_dto.ProjectAnnotationResult{})
+
+	assert.True(t, mockOrchestrator.markDirtyCalled)
+	assert.True(t, mockRouter.reloadCalled)
+}
+
+func TestHandleIncrementalBuildSkipsReloadWithoutRouter(t *testing.T) {
+	t.Parallel()
+
+	mockRunner := &mockInterpretedRunner{keys: []string{"pages/new.pk"}}
+	mockOrchestrator := &mockTrackingInterpretedOrchestrator{initialised: true}
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.InterpretedOrchestrator = mockOrchestrator
+	deps.RouterManager = nil
+
+	service := mustBuildLifecycleService(t, deps)
+	service.currentRunner = mockRunner
+
+	service.handleIncrementalBuild(context.Background(), &annotator_dto.ProjectAnnotationResult{})
+
+	assert.True(t, mockOrchestrator.markDirtyCalled)
+}
+
+func TestHandleInitialBuildCapturesCurrentRunner(t *testing.T) {
+	t.Parallel()
+
+	mockRunner := &mockInterpretedRunner{
+		keys: []string{"pages/index.pk"},
+		entries: map[string]templater_domain.PageEntryView{
+			"pages/index.pk": &templater_domain.MockPageEntryView{},
+		},
+	}
+	mockOrchestrator := &mockTrackingInterpretedOrchestrator{runner: mockRunner}
+	mockTemplater := &mockTrackingTemplaterSwapper{}
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.InterpretedOrchestrator = mockOrchestrator
+	deps.TemplaterService = mockTemplater
+
+	service := mustBuildLifecycleService(t, deps)
+
+	service.handleInitialBuild(context.Background(), &annotator_dto.ProjectAnnotationResult{})
+
+	assert.Same(t, mockRunner, service.currentRunner)
+}
+
+func TestHandlePageRemovalCleansDepsAndReloadsRoutes(t *testing.T) {
+	t.Parallel()
+
+	mockRunner := &mockInterpretedRunner{keys: []string{"pages/index.pk"}}
+	mockOrchestrator := &mockTrackingInterpretedOrchestrator{initialised: true}
+	mockRouter := &mockTrackingRouterManager{}
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.PathsConfig.BaseDir = "/proj"
+	deps.InterpretedOrchestrator = mockOrchestrator
+	deps.RouterManager = mockRouter
+	deps.FileSystem = NewMockFileSystem()
+
+	service := mustBuildLifecycleService(t, deps)
+	service.currentRunner = mockRunner
+	service.updateStyleDepsFromBuild(styleBuildResult("hashA", "/proj/pages/old.pk", "/proj/lib/theme.css"))
+
+	service.handlePageRemoval(context.Background(), "pages/old.pk")
+
+	assert.Nil(t, service.importersOfStyle("/proj/lib/theme.css"))
+	assert.True(t, mockOrchestrator.removeComponentCalled)
+	assert.Equal(t, "pages/old.pk", mockOrchestrator.removedComponentPath)
+	assert.True(t, mockRouter.reloadCalled)
+}
+
+func TestHandlePageRemovalCleansDepsWithoutRouterReload(t *testing.T) {
+	t.Parallel()
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.PathsConfig.BaseDir = "/proj"
+	deps.FileSystem = NewMockFileSystem()
+
+	service := mustBuildLifecycleService(t, deps)
+	service.updateStyleDepsFromBuild(styleBuildResult("hashA", "/proj/pages/old.pk", "/proj/lib/theme.css"))
+
+	service.handlePageRemoval(context.Background(), "pages/old.pk")
+
+	assert.Nil(t, service.importersOfStyle("/proj/lib/theme.css"))
+}
+
+func TestHandleAssetChangeReregistersUpdatedSvg(t *testing.T) {
+	t.Parallel()
+
+	mockFS := NewMockFileSystem()
+	mockFS.AddFile("/test/assets/icon.svg", []byte("<svg>updated</svg>"))
+
+	mockRegistry := &mockTrackingRegistryService{}
+	mockRenderRegistry := &mockRenderRegistryPort{}
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.FileSystem = mockFS
+	deps.RegistryService = mockRegistry
+	deps.RenderRegistryPort = mockRenderRegistry
+
+	service := mustBuildLifecycleService(t, deps)
+
+	fec := fileEventContext{
+		ctx:        context.Background(),
+		relPath:    "assets/icon.svg",
+		artefactID: "test-module/assets/icon.svg",
+		event: lifecycle_dto.FileEvent{
+			Path: "/test/assets/icon.svg",
+			Type: lifecycle_dto.FileEventTypeWrite,
+		},
+	}
+
+	service.handleAssetChange(fec)
+
+	assert.Contains(t, mockRenderRegistry.clearedSvgIDs, "test-module/assets/icon.svg")
+	assert.Len(t, mockRegistry.upsertedArtefacts, 1)
+	assert.Equal(t, "test-module/assets/icon.svg", mockRegistry.upsertedArtefacts[0])
+}
+
+func TestHandleAssetChangeRegistersNewSvg(t *testing.T) {
+	t.Parallel()
+
+	mockFS := NewMockFileSystem()
+	mockFS.AddFile("/test/assets/new.svg", []byte("<svg>new</svg>"))
+
+	mockRegistry := &mockTrackingRegistryService{}
+	mockRenderRegistry := &mockRenderRegistryPort{}
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.FileSystem = mockFS
+	deps.RegistryService = mockRegistry
+	deps.RenderRegistryPort = mockRenderRegistry
+
+	service := mustBuildLifecycleService(t, deps)
+
+	fec := fileEventContext{
+		ctx:        context.Background(),
+		relPath:    "assets/new.svg",
+		artefactID: "test-module/assets/new.svg",
+		event: lifecycle_dto.FileEvent{
+			Path: "/test/assets/new.svg",
+			Type: lifecycle_dto.FileEventTypeCreate,
+		},
+	}
+
+	service.handleAssetChange(fec)
+
+	assert.Len(t, mockRegistry.upsertedArtefacts, 1)
+	assert.Equal(t, "test-module/assets/new.svg", mockRegistry.upsertedArtefacts[0])
+}
+
+func TestHandleCoreSourceChangePageRemovalNonInterpretedInvalidatesCache(t *testing.T) {
+	t.Parallel()
+
+	mockInvalidator := &mockTrackingBuildCacheInvalidator{}
+
+	deps := newLifecycleTestBuilder().GetDeps()
+	deps.PathsConfig.BaseDir = "/proj"
+	deps.PathsConfig.PagesSourceDir = "pages"
+	deps.BuildCacheInvalidator = mockInvalidator
+	deps.Resolver = &resolver_domain.MockResolver{
+		GetModuleNameFunc: func() string { return "test-module" },
+		GetBaseDirFunc:    func() string { return "/proj" },
+	}
+	deps.FileSystem = NewMockFileSystem()
+
+	service := mustBuildLifecycleService(t, deps)
+	service.updateStyleDepsFromBuild(styleBuildResult("hashA", "/proj/pages/old.pk", "/proj/lib/theme.css"))
+
+	fec := fileEventContext{
+		ctx:        context.Background(),
+		relPath:    "pages/old.pk",
+		artefactID: "test-module/pages/old.pk",
+		event: lifecycle_dto.FileEvent{
+			Path: "/proj/pages/old.pk",
+			Type: lifecycle_dto.FileEventTypeRemove,
+		},
+	}
+
+	service.handleCoreSourceChange(fec, false)
+
+	assert.True(t, mockInvalidator.invalidated)
+	assert.Nil(t, service.importersOfStyle("/proj/lib/theme.css"))
+}
+
+func TestIsRemovalEvent(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		eventType lifecycle_dto.FileEventType
+		want      bool
+	}{
+		{name: "remove", eventType: lifecycle_dto.FileEventTypeRemove, want: true},
+		{name: "rename", eventType: lifecycle_dto.FileEventTypeRename, want: true},
+		{name: "create", eventType: lifecycle_dto.FileEventTypeCreate, want: false},
+		{name: "write", eventType: lifecycle_dto.FileEventTypeWrite, want: false},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, isRemovalEvent(testCase.eventType))
+		})
+	}
 }

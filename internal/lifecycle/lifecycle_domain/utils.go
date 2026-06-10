@@ -23,6 +23,33 @@ import (
 	"strings"
 )
 
+const (
+	// vimProbeFileName is the name vim writes when probing whether a directory is writable;
+	// it is created and immediately removed and must never be treated as a source file.
+	vimProbeFileName = "4913"
+)
+
+// IsTemporaryFile reports whether a path is an editor temporary or backup file that
+// should be ignored by both the initial discovery scan and the live watcher. It is the
+// single source of truth shared with the watcher adapter.
+//
+// Covered patterns are vim and Emacs backups (suffix "~"), vim swap files (suffix
+// ".swp"), generic temporary files (suffix ".tmp"), and vim's directory write-probe file
+// ("4913").
+//
+// Takes path (string) which is the file path or name to classify.
+//
+// Returns bool which is true when the path is a temporary or backup file.
+func IsTemporaryFile(path string) bool {
+	if filepath.Base(path) == vimProbeFileName {
+		return true
+	}
+	lower := strings.ToLower(path)
+	return strings.HasSuffix(lower, "~") ||
+		strings.HasSuffix(lower, ".swp") ||
+		strings.HasSuffix(lower, ".tmp")
+}
+
 // isRelevantFileForProcessing checks if a file should be processed by the Piko build
 // system based on its extension and directory location.
 //
@@ -34,6 +61,10 @@ import (
 //
 // Returns bool which is true if the file matches the processing rules.
 func isRelevantFileForProcessing(relPath string, paths *LifecyclePathsConfig) bool {
+	if IsTemporaryFile(relPath) {
+		return false
+	}
+
 	ext := strings.ToLower(filepath.Ext(relPath))
 
 	if ext == ".go" && !strings.HasSuffix(relPath, "_test.go") {

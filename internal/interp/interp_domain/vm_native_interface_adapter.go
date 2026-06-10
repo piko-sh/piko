@@ -27,6 +27,8 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+
+	"piko.sh/piko/internal/generator/generator_helpers"
 )
 
 const (
@@ -96,6 +98,26 @@ var (
 		reflect.ValueOf(reflect.MakeSlice).Pointer(): {},
 		reflect.ValueOf(reflect.MakeChan).Pointer():  {},
 		reflect.ValueOf(reflect.MakeMap).Pointer():   {},
+	}
+
+	// reflectIdentityFunctionPointers caches the reflect functions pointers that inspects a
+	// value's identity rather than consuming it behaviourally.
+	reflectIdentityFunctionPointers = map[uintptr]struct{}{
+		reflect.ValueOf(reflect.TypeOf).Pointer():    {},
+		reflect.ValueOf(reflect.ValueOf).Pointer():   {},
+		reflect.ValueOf(reflect.DeepEqual).Pointer(): {},
+		reflect.ValueOf(reflect.Indirect).Pointer():  {},
+	}
+
+	// equalityHelperFunctionPointers caches the runtime template helpers that compare or
+	// combine values by identity. Like the reflect identity functions they must observe the
+	// source-level value rather than a cosmetic piko interface adapter; otherwise a Stringer
+	// adapter pointer is compared in place of the value it wraps and the comparison never
+	// matches.
+	equalityHelperFunctionPointers = map[uintptr]struct{}{
+		reflect.ValueOf(generator_helpers.EvaluateStrictEquality).Pointer(): {},
+		reflect.ValueOf(generator_helpers.EvaluateLooseEquality).Pointer():  {},
+		reflect.ValueOf(generator_helpers.EvaluateBinary).Pointer():         {},
 	}
 
 	// reflectMakeFuncPointer caches reflect.MakeFunc's function pointer.
@@ -784,6 +806,46 @@ func unwrapPikoNamedType(v reflect.Value) reflect.Value {
 	return v
 }
 
+// unwrapAdapterUnderlying returns the embedded reflect.Value boxed inside a piko
+// interface adapter.
+//
+// Takes v (reflect.Value).
+//
+// Returns the unwrapped reflect.Value.
+func unwrapAdapterUnderlying(v reflect.Value) reflect.Value {
+	if v.Kind() != reflect.Pointer || v.IsNil() {
+		return v
+	}
+	if a, ok := reflect.TypeAssert[*pikoStringerAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoMarshalerAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoUnmarshalerAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoReaderAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoFormatterAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoErrorAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoScannerAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoSortInterfaceAdapter](v); ok {
+		return a.underlying
+	}
+	if a, ok := reflect.TypeAssert[*pikoWriterAdapter](v); ok {
+		return a.underlying
+	}
+	return v
+}
+
 // unwrapReflectTypeSliceElement strips a pikoNamedType or pikoNamedInterfaceWrapper from
 // a single []reflect.Type element so reflect type-constructor families don't see piko
 // wrappers when they internally type-assert to *rtype.
@@ -821,6 +883,26 @@ func unwrapPikoNamedTypeArguments(reflectedFunction reflect.Value, arguments []r
 	}
 	for i := range arguments {
 		arguments[i] = unwrapPikoNamedType(arguments[i])
+	}
+}
+
+// unwrapPikoAdapterArguments strips piko interface adapters from arguments for reflect
+// constructors.
+//
+// Takes reflectedFunction (reflect.Value) which is the native callee.
+// Takes arguments ([]reflect.Value) which is mutated in place.
+func unwrapPikoAdapterArguments(reflectedFunction reflect.Value, arguments []reflect.Value) {
+	if reflectedFunction.Kind() != reflect.Func {
+		return
+	}
+	functionPointer := reflectedFunction.Pointer()
+	_, isReflectIdentity := reflectIdentityFunctionPointers[functionPointer]
+	_, isEqualityHelper := equalityHelperFunctionPointers[functionPointer]
+	if !isReflectIdentity && !isEqualityHelper {
+		return
+	}
+	for i := range arguments {
+		arguments[i] = unwrapAdapterUnderlying(arguments[i])
 	}
 }
 

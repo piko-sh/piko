@@ -45,6 +45,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/clock"
 )
 
@@ -87,6 +88,11 @@ type lifecycleService struct {
 
 	// templaterService swaps the template runner for interpreted mode.
 	templaterService TemplaterRunnerSwapper
+
+	// currentRunner is the orchestrator-backed interpreted runner from the initial build,
+	// reused for route reloads and guarded by mu (the build and watch goroutines both access
+	// it).
+	currentRunner templater_domain.ManifestRunnerPort
 
 	// coordinatorService handles build coordination; nil disables rebuild requests.
 	coordinatorService coordinator_domain.CoordinatorService
@@ -918,7 +924,7 @@ func (ls *lifecycleService) discoverEntryPointsInDir(ctx context.Context, direct
 // Returns *annotator_dto.EntryPoint which is the created entry point, or nil if the entry
 // is a directory or not a valid .pk file.
 func (ls *lifecycleService) tryCreateEntryPoint(absPath string, d fs.DirEntry, discoveryConfig entryPointDiscoveryConfig) *annotator_dto.EntryPoint {
-	if d.IsDir() || !isValidPKFile(d.Name()) {
+	if d.IsDir() || IsTemporaryFile(d.Name()) || !isValidPKFile(d.Name()) {
 		return nil
 	}
 
@@ -959,6 +965,7 @@ func (ls *lifecycleService) getStaticWatchDirs() []string {
 		}
 	}
 
+	addDir(paths.AssetsSourceDir)
 	addDir(paths.PagesSourceDir)
 	addDir(paths.PartialsSourceDir)
 	addDir(paths.ComponentsSourceDir)

@@ -113,6 +113,21 @@ func TestShouldIgnoreEvent(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "ignores vim swap files",
+			event:    fsnotify.Event{Name: "/path/to/.page.pk.swp"},
+			expected: true,
+		},
+		{
+			name:     "ignores tmp files",
+			event:    fsnotify.Event{Name: "/path/to/logo.svg.tmp"},
+			expected: true,
+		},
+		{
+			name:     "ignores vim write-probe file",
+			event:    fsnotify.Event{Name: "/path/to/4913"},
+			expected: true,
+		},
+		{
 			name:     "allows normal go files",
 			event:    fsnotify.Event{Name: "/path/to/main.go"},
 			expected: false,
@@ -566,5 +581,43 @@ func TestFSNotifyWatcher_handleDirectoryRemoval(t *testing.T) {
 		watcher.mu.Unlock()
 
 		assert.True(t, exists)
+	})
+}
+
+func TestResolveEventType(t *testing.T) {
+	t.Parallel()
+
+	t.Run("non-rename op passes through unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		watcher := &fsNotifyWatcher{}
+
+		result := watcher.resolveEventType(fsnotify.Event{Name: "/path/to/page.pk", Op: fsnotify.Write})
+		assert.Equal(t, lifecycle_dto.FileEventTypeWrite, result)
+	})
+
+	t.Run("rename of existing path resolves to create", func(t *testing.T) {
+		t.Parallel()
+
+		dir := t.TempDir()
+		existing := filepath.Join(dir, "new.pk")
+		require.NoError(t, os.WriteFile(existing, []byte("page"), 0600))
+
+		watcher := &fsNotifyWatcher{}
+
+		result := watcher.resolveEventType(fsnotify.Event{Name: existing, Op: fsnotify.Rename})
+		assert.Equal(t, lifecycle_dto.FileEventTypeCreate, result)
+	})
+
+	t.Run("rename of missing path resolves to remove", func(t *testing.T) {
+		t.Parallel()
+
+		dir := t.TempDir()
+		missing := filepath.Join(dir, "gone.pk")
+
+		watcher := &fsNotifyWatcher{}
+
+		result := watcher.resolveEventType(fsnotify.Event{Name: missing, Op: fsnotify.Rename})
+		assert.Equal(t, lifecycle_dto.FileEventTypeRemove, result)
 	})
 }

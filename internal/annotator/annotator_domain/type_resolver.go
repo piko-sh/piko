@@ -153,25 +153,25 @@ func NewTypeResolver(
 // semantic analysis on a single expression and attaches the final annotation to the AST
 // node.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and scope.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state and scope.
 // Takes expression (ast_domain.Expression) which is the expression to analyse.
 // Takes location (ast_domain.Location) which specifies the source location.
 //
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information
 // for the expression.
 func (tr *TypeResolver) Resolve(
-	goCtx context.Context,
-	ctx *AnalysisContext,
+	ctx context.Context,
+	analysisContext *AnalysisContext,
 	expression ast_domain.Expression,
 	location ast_domain.Location,
 ) *ast_domain.GoGeneratorAnnotation {
-	return tr.resolveRecursive(goCtx, ctx, expression, location, 0)
+	return tr.resolveRecursive(ctx, analysisContext, expression, location, 0)
 }
 
 // DetermineIterationItemType determines the type of elements when iterating over a
 // collection.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes collectionExpr (ast_domain.Expression) which is the collection being iterated.
 // Takes collectionTypeInfo (*ast_domain.ResolvedTypeInfo) which provides type information
 // for the collection.
@@ -179,20 +179,20 @@ func (tr *TypeResolver) Resolve(
 // Returns *ast_domain.ResolvedTypeInfo which is the resolved element type, or "any" if
 // the collection type cannot be determined.
 func (tr *TypeResolver) DetermineIterationItemType(
-	goCtx context.Context,
-	ctx *AnalysisContext,
+	ctx context.Context,
+	analysisContext *AnalysisContext,
 	collectionExpr ast_domain.Expression,
 	collectionTypeInfo *ast_domain.ResolvedTypeInfo,
 ) *ast_domain.ResolvedTypeInfo {
-	if result := tr.tryInferFromArrayLiteral(goCtx, ctx, collectionExpr); result != nil {
+	if result := tr.tryInferFromArrayLiteral(ctx, analysisContext, collectionExpr); result != nil {
 		return result
 	}
 
 	if collectionTypeInfo == nil || collectionTypeInfo.TypeExpression == nil {
-		return tr.newResolvedTypeInfo(ctx, goast.NewIdent(typeAny))
+		return tr.newResolvedTypeInfo(analysisContext, goast.NewIdent(typeAny))
 	}
 
-	return tr.determineItemTypeFromCollectionType(ctx, collectionTypeInfo)
+	return tr.determineItemTypeFromCollectionType(analysisContext, collectionTypeInfo)
 }
 
 // DetermineIterationIndexType determines the type of the index when iterating over a
@@ -242,7 +242,7 @@ func (tr *TypeResolver) lookupPikoImportAlias(goPackagePath, alias string) strin
 // It both returns the annotation for its parent and attaches the annotation to its own
 // node as a side-effect for debugging and golden files.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and logger.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state and logger.
 // Takes expression (ast_domain.Expression) which is the expression to resolve.
 // Takes location (ast_domain.Location) which specifies the source location.
 // Takes depth (int) which tracks recursion depth for logging.
@@ -250,67 +250,67 @@ func (tr *TypeResolver) lookupPikoImportAlias(goPackagePath, alias string) strin
 // Returns *ast_domain.GoGeneratorAnnotation which is the resolved type annotation, or nil
 // if expression is nil.
 func (tr *TypeResolver) resolveRecursive(
-	goCtx context.Context,
-	ctx *AnalysisContext,
+	ctx context.Context,
+	analysisContext *AnalysisContext,
 	expression ast_domain.Expression,
 	location ast_domain.Location,
 	depth int,
 ) *ast_domain.GoGeneratorAnnotation {
 	if expression == nil {
-		ctx.Logger.Trace("resolveRecursive: nil expression", logger_domain.Int(logKeyDepth, depth))
+		analysisContext.Logger.Trace("resolveRecursive: nil expression", logger_domain.Int(logKeyDepth, depth))
 		return nil
 	}
 
-	ctx.Logger.Trace("Enter resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("expr", expression.String()))
+	analysisContext.Logger.Trace("Enter resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("expr", expression.String()))
 
-	ann := tr.dispatchExpressionType(goCtx, ctx, expression, location, depth)
+	ann := tr.dispatchExpressionType(ctx, analysisContext, expression, location, depth)
 	tr.propagateAnnotation(expression, ann)
 
-	ctx.Logger.Trace("Exit resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("resolvedType", tr.logAnn(ann)))
+	analysisContext.Logger.Trace("Exit resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("resolvedType", tr.logAnn(ann)))
 	return ann
 }
 
 // dispatchExpressionType routes an expression to its type-specific resolver.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes expression (ast_domain.Expression) which is the expression to resolve.
 // Takes location (ast_domain.Location) which specifies the source location.
 // Takes depth (int) which tracks recursion depth.
 //
 // Returns *ast_domain.GoGeneratorAnnotation which describes the resolved type.
 func (tr *TypeResolver) dispatchExpressionType(
-	goCtx context.Context,
-	ctx *AnalysisContext,
+	ctx context.Context,
+	analysisContext *AnalysisContext,
 	expression ast_domain.Expression,
 	location ast_domain.Location,
 	depth int,
 ) *ast_domain.GoGeneratorAnnotation {
-	analyser := getAnalyser(tr, ctx, location, depth)
+	analyser := getAnalyser(tr, analysisContext, location, depth)
 	defer putAnalyser(analyser)
 
 	switch n := expression.(type) {
 	case *ast_domain.ForInExpression:
-		return tr.resolveRecursive(goCtx, ctx, n.Collection, location, depth+1)
+		return tr.resolveRecursive(ctx, analysisContext, n.Collection, location, depth+1)
 	case *ast_domain.MemberExpression:
-		return analyser.resolveMemberExpression(goCtx, n)
+		return analyser.resolveMemberExpression(ctx, n)
 	case *ast_domain.IndexExpression:
-		return analyser.resolveIndexExpression(goCtx, n)
+		return analyser.resolveIndexExpression(ctx, n)
 	case *ast_domain.CallExpression:
-		return analyser.resolveCallExpression(goCtx, n)
+		return analyser.resolveCallExpression(ctx, n)
 	case *ast_domain.BinaryExpression:
-		return analyser.resolveBinaryExpression(goCtx, n)
+		return analyser.resolveBinaryExpression(ctx, n)
 	case *ast_domain.UnaryExpression:
-		return analyser.resolveUnaryExpression(goCtx, n)
+		return analyser.resolveUnaryExpression(ctx, n)
 	case *ast_domain.TernaryExpression:
-		return analyser.resolveTernaryExpression(goCtx, n)
+		return analyser.resolveTernaryExpression(ctx, n)
 	case *ast_domain.TemplateLiteral:
-		return analyser.resolveTemplateLiteral(goCtx, n)
+		return analyser.resolveTemplateLiteral(ctx, n)
 	case *ast_domain.ArrayLiteral:
-		return analyser.resolveArrayLiteral(goCtx, n)
+		return analyser.resolveArrayLiteral(ctx, n)
 	case *ast_domain.ObjectLiteral:
-		return analyser.resolveObjectLiteral(goCtx, n)
+		return analyser.resolveObjectLiteral(ctx, n)
 	case *ast_domain.Identifier:
-		return tr.resolveIdentifierExpression(ctx, analyser, n, location, depth)
+		return tr.resolveIdentifierExpression(ctx, analysisContext, analyser, n, location, depth)
 	default:
 		return analyser.resolveLiteral(n)
 	}
@@ -318,7 +318,7 @@ func (tr *TypeResolver) dispatchExpressionType(
 
 // resolveIdentifierExpression finds the type for an identifier expression.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes analyser (*typeExpressionAnalyser) which finds types for expressions.
 // Takes n (*ast_domain.Identifier) which is the identifier to look up.
 // Takes location (ast_domain.Location) which gives the source location.
@@ -327,22 +327,22 @@ func (tr *TypeResolver) dispatchExpressionType(
 // Returns *ast_domain.GoGeneratorAnnotation which holds the type information, or a blank
 // identifier annotation when the name is "_".
 func (*TypeResolver) resolveIdentifierExpression(
-	ctx *AnalysisContext, analyser *typeExpressionAnalyser, n *ast_domain.Identifier,
+	ctx context.Context, analysisContext *AnalysisContext, analyser *typeExpressionAnalyser, n *ast_domain.Identifier,
 	location ast_domain.Location, depth int,
 ) *ast_domain.GoGeneratorAnnotation {
 	if n.Name == "_" {
 		return createBlankIdentifierAnnotation()
 	}
 
-	if resolvedAnn, found := analyser.resolveIdentifier(n); found {
+	if resolvedAnn, found := analyser.resolveIdentifier(ctx, n); found {
 		return resolvedAnn
 	}
 
-	if unexportedFunction := analyser.typeResolver.findUnexportedFuncDeclInCurrentContext(ctx, n.Name); unexportedFunction != nil {
-		return handleUnexportedFunctionAccess(ctx, n, location, depth+1)
+	if unexportedFunction := analyser.typeResolver.findUnexportedFuncDeclInCurrentContext(analysisContext, n.Name); unexportedFunction != nil {
+		return handleUnexportedFunctionAccess(analysisContext, n, location, depth+1)
 	}
 
-	return handleUndefinedIdentifier(ctx, n, location, depth+1)
+	return handleUndefinedIdentifier(analysisContext, n, location, depth+1)
 }
 
 // propagateAnnotation sets the given annotation on an expression and all its child
@@ -363,16 +363,17 @@ func (*TypeResolver) propagateAnnotation(expr ast_domain.Expression, ann *ast_do
 // tryResolveSymbol looks up an identifier in the symbol table and builds an annotation
 // from its properties.
 //
-// Takes ctx (*AnalysisContext) which provides the symbol table and source path.
+// Takes analysisContext (*AnalysisContext) which provides the symbol table and source
+// path.
 // Takes n (*ast_domain.Identifier) which is the identifier to look up.
 // Takes location (ast_domain.Location) which is where the identifier appears.
 //
 // Returns *ast_domain.GoGeneratorAnnotation which holds the resolved symbol data for code
 // generation.
 // Returns bool which is true if the symbol was found, false otherwise.
-func (tr *TypeResolver) tryResolveSymbol(ctx *AnalysisContext, n *ast_domain.Identifier, location ast_domain.Location) (*ast_domain.GoGeneratorAnnotation, bool) {
-	if symbol, found := ctx.Symbols.Find(n.Name); found {
-		stringability, isPointer := tr.determineStringability(ctx, symbol.TypeInfo)
+func (tr *TypeResolver) tryResolveSymbol(ctx context.Context, analysisContext *AnalysisContext, n *ast_domain.Identifier, location ast_domain.Location) (*ast_domain.GoGeneratorAnnotation, bool) {
+	if symbol, found := analysisContext.Symbols.Find(n.Name); found {
+		stringability, isPointer := tr.determineStringability(ctx, analysisContext, symbol.TypeInfo)
 
 		var sourceInvocationKey *string
 		if symbol.SourceInvocationKey != "" {
@@ -395,7 +396,7 @@ func (tr *TypeResolver) tryResolveSymbol(ctx *AnalysisContext, n *ast_domain.Ide
 			},
 			PartialInfo:             nil,
 			PropDataSource:          nil,
-			OriginalSourcePath:      &ctx.SFCSourcePath,
+			OriginalSourcePath:      &analysisContext.SFCSourcePath,
 			OriginalPackageAlias:    nil,
 			FieldTag:                nil,
 			SourceInvocationKey:     sourceInvocationKey,
@@ -491,26 +492,26 @@ func (tr *TypeResolver) resolvePackageMember(
 
 // tryInferFromArrayLiteral gets the item type from the first element of an array literal.
 //
-// Takes ctx (*AnalysisContext) which provides the context for analysis.
+// Takes analysisContext (*AnalysisContext) which provides the context for analysis.
 // Takes collectionExpr (ast_domain.Expression) which is the expression to check for an
 // array literal type.
 //
 // Returns *ast_domain.ResolvedTypeInfo which contains the type of the first element, or
 // nil if the expression is not an array literal.
-func (tr *TypeResolver) tryInferFromArrayLiteral(goCtx context.Context, ctx *AnalysisContext, collectionExpr ast_domain.Expression) *ast_domain.ResolvedTypeInfo {
+func (tr *TypeResolver) tryInferFromArrayLiteral(ctx context.Context, analysisContext *AnalysisContext, collectionExpr ast_domain.Expression) *ast_domain.ResolvedTypeInfo {
 	arrayLit, isArrayLit := collectionExpr.(*ast_domain.ArrayLiteral)
 	if !isArrayLit {
 		return nil
 	}
 
 	if len(arrayLit.Elements) > 0 {
-		firstElementAnn := tr.Resolve(goCtx, ctx, arrayLit.Elements[0], ast_domain.Location{Line: 0, Column: 0, Offset: 0})
+		firstElementAnn := tr.Resolve(ctx, analysisContext, arrayLit.Elements[0], ast_domain.Location{Line: 0, Column: 0, Offset: 0})
 		if firstElementAnn != nil && firstElementAnn.ResolvedType != nil {
 			return firstElementAnn.ResolvedType
 		}
 	}
 
-	return tr.newResolvedTypeInfo(ctx, goast.NewIdent(typeAny))
+	return tr.newResolvedTypeInfo(analysisContext, goast.NewIdent(typeAny))
 }
 
 // determineItemTypeFromCollectionType finds the item type of a collection.
@@ -718,7 +719,7 @@ type argumentValidationContext struct {
 // buildAnnotationFromSignatureResult creates a type annotation from the return values of
 // a function signature.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes sig (*inspector_dto.FunctionSignature) which contains the function signature to
 // process.
 // Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the base annotation to build
@@ -728,7 +729,8 @@ type argumentValidationContext struct {
 // Returns *ast_domain.GoGeneratorAnnotation which is a nil type annotation when the
 // signature has no results, or a return type annotation when results are present.
 func (tr *TypeResolver) buildAnnotationFromSignatureResult(
-	ctx *AnalysisContext,
+	ctx context.Context,
+	analysisContext *AnalysisContext,
 	sig *inspector_dto.FunctionSignature,
 	baseAnn *ast_domain.GoGeneratorAnnotation,
 	methodInfo *inspector_dto.Method,
@@ -737,12 +739,12 @@ func (tr *TypeResolver) buildAnnotationFromSignatureResult(
 		return newNilTypeAnnotation()
 	}
 
-	return tr.buildReturnTypeAnnotation(ctx, sig, baseAnn, methodInfo)
+	return tr.buildReturnTypeAnnotation(ctx, analysisContext, sig, baseAnn, methodInfo)
 }
 
 // buildReturnTypeAnnotation constructs an annotation from a function's return type.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes sig (*inspector_dto.FunctionSignature) which contains the function signature with
 // return type information.
 // Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base annotation
@@ -753,7 +755,8 @@ func (tr *TypeResolver) buildAnnotationFromSignatureResult(
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information
 // and stringability details.
 func (tr *TypeResolver) buildReturnTypeAnnotation(
-	ctx *AnalysisContext,
+	ctx context.Context,
+	analysisContext *AnalysisContext,
 	sig *inspector_dto.FunctionSignature,
 	baseAnn *ast_domain.GoGeneratorAnnotation,
 	methodInfo *inspector_dto.Method,
@@ -764,7 +767,7 @@ func (tr *TypeResolver) buildReturnTypeAnnotation(
 		newPackageAlias = getPackageAliasFromType(returnType, baseAnn.ResolvedType.PackageAlias)
 	}
 
-	canonicalPackagePath := tr.resolveReturnTypeCanonicalPath(ctx, returnType, newPackageAlias, methodInfo)
+	canonicalPackagePath := tr.resolveReturnTypeCanonicalPath(analysisContext, returnType, newPackageAlias, methodInfo)
 	resolvedTypeInfo := &ast_domain.ResolvedTypeInfo{
 		TypeExpression:          returnType,
 		PackageAlias:            newPackageAlias,
@@ -774,7 +777,7 @@ func (tr *TypeResolver) buildReturnTypeAnnotation(
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
 	}
-	stringability, isPointer := tr.determineStringability(ctx, resolvedTypeInfo)
+	stringability, isPointer := tr.determineStringability(ctx, analysisContext, resolvedTypeInfo)
 
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,

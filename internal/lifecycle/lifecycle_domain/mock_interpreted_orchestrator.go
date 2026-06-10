@@ -47,6 +47,9 @@ type MockInterpretedOrchestrator struct {
 	// ProactiveRecompileFunc is the function called by ProactiveRecompile.
 	ProactiveRecompileFunc func(ctx context.Context) error
 
+	// RemoveComponentFunc is the function called by RemoveComponent.
+	RemoveComponentFunc func(ctx context.Context, relPath string)
+
 	// BuildRunnerCallCount tracks how many times BuildRunner was called.
 	BuildRunnerCallCount atomic.Int64
 
@@ -64,6 +67,9 @@ type MockInterpretedOrchestrator struct {
 
 	// ProactiveRecompileCallCount tracks how many times ProactiveRecompile was called.
 	ProactiveRecompileCallCount atomic.Int64
+
+	// RemoveComponentCallCount tracks how many times RemoveComponent was called.
+	RemoveComponentCallCount atomic.Int64
 }
 
 var (
@@ -148,4 +154,14 @@ func (m *MockInterpretedOrchestrator) ProactiveRecompile(ctx context.Context) er
 		return m.ProactiveRecompileFunc(ctx)
 	}
 	return nil
+}
+
+// RemoveComponent drops a component from the orchestrator's caches.
+//
+// Takes relPath (string) which is the project-relative path of the removed component.
+func (m *MockInterpretedOrchestrator) RemoveComponent(ctx context.Context, relPath string) {
+	m.RemoveComponentCallCount.Add(1)
+	if m.RemoveComponentFunc != nil {
+		m.RemoveComponentFunc(ctx, relPath)
+	}
 }

@@ -396,3 +396,48 @@ func TestIsValidPKFile(t *testing.T) {
 		})
 	}
 }
+
+func TestIsTemporaryFile(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		path string
+		want bool
+	}{
+		{name: "tilde backup", path: "pages/index.pk~", want: true},
+		{name: "vim swap", path: "pages/.index.pk.swp", want: true},
+		{name: "tmp file", path: "assets/logo.svg.tmp", want: true},
+		{name: "vim probe", path: "pages/4913", want: true},
+		{name: "vim probe nested", path: "assets/4913", want: true},
+		{name: "uppercase swap", path: "pages/INDEX.SWP", want: true},
+		{name: "normal pk", path: "pages/index.pk", want: false},
+		{name: "normal svg", path: "assets/logo.svg", want: false},
+		{name: "tilde in middle", path: "pages/file~backup.pk", want: false},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, IsTemporaryFile(testCase.path))
+		})
+	}
+}
+
+func TestIsRelevantFileForProcessingRejectsTemporaryFiles(t *testing.T) {
+	t.Parallel()
+
+	paths := &LifecyclePathsConfig{
+		PagesSourceDir:      "pages",
+		ComponentsSourceDir: "components",
+		AssetsSourceDir:     "assets",
+		I18nSourceDir:       "i18n",
+	}
+
+	assert.False(t, isRelevantFileForProcessing("pages/index.pk~", paths))
+	assert.False(t, isRelevantFileForProcessing("pages/.index.pk.swp", paths))
+	assert.False(t, isRelevantFileForProcessing("assets/logo.svg.tmp", paths))
+	assert.False(t, isRelevantFileForProcessing("pages/4913", paths))
+	assert.True(t, isRelevantFileForProcessing("pages/index.pk", paths))
+	assert.True(t, isRelevantFileForProcessing("assets/logo.svg", paths))
+}

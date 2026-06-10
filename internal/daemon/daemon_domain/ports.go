@@ -97,6 +97,10 @@ type RouterDependencies struct {
 	// UserRouter handles user-defined routes.
 	UserRouter http.Handler
 
+	// NotFoundHandler responds to requests that match no registered route; nil falls back to
+	// the standard plain 404 response.
+	NotFoundHandler http.Handler
+
 	// VariantGenerator creates image variants on demand.
 	VariantGenerator OnDemandVariantGenerator
 

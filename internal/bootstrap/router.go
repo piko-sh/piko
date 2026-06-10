@@ -282,12 +282,23 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 		}
 	}
 
+	notFoundHandler := daemon_adapters.NewNotFoundHandler(
+		op.deps.AppRouter,
+		&daemon_domain.HTTPHandlerDependencies{
+			Templater: op.templaterService,
+			Validator: op.container.GetValidator(),
+		},
+		op.store,
+		&op.container.websiteConfig,
+	)
+
 	builder := daemon_adapters.NewHTTPRouterBuilder(artefactMetaCache)
 	finalRouter, err := builder.BuildRouter(
 		op.buildRouterConfig(ctx),
 		daemon_domain.RouterDependencies{
 			RegistryService:        op.registryService,
 			UserRouter:             op.deps.AppRouter,
+			NotFoundHandler:        notFoundHandler,
 			VariantGenerator:       op.variantGenerator,
 			CSPConfig:              op.cspConfig,
 			PresignUploadHandler:   presignUploadHandler,

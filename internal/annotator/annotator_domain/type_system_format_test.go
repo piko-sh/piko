@@ -60,7 +60,7 @@ func TestValidateFormatFuncArgs_WrongArgCount(t *testing.T) {
 			baseLocation := ast_domain.Location{Line: 1, Column: 1}
 			argAnns := make([]*ast_domain.GoGeneratorAnnotation, tc.argCount)
 
-			tr.validateFormatFuncArgs(ctx, callExpr, argAnns, baseLocation)
+			validateFormatFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 			require.Len(t, *ctx.Diagnostics, 1)
 			assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -106,7 +106,7 @@ func TestValidateFormatFuncArgs_ValidTypes(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: tc.typeExpr, PackageAlias: tc.packageAlias}},
 			}
 
-			tr.validateFormatFuncArgs(ctx, callExpr, argAnns, baseLocation)
+			validateFormatFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 			assert.Empty(t, *ctx.Diagnostics, "expected no diagnostics for formattable type %s", tc.name)
 		})
@@ -144,7 +144,7 @@ func TestValidateFormatFuncArgs_UnsupportedType(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: tc.typeExpr, PackageAlias: tc.packageAlias}},
 			}
 
-			tr.validateFormatFuncArgs(ctx, callExpr, argAnns, baseLocation)
+			validateFormatFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 			require.Len(t, *ctx.Diagnostics, 1)
 			assert.Equal(t, ast_domain.Warning, (*ctx.Diagnostics)[0].Severity)
@@ -156,7 +156,7 @@ func TestValidateFormatFuncArgs_UnsupportedType(t *testing.T) {
 func TestGetFormatFuncReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getFormatFuncReturnType(nil, nil, nil, nil)
+	result := getFormatFuncReturnType(nil, nil, nil, nil, nil)
 
 	require.NotNil(t, result)
 

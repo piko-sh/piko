@@ -722,6 +722,7 @@ func TestTryResolveGetCollectionCall(t *testing.T) {
 			h := newTypeResolverTestHarness()
 
 			_, handled := h.Resolver.tryResolveGetCollectionCall(
+				t.Context(),
 				h.Context,
 				tc.callExpr,
 				ast_domain.Location{Line: 1, Column: 1},

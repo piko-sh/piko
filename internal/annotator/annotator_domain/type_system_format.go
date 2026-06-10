@@ -19,6 +19,7 @@
 package annotator_domain
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -57,16 +58,23 @@ var (
 // and that the argument type is one FormatBuilder can format. An unsupported type emits a
 // Warning (not Error) because the runtime falls back to fmt.Sprintf.
 //
-// Takes ctx (*AnalysisContext) which provides the diagnostic context.
+// Takes analysisContext (*AnalysisContext) which provides the diagnostic context.
 // Takes callExpr (*ast_domain.CallExpression) which is the call to validate.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the resolved
 // annotations for the arguments.
 // Takes baseLocation (ast_domain.Location) which provides the source location for
 // diagnostics.
-func (*TypeResolver) validateFormatFuncArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
+func validateFormatFuncArgs(
+	_ context.Context,
+	_ *TypeResolver,
+	analysisContext *AnalysisContext,
+	callExpr *ast_domain.CallExpression,
+	argAnns []*ast_domain.GoGeneratorAnnotation,
+	baseLocation ast_domain.Location,
+) {
 	if len(callExpr.Args) != 1 {
 		message := fmt.Sprintf("F/LF expects exactly one argument, got %d", len(callExpr.Args))
-		ctx.addDiagnosticForExpression(ast_domain.Error, message, callExpr, baseLocation, nil, annotator_dto.CodeFormatDirectiveError)
+		analysisContext.addDiagnosticForExpression(ast_domain.Error, message, callExpr, baseLocation, nil, annotator_dto.CodeFormatDirectiveError)
 		return
 	}
 
@@ -77,7 +85,7 @@ func (*TypeResolver) validateFormatFuncArgs(ctx *AnalysisContext, callExpr *ast_
 				"F/LF argument type '%s' may not be formattable; supported types are numeric (int, float, Decimal, BigInt, Money), temporal (time.Time, DateTime), and string",
 				typeName,
 			)
-			ctx.addDiagnosticForExpression(ast_domain.Warning, message, callExpr, baseLocation, nil, annotator_dto.CodeFormatDirectiveError)
+			analysisContext.addDiagnosticForExpression(ast_domain.Warning, message, callExpr, baseLocation, nil, annotator_dto.CodeFormatDirectiveError)
 		}
 	}
 }
@@ -102,7 +110,7 @@ func isFormattableType(typeName string) bool {
 //
 // Returns *ast_domain.ResolvedTypeInfo which holds the *FormatBuilder type with its
 // canonical package path for inspector method resolution.
-func getFormatFuncReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
+func getFormatFuncReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	return &ast_domain.ResolvedTypeInfo{
 		TypeExpression: &goast.StarExpr{
 			X: &goast.SelectorExpr{

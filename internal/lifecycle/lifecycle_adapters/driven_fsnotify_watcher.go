@@ -25,7 +25,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -446,12 +445,12 @@ func (f *fsNotifyWatcher) handleFsnotifyEvent(
 //
 // Takes ev (fsnotify.Event) which is the file system event to check.
 //
-// Returns bool which is true when the event should be ignored, such as editor backup
-// files ending with a tilde.
+// Returns bool which is true when the event should be ignored, such as editor backup or
+// swap files and vim's directory write-probe file.
 func (*fsNotifyWatcher) shouldIgnoreEvent(ctx context.Context, ev fsnotify.Event) bool {
-	if strings.HasSuffix(ev.Name, "~") {
+	if lifecycle_domain.IsTemporaryFile(ev.Name) {
 		_, l := logger_domain.From(ctx, log)
-		l.Trace("Ignoring editor backup file", logger_domain.String(fieldFile, ev.Name))
+		l.Trace("Ignoring editor temporary file", logger_domain.String(fieldFile, ev.Name))
 		return true
 	}
 	return false
@@ -549,15 +548,64 @@ func (f *fsNotifyWatcher) handleDirectoryRemoval(ctx context.Context, ev fsnotif
 //
 // Takes ev (fsnotify.Event) which is the file system event to send.
 // Takes out (chan<- lifecycle_dto.FileEvent) which receives the converted event.
-func (*fsNotifyWatcher) forwardEvent(ctx context.Context, ev fsnotify.Event, out chan<- lifecycle_dto.FileEvent) {
+func (f *fsNotifyWatcher) forwardEvent(ctx context.Context, ev fsnotify.Event, out chan<- lifecycle_dto.FileEvent) {
 	outEvt := lifecycle_dto.FileEvent{
 		Path: ev.Name,
-		Type: mapToFileEventType(ev.Op),
+		Type: f.resolveEventType(ev),
 	}
 	select {
 	case out <- outEvt:
 	case <-ctx.Done():
 	}
+}
+
+// resolveEventType maps a raw fsnotify operation to a domain event type.
+//
+// Rename events are disambiguated by stat-ing the path: fsnotify reports a Rename against
+// the old path when a file is moved away and, on some platforms, against the new path
+// when a file is moved in. Treating it purely as a removal loses the new path, so an
+// existing path is reported as a create and a missing path as a removal.
+//
+// Takes ev (fsnotify.Event) which is the raw file system event.
+//
+// Returns lifecycle_dto.FileEventType which is the resolved domain event type.
+func (f *fsNotifyWatcher) resolveEventType(ev fsnotify.Event) lifecycle_dto.FileEventType {
+	if !ev.Has(fsnotify.Rename) {
+		return mapToFileEventType(ev.Op)
+	}
+
+	if f.pathExists(ev.Name) {
+		return lifecycle_dto.FileEventTypeCreate
+	}
+	return lifecycle_dto.FileEventTypeRemove
+}
+
+// pathExists reports whether a path currently exists on disk, using a sandbox scoped to
+// the parent directory so the watcher does not read outside its watched trees.
+//
+// Takes path (string) which is the absolute path to stat.
+//
+// Returns bool which is true when the path exists.
+func (f *fsNotifyWatcher) pathExists(path string) bool {
+	parentDir := filepath.Dir(path)
+	fileName := filepath.Base(path)
+
+	var sandbox safedisk.Sandbox
+	var err error
+	if f.sandboxFactory != nil {
+		sandbox, err = f.sandboxFactory.Create("fsnotify-rename-stat", parentDir, safedisk.ModeReadOnly)
+	} else {
+		sandbox, err = safedisk.NewNoOpSandbox(parentDir, safedisk.ModeReadOnly)
+	}
+	if err != nil {
+		return false
+	}
+	defer func() { _ = sandbox.Close() }()
+
+	if _, statErr := sandbox.Stat(fileName); statErr != nil {
+		return false
+	}
+	return true
 }
 
 // isPathCoveredByStaticWatch checks if a file's parent directory or any ancestor is

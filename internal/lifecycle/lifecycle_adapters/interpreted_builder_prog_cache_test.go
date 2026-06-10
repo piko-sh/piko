@@ -146,3 +146,20 @@ func TestPopulateProgCacheForComponentSkipsEmptyManifestKey(t *testing.T) {
 	require.Len(t, target, 1, "empty ManifestKey entries must be skipped")
 	require.Contains(t, target, "blog/post")
 }
+
+func TestRemoveComponentPurgesCaches(t *testing.T) {
+	t.Parallel()
+
+	orchestrator := &InterpretedBuildOrchestrator{
+		projectRoot:    t.TempDir(),
+		progCache:      map[string]*templater_adapters.PageEntry{"pages/old.pk": {}, "pages/keep.pk": {}},
+		dirtyCodeCache: map[string][]byte{"pages/old.pk": []byte("code")},
+		reverseDepsMap: map[string][]string{},
+	}
+
+	orchestrator.RemoveComponent(t.Context(), "pages/old.pk")
+
+	require.NotContains(t, orchestrator.progCache, "pages/old.pk")
+	require.Contains(t, orchestrator.progCache, "pages/keep.pk")
+	require.NotContains(t, orchestrator.dirtyCodeCache, "pages/old.pk")
+}

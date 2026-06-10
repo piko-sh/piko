@@ -71,11 +71,11 @@ type typeExpressionAnalyser struct {
 // Returns *ast_domain.GoGeneratorAnnotation which is the type annotation for the symbol,
 // or nil if not found.
 // Returns bool which is true if the symbol was found.
-func (a *typeExpressionAnalyser) resolveIdentifier(n *ast_domain.Identifier) (*ast_domain.GoGeneratorAnnotation, bool) {
+func (a *typeExpressionAnalyser) resolveIdentifier(ctx context.Context, n *ast_domain.Identifier) (*ast_domain.GoGeneratorAnnotation, bool) {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIdentifier", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
 
 	a.ctx.Logger.Trace("Attempting to find symbol", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
-	if ann, ok := a.typeResolver.tryResolveSymbol(a.ctx, n, a.location); ok {
+	if ann, ok := a.typeResolver.tryResolveSymbol(ctx, a.ctx, n, a.location); ok {
 		a.ctx.Logger.Trace("Resolved identifier", logger_domain.Int(logKeyDepth, a.depth),
 			logger_domain.String(logKeyName, n.Name), logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
 		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveIdentifier",
@@ -491,7 +491,7 @@ func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *
 	}
 
 	a.validateIndexType(n, baseAnn, indexAnn)
-	finalAnn := a.buildIndexExprAnnotation(n, baseAnn, itemTypeInfo)
+	finalAnn := a.buildIndexExprAnnotation(ctx, n, baseAnn, itemTypeInfo)
 
 	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveIndexExpression",
 		logger_domain.Int(logKeyDepth, a.depth),
@@ -545,11 +545,12 @@ func (a *typeExpressionAnalyser) validateIndexType(n *ast_domain.IndexExpression
 // Returns *ast_domain.GoGeneratorAnnotation which is the annotation with stringability
 // and safety check flags set.
 func (a *typeExpressionAnalyser) buildIndexExprAnnotation(
+	ctx context.Context,
 	n *ast_domain.IndexExpression,
 	baseAnn *ast_domain.GoGeneratorAnnotation,
 	itemTypeInfo *ast_domain.ResolvedTypeInfo,
 ) *ast_domain.GoGeneratorAnnotation {
-	stringability, isPointer := a.typeResolver.determineStringability(a.ctx, itemTypeInfo)
+	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, itemTypeInfo)
 	finalAnn := &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
 		DynamicCollectionInfo:   nil,

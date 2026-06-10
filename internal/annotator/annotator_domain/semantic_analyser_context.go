@@ -53,7 +53,7 @@ type ContextManager struct {
 // the parent context if no p-for directive is present.
 // Returns error when context creation fails.
 func (cm *ContextManager) CreateForLoopContext(
-	goCtx context.Context,
+	ctx context.Context,
 	node *ast_domain.TemplateNode,
 	parentCtx *AnalysisContext,
 ) (*AnalysisContext, error) {
@@ -74,7 +74,7 @@ func (cm *ContextManager) CreateForLoopContext(
 	loopCtx := parentCtx.ForChildScope()
 	sfcSourcePath := parentCtx.SFCSourcePath
 
-	cm.defineItemVariable(goCtx, forExpr, parentCtx, loopCtx, collectionAnn, sfcSourcePath)
+	cm.defineItemVariable(ctx, forExpr, parentCtx, loopCtx, collectionAnn, sfcSourcePath)
 	cm.defineIndexVariable(forExpr, parentCtx, loopCtx, collectionAnn, sfcSourcePath)
 
 	return loopCtx, nil
@@ -161,7 +161,7 @@ func (cm *ContextManager) DetermineNodeContext(
 // Returns *AnalysisContext which is the new loop context with defined symbols.
 // Returns error when context creation fails.
 func (cm *ContextManager) CreateForLoopVisitorContext(
-	goCtx context.Context,
+	ctx context.Context,
 	node *ast_domain.TemplateNode,
 	parentCtx *AnalysisContext,
 	depth int,
@@ -194,7 +194,7 @@ func (cm *ContextManager) CreateForLoopVisitorContext(
 	loopCtx := parentCtx.ForChildScope()
 
 	if forExpr.ItemVariable != nil {
-		itemTypeInfo := cm.typeResolver.DetermineIterationItemType(goCtx, parentCtx, forExpr.Collection, collectionAnn.ResolvedType)
+		itemTypeInfo := cm.typeResolver.DetermineIterationItemType(ctx, parentCtx, forExpr.Collection, collectionAnn.ResolvedType)
 		loopCtx.Symbols.Define(Symbol{
 			Name:                forExpr.ItemVariable.Name,
 			CodeGenVarName:      forExpr.ItemVariable.Name,
@@ -399,7 +399,7 @@ func (cm *ContextManager) populateSwitchedContext(
 // Takes sfcSourcePath (string) which specifies the source file path for go-to-definition
 // support.
 func (cm *ContextManager) defineItemVariable(
-	goCtx context.Context,
+	ctx context.Context,
 	forExpr *ast_domain.ForInExpression,
 	parentCtx *AnalysisContext,
 	loopCtx *AnalysisContext,
@@ -410,7 +410,7 @@ func (cm *ContextManager) defineItemVariable(
 		return
 	}
 
-	itemTypeInfo := cm.typeResolver.DetermineIterationItemType(goCtx, parentCtx, forExpr.Collection, collectionAnn.ResolvedType)
+	itemTypeInfo := cm.typeResolver.DetermineIterationItemType(ctx, parentCtx, forExpr.Collection, collectionAnn.ResolvedType)
 	loopCtx.Symbols.Define(Symbol{
 		Name:                forExpr.ItemVariable.Name,
 		CodeGenVarName:      forExpr.ItemVariable.Name,

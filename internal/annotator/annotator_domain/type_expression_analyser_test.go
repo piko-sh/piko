@@ -210,7 +210,7 @@ func TestResolveIdentifier_NotFound(t *testing.T) {
 	defer putAnalyser(analyser)
 
 	identifier := &ast_domain.Identifier{Name: "unknownVariable"}
-	result, found := analyser.resolveIdentifier(identifier)
+	result, found := analyser.resolveIdentifier(t.Context(), identifier)
 
 	assert.False(t, found)
 	assert.Nil(t, result)
@@ -237,7 +237,7 @@ func TestResolveIdentifier_FoundInSymbolTable(t *testing.T) {
 	defer putAnalyser(analyser)
 
 	identifier := &ast_domain.Identifier{Name: "myVar"}
-	result, found := analyser.resolveIdentifier(identifier)
+	result, found := analyser.resolveIdentifier(t.Context(), identifier)
 
 	assert.True(t, found)
 	require.NotNil(t, result)

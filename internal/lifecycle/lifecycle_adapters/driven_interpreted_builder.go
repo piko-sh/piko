@@ -51,6 +51,9 @@ const (
 	// fieldAbsolutePath is the log field name for absolute file paths.
 	fieldAbsolutePath = "absolutePath"
 
+	// fieldProjectRoot is the log field name for the project root directory.
+	fieldProjectRoot = "projectRoot"
+
 	// fieldPath is the log field name for recording file paths.
 	fieldPath = "path"
 
@@ -525,6 +528,46 @@ func (o *InterpretedBuildOrchestrator) ProactiveRecompile(ctx context.Context) e
 	return nil
 }
 
+// RemoveComponent drops a component from the orchestrator's caches so its page key is no
+// longer reported by the runner and its compiled entry no longer serves requests. It
+// purges the program cache, the dirty code cache, and the artefact lookup, then rebuilds
+// the reverse dependency map.
+//
+// Takes relPath (string) which is the project-relative source path of the removed
+// component (e.g. "pages/old.pk"). For a regular page this is the program cache key.
+//
+// Safe for concurrent use; acquires stateLock while mutating the caches.
+func (o *InterpretedBuildOrchestrator) RemoveComponent(ctx context.Context, relPath string) {
+	_, l := logger_domain.From(ctx, log)
+	relPath = filepath.ToSlash(relPath)
+
+	o.stateLock.Lock()
+	defer o.stateLock.Unlock()
+
+	delete(o.progCache, relPath)
+	delete(o.dirtyCodeCache, relPath)
+
+	for packagePath, artefact := range o.artefactByPackagePath {
+		component, _ := generator_domain.GetMainComponent(artefact.Result)
+		if component == nil {
+			continue
+		}
+		artefactRelPath, err := filepath.Rel(o.projectRoot, component.Source.SourcePath)
+		if err != nil {
+			l.Error("Failed to compute relative path for removed component",
+				logger_domain.String(fieldAbsolutePath, component.Source.SourcePath),
+				logger_domain.String(fieldProjectRoot, o.projectRoot),
+				logger_domain.Error(err))
+			continue
+		}
+		if filepath.ToSlash(artefactRelPath) == relPath {
+			delete(o.artefactByPackagePath, packagePath)
+		}
+	}
+
+	o.rebuildReverseDependencyMapFromState()
+}
+
 // isEmptyVirtualModule checks if the virtual module has no components.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the module to
@@ -699,7 +742,7 @@ func (o *InterpretedBuildOrchestrator) buildVFSPathMap(
 		if err != nil {
 			l.Error("Failed to compute relative path for VFS map",
 				logger_domain.String(fieldAbsolutePath, component.Source.SourcePath),
-				logger_domain.String("projectRoot", o.projectRoot),
+				logger_domain.String(fieldProjectRoot, o.projectRoot),
 				logger_domain.Error(err))
 			continue
 		}
@@ -1166,7 +1209,7 @@ func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
 	if err != nil {
 		l.Error("Failed to compute relative path",
 			logger_domain.String(fieldAbsolutePath, component.Source.SourcePath),
-			logger_domain.String("projectRoot", o.projectRoot),
+			logger_domain.String(fieldProjectRoot, o.projectRoot),
 			logger_domain.Error(err))
 		return nil, "", nil
 	}
@@ -1361,7 +1404,7 @@ func (o *InterpretedBuildOrchestrator) updateArtefactLookupAndVFS(
 		if err != nil {
 			l.Error("[JIT-MARK-DIRTY] Failed to compute relative path for VFS map",
 				logger_domain.String(fieldAbsolutePath, component.Source.SourcePath),
-				logger_domain.String("projectRoot", o.projectRoot),
+				logger_domain.String(fieldProjectRoot, o.projectRoot),
 				logger_domain.Error(err))
 			continue
 		}

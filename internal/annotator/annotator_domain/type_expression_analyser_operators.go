@@ -60,7 +60,7 @@ func (a *typeExpressionAnalyser) resolveBinaryExpression(ctx context.Context, n 
 		return earlyReturn
 	}
 
-	ann := a.createBinaryResultAnnotation(resultTypeExpr, resultPackageAlias)
+	ann := a.createBinaryResultAnnotation(ctx, resultTypeExpr, resultPackageAlias)
 	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveBinaryExpression",
 		logger_domain.Int(logKeyDepth, a.depth),
 		logger_domain.String(logKeyExpr, n.String()),
@@ -273,9 +273,9 @@ func (a *typeExpressionAnalyser) validateOrOperator(n *ast_domain.BinaryExpressi
 //
 // Returns *ast_domain.GoGeneratorAnnotation which holds the annotation with stringability
 // details worked out from the result type.
-func (a *typeExpressionAnalyser) createBinaryResultAnnotation(resultTypeExpr goast.Expr, resultPackageAlias string) *ast_domain.GoGeneratorAnnotation {
+func (a *typeExpressionAnalyser) createBinaryResultAnnotation(ctx context.Context, resultTypeExpr goast.Expr, resultPackageAlias string) *ast_domain.GoGeneratorAnnotation {
 	resultTypeInfo := newSimpleTypeInfoWithAlias(resultTypeExpr, resultPackageAlias)
-	stringability, isPointer := a.typeResolver.determineStringability(a.ctx, resultTypeInfo)
+	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, resultTypeInfo)
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
 		DynamicCollectionInfo:   nil,
@@ -442,7 +442,7 @@ func (a *typeExpressionAnalyser) resolveUnaryExpression(ctx context.Context, n *
 	}
 
 	resultTypeInfo := newSimpleTypeInfoWithAlias(resultTypeExpr, resultPackageAlias)
-	stringability, isPointer := a.typeResolver.determineStringability(a.ctx, resultTypeInfo)
+	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, resultTypeInfo)
 	ann := newAnnotationFull(resultTypeInfo, &a.ctx.SFCSourcePath, stringability)
 	ann.IsPointerToStringable = isPointer
 	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveUnaryExpression",

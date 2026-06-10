@@ -1414,7 +1414,7 @@ func TestPromoteNumericTypes(t *testing.T) {
 func TestGetLenCapReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getLenCapReturnType(nil, nil, nil, nil)
+	result := getLenCapReturnType(nil, nil, nil, nil, nil)
 
 	require.NotNil(t, result)
 	identifier, ok := result.TypeExpression.(*goast.Ident)
@@ -1432,13 +1432,13 @@ func TestGetMinMaxReturnType(t *testing.T) {
 			{ResolvedType: intTypeInfo},
 		}
 
-		result := getMinMaxReturnType(nil, nil, nil, argAnns)
+		result := getMinMaxReturnType(nil, nil, nil, nil, argAnns)
 		assert.Same(t, intTypeInfo, result)
 	})
 
 	t.Run("returns any when no arguments", func(t *testing.T) {
 		t.Parallel()
-		result := getMinMaxReturnType(nil, nil, nil, nil)
+		result := getMinMaxReturnType(nil, nil, nil, nil, nil)
 
 		require.NotNil(t, result)
 		identifier, ok := result.TypeExpression.(*goast.Ident)
@@ -1450,7 +1450,7 @@ func TestGetMinMaxReturnType(t *testing.T) {
 		t.Parallel()
 		argAnns := []*ast_domain.GoGeneratorAnnotation{nil}
 
-		result := getMinMaxReturnType(nil, nil, nil, argAnns)
+		result := getMinMaxReturnType(nil, nil, nil, nil, argAnns)
 
 		identifier, ok := result.TypeExpression.(*goast.Ident)
 		require.True(t, ok)
@@ -1461,7 +1461,7 @@ func TestGetMinMaxReturnType(t *testing.T) {
 func TestGetTranslationFuncReturnType(t *testing.T) {
 	t.Parallel()
 
-	result := getTranslationFuncReturnType(nil, nil, nil, nil)
+	result := getTranslationFuncReturnType(nil, nil, nil, nil, nil)
 
 	require.NotNil(t, result)
 	identifier, ok := result.TypeExpression.(*goast.Ident)
@@ -1866,7 +1866,7 @@ func TestValidateLenCapArgs_WrongArgCount(t *testing.T) {
 				}
 			}
 
-			tr.validateLenCapArgs(ctx, callExpr, argAnns, baseLocation)
+			validateLenCapArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 			require.Len(t, *ctx.Diagnostics, 1)
 			assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -1909,7 +1909,7 @@ func TestValidateLenCapArgs_ValidTypes(t *testing.T) {
 				{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: tc.resolvedToAST}},
 			}
 
-			tr.validateLenCapArgs(ctx, callExpr, argAnns, baseLocation)
+			validateLenCapArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 			assert.Empty(t, *ctx.Diagnostics)
 		})
@@ -1937,7 +1937,7 @@ func TestValidateLenCapArgs_InvalidType(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	tr.validateLenCapArgs(ctx, callExpr, argAnns, baseLocation)
+	validateLenCapArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	require.Len(t, *ctx.Diagnostics, 1)
 	assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -1956,7 +1956,7 @@ func TestValidateMinMaxArgs_WrongArgCount(t *testing.T) {
 	baseLocation := ast_domain.Location{Line: 1, Column: 1}
 	argAnns := []*ast_domain.GoGeneratorAnnotation{}
 
-	tr.validateMinMaxArgs(ctx, callExpr, argAnns, baseLocation)
+	validateMinMaxArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	require.Len(t, *ctx.Diagnostics, 1)
 	assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -1979,7 +1979,7 @@ func TestValidateMinMaxArgs_ValidSingleArg(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	tr.validateMinMaxArgs(ctx, callExpr, argAnns, baseLocation)
+	validateMinMaxArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics)
 }
@@ -2005,7 +2005,7 @@ func TestValidateMinMaxArgs_ValidMultipleArgs(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	tr.validateMinMaxArgs(ctx, callExpr, argAnns, baseLocation)
+	validateMinMaxArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics)
 }
@@ -2023,7 +2023,7 @@ func TestValidateAppendArgs_NoArgs(t *testing.T) {
 	baseLocation := ast_domain.Location{Line: 1, Column: 1}
 	argAnns := []*ast_domain.GoGeneratorAnnotation{}
 
-	tr.validateAppendArgs(ctx, callExpr, argAnns, baseLocation)
+	validateAppendArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	require.Len(t, *ctx.Diagnostics, 1)
 	assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -2051,7 +2051,7 @@ func TestValidateAppendArgs_NonSliceFirstArg(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	tr.validateAppendArgs(ctx, callExpr, argAnns, baseLocation)
+	validateAppendArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	require.Len(t, *ctx.Diagnostics, 1)
 	assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -2082,7 +2082,7 @@ func TestValidateAppendArgs_ValidSlice(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	tr.validateAppendArgs(ctx, callExpr, argAnns, baseLocation)
+	validateAppendArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	assert.Empty(t, *ctx.Diagnostics)
 }
@@ -2111,7 +2111,7 @@ func TestValidateAppendArgs_IncompatibleElementType(t *testing.T) {
 		{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 	}
 
-	tr.validateAppendArgs(ctx, callExpr, argAnns, baseLocation)
+	validateAppendArgs(t.Context(), tr, ctx, callExpr, argAnns, baseLocation)
 
 	require.Len(t, *ctx.Diagnostics, 1)
 	assert.Equal(t, ast_domain.Error, (*ctx.Diagnostics)[0].Severity)
@@ -2374,7 +2374,6 @@ func TestGetAppendReturnType(t *testing.T) {
 
 	t.Run("returns first argument type when available", func(t *testing.T) {
 		t.Parallel()
-		tr := &TypeResolver{}
 		sliceType := &ast_domain.ResolvedTypeInfo{
 			TypeExpression: &goast.ArrayType{Elt: goast.NewIdent("int")},
 		}
@@ -2382,17 +2381,16 @@ func TestGetAppendReturnType(t *testing.T) {
 			{ResolvedType: sliceType},
 		}
 
-		result := tr.getAppendReturnType(nil, nil, argAnns)
+		result := getAppendReturnType(nil, nil, nil, nil, argAnns)
 
 		assert.Same(t, sliceType, result)
 	})
 
 	t.Run("returns any type when no arguments", func(t *testing.T) {
 		t.Parallel()
-		tr := &TypeResolver{}
 		argAnns := []*ast_domain.GoGeneratorAnnotation{}
 
-		result := tr.getAppendReturnType(nil, nil, argAnns)
+		result := getAppendReturnType(nil, nil, nil, nil, argAnns)
 
 		require.NotNil(t, result)
 		identifier, ok := result.TypeExpression.(*goast.Ident)
@@ -2402,10 +2400,9 @@ func TestGetAppendReturnType(t *testing.T) {
 
 	t.Run("returns any type when first argument is nil", func(t *testing.T) {
 		t.Parallel()
-		tr := &TypeResolver{}
 		argAnns := []*ast_domain.GoGeneratorAnnotation{nil}
 
-		result := tr.getAppendReturnType(nil, nil, argAnns)
+		result := getAppendReturnType(nil, nil, nil, nil, argAnns)
 
 		require.NotNil(t, result)
 		identifier, ok := result.TypeExpression.(*goast.Ident)
@@ -2415,12 +2412,11 @@ func TestGetAppendReturnType(t *testing.T) {
 
 	t.Run("returns any type when first argument has nil ResolvedType", func(t *testing.T) {
 		t.Parallel()
-		tr := &TypeResolver{}
 		argAnns := []*ast_domain.GoGeneratorAnnotation{
 			{ResolvedType: nil},
 		}
 
-		result := tr.getAppendReturnType(nil, nil, argAnns)
+		result := getAppendReturnType(nil, nil, nil, nil, argAnns)
 
 		require.NotNil(t, result)
 		identifier, ok := result.TypeExpression.(*goast.Ident)
@@ -2609,7 +2605,7 @@ func TestValidateMinMaxArgs(t *testing.T) {
 			Args:   []ast_domain.Expression{},
 		}
 
-		tr.validateMinMaxArgs(ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{}, ast_domain.Location{})
+		validateMinMaxArgs(t.Context(), tr, ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{}, ast_domain.Location{})
 
 		require.Len(t, diagnostics, 1)
 		assert.Contains(t, diagnostics[0].Message, "requires at least one argument")
@@ -2625,7 +2621,7 @@ func TestValidateMinMaxArgs(t *testing.T) {
 			Args:   []ast_domain.Expression{&ast_domain.Identifier{Name: "a"}},
 		}
 
-		tr.validateMinMaxArgs(ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{nil}, ast_domain.Location{})
+		validateMinMaxArgs(t.Context(), tr, ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{nil}, ast_domain.Location{})
 
 		assert.Empty(t, diagnostics)
 	})
@@ -2642,7 +2638,7 @@ func TestValidateMinMaxArgs(t *testing.T) {
 			Args:   []ast_domain.Expression{&ast_domain.Identifier{Name: "b"}},
 		}
 
-		tr.validateMinMaxArgs(ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{
+		validateMinMaxArgs(t.Context(), tr, ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{
 			{ResolvedType: structType},
 		}, ast_domain.Location{})
 
@@ -2665,7 +2661,7 @@ func TestValidateMinMaxArgs(t *testing.T) {
 			},
 		}
 
-		tr.validateMinMaxArgs(ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{
+		validateMinMaxArgs(t.Context(), tr, ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{
 			{ResolvedType: intType},
 			{ResolvedType: intType},
 		}, ast_domain.Location{})
@@ -2689,7 +2685,7 @@ func TestValidateMinMaxArgs(t *testing.T) {
 			},
 		}
 
-		tr.validateMinMaxArgs(ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{
+		validateMinMaxArgs(t.Context(), tr, ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{
 			{ResolvedType: intType},
 			{ResolvedType: strType},
 		}, ast_domain.Location{})
@@ -2815,7 +2811,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 			Args:   []ast_domain.Expression{},
 		}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{}, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, []*ast_domain.GoGeneratorAnnotation{}, ast_domain.Location{})
 
 		require.Len(t, diagnostics, 1)
 		assert.Equal(t, ast_domain.Error, diagnostics[0].Severity)
@@ -2838,7 +2834,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 			{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("string")}},
 		}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, argAnns, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, ast_domain.Location{})
 
 		assert.Empty(t, diagnostics)
 	})
@@ -2859,7 +2855,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 			{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 		}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, argAnns, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, ast_domain.Location{})
 
 		require.Len(t, diagnostics, 1)
 		assert.Equal(t, ast_domain.Error, diagnostics[0].Severity)
@@ -2887,7 +2883,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 			{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("int")}},
 		}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, argAnns, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, ast_domain.Location{})
 
 		require.Len(t, diagnostics, 1)
 		assert.Equal(t, ast_domain.Error, diagnostics[0].Severity)
@@ -2909,7 +2905,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 		}
 		argAnns := []*ast_domain.GoGeneratorAnnotation{nil}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, argAnns, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, ast_domain.Location{})
 
 		assert.Empty(t, diagnostics)
 	})
@@ -2930,7 +2926,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 			{ResolvedType: nil},
 		}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, argAnns, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, ast_domain.Location{})
 
 		assert.Empty(t, diagnostics)
 	})
@@ -2957,7 +2953,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 			{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("float64")}},
 		}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, argAnns, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, ast_domain.Location{})
 
 		require.Len(t, diagnostics, 3)
 		assert.Contains(t, diagnostics[0].Message, "key")
@@ -2985,7 +2981,7 @@ func TestValidateTranslationFuncArgs(t *testing.T) {
 			{ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: goast.NewIdent("string")}},
 		}
 
-		tr.validateTranslationFuncArgs(ctx, callExpr, argAnns, ast_domain.Location{})
+		validateTranslationFuncArgs(t.Context(), tr, ctx, callExpr, argAnns, ast_domain.Location{})
 
 		require.Len(t, diagnostics, 1)
 		assert.Equal(t, ast_domain.Warning, diagnostics[0].Severity)
@@ -3002,7 +2998,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			GetImportsForFileFunc: func(_, _ string) map[string]string { return map[string]string{} },
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isSafeJSONLeafOrCollection(ctx, nil)
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, nil)
 		assert.False(t, result)
 	})
 
@@ -3012,7 +3008,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			GetImportsForFileFunc: func(_, _ string) map[string]string { return map[string]string{} },
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isSafeJSONLeafOrCollection(ctx, goast.NewIdent("string"))
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, goast.NewIdent("string"))
 		assert.True(t, result)
 	})
 
@@ -3022,7 +3018,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			GetImportsForFileFunc: func(_, _ string) map[string]string { return map[string]string{} },
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isSafeJSONLeafOrCollection(ctx, goast.NewIdent("int"))
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, goast.NewIdent("int"))
 		assert.True(t, result)
 	})
 
@@ -3032,7 +3028,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			GetImportsForFileFunc: func(_, _ string) map[string]string { return map[string]string{} },
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isSafeJSONLeafOrCollection(ctx, goast.NewIdent("bool"))
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, goast.NewIdent("bool"))
 		assert.True(t, result)
 	})
 
@@ -3045,7 +3041,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isSafeJSONLeafOrCollection(ctx, goast.NewIdent("CustomType"))
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, goast.NewIdent("CustomType"))
 		assert.False(t, result)
 	})
 
@@ -3065,7 +3061,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			X:   goast.NewIdent("uuid"),
 			Sel: goast.NewIdent("UUID"),
 		}
-		result := tr.isSafeJSONLeafOrCollection(ctx, selectorExpr)
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, selectorExpr)
 		assert.True(t, result)
 	})
 
@@ -3076,7 +3072,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
 		starExpr := &goast.StarExpr{X: goast.NewIdent("string")}
-		result := tr.isSafeJSONLeafOrCollection(ctx, starExpr)
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, starExpr)
 		assert.True(t, result)
 	})
 
@@ -3087,7 +3083,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
 		arrayType := &goast.ArrayType{Elt: goast.NewIdent("int")}
-		result := tr.isSafeJSONLeafOrCollection(ctx, arrayType)
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, arrayType)
 		assert.True(t, result)
 	})
 
@@ -3101,7 +3097,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			Key:   goast.NewIdent("string"),
 			Value: goast.NewIdent("int"),
 		}
-		result := tr.isSafeJSONLeafOrCollection(ctx, mapType)
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, mapType)
 		assert.True(t, result)
 	})
 
@@ -3115,7 +3111,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 			Key:   &goast.StarExpr{X: goast.NewIdent("int")},
 			Value: goast.NewIdent("string"),
 		}
-		result := tr.isSafeJSONLeafOrCollection(ctx, mapType)
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, mapType)
 		assert.False(t, result)
 	})
 
@@ -3126,7 +3122,7 @@ func TestIsSafeJSONLeafOrCollection(t *testing.T) {
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
 		chanType := &goast.ChanType{Dir: goast.SEND, Value: goast.NewIdent("int")}
-		result := tr.isSafeJSONLeafOrCollection(ctx, chanType)
+		result := tr.isSafeJSONLeafOrCollection(t.Context(), ctx, chanType)
 		assert.False(t, result)
 	})
 }
@@ -3143,7 +3139,7 @@ func TestIsNamedTypeJSONSafe(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isNamedTypeJSONSafe(ctx, goast.NewIdent("UnknownType"))
+		result := tr.isNamedTypeJSONSafe(t.Context(), ctx, goast.NewIdent("UnknownType"))
 		assert.False(t, result)
 	})
 
@@ -3159,7 +3155,7 @@ func TestIsNamedTypeJSONSafe(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isNamedTypeJSONSafe(ctx, goast.NewIdent("UUID"))
+		result := tr.isNamedTypeJSONSafe(t.Context(), ctx, goast.NewIdent("UUID"))
 		assert.True(t, result)
 	})
 
@@ -3175,7 +3171,7 @@ func TestIsNamedTypeJSONSafe(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isNamedTypeJSONSafe(ctx, goast.NewIdent("Money"))
+		result := tr.isNamedTypeJSONSafe(t.Context(), ctx, goast.NewIdent("Money"))
 		assert.True(t, result)
 	})
 
@@ -3191,7 +3187,7 @@ func TestIsNamedTypeJSONSafe(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isNamedTypeJSONSafe(ctx, goast.NewIdent("JsonData"))
+		result := tr.isNamedTypeJSONSafe(t.Context(), ctx, goast.NewIdent("JsonData"))
 		assert.True(t, result)
 	})
 
@@ -3207,7 +3203,7 @@ func TestIsNamedTypeJSONSafe(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isNamedTypeJSONSafe(ctx, goast.NewIdent("SomeStruct"))
+		result := tr.isNamedTypeJSONSafe(t.Context(), ctx, goast.NewIdent("SomeStruct"))
 		assert.False(t, result)
 	})
 
@@ -3223,7 +3219,7 @@ func TestIsNamedTypeJSONSafe(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isNamedTypeJSONSafe(ctx, goast.NewIdent("Plain"))
+		result := tr.isNamedTypeJSONSafe(t.Context(), ctx, goast.NewIdent("Plain"))
 		assert.False(t, result)
 	})
 
@@ -3239,7 +3235,7 @@ func TestIsNamedTypeJSONSafe(t *testing.T) {
 			},
 		}}
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		result := tr.isNamedTypeJSONSafe(ctx, goast.NewIdent("MyInt"))
+		result := tr.isNamedTypeJSONSafe(t.Context(), ctx, goast.NewIdent("MyInt"))
 		assert.False(t, result)
 	})
 }

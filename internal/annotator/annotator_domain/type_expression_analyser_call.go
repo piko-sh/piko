@@ -24,9 +24,11 @@ package annotator_domain
 
 import (
 	"context"
+	"fmt"
 	goast "go/ast"
 	"strings"
 
+	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
@@ -42,7 +44,7 @@ import (
 func (a *typeExpressionAnalyser) resolveCallExpression(ctx context.Context, n *ast_domain.CallExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveCallExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
-	if ann := a.tryResolveGetCollectionCall(n); ann != nil {
+	if ann := a.tryResolveGetCollectionCall(ctx, n); ann != nil {
 		return ann
 	}
 
@@ -51,7 +53,7 @@ func (a *typeExpressionAnalyser) resolveCallExpression(ctx context.Context, n *a
 	resolution := a.resolveCallee(ctx, n, argAnns)
 
 	if resolution.Found {
-		return a.buildCallResult(n, resolution.Signature, argAnns, resolution.BaseAnn, resolution.MethodInfo)
+		return a.buildCallResult(ctx, n, resolution.Signature, argAnns, resolution.BaseAnn, resolution.MethodInfo)
 	}
 
 	return a.handleCallFailure(n, resolution.CalleeAnn)
@@ -63,8 +65,8 @@ func (a *typeExpressionAnalyser) resolveCallExpression(ctx context.Context, n *a
 //
 // Returns *ast_domain.GoGeneratorAnnotation which is the resolved annotation, nil if not
 // a GetCollection call, or an empty annotation if resolution fails.
-func (a *typeExpressionAnalyser) tryResolveGetCollectionCall(n *ast_domain.CallExpression) *ast_domain.GoGeneratorAnnotation {
-	collectionAnn, isGetCollection := a.typeResolver.tryResolveGetCollectionCall(a.ctx, n, a.location)
+func (a *typeExpressionAnalyser) tryResolveGetCollectionCall(ctx context.Context, n *ast_domain.CallExpression) *ast_domain.GoGeneratorAnnotation {
+	collectionAnn, isGetCollection := a.typeResolver.tryResolveGetCollectionCall(ctx, a.ctx, n, a.location)
 	if !isGetCollection {
 		return nil
 	}
@@ -169,7 +171,13 @@ func (a *typeExpressionAnalyser) resolveIdentifierCallee(ctx context.Context, n 
 	}
 
 	if identifier, ok := calleeSymbol.TypeInfo.TypeExpression.(*goast.Ident); ok && identifier.Name == typeBuiltInFunction {
-		if ann := a.tryResolveBuiltInCall(n, c, &calleeSymbol, argAnns); ann != nil {
+		if ann := a.tryResolveBuiltInCall(ctx, n, c, &calleeSymbol, argAnns); ann != nil {
+			return nil, ann, nil, true
+		}
+	}
+
+	if identifier, ok := calleeSymbol.TypeInfo.TypeExpression.(*goast.Ident); ok && identifier.Name == typeNamedType {
+		if ann := a.resolveTypeConversionCall(ctx, n, c, &calleeSymbol, argAnns); ann != nil {
 			return nil, ann, nil, true
 		}
 	}
@@ -203,6 +211,7 @@ func (a *typeExpressionAnalyser) resolveIdentifierCallee(ctx context.Context, n 
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information,
 // or nil if the callee is not a built-in function.
 func (a *typeExpressionAnalyser) tryResolveBuiltInCall(
+	ctx context.Context,
 	n *ast_domain.CallExpression,
 	c *ast_domain.Identifier,
 	calleeSymbol *Symbol,
@@ -214,9 +223,9 @@ func (a *typeExpressionAnalyser) tryResolveBuiltInCall(
 	}
 
 	a.ctx.Logger.Trace("Callee is built-in function", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, c.Name))
-	handler.ValidateArgs(a.typeResolver, a.ctx, n, argAnns, a.location)
-	returnType := handler.GetReturnType(a.typeResolver, a.ctx, n, argAnns)
-	stringability, isPointer := a.typeResolver.determineStringability(a.ctx, returnType)
+	handler.ValidateArgs(ctx, a.typeResolver, a.ctx, n, argAnns, a.location)
+	returnType := handler.GetReturnType(ctx, a.typeResolver, a.ctx, n, argAnns)
+	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, returnType)
 
 	calleeAnnotation := a.createBuiltInCalleeAnnotation(calleeSymbol, n)
 	setAnnotationOnExpression(c, calleeAnnotation)
@@ -230,6 +239,76 @@ func (a *typeExpressionAnalyser) tryResolveBuiltInCall(
 		GeneratedSourcePath:     nil,
 		DynamicAttributeOrigins: nil,
 		ResolvedType:            returnType,
+		Symbol:                  nil,
+		PartialInfo:             nil,
+		PropDataSource:          nil,
+		OriginalSourcePath:      nil,
+		OriginalPackageAlias:    nil,
+		FieldTag:                nil,
+		SourceInvocationKey:     nil,
+		StaticCollectionData:    nil,
+		Srcset:                  nil,
+		Stringability:           stringability,
+		IsStatic:                false,
+		NeedsCSRF:               false,
+		NeedsRuntimeSafetyCheck: false,
+		IsStructurallyStatic:    false,
+		IsPointerToStringable:   isPointer,
+		IsCollectionCall:        false,
+		IsHybridCollection:      false,
+		IsMapAccess:             false,
+	}
+}
+
+// resolveTypeConversionCall resolves a Go-style type conversion such as `MyType(value)`
+// where the callee names a user-defined type from the script block. The result carries
+// the named type so downstream method resolution and comparison treat it as that type.
+//
+// Takes n (*ast_domain.CallExpression) which is the conversion call.
+// Takes c (*ast_domain.Identifier) which is the type-name identifier.
+// Takes calleeSymbol (*Symbol) which is the registered named-type symbol.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
+// annotations.
+//
+// Returns *ast_domain.GoGeneratorAnnotation describing the conversion result, or nil when
+// the call is not a valid single-argument conversion.
+func (a *typeExpressionAnalyser) resolveTypeConversionCall(
+	ctx context.Context,
+	n *ast_domain.CallExpression,
+	c *ast_domain.Identifier,
+	calleeSymbol *Symbol,
+	argAnns []*ast_domain.GoGeneratorAnnotation,
+) *ast_domain.GoGeneratorAnnotation {
+	if len(argAnns) != 1 {
+		finalLocation := a.location.Add(n.GetRelativeLocation())
+		message := fmt.Sprintf("Type conversion '%s' expects exactly one argument", calleeSymbol.Name)
+		a.ctx.addDiagnosticForExpression(ast_domain.Error, message, n, finalLocation, n.GoAnnotations, annotator_dto.CodeCoercionError)
+		return nil
+	}
+
+	resultType := &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          goast.NewIdent(calleeSymbol.Name),
+		PackageAlias:            calleeSymbol.TypeInfo.PackageAlias,
+		CanonicalPackagePath:    calleeSymbol.TypeInfo.CanonicalPackagePath,
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: true,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+	}
+	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, resultType)
+
+	calleeAnnotation := a.createBuiltInCalleeAnnotation(calleeSymbol, n)
+	setAnnotationOnExpression(c, calleeAnnotation)
+
+	return &ast_domain.GoGeneratorAnnotation{
+		EffectiveKeyExpression:  nil,
+		DynamicCollectionInfo:   nil,
+		StaticCollectionLiteral: nil,
+		ParentTypeName:          nil,
+		BaseCodeGenVarName:      nil,
+		GeneratedSourcePath:     nil,
+		DynamicAttributeOrigins: nil,
+		ResolvedType:            resultType,
 		Symbol:                  nil,
 		PartialInfo:             nil,
 		PropDataSource:          nil,
@@ -434,7 +513,7 @@ func (a *typeExpressionAnalyser) resolveMemberExprCallee(ctx context.Context, n 
 		}
 	}
 
-	if fieldSig, fieldBaseAnn := a.tryResolveFunctionField(c); fieldSig != nil {
+	if fieldSig, fieldBaseAnn := a.tryResolveFunctionField(ctx, c); fieldSig != nil {
 		return &calleeResolution{
 			Signature:  fieldSig,
 			BaseAnn:    fieldBaseAnn,
@@ -461,7 +540,7 @@ func (a *typeExpressionAnalyser) resolveMemberExprCallee(ctx context.Context, n 
 // nil if resolution fails.
 // Returns *ast_domain.GoGeneratorAnnotation which is the base annotation, or nil if
 // resolution fails.
-func (a *typeExpressionAnalyser) tryResolveFunctionField(c *ast_domain.MemberExpression) (*inspector_dto.FunctionSignature, *ast_domain.GoGeneratorAnnotation) {
+func (a *typeExpressionAnalyser) tryResolveFunctionField(ctx context.Context, c *ast_domain.MemberExpression) (*inspector_dto.FunctionSignature, *ast_domain.GoGeneratorAnnotation) {
 	baseAnn := getAnnotationFromExpression(c.Base)
 	propName := getPropertyName(c)
 
@@ -470,7 +549,7 @@ func (a *typeExpressionAnalyser) tryResolveFunctionField(c *ast_domain.MemberExp
 	}
 
 	fieldInfo := a.typeResolver.inspector.FindFieldInfo(
-		context.Background(),
+		ctx,
 		baseAnn.ResolvedType.TypeExpression,
 		propName,
 		a.ctx.CurrentGoFullPackagePath,
@@ -507,6 +586,7 @@ func (a *typeExpressionAnalyser) tryResolveFunctionField(c *ast_domain.MemberExp
 // Returns *ast_domain.GoGeneratorAnnotation which is the final annotation for the call
 // result.
 func (a *typeExpressionAnalyser) buildCallResult(
+	ctx context.Context,
 	n *ast_domain.CallExpression,
 	sig *inspector_dto.FunctionSignature,
 	argAnns []*ast_domain.GoGeneratorAnnotation,
@@ -524,7 +604,7 @@ func (a *typeExpressionAnalyser) buildCallResult(
 	a.ctx.Logger.Trace("Found signature for call; validating arguments", logger_domain.Int(logKeyDepth, a.depth))
 	a.typeResolver.validateCallArguments(a.ctx, n, sig, argAnns, baseAnnForCall, a.location, a.depth+1)
 
-	finalAnn := a.typeResolver.buildAnnotationFromSignatureResult(a.ctx, sig, baseAnnForCall, methodInfo)
+	finalAnn := a.typeResolver.buildAnnotationFromSignatureResult(ctx, a.ctx, sig, baseAnnForCall, methodInfo)
 	if baseAnnForCall != nil {
 		finalAnn.BaseCodeGenVarName = baseAnnForCall.BaseCodeGenVarName
 	}

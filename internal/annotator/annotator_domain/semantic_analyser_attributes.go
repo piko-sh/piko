@@ -90,7 +90,7 @@ func (aa *AttributeAnalyser) MarkPartialRendered(alias string) {
 // other attributes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes activePInfo (*ast_domain.PartialInvocationInfo) which holds partial invocation
 // info for the current partial scope, used to resolve variable names during server-side
 // rendering inlining.
@@ -98,24 +98,24 @@ func (aa *AttributeAnalyser) MarkPartialRendered(alias string) {
 // parent partial invocations by hash, allowing correct context resolution for nested
 // partial expressions.
 func (aa *AttributeAnalyser) AnalyseNodeAttributes(
-	goCtx context.Context,
+	ctx context.Context,
 	node *ast_domain.TemplateNode,
-	ctx *AnalysisContext,
+	analysisContext *AnalysisContext,
 	activePInfo *ast_domain.PartialInvocationInfo,
 	partialInvocationMap map[string]*ast_domain.PartialInvocationInfo,
 ) {
-	partialSelfContext := aa.contextManager.DeterminePartialSelfContext(node, ctx)
-	baseContextResolver := &attributeContextResolver{aa: aa, ctx: ctx, partialSelfContext: partialSelfContext, activePInfo: activePInfo, partialInvocationMap: partialInvocationMap}
+	partialSelfContext := aa.contextManager.DeterminePartialSelfContext(node, analysisContext)
+	baseContextResolver := &attributeContextResolver{aa: aa, ctx: analysisContext, partialSelfContext: partialSelfContext, activePInfo: activePInfo, partialInvocationMap: partialInvocationMap}
 
-	aa.analyseConditionalDirectives(goCtx, node, baseContextResolver)
+	aa.analyseConditionalDirectives(ctx, node, baseContextResolver)
 
 	guardedCtxResolver := baseContextResolver
 	if node.DirIf != nil && node.DirIf.Expression != nil {
 		guards := ExtractNilGuardsFromCondition(node.DirIf.Expression)
 		if len(guards) > 0 {
-			guardedCtx := ctx.ForChildScopeWithNilGuards(guards)
+			guardedCtx := analysisContext.ForChildScopeWithNilGuards(guards)
 			guardedPartialSelfCtx := partialSelfContext
-			if partialSelfContext == ctx {
+			if partialSelfContext == analysisContext {
 				guardedPartialSelfCtx = guardedCtx
 			}
 			guardedCtxResolver = &attributeContextResolver{
@@ -128,12 +128,12 @@ func (aa *AttributeAnalyser) AnalyseNodeAttributes(
 		}
 	}
 
-	aa.analyseBindAndModelDirectives(goCtx, node, guardedCtxResolver, partialSelfContext)
-	aa.analyseClassAndStyleDirectives(goCtx, node, guardedCtxResolver)
-	aa.analyseOtherDirectives(goCtx, node, guardedCtxResolver)
+	aa.analyseBindAndModelDirectives(ctx, node, guardedCtxResolver, partialSelfContext)
+	aa.analyseClassAndStyleDirectives(ctx, node, guardedCtxResolver)
+	aa.analyseOtherDirectives(ctx, node, guardedCtxResolver)
 	aa.analyseTimelineDirectives(node, guardedCtxResolver)
-	aa.analyseNodeKey(goCtx, node, guardedCtxResolver)
-	aa.analyseDynamicAttributes(goCtx, node, guardedCtxResolver)
+	aa.analyseNodeKey(ctx, node, guardedCtxResolver)
+	aa.analyseDynamicAttributes(ctx, node, guardedCtxResolver)
 }
 
 // attributeContextResolver encapsulates the context resolution logic for attributes.
@@ -274,10 +274,10 @@ func (aa *AttributeAnalyser) getValidatorForContext(activePInfo *ast_domain.Part
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes r (*attributeContextResolver) which resolves the attribute context.
-func (aa *AttributeAnalyser) analyseConditionalDirectives(goCtx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
-	resolveAndValidate(goCtx, node.DirIf, r.forDirective(node.DirIf), aa.typeResolver, validateConditionalDirective)
-	resolveAndValidate(goCtx, node.DirElseIf, r.forDirective(node.DirElseIf), aa.typeResolver, validateConditionalDirective)
-	resolveAndValidate(goCtx, node.DirShow, r.forDirective(node.DirShow), aa.typeResolver, validateConditionalDirective)
+func (aa *AttributeAnalyser) analyseConditionalDirectives(ctx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
+	resolveAndValidate(ctx, node.DirIf, r.forDirective(node.DirIf), aa.typeResolver, validateConditionalDirective)
+	resolveAndValidate(ctx, node.DirElseIf, r.forDirective(node.DirElseIf), aa.typeResolver, validateConditionalDirective)
+	resolveAndValidate(ctx, node.DirShow, r.forDirective(node.DirShow), aa.typeResolver, validateConditionalDirective)
 }
 
 // analyseBindAndModelDirectives handles bind and model directives on a node.
@@ -285,14 +285,14 @@ func (aa *AttributeAnalyser) analyseConditionalDirectives(goCtx context.Context,
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes r (*attributeContextResolver) which resolves attribute contexts.
 // Takes partialSelfContext (*AnalysisContext) which provides context for event analysis.
-func (aa *AttributeAnalyser) analyseBindAndModelDirectives(goCtx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver, partialSelfContext *AnalysisContext) {
-	resolveAndValidate(goCtx, node.DirModel, r.forDirective(node.DirModel), aa.typeResolver, validateModelDirective)
+func (aa *AttributeAnalyser) analyseBindAndModelDirectives(ctx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver, partialSelfContext *AnalysisContext) {
+	resolveAndValidate(ctx, node.DirModel, r.forDirective(node.DirModel), aa.typeResolver, validateModelDirective)
 	for key := range node.Binds {
 		directive := node.Binds[key]
-		resolveAndValidate(goCtx, directive, r.forDirective(directive), aa.typeResolver, nil)
+		resolveAndValidate(ctx, directive, r.forDirective(directive), aa.typeResolver, nil)
 	}
-	aa.analyseEventDirectives(goCtx, node, node.OnEvents, partialSelfContext, r.activePInfo)
-	aa.analyseEventDirectives(goCtx, node, node.CustomEvents, partialSelfContext, r.activePInfo)
+	aa.analyseEventDirectives(ctx, node, node.OnEvents, partialSelfContext, r.activePInfo)
+	aa.analyseEventDirectives(ctx, node, node.CustomEvents, partialSelfContext, r.activePInfo)
 }
 
 // analyseClassAndStyleDirectives checks v-class and v-style directives on a template
@@ -300,16 +300,16 @@ func (aa *AttributeAnalyser) analyseBindAndModelDirectives(goCtx context.Context
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes r (*attributeContextResolver) which resolves attribute context.
-func (aa *AttributeAnalyser) analyseClassAndStyleDirectives(goCtx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
+func (aa *AttributeAnalyser) analyseClassAndStyleDirectives(ctx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
 	if node.DirClass != nil {
 		classCtx := r.forDirective(node.DirClass)
-		aa.resolveObjectLiteralValues(goCtx, classCtx, node.DirClass.Expression, node.DirClass.Location)
-		resolveAndValidate(goCtx, node.DirClass, classCtx, aa.typeResolver, validateClassDirective)
+		aa.resolveObjectLiteralValues(ctx, classCtx, node.DirClass.Expression, node.DirClass.Location)
+		resolveAndValidate(ctx, node.DirClass, classCtx, aa.typeResolver, validateClassDirective)
 	}
 	if node.DirStyle != nil {
 		styleCtx := r.forDirective(node.DirStyle)
-		aa.resolveObjectLiteralValues(goCtx, styleCtx, node.DirStyle.Expression, node.DirStyle.Location)
-		resolveAndValidate(goCtx, node.DirStyle, styleCtx, aa.typeResolver, validateStyleDirective)
+		aa.resolveObjectLiteralValues(ctx, styleCtx, node.DirStyle.Expression, node.DirStyle.Location)
+		resolveAndValidate(ctx, node.DirStyle, styleCtx, aa.typeResolver, validateStyleDirective)
 	}
 }
 
@@ -319,9 +319,9 @@ func (aa *AttributeAnalyser) analyseClassAndStyleDirectives(goCtx context.Contex
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes r (*attributeContextResolver) which provides the directive context.
-func (aa *AttributeAnalyser) analyseOtherDirectives(goCtx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
-	resolveAndValidate(goCtx, node.DirKey, r.forDirective(node.DirKey), aa.typeResolver, validateKeyDirective)
-	resolveAndValidate(goCtx, node.DirContext, r.forDirective(node.DirContext), aa.typeResolver, validateContextDirective)
+func (aa *AttributeAnalyser) analyseOtherDirectives(ctx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
+	resolveAndValidate(ctx, node.DirKey, r.forDirective(node.DirKey), aa.typeResolver, validateKeyDirective)
+	resolveAndValidate(ctx, node.DirContext, r.forDirective(node.DirContext), aa.typeResolver, validateContextDirective)
 }
 
 // analyseTimelineDirectives validates p-timeline directives and warns when they are used
@@ -353,13 +353,13 @@ func (*AttributeAnalyser) analyseTimelineDirectives(node *ast_domain.TemplateNod
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to analyse.
 // Takes r (*attributeContextResolver) which provides the resolution context.
-func (aa *AttributeAnalyser) analyseNodeKey(goCtx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
+func (aa *AttributeAnalyser) analyseNodeKey(ctx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
 	if node.Key == nil {
 		return
 	}
 	keyAnn := getAnnotationFromExpression(node.Key)
 	keyLocation := aa.determineKeyLocation(node)
-	aa.typeResolver.Resolve(goCtx, r.forAnnotation(keyAnn), node.Key, keyLocation)
+	aa.typeResolver.Resolve(ctx, r.forAnnotation(keyAnn), node.Key, keyLocation)
 }
 
 // determineKeyLocation returns the most specific location for the node's key.
@@ -382,11 +382,11 @@ func (*AttributeAnalyser) determineKeyLocation(node *ast_domain.TemplateNode) as
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes r (*attributeContextResolver) which resolves attribute contexts.
-func (aa *AttributeAnalyser) analyseDynamicAttributes(goCtx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
+func (aa *AttributeAnalyser) analyseDynamicAttributes(ctx context.Context, node *ast_domain.TemplateNode, r *attributeContextResolver) {
 	for i := range node.DynamicAttributes {
 		attr := &node.DynamicAttributes[i]
 		attributeContext := r.forAnnotation(attr.GoAnnotations)
-		attr.GoAnnotations = aa.typeResolver.Resolve(goCtx, attributeContext, attr.Expression, attr.Location)
+		attr.GoAnnotations = aa.typeResolver.Resolve(ctx, attributeContext, attr.Expression, attr.Location)
 		aa.validateDynamicAttribute(attributeContext, attr)
 	}
 }
@@ -427,14 +427,14 @@ func (*AttributeAnalyser) validateDynamicAttribute(ctx *AnalysisContext, attr *a
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes eventMap (map[string][]ast_domain.Directive) which holds the event directives
 // grouped by event name.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes activePInfo (*ast_domain.PartialInvocationInfo) which identifies the current
 // partial context for selecting the correct checker.
 func (aa *AttributeAnalyser) analyseEventDirectives(
-	goCtx context.Context,
+	ctx context.Context,
 	node *ast_domain.TemplateNode,
 	eventMap map[string][]ast_domain.Directive,
-	ctx *AnalysisContext,
+	analysisContext *AnalysisContext,
 	activePInfo *ast_domain.PartialInvocationInfo,
 ) {
 	if len(eventMap) == 0 {
@@ -445,7 +445,7 @@ func (aa *AttributeAnalyser) analyseEventDirectives(
 
 	for _, directives := range eventMap {
 		for i := range directives {
-			aa.analyseEventDirective(goCtx, node, &directives[i], ctx, validator)
+			aa.analyseEventDirective(ctx, node, &directives[i], analysisContext, validator)
 		}
 	}
 }
@@ -455,20 +455,20 @@ func (aa *AttributeAnalyser) analyseEventDirectives(
 // Takes node (*ast_domain.TemplateNode) which is the template node containing the
 // directive.
 // Takes d (*ast_domain.Directive) which is the event directive to analyse.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes validator (*PKValidator) which validates primary keys.
 func (aa *AttributeAnalyser) analyseEventDirective(
-	goCtx context.Context,
+	ctx context.Context,
 	node *ast_domain.TemplateNode,
 	d *ast_domain.Directive,
-	ctx *AnalysisContext,
+	analysisContext *AnalysisContext,
 	validator *PKValidator,
 ) {
-	if !aa.validateEventModifiers(d, ctx) {
+	if !aa.validateEventModifiers(d, analysisContext) {
 		return
 	}
 
-	aa.resolveDefaultEventDirective(goCtx, node, d, ctx, validator)
+	aa.resolveDefaultEventDirective(ctx, node, d, analysisContext, validator)
 	d.IsStaticEvent = !expressionHasDynamicScopeRefs(d.Expression)
 }
 
@@ -513,28 +513,28 @@ func (*AttributeAnalyser) validateEventModifiers(d *ast_domain.Directive, ctx *A
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node being analysed.
 // Takes d (*ast_domain.Directive) which is the event directive to resolve.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
 // Takes validator (*PKValidator) which validates event handlers when present.
 func (aa *AttributeAnalyser) resolveDefaultEventDirective(
-	goCtx context.Context,
+	ctx context.Context,
 	node *ast_domain.TemplateNode,
 	d *ast_domain.Directive,
-	ctx *AnalysisContext,
+	analysisContext *AnalysisContext,
 	validator *PKValidator,
 ) {
 	if aa.isActionCall(d) {
-		aa.resolveActionCall(goCtx, node, d, ctx)
+		aa.resolveActionCall(ctx, node, d, analysisContext)
 		return
 	}
 	if aa.isHelperCall(d) {
-		aa.resolveHelperCall(goCtx, d, ctx)
+		aa.resolveHelperCall(ctx, d, analysisContext)
 		return
 	}
 
 	if validator != nil && validator.HasClientScript() {
-		validator.ValidateEventHandler(d, ctx)
+		validator.ValidateEventHandler(d, analysisContext)
 	}
-	aa.resolveClientEventHandlerArgs(goCtx, d, ctx, validator)
+	aa.resolveClientEventHandlerArgs(ctx, d, analysisContext, validator)
 }
 
 // isActionCall checks if a directive is a server-side action call. Action calls use the
@@ -557,17 +557,17 @@ func (*AttributeAnalyser) isActionCall(d *ast_domain.Directive) bool {
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to modify.
 // Takes d (*ast_domain.Directive) which contains the action directive.
-// Takes ctx (*AnalysisContext) which provides the analysis context.
-func (aa *AttributeAnalyser) resolveActionCall(goCtx context.Context, node *ast_domain.TemplateNode, d *ast_domain.Directive, ctx *AnalysisContext) {
+// Takes analysisContext (*AnalysisContext) which provides the analysis context.
+func (aa *AttributeAnalyser) resolveActionCall(ctx context.Context, node *ast_domain.TemplateNode, d *ast_domain.Directive, analysisContext *AnalysisContext) {
 	actionName := extractActionNameFromDirective(d)
 	action := aa.lookupActionCaseInsensitive(actionName)
 
-	aa.addCSRFAndMethodAttributes(node, d, actionName, action, ctx)
+	aa.addCSRFAndMethodAttributes(node, d, actionName, action, analysisContext)
 
 	d.Modifier = actionCallModifier
 
 	if callExpr, isCall := d.Expression.(*ast_domain.CallExpression); isCall {
-		aa.transformActionCallExpr(goCtx, callExpr, actionName, action, ctx, d.Location)
+		aa.transformActionCallExpr(ctx, callExpr, actionName, action, analysisContext, d.Location)
 	}
 
 	d.GoAnnotations = newAnnotationWithType(newSyntheticAnyTypeInfo())
@@ -615,15 +615,16 @@ func (*AttributeAnalyser) addCSRFAndMethodAttributes(
 // Takes actionName (string) which is the name to use for the new identifier.
 // Takes action (ActionInfoProvider) which is the resolved action for validation, or nil
 // if not found.
-// Takes ctx (*AnalysisContext) which provides the analysis context for symbol resolution.
+// Takes analysisContext (*AnalysisContext) which provides the analysis context for symbol
+// resolution.
 // Takes location (ast_domain.Location) which specifies the source location for type
 // resolution.
 func (aa *AttributeAnalyser) transformActionCallExpr(
-	goCtx context.Context,
+	ctx context.Context,
 	callExpr *ast_domain.CallExpression,
 	actionName string,
 	action ActionInfoProvider,
-	ctx *AnalysisContext,
+	analysisContext *AnalysisContext,
 	location ast_domain.Location,
 ) {
 	callExpr.Callee = &ast_domain.Identifier{
@@ -633,13 +634,13 @@ func (aa *AttributeAnalyser) transformActionCallExpr(
 		SourceLength:     len(actionName),
 	}
 
-	eventCtx := createEventContextWithSymbols(ctx)
+	eventCtx := createEventContextWithSymbols(analysisContext)
 	for _, argument := range callExpr.Args {
-		aa.typeResolver.Resolve(goCtx, eventCtx, argument, location)
+		aa.typeResolver.Resolve(ctx, eventCtx, argument, location)
 	}
 
 	if paramProvider, ok := action.(ActionParamProvider); ok {
-		aa.validateActionArgs(callExpr, actionName, paramProvider.GetCallParamTypes(), ctx, location)
+		aa.validateActionArgs(callExpr, actionName, paramProvider.GetCallParamTypes(), analysisContext, location)
 	}
 }
 

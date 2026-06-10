@@ -43,26 +43,26 @@ type InternalsAnalyser struct {
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node whose internal
 // expressions are to be analysed.
-// Takes ctx (*AnalysisContext) which provides the analysis state, symbol table, and
-// diagnostic collector.
+// Takes analysisContext (*AnalysisContext) which provides the analysis state, symbol
+// table, and diagnostic collector.
 func (ia *InternalsAnalyser) AnalyseInternalExpressions(
-	goCtx context.Context,
+	ctx context.Context,
 	node *ast_domain.TemplateNode,
-	ctx *AnalysisContext,
+	analysisContext *AnalysisContext,
 	_ *ast_domain.PartialInvocationInfo,
 ) {
 	if node == nil {
 		return
 	}
 
-	resolveAndValidate(goCtx, node.DirText, ctx, ia.resolver, validateTextContentDirective)
-	resolveAndValidate(goCtx, node.DirHTML, ctx, ia.resolver, validateTextContentDirective)
+	resolveAndValidate(ctx, node.DirText, analysisContext, ia.resolver, validateTextContentDirective)
+	resolveAndValidate(ctx, node.DirHTML, analysisContext, ia.resolver, validateTextContentDirective)
 
 	for i := range node.RichText {
 		part := &node.RichText[i]
 		if !part.IsLiteral {
 			if containsEventPlaceholder(part.Expression) {
-				ctx.addDiagnostic(
+				analysisContext.addDiagnostic(
 					ast_domain.Error,
 					"$event can only be used in p-on or p-event handlers",
 					part.RawExpression,
@@ -72,9 +72,9 @@ func (ia *InternalsAnalyser) AnalyseInternalExpressions(
 				)
 				continue
 			}
-			part.GoAnnotations = ia.resolver.Resolve(goCtx, ctx, part.Expression, part.Location)
+			part.GoAnnotations = ia.resolver.Resolve(ctx, analysisContext, part.Expression, part.Location)
 			if part.GoAnnotations != nil && part.GoAnnotations.OriginalSourcePath == nil {
-				part.GoAnnotations.OriginalSourcePath = &ctx.SFCSourcePath
+				part.GoAnnotations.OriginalSourcePath = &analysisContext.SFCSourcePath
 			}
 		}
 	}

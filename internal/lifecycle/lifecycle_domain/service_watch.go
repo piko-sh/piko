@@ -215,10 +215,20 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 		return
 	}
 
+	isPageRemoval := isRemovalEvent(fec.event.Type) && strings.HasSuffix(strings.ToLower(fec.relPath), ".pk")
+
 	if ls.interpretedOrchestrator != nil && ls.interpretedOrchestrator.IsInitialised() && ls.coordinatorService != nil {
+		if isPageRemoval {
+			ls.handlePageRemoval(ctx, fec.relPath)
+			return
+		}
 		ls.rebuildWG.Add(1)
 		go ls.executeTargetedRebuild(ctx, fec.relPath)
 		return
+	}
+
+	if isPageRemoval {
+		ls.removeComponentStyleDeps(fec.relPath)
 	}
 
 	if ls.buildCacheInvalidator != nil {
@@ -230,6 +240,40 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 	if ls.coordinatorService != nil {
 		l.Trace("Core source file changed, requesting rebuild.")
 		ls.RequestRebuild(ctx, fmt.Sprintf("file-change:%s", fec.relPath))
+	}
+}
+
+// isRemovalEvent reports whether a file event type represents the disappearance of a file
+// (a removal, or a rename away that the watcher could not resolve to a create).
+//
+// Takes eventType (lifecycle_dto.FileEventType) which is the event type to classify.
+//
+// Returns bool which is true for remove and rename events.
+func isRemovalEvent(eventType lifecycle_dto.FileEventType) bool {
+	return eventType == lifecycle_dto.FileEventTypeRemove || eventType == lifecycle_dto.FileEventTypeRename
+}
+
+// handlePageRemoval cleans up after a removed or renamed-away .pk page.
+//
+// It drops the component's stale CSS @import dependency entry and, in dev-i mode, reloads
+// the router so the removed page's route disappears and any page created by the matching
+// rename registers. The entry point itself was already dropped by updateBuildContext.
+//
+// Takes relPath (string) which is the project-relative path of the removed page (e.g.
+// "pages/old.pk").
+func (ls *lifecycleService) handlePageRemoval(ctx context.Context, relPath string) {
+	ctx, l := logger_domain.From(ctx, log)
+	l.Internal("Page removed, cleaning up dependencies and reloading routes",
+		logger_domain.String(fieldPath, relPath))
+
+	ls.removeComponentStyleDeps(relPath)
+
+	if ls.interpretedOrchestrator != nil && ls.interpretedOrchestrator.IsInitialised() {
+		ls.interpretedOrchestrator.RemoveComponent(ctx, relPath)
+
+		if runner := ls.currentRunnerSnapshot(); ls.routerManager != nil && runner != nil {
+			ls.reloadRoutesIfNeeded(ctx, runner)
+		}
 	}
 }
 

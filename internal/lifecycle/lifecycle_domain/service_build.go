@@ -155,6 +155,20 @@ func (ls *lifecycleService) updateStyleDepsFromBuild(result *annotator_dto.Proje
 	}
 }
 
+// removeComponentStyleDeps drops the CSS @import dependency entry for a component that is
+// no longer present, so its stylesheet watches do not linger after the component is
+// removed or renamed away.
+//
+// Takes relPath (string) which is the component's project-relative source path (e.g.
+// "pages/old.pk").
+//
+// Concurrency: acquires styleDepsMu while deleting the entry.
+func (ls *lifecycleService) removeComponentStyleDeps(relPath string) {
+	ls.styleDepsMu.Lock()
+	defer ls.styleDepsMu.Unlock()
+	delete(ls.componentStyleDeps, relPath)
+}
+
 // projectRelPath converts an absolute path to a slash-separated path relative to the
 // project root, matching the form the file watcher reports (and the form asset paths
 // use). The project root is the configured base directory resolved to an absolute path.
@@ -342,6 +356,7 @@ func (ls *lifecycleService) handleInitialBuild(ctx context.Context, result *anno
 	}
 
 	ls.templaterService.SetRunner(newRunner)
+	ls.setCurrentRunner(newRunner)
 	l.Internal("Initial interpreted runner successfully created")
 	ls.reloadRoutesIfNeeded(ctx, newRunner)
 
@@ -351,7 +366,13 @@ func (ls *lifecycleService) handleInitialBuild(ctx context.Context, result *anno
 }
 
 // handleIncrementalBuild marks components dirty and proactively JIT-compiles them rather
-// than waiting for an HTTP request.
+// than waiting for an HTTP request. It then reloads the router so pages created after
+// server start become routable without a restart.
+//
+// The interpreted runner created at the initial build is orchestrator-backed: a newly
+// created page is compiled into the orchestrator's program cache by ProactiveRecompile,
+// so reloading routes against the existing runner picks up the new page's key. No new
+// runner is needed.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which contains the components to
 // mark as dirty.
@@ -369,6 +390,10 @@ func (ls *lifecycleService) handleIncrementalBuild(ctx context.Context, result *
 
 	if err := ls.interpretedOrchestrator.ProactiveRecompile(ctx); err != nil {
 		l.Error("Proactive recompile failed", logger_domain.Error(err))
+	}
+
+	if runner := ls.currentRunnerSnapshot(); ls.routerManager != nil && runner != nil {
+		ls.reloadRoutesIfNeeded(ctx, runner)
 	}
 
 	if ls.devEventNotifier != nil {
@@ -395,6 +420,33 @@ func (ls *lifecycleService) reloadRoutesIfNeeded(ctx context.Context, newRunner 
 	}
 
 	l.Internal("Routes successfully loaded")
+}
+
+// setCurrentRunner stores the interpreted runner so the watch goroutine can read it
+// without racing the build-notification goroutine.
+//
+// Takes runner (templater_domain.ManifestRunnerPort) which is the runner to store.
+//
+// Concurrency: write-locks mu.
+func (ls *lifecycleService) setCurrentRunner(runner templater_domain.ManifestRunnerPort) {
+	ls.mu.Lock()
+	ls.currentRunner = runner
+	ls.mu.Unlock()
+}
+
+// currentRunnerSnapshot returns the current interpreted runner.
+//
+// Callers reload routes with the returned value outside the lock, so mu is never held
+// across the router I/O.
+//
+// Returns templater_domain.ManifestRunnerPort which is the current runner, or nil when no
+// initial build has completed.
+//
+// Concurrency: read-locks mu.
+func (ls *lifecycleService) currentRunnerSnapshot() templater_domain.ManifestRunnerPort {
+	ls.mu.RLock()
+	defer ls.mu.RUnlock()
+	return ls.currentRunner
 }
 
 // interpretedRunnerView defines the interface for an interpreted runner that provides
