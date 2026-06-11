@@ -73,6 +73,7 @@ func resetGlobalStateForTestIsolation() {
 	i18n_domain.ClearExpressionCache()
 	generator_helpers.ClearModulePathCaches()
 	render_domain.ClearHTMLLinksCache()
+	render_domain.ClearSpriteSheetCacheForTesting()
 	caller.ResetFrameCache()
 	logger_domain.ResetCallerCache()
 }

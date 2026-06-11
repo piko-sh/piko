@@ -1,0 +1,742 @@
+package default_test_pkg
+
+import (
+	goast "go/ast"
+	"go/parser"
+
+	"piko.sh/piko/internal/ast/ast_domain"
+)
+
+var GeneratedAST = func() *ast_domain.TemplateAST {
+	typeExprFromString := func(s string) goast.Expr {
+		expr, err := parser.ParseExpr(s)
+		if err != nil {
+			return nil
+		}
+		return expr
+	}
+	_ = typeExprFromString
+	return &ast_domain.TemplateAST{
+		RootNodes: []*ast_domain.TemplateNode{
+			&ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeElement,
+				Location: ast_domain.Location{
+					Line:   22,
+					Column: 3,
+				},
+				TagName: "div",
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+					OriginalPackageAlias: new("pages_main_594861c5"),
+					OriginalSourcePath:   new("pages/main.pk"),
+					IsStructurallyStatic: true,
+				},
+				Key: &ast_domain.StringLiteral{
+					Value: "r.0",
+					RelativeLocation: ast_domain.Location{
+						Line:   22,
+						Column: 3,
+					},
+					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+						ResolvedType: &ast_domain.ResolvedTypeInfo{
+							TypeExpression:       typeExprFromString("string"),
+							PackageAlias:         "",
+							CanonicalPackagePath: "",
+						},
+						OriginalSourcePath: new("pages/main.pk"),
+						Stringability:      1,
+					},
+				},
+				Children: []*ast_domain.TemplateNode{
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   23,
+							Column: 5,
+						},
+						TagName: "h2",
+						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+							OriginalPackageAlias: new("pages_main_594861c5"),
+							OriginalSourcePath:   new("pages/main.pk"),
+							IsStatic:             true,
+							IsStructurallyStatic: true,
+						},
+						Key: &ast_domain.StringLiteral{
+							Value: "r.0:0",
+							RelativeLocation: ast_domain.Location{
+								Line:   23,
+								Column: 5,
+							},
+							GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+								ResolvedType: &ast_domain.ResolvedTypeInfo{
+									TypeExpression:       typeExprFromString("string"),
+									PackageAlias:         "",
+									CanonicalPackagePath: "",
+								},
+								OriginalSourcePath: new("pages/main.pk"),
+								Stringability:      1,
+							},
+						},
+						Children: []*ast_domain.TemplateNode{
+							&ast_domain.TemplateNode{
+								NodeType: ast_domain.NodeText,
+								Location: ast_domain.Location{
+									Line:   23,
+									Column: 9,
+								},
+								TextContent: "Status code",
+								GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+									OriginalPackageAlias: new("pages_main_594861c5"),
+									OriginalSourcePath:   new("pages/main.pk"),
+									IsStatic:             true,
+									IsStructurallyStatic: true,
+								},
+								Key: &ast_domain.StringLiteral{
+									Value: "r.0:0:0",
+									RelativeLocation: ast_domain.Location{
+										Line:   23,
+										Column: 9,
+									},
+									GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+										ResolvedType: &ast_domain.ResolvedTypeInfo{
+											TypeExpression:       typeExprFromString("string"),
+											PackageAlias:         "",
+											CanonicalPackagePath: "",
+										},
+										OriginalSourcePath: new("pages/main.pk"),
+										Stringability:      1,
+									},
+								},
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   24,
+							Column: 5,
+						},
+						TagName: "p",
+						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+							OriginalPackageAlias: new("pages_main_594861c5"),
+							OriginalSourcePath:   new("pages/main.pk"),
+							IsStructurallyStatic: true,
+						},
+						Key: &ast_domain.StringLiteral{
+							Value: "r.0:1",
+							RelativeLocation: ast_domain.Location{
+								Line:   24,
+								Column: 5,
+							},
+							GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+								ResolvedType: &ast_domain.ResolvedTypeInfo{
+									TypeExpression:       typeExprFromString("string"),
+									PackageAlias:         "",
+									CanonicalPackagePath: "",
+								},
+								OriginalSourcePath: new("pages/main.pk"),
+								Stringability:      1,
+							},
+						},
+						Children: []*ast_domain.TemplateNode{
+							&ast_domain.TemplateNode{
+								NodeType: ast_domain.NodeText,
+								Location: ast_domain.Location{
+									Line:   24,
+									Column: 8,
+								},
+								GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+									OriginalPackageAlias: new("pages_main_594861c5"),
+									OriginalSourcePath:   new("pages/main.pk"),
+								},
+								Key: &ast_domain.StringLiteral{
+									Value: "r.0:1:0",
+									RelativeLocation: ast_domain.Location{
+										Line:   24,
+										Column: 8,
+									},
+									GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+										ResolvedType: &ast_domain.ResolvedTypeInfo{
+											TypeExpression:       typeExprFromString("string"),
+											PackageAlias:         "",
+											CanonicalPackagePath: "",
+										},
+										OriginalSourcePath: new("pages/main.pk"),
+										Stringability:      1,
+									},
+								},
+								RichText: []ast_domain.TextPart{
+									ast_domain.TextPart{
+										IsLiteral: false,
+										Location: ast_domain.Location{
+											Line:   24,
+											Column: 11,
+										},
+										RawExpression: "int(state.Status)",
+										Expression: &ast_domain.CallExpression{
+											Callee: &ast_domain.Identifier{
+												Name: "int",
+												RelativeLocation: ast_domain.Location{
+													Line:   1,
+													Column: 1,
+												},
+												GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+													ResolvedType: &ast_domain.ResolvedTypeInfo{
+														TypeExpression:       typeExprFromString("builtin_function"),
+														PackageAlias:         "",
+														CanonicalPackagePath: "",
+													},
+													Symbol: &ast_domain.ResolvedSymbol{
+														Name: "int",
+														ReferenceLocation: ast_domain.Location{
+															Line:   24,
+															Column: 11,
+														},
+														DeclarationLocation: ast_domain.Location{
+															Line:   0,
+															Column: 0,
+														},
+													},
+													BaseCodeGenVarName: new("int"),
+													OriginalSourcePath: new("pages/main.pk"),
+												},
+											},
+											Args: []ast_domain.Expression{
+												&ast_domain.MemberExpression{
+													Base: &ast_domain.Identifier{
+														Name: "state",
+														RelativeLocation: ast_domain.Location{
+															Line:   1,
+															Column: 5,
+														},
+														GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+															ResolvedType: &ast_domain.ResolvedTypeInfo{
+																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
+																PackageAlias:         "pages_main_594861c5",
+																CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Status pages_main_594861c5.ResultStatus; Flag pages_main_594861c5.Flag; Label pages_main_594861c5.Label}",
+															},
+															Symbol: &ast_domain.ResolvedSymbol{
+																Name: "state",
+																ReferenceLocation: ast_domain.Location{
+																	Line:   24,
+																	Column: 11,
+																},
+																DeclarationLocation: ast_domain.Location{
+																	Line:   0,
+																	Column: 0,
+																},
+															},
+															BaseCodeGenVarName: new("pageData"),
+															OriginalSourcePath: new("pages/main.pk"),
+														},
+													},
+													Property: &ast_domain.Identifier{
+														Name: "Status",
+														RelativeLocation: ast_domain.Location{
+															Line:   1,
+															Column: 11,
+														},
+														GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+															ResolvedType: &ast_domain.ResolvedTypeInfo{
+																TypeExpression:       typeExprFromString("pages_main_594861c5.ResultStatus"),
+																PackageAlias:         "pages_main_594861c5",
+																CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "int",
+															},
+															Symbol: &ast_domain.ResolvedSymbol{
+																Name: "Status",
+																ReferenceLocation: ast_domain.Location{
+																	Line:   24,
+																	Column: 11,
+																},
+																DeclarationLocation: ast_domain.Location{
+																	Line:   50,
+																	Column: 2,
+																},
+															},
+															BaseCodeGenVarName:  new("pageData"),
+															OriginalSourcePath:  new("pages/main.pk"),
+															GeneratedSourcePath: new("dist/pages/pages_main_594861c5/generated.go"),
+															Stringability:       2,
+														},
+													},
+													Optional: false,
+													Computed: false,
+													RelativeLocation: ast_domain.Location{
+														Line:   1,
+														Column: 5,
+													},
+													GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+														ResolvedType: &ast_domain.ResolvedTypeInfo{
+															TypeExpression:       typeExprFromString("pages_main_594861c5.ResultStatus"),
+															PackageAlias:         "pages_main_594861c5",
+															CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "int",
+														},
+														Symbol: &ast_domain.ResolvedSymbol{
+															Name: "Status",
+															ReferenceLocation: ast_domain.Location{
+																Line:   24,
+																Column: 11,
+															},
+															DeclarationLocation: ast_domain.Location{
+																Line:   50,
+																Column: 2,
+															},
+														},
+														BaseCodeGenVarName:  new("pageData"),
+														OriginalSourcePath:  new("pages/main.pk"),
+														GeneratedSourcePath: new("dist/pages/pages_main_594861c5/generated.go"),
+														Stringability:       2,
+													},
+												},
+											},
+											RelativeLocation: ast_domain.Location{
+												Line:   1,
+												Column: 1,
+											},
+											GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+												ResolvedType: &ast_domain.ResolvedTypeInfo{
+													TypeExpression:       typeExprFromString("int"),
+													PackageAlias:         "",
+													CanonicalPackagePath: "",
+												},
+												OriginalSourcePath: new("pages/main.pk"),
+												Stringability:      1,
+											},
+										},
+										GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+											ResolvedType: &ast_domain.ResolvedTypeInfo{
+												TypeExpression:       typeExprFromString("int"),
+												PackageAlias:         "",
+												CanonicalPackagePath: "",
+											},
+											OriginalSourcePath: new("pages/main.pk"),
+											Stringability:      1,
+										},
+									},
+								},
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   25,
+							Column: 5,
+						},
+						TagName: "p",
+						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+							OriginalPackageAlias: new("pages_main_594861c5"),
+							OriginalSourcePath:   new("pages/main.pk"),
+							IsStructurallyStatic: true,
+						},
+						Key: &ast_domain.StringLiteral{
+							Value: "r.0:2",
+							RelativeLocation: ast_domain.Location{
+								Line:   25,
+								Column: 5,
+							},
+							GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+								ResolvedType: &ast_domain.ResolvedTypeInfo{
+									TypeExpression:       typeExprFromString("string"),
+									PackageAlias:         "",
+									CanonicalPackagePath: "",
+								},
+								OriginalSourcePath: new("pages/main.pk"),
+								Stringability:      1,
+							},
+						},
+						Children: []*ast_domain.TemplateNode{
+							&ast_domain.TemplateNode{
+								NodeType: ast_domain.NodeText,
+								Location: ast_domain.Location{
+									Line:   25,
+									Column: 8,
+								},
+								GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+									OriginalPackageAlias: new("pages_main_594861c5"),
+									OriginalSourcePath:   new("pages/main.pk"),
+								},
+								Key: &ast_domain.StringLiteral{
+									Value: "r.0:2:0",
+									RelativeLocation: ast_domain.Location{
+										Line:   25,
+										Column: 8,
+									},
+									GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+										ResolvedType: &ast_domain.ResolvedTypeInfo{
+											TypeExpression:       typeExprFromString("string"),
+											PackageAlias:         "",
+											CanonicalPackagePath: "",
+										},
+										OriginalSourcePath: new("pages/main.pk"),
+										Stringability:      1,
+									},
+								},
+								RichText: []ast_domain.TextPart{
+									ast_domain.TextPart{
+										IsLiteral: false,
+										Location: ast_domain.Location{
+											Line:   25,
+											Column: 11,
+										},
+										RawExpression: "int(state.Flag)",
+										Expression: &ast_domain.CallExpression{
+											Callee: &ast_domain.Identifier{
+												Name: "int",
+												RelativeLocation: ast_domain.Location{
+													Line:   1,
+													Column: 1,
+												},
+												GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+													ResolvedType: &ast_domain.ResolvedTypeInfo{
+														TypeExpression:       typeExprFromString("builtin_function"),
+														PackageAlias:         "",
+														CanonicalPackagePath: "",
+													},
+													Symbol: &ast_domain.ResolvedSymbol{
+														Name: "int",
+														ReferenceLocation: ast_domain.Location{
+															Line:   25,
+															Column: 11,
+														},
+														DeclarationLocation: ast_domain.Location{
+															Line:   0,
+															Column: 0,
+														},
+													},
+													BaseCodeGenVarName: new("int"),
+													OriginalSourcePath: new("pages/main.pk"),
+												},
+											},
+											Args: []ast_domain.Expression{
+												&ast_domain.MemberExpression{
+													Base: &ast_domain.Identifier{
+														Name: "state",
+														RelativeLocation: ast_domain.Location{
+															Line:   1,
+															Column: 5,
+														},
+														GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+															ResolvedType: &ast_domain.ResolvedTypeInfo{
+																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
+																PackageAlias:         "pages_main_594861c5",
+																CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Status pages_main_594861c5.ResultStatus; Flag pages_main_594861c5.Flag; Label pages_main_594861c5.Label}",
+															},
+															Symbol: &ast_domain.ResolvedSymbol{
+																Name: "state",
+																ReferenceLocation: ast_domain.Location{
+																	Line:   25,
+																	Column: 11,
+																},
+																DeclarationLocation: ast_domain.Location{
+																	Line:   0,
+																	Column: 0,
+																},
+															},
+															BaseCodeGenVarName: new("pageData"),
+															OriginalSourcePath: new("pages/main.pk"),
+														},
+													},
+													Property: &ast_domain.Identifier{
+														Name: "Flag",
+														RelativeLocation: ast_domain.Location{
+															Line:   1,
+															Column: 11,
+														},
+														GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+															ResolvedType: &ast_domain.ResolvedTypeInfo{
+																TypeExpression:       typeExprFromString("pages_main_594861c5.Flag"),
+																PackageAlias:         "pages_main_594861c5",
+																CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "bool",
+															},
+															Symbol: &ast_domain.ResolvedSymbol{
+																Name: "Flag",
+																ReferenceLocation: ast_domain.Location{
+																	Line:   25,
+																	Column: 11,
+																},
+																DeclarationLocation: ast_domain.Location{
+																	Line:   51,
+																	Column: 2,
+																},
+															},
+															BaseCodeGenVarName:  new("pageData"),
+															OriginalSourcePath:  new("pages/main.pk"),
+															GeneratedSourcePath: new("dist/pages/pages_main_594861c5/generated.go"),
+														},
+													},
+													Optional: false,
+													Computed: false,
+													RelativeLocation: ast_domain.Location{
+														Line:   1,
+														Column: 5,
+													},
+													GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+														ResolvedType: &ast_domain.ResolvedTypeInfo{
+															TypeExpression:       typeExprFromString("pages_main_594861c5.Flag"),
+															PackageAlias:         "pages_main_594861c5",
+															CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "bool",
+														},
+														Symbol: &ast_domain.ResolvedSymbol{
+															Name: "Flag",
+															ReferenceLocation: ast_domain.Location{
+																Line:   25,
+																Column: 11,
+															},
+															DeclarationLocation: ast_domain.Location{
+																Line:   51,
+																Column: 2,
+															},
+														},
+														BaseCodeGenVarName:  new("pageData"),
+														OriginalSourcePath:  new("pages/main.pk"),
+														GeneratedSourcePath: new("dist/pages/pages_main_594861c5/generated.go"),
+													},
+												},
+											},
+											RelativeLocation: ast_domain.Location{
+												Line:   1,
+												Column: 1,
+											},
+											GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+												ResolvedType: &ast_domain.ResolvedTypeInfo{
+													TypeExpression:       typeExprFromString("int"),
+													PackageAlias:         "",
+													CanonicalPackagePath: "",
+												},
+												OriginalSourcePath: new("pages/main.pk"),
+												Stringability:      1,
+											},
+										},
+										GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+											ResolvedType: &ast_domain.ResolvedTypeInfo{
+												TypeExpression:       typeExprFromString("int"),
+												PackageAlias:         "",
+												CanonicalPackagePath: "",
+											},
+											OriginalSourcePath: new("pages/main.pk"),
+											Stringability:      1,
+										},
+									},
+								},
+							},
+						},
+					},
+					&ast_domain.TemplateNode{
+						NodeType: ast_domain.NodeElement,
+						Location: ast_domain.Location{
+							Line:   26,
+							Column: 5,
+						},
+						TagName: "p",
+						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+							OriginalPackageAlias: new("pages_main_594861c5"),
+							OriginalSourcePath:   new("pages/main.pk"),
+							IsStructurallyStatic: true,
+						},
+						Key: &ast_domain.StringLiteral{
+							Value: "r.0:3",
+							RelativeLocation: ast_domain.Location{
+								Line:   26,
+								Column: 5,
+							},
+							GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+								ResolvedType: &ast_domain.ResolvedTypeInfo{
+									TypeExpression:       typeExprFromString("string"),
+									PackageAlias:         "",
+									CanonicalPackagePath: "",
+								},
+								OriginalSourcePath: new("pages/main.pk"),
+								Stringability:      1,
+							},
+						},
+						Children: []*ast_domain.TemplateNode{
+							&ast_domain.TemplateNode{
+								NodeType: ast_domain.NodeText,
+								Location: ast_domain.Location{
+									Line:   26,
+									Column: 8,
+								},
+								GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+									OriginalPackageAlias: new("pages_main_594861c5"),
+									OriginalSourcePath:   new("pages/main.pk"),
+								},
+								Key: &ast_domain.StringLiteral{
+									Value: "r.0:3:0",
+									RelativeLocation: ast_domain.Location{
+										Line:   26,
+										Column: 8,
+									},
+									GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+										ResolvedType: &ast_domain.ResolvedTypeInfo{
+											TypeExpression:       typeExprFromString("string"),
+											PackageAlias:         "",
+											CanonicalPackagePath: "",
+										},
+										OriginalSourcePath: new("pages/main.pk"),
+										Stringability:      1,
+									},
+								},
+								RichText: []ast_domain.TextPart{
+									ast_domain.TextPart{
+										IsLiteral: false,
+										Location: ast_domain.Location{
+											Line:   26,
+											Column: 11,
+										},
+										RawExpression: "int(state.Label)",
+										Expression: &ast_domain.CallExpression{
+											Callee: &ast_domain.Identifier{
+												Name: "int",
+												RelativeLocation: ast_domain.Location{
+													Line:   1,
+													Column: 1,
+												},
+												GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+													ResolvedType: &ast_domain.ResolvedTypeInfo{
+														TypeExpression:       typeExprFromString("builtin_function"),
+														PackageAlias:         "",
+														CanonicalPackagePath: "",
+													},
+													Symbol: &ast_domain.ResolvedSymbol{
+														Name: "int",
+														ReferenceLocation: ast_domain.Location{
+															Line:   26,
+															Column: 11,
+														},
+														DeclarationLocation: ast_domain.Location{
+															Line:   0,
+															Column: 0,
+														},
+													},
+													BaseCodeGenVarName: new("int"),
+													OriginalSourcePath: new("pages/main.pk"),
+												},
+											},
+											Args: []ast_domain.Expression{
+												&ast_domain.MemberExpression{
+													Base: &ast_domain.Identifier{
+														Name: "state",
+														RelativeLocation: ast_domain.Location{
+															Line:   1,
+															Column: 5,
+														},
+														GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+															ResolvedType: &ast_domain.ResolvedTypeInfo{
+																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
+																PackageAlias:         "pages_main_594861c5",
+																CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Status pages_main_594861c5.ResultStatus; Flag pages_main_594861c5.Flag; Label pages_main_594861c5.Label}",
+															},
+															Symbol: &ast_domain.ResolvedSymbol{
+																Name: "state",
+																ReferenceLocation: ast_domain.Location{
+																	Line:   26,
+																	Column: 11,
+																},
+																DeclarationLocation: ast_domain.Location{
+																	Line:   0,
+																	Column: 0,
+																},
+															},
+															BaseCodeGenVarName: new("pageData"),
+															OriginalSourcePath: new("pages/main.pk"),
+														},
+													},
+													Property: &ast_domain.Identifier{
+														Name: "Label",
+														RelativeLocation: ast_domain.Location{
+															Line:   1,
+															Column: 11,
+														},
+														GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+															ResolvedType: &ast_domain.ResolvedTypeInfo{
+																TypeExpression:       typeExprFromString("pages_main_594861c5.Label"),
+																PackageAlias:         "pages_main_594861c5",
+																CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "string",
+															},
+															Symbol: &ast_domain.ResolvedSymbol{
+																Name: "Label",
+																ReferenceLocation: ast_domain.Location{
+																	Line:   26,
+																	Column: 11,
+																},
+																DeclarationLocation: ast_domain.Location{
+																	Line:   52,
+																	Column: 2,
+																},
+															},
+															BaseCodeGenVarName:  new("pageData"),
+															OriginalSourcePath:  new("pages/main.pk"),
+															GeneratedSourcePath: new("dist/pages/pages_main_594861c5/generated.go"),
+														},
+													},
+													Optional: false,
+													Computed: false,
+													RelativeLocation: ast_domain.Location{
+														Line:   1,
+														Column: 5,
+													},
+													GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+														ResolvedType: &ast_domain.ResolvedTypeInfo{
+															TypeExpression:       typeExprFromString("pages_main_594861c5.Label"),
+															PackageAlias:         "pages_main_594861c5",
+															CanonicalPackagePath: "testcase_153_int_coercion_defined_type/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "string",
+														},
+														Symbol: &ast_domain.ResolvedSymbol{
+															Name: "Label",
+															ReferenceLocation: ast_domain.Location{
+																Line:   26,
+																Column: 11,
+															},
+															DeclarationLocation: ast_domain.Location{
+																Line:   52,
+																Column: 2,
+															},
+														},
+														BaseCodeGenVarName:  new("pageData"),
+														OriginalSourcePath:  new("pages/main.pk"),
+														GeneratedSourcePath: new("dist/pages/pages_main_594861c5/generated.go"),
+													},
+												},
+											},
+											RelativeLocation: ast_domain.Location{
+												Line:   1,
+												Column: 1,
+											},
+											GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+												ResolvedType: &ast_domain.ResolvedTypeInfo{
+													TypeExpression:       typeExprFromString("int"),
+													PackageAlias:         "",
+													CanonicalPackagePath: "",
+												},
+												OriginalSourcePath: new("pages/main.pk"),
+												Stringability:      1,
+											},
+										},
+										GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+											ResolvedType: &ast_domain.ResolvedTypeInfo{
+												TypeExpression:       typeExprFromString("int"),
+												PackageAlias:         "",
+												CanonicalPackagePath: "",
+											},
+											OriginalSourcePath: new("pages/main.pk"),
+											Stringability:      1,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}()

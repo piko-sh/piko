@@ -293,7 +293,7 @@ plugin-idea-clean: ## Clean IntelliJ plugin build artefacts
 .PHONY: check
 check: ## Run local validation (vet, lint, tests) before pushing
 	$(GO) vet -tags "vips integration ffmpeg" -unsafeptr=false piko.sh/piko/internal/interp/...
-	$(GO) vet -tags "vips integration ffmpeg" $$($(GO) list -tags "vips integration ffmpeg" piko.sh/piko/... | grep -v '^piko.sh/piko/internal/interp')
+	$(GO) vet -tags "vips integration ffmpeg" $$($(GO) list -tags "vips integration ffmpeg" piko.sh/piko/... | grep -vE '^piko.sh/piko/(internal/interp|tmp/)')
 	@$(MAKE) lint-go-all
 	$(GO) test -race -count=1 -shuffle=on piko.sh/piko/... -short
 

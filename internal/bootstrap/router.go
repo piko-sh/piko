@@ -268,19 +268,7 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 
 	presignUploadHandler, presignDownloadHandler, publicDownloadHandler := op.getPresignHandlers(ctx)
 
-	var artefactMetaCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
-	if cacheService, err := op.container.GetCacheService(); err == nil {
-		artefactMetaCache, err = cache_domain.NewCacheBuilder[string, *registry_dto.ArtefactMeta](cacheService).
-			FactoryBlueprint("artefact-metadata").
-			Namespace("artefact-metadata").
-			MaximumSize(defaultArtefactMetadataCacheMaxEntries).
-			WriteExpiration(defaultArtefactMetadataCacheTTL).
-			Build(ctx)
-		if err != nil {
-			l.Warn("Failed to create artefact metadata cache, metadata caching disabled",
-				logger_domain.Error(err))
-		}
-	}
+	artefactMetaCache := op.buildArtefactMetadataCache(ctx)
 
 	notFoundHandler := daemon_adapters.NewNotFoundHandler(
 		op.deps.AppRouter,
@@ -320,6 +308,47 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 	l.Internal("Top-level router with system middleware and routes has been built.")
 
 	return finalRouter, nil
+}
+
+// buildArtefactMetadataCache builds the shared artefact-metadata cache and wires it to
+// the registry artefact lifecycle events so that a changed asset is served fresh straight
+// away rather than after the cache TTL expires.
+//
+// Returns cache_domain.Cache[string, *registry_dto.ArtefactMeta] which is the
+// artefact-metadata cache, or nil when no cache service is available.
+func (op *routerOperation) buildArtefactMetadataCache(ctx context.Context) cache_domain.Cache[string, *registry_dto.ArtefactMeta] {
+	ctx, l := logger_domain.From(ctx, log)
+
+	cacheService, err := op.container.GetCacheService()
+	if err != nil {
+		return nil
+	}
+
+	artefactMetaCache, err := cache_domain.NewCacheBuilder[string, *registry_dto.ArtefactMeta](cacheService).
+		FactoryBlueprint("artefact-metadata").
+		Namespace("artefact-metadata").
+		MaximumSize(defaultArtefactMetadataCacheMaxEntries).
+		WriteExpiration(defaultArtefactMetadataCacheTTL).
+		Build(ctx)
+	if err != nil {
+		l.Warn("Failed to create artefact metadata cache, metadata caching disabled",
+			logger_domain.Error(err))
+		return nil
+	}
+
+	eventBus, err := op.container.GetEventBus()
+	if err != nil {
+		l.Warn("Failed to get event bus, artefact metadata cache invalidation disabled",
+			logger_domain.Error(err))
+		return artefactMetaCache
+	}
+
+	if subscribeErr := daemon_adapters.SubscribeArtefactMetadataInvalidation(ctx, eventBus, artefactMetaCache); subscribeErr != nil {
+		l.Warn("Failed to subscribe artefact metadata cache invalidation",
+			logger_domain.Error(subscribeErr))
+	}
+
+	return artefactMetaCache
 }
 
 // createCacheMiddleware creates and returns the cache middleware.

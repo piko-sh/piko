@@ -19,9 +19,11 @@
 package driven_code_emitter_go_literal
 
 import (
+	"bytes"
 	"testing"
 
 	goast "go/ast"
+	"go/printer"
 	"go/token"
 
 	"github.com/stretchr/testify/assert"
@@ -104,6 +106,65 @@ func TestGetSourceType(t *testing.T) {
 			ann: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
 					TypeExpression: &goast.StarExpr{X: cachedIdent("int")},
+				},
+			},
+			want: "any",
+		},
+		{
+			name: "local named type with int underlying returns int",
+			ann: &ast_domain.GoGeneratorAnnotation{
+				ResolvedType: &ast_domain.ResolvedTypeInfo{
+					TypeExpression:       cachedIdent("ResultStatus"),
+					UnderlyingTypeString: "int",
+				},
+			},
+			want: "int",
+		},
+		{
+			name: "qualified named type with int underlying returns int",
+			ann: &ast_domain.GoGeneratorAnnotation{
+				ResolvedType: &ast_domain.ResolvedTypeInfo{
+					TypeExpression: &goast.SelectorExpr{
+						X:   cachedIdent("pkg"),
+						Sel: cachedIdent("ResultStatus"),
+					},
+					UnderlyingTypeString: "int",
+				},
+			},
+			want: "int",
+		},
+		{
+			name: "qualified named type with string underlying returns string",
+			ann: &ast_domain.GoGeneratorAnnotation{
+				ResolvedType: &ast_domain.ResolvedTypeInfo{
+					TypeExpression: &goast.SelectorExpr{
+						X:   cachedIdent("pkg"),
+						Sel: cachedIdent("Label"),
+					},
+					UnderlyingTypeString: "string",
+				},
+			},
+			want: "string",
+		},
+		{
+			name: "qualified named type with bool underlying returns bool",
+			ann: &ast_domain.GoGeneratorAnnotation{
+				ResolvedType: &ast_domain.ResolvedTypeInfo{
+					TypeExpression: &goast.SelectorExpr{
+						X:   cachedIdent("pkg"),
+						Sel: cachedIdent("Flag"),
+					},
+					UnderlyingTypeString: "bool",
+				},
+			},
+			want: "bool",
+		},
+		{
+			name: "named type with struct underlying returns any",
+			ann: &ast_domain.GoGeneratorAnnotation{
+				ResolvedType: &ast_domain.ResolvedTypeInfo{
+					TypeExpression:       cachedIdent("Response"),
+					UnderlyingTypeString: "struct{Status int}",
 				},
 			},
 			want: "any",
@@ -1467,6 +1528,75 @@ func TestEmitCoercionCall_Dispatch(t *testing.T) {
 			require.NotNil(t, result, "emitCoercionCall should never return nil")
 		})
 	}
+}
+
+func TestEmitCoercionCall_NamedPrimitiveUnderlying(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		functionName string
+		typeExpr     goast.Expr
+		underlying   string
+		wantContains string
+		wantExcludes string
+	}{
+		{
+			name:         "qualified named int emits native cast",
+			functionName: IntTypeName,
+			typeExpr:     &goast.SelectorExpr{X: cachedIdent("pkg"), Sel: cachedIdent("ResultStatus")},
+			underlying:   "int",
+			wantContains: "int(x)",
+			wantExcludes: "CoerceToInt",
+		},
+		{
+			name:         "local named int emits native cast",
+			functionName: IntTypeName,
+			typeExpr:     cachedIdent("ResultStatus"),
+			underlying:   "int",
+			wantContains: "int(x)",
+			wantExcludes: "CoerceToInt",
+		},
+		{
+			name:         "named bool routes through bool to int",
+			functionName: IntTypeName,
+			typeExpr:     &goast.SelectorExpr{X: cachedIdent("pkg"), Sel: cachedIdent("Flag")},
+			underlying:   "bool",
+			wantContains: "if bool(x)",
+			wantExcludes: "CoerceToInt",
+		},
+		{
+			name:         "named string routes through string parse",
+			functionName: IntTypeName,
+			typeExpr:     &goast.SelectorExpr{X: cachedIdent("pkg"), Sel: cachedIdent("Label")},
+			underlying:   "string",
+			wantContains: "strconv.ParseInt(string(x), 10, 64)",
+			wantExcludes: "CoerceToInt",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			ce, _ := setupCoercionEmitter()
+			ann := createMockAnnotationWithTypeExpr(tc.typeExpr, inspector_dto.StringablePrimitive)
+			ann.ResolvedType.UnderlyingTypeString = tc.underlying
+
+			result := ce.emitCoercionCall(tc.functionName, nil, cachedIdent("x"), ann)
+			rendered := renderGoExpr(t, result)
+
+			assert.Contains(t, rendered, tc.wantContains)
+			assert.NotContains(t, rendered, tc.wantExcludes)
+		})
+	}
+}
+
+func renderGoExpr(t *testing.T, expr goast.Expr) string {
+	t.Helper()
+	var buffer bytes.Buffer
+	require.NoError(t, printer.Fprint(&buffer, token.NewFileSet(), expr))
+	return buffer.String()
 }
 
 func TestEmitBoolToIntIIFE(t *testing.T) {

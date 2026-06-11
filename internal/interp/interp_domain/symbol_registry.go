@@ -403,6 +403,37 @@ func (r *SymbolRegistry) ReflectTypeForNamed(pkgPath, typeName string) (reflect.
 	return nil, false
 }
 
+// ReflectTypeForNamedByPackageName resolves a named type whose qualifier is a package
+// short name rather than a full import path.
+//
+// Takes packageName (string) which is the package short name from the static type string.
+// Takes typeName (string) which is the bare type symbol name.
+//
+// Returns reflect.Type which is the named element type on a hit, or nil on a miss.
+// Returns bool which is true when a matching named type was found.
+//
+// Concurrency: acquires the registry read lock for the duration of the call.
+func (r *SymbolRegistry) ReflectTypeForNamedByPackageName(packageName, typeName string) (reflect.Type, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for packagePath, pkg := range r.symbols {
+		if path.Base(packagePath) != packageName {
+			continue
+		}
+		value, ok := pkg[typeName]
+		if !ok {
+			continue
+		}
+		reflectType := value.Type()
+		if reflectType.Kind() == reflect.Pointer && value.IsNil() {
+			return reflectType.Elem(), true
+		}
+	}
+
+	return nil, false
+}
+
 // ProtectPackage marks packagePath as immutable.
 //
 // Subsequent RegisterPackage and OverlayPackage calls become no-ops. Used to lock down

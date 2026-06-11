@@ -34,6 +34,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_adapters"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
@@ -56,6 +57,7 @@ import (
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/security/security_domain"
@@ -572,6 +574,8 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 
 	b.createVariantGenerator(ctx)
 
+	artefactMetaCache := b.buildArtefactMetadataCache(ctx)
+
 	b.routerManager = daemon_adapters.NewRouterManager(&daemon_adapters.RouterManagerConfig{
 		RouterConfig:  b.buildRouterConfig(),
 		RouteSettings: buildRouteSettings(&b.c.serverConfig),
@@ -591,6 +595,7 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 		AuthGuardConfig:   b.c.authGuardConfig,
 		CaptchaService:    b.captchaService,
 		SpamDetectService: b.spamdetectService,
+		ArtefactCache:     artefactMetaCache,
 	})
 
 	if closer, ok := b.routerManager.(interface{ Close() }); ok {
@@ -599,6 +604,54 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 			return nil
 		})
 	}
+}
+
+// buildArtefactMetadataCache builds the shared artefact-metadata cache for the
+// interpreted daemon and wires it to the registry artefact lifecycle events so that an
+// asset rewritten on disk (for example an svg) is served fresh straight away rather than
+// after the cache TTL expires.
+//
+// Returns cache_domain.Cache[string, *registry_dto.ArtefactMeta] which is the
+// artefact-metadata cache, or nil when no cache service is available.
+func (b *interpretedDaemonBuilder) buildArtefactMetadataCache(ctx context.Context) cache_domain.Cache[string, *registry_dto.ArtefactMeta] {
+	ctx, l := logger_domain.From(ctx, log)
+
+	cacheService, err := b.c.GetCacheService()
+	if err != nil {
+		l.Warn("Failed to get cache service, artefact metadata caching disabled for interpreted mode",
+			logger_domain.Error(err))
+		return nil
+	}
+
+	artefactMetaCache, err := cache_domain.NewCacheBuilder[string, *registry_dto.ArtefactMeta](cacheService).
+		FactoryBlueprint("artefact-metadata").
+		Namespace("artefact-metadata").
+		MaximumSize(defaultArtefactMetadataCacheMaxEntries).
+		WriteExpiration(defaultArtefactMetadataCacheTTL).
+		Build(ctx)
+	if err != nil {
+		l.Warn("Failed to create artefact metadata cache, metadata caching disabled for interpreted mode",
+			logger_domain.Error(err))
+		return nil
+	}
+
+	shutdown.Register(b.c.GetAppContext(), "InterpretedArtefactMetadataCache", func(shutdownCtx context.Context) error {
+		return artefactMetaCache.Close(shutdownCtx)
+	})
+
+	eventBus, err := b.c.GetEventBus()
+	if err != nil {
+		l.Warn("Failed to get event bus, artefact metadata cache invalidation disabled for interpreted mode",
+			logger_domain.Error(err))
+		return artefactMetaCache
+	}
+
+	if subscribeErr := daemon_adapters.SubscribeArtefactMetadataInvalidation(ctx, eventBus, artefactMetaCache); subscribeErr != nil {
+		l.Warn("Failed to subscribe artefact metadata cache invalidation for interpreted mode",
+			logger_domain.Error(subscribeErr))
+	}
+
+	return artefactMetaCache
 }
 
 // setupDevEventBroadcaster creates the dev event broadcaster if dev widget or hot-reload
@@ -717,6 +770,10 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 	lifecycleService, err := b.buildLifecycleService(fsWatcher)
 	if err != nil {
 		return nil, err
+	}
+
+	if b.runner != nil {
+		lifecycleService.SetCurrentRunner(b.runner)
 	}
 
 	appCtx := b.c.GetAppContext()

@@ -20,11 +20,15 @@ package templater_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -194,6 +198,9 @@ func (t *templaterService) probeGeneric(
 		l.Error(label+" not found in manifest",
 			logger_domain.Error(err),
 			logger_domain.String(logFieldOriginalPath, page.OriginalPath))
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, daemon_dto.NotFound(strings.ToLower(label), page.OriginalPath)
+		}
 		return nil, fmt.Errorf("probe%s: %s not found in manifest: %s", label, label, page.OriginalPath)
 	}
 

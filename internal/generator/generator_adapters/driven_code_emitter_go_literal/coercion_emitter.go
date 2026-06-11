@@ -56,6 +56,10 @@ func (ce *CoercionEmitter) emitCoercionCall(
 ) goast.Expr {
 	sourceType := ce.getSourceType(argAnn)
 
+	if underlying, isNamedPrimitive := namedPrimitiveUnderlying(argAnn); isNamedPrimitive {
+		argExpr = ce.castTo(underlying, argExpr)
+	}
+
 	switch functionName {
 	case StringTypeName:
 		return ce.emitStringCoercion(argExpr, sourceType)
@@ -84,6 +88,10 @@ func (ce *CoercionEmitter) emitCoercionCall(
 
 // getSourceType extracts the type name from an annotation.
 //
+// When the operand is a named type whose underlying type is a coercible primitive (for
+// example `type ResultStatus int`), the underlying primitive name is returned so the
+// conversion emits a direct native cast rather than falling back to the runtime helper.
+//
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation to extract
 // the type from.
 //
@@ -96,13 +104,93 @@ func (*CoercionEmitter) getSourceType(ann *ast_domain.GoGeneratorAnnotation) str
 
 	switch t := ann.ResolvedType.TypeExpression.(type) {
 	case *goast.Ident:
-		return t.Name
+		if isCoercibleUnderlyingPrimitive(t.Name) {
+			return t.Name
+		}
 	case *goast.SelectorExpr:
 		if x, ok := t.X.(*goast.Ident); ok {
-			return x.Name + "." + t.Sel.Name
+			qualifiedName := x.Name + "." + t.Sel.Name
+			if qualifiedName == mathsDecimalTypeName || qualifiedName == mathsBigIntTypeName {
+				return qualifiedName
+			}
 		}
 	}
+
+	if underlying := ann.ResolvedType.UnderlyingTypeString; isCoercibleUnderlyingPrimitive(underlying) {
+		return underlying
+	}
+
 	return "any"
+}
+
+// namedPrimitiveUnderlying reports whether the operand is a named type whose underlying
+// type is a coercible primitive, such as `type ResultStatus int`.
+//
+// Casting such an operand to its underlying primitive before coercion strips the named
+// type, so a native conversion is emitted instead of a runtime helper and any String()
+// method on the named type is bypassed.
+//
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the operand annotation.
+//
+// Returns string which is the underlying primitive name when applicable.
+// Returns bool which is true when the operand is a named coercible primitive.
+func namedPrimitiveUnderlying(ann *ast_domain.GoGeneratorAnnotation) (string, bool) {
+	if ann == nil || ann.ResolvedType == nil || ann.ResolvedType.TypeExpression == nil {
+		return "", false
+	}
+
+	if !isNamedNonPrimitiveType(ann.ResolvedType.TypeExpression) {
+		return "", false
+	}
+
+	underlying := ann.ResolvedType.UnderlyingTypeString
+	if !isCoercibleUnderlyingPrimitive(underlying) {
+		return "", false
+	}
+
+	return underlying, true
+}
+
+// isNamedNonPrimitiveType reports whether the type expression denotes a named type that
+// is not itself a built-in primitive, covering local named types (an identifier) and
+// package-qualified named types (a selector). The maths value types are excluded because
+// coercion handles them through dedicated conversions.
+//
+// Takes typeExpr (goast.Expr) which is the resolved type expression to inspect.
+//
+// Returns bool which is true when the expression is a named non-primitive type.
+func isNamedNonPrimitiveType(typeExpr goast.Expr) bool {
+	switch t := typeExpr.(type) {
+	case *goast.Ident:
+		return !isCoercibleUnderlyingPrimitive(t.Name)
+	case *goast.SelectorExpr:
+		x, ok := t.X.(*goast.Ident)
+		if !ok {
+			return false
+		}
+		qualifiedName := x.Name + "." + t.Sel.Name
+		return qualifiedName != mathsDecimalTypeName && qualifiedName != mathsBigIntTypeName
+	default:
+		return false
+	}
+}
+
+// isCoercibleUnderlyingPrimitive reports whether the given underlying type name is a
+// primitive that coercion can convert with a direct native cast.
+//
+// Takes underlyingType (string) which is the underlying type name to check.
+//
+// Returns bool which is true when the name is a coercible primitive.
+func isCoercibleUnderlyingPrimitive(underlyingType string) bool {
+	switch underlyingType {
+	case IntTypeName, Int8TypeName, Int16TypeName, Int32TypeName, Int64TypeName,
+		UintTypeName, Uint8TypeName, Uint16TypeName, Uint32TypeName, Uint64TypeName, "uintptr",
+		Float32TypeName, Float64TypeName, "rune", ByteTypeName,
+		StringTypeName, BoolTypeName:
+		return true
+	default:
+		return false
+	}
 }
 
 // emitStringCoercion generates code to convert a value to a string.

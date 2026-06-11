@@ -738,6 +738,14 @@ func (m *mockInterpretedRunner) GetPageEntryByPath(path string) (templater_domai
 	return entry, ok
 }
 
+func (*mockInterpretedRunner) FindErrorPage(_ int, _ string) (templater_domain.PageEntryView, bool) {
+	return nil, false
+}
+
+func (*mockInterpretedRunner) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
+	return nil
+}
+
 func (m *mockInterpretedRunner) RunPage(_ context.Context, _ templater_dto.PageDefinition, _ *http.Request) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
 	return nil, templater_dto.InternalMetadata{}, "", nil
 }
@@ -2234,11 +2242,13 @@ func (m *mockTrackingTemplaterSwapper) SetRunner(_ templater_domain.ManifestRunn
 
 type mockTrackingRouterManager struct {
 	reloadError  error
+	reloadCount  int
 	reloadCalled bool
 }
 
 func (m *mockTrackingRouterManager) ReloadRoutes(_ context.Context, _ templater_domain.ManifestStoreView) error {
 	m.reloadCalled = true
+	m.reloadCount++
 	return m.reloadError
 }
 
@@ -4129,6 +4139,147 @@ func TestHandleAssetChangeRegistersNewSvg(t *testing.T) {
 	assert.Equal(t, "test-module/assets/new.svg", mockRegistry.upsertedArtefacts[0])
 }
 
+type mockTrackingDevEventNotifier struct {
+	notifiedPaths [][]string
+	mu            sync.Mutex
+}
+
+func (m *mockTrackingDevEventNotifier) NotifyRebuildComplete(_ context.Context, affectedPaths []string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.notifiedPaths = append(m.notifiedPaths, affectedPaths)
+}
+
+func (m *mockTrackingDevEventNotifier) calls() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return len(m.notifiedPaths)
+}
+
+func TestHandleAssetChangeNotifiesReload(t *testing.T) {
+	t.Parallel()
+
+	t.Run("write notifies browser reload exactly once", func(t *testing.T) {
+		t.Parallel()
+
+		mockFS := NewMockFileSystem()
+		mockFS.AddFile("/proj/lib/icon.svg", []byte("<svg>icon</svg>"))
+
+		mockRegistry := &mockTrackingRegistryService{}
+		mockNotifier := &mockTrackingDevEventNotifier{}
+
+		deps := newLifecycleTestBuilder().GetDeps()
+		deps.PathsConfig.BaseDir = "/proj"
+		deps.PathsConfig.AssetsSourceDir = "lib"
+		deps.FileSystem = mockFS
+		deps.RegistryService = mockRegistry
+		deps.DevEventNotifier = mockNotifier
+
+		service := mustBuildLifecycleService(t, deps)
+
+		fec := fileEventContext{
+			ctx:        context.Background(),
+			relPath:    "lib/icon.svg",
+			artefactID: "test-module/lib/icon.svg",
+			event: lifecycle_dto.FileEvent{
+				Path: "/proj/lib/icon.svg",
+				Type: lifecycle_dto.FileEventTypeWrite,
+			},
+		}
+
+		service.handleAssetChange(fec)
+
+		assert.Len(t, mockRegistry.upsertedArtefacts, 1)
+		assert.Equal(t, 1, mockNotifier.calls())
+		require.Len(t, mockNotifier.notifiedPaths, 1)
+		assert.Equal(t, []string{"lib/icon.svg"}, mockNotifier.notifiedPaths[0])
+	})
+
+	t.Run("remove notifies browser reload exactly once", func(t *testing.T) {
+		t.Parallel()
+
+		mockRegistry := &mockTrackingRegistryService{}
+		mockNotifier := &mockTrackingDevEventNotifier{}
+
+		deps := newLifecycleTestBuilder().GetDeps()
+		deps.RegistryService = mockRegistry
+		deps.DevEventNotifier = mockNotifier
+
+		service := mustBuildLifecycleService(t, deps)
+
+		fec := fileEventContext{
+			ctx:        context.Background(),
+			relPath:    "lib/icon.svg",
+			artefactID: "test-module/lib/icon.svg",
+			event: lifecycle_dto.FileEvent{
+				Path: "/proj/lib/icon.svg",
+				Type: lifecycle_dto.FileEventTypeRemove,
+			},
+		}
+
+		service.handleAssetChange(fec)
+
+		assert.Len(t, mockRegistry.deletedArtefacts, 1)
+		assert.Equal(t, 1, mockNotifier.calls())
+	})
+
+	t.Run("unknown event type does not notify", func(t *testing.T) {
+		t.Parallel()
+
+		mockNotifier := &mockTrackingDevEventNotifier{}
+
+		deps := newLifecycleTestBuilder().GetDeps()
+		deps.RegistryService = &mockTrackingRegistryService{}
+		deps.DevEventNotifier = mockNotifier
+
+		service := mustBuildLifecycleService(t, deps)
+
+		fec := fileEventContext{
+			ctx:        context.Background(),
+			relPath:    "lib/icon.svg",
+			artefactID: "test-module/lib/icon.svg",
+			event: lifecycle_dto.FileEvent{
+				Path: "/proj/lib/icon.svg",
+				Type: lifecycle_dto.FileEventType(99),
+			},
+		}
+
+		service.handleAssetChange(fec)
+
+		assert.Equal(t, 0, mockNotifier.calls())
+	})
+
+	t.Run("nil notifier does not panic", func(t *testing.T) {
+		t.Parallel()
+
+		mockFS := NewMockFileSystem()
+		mockFS.AddFile("/proj/lib/icon.svg", []byte("<svg>icon</svg>"))
+
+		deps := newLifecycleTestBuilder().GetDeps()
+		deps.PathsConfig.BaseDir = "/proj"
+		deps.PathsConfig.AssetsSourceDir = "lib"
+		deps.FileSystem = mockFS
+		deps.RegistryService = &mockTrackingRegistryService{}
+		deps.DevEventNotifier = nil
+
+		service := mustBuildLifecycleService(t, deps)
+
+		fec := fileEventContext{
+			ctx:        context.Background(),
+			relPath:    "lib/icon.svg",
+			artefactID: "test-module/lib/icon.svg",
+			event: lifecycle_dto.FileEvent{
+				Path: "/proj/lib/icon.svg",
+				Type: lifecycle_dto.FileEventTypeWrite,
+			},
+		}
+
+		assert.NotPanics(t, func() {
+			service.handleAssetChange(fec)
+		})
+	})
+}
+
 func TestHandleCoreSourceChangePageRemovalNonInterpretedInvalidatesCache(t *testing.T) {
 	t.Parallel()
 
@@ -4161,6 +4312,136 @@ func TestHandleCoreSourceChangePageRemovalNonInterpretedInvalidatesCache(t *test
 
 	assert.True(t, mockInvalidator.invalidated)
 	assert.Nil(t, service.importersOfStyle("/proj/lib/theme.css"))
+}
+
+type mockRecompilingCoordinatorService struct {
+	runner      *mockInterpretedRunner
+	addedKey    string
+	buildCalled bool
+}
+
+func (m *mockRecompilingCoordinatorService) GetOrBuildProject(_ context.Context, _ []annotator_dto.EntryPoint, _ ...coordinator_domain.BuildOption) (*annotator_dto.ProjectAnnotationResult, error) {
+	m.buildCalled = true
+	if m.runner != nil && m.addedKey != "" {
+		m.runner.keys = append(m.runner.keys, m.addedKey)
+		if m.runner.entries == nil {
+			m.runner.entries = map[string]templater_domain.PageEntryView{}
+		}
+		m.runner.entries[m.addedKey] = &templater_domain.MockPageEntryView{}
+	}
+	return &annotator_dto.ProjectAnnotationResult{}, nil
+}
+
+func (m *mockRecompilingCoordinatorService) Subscribe(_ string) (<-chan coordinator_domain.BuildNotification, coordinator_domain.UnsubscribeFunc) {
+	return make(chan coordinator_domain.BuildNotification), func() {}
+}
+
+func (m *mockRecompilingCoordinatorService) GetResult(_ context.Context, _ []annotator_dto.EntryPoint, _ ...coordinator_domain.BuildOption) (*annotator_dto.ProjectAnnotationResult, error) {
+	return nil, nil
+}
+
+func (m *mockRecompilingCoordinatorService) RequestRebuild(_ context.Context, _ []annotator_dto.EntryPoint, _ ...coordinator_domain.BuildOption) {
+}
+
+func (m *mockRecompilingCoordinatorService) GetLastSuccessfulBuild() (*annotator_dto.ProjectAnnotationResult, bool) {
+	return nil, false
+}
+
+func (m *mockRecompilingCoordinatorService) Invalidate(_ context.Context) error { return nil }
+
+func (m *mockRecompilingCoordinatorService) Shutdown(_ context.Context) {}
+
+func TestHandleCoreSourceChangePageCreateReloadsRoutes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("new page reloads routes exactly once", func(t *testing.T) {
+		t.Parallel()
+
+		mockRunner := &mockInterpretedRunner{
+			keys: []string{"test-module/pages/home.pk"},
+			entries: map[string]templater_domain.PageEntryView{
+				"test-module/pages/home.pk": &templater_domain.MockPageEntryView{},
+			},
+		}
+		mockOrchestrator := &mockTrackingInterpretedOrchestrator{initialised: true}
+		mockCoordinator := &mockRecompilingCoordinatorService{
+			runner:   mockRunner,
+			addedKey: "test-module/pages/new.pk",
+		}
+		mockRouter := &mockTrackingRouterManager{}
+
+		deps := newLifecycleTestBuilder().GetDeps()
+		deps.PathsConfig.BaseDir = "/proj"
+		deps.PathsConfig.PagesSourceDir = "pages"
+		deps.InterpretedOrchestrator = mockOrchestrator
+		deps.CoordinatorService = mockCoordinator
+		deps.RouterManager = mockRouter
+		deps.Resolver = &resolver_domain.MockResolver{
+			GetModuleNameFunc: func() string { return "test-module" },
+			GetBaseDirFunc:    func() string { return "/proj" },
+		}
+		deps.FileSystem = NewMockFileSystem()
+
+		service := mustBuildLifecycleService(t, deps)
+		service.currentRunner = mockRunner
+
+		fec := fileEventContext{
+			ctx:        context.Background(),
+			relPath:    "pages/new.pk",
+			artefactID: "test-module/pages/new.pk",
+			event: lifecycle_dto.FileEvent{
+				Path: "/proj/pages/new.pk",
+				Type: lifecycle_dto.FileEventTypeCreate,
+			},
+		}
+
+		service.handleCoreSourceChange(fec, false)
+		service.rebuildWG.Wait()
+
+		assert.True(t, mockCoordinator.buildCalled)
+		assert.Equal(t, 1, mockRouter.reloadCount)
+		assert.Contains(t, mockRunner.keys, "test-module/pages/new.pk")
+	})
+
+	t.Run("pkc change does not reload routes", func(t *testing.T) {
+		t.Parallel()
+
+		mockRunner := &mockInterpretedRunner{keys: []string{"test-module/pages/home.pk"}}
+		mockOrchestrator := &mockTrackingInterpretedOrchestrator{initialised: true}
+		mockCoordinator := &mockRecompilingCoordinatorService{}
+		mockRouter := &mockTrackingRouterManager{}
+
+		deps := newLifecycleTestBuilder().GetDeps()
+		deps.PathsConfig.BaseDir = "/proj"
+		deps.PathsConfig.ComponentsSourceDir = "components"
+		deps.InterpretedOrchestrator = mockOrchestrator
+		deps.CoordinatorService = mockCoordinator
+		deps.RouterManager = mockRouter
+		deps.Resolver = &resolver_domain.MockResolver{
+			GetModuleNameFunc: func() string { return "test-module" },
+			GetBaseDirFunc:    func() string { return "/proj" },
+		}
+		deps.FileSystem = NewMockFileSystem()
+
+		service := mustBuildLifecycleService(t, deps)
+		service.currentRunner = mockRunner
+		service.addEntryPointIfNotExists(context.Background(), "test-module/components/button.pkc", componentType{})
+
+		fec := fileEventContext{
+			ctx:        context.Background(),
+			relPath:    "components/button.pkc",
+			artefactID: "test-module/components/button.pkc",
+			event: lifecycle_dto.FileEvent{
+				Path: "/proj/components/button.pkc",
+				Type: lifecycle_dto.FileEventTypeWrite,
+			},
+		}
+
+		service.handleCoreSourceChange(fec, false)
+		service.rebuildWG.Wait()
+
+		assert.Equal(t, 0, mockRouter.reloadCount)
+	})
 }
 
 func TestIsRemovalEvent(t *testing.T) {

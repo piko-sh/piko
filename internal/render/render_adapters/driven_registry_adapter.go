@@ -281,6 +281,7 @@ func (r *DataLoaderRegistryAdapter) ClearSvgCache(_ context.Context, svgID strin
 	if r.svgCache != nil {
 		r.svgCache.Invalidate(svgID)
 	}
+	render_domain.InvalidateSpriteSheetCache()
 }
 
 // GetArtefactServePath returns the cache-busted URL serve path for an artefact,

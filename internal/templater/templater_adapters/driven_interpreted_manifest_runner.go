@@ -22,6 +22,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"strings"
@@ -254,6 +255,53 @@ func (r *InterpretedManifestRunner) GetPageEntryByPath(path string) (templater_d
 
 	entry, found := r.progCache[path]
 	return entry, found
+}
+
+// FindErrorPage looks up the most specific custom error page for a status code and path.
+//
+// Takes statusCode (int) which is the HTTP status code to match.
+// Takes requestPath (string) which is the URL path being requested.
+//
+// Returns templater_domain.PageEntryView which is the matching error page entry.
+// Returns bool which is true when a matching error page was found.
+func (r *InterpretedManifestRunner) FindErrorPage(statusCode int, requestPath string) (templater_domain.PageEntryView, bool) {
+	return findErrorPageInEntries(r.liveEntries(), statusCode, requestPath)
+}
+
+// ListPreviewEntries returns all cached entries that expose a Preview function, scanning
+// the live entry cache so preview scenarios stay current after hot reloads.
+//
+// Returns []templater_domain.PreviewCatalogueEntry sorted by source path.
+func (r *InterpretedManifestRunner) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
+	return listPreviewEntriesFromCache(r.liveEntries())
+}
+
+// liveEntries returns a snapshot of all cached page entries keyed by component path. It
+// reads from the orchestrator's live cache when one is attached (the hot-reload path, so
+// entries reflect the latest incremental build) and falls back to the local program cache
+// otherwise.
+//
+// Returns map[string]*PageEntry which maps component paths to their cached entries.
+//
+// Safe for concurrent use.
+func (r *InterpretedManifestRunner) liveEntries() map[string]*PageEntry {
+	if r.orchestrator != nil {
+		keys := r.orchestrator.GetAllCachedKeys()
+		entries := make(map[string]*PageEntry, len(keys))
+		for _, key := range keys {
+			if entry, found := r.orchestrator.GetCachedEntry(key); found {
+				entries[key] = entry
+			}
+		}
+		return entries
+	}
+
+	r.cacheLock.RLock()
+	defer r.cacheLock.RUnlock()
+
+	entries := make(map[string]*PageEntry, len(r.progCache))
+	maps.Copy(entries, r.progCache)
+	return entries
 }
 
 // runPageWithRedirectLoop handles page execution with server-side redirect support. It

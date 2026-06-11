@@ -216,6 +216,7 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 	}
 
 	isPageRemoval := isRemovalEvent(fec.event.Type) && strings.HasSuffix(strings.ToLower(fec.relPath), ".pk")
+	isPageCreate := fec.event.Type == lifecycle_dto.FileEventTypeCreate && strings.HasSuffix(strings.ToLower(fec.relPath), ".pk")
 
 	if ls.interpretedOrchestrator != nil && ls.interpretedOrchestrator.IsInitialised() && ls.coordinatorService != nil {
 		if isPageRemoval {
@@ -223,7 +224,7 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 			return
 		}
 		ls.rebuildWG.Add(1)
-		go ls.executeTargetedRebuild(ctx, fec.relPath)
+		go ls.executeTargetedRebuild(ctx, fec.relPath, isPageCreate)
 		return
 	}
 
@@ -281,10 +282,9 @@ func (ls *lifecycleService) handlePageRemoval(ctx context.Context, relPath strin
 //
 // Takes fec (fileEventContext) which provides the file event details and logging context.
 func (ls *lifecycleService) handleAssetChange(fec fileEventContext) {
-	_, l := logger_domain.From(fec.ctx, log)
+	ctx, l := logger_domain.From(fec.ctx, log)
 
 	l.Trace("Asset file changed, processing via orchestrator pipeline.")
-	ls.clearSvgCacheIfNeeded(fec)
 
 	switch fec.event.Type {
 	case lifecycle_dto.FileEventTypeCreate, lifecycle_dto.FileEventTypeWrite:
@@ -295,7 +295,25 @@ func (ls *lifecycleService) handleAssetChange(fec fileEventContext) {
 		l.Warn("Unknown file event type for asset change",
 			logger_domain.Int("event_type", int(fec.event.Type)),
 			logger_domain.String("path", fec.event.Path))
+		return
 	}
+
+	ls.clearSvgCacheIfNeeded(fec)
+
+	ls.notifyAssetReload(ctx, fec.relPath)
+}
+
+// notifyAssetReload broadcasts a build-completion event so the browser live-reloads after
+// an asset is reprocessed. It is a no-op outside dev/dev-i modes where the notifier is
+// nil.
+//
+// Takes relPath (string) which is the project-relative path of the changed asset (e.g.
+// "lib/icon.svg").
+func (ls *lifecycleService) notifyAssetReload(ctx context.Context, relPath string) {
+	if ls.devEventNotifier == nil {
+		return
+	}
+	ls.devEventNotifier.NotifyRebuildComplete(ctx, []string{relPath})
 }
 
 // clearSvgCacheIfNeeded clears the SVG cache when the changed file is an SVG.
@@ -490,12 +508,14 @@ func (ls *lifecycleService) removeEntryPoint(entryPointPath string) {
 //
 // Takes relPath (string) which is the project-relative path of the changed file (e.g.
 // "pages/login.pk").
+// Takes reloadRoutes (bool) which requests a router reload after recompilation so a newly
+// created page becomes routable without a restart.
 //
 // Designed to run in a goroutine so the watch loop is not blocked.
 //
 // The caller must Add(1) on rebuildWG before launching this goroutine, and the rebuild
 // calls Done() on the WaitGroup on exit.
-func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath string) {
+func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath string, reloadRoutes bool) {
 	defer ls.rebuildWG.Done()
 	defer goroutine.RecoverPanic(ctx, "lifecycle.executeTargetedRebuild")
 
@@ -505,7 +525,7 @@ func (ls *lifecycleService) executeTargetedRebuild(ctx context.Context, relPath 
 	allPaths = append(allPaths, relPath)
 	allPaths = append(allPaths, affected...)
 
-	ls.runTargetedRebuild(ctx, relPath, allPaths)
+	ls.runTargetedRebuild(ctx, relPath, allPaths, reloadRoutes)
 }
 
 // executeStyleDependencyRebuild rebuilds the components that import a changed external
@@ -540,7 +560,7 @@ func (ls *lifecycleService) executeStyleDependencyRebuild(ctx context.Context, c
 		}
 	}
 
-	ls.runTargetedRebuild(ctx, cssRelPath, allPaths)
+	ls.runTargetedRebuild(ctx, cssRelPath, allPaths, false)
 }
 
 // runTargetedRebuild filters the entry points to allPaths, runs a synchronous coordinator
@@ -549,7 +569,9 @@ func (ls *lifecycleService) executeStyleDependencyRebuild(ctx context.Context, c
 //
 // Takes changedLabel (string) which labels the rebuild for logging and build causation.
 // Takes allPaths ([]string) which are the project-relative paths to rebuild.
-func (ls *lifecycleService) runTargetedRebuild(ctx context.Context, changedLabel string, allPaths []string) {
+// Takes reloadRoutes (bool) which requests a router reload after recompilation so a newly
+// created page becomes routable without a restart.
+func (ls *lifecycleService) runTargetedRebuild(ctx context.Context, changedLabel string, allPaths []string, reloadRoutes bool) {
 	ctx, l := logger_domain.From(ctx, log)
 
 	targetedEntryPoints := ls.filterEntryPointsByPaths(allPaths)
@@ -584,6 +606,12 @@ func (ls *lifecycleService) runTargetedRebuild(ctx context.Context, changedLabel
 	if err := ls.interpretedOrchestrator.ProactiveRecompile(ctx); err != nil {
 		l.Error("Proactive recompile failed after targeted rebuild",
 			logger_domain.Error(err))
+	}
+
+	if reloadRoutes {
+		if runner := ls.currentRunnerSnapshot(); ls.routerManager != nil && runner != nil {
+			ls.reloadRoutesIfNeeded(ctx, runner)
+		}
 	}
 
 	if ls.devEventNotifier != nil {

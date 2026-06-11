@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"unsafe"
 
@@ -730,6 +731,9 @@ func coerceReflectArgument(vm *VM, argument reflect.Value, expectedType reflect.
 		if adapter := tryBuildInterfaceAdapter(vm, argument, expectedType, typeCtx); adapter.IsValid() {
 			return adapter
 		}
+		if restored, ok := restoreNamedScalarForInterface(vm, argument, typeCtx); ok {
+			return restored
+		}
 	}
 	if expectedType.Kind() == reflect.Bool && argument.Kind() == reflect.Int64 {
 		return reflect.ValueOf(argument.Int() != 0)
@@ -741,6 +745,38 @@ func coerceReflectArgument(vm *VM, argument reflect.Value, expectedType reflect.
 		return coerced
 	}
 	return argument
+}
+
+// restoreNamedScalarForInterface re-clothes a scalar argument with its source-level named
+// type when the parameter is an interface and the value would otherwise box as its bare
+// underlying primitive.
+//
+// Takes vm (*VM) which provides the symbol registry.
+// Takes argument (reflect.Value) which is the boxed scalar from a register.
+// Takes typeCtx (argumentTypeContext) which carries the recorded static type string.
+//
+// Returns the restored named-type value and true on success, or a zero value and false.
+func restoreNamedScalarForInterface(vm *VM, argument reflect.Value, typeCtx argumentTypeContext) (reflect.Value, bool) {
+	if vm == nil || vm.symbols == nil || typeCtx.staticTypeString == "" {
+		return reflect.Value{}, false
+	}
+	dotIndex := indexByteString(typeCtx.staticTypeString, '.')
+	if dotIndex <= 0 || dotIndex >= len(typeCtx.staticTypeString)-1 {
+		return reflect.Value{}, false
+	}
+	pkgQualifier := typeCtx.staticTypeString[:dotIndex]
+	typeName := typeCtx.staticTypeString[dotIndex+1:]
+	if strings.ContainsAny(pkgQualifier, "[]*") || strings.ContainsAny(typeName, "[]*") {
+		return reflect.Value{}, false
+	}
+	namedType, ok := resolveRegisteredNamedType(vm.symbols, pkgQualifier, typeName)
+	if !ok {
+		return reflect.Value{}, false
+	}
+	if argument.Type() == namedType || !argument.Type().ConvertibleTo(namedType) {
+		return reflect.Value{}, false
+	}
+	return argument.Convert(namedType), true
 }
 
 // reinterpretPointerArgument bridges native-backed generic erasure.
