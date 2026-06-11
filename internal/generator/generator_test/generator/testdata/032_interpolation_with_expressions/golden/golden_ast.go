@@ -134,6 +134,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_032_interpolation_with_expressions/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Price float64; Quantity int; User pages_main_594861c5.User; FormatUser func(u pages_main_594861c5.User) string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -221,6 +222,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_032_interpolation_with_expressions/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Price float64; Quantity int; User pages_main_594861c5.User; FormatUser func(u pages_main_594861c5.User) string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -410,6 +412,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_032_interpolation_with_expressions/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Price float64; Quantity int; User pages_main_594861c5.User; FormatUser func(u pages_main_594861c5.User) string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -495,6 +498,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_032_interpolation_with_expressions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Price float64; Quantity int; User pages_main_594861c5.User; FormatUser func(u pages_main_594861c5.User) string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -522,6 +526,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_032_interpolation_with_expressions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{FirstName string; LastName string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -550,6 +555,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.User"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_032_interpolation_with_expressions/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{FirstName string; LastName string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",

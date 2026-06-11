@@ -277,6 +277,7 @@ func (s *encoder) buildResolvedTypeInfo(info *ast_domain.ResolvedTypeInfo) (flat
 	}
 
 	pkgAliasOff := s.builder.CreateString(info.PackageAlias)
+	underlyingTypeStringOff := s.builder.CreateString(info.UnderlyingTypeString)
 	canonicalPackagePathOff := s.builder.CreateString(info.CanonicalPackagePath)
 	initialPackagePathOff := s.builder.CreateString(info.InitialPackagePath)
 	initialFilePathOff := s.builder.CreateString(info.InitialFilePath)
@@ -285,6 +286,7 @@ func (s *encoder) buildResolvedTypeInfo(info *ast_domain.ResolvedTypeInfo) (flat
 	if info.TypeExpression != nil {
 		ast_schema_gen.ResolvedTypeInfoFBAddTypeExprString(s.builder, typeExprStrOff)
 	}
+	ast_schema_gen.ResolvedTypeInfoFBAddUnderlyingTypeString(s.builder, underlyingTypeStringOff)
 	ast_schema_gen.ResolvedTypeInfoFBAddPackageAlias(s.builder, pkgAliasOff)
 	ast_schema_gen.ResolvedTypeInfoFBAddCanonicalPackagePath(s.builder, canonicalPackagePathOff)
 	ast_schema_gen.ResolvedTypeInfoFBAddInitialPackagePath(s.builder, initialPackagePathOff)
@@ -594,6 +596,7 @@ func (*decoder) unpackResolvedTypeInfo(fb *ast_schema_gen.ResolvedTypeInfoFB) (*
 	info := &ast_domain.ResolvedTypeInfo{
 		PackageAlias:            mem.String(fb.PackageAlias()),
 		CanonicalPackagePath:    mem.String(fb.CanonicalPackagePath()),
+		UnderlyingTypeString:    mem.String(fb.UnderlyingTypeString()),
 		InitialPackagePath:      mem.String(fb.InitialPackagePath()),
 		InitialFilePath:         mem.String(fb.InitialFilePath()),
 		IsSynthetic:             fb.IsSynthetic(),

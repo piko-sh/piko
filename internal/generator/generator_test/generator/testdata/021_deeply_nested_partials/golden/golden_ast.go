@@ -51,6 +51,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Username string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -262,6 +263,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{Username string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -402,6 +404,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_level1_layout_21bc9d4e.Props"),
 														PackageAlias:         "partials_level1_layout_21bc9d4e",
 														CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level1_layout_21bc9d4e",
+														UnderlyingTypeString: "struct{Username string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -613,6 +616,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("partials_level1_layout_21bc9d4e.Props"),
 												PackageAlias:         "partials_level1_layout_21bc9d4e",
 												CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level1_layout_21bc9d4e",
+												UnderlyingTypeString: "struct{Username string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -811,6 +815,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_level2_header_beeda5cc.Response"),
 													PackageAlias:         "partials_level2_header_beeda5cc",
 													CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level2_header_beeda5cc",
+													UnderlyingTypeString: "struct{SiteName string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -972,6 +977,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_level2_header_beeda5cc.Props"),
 																PackageAlias:         "partials_level2_header_beeda5cc",
 																CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level2_header_beeda5cc",
+																UnderlyingTypeString: "struct{Username string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -1183,6 +1189,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_level2_header_beeda5cc.Props"),
 														PackageAlias:         "partials_level2_header_beeda5cc",
 														CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level2_header_beeda5cc",
+														UnderlyingTypeString: "struct{Username string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -1440,6 +1447,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_level3_profile_9f247195.Props"),
 																	PackageAlias:         "partials_level3_profile_9f247195",
 																	CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level3_profile_9f247195",
+																	UnderlyingTypeString: "struct{Username string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -1646,6 +1654,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_level3_profile_9f247195.Props"),
 																		PackageAlias:         "partials_level3_profile_9f247195",
 																		CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level3_profile_9f247195",
+																		UnderlyingTypeString: "struct{Username string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -1859,6 +1868,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_level4_avatar_dd5bb04f.Props"),
 																	PackageAlias:         "partials_level4_avatar_dd5bb04f",
 																	CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level4_avatar_dd5bb04f",
+																	UnderlyingTypeString: "struct{Username string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -2035,6 +2045,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_level3_profile_9f247195.Props"),
 																PackageAlias:         "partials_level3_profile_9f247195",
 																CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level3_profile_9f247195",
+																UnderlyingTypeString: "struct{Username string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -2233,6 +2244,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_level4_avatar_dd5bb04f.Props"),
 																	PackageAlias:         "partials_level4_avatar_dd5bb04f",
 																	CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level4_avatar_dd5bb04f",
+																	UnderlyingTypeString: "struct{Username string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -2448,6 +2460,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_level5_subtext_a77f881b.Response"),
 																	PackageAlias:         "partials_level5_subtext_a77f881b",
 																	CanonicalPackagePath: "testcase_021_deeply_nested_partials/dist/partials/partials_level5_subtext_a77f881b",
+																	UnderlyingTypeString: "struct{Info string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",

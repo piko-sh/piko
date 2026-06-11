@@ -253,6 +253,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																	PackageAlias:         "partials_table_customers_3714da1b",
 																	CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																	UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "row",
@@ -400,6 +401,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																	PackageAlias:         "partials_table_customers_3714da1b",
 																	CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																	UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "row",
@@ -428,6 +430,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.Response"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{TableRows []partials_table_customers_3714da1b.TableRow}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -455,6 +458,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TableRows",
@@ -483,6 +487,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																	PackageAlias:         "partials_table_customers_3714da1b",
 																	CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																	UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "TableRows",
@@ -509,6 +514,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																PackageAlias:         "partials_table_customers_3714da1b",
 																CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "TableRows",
@@ -530,6 +536,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																PackageAlias:         "partials_table_customers_3714da1b",
 																CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "TableRows",
@@ -552,6 +559,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 															PackageAlias:         "partials_table_customers_3714da1b",
 															CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+															UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "TableRows",
@@ -614,6 +622,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "row",
@@ -708,6 +717,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableCell"),
 																			PackageAlias:         "partials_table_customers_3714da1b",
 																			CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																			UnderlyingTypeString: "struct{Text string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "cell",
@@ -736,6 +746,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "row",
@@ -763,6 +774,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{Text string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "TableCells",
@@ -791,6 +803,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																			PackageAlias:         "partials_table_customers_3714da1b",
 																			CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																			UnderlyingTypeString: "struct{Text string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "TableCells",
@@ -817,6 +830,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{Text string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TableCells",
@@ -838,6 +852,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{Text string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TableCells",
@@ -860,6 +875,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																	PackageAlias:         "partials_table_customers_3714da1b",
 																	CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																	UnderlyingTypeString: "struct{Text string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "TableCells",
@@ -900,6 +916,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableCell"),
 																			PackageAlias:         "partials_table_customers_3714da1b",
 																			CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																			UnderlyingTypeString: "struct{Text string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "cell",
@@ -1042,6 +1059,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "row",
@@ -1102,6 +1120,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableCell"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{Text string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "cell",
@@ -1204,6 +1223,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "row",
@@ -1361,6 +1381,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																	PackageAlias:         "partials_table_customers_3714da1b",
 																	CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																	UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "row",
@@ -1389,6 +1410,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.Response"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{TableRows []partials_table_customers_3714da1b.TableRow}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -1416,6 +1438,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TableRows",
@@ -1444,6 +1467,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																	PackageAlias:         "partials_table_customers_3714da1b",
 																	CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																	UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "TableRows",
@@ -1470,6 +1494,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																PackageAlias:         "partials_table_customers_3714da1b",
 																CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "TableRows",
@@ -1491,6 +1516,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																PackageAlias:         "partials_table_customers_3714da1b",
 																CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "TableRows",
@@ -1513,6 +1539,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 															PackageAlias:         "partials_table_customers_3714da1b",
 															CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+															UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "TableRows",
@@ -1575,6 +1602,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "row",
@@ -1669,6 +1697,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableCell"),
 																			PackageAlias:         "partials_table_customers_3714da1b",
 																			CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																			UnderlyingTypeString: "struct{Text string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "cell",
@@ -1697,6 +1726,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "row",
@@ -1724,6 +1754,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{Text string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "TableCells",
@@ -1752,6 +1783,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																			PackageAlias:         "partials_table_customers_3714da1b",
 																			CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																			UnderlyingTypeString: "struct{Text string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "TableCells",
@@ -1778,6 +1810,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{Text string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TableCells",
@@ -1799,6 +1832,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																		PackageAlias:         "partials_table_customers_3714da1b",
 																		CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																		UnderlyingTypeString: "struct{Text string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TableCells",
@@ -1821,6 +1855,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableCell"),
 																	PackageAlias:         "partials_table_customers_3714da1b",
 																	CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																	UnderlyingTypeString: "struct{Text string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "TableCells",
@@ -1861,6 +1896,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableCell"),
 																			PackageAlias:         "partials_table_customers_3714da1b",
 																			CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																			UnderlyingTypeString: "struct{Text string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "cell",
@@ -2003,6 +2039,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableRow"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "row",
@@ -2063,6 +2100,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.TableCell"),
 																				PackageAlias:         "partials_table_customers_3714da1b",
 																				CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																				UnderlyingTypeString: "struct{Text string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "cell",
@@ -2167,6 +2205,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_table_customers_3714da1b.Response"),
 																PackageAlias:         "partials_table_customers_3714da1b",
 																CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																UnderlyingTypeString: "struct{TableRows []partials_table_customers_3714da1b.TableRow}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2194,6 +2233,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 																PackageAlias:         "partials_table_customers_3714da1b",
 																CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+																UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "TableRows",
@@ -2222,6 +2262,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]partials_table_customers_3714da1b.TableRow"),
 															PackageAlias:         "partials_table_customers_3714da1b",
 															CanonicalPackagePath: "testcase_015_table_with_mock_dal/dist/partials/partials_table_customers_3714da1b",
+															UnderlyingTypeString: "struct{ID int64; TableCells []partials_table_customers_3714da1b.TableCell; Header bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "TableRows",

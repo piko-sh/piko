@@ -234,6 +234,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -425,6 +426,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -616,6 +618,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -807,6 +810,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -998,6 +1002,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1025,6 +1030,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "DecimalVal",
@@ -1054,6 +1060,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Decimal"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "DecimalVal",
@@ -1189,6 +1196,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1216,6 +1224,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.BigInt"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "BigIntVal",
@@ -1245,6 +1254,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.BigInt"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "BigIntVal",
@@ -1442,6 +1452,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1633,6 +1644,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1824,6 +1836,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2015,6 +2028,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2042,6 +2056,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "DecimalVal",
@@ -2071,6 +2086,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Decimal"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "DecimalVal",
@@ -2268,6 +2284,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2459,6 +2476,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2650,6 +2668,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2903,6 +2922,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3094,6 +3114,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3285,6 +3306,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3476,6 +3498,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3729,6 +3752,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3920,6 +3944,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4111,6 +4136,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4364,6 +4390,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4555,6 +4582,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4746,6 +4774,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4937,6 +4966,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4964,6 +4994,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.BigInt"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "BigIntVal",
@@ -4993,6 +5024,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.BigInt"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "BigIntVal",
@@ -5190,6 +5222,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5381,6 +5414,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5572,6 +5606,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5763,6 +5798,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5790,6 +5826,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "DecimalVal",
@@ -5819,6 +5856,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Decimal"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "DecimalVal",
@@ -5988,6 +6026,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -6103,6 +6142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -6203,6 +6243,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -6455,6 +6496,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -6646,6 +6688,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_101_coercion_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IntVal int; Int64Val int64; Float64Val float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt; AnyVal any}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

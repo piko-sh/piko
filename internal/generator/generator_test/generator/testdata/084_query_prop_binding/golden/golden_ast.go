@@ -202,6 +202,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Props"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_084_query_prop_binding/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EnvID string; BlueprintID string; Page int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -411,6 +412,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Props"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_084_query_prop_binding/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EnvID string; BlueprintID string; Page int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -620,6 +622,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Props"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_084_query_prop_binding/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EnvID string; BlueprintID string; Page int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

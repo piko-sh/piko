@@ -142,6 +142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_108_p_for_css_scoping_in_partial/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Items []string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -544,6 +545,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_item_list_1ec6225d.Props"),
 																PackageAlias:         "partials_item_list_1ec6225d",
 																CanonicalPackagePath: "testcase_108_p_for_css_scoping_in_partial/dist/partials/partials_item_list_1ec6225d",
+																UnderlyingTypeString: "struct{Items []string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",

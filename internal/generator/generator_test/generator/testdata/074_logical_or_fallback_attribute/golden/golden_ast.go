@@ -229,6 +229,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -470,6 +471,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -773,6 +775,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1014,6 +1017,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1317,6 +1321,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1405,6 +1410,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1673,6 +1679,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1761,6 +1768,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2103,6 +2111,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2324,6 +2333,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2595,6 +2605,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2682,6 +2693,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2966,6 +2978,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3053,6 +3066,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -3376,6 +3390,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3583,6 +3598,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_074_logical_or_fallback_attribute/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{EmptyString string; AlsoEmpty string; EmptyImageURL string; ValidString string; IsActive bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
@@ -2118,4 +2119,73 @@ func TestResolveReturnTypeCanonicalPath_UnknownPackage(t *testing.T) {
 	result := h.Resolver.resolveReturnTypeCanonicalPath(h.Context, goast.NewIdent("Type"), "unknown", nil)
 
 	assert.Empty(t, result)
+}
+
+func TestStampUnderlyingType(t *testing.T) {
+	t.Parallel()
+
+	const pkgPath = "test/pkg"
+
+	newResolverWith := func(namedTypes map[string]*inspector_dto.Type) *TypeResolver {
+		return &TypeResolver{inspector: &inspector_domain.MockTypeQuerier{
+			GetAllPackagesFunc: func() map[string]*inspector_dto.Package {
+				return map[string]*inspector_dto.Package{
+					pkgPath: {NamedTypes: namedTypes},
+				}
+			},
+		}}
+	}
+
+	annotationFor := func(typeName, canonicalPath string) *ast_domain.GoGeneratorAnnotation {
+		return &ast_domain.GoGeneratorAnnotation{
+			ResolvedType: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       goast.NewIdent(typeName),
+				CanonicalPackagePath: canonicalPath,
+			},
+		}
+	}
+
+	t.Run("defined type with comparable underlying is stamped", func(t *testing.T) {
+		t.Parallel()
+		tr := newResolverWith(map[string]*inspector_dto.Type{
+			"ResultStatus": {Name: "ResultStatus", UnderlyingTypeString: "int", IsAlias: false},
+		})
+		ann := annotationFor("ResultStatus", pkgPath)
+
+		tr.stampUnderlyingType(ann)
+
+		assert.Equal(t, "int", ann.ResolvedType.UnderlyingTypeString)
+	})
+
+	t.Run("alias type is not stamped", func(t *testing.T) {
+		t.Parallel()
+		tr := newResolverWith(map[string]*inspector_dto.Type{
+			"StatusAlias": {Name: "StatusAlias", UnderlyingTypeString: "int", IsAlias: true},
+		})
+		ann := annotationFor("StatusAlias", pkgPath)
+
+		tr.stampUnderlyingType(ann)
+
+		assert.Empty(t, ann.ResolvedType.UnderlyingTypeString)
+	})
+
+	t.Run("primitive without a canonical path is not stamped", func(t *testing.T) {
+		t.Parallel()
+		tr := newResolverWith(map[string]*inspector_dto.Type{})
+		ann := annotationFor("int", "")
+
+		tr.stampUnderlyingType(ann)
+
+		assert.Empty(t, ann.ResolvedType.UnderlyingTypeString)
+	})
+
+	t.Run("unresolved named type is not stamped", func(t *testing.T) {
+		t.Parallel()
+		tr := newResolverWith(map[string]*inspector_dto.Type{})
+		ann := annotationFor("UnknownType", pkgPath)
+
+		tr.stampUnderlyingType(ann)
+
+		assert.Empty(t, ann.ResolvedType.UnderlyingTypeString)
+	})
 }

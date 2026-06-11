@@ -111,6 +111,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{ServiceResponse services.TransactionServiceResponse}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -138,6 +139,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("services.TransactionServiceResponse"),
 																PackageAlias:         "services",
 																CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/services",
+																UnderlyingTypeString: "struct{Transaction dtos.TransactionDto}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "ServiceResponse",
@@ -166,6 +168,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("services.TransactionServiceResponse"),
 															PackageAlias:         "services",
 															CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/services",
+															UnderlyingTypeString: "struct{Transaction dtos.TransactionDto}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "ServiceResponse",
@@ -194,6 +197,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dtos.TransactionDto"),
 															PackageAlias:         "dtos",
 															CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/dtos",
+															UnderlyingTypeString: "struct{Amount maths.Money}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Transaction",
@@ -222,6 +226,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dtos.TransactionDto"),
 														PackageAlias:         "dtos",
 														CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/dtos",
+														UnderlyingTypeString: "struct{Amount maths.Money}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Transaction",
@@ -250,6 +255,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Money"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Amount",
@@ -279,6 +285,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Money"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Amount",
@@ -445,6 +452,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{ServiceResponse services.TransactionServiceResponse}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -472,6 +480,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("services.TransactionServiceResponse"),
 														PackageAlias:         "services",
 														CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/services",
+														UnderlyingTypeString: "struct{Transaction dtos.TransactionDto}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "ServiceResponse",
@@ -500,6 +509,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("services.TransactionServiceResponse"),
 													PackageAlias:         "services",
 													CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/services",
+													UnderlyingTypeString: "struct{Transaction dtos.TransactionDto}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "ServiceResponse",
@@ -528,6 +538,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dtos.TransactionDto"),
 													PackageAlias:         "dtos",
 													CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/dtos",
+													UnderlyingTypeString: "struct{Amount maths.Money}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Transaction",
@@ -556,6 +567,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dtos.TransactionDto"),
 												PackageAlias:         "dtos",
 												CanonicalPackagePath: "testcase_41_deep_method_resolution_bug/dtos",
+												UnderlyingTypeString: "struct{Amount maths.Money}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Transaction",
@@ -584,6 +596,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Money"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Amount",
@@ -613,6 +626,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.Money"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Amount",

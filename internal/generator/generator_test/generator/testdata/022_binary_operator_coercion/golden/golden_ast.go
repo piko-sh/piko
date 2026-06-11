@@ -382,6 +382,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -564,6 +565,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -780,6 +782,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -979,6 +982,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1178,6 +1182,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1408,6 +1413,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1589,6 +1595,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1770,6 +1777,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1968,6 +1976,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2132,6 +2141,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2219,6 +2229,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2383,6 +2394,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2564,6 +2576,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2651,6 +2664,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2877,6 +2891,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3058,6 +3073,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3239,6 +3255,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3326,6 +3343,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3490,6 +3508,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_022_binary_operator_coercion/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Price float64; IsActive bool; IsInactive bool; Message string; MaybeString *string; IDString string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

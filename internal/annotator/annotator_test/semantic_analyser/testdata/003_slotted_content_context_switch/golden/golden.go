@@ -70,6 +70,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("partials_wrapper_54f54229.Response"),
 												PackageAlias:         "partials_wrapper_54f54229",
 												CanonicalPackagePath: "testcase_03_slotted_content_context_switch/dist/partials/partials_wrapper_54f54229",
+												UnderlyingTypeString: "struct{WrapperTitle string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -225,6 +226,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_03_slotted_content_context_switch/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{MainMessage string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

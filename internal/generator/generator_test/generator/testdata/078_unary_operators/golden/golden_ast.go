@@ -208,6 +208,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -415,6 +416,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -624,6 +626,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -876,6 +879,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1125,6 +1129,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1235,6 +1240,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1434,6 +1440,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1544,6 +1551,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1743,6 +1751,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2042,6 +2051,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2248,6 +2258,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2454,6 +2465,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2660,6 +2672,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2927,6 +2940,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3016,6 +3030,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3237,6 +3252,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3476,6 +3492,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3797,6 +3814,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3885,6 +3903,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -3994,6 +4013,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4233,6 +4253,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4320,6 +4341,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4541,6 +4563,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4844,6 +4867,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -5325,6 +5349,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_078_unary_operators/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsTrue bool; IsFalse bool; PositiveNum int; NegativeNum int; ZeroNum int; SmallNum int; FloatNum float64; IsNegative bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

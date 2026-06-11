@@ -207,6 +207,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -421,6 +422,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -635,6 +637,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -849,6 +852,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1063,6 +1067,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1339,6 +1344,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1553,6 +1559,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1767,6 +1774,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1981,6 +1989,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2195,6 +2204,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2471,6 +2481,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2685,6 +2696,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2899,6 +2911,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3113,6 +3126,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3327,6 +3341,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3603,6 +3618,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3817,6 +3833,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -4093,6 +4110,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -4307,6 +4325,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -4584,6 +4603,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4703,6 +4723,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4932,6 +4953,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5051,6 +5073,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5363,6 +5386,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5578,6 +5602,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5793,6 +5818,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -6071,6 +6097,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -6333,6 +6360,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -6595,6 +6623,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -6897,6 +6926,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -7143,6 +7173,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -7450,6 +7481,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -7664,6 +7696,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -7878,6 +7911,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -8092,6 +8126,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -8306,6 +8341,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -8520,6 +8556,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -8734,6 +8771,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -8948,6 +8986,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_077_comparison_operators_comprehensive/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Age int; Score int; Price float64; Status string; IsEnabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

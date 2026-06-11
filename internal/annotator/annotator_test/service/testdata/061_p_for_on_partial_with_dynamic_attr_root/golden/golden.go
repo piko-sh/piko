@@ -141,6 +141,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.Article"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+													UnderlyingTypeString: "struct{Slug string; Title string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "article",
@@ -186,6 +187,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("models.Article"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+												UnderlyingTypeString: "struct{Slug string; Title string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "article",
@@ -253,6 +255,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("models.Article"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+											UnderlyingTypeString: "struct{Slug string; Title string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "article",
@@ -281,6 +284,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Articles []models.Article}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -308,6 +312,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]models.Article"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+												UnderlyingTypeString: "struct{Slug string; Title string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Articles",
@@ -336,6 +341,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]models.Article"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+											UnderlyingTypeString: "struct{Slug string; Title string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Articles",
@@ -362,6 +368,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]models.Article"),
 										PackageAlias:         "models",
 										CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+										UnderlyingTypeString: "struct{Slug string; Title string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Articles",
@@ -383,6 +390,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]models.Article"),
 										PackageAlias:         "models",
 										CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+										UnderlyingTypeString: "struct{Slug string; Title string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Articles",
@@ -405,6 +413,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("[]models.Article"),
 									PackageAlias:         "models",
 									CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+									UnderlyingTypeString: "struct{Slug string; Title string}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Articles",
@@ -445,6 +454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("models.Article"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+											UnderlyingTypeString: "struct{Slug string; Title string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "article",
@@ -588,6 +598,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.Article"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+													UnderlyingTypeString: "struct{Slug string; Title string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "article",
@@ -693,6 +704,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("models.Article"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+											UnderlyingTypeString: "struct{Slug string; Title string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "article",
@@ -722,6 +734,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("models.Article"),
 										PackageAlias:         "models",
 										CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+										UnderlyingTypeString: "struct{Slug string; Title string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "article",
@@ -788,6 +801,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_article_card_48687e83.Props"),
 																PackageAlias:         "partials_article_card_48687e83",
 																CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/dist/partials/partials_article_card_48687e83",
+																UnderlyingTypeString: "struct{Article models.Article}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -815,6 +829,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.Article"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+																UnderlyingTypeString: "struct{Slug string; Title string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Article",
@@ -862,6 +877,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Article"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+															UnderlyingTypeString: "struct{Slug string; Title string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Article",
@@ -1049,6 +1065,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Article"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+															UnderlyingTypeString: "struct{Slug string; Title string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "article",
@@ -1228,6 +1245,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.Article"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+																	UnderlyingTypeString: "struct{Slug string; Title string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "article",
@@ -1392,6 +1410,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("models.Article"),
 																			PackageAlias:         "models",
 																			CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+																			UnderlyingTypeString: "struct{Slug string; Title string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "article",
@@ -1520,6 +1539,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_article_card_48687e83.Props"),
 																			PackageAlias:         "partials_article_card_48687e83",
 																			CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/dist/partials/partials_article_card_48687e83",
+																			UnderlyingTypeString: "struct{Article models.Article}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -1547,6 +1567,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("models.Article"),
 																			PackageAlias:         "models",
 																			CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+																			UnderlyingTypeString: "struct{Slug string; Title string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Article",
@@ -1594,6 +1615,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("models.Article"),
 																		PackageAlias:         "models",
 																		CanonicalPackagePath: "testcase_61_p_for_on_partial_with_dynamic_attr_root/models",
+																		UnderlyingTypeString: "struct{Slug string; Title string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Article",

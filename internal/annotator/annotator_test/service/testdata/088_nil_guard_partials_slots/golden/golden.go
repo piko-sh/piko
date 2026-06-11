@@ -135,6 +135,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_data_display_2ee457b2.Props"),
 														PackageAlias:         "partials_data_display_2ee457b2",
 														CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+														UnderlyingTypeString: "struct{Data *partials_data_display_2ee457b2.Data}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -162,6 +163,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*partials_data_display_2ee457b2.Data"),
 														PackageAlias:         "partials_data_display_2ee457b2",
 														CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+														UnderlyingTypeString: "struct{Value string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -190,6 +192,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*partials_data_display_2ee457b2.Data"),
 													PackageAlias:         "partials_data_display_2ee457b2",
 													CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+													UnderlyingTypeString: "struct{Value string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -354,6 +357,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_data_display_2ee457b2.Props"),
 																			PackageAlias:         "partials_data_display_2ee457b2",
 																			CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+																			UnderlyingTypeString: "struct{Data *partials_data_display_2ee457b2.Data}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -381,6 +385,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*partials_data_display_2ee457b2.Data"),
 																			PackageAlias:         "partials_data_display_2ee457b2",
 																			CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+																			UnderlyingTypeString: "struct{Value string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -409,6 +414,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*partials_data_display_2ee457b2.Data"),
 																		PackageAlias:         "partials_data_display_2ee457b2",
 																		CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+																		UnderlyingTypeString: "struct{Value string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -603,6 +609,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_data_display_2ee457b2.Props"),
 																	PackageAlias:         "partials_data_display_2ee457b2",
 																	CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+																	UnderlyingTypeString: "struct{Data *partials_data_display_2ee457b2.Data}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -630,6 +637,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*partials_data_display_2ee457b2.Data"),
 																	PackageAlias:         "partials_data_display_2ee457b2",
 																	CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -658,6 +666,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*partials_data_display_2ee457b2.Data"),
 																PackageAlias:         "partials_data_display_2ee457b2",
 																CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/partials/partials_data_display_2ee457b2",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -798,6 +807,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Item *main_aaf9a2e0.Item}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -825,6 +835,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Item",
@@ -853,6 +864,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Item",
@@ -1069,6 +1081,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Item *main_aaf9a2e0.Item}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -1096,6 +1109,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Name string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Item",
@@ -1124,6 +1138,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Name string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Item",
@@ -1266,6 +1281,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Item *main_aaf9a2e0.Item}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -1293,6 +1309,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Item",
@@ -1321,6 +1338,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Item",
@@ -1485,6 +1503,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Item *main_aaf9a2e0.Item}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -1512,6 +1531,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Item",
@@ -1540,6 +1560,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Item",
@@ -1734,6 +1755,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Item *main_aaf9a2e0.Item}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -1761,6 +1783,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Item",
@@ -1789,6 +1812,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*main_aaf9a2e0.Item"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_88_nil_guard_partials_slots/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Item",

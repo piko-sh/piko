@@ -146,6 +146,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -353,6 +354,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -560,6 +562,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -767,6 +770,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -974,6 +978,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1181,6 +1186,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1390,6 +1396,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1643,6 +1650,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1876,6 +1884,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1987,6 +1996,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2216,6 +2226,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2423,6 +2434,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2630,6 +2642,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2839,6 +2852,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3048,6 +3062,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3255,6 +3270,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_094_truthy_operator/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Message string; EmptyStr string; Count int; Zero int; Enabled bool; Disabled bool; Items []string; EmptyItems []string; Ptr *string; NilPtr *string; Data map[string]int; EmptyData map[string]int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

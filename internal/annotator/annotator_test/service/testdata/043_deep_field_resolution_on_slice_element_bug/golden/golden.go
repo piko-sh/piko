@@ -140,6 +140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Root domain.RootModal}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -167,6 +168,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.RootModal"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																		UnderlyingTypeString: "struct{Item dto.ItemDto}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Root",
@@ -195,6 +197,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.RootModal"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																	UnderlyingTypeString: "struct{Item dto.ItemDto}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Root",
@@ -223,6 +226,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemDto"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																	UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Item",
@@ -251,6 +255,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.ItemDto"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Item",
@@ -279,6 +284,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Ranges",
@@ -307,6 +313,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+															UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Ranges",
@@ -350,6 +357,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.RangeItem"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+														UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},
@@ -534,6 +542,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Root domain.RootModal}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",
@@ -561,6 +570,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("domain.RootModal"),
 																				PackageAlias:         "domain",
 																				CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																				UnderlyingTypeString: "struct{Item dto.ItemDto}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Root",
@@ -589,6 +599,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("domain.RootModal"),
 																			PackageAlias:         "domain",
 																			CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																			UnderlyingTypeString: "struct{Item dto.ItemDto}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Root",
@@ -617,6 +628,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemDto"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																			UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Item",
@@ -645,6 +657,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.ItemDto"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																		UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Item",
@@ -673,6 +686,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																		UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Ranges",
@@ -701,6 +715,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																	UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Ranges",
@@ -744,6 +759,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.RangeItem"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 															},
 															BaseCodeGenVarName: new("pageData"),
 														},
@@ -759,6 +775,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.Money"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Charge",
@@ -788,6 +805,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Money"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Charge",
@@ -954,6 +972,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Root domain.RootModal}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -981,6 +1000,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("domain.RootModal"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																UnderlyingTypeString: "struct{Item dto.ItemDto}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Root",
@@ -1009,6 +1029,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.RootModal"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+															UnderlyingTypeString: "struct{Item dto.ItemDto}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Root",
@@ -1037,6 +1058,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.ItemDto"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+															UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Item",
@@ -1065,6 +1087,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.ItemDto"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+														UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Item",
@@ -1093,6 +1116,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+														UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Ranges",
@@ -1121,6 +1145,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+													UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Ranges",
@@ -1164,6 +1189,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.RangeItem"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+												UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 											},
 											BaseCodeGenVarName: new("pageData"),
 										},
@@ -1179,6 +1205,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Money"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Charge",
@@ -1208,6 +1235,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.Money"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Charge",
@@ -1239,6 +1267,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.Money"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Charge",
@@ -1275,6 +1304,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Root domain.RootModal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1302,6 +1332,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.RootModal"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+															UnderlyingTypeString: "struct{Item dto.ItemDto}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Root",
@@ -1330,6 +1361,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.RootModal"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+														UnderlyingTypeString: "struct{Item dto.ItemDto}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Root",
@@ -1358,6 +1390,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.ItemDto"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+														UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Item",
@@ -1386,6 +1419,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.ItemDto"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+													UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Item",
@@ -1414,6 +1448,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+													UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Ranges",
@@ -1442,6 +1477,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+												UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Ranges",
@@ -1485,6 +1521,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("dto.RangeItem"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+											UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 										},
 										BaseCodeGenVarName: new("pageData"),
 									},
@@ -1502,6 +1539,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("dto.RangeItem"),
 										PackageAlias:         "dto",
 										CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+										UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 									},
 									BaseCodeGenVarName: new("pageData"),
 								},
@@ -1525,6 +1563,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Root domain.RootModal}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1552,6 +1591,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("domain.RootModal"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																UnderlyingTypeString: "struct{Item dto.ItemDto}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Root",
@@ -1580,6 +1620,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.RootModal"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+															UnderlyingTypeString: "struct{Item dto.ItemDto}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Root",
@@ -1608,6 +1649,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.ItemDto"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+															UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Item",
@@ -1636,6 +1678,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.ItemDto"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+														UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Item",
@@ -1664,6 +1707,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+														UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Ranges",
@@ -1692,6 +1736,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+													UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Ranges",
@@ -1735,6 +1780,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.RangeItem"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+												UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 											},
 											BaseCodeGenVarName: new("pageData"),
 										},
@@ -1844,6 +1890,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Root domain.RootModal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1871,6 +1918,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("domain.RootModal"),
 													PackageAlias:         "domain",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+													UnderlyingTypeString: "struct{Item dto.ItemDto}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Root",
@@ -1899,6 +1947,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("domain.RootModal"),
 												PackageAlias:         "domain",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+												UnderlyingTypeString: "struct{Item dto.ItemDto}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Root",
@@ -1927,6 +1976,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.ItemDto"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+												UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Item",
@@ -1955,6 +2005,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("dto.ItemDto"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+											UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Item",
@@ -1985,6 +2036,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("dto.ItemDto"),
 										PackageAlias:         "dto",
 										CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+										UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Item",
@@ -2022,6 +2074,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Root domain.RootModal}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2049,6 +2102,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.RootModal"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																	UnderlyingTypeString: "struct{Item dto.ItemDto}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Root",
@@ -2077,6 +2131,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("domain.RootModal"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+																UnderlyingTypeString: "struct{Item dto.ItemDto}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Root",
@@ -2105,6 +2160,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.ItemDto"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+																UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Item",
@@ -2133,6 +2189,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.ItemDto"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+															UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Item",
@@ -2161,6 +2218,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+															UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Ranges",
@@ -2189,6 +2247,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+														UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Ranges",
@@ -2232,6 +2291,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.RangeItem"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+													UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 												},
 												BaseCodeGenVarName: new("pageData"),
 											},
@@ -2247,6 +2307,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Money"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Charge",
@@ -2276,6 +2337,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Money"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Charge",
@@ -2395,6 +2457,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Root domain.RootModal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2422,6 +2485,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("domain.RootModal"),
 												PackageAlias:         "domain",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+												UnderlyingTypeString: "struct{Item dto.ItemDto}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Root",
@@ -2450,6 +2514,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("domain.RootModal"),
 											PackageAlias:         "domain",
 											CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+											UnderlyingTypeString: "struct{Item dto.ItemDto}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Root",
@@ -2480,6 +2545,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("domain.RootModal"),
 										PackageAlias:         "domain",
 										CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+										UnderlyingTypeString: "struct{Item dto.ItemDto}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Root",
@@ -2514,6 +2580,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Root domain.RootModal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2541,6 +2608,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.RootModal"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+														UnderlyingTypeString: "struct{Item dto.ItemDto}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Root",
@@ -2569,6 +2637,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("domain.RootModal"),
 													PackageAlias:         "domain",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/domain",
+													UnderlyingTypeString: "struct{Item dto.ItemDto}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Root",
@@ -2597,6 +2666,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.ItemDto"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+													UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Item",
@@ -2625,6 +2695,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.ItemDto"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+												UnderlyingTypeString: "struct{ID int64; Name string; Ranges []dto.RangeItem}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Item",
@@ -2653,6 +2724,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+												UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Ranges",
@@ -2681,6 +2753,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+											UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Ranges",
@@ -2711,6 +2784,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]dto.RangeItem"),
 										PackageAlias:         "dto",
 										CanonicalPackagePath: "testcase_43_deep_field_resolution_on_slice_element_bug/dto",
+										UnderlyingTypeString: "struct{From int64; To int64; Charge maths.Money}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Ranges",

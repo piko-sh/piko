@@ -137,6 +137,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.State"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_08_event_handlers/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{UserID int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",

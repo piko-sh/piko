@@ -83,6 +83,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_036_expression_object_array_literals/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Theme string; IsImportant bool; Color string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -265,6 +266,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_036_expression_object_array_literals/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Theme string; IsImportant bool; Color string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -352,6 +354,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_036_expression_object_array_literals/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Theme string; IsImportant bool; Color string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

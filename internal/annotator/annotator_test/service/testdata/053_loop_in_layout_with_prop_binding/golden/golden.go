@@ -237,6 +237,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.Item"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+													UnderlyingTypeString: "struct{Value string; Label string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "item",
@@ -265,6 +266,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Items []models.Item}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -292,6 +294,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]models.Item"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+														UnderlyingTypeString: "struct{Value string; Label string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Items",
@@ -320,6 +323,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]models.Item"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+													UnderlyingTypeString: "struct{Value string; Label string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Items",
@@ -346,6 +350,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]models.Item"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+												UnderlyingTypeString: "struct{Value string; Label string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -367,6 +372,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]models.Item"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+												UnderlyingTypeString: "struct{Value string; Label string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -389,6 +395,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]models.Item"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+											UnderlyingTypeString: "struct{Value string; Label string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Items",
@@ -514,6 +521,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Item"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+														UnderlyingTypeString: "struct{Value string; Label string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",
@@ -654,6 +662,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("models.Item"),
 																		PackageAlias:         "models",
 																		CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+																		UnderlyingTypeString: "struct{Value string; Label string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "item",
@@ -920,6 +929,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("models.Item"),
 																		PackageAlias:         "models",
 																		CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+																		UnderlyingTypeString: "struct{Value string; Label string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "item",
@@ -1227,6 +1237,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.Item"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+																UnderlyingTypeString: "struct{Value string; Label string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "item",
@@ -1408,6 +1419,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.Item"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/models",
+																UnderlyingTypeString: "struct{Value string; Label string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "item",
@@ -1747,6 +1759,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 																				PackageAlias:         "partials_child_d247007e",
 																				CanonicalPackagePath: "testcase_53_loop_in_layout_with_prop_binding/dist/partials/partials_child_d247007e",
+																				UnderlyingTypeString: "struct{DisplayText string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",

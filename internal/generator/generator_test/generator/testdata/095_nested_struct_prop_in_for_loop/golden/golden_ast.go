@@ -184,6 +184,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.ItemData"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+															UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -229,6 +230,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.ItemData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+														UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",
@@ -292,6 +294,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.ItemData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+													UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "item",
@@ -320,6 +323,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Items []dto.ItemData}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -347,6 +351,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.ItemData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+														UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Items",
@@ -375,6 +380,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.ItemData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+													UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Items",
@@ -401,6 +407,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.ItemData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+												UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -422,6 +429,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.ItemData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+												UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -444,6 +452,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]dto.ItemData"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+											UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Items",
@@ -484,6 +493,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.ItemData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+													UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "item",
@@ -627,6 +637,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.ItemData"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+															UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -789,6 +800,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -967,6 +979,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -1095,6 +1108,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																			PackageAlias:         "partials_item_card_e11b3960",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																			UnderlyingTypeString: "struct{Item dto.ItemData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -1122,6 +1136,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Item",
@@ -1169,6 +1184,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.ItemData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																		UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Item",
@@ -1347,6 +1363,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -1525,6 +1542,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -1653,6 +1671,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																			PackageAlias:         "partials_item_card_e11b3960",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																			UnderlyingTypeString: "struct{Item dto.ItemData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -1680,6 +1699,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Item",
@@ -1727,6 +1747,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.ItemData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																		UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Item",
@@ -1905,6 +1926,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -2084,6 +2106,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -2262,6 +2285,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "item",
@@ -2390,6 +2414,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																					PackageAlias:         "partials_item_card_e11b3960",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																					UnderlyingTypeString: "struct{Item dto.ItemData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -2417,6 +2442,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Item",
@@ -2464,6 +2490,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.ItemData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																				UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Item",
@@ -2642,6 +2669,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -2820,6 +2848,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "item",
@@ -2948,6 +2977,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																					PackageAlias:         "partials_item_card_e11b3960",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																					UnderlyingTypeString: "struct{Item dto.ItemData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -2975,6 +3005,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Item",
@@ -3022,6 +3053,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.ItemData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																				UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Item",
@@ -3200,6 +3232,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -3378,6 +3411,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "item",
@@ -3506,6 +3540,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																					PackageAlias:         "partials_item_card_e11b3960",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																					UnderlyingTypeString: "struct{Item dto.ItemData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -3533,6 +3568,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Item",
@@ -3580,6 +3616,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.ItemData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																				UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Item",
@@ -3760,6 +3797,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -3939,6 +3977,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -4117,6 +4156,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "item",
@@ -4246,6 +4286,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																						PackageAlias:         "partials_item_card_e11b3960",
 																						CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																						UnderlyingTypeString: "struct{Item dto.ItemData}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",
@@ -4273,6 +4314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.ItemData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																						UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Item",
@@ -4320,6 +4362,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Item",
@@ -4367,6 +4410,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{Bedrooms int; Bathrooms int; Parking int}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "RoomSetup",
@@ -4395,6 +4439,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																				UnderlyingTypeString: "struct{Bedrooms int; Bathrooms int; Parking int}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "RoomSetup",
@@ -4565,6 +4610,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -4743,6 +4789,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "item",
@@ -4872,6 +4919,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																						PackageAlias:         "partials_item_card_e11b3960",
 																						CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																						UnderlyingTypeString: "struct{Item dto.ItemData}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",
@@ -4899,6 +4947,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.ItemData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																						UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Item",
@@ -4946,6 +4995,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Item",
@@ -4993,6 +5043,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{Bedrooms int; Bathrooms int; Parking int}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "RoomSetup",
@@ -5021,6 +5072,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																				UnderlyingTypeString: "struct{Bedrooms int; Bathrooms int; Parking int}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "RoomSetup",
@@ -5191,6 +5243,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -5369,6 +5422,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "item",
@@ -5498,6 +5552,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																						PackageAlias:         "partials_item_card_e11b3960",
 																						CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																						UnderlyingTypeString: "struct{Item dto.ItemData}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",
@@ -5525,6 +5580,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.ItemData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																						UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Item",
@@ -5572,6 +5628,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.ItemData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Item",
@@ -5619,6 +5676,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																					UnderlyingTypeString: "struct{Bedrooms int; Bathrooms int; Parking int}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "RoomSetup",
@@ -5647,6 +5705,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																				UnderlyingTypeString: "struct{Bedrooms int; Bathrooms int; Parking int}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "RoomSetup",
@@ -5799,6 +5858,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																		PackageAlias:         "partials_item_card_e11b3960",
 																		CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																		UnderlyingTypeString: "struct{Item dto.ItemData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -5826,6 +5886,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.ItemData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																		UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Item",
@@ -5873,6 +5934,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Item",
@@ -5920,6 +5982,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.OpenViewingData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{Date string; Time string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "OpenViewingData",
@@ -5948,6 +6011,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.OpenViewingData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																UnderlyingTypeString: "struct{Date string; Time string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "OpenViewingData",
@@ -6110,6 +6174,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -6288,6 +6353,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -6428,6 +6494,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																				PackageAlias:         "partials_item_card_e11b3960",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																				UnderlyingTypeString: "struct{Item dto.ItemData}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -6455,6 +6522,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.ItemData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																				UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Item",
@@ -6502,6 +6570,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Item",
@@ -6549,6 +6618,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.OpenViewingData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{Date string; Time string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "OpenViewingData",
@@ -6577,6 +6647,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.OpenViewingData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																		UnderlyingTypeString: "struct{Date string; Time string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "OpenViewingData",
@@ -6747,6 +6818,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.ItemData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																	UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -6925,6 +6997,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -7064,6 +7137,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Props"),
 																			PackageAlias:         "partials_item_card_e11b3960",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/dist/partials/partials_item_card_e11b3960",
+																			UnderlyingTypeString: "struct{Item dto.ItemData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -7091,6 +7165,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.ItemData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																			UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Item",
@@ -7138,6 +7213,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.ItemData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_095_nested_struct_prop_in_for_loop/pkg/dto",
+																		UnderlyingTypeString: "struct{ID string; Title string; Description string; Price int; Status string; Category string; RoomSetup dto.RoomSetup; OpenViewingData dto.OpenViewingData; ImgUrls []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Item",

@@ -82,6 +82,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.User"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "user",
@@ -110,6 +111,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Users []pages_main_594861c5.User}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -137,6 +139,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.User"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Users",
@@ -165,6 +168,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]pages_main_594861c5.User"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Users",
@@ -191,6 +195,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]pages_main_594861c5.User"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{ID int; Name string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Users",
@@ -212,6 +217,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]pages_main_594861c5.User"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{ID int; Name string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Users",
@@ -234,6 +240,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("[]pages_main_594861c5.User"),
 									PackageAlias:         "pages_main_594861c5",
 									CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+									UnderlyingTypeString: "struct{ID int; Name string}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Users",
@@ -274,6 +281,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.User"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "user",
@@ -394,6 +402,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.User"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "user",
@@ -537,6 +546,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.User"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_041_for_loop_value_only/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{ID int; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "user",

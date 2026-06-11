@@ -129,6 +129,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -311,6 +312,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -507,6 +509,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -713,6 +716,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -895,6 +899,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1091,6 +1096,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -1297,6 +1303,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -1495,6 +1502,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1691,6 +1699,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -1880,6 +1889,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2048,6 +2058,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2244,6 +2255,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -2450,6 +2462,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -2632,6 +2645,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2828,6 +2842,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -3034,6 +3049,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -3216,6 +3232,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3412,6 +3429,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -3619,6 +3637,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "state",
@@ -3646,6 +3665,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("main_aaf9a2e0.NestedData"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Count int64}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "NestedData",
@@ -3674,6 +3694,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.NestedData"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Count int64}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "NestedData",
@@ -3858,6 +3879,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3885,6 +3907,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.NestedData"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Count int64}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "NestedData",
@@ -3913,6 +3936,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.NestedData"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Count int64}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "NestedData",
@@ -4110,6 +4134,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -4267,6 +4292,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -4478,6 +4504,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -4674,6 +4701,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_string_consumer_6cdbb289.Props"),
 																PackageAlias:         "partials_string_consumer_6cdbb289",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_string_consumer_6cdbb289",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -4867,6 +4895,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -5078,6 +5107,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Int64Value int64; IntValue int; Float64Value float64; BoolValue bool; UintValue uint; Uint64Value uint64; StringValue string; NestedData main_aaf9a2e0.NestedData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -5274,6 +5304,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_no_coerce_consumer_4a0aebc8.Props"),
 																PackageAlias:         "partials_no_coerce_consumer_4a0aebc8",
 																CanonicalPackagePath: "testcase_45_coerce_primitives_to_string/dist/partials/partials_no_coerce_consumer_4a0aebc8",
+																UnderlyingTypeString: "struct{Value int64}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",

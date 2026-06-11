@@ -207,6 +207,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -234,6 +235,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Alt string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Image",
@@ -262,6 +264,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{URL string; Alt string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Image",
@@ -394,6 +397,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -421,6 +425,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{URL string; Alt string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Image",
@@ -449,6 +454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{URL string; Alt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Image",
@@ -571,6 +577,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -598,6 +605,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{URL string; Alt string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Image",
@@ -626,6 +634,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{URL string; Alt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Image",
@@ -826,6 +835,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -853,6 +863,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Data"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Value string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Unguarded",
@@ -881,6 +892,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Data"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Value string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Unguarded",
@@ -1019,6 +1031,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1046,6 +1059,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Title string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Video",
@@ -1074,6 +1088,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{URL string; Title string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Video",
@@ -1249,6 +1264,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -1276,6 +1292,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{URL string; Title string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Video",
@@ -1304,6 +1321,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{URL string; Title string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Video",
@@ -1452,6 +1470,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1479,6 +1498,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Alt string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Image",
@@ -1507,6 +1527,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{URL string; Alt string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Image",
@@ -1639,6 +1660,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1666,6 +1688,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{URL string; Alt string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Image",
@@ -1694,6 +1717,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{URL string; Alt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Image",
@@ -1892,6 +1916,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -1919,6 +1944,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{URL string; Title string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Video",
@@ -1947,6 +1973,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{URL string; Title string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Video",
@@ -2088,6 +2115,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2115,6 +2143,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{URL string; Alt string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Image",
@@ -2143,6 +2172,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Alt string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Image",
@@ -2204,6 +2234,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2231,6 +2262,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{URL string; Title string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Video",
@@ -2259,6 +2291,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Title string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Video",
@@ -2405,6 +2438,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2432,6 +2466,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{URL string; Alt string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Image",
@@ -2460,6 +2495,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{URL string; Alt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Image",
@@ -2658,6 +2694,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Image *pages_main_594861c5.Image; Video *pages_main_594861c5.Video; Unguarded *pages_main_594861c5.Data}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2685,6 +2722,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{URL string; Title string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Video",
@@ -2713,6 +2751,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.Video"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_118_nil_guard_multiple_scopes/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{URL string; Title string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Video",

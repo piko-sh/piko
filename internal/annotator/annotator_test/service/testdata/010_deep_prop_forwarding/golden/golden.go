@@ -80,6 +80,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_10_deep_prop_forwarding/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{TopLevelData string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -291,6 +292,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_10_deep_prop_forwarding/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{TopLevelData string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -431,6 +433,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_component_b_88e00e3c.Props"),
 																PackageAlias:         "partials_component_b_88e00e3c",
 																CanonicalPackagePath: "testcase_10_deep_prop_forwarding/dist/partials/partials_component_b_88e00e3c",
+																UnderlyingTypeString: "struct{DataFromA string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -642,6 +645,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_component_b_88e00e3c.Props"),
 														PackageAlias:         "partials_component_b_88e00e3c",
 														CanonicalPackagePath: "testcase_10_deep_prop_forwarding/dist/partials/partials_component_b_88e00e3c",
+														UnderlyingTypeString: "struct{DataFromA string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -838,6 +842,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_component_c_506c1d39.Props"),
 																		PackageAlias:         "partials_component_c_506c1d39",
 																		CanonicalPackagePath: "testcase_10_deep_prop_forwarding/dist/partials/partials_component_c_506c1d39",
+																		UnderlyingTypeString: "struct{DataFromB string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",

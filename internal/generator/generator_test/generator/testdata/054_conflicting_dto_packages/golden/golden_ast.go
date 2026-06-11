@@ -199,6 +199,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.Address"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+													UnderlyingTypeString: "struct{Street string; City string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "address",
@@ -228,6 +229,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{User models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -255,6 +257,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.User"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+															UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -283,6 +286,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+														UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "User",
@@ -311,6 +315,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+														UnderlyingTypeString: "struct{Street string; City string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Addresses",
@@ -339,6 +344,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.Address"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+													UnderlyingTypeString: "struct{Street string; City string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Addresses",
@@ -365,6 +371,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.Address"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+												UnderlyingTypeString: "struct{Street string; City string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Addresses",
@@ -386,6 +393,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.Address"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+												UnderlyingTypeString: "struct{Street string; City string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Addresses",
@@ -408,6 +416,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]dto.Address"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+											UnderlyingTypeString: "struct{Street string; City string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Addresses",
@@ -470,6 +479,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+														UnderlyingTypeString: "struct{Street string; City string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "address",
@@ -558,6 +568,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+																UnderlyingTypeString: "struct{Street string; City string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "address",
@@ -627,6 +638,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+																UnderlyingTypeString: "struct{Street string; City string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "address",
@@ -754,6 +766,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+																UnderlyingTypeString: "struct{Street string; City string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "address",
@@ -1009,6 +1022,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.Contact"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+													UnderlyingTypeString: "struct{Email string; Phone string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "contact",
@@ -1038,6 +1052,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{User models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1065,6 +1080,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.User"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+															UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -1093,6 +1109,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+														UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "User",
@@ -1121,6 +1138,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.Contact"),
 														PackageAlias:         "dto2",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+														UnderlyingTypeString: "struct{Email string; Phone string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Contacts",
@@ -1149,6 +1167,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.Contact"),
 													PackageAlias:         "dto2",
 													CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+													UnderlyingTypeString: "struct{Email string; Phone string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Contacts",
@@ -1175,6 +1194,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.Contact"),
 												PackageAlias:         "dto2",
 												CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+												UnderlyingTypeString: "struct{Email string; Phone string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Contacts",
@@ -1196,6 +1216,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.Contact"),
 												PackageAlias:         "dto2",
 												CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+												UnderlyingTypeString: "struct{Email string; Phone string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Contacts",
@@ -1218,6 +1239,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]dto.Contact"),
 											PackageAlias:         "dto2",
 											CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+											UnderlyingTypeString: "struct{Email string; Phone string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Contacts",
@@ -1280,6 +1302,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Contact"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+														UnderlyingTypeString: "struct{Email string; Phone string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "contact",
@@ -1368,6 +1391,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Contact"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+																UnderlyingTypeString: "struct{Email string; Phone string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "contact",
@@ -1437,6 +1461,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Contact"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+																UnderlyingTypeString: "struct{Email string; Phone string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "contact",
@@ -1564,6 +1589,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Contact"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+																UnderlyingTypeString: "struct{Email string; Phone string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "contact",
@@ -1832,6 +1858,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -1859,6 +1886,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -1887,6 +1915,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -1915,6 +1944,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+																UnderlyingTypeString: "struct{Street string; City string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Addresses",
@@ -1943,6 +1973,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.Address"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+															UnderlyingTypeString: "struct{Street string; City string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Addresses",
@@ -1986,6 +2017,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+														UnderlyingTypeString: "struct{Street string; City string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},
@@ -2178,6 +2210,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2205,6 +2238,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -2233,6 +2267,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -2261,6 +2296,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+																UnderlyingTypeString: "struct{Street string; City string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Addresses",
@@ -2289,6 +2325,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.Address"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+															UnderlyingTypeString: "struct{Street string; City string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Addresses",
@@ -2332,6 +2369,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/1/dto",
+														UnderlyingTypeString: "struct{Street string; City string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},
@@ -2586,6 +2624,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2613,6 +2652,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -2641,6 +2681,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -2669,6 +2710,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.Contact"),
 																PackageAlias:         "dto2",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+																UnderlyingTypeString: "struct{Email string; Phone string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Contacts",
@@ -2697,6 +2739,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.Contact"),
 															PackageAlias:         "dto2",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+															UnderlyingTypeString: "struct{Email string; Phone string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Contacts",
@@ -2740,6 +2783,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Contact"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+														UnderlyingTypeString: "struct{Email string; Phone string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},
@@ -2932,6 +2976,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2959,6 +3004,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -2987,6 +3033,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/models",
+																UnderlyingTypeString: "struct{Addresses []dto1.Address; Contacts []dto2.Contact}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -3015,6 +3062,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.Contact"),
 																PackageAlias:         "dto2",
 																CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+																UnderlyingTypeString: "struct{Email string; Phone string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Contacts",
@@ -3043,6 +3091,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.Contact"),
 															PackageAlias:         "dto2",
 															CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+															UnderlyingTypeString: "struct{Email string; Phone string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Contacts",
@@ -3086,6 +3135,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Contact"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_054_conflicting_dto_packages/pkg/2/dto",
+														UnderlyingTypeString: "struct{Email string; Phone string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},

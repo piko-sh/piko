@@ -104,6 +104,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_56_method_call_in_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{items []string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -236,6 +237,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_56_method_call_in_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{items []string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -420,6 +422,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_56_method_call_in_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -541,6 +544,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_56_method_call_in_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -734,6 +738,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 																PackageAlias:         "partials_child_d247007e",
 																CanonicalPackagePath: "testcase_56_method_call_in_prop_binding_in_layout/dist/partials/partials_child_d247007e",
+																UnderlyingTypeString: "struct{Total int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",

@@ -206,6 +206,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -293,6 +294,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -489,6 +491,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -719,6 +722,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -977,6 +981,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1064,6 +1069,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1260,6 +1266,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1347,6 +1354,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1543,6 +1551,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1630,6 +1639,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1888,6 +1898,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1975,6 +1986,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2171,6 +2183,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2401,6 +2414,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -2684,6 +2698,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2954,6 +2969,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3041,6 +3057,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3269,6 +3286,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3387,6 +3405,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3647,6 +3666,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -3893,6 +3913,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4162,6 +4183,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -4493,6 +4515,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -4598,6 +4621,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -4808,6 +4832,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -4896,6 +4921,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5185,6 +5211,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -5272,6 +5299,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -5530,6 +5558,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -5635,6 +5664,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -5845,6 +5875,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -5932,6 +5963,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_076_arithmetic_division_modulo/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Numerator int; Denominator int; FloatNum float64; FloatDenom float64; ModValue int; OddNumber int; Total int; Count int; Completed int; Sum int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

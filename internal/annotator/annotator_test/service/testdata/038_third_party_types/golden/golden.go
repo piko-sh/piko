@@ -136,6 +136,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -163,6 +164,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DirectUUID",
@@ -192,6 +194,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "github.com/google/uuid",
+													UnderlyingTypeString: "[16]byte",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "DirectUUID",
@@ -215,6 +218,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "DirectUUID",
@@ -328,6 +332,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -355,6 +360,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "DirectUUID",
@@ -384,6 +390,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DirectUUID",
@@ -579,6 +586,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -606,6 +614,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Data"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_38_third_party_types/models",
+															UnderlyingTypeString: "struct{UserID uuid.UUID}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "ModelData",
@@ -634,6 +643,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Data"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_38_third_party_types/models",
+														UnderlyingTypeString: "struct{UserID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "ModelData",
@@ -662,6 +672,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UserID",
@@ -691,6 +702,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "github.com/google/uuid",
+													UnderlyingTypeString: "[16]byte",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "UserID",
@@ -714,6 +726,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "UserID",
@@ -828,6 +841,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -855,6 +869,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.Data"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_38_third_party_types/models",
+																	UnderlyingTypeString: "struct{UserID uuid.UUID}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "ModelData",
@@ -883,6 +898,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.Data"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_38_third_party_types/models",
+																UnderlyingTypeString: "struct{UserID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "ModelData",
@@ -911,6 +927,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserID",
@@ -940,6 +957,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UserID",
@@ -1134,6 +1152,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1161,6 +1180,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "AliasedUUID",
@@ -1190,6 +1210,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "github.com/google/uuid",
+													UnderlyingTypeString: "[16]byte",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "AliasedUUID",
@@ -1213,6 +1234,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "AliasedUUID",
@@ -1326,6 +1348,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1353,6 +1376,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "AliasedUUID",
@@ -1382,6 +1406,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "AliasedUUID",
@@ -1578,6 +1603,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1605,6 +1631,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("deep.Deep"),
 																PackageAlias:         "deep",
 																CanonicalPackagePath: "testcase_38_third_party_types/deep",
+																UnderlyingTypeString: "struct{Data models.Data}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Deep",
@@ -1633,6 +1660,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("deep.Deep"),
 															PackageAlias:         "deep",
 															CanonicalPackagePath: "testcase_38_third_party_types/deep",
+															UnderlyingTypeString: "struct{Data models.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Deep",
@@ -1661,6 +1689,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Data"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_38_third_party_types/models",
+															UnderlyingTypeString: "struct{UserID uuid.UUID}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Data",
@@ -1689,6 +1718,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Data"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_38_third_party_types/models",
+														UnderlyingTypeString: "struct{UserID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -1717,6 +1747,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UserID",
@@ -1746,6 +1777,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "github.com/google/uuid",
+													UnderlyingTypeString: "[16]byte",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "UserID",
@@ -1769,6 +1801,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "UserID",
@@ -1884,6 +1917,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -1911,6 +1945,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("deep.Deep"),
 																		PackageAlias:         "deep",
 																		CanonicalPackagePath: "testcase_38_third_party_types/deep",
+																		UnderlyingTypeString: "struct{Data models.Data}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Deep",
@@ -1939,6 +1974,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("deep.Deep"),
 																	PackageAlias:         "deep",
 																	CanonicalPackagePath: "testcase_38_third_party_types/deep",
+																	UnderlyingTypeString: "struct{Data models.Data}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Deep",
@@ -1967,6 +2003,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.Data"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_38_third_party_types/models",
+																	UnderlyingTypeString: "struct{UserID uuid.UUID}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -1995,6 +2032,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.Data"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_38_third_party_types/models",
+																UnderlyingTypeString: "struct{UserID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -2023,6 +2061,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserID",
@@ -2052,6 +2091,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UserID",
@@ -2216,6 +2256,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2243,6 +2284,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("deep.Deep"),
 														PackageAlias:         "deep",
 														CanonicalPackagePath: "testcase_38_third_party_types/deep",
+														UnderlyingTypeString: "struct{Data models.Data}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Deep",
@@ -2271,6 +2313,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("deep.Deep"),
 													PackageAlias:         "deep",
 													CanonicalPackagePath: "testcase_38_third_party_types/deep",
+													UnderlyingTypeString: "struct{Data models.Data}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Deep",
@@ -2299,6 +2342,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.Data"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_38_third_party_types/models",
+													UnderlyingTypeString: "struct{UserID uuid.UUID}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -2327,6 +2371,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("models.Data"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_38_third_party_types/models",
+												UnderlyingTypeString: "struct{UserID uuid.UUID}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -2355,6 +2400,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "UserID",
@@ -2384,6 +2430,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("uuid.UUID"),
 											PackageAlias:         "uuid",
 											CanonicalPackagePath: "github.com/google/uuid",
+											UnderlyingTypeString: "[16]byte",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "UserID",
@@ -2415,6 +2462,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("uuid.UUID"),
 										PackageAlias:         "uuid",
 										CanonicalPackagePath: "github.com/google/uuid",
+										UnderlyingTypeString: "[16]byte",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "UserID",
@@ -2496,6 +2544,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2523,6 +2572,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("deep.Deep"),
 																PackageAlias:         "deep",
 																CanonicalPackagePath: "testcase_38_third_party_types/deep",
+																UnderlyingTypeString: "struct{Data models.Data}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Deep",
@@ -2551,6 +2601,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("deep.Deep"),
 															PackageAlias:         "deep",
 															CanonicalPackagePath: "testcase_38_third_party_types/deep",
+															UnderlyingTypeString: "struct{Data models.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Deep",
@@ -2579,6 +2630,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Data"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_38_third_party_types/models",
+															UnderlyingTypeString: "struct{UserID uuid.UUID}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Data",
@@ -2607,6 +2659,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Data"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_38_third_party_types/models",
+														UnderlyingTypeString: "struct{UserID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -2635,6 +2688,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UserID",
@@ -2664,6 +2718,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "github.com/google/uuid",
+													UnderlyingTypeString: "[16]byte",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "UserID",
@@ -2863,6 +2918,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2890,6 +2946,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.MoreData"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_38_third_party_types/models",
+															UnderlyingTypeString: "struct{UserID uuid.UUID}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "MoreModelData",
@@ -2918,6 +2975,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.MoreData"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_38_third_party_types/models",
+														UnderlyingTypeString: "struct{UserID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "MoreModelData",
@@ -2946,6 +3004,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "testcase_38_third_party_types/uuid",
+														UnderlyingTypeString: "struct{Value string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UserID",
@@ -2975,6 +3034,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "testcase_38_third_party_types/uuid",
+													UnderlyingTypeString: "struct{Value string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "UserID",
@@ -2998,6 +3058,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "testcase_38_third_party_types/uuid",
+												UnderlyingTypeString: "struct{Value string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "UserID",
@@ -3110,6 +3171,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -3137,6 +3199,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.FinalData"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_38_third_party_types/models",
+															UnderlyingTypeString: "struct{UserID [16]uint8}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "FinalModelData",
@@ -3165,6 +3228,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.FinalData"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_38_third_party_types/models",
+														UnderlyingTypeString: "struct{UserID [16]uint8}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FinalModelData",
@@ -3302,6 +3366,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3329,6 +3394,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "DirectUUID",
@@ -3358,6 +3424,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DirectUUID",
@@ -3484,6 +3551,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -3511,6 +3579,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "DirectUUID",
@@ -3540,6 +3609,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("uuid.UUID"),
 											PackageAlias:         "uuid",
 											CanonicalPackagePath: "github.com/google/uuid",
+											UnderlyingTypeString: "[16]byte",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "DirectUUID",
@@ -3571,6 +3641,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("uuid.UUID"),
 										PackageAlias:         "uuid",
 										CanonicalPackagePath: "github.com/google/uuid",
+										UnderlyingTypeString: "[16]byte",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "DirectUUID",
@@ -3680,6 +3751,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -3891,6 +3963,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -3918,6 +3991,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UUID",
@@ -3947,6 +4021,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UUID",
@@ -3970,6 +4045,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UUID",
@@ -4028,6 +4104,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 														PackageAlias:         "partials_prop_consumer_45fb2f06",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+														UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -4221,6 +4298,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -4360,6 +4438,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -4387,6 +4466,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DirectUUID",
@@ -4435,6 +4515,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "github.com/google/uuid",
+													UnderlyingTypeString: "[16]byte",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "DirectUUID",
@@ -4482,6 +4563,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "DirectUUID",
@@ -4571,6 +4653,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -4598,6 +4681,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("uuid.UUID"),
 												PackageAlias:         "uuid",
 												CanonicalPackagePath: "github.com/google/uuid",
+												UnderlyingTypeString: "[16]byte",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "DirectUUID",
@@ -4627,6 +4711,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("uuid.UUID"),
 											PackageAlias:         "uuid",
 											CanonicalPackagePath: "github.com/google/uuid",
+											UnderlyingTypeString: "[16]byte",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "DirectUUID",
@@ -4658,6 +4743,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("uuid.UUID"),
 										PackageAlias:         "uuid",
 										CanonicalPackagePath: "github.com/google/uuid",
+										UnderlyingTypeString: "[16]byte",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "DirectUUID",
@@ -4767,6 +4853,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -4957,6 +5044,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -4984,6 +5072,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UUID",
@@ -5032,6 +5121,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UUID",
@@ -5074,6 +5164,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UUID",
@@ -5151,6 +5242,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 														PackageAlias:         "partials_prop_consumer_45fb2f06",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+														UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -5344,6 +5436,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -5485,6 +5578,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -5512,6 +5606,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "DirectUUID",
@@ -5541,6 +5636,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DirectUUID",
@@ -5715,6 +5811,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Deep deep.Deep; DirectUUID uuid.UUID; ModelData models.Data; MoreModelData models.MoreData; FinalModelData models.FinalData; AliasedUUID uuid.UUID}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -5742,6 +5839,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DirectUUID",
@@ -5771,6 +5869,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("uuid.UUID"),
 													PackageAlias:         "uuid",
 													CanonicalPackagePath: "github.com/google/uuid",
+													UnderlyingTypeString: "[16]byte",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "DirectUUID",
@@ -5969,6 +6068,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -6183,6 +6283,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -6210,6 +6311,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("uuid.UUID"),
 																PackageAlias:         "uuid",
 																CanonicalPackagePath: "github.com/google/uuid",
+																UnderlyingTypeString: "[16]byte",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UUID",
@@ -6239,6 +6341,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("uuid.UUID"),
 															PackageAlias:         "uuid",
 															CanonicalPackagePath: "github.com/google/uuid",
+															UnderlyingTypeString: "[16]byte",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UUID",
@@ -6262,6 +6365,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("uuid.UUID"),
 														PackageAlias:         "uuid",
 														CanonicalPackagePath: "github.com/google/uuid",
+														UnderlyingTypeString: "[16]byte",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UUID",
@@ -6320,6 +6424,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 														PackageAlias:         "partials_prop_consumer_45fb2f06",
 														CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+														UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -6513,6 +6618,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_prop_consumer_45fb2f06.Props"),
 																PackageAlias:         "partials_prop_consumer_45fb2f06",
 																CanonicalPackagePath: "testcase_38_third_party_types/dist/partials/partials_prop_consumer_45fb2f06",
+																UnderlyingTypeString: "struct{Title string; UUID uuid.UUID; OptionalTitle *string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",

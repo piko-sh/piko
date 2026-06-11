@@ -173,6 +173,10 @@ type ResolvedTypeInfo struct {
 	// TypeExpression is the AST node for the resolved type.
 	TypeExpression goast.Expr
 
+	// UnderlyingTypeString is the underlying type of a named type. For example, "int" for
+	// `type ResultStatus int`.
+	UnderlyingTypeString string
+
 	// PackageAlias is the local name used for the package in the source file where the type
 	// was resolved. For example, "uuid" for a GitHub-hosted import of google/uuid, or a
 	// generated name like "main_1b2e523d" for types local to a component.

@@ -63,6 +63,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_040_ternary_nested/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Code int; Message string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -198,6 +199,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_040_ternary_nested/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Code int; Message string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -443,6 +445,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_040_ternary_nested/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Code int; Message string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -552,6 +555,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_040_ternary_nested/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Code int; Message string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

@@ -59,6 +59,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_77_triple_nested_generics/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Data dto.PageData}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -86,6 +87,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.PageData"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+															UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Data",
@@ -114,6 +116,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.PageData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+														UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -142,6 +145,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+														UnderlyingTypeString: "struct{Inner T}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "TripleNested",
@@ -170,6 +174,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+													UnderlyingTypeString: "struct{Inner T}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "TripleNested",
@@ -253,6 +258,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+											UnderlyingTypeString: "struct{Data T}",
 										},
 										BaseCodeGenVarName: new("props"),
 									},
@@ -268,6 +274,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+											UnderlyingTypeString: "struct{ID string; Item *T}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Data",
@@ -296,6 +303,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+										UnderlyingTypeString: "struct{ID string; Item *T}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Data",
@@ -499,6 +507,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_77_triple_nested_generics/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Data dto.PageData}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -526,6 +535,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -554,6 +564,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.PageData"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+															UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Data",
@@ -582,6 +593,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+															UnderlyingTypeString: "struct{Inner T}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "TripleNested",
@@ -610,6 +622,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+														UnderlyingTypeString: "struct{Inner T}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "TripleNested",
@@ -693,6 +706,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+												UnderlyingTypeString: "struct{Data T}",
 											},
 											BaseCodeGenVarName: new("props"),
 										},
@@ -763,6 +777,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+										UnderlyingTypeString: "struct{ID string; Item *T}",
 									},
 									BaseCodeGenVarName: new("props"),
 								},
@@ -1009,6 +1024,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Data dto.PageData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -1036,6 +1052,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PageData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																					UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Data",
@@ -1064,6 +1081,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PageData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																				UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Data",
@@ -1092,6 +1110,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																				UnderlyingTypeString: "struct{Inner T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "TripleNested",
@@ -1120,6 +1139,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																			UnderlyingTypeString: "struct{Inner T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "TripleNested",
@@ -1203,6 +1223,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																	UnderlyingTypeString: "struct{Data T}",
 																},
 																BaseCodeGenVarName: new("props"),
 															},
@@ -1273,6 +1294,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														BaseCodeGenVarName: new("props"),
 													},
@@ -1533,6 +1555,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																						PackageAlias:         "main_aaf9a2e0",
 																						CanonicalPackagePath: "testcase_77_triple_nested_generics/dist/pages/main_aaf9a2e0",
+																						UnderlyingTypeString: "struct{Data dto.PageData}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",
@@ -1560,6 +1583,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.PageData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																						UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Data",
@@ -1588,6 +1612,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PageData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																					UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Data",
@@ -1616,6 +1641,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																					PackageAlias:         "fields",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																					UnderlyingTypeString: "struct{Inner T}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "TripleNested",
@@ -1644,6 +1670,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																				UnderlyingTypeString: "struct{Inner T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "TripleNested",
@@ -1727,6 +1754,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																		UnderlyingTypeString: "struct{Data T}",
 																	},
 																	BaseCodeGenVarName: new("props"),
 																},
@@ -1797,6 +1825,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															BaseCodeGenVarName: new("props"),
 														},
@@ -1882,6 +1911,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FirstName",
@@ -1911,6 +1941,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "FirstName",
@@ -2113,6 +2144,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_77_triple_nested_generics/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Data dto.PageData}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -2140,6 +2172,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PageData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																				UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Data",
@@ -2168,6 +2201,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																			UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -2196,6 +2230,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																			UnderlyingTypeString: "struct{Inner T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "TripleNested",
@@ -2224,6 +2259,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																		UnderlyingTypeString: "struct{Inner T}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TripleNested",
@@ -2252,6 +2288,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																		UnderlyingTypeString: "struct{Data T}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Inner",
@@ -2280,6 +2317,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																	UnderlyingTypeString: "struct{Data T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Inner",
@@ -2308,6 +2346,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																	UnderlyingTypeString: "struct{ID string; Item *T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -2336,6 +2375,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -2434,6 +2474,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "LastName",
@@ -2463,6 +2504,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "LastName",
@@ -2667,6 +2709,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																						PackageAlias:         "main_aaf9a2e0",
 																						CanonicalPackagePath: "testcase_77_triple_nested_generics/dist/pages/main_aaf9a2e0",
+																						UnderlyingTypeString: "struct{Data dto.PageData}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",
@@ -2694,6 +2737,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.PageData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																						UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Data",
@@ -2722,6 +2766,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PageData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																					UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Data",
@@ -2750,6 +2795,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																					PackageAlias:         "fields",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																					UnderlyingTypeString: "struct{Inner T}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "TripleNested",
@@ -2778,6 +2824,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																				UnderlyingTypeString: "struct{Inner T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "TripleNested",
@@ -2861,6 +2908,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																		UnderlyingTypeString: "struct{Data T}",
 																	},
 																	BaseCodeGenVarName: new("props"),
 																},
@@ -2931,6 +2979,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															BaseCodeGenVarName: new("props"),
 														},
@@ -3016,6 +3065,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FirstName",
@@ -3045,6 +3095,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "FirstName",
@@ -3186,6 +3237,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																						PackageAlias:         "main_aaf9a2e0",
 																						CanonicalPackagePath: "testcase_77_triple_nested_generics/dist/pages/main_aaf9a2e0",
+																						UnderlyingTypeString: "struct{Data dto.PageData}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",
@@ -3213,6 +3265,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.PageData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																						UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Data",
@@ -3241,6 +3294,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PageData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/dto",
+																					UnderlyingTypeString: "struct{TripleNested fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Data",
@@ -3269,6 +3323,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																					PackageAlias:         "fields",
 																					CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																					UnderlyingTypeString: "struct{Inner T}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "TripleNested",
@@ -3297,6 +3352,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Wrapper[fields.Container[fields.Ref[dto.TeamMember]]]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																				UnderlyingTypeString: "struct{Inner T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "TripleNested",
@@ -3380,6 +3436,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Container[fields.Ref[dto.TeamMember]]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																		UnderlyingTypeString: "struct{Data T}",
 																	},
 																	BaseCodeGenVarName: new("props"),
 																},
@@ -3450,6 +3507,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															BaseCodeGenVarName: new("props"),
 														},
@@ -3535,6 +3593,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "LastName",
@@ -3564,6 +3623,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_77_triple_nested_generics/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "LastName",

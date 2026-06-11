@@ -103,6 +103,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_54_prop_binding_on_layout_invocation_in_slot/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{ShowSidebar bool; ContentData string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -326,6 +327,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_54_prop_binding_on_layout_invocation_in_slot/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{ShowSidebar bool; ContentData string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -468,6 +470,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_inner_layout_981558c4.Response"),
 													PackageAlias:         "partials_inner_layout_981558c4",
 													CanonicalPackagePath: "testcase_54_prop_binding_on_layout_invocation_in_slot/dist/partials/partials_inner_layout_981558c4",
+													UnderlyingTypeString: "struct{HasSidebar bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -704,6 +707,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_54_prop_binding_on_layout_invocation_in_slot/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{ShowSidebar bool; ContentData string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -927,6 +931,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_54_prop_binding_on_layout_invocation_in_slot/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{ShowSidebar bool; ContentData string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1109,6 +1114,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 																				PackageAlias:         "partials_child_d247007e",
 																				CanonicalPackagePath: "testcase_54_prop_binding_on_layout_invocation_in_slot/dist/partials/partials_child_d247007e",
+																				UnderlyingTypeString: "struct{Content string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",

@@ -324,6 +324,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 																PackageAlias:         "partials_card_bfc4a3cf",
 																CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_card_bfc4a3cf",
+																UnderlyingTypeString: "struct{Label string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -479,6 +480,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 																PackageAlias:         "partials_card_bfc4a3cf",
 																CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_card_bfc4a3cf",
+																UnderlyingTypeString: "struct{Label string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -690,6 +692,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 														PackageAlias:         "partials_card_bfc4a3cf",
 														CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_card_bfc4a3cf",
+														UnderlyingTypeString: "struct{Label string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -843,6 +846,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_badge_63370d86.Props"),
 																PackageAlias:         "partials_badge_63370d86",
 																CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_badge_63370d86",
+																UnderlyingTypeString: "struct{Text string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -1168,6 +1172,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 																PackageAlias:         "partials_card_bfc4a3cf",
 																CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_card_bfc4a3cf",
+																UnderlyingTypeString: "struct{Label string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -1323,6 +1328,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 																PackageAlias:         "partials_card_bfc4a3cf",
 																CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_card_bfc4a3cf",
+																UnderlyingTypeString: "struct{Label string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -1534,6 +1540,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 														PackageAlias:         "partials_card_bfc4a3cf",
 														CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_card_bfc4a3cf",
+														UnderlyingTypeString: "struct{Label string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -1687,6 +1694,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_badge_63370d86.Props"),
 																PackageAlias:         "partials_badge_63370d86",
 																CanonicalPackagePath: "testcase_073_multi_instance_nested_prop_bug/dist/partials/partials_badge_63370d86",
+																UnderlyingTypeString: "struct{Text string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",

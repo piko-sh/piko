@@ -200,6 +200,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.Address"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/dto",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "address",
@@ -229,6 +230,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{User models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -256,6 +258,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.User"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/models",
+															UnderlyingTypeString: "struct{Addresses map[string]dto.Address}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -284,6 +287,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/models",
+														UnderlyingTypeString: "struct{Addresses map[string]dto.Address}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "User",
@@ -698,6 +702,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/dto",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "address",
@@ -966,6 +971,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -993,6 +999,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses map[string]dto.Address}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -1021,6 +1028,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/models",
+																UnderlyingTypeString: "struct{Addresses map[string]dto.Address}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -1120,6 +1128,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/dto",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},
@@ -1312,6 +1321,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -1339,6 +1349,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses map[string]dto.Address}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -1367,6 +1378,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/models",
+																UnderlyingTypeString: "struct{Addresses map[string]dto.Address}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -1466,6 +1478,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_44_field_resolution_on_external_struct/pkg/dto",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},

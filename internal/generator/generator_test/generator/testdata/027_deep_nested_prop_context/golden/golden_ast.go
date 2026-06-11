@@ -52,6 +52,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Data grandparent_types.GrandparentState}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -79,6 +80,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("grandparent_types.GrandparentState"),
 													PackageAlias:         "grandparent_types",
 													CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/grandparent_types",
+													UnderlyingTypeString: "struct{ValueForParent string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -107,6 +109,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("grandparent_types.GrandparentState"),
 												PackageAlias:         "grandparent_types",
 												CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/grandparent_types",
+												UnderlyingTypeString: "struct{ValueForParent string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -332,6 +335,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Data grandparent_types.GrandparentState}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -359,6 +363,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("grandparent_types.GrandparentState"),
 											PackageAlias:         "grandparent_types",
 											CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/grandparent_types",
+											UnderlyingTypeString: "struct{ValueForParent string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Data",
@@ -387,6 +392,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("grandparent_types.GrandparentState"),
 										PackageAlias:         "grandparent_types",
 										CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/grandparent_types",
+										UnderlyingTypeString: "struct{ValueForParent string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Data",
@@ -528,6 +534,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_parent_f5d0595c.Props"),
 														PackageAlias:         "partials_parent_f5d0595c",
 														CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/partials/partials_parent_f5d0595c",
+														UnderlyingTypeString: "struct{FromGrandparent string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -701,6 +708,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_parent_f5d0595c.Response"),
 															PackageAlias:         "partials_parent_f5d0595c",
 															CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/partials/partials_parent_f5d0595c",
+															UnderlyingTypeString: "struct{Data parent_types.ParentState}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -728,6 +736,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("parent_types.ParentState"),
 															PackageAlias:         "parent_types",
 															CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/parent_types",
+															UnderlyingTypeString: "struct{ValueForChild int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Data",
@@ -756,6 +765,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("parent_types.ParentState"),
 														PackageAlias:         "parent_types",
 														CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/parent_types",
+														UnderlyingTypeString: "struct{ValueForChild int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -969,6 +979,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("partials_parent_f5d0595c.Props"),
 												PackageAlias:         "partials_parent_f5d0595c",
 												CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/partials/partials_parent_f5d0595c",
+												UnderlyingTypeString: "struct{FromGrandparent string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -1090,6 +1101,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_parent_f5d0595c.Response"),
 													PackageAlias:         "partials_parent_f5d0595c",
 													CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/partials/partials_parent_f5d0595c",
+													UnderlyingTypeString: "struct{Data parent_types.ParentState}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1117,6 +1129,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("parent_types.ParentState"),
 													PackageAlias:         "parent_types",
 													CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/parent_types",
+													UnderlyingTypeString: "struct{ValueForChild int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -1145,6 +1158,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("parent_types.ParentState"),
 												PackageAlias:         "parent_types",
 												CanonicalPackagePath: "testcase_027_deep_nested_prop_context/pkg/parent_types",
+												UnderlyingTypeString: "struct{ValueForChild int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -1346,6 +1360,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_child_d247007e.Props"),
 															PackageAlias:         "partials_child_d247007e",
 															CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/partials/partials_child_d247007e",
+															UnderlyingTypeString: "struct{FromParentState int; FromGrandparentState string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -1612,6 +1627,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_child_d247007e.Props"),
 															PackageAlias:         "partials_child_d247007e",
 															CanonicalPackagePath: "testcase_027_deep_nested_prop_context/dist/partials/partials_child_d247007e",
+															UnderlyingTypeString: "struct{FromParentState int; FromGrandparentState string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",

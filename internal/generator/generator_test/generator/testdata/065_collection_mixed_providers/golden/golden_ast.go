@@ -227,6 +227,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Post"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_065_collection_mixed_providers/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Title string; Slug string; URL string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "post",
@@ -564,6 +565,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Post"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_065_collection_mixed_providers/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Slug string; URL string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "post",
@@ -791,6 +793,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Post"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_065_collection_mixed_providers/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Slug string; URL string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "post",

@@ -288,6 +288,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_137_piko_element/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Tag string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

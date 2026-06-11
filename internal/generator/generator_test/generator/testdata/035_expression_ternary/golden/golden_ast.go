@@ -91,6 +91,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_035_expression_ternary/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -289,6 +290,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_035_expression_ternary/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{IsActive bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",

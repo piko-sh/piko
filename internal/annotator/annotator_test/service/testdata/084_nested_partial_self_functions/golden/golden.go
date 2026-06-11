@@ -371,6 +371,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_outer_796b96dd.Props"),
 																PackageAlias:         "partials_outer_796b96dd",
 																CanonicalPackagePath: "testcase_84_nested_partial_self_functions/dist/partials/partials_outer_796b96dd",
+																UnderlyingTypeString: "struct{Value int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -523,6 +524,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_outer_796b96dd.Props"),
 														PackageAlias:         "partials_outer_796b96dd",
 														CanonicalPackagePath: "testcase_84_nested_partial_self_functions/dist/partials/partials_outer_796b96dd",
+														UnderlyingTypeString: "struct{Value int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -969,6 +971,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_inner_8c3dbfdd.Props"),
 																		PackageAlias:         "partials_inner_8c3dbfdd",
 																		CanonicalPackagePath: "testcase_84_nested_partial_self_functions/dist/partials/partials_inner_8c3dbfdd",
+																		UnderlyingTypeString: "struct{Value int}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",

@@ -264,10 +264,42 @@ func (tr *TypeResolver) resolveRecursive(
 	analysisContext.Logger.Trace("Enter resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("expr", expression.String()))
 
 	ann := tr.dispatchExpressionType(ctx, analysisContext, expression, location, depth)
+	tr.stampUnderlyingType(ann)
 	tr.propagateAnnotation(expression, ann)
 
 	analysisContext.Logger.Trace("Exit resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("resolvedType", tr.logAnn(ann)))
 	return ann
+}
+
+// stampUnderlyingType stamps the go annotation with information about any underlying
+// type.
+//
+// This is used for defined types, so we are able to do direct comparisons with them in
+// the emitter. Primitives, composites, aliases and unresolved types are left unstamped.
+//
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the underlying type to be
+// stamped.
+func (tr *TypeResolver) stampUnderlyingType(ann *ast_domain.GoGeneratorAnnotation) {
+	if tr.inspector == nil || ann == nil || ann.ResolvedType == nil {
+		return
+	}
+	typeInfo := ann.ResolvedType
+	if typeInfo.TypeExpression == nil || typeInfo.CanonicalPackagePath == "" {
+		return
+	}
+	typeName, _, ok := inspector_domain.DeconstructTypeExpr(typeInfo.TypeExpression)
+	if !ok || typeName == "" {
+		return
+	}
+	pkg, ok := tr.inspector.GetAllPackages()[typeInfo.CanonicalPackagePath]
+	if !ok || pkg == nil {
+		return
+	}
+	namedType, ok := pkg.NamedTypes[typeName]
+	if !ok || namedType == nil || namedType.IsAlias {
+		return
+	}
+	typeInfo.UnderlyingTypeString = namedType.UnderlyingTypeString
 }
 
 // dispatchExpressionType routes an expression to its type-specific resolver.

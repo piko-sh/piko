@@ -84,6 +84,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -111,6 +112,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Value string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "A",
@@ -139,6 +141,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Value string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "A",
@@ -200,6 +203,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -227,6 +231,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Value string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "B",
@@ -255,6 +260,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Value string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "B",
@@ -433,6 +439,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -460,6 +467,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "A",
@@ -488,6 +496,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "A",
@@ -680,6 +689,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -707,6 +717,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "B",
@@ -735,6 +746,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "B",
@@ -875,6 +887,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -902,6 +915,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Outer",
@@ -930,6 +944,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Outer",
@@ -1041,6 +1056,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -1068,6 +1084,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Outer",
@@ -1096,6 +1113,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Outer",
@@ -1124,6 +1142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Middle",
@@ -1152,6 +1171,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Middle",
@@ -1317,6 +1337,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -1344,6 +1365,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Outer",
@@ -1372,6 +1394,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Outer",
@@ -1400,6 +1423,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Middle",
@@ -1428,6 +1452,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Middle",
@@ -1622,6 +1647,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -1649,6 +1675,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Outer",
@@ -1677,6 +1704,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Outer",
@@ -1705,6 +1733,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Middle",
@@ -1733,6 +1762,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Middle",
@@ -1761,6 +1791,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*main_aaf9a2e0.Inner"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Value string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Inner",
@@ -1789,6 +1820,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*main_aaf9a2e0.Inner"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Value string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Inner",
@@ -1932,6 +1964,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -1959,6 +1992,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*main_aaf9a2e0.Valid"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Valid",
@@ -1987,6 +2021,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Valid"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Valid",
@@ -2047,6 +2082,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -2252,6 +2288,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -2279,6 +2316,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Valid"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Valid",
@@ -2307,6 +2345,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Valid"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Valid",
@@ -2448,6 +2487,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -2475,6 +2515,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Value string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "A",
@@ -2503,6 +2544,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Value string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "A",
@@ -2564,6 +2606,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -2591,6 +2634,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Value string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "B",
@@ -2619,6 +2663,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Value string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "B",
@@ -2797,6 +2842,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -2824,6 +2870,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "A",
@@ -2852,6 +2899,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "A",
@@ -3044,6 +3092,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -3071,6 +3120,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "B",
@@ -3099,6 +3149,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Data"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "B",
@@ -3239,6 +3290,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -3266,6 +3318,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Outer",
@@ -3294,6 +3347,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Outer",
@@ -3405,6 +3459,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -3432,6 +3487,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Outer",
@@ -3460,6 +3516,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Outer",
@@ -3488,6 +3545,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Middle",
@@ -3516,6 +3574,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Middle",
@@ -3628,6 +3687,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -3655,6 +3715,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Outer",
@@ -3683,6 +3744,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Outer",
@@ -3711,6 +3773,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Middle",
@@ -3739,6 +3802,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Middle",
@@ -3767,6 +3831,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*main_aaf9a2e0.Inner"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Inner",
@@ -3795,6 +3860,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*main_aaf9a2e0.Inner"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Value string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Inner",
@@ -3961,6 +4027,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																							PackageAlias:         "main_aaf9a2e0",
 																							CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																							UnderlyingTypeString: "struct{A *main_aaf9a2e0.Data; B *main_aaf9a2e0.Data; Outer *main_aaf9a2e0.Outer; Valid *main_aaf9a2e0.Valid; Enabled bool}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "props",
@@ -3988,6 +4055,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																							PackageAlias:         "main_aaf9a2e0",
 																							CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																							UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "Outer",
@@ -4016,6 +4084,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("*main_aaf9a2e0.Outer"),
 																						PackageAlias:         "main_aaf9a2e0",
 																						CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																						UnderlyingTypeString: "struct{Middle *main_aaf9a2e0.Middle}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Outer",
@@ -4044,6 +4113,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																						PackageAlias:         "main_aaf9a2e0",
 																						CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																						UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Middle",
@@ -4072,6 +4142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("*main_aaf9a2e0.Middle"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Value string; Inner *main_aaf9a2e0.Inner}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Middle",
@@ -4100,6 +4171,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("*main_aaf9a2e0.Inner"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Value string}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Inner",
@@ -4128,6 +4200,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("*main_aaf9a2e0.Inner"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_89_nil_guard_edge_cases/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Value string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Inner",

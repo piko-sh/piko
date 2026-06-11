@@ -268,6 +268,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_level1_d7f1f2b7.Props"),
 																PackageAlias:         "partials_level1_d7f1f2b7",
 																CanonicalPackagePath: "testcase_099_partial_external_pkg_import_deep_nesting/dist/partials/partials_level1_d7f1f2b7",
+																UnderlyingTypeString: "struct{Content string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -479,6 +480,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_level1_d7f1f2b7.Props"),
 														PackageAlias:         "partials_level1_d7f1f2b7",
 														CanonicalPackagePath: "testcase_099_partial_external_pkg_import_deep_nesting/dist/partials/partials_level1_d7f1f2b7",
+														UnderlyingTypeString: "struct{Content string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -619,6 +621,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_level2_a0cb46b5.Props"),
 																		PackageAlias:         "partials_level2_a0cb46b5",
 																		CanonicalPackagePath: "testcase_099_partial_external_pkg_import_deep_nesting/dist/partials/partials_level2_a0cb46b5",
+																		UnderlyingTypeString: "struct{Text string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -830,6 +833,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_level2_a0cb46b5.Props"),
 																PackageAlias:         "partials_level2_a0cb46b5",
 																CanonicalPackagePath: "testcase_099_partial_external_pkg_import_deep_nesting/dist/partials/partials_level2_a0cb46b5",
+																UnderlyingTypeString: "struct{Text string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -1082,6 +1086,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("partials_level3_b25210fb.Props"),
 																						PackageAlias:         "partials_level3_b25210fb",
 																						CanonicalPackagePath: "testcase_099_partial_external_pkg_import_deep_nesting/dist/partials/partials_level3_b25210fb",
+																						UnderlyingTypeString: "struct{Message string}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",

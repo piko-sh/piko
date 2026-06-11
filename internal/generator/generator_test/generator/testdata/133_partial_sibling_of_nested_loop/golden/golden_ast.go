@@ -154,6 +154,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "row",
@@ -182,6 +183,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{ContainerID string; CategoryName string; Rows []pages_main_594861c5.Row}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -209,6 +211,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.Row"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Rows",
@@ -237,6 +240,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.Row"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Rows",
@@ -263,6 +267,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.Row"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Rows",
@@ -284,6 +289,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.Row"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Rows",
@@ -306,6 +312,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.Row"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Rows",
@@ -346,6 +353,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "row",
@@ -489,6 +497,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "row",
@@ -655,6 +664,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Cell"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Text string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "cell",
@@ -683,6 +693,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "row",
@@ -710,6 +721,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]pages_main_594861c5.Cell"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Text string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Cells",
@@ -738,6 +750,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]pages_main_594861c5.Cell"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Text string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Cells",
@@ -764,6 +777,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.Cell"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Text string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Cells",
@@ -785,6 +799,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.Cell"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Text string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Cells",
@@ -807,6 +822,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.Cell"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Text string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Cells",
@@ -931,6 +947,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "row",
@@ -1131,6 +1148,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("pages_main_594861c5.Cell"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Text string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "cell",
@@ -1274,6 +1292,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																					PackageAlias:         "pages_main_594861c5",
 																					CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																					UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "row",
@@ -1502,6 +1521,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "row",
@@ -1657,6 +1677,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																						PackageAlias:         "pages_main_594861c5",
 																						CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																						UnderlyingTypeString: "struct{ContainerID string; CategoryName string; Rows []pages_main_594861c5.Row}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "state",
@@ -1829,6 +1850,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																						PackageAlias:         "pages_main_594861c5",
 																						CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																						UnderlyingTypeString: "struct{ContainerID string; CategoryName string; Rows []pages_main_594861c5.Row}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "state",
@@ -2001,6 +2023,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																						PackageAlias:         "pages_main_594861c5",
 																						CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																						UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "row",
@@ -2173,6 +2196,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																						PackageAlias:         "pages_main_594861c5",
 																						CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																						UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "row",
@@ -2389,6 +2413,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																					PackageAlias:         "pages_main_594861c5",
 																					CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																					UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "row",
@@ -2526,6 +2551,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{ContainerID string; CategoryName string; Rows []pages_main_594861c5.Row}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",
@@ -2646,6 +2672,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{ContainerID string; CategoryName string; Rows []pages_main_594861c5.Row}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",
@@ -2766,6 +2793,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "row",
@@ -2886,6 +2914,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "row",
@@ -3050,6 +3079,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																							PackageAlias:         "pages_main_594861c5",
 																							CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																							UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "row",
@@ -3228,6 +3258,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																									TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																									PackageAlias:         "pages_main_594861c5",
 																									CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																									UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																								},
 																								Symbol: &ast_domain.ResolvedSymbol{
 																									Name: "row",
@@ -3366,6 +3397,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																								TypeExpression:       typeExprFromString("partials_row_actions_c2843091.Response"),
 																								PackageAlias:         "partials_row_actions_c2843091",
 																								CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/partials/partials_row_actions_c2843091",
+																								UnderlyingTypeString: "struct{RowID string; DisplayTitle string; EditURL string; CategoryLabel string}",
 																							},
 																							Symbol: &ast_domain.ResolvedSymbol{
 																								Name: "state",
@@ -3524,6 +3556,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																							PackageAlias:         "pages_main_594861c5",
 																							CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																							UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "row",
@@ -3661,6 +3694,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("partials_row_actions_c2843091.Response"),
 																						PackageAlias:         "partials_row_actions_c2843091",
 																						CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/partials/partials_row_actions_c2843091",
+																						UnderlyingTypeString: "struct{RowID string; DisplayTitle string; EditURL string; CategoryLabel string}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "state",
@@ -3824,6 +3858,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																									TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																									PackageAlias:         "pages_main_594861c5",
 																									CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																									UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																								},
 																								Symbol: &ast_domain.ResolvedSymbol{
 																									Name: "row",
@@ -3962,6 +3997,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																								TypeExpression:       typeExprFromString("partials_row_actions_c2843091.Response"),
 																								PackageAlias:         "partials_row_actions_c2843091",
 																								CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/partials/partials_row_actions_c2843091",
+																								UnderlyingTypeString: "struct{RowID string; DisplayTitle string; EditURL string; CategoryLabel string}",
 																							},
 																							Symbol: &ast_domain.ResolvedSymbol{
 																								Name: "state",
@@ -4120,6 +4156,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																							PackageAlias:         "pages_main_594861c5",
 																							CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																							UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "row",
@@ -4298,6 +4335,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																									TypeExpression:       typeExprFromString("pages_main_594861c5.Row"),
 																									PackageAlias:         "pages_main_594861c5",
 																									CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/pages/pages_main_594861c5",
+																									UnderlyingTypeString: "struct{ID string; Title string; Cells []pages_main_594861c5.Cell}",
 																								},
 																								Symbol: &ast_domain.ResolvedSymbol{
 																									Name: "row",
@@ -4425,6 +4463,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																								TypeExpression:       typeExprFromString("partials_row_actions_c2843091.Response"),
 																								PackageAlias:         "partials_row_actions_c2843091",
 																								CanonicalPackagePath: "testcase_133_partial_sibling_of_nested_loop/dist/partials/partials_row_actions_c2843091",
+																								UnderlyingTypeString: "struct{RowID string; DisplayTitle string; EditURL string; CategoryLabel string}",
 																							},
 																							Symbol: &ast_domain.ResolvedSymbol{
 																								Name: "state",

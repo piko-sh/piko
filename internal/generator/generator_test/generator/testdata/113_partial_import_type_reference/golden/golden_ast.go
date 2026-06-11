@@ -148,6 +148,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_113_partial_import_type_reference/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{CurrentUser partials_models_86b482ba.User; UserDisplay string; Products []partials_models_86b482ba.Product}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -175,6 +176,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_models_86b482ba.User"),
 															PackageAlias:         "partials_models_86b482ba",
 															CanonicalPackagePath: "testcase_113_partial_import_type_reference/dist/partials/partials_models_86b482ba",
+															UnderlyingTypeString: "struct{ID int; Name string; Email string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "CurrentUser",
@@ -203,6 +205,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_models_86b482ba.User"),
 														PackageAlias:         "partials_models_86b482ba",
 														CanonicalPackagePath: "testcase_113_partial_import_type_reference/dist/partials/partials_models_86b482ba",
+														UnderlyingTypeString: "struct{ID int; Name string; Email string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "CurrentUser",
@@ -392,6 +395,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_113_partial_import_type_reference/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{CurrentUser partials_models_86b482ba.User; UserDisplay string; Products []partials_models_86b482ba.Product}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -419,6 +423,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_models_86b482ba.User"),
 															PackageAlias:         "partials_models_86b482ba",
 															CanonicalPackagePath: "testcase_113_partial_import_type_reference/dist/partials/partials_models_86b482ba",
+															UnderlyingTypeString: "struct{ID int; Name string; Email string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "CurrentUser",
@@ -447,6 +452,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_models_86b482ba.User"),
 														PackageAlias:         "partials_models_86b482ba",
 														CanonicalPackagePath: "testcase_113_partial_import_type_reference/dist/partials/partials_models_86b482ba",
+														UnderlyingTypeString: "struct{ID int; Name string; Email string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "CurrentUser",
@@ -635,6 +641,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_113_partial_import_type_reference/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{CurrentUser partials_models_86b482ba.User; UserDisplay string; Products []partials_models_86b482ba.Product}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

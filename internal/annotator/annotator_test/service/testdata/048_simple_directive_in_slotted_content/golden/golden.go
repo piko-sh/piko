@@ -106,6 +106,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_48_simple_directive_in_slotted_content/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{Query string; Message string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -318,6 +319,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 																PackageAlias:         "partials_layout_ee037d9a",
 																CanonicalPackagePath: "testcase_48_simple_directive_in_slotted_content/dist/partials/partials_layout_ee037d9a",
+																UnderlyingTypeString: "struct{PageTitle string; Version string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -484,6 +486,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_48_simple_directive_in_slotted_content/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Query string; Message string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -729,6 +732,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 																PackageAlias:         "partials_layout_ee037d9a",
 																CanonicalPackagePath: "testcase_48_simple_directive_in_slotted_content/dist/partials/partials_layout_ee037d9a",
+																UnderlyingTypeString: "struct{PageTitle string; Version string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",

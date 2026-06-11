@@ -94,6 +94,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{ID string; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",
@@ -266,6 +267,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{ID string; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",
@@ -458,6 +460,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{ID string; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "item",
@@ -486,6 +489,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Items []main_aaf9a2e0.Item}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -513,6 +517,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]main_aaf9a2e0.Item"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{ID string; Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -541,6 +546,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]main_aaf9a2e0.Item"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{ID string; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Items",
@@ -567,6 +573,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]main_aaf9a2e0.Item"),
 										PackageAlias:         "main_aaf9a2e0",
 										CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+										UnderlyingTypeString: "struct{ID string; Name string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Items",
@@ -588,6 +595,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]main_aaf9a2e0.Item"),
 										PackageAlias:         "main_aaf9a2e0",
 										CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+										UnderlyingTypeString: "struct{ID string; Name string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Items",
@@ -610,6 +618,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("[]main_aaf9a2e0.Item"),
 									PackageAlias:         "main_aaf9a2e0",
 									CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+									UnderlyingTypeString: "struct{ID string; Name string}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Items",
@@ -650,6 +659,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{ID string; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "item",
@@ -793,6 +803,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{ID string; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "item",
@@ -913,6 +924,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{ID string; Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "item",
@@ -1033,6 +1045,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{ID string; Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "item",
@@ -1197,6 +1210,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{ID string; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1375,6 +1389,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{ID string; Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -1502,6 +1517,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Response"),
 																PackageAlias:         "partials_item_card_e11b3960",
 																CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/partials/partials_item_card_e11b3960",
+																UnderlyingTypeString: "struct{DisplayID string; DisplayName string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1660,6 +1676,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{ID string; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1838,6 +1855,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Item"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{ID string; Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -1965,6 +1983,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_item_card_e11b3960.Response"),
 																PackageAlias:         "partials_item_card_e11b3960",
 																CanonicalPackagePath: "testcase_60_p_for_on_partial_invocation/dist/partials/partials_item_card_e11b3960",
+																UnderlyingTypeString: "struct{DisplayID string; DisplayName string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",

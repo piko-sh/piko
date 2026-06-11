@@ -314,6 +314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_floor_plan_modal_cecbd938.Props"),
 														PackageAlias:         "partials_floor_plan_modal_cecbd938",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/dist/partials/partials_floor_plan_modal_cecbd938",
+														UnderlyingTypeString: "struct{FloorPlan *pkg.Image}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -341,6 +342,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pkg.Image"),
 														PackageAlias:         "pkg",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+														UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FloorPlan",
@@ -369,6 +371,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pkg.Image"),
 													PackageAlias:         "pkg",
 													CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+													UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "FloorPlan",
@@ -473,6 +476,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_floor_plan_modal_cecbd938.Props"),
 															PackageAlias:         "partials_floor_plan_modal_cecbd938",
 															CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/dist/partials/partials_floor_plan_modal_cecbd938",
+															UnderlyingTypeString: "struct{FloorPlan *pkg.Image}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -500,6 +504,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pkg.Image"),
 															PackageAlias:         "pkg",
 															CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+															UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "FloorPlan",
@@ -528,6 +533,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pkg.Image"),
 														PackageAlias:         "pkg",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+														UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FloorPlan",
@@ -756,6 +762,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{TestImage *pkg.Image}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -783,6 +790,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pkg.Image"),
 														PackageAlias:         "pkg",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+														UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "TestImage",
@@ -830,6 +838,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pkg.Image"),
 													PackageAlias:         "pkg",
 													CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+													UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "TestImage",
@@ -876,6 +885,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pkg.Image"),
 												PackageAlias:         "pkg",
 												CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+												UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "TestImage",
@@ -1037,6 +1047,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_floor_plan_modal_cecbd938.Props"),
 														PackageAlias:         "partials_floor_plan_modal_cecbd938",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/dist/partials/partials_floor_plan_modal_cecbd938",
+														UnderlyingTypeString: "struct{FloorPlan *pkg.Image}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -1064,6 +1075,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pkg.Image"),
 														PackageAlias:         "pkg",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+														UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FloorPlan",
@@ -1111,6 +1123,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pkg.Image"),
 													PackageAlias:         "pkg",
 													CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+													UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "FloorPlan",
@@ -1234,6 +1247,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_floor_plan_modal_cecbd938.Props"),
 															PackageAlias:         "partials_floor_plan_modal_cecbd938",
 															CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/dist/partials/partials_floor_plan_modal_cecbd938",
+															UnderlyingTypeString: "struct{FloorPlan *pkg.Image}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -1261,6 +1275,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pkg.Image"),
 															PackageAlias:         "pkg",
 															CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+															UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "FloorPlan",
@@ -1308,6 +1323,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pkg.Image"),
 														PackageAlias:         "pkg",
 														CanonicalPackagePath: "testcase_116_p_if_nil_guard_attr_binding/pkg",
+														UnderlyingTypeString: "struct{URL string; Alt string; Width int; Height int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FloorPlan",

@@ -1079,3 +1079,154 @@ func BenchmarkTypePromotion(b *testing.B) {
 		_ = promoteNumericTypes(leftInfo, rightInfo)
 	}
 }
+
+func TestIsComparablePrimitiveUnderlying(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		underlying string
+		want       bool
+	}{
+		{underlying: "int", want: true},
+		{underlying: "int8", want: true},
+		{underlying: "int16", want: true},
+		{underlying: "int32", want: true},
+		{underlying: "int64", want: true},
+		{underlying: "uint", want: true},
+		{underlying: "uint8", want: true},
+		{underlying: "uint16", want: true},
+		{underlying: "uint32", want: true},
+		{underlying: "uint64", want: true},
+		{underlying: "uintptr", want: true},
+		{underlying: "float32", want: true},
+		{underlying: "float64", want: true},
+		{underlying: "complex64", want: true},
+		{underlying: "complex128", want: true},
+		{underlying: "string", want: true},
+		{underlying: "bool", want: true},
+		{underlying: "rune", want: true},
+		{underlying: "byte", want: true},
+		{underlying: "[]int", want: false},
+		{underlying: "map[string]int", want: false},
+		{underlying: "struct{}", want: false},
+		{underlying: "func()", want: false},
+		{underlying: "", want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.underlying, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.want, isComparablePrimitiveUnderlying(tc.underlying))
+		})
+	}
+}
+
+func TestIsSameComparableDefinedType(t *testing.T) {
+	t.Parallel()
+
+	const modelsPkg = "example.com/app/models"
+
+	testCases := []struct {
+		name  string
+		left  *ast_domain.ResolvedTypeInfo
+		right *ast_domain.ResolvedTypeInfo
+		want  bool
+	}{
+		{
+			name: "same defined type with comparable underlying",
+			left: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "int",
+			},
+			right: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "int",
+			},
+			want: true,
+		},
+		{
+			name: "different type names same package",
+			left: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "int",
+			},
+			right: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("OtherStatus"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "int",
+			},
+			want: false,
+		},
+		{
+			name: "same type name different packages",
+			left: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "int",
+			},
+			right: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				CanonicalPackagePath: "example.com/app/other",
+				UnderlyingTypeString: "int",
+			},
+			want: false,
+		},
+		{
+			name: "non-comparable underlying",
+			left: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("Identifiers"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "[]int",
+			},
+			right: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("Identifiers"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "[]int",
+			},
+			want: false,
+		},
+		{
+			name: "missing underlying on one operand",
+			left: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				CanonicalPackagePath: modelsPkg,
+				UnderlyingTypeString: "int",
+			},
+			right: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				CanonicalPackagePath: modelsPkg,
+			},
+			want: false,
+		},
+		{
+			name: "empty canonical package path",
+			left: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				UnderlyingTypeString: "int",
+			},
+			right: &ast_domain.ResolvedTypeInfo{
+				TypeExpression:       cachedIdent("ResultStatus"),
+				UnderlyingTypeString: "int",
+			},
+			want: false,
+		},
+		{
+			name:  "nil operands",
+			left:  nil,
+			right: nil,
+			want:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.want, isSameComparableDefinedType(tc.left, tc.right))
+		})
+	}
+}

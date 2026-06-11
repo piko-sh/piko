@@ -138,6 +138,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_39_alias_corruption_bug/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{ServiceData services.ResponseA}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -165,6 +166,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("services.ResponseA"),
 																PackageAlias:         "services",
 																CanonicalPackagePath: "testcase_39_alias_corruption_bug/services",
+																UnderlyingTypeString: "struct{Item models.Data}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "ServiceData",
@@ -193,6 +195,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("services.ResponseA"),
 															PackageAlias:         "services",
 															CanonicalPackagePath: "testcase_39_alias_corruption_bug/services",
+															UnderlyingTypeString: "struct{Item models.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "ServiceData",
@@ -221,6 +224,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Data"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_39_alias_corruption_bug/models",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Item",
@@ -249,6 +253,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Data"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_39_alias_corruption_bug/models",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Item",

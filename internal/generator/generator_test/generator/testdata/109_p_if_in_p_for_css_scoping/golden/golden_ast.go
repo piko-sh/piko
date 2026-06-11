@@ -142,6 +142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Tasks []dto.Task}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -169,6 +170,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.Task"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+														UnderlyingTypeString: "struct{Name string; Done bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Tasks",
@@ -216,6 +218,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.Task"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+													UnderlyingTypeString: "struct{Name string; Done bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Tasks",
@@ -262,6 +265,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.Task"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+												UnderlyingTypeString: "struct{Name string; Done bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Tasks",
@@ -513,6 +517,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.Task"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+															UnderlyingTypeString: "struct{Name string; Done bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "task",
@@ -541,6 +546,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_task_list_07441b8b.Props"),
 																PackageAlias:         "partials_task_list_07441b8b",
 																CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/dist/partials/partials_task_list_07441b8b",
+																UnderlyingTypeString: "struct{Tasks []dto.Task}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",
@@ -568,6 +574,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.Task"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+																UnderlyingTypeString: "struct{Name string; Done bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Tasks",
@@ -596,6 +603,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.Task"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+															UnderlyingTypeString: "struct{Name string; Done bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Tasks",
@@ -622,6 +630,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.Task"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+														UnderlyingTypeString: "struct{Name string; Done bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Tasks",
@@ -643,6 +652,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.Task"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+														UnderlyingTypeString: "struct{Name string; Done bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Tasks",
@@ -665,6 +675,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.Task"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+													UnderlyingTypeString: "struct{Name string; Done bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Tasks",
@@ -872,6 +883,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.Task"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+																	UnderlyingTypeString: "struct{Name string; Done bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "task",
@@ -1113,6 +1125,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.Task"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_109_p_if_in_p_for_css_scoping/pkg/dto",
+																	UnderlyingTypeString: "struct{Name string; Done bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "task",

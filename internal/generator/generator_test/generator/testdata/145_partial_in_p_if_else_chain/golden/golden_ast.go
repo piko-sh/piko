@@ -142,6 +142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -331,6 +332,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -469,6 +471,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("partials_badge_63370d86.Props"),
 											PackageAlias:         "partials_badge_63370d86",
 											CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/partials/partials_badge_63370d86",
+											UnderlyingTypeString: "struct{Label string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -612,6 +615,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -752,6 +756,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -941,6 +946,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1095,6 +1101,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("partials_badge_63370d86.Props"),
 											PackageAlias:         "partials_badge_63370d86",
 											CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/partials/partials_badge_63370d86",
+											UnderlyingTypeString: "struct{Label string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -1238,6 +1245,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1378,6 +1386,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1597,6 +1606,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("partials_badge_63370d86.Props"),
 											PackageAlias:         "partials_badge_63370d86",
 											CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/partials/partials_badge_63370d86",
+											UnderlyingTypeString: "struct{Label string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -1740,6 +1750,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_145_partial_in_p_if_else_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Status string; ActiveLabel string; PendingLabel string; DefaultLabel string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

@@ -260,6 +260,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -287,6 +288,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Price",
@@ -316,6 +318,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Price",
@@ -339,6 +342,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Decimal"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Price",
@@ -450,6 +454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -477,6 +482,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Money"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Total",
@@ -506,6 +512,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Money"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Total",
@@ -529,6 +536,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Money"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Total",
@@ -640,6 +648,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -667,6 +676,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.BigInt"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Quantity",
@@ -696,6 +706,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.BigInt"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Quantity",
@@ -719,6 +730,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.BigInt"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Quantity",
@@ -837,6 +849,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -864,6 +877,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.Decimal"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Price",
@@ -893,6 +907,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.Decimal"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Price",
@@ -916,6 +931,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("maths.Decimal"),
 									PackageAlias:         "maths",
 									CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+									UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Price",
@@ -1031,6 +1047,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -1058,6 +1075,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.Money"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Total",
@@ -1087,6 +1105,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.Money"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Total",
@@ -1110,6 +1129,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("maths.Money"),
 									PackageAlias:         "maths",
 									CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+									UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Total",
@@ -1225,6 +1245,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -1252,6 +1273,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.BigInt"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Quantity",
@@ -1281,6 +1303,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.BigInt"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Quantity",
@@ -1304,6 +1327,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("maths.BigInt"),
 									PackageAlias:         "maths",
 									CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+									UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Quantity",
@@ -1504,6 +1528,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1531,6 +1556,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Decimal"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Price",
@@ -1560,6 +1586,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.Decimal"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Price",
@@ -1591,6 +1618,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.Decimal"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Price",
@@ -1700,6 +1728,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1727,6 +1756,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Money"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Total",
@@ -1756,6 +1786,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.Money"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Total",
@@ -1787,6 +1818,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.Money"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Total",
@@ -1896,6 +1928,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1923,6 +1956,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.BigInt"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Quantity",
@@ -1952,6 +1986,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.BigInt"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Quantity",
@@ -1983,6 +2018,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.BigInt"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Quantity",
@@ -2165,6 +2201,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2192,6 +2229,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Price",
@@ -2221,6 +2259,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Price",
@@ -2396,6 +2435,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2423,6 +2463,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Money"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Total",
@@ -2452,6 +2493,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Money"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Total",
@@ -2627,6 +2669,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_134_maths_literal_types/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Price maths.Decimal; Total maths.Money; Quantity maths.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2654,6 +2697,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.BigInt"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Quantity",
@@ -2683,6 +2727,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.BigInt"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Quantity",

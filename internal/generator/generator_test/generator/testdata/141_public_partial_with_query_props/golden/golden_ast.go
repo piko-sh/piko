@@ -142,6 +142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_141_public_partial_with_query_props/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{SearchTerm string; CurrentPage int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -314,6 +315,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_141_public_partial_with_query_props/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{SearchTerm string; CurrentPage int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -526,6 +528,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_141_public_partial_with_query_props/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{SearchTerm string; CurrentPage int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -646,6 +649,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_141_public_partial_with_query_props/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{SearchTerm string; CurrentPage int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -787,6 +791,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_search_064086ef.Props"),
 													PackageAlias:         "partials_search_064086ef",
 													CanonicalPackagePath: "testcase_141_public_partial_with_query_props/dist/partials/partials_search_064086ef",
+													UnderlyingTypeString: "struct{Query string; Page int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -935,6 +940,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_search_064086ef.Props"),
 													PackageAlias:         "partials_search_064086ef",
 													CanonicalPackagePath: "testcase_141_public_partial_with_query_props/dist/partials/partials_search_064086ef",
+													UnderlyingTypeString: "struct{Query string; Page int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

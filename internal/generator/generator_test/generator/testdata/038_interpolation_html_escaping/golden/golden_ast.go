@@ -122,6 +122,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_038_interpolation_html_escaping/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{MaliciousInput string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

@@ -289,6 +289,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -316,6 +317,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.Decimal"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Price",
@@ -345,6 +347,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Price",
@@ -373,6 +376,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 													PackageAlias:         "i18n_domain",
 													CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+													UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 												},
 												OriginalSourcePath:    new("pages/main.pk"),
 												Stringability:         2,
@@ -384,6 +388,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 												PackageAlias:         "i18n_domain",
 												CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+												UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 											},
 											OriginalSourcePath:    new("pages/main.pk"),
 											Stringability:         2,
@@ -512,6 +517,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -539,6 +545,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.BigInt"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Quantity",
@@ -568,6 +575,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.BigInt"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.BigInt}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Quantity",
@@ -596,6 +604,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 													PackageAlias:         "i18n_domain",
 													CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+													UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 												},
 												OriginalSourcePath:    new("pages/main.pk"),
 												Stringability:         2,
@@ -607,6 +616,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 												PackageAlias:         "i18n_domain",
 												CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+												UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 											},
 											OriginalSourcePath:    new("pages/main.pk"),
 											Stringability:         2,
@@ -735,6 +745,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -762,6 +773,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.Money"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Total",
@@ -791,6 +803,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Money"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Total",
@@ -819,6 +832,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 													PackageAlias:         "i18n_domain",
 													CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+													UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 												},
 												OriginalSourcePath:    new("pages/main.pk"),
 												Stringability:         2,
@@ -830,6 +844,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 												PackageAlias:         "i18n_domain",
 												CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+												UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 											},
 											OriginalSourcePath:    new("pages/main.pk"),
 											Stringability:         2,
@@ -965,6 +980,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -992,6 +1008,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Price",
@@ -1021,6 +1038,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Decimal"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Price",
@@ -1049,6 +1067,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 										PackageAlias:         "i18n_domain",
 										CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+										UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 									},
 									Stringability:         2,
 									IsPointerToStringable: true,
@@ -1059,6 +1078,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 									PackageAlias:         "i18n_domain",
 									CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+									UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 								},
 								Stringability:         2,
 								IsPointerToStringable: true,
@@ -1158,6 +1178,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1242,6 +1263,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 										PackageAlias:         "i18n_domain",
 										CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+										UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 									},
 									Stringability:         2,
 									IsPointerToStringable: true,
@@ -1252,6 +1274,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 									PackageAlias:         "i18n_domain",
 									CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+									UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 								},
 								Stringability:         2,
 								IsPointerToStringable: true,
@@ -1468,6 +1491,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1495,6 +1519,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.Decimal"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Price",
@@ -1524,6 +1549,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Price",
@@ -1552,6 +1578,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 													PackageAlias:         "i18n_domain",
 													CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+													UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 												},
 												OriginalSourcePath:    new("pages/main.pk"),
 												Stringability:         2,
@@ -1563,6 +1590,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 												PackageAlias:         "i18n_domain",
 												CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+												UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 											},
 											OriginalSourcePath:    new("pages/main.pk"),
 											Stringability:         2,
@@ -1698,6 +1726,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1725,6 +1754,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Price",
@@ -1754,6 +1784,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Decimal"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Price",
@@ -1782,6 +1813,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 										PackageAlias:         "i18n_domain",
 										CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+										UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 									},
 									Stringability:         2,
 									IsPointerToStringable: true,
@@ -1792,6 +1824,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 									PackageAlias:         "i18n_domain",
 									CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+									UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 								},
 								Stringability:         2,
 								IsPointerToStringable: true,
@@ -1976,6 +2009,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -2003,6 +2037,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Price",
@@ -2032,6 +2067,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("maths.Decimal"),
 													PackageAlias:         "maths",
 													CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+													UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Price",
@@ -2060,6 +2096,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 											PackageAlias:         "i18n_domain",
 											CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+											UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 										},
 										Stringability:         2,
 										IsPointerToStringable: true,
@@ -2078,6 +2115,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 										PackageAlias:         "i18n_domain",
 										CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+										UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 									},
 									Stringability:         2,
 									IsPointerToStringable: true,
@@ -2276,6 +2314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2303,6 +2342,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.Decimal"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Price",
@@ -2332,6 +2372,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Price",
@@ -2360,6 +2401,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 													PackageAlias:         "i18n_domain",
 													CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+													UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 												},
 												Stringability:         2,
 												IsPointerToStringable: true,
@@ -2581,6 +2623,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2608,6 +2651,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.Decimal"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Price",
@@ -2637,6 +2681,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Price",
@@ -2665,6 +2710,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 													PackageAlias:         "i18n_domain",
 													CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+													UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 												},
 												Stringability:         2,
 												IsPointerToStringable: true,
@@ -2854,6 +2900,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2881,6 +2928,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Price",
@@ -2910,6 +2958,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Price",
@@ -2938,6 +2987,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 												PackageAlias:         "i18n_domain",
 												CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+												UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 											},
 											Stringability:         2,
 											IsPointerToStringable: true,
@@ -3024,6 +3074,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 										PackageAlias:         "i18n_domain",
 										CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+										UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 									},
 									Stringability:         2,
 									IsPointerToStringable: true,
@@ -3034,6 +3085,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 									PackageAlias:         "i18n_domain",
 									CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+									UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 								},
 								Stringability:         2,
 								IsPointerToStringable: true,
@@ -3197,6 +3249,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_135_format_builder_functions/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Price maths.Decimal; Quantity maths.BigInt; Total maths.Money; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -3224,6 +3277,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Price",
@@ -3253,6 +3307,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Price",
@@ -3281,6 +3336,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 												PackageAlias:         "i18n_domain",
 												CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+												UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 											},
 											Stringability:         2,
 											IsPointerToStringable: true,
@@ -3367,6 +3423,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 										PackageAlias:         "i18n_domain",
 										CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+										UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 									},
 									Stringability:         2,
 									IsPointerToStringable: true,
@@ -3377,6 +3434,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("*i18n_domain.FormatBuilder"),
 									PackageAlias:         "i18n_domain",
 									CanonicalPackagePath: "piko.sh/piko/internal/i18n/i18n_domain",
+									UnderlyingTypeString: "struct{value any; locale string; precision int; style i18n_domain.DateTimeStyle; dateOnly bool; timeOnly bool; utc bool; hasLocale bool}",
 								},
 								Stringability:         2,
 								IsPointerToStringable: true,

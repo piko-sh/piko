@@ -51,6 +51,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_05_complex_prop_type/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{CurrentUser *models.User; CurrentUserID int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -78,6 +79,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*models.User"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_05_complex_prop_type/models",
+												UnderlyingTypeString: "struct{ID int; Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "CurrentUser",
@@ -125,6 +127,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*models.User"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_05_complex_prop_type/models",
+											UnderlyingTypeString: "struct{ID int; Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "CurrentUser",
@@ -171,6 +174,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*models.User"),
 										PackageAlias:         "models",
 										CanonicalPackagePath: "testcase_05_complex_prop_type/models",
+										UnderlyingTypeString: "struct{ID int; Name string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "CurrentUser",

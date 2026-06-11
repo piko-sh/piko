@@ -160,6 +160,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_26_empty_and_boolean_attributes/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{IsDisabled bool; EmptyVal string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -380,6 +381,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_26_empty_and_boolean_attributes/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{IsDisabled bool; EmptyVal string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

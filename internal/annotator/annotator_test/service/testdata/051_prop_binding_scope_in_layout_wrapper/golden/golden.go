@@ -194,6 +194,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_51_prop_binding_scope_in_layout_wrapper/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{EnvironmentID string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -417,6 +418,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_51_prop_binding_scope_in_layout_wrapper/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{EnvironmentID string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -610,6 +612,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 																		PackageAlias:         "partials_child_d247007e",
 																		CanonicalPackagePath: "testcase_51_prop_binding_scope_in_layout_wrapper/dist/partials/partials_child_d247007e",
+																		UnderlyingTypeString: "struct{DisplayID string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",

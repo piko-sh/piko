@@ -452,6 +452,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 																		PackageAlias:         "partials_card_bfc4a3cf",
 																		CanonicalPackagePath: "testcase_098_partial_external_pkg_import_single_depth/dist/partials/partials_card_bfc4a3cf",
+																		UnderlyingTypeString: "struct{Title string; Description string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -660,6 +661,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 																PackageAlias:         "partials_card_bfc4a3cf",
 																CanonicalPackagePath: "testcase_098_partial_external_pkg_import_single_depth/dist/partials/partials_card_bfc4a3cf",
+																UnderlyingTypeString: "struct{Title string; Description string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",

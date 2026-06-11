@@ -170,6 +170,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("models.User"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+											UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "user",
@@ -198,6 +199,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Users []models.User}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -225,6 +227,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]models.User"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+												UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Users",
@@ -253,6 +256,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]models.User"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+											UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Users",
@@ -279,6 +283,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]models.User"),
 										PackageAlias:         "models",
 										CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+										UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Users",
@@ -300,6 +305,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]models.User"),
 										PackageAlias:         "models",
 										CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+										UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Users",
@@ -322,6 +328,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("[]models.User"),
 									PackageAlias:         "models",
 									CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+									UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Users",
@@ -384,6 +391,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("models.User"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+												UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "user",
@@ -450,6 +458,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+																UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "user",
@@ -640,6 +649,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.User"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+													UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "user",
@@ -782,6 +792,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+														UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "user",
@@ -861,6 +872,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+														UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "user",
@@ -981,6 +993,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+														UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "user",
@@ -1143,6 +1156,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/models",
+																UnderlyingTypeString: "struct{ID int; Name string; IsActive bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "user",
@@ -1223,6 +1237,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_user_badge_2e143ad8.Props"),
 																PackageAlias:         "partials_user_badge_2e143ad8",
 																CanonicalPackagePath: "testcase_19_directive_on_partial_invocation/dist/partials/partials_user_badge_2e143ad8",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "props",

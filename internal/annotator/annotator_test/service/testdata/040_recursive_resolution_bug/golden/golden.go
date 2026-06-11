@@ -140,6 +140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_40_recursive_resolution_bug/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{L1Data layer1.Layer1Response; L2Alias layer3.Layer3Response; L3Data layer3.Layer3Response}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -167,6 +168,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("layer1.Layer1Response"),
 																		PackageAlias:         "layer1",
 																		CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer1",
+																		UnderlyingTypeString: "struct{L2Data layer2.Layer2Response}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "L1Data",
@@ -195,6 +197,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("layer1.Layer1Response"),
 																	PackageAlias:         "layer1",
 																	CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer1",
+																	UnderlyingTypeString: "struct{L2Data layer2.Layer2Response}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "L1Data",
@@ -223,6 +226,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("layer2.Layer2Response"),
 																	PackageAlias:         "layer2",
 																	CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer2",
+																	UnderlyingTypeString: "struct{L3Data layer3.Layer3Response}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "L2Data",
@@ -251,6 +255,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("layer2.Layer2Response"),
 																PackageAlias:         "layer2",
 																CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer2",
+																UnderlyingTypeString: "struct{L3Data layer3.Layer3Response}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "L2Data",
@@ -279,6 +284,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("layer3.Layer3Response"),
 																PackageAlias:         "layer3",
 																CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer3",
+																UnderlyingTypeString: "struct{FinalItem models.Data}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "L3Data",
@@ -307,6 +313,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("layer3.Layer3Response"),
 															PackageAlias:         "layer3",
 															CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer3",
+															UnderlyingTypeString: "struct{FinalItem models.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "L3Data",
@@ -335,6 +342,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Data"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_40_recursive_resolution_bug/models",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "FinalItem",
@@ -363,6 +371,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Data"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_40_recursive_resolution_bug/models",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FinalItem",
@@ -556,6 +565,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_40_recursive_resolution_bug/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{L1Data layer1.Layer1Response; L2Alias layer3.Layer3Response; L3Data layer3.Layer3Response}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -583,6 +593,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("layer3.Layer3Response"),
 																PackageAlias:         "layer3",
 																CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer3",
+																UnderlyingTypeString: "struct{FinalItem models.Data}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "L2Alias",
@@ -611,6 +622,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("layer3.Layer3Response"),
 															PackageAlias:         "layer3",
 															CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer3",
+															UnderlyingTypeString: "struct{FinalItem models.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "L2Alias",
@@ -639,6 +651,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Data"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_40_recursive_resolution_bug/models",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "FinalItem",
@@ -667,6 +680,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Data"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_40_recursive_resolution_bug/models",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FinalItem",
@@ -860,6 +874,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_40_recursive_resolution_bug/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{L1Data layer1.Layer1Response; L2Alias layer3.Layer3Response; L3Data layer3.Layer3Response}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -887,6 +902,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("layer3.Layer3Response"),
 																PackageAlias:         "layer3",
 																CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer3",
+																UnderlyingTypeString: "struct{FinalItem models.Data}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "L3Data",
@@ -915,6 +931,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("layer3.Layer3Response"),
 															PackageAlias:         "layer3",
 															CanonicalPackagePath: "testcase_40_recursive_resolution_bug/layer3",
+															UnderlyingTypeString: "struct{FinalItem models.Data}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "L3Data",
@@ -943,6 +960,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.Data"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_40_recursive_resolution_bug/models",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "FinalItem",
@@ -971,6 +989,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.Data"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_40_recursive_resolution_bug/models",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FinalItem",

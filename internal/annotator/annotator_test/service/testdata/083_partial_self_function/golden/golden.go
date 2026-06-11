@@ -195,6 +195,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 														PackageAlias:         "partials_card_bfc4a3cf",
 														CanonicalPackagePath: "testcase_83_partial_self_function/dist/partials/partials_card_bfc4a3cf",
+														UnderlyingTypeString: "struct{Price int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",

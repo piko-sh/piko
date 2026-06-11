@@ -662,6 +662,53 @@ func getNativeBinaryOp(operator ast_domain.BinaryOp, leftAnn, rightAnn *ast_doma
 	return token.ILLEGAL, false
 }
 
+// isComparablePrimitiveUnderlying checks whether the underlying type is a go primitive,
+// which is fit for native equality checks.
+//
+// Takes string which is the underlying type to determine if it is a primitive.
+//
+// Returns bool which is true if the underlying type is a primitive
+func isComparablePrimitiveUnderlying(underlyingType string) bool {
+	switch underlyingType {
+	case IntTypeName, Int8TypeName, Int16TypeName, Int32TypeName, Int64TypeName,
+		UintTypeName, Uint8TypeName, Uint16TypeName, Uint32TypeName, Uint64TypeName,
+		Float32TypeName, Float64TypeName, "complex64", "complex128", "uintptr",
+		StringTypeName, BoolTypeName, "rune", ByteTypeName:
+		return true
+	default:
+		return false
+	}
+}
+
+// isSameComparableDefinedType reports whether both operands are the same defined type and
+// validates that their underlying type is comparable. So the generator can emit a native
+// equality operator rather than using our reflection handler.
+//
+// Takes left (*ast_domain.ResolvedTypeInfo) which is the type info for the left operand.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the type info for the right
+// operand.
+//
+// Returns bool which is true when both operands are comparable.
+func isSameComparableDefinedType(left, right *ast_domain.ResolvedTypeInfo) bool {
+	if left == nil || right == nil || left.TypeExpression == nil || right.TypeExpression == nil {
+		return false
+	}
+
+	if left.CanonicalPackagePath == "" || left.CanonicalPackagePath != right.CanonicalPackagePath {
+		return false
+	}
+
+	if left.UnderlyingTypeString == "" || left.UnderlyingTypeString != right.UnderlyingTypeString {
+		return false
+	}
+
+	if !isComparablePrimitiveUnderlying(left.UnderlyingTypeString) {
+		return false
+	}
+
+	return goastutil.ASTToTypeString(left.TypeExpression, left.PackageAlias) == goastutil.ASTToTypeString(right.TypeExpression, right.PackageAlias)
+}
+
 // isLogicalOperator reports whether the operator is a logical AND or OR.
 //
 // Takes operator (ast_domain.BinaryOp) which is the binary operator to check.
@@ -730,7 +777,8 @@ func isEqualityOperator(operator ast_domain.BinaryOp) bool {
 func typesAreComparable(leftTypeInfo, rightTypeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return (isNumeric(leftTypeInfo) && isNumeric(rightTypeInfo)) ||
 		(isExpressionStringType(leftTypeInfo) && isExpressionStringType(rightTypeInfo)) ||
-		(isBoolType(leftTypeInfo.TypeExpression) && isBoolType(rightTypeInfo.TypeExpression))
+		(isBoolType(leftTypeInfo.TypeExpression) && isBoolType(rightTypeInfo.TypeExpression)) ||
+		isSameComparableDefinedType(leftTypeInfo, rightTypeInfo)
 }
 
 // tryEqualityOperation finds the Go token for an equality operator.

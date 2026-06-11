@@ -151,6 +151,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{Status main_aaf9a2e0.ResultStatus}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -178,6 +179,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.ResultStatus"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "int",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Status",
@@ -207,6 +209,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.ResultStatus"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "int",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Status",
@@ -331,6 +334,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															PackageAlias:            "main_aaf9a2e0",
 															CanonicalPackagePath:    "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
 															IsExportedPackageSymbol: true,
+															UnderlyingTypeString:    "int",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "ResultStatusWaiting",
@@ -511,6 +515,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Status main_aaf9a2e0.ResultStatus}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -538,6 +543,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.ResultStatus"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "int",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Status",
@@ -567,6 +573,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.ResultStatus"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "int",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Status",
@@ -598,6 +605,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														PackageAlias:            "main_aaf9a2e0",
 														CanonicalPackagePath:    "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
 														IsExportedPackageSymbol: true,
+														UnderlyingTypeString:    "int",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "ResultStatusWaiting",
@@ -679,6 +687,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Status main_aaf9a2e0.ResultStatus}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -706,6 +715,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.ResultStatus"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "int",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Status",
@@ -735,6 +745,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("main_aaf9a2e0.ResultStatus"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "int",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Status",
@@ -810,6 +821,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											PackageAlias:            "main_aaf9a2e0",
 											CanonicalPackagePath:    "testcase_103_named_type_enum/dist/pages/main_aaf9a2e0",
 											IsExportedPackageSymbol: true,
+											UnderlyingTypeString:    "int",
 										},
 										Stringability: 2,
 									},
