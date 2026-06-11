@@ -135,6 +135,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -162,6 +163,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -190,6 +192,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -218,6 +221,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Street string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Address",
@@ -246,6 +250,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Street string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Address",
@@ -436,6 +441,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -463,6 +469,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Guest",
@@ -491,6 +498,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Guest",
@@ -519,6 +527,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Street string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Address",
@@ -547,6 +556,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Street string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Address",
@@ -694,6 +704,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -721,6 +732,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "User",
@@ -749,6 +761,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "User",
@@ -777,6 +790,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Street string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Address",
@@ -805,6 +819,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Street string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Address",
@@ -990,6 +1005,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1017,6 +1033,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Guest",
@@ -1045,6 +1062,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Guest",
@@ -1073,6 +1091,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Street string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Address",
@@ -1101,6 +1120,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Address"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Street string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Address",
@@ -1359,6 +1379,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1386,6 +1407,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -1414,6 +1436,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -1624,6 +1647,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1651,6 +1675,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Guest",
@@ -1679,6 +1704,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Guest",
@@ -1889,6 +1915,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1916,6 +1943,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -1944,6 +1972,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -2185,6 +2214,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2212,6 +2242,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -2240,6 +2271,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -2268,6 +2300,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]*pages_main_594861c5.Order"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{ItemName string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Orders",
@@ -2296,6 +2329,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]*pages_main_594861c5.Order"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ItemName string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Orders",
@@ -2339,6 +2373,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Order"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ItemName string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},
@@ -2517,6 +2552,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Guest *pages_main_594861c5.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2544,6 +2580,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Guest",
@@ -2572,6 +2609,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Address *pages_main_594861c5.Address; Tags []string; Orders []*pages_main_594861c5.Order}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Guest",
@@ -2600,6 +2638,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]*pages_main_594861c5.Order"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{ItemName string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Orders",
@@ -2628,6 +2667,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]*pages_main_594861c5.Order"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ItemName string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Orders",
@@ -2671,6 +2711,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Order"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_043_optional_chaining/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ItemName string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},

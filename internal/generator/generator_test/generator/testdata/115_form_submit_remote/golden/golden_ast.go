@@ -520,6 +520,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_boxed_form_f1ded90b.Props"),
 													PackageAlias:         "partials_boxed_form_f1ded90b",
 													CanonicalPackagePath: "testcase_115_form_submit_remote/dist/partials/partials_boxed_form_f1ded90b",
+													UnderlyingTypeString: "struct{ShowForm bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -915,6 +916,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_boxed_form_f1ded90b.Props"),
 														PackageAlias:         "partials_boxed_form_f1ded90b",
 														CanonicalPackagePath: "testcase_115_form_submit_remote/dist/partials/partials_boxed_form_f1ded90b",
+														UnderlyingTypeString: "struct{ShowForm bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",

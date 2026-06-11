@@ -112,6 +112,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -139,6 +140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -167,6 +169,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -195,6 +198,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{Key K; Value V}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserProduct",
@@ -223,6 +227,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{Key K; Value V}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UserProduct",
@@ -491,6 +496,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -518,6 +524,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -546,6 +553,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -574,6 +582,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{Key K; Value V}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserProduct",
@@ -602,6 +611,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{Key K; Value V}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UserProduct",
@@ -872,6 +882,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Data dto.PageData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -899,6 +910,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																			UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -927,6 +939,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																		UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -955,6 +968,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																		UnderlyingTypeString: "struct{Key K; Value V}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "UserProduct",
@@ -983,6 +997,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																	UnderlyingTypeString: "struct{Key K; Value V}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "UserProduct",
@@ -1066,6 +1081,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Pair[dto.Product, dto.User]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{Key K; Value V}",
 														},
 														BaseCodeGenVarName: new("props"),
 													},
@@ -1323,6 +1339,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Data dto.PageData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -1350,6 +1367,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																			UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -1378,6 +1396,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																		UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -1406,6 +1425,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																		UnderlyingTypeString: "struct{Key K; Value V}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "UserProduct",
@@ -1434,6 +1454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																	UnderlyingTypeString: "struct{Key K; Value V}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "UserProduct",
@@ -1517,6 +1538,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Pair[dto.Product, dto.User]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{Key K; Value V}",
 														},
 														BaseCodeGenVarName: new("props"),
 													},
@@ -1773,6 +1795,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Data dto.PageData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -1800,6 +1823,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																		UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -1828,6 +1852,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -1856,6 +1881,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Triple[dto.User, dto.Product, dto.ErrorInfo]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																	UnderlyingTypeString: "struct{First A; Second B; Third C}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Mixed",
@@ -1884,6 +1910,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Triple[dto.User, dto.Product, dto.ErrorInfo]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{First A; Second B; Third C}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Mixed",
@@ -1982,6 +2009,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Name",
@@ -2011,6 +2039,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Name",
@@ -2211,6 +2240,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Data dto.PageData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -2238,6 +2268,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																		UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -2266,6 +2297,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -2294,6 +2326,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Triple[dto.User, dto.Product, dto.ErrorInfo]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																	UnderlyingTypeString: "struct{First A; Second B; Third C}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Mixed",
@@ -2322,6 +2355,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Triple[dto.User, dto.Product, dto.ErrorInfo]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{First A; Second B; Third C}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Mixed",
@@ -2420,6 +2454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Title",
@@ -2449,6 +2484,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Title",
@@ -2648,6 +2684,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -2675,6 +2712,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -2703,6 +2741,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -2731,6 +2770,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Triple[dto.User, dto.Product, dto.ErrorInfo]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{First A; Second B; Third C}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Mixed",
@@ -2759,6 +2799,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Triple[dto.User, dto.Product, dto.ErrorInfo]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{First A; Second B; Third C}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Mixed",
@@ -2971,6 +3012,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Data dto.PageData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -2998,6 +3040,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.PageData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+												UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -3026,6 +3069,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("dto.PageData"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+											UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Data",
@@ -3054,6 +3098,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.Result[dto.User, dto.ErrorInfo]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+											UnderlyingTypeString: "struct{value *T; err *E}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "UserResult",
@@ -3082,6 +3127,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.Result[dto.User, dto.ErrorInfo]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+										UnderlyingTypeString: "struct{value *T; err *E}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "UserResult",
@@ -3337,6 +3383,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -3364,6 +3411,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -3392,6 +3440,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -3420,6 +3469,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Result[dto.User, dto.ErrorInfo]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{value *T; err *E}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserResult",
@@ -3448,6 +3498,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Result[dto.User, dto.ErrorInfo]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{value *T; err *E}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UserResult",
@@ -3716,6 +3767,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -3743,6 +3795,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -3771,6 +3824,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -3799,6 +3853,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{Key K; Value V}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserProduct",
@@ -3827,6 +3882,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{Key K; Value V}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UserProduct",
@@ -3911,6 +3967,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Name",
@@ -3940,6 +3997,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Name",
@@ -4076,6 +4134,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -4103,6 +4162,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																	UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -4131,6 +4191,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/dto",
+																UnderlyingTypeString: "struct{UserProduct fields.Pair[dto.User, dto.Product]; Mixed fields.Triple[dto.User, dto.Product, dto.ErrorInfo]; UserResult fields.Result[dto.User, dto.ErrorInfo]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -4159,6 +4220,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+																UnderlyingTypeString: "struct{Key K; Value V}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserProduct",
@@ -4187,6 +4249,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Pair[dto.User, dto.Product]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+															UnderlyingTypeString: "struct{Key K; Value V}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "UserProduct",
@@ -4271,6 +4334,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Title",
@@ -4300,6 +4364,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_79_multiple_type_parameters/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Title",

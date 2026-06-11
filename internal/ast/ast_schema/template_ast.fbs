@@ -119,7 +119,16 @@ table ExpressionNodeFB {
 
 table JSAnnotationFB { javascript_type:string; is_client_safe:bool; }
 table RuntimeAnnotationFB { needs_csrf:bool; }
-table ResolvedTypeInfoFB { type_expr_string:string; package_alias:string; canonical_package_path:string; initial_package_path:string; initial_file_path:string; is_synthetic:bool = false; is_exported_package_symbol:bool = false; }
+table ResolvedTypeInfoFB {
+  type_expr_string:string;
+  underlying_type_string:string;
+  package_alias:string;
+  canonical_package_path:string;
+  initial_package_path:string;
+  initial_file_path:string;
+  is_synthetic:bool = false;
+  is_exported_package_symbol:bool = false;
+}
 table ResolvedSymbolFB { name:string; reference_location:LocationFB; declaration_location:LocationFB; }
 table PropDataSourceFB { resolved_type:ResolvedTypeInfoFB; symbol:ResolvedSymbolFB; base_code_gen_var_name:string; }
 table PropValueFB { expression:ExpressionNodeFB; invoker_annotation:GoGeneratorAnnotationFB; location:LocationFB; name_location:LocationFB; go_field_name:string; is_loop_dependent:bool; }

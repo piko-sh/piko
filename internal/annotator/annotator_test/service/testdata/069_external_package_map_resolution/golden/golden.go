@@ -281,6 +281,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Parish string; Index int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -544,6 +545,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Parish string; Index int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -1454,6 +1456,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Config"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Timeout time.Duration; Enabled bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DefaultConfig",
@@ -1480,6 +1483,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Config"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; Timeout time.Duration; Enabled bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DefaultConfig",
@@ -1685,6 +1689,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Config"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Timeout time.Duration; Enabled bool}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DefaultConfig",
@@ -1711,6 +1716,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Config"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; Timeout time.Duration; Enabled bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DefaultConfig",
@@ -1916,6 +1922,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Result[string]"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Value T; Error error}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "StringResult",
@@ -1942,6 +1949,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Result[string]"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Value T; Error error}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StringResult",
@@ -2506,6 +2514,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "DeepConfig",
@@ -2532,6 +2541,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "DeepConfig",
@@ -2558,6 +2568,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("domain.Address"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Primary",
@@ -2586,6 +2597,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Address"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Primary",
@@ -2614,6 +2626,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Country"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Country",
@@ -2642,6 +2655,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Country"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Country",
@@ -2854,6 +2868,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																				PackageAlias:         "domain",
 																				CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																				UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "DeepConfig",
@@ -2880,6 +2895,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																			PackageAlias:         "domain",
 																			CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																			UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "DeepConfig",
@@ -2906,6 +2922,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("domain.Address"),
 																			PackageAlias:         "domain",
 																			CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																			UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Primary",
@@ -2934,6 +2951,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.Address"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																		UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Primary",
@@ -2962,6 +2980,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.Country"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																		UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Country",
@@ -2990,6 +3009,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.Country"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Country",
@@ -3018,6 +3038,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]domain.Region"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Regions",
@@ -3046,6 +3067,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]domain.Region"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Regions",
@@ -3089,6 +3111,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Region"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 														},
 														BaseCodeGenVarName: new("domain"),
 													},
@@ -3104,6 +3127,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.City"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; PostCode string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Capital",
@@ -3132,6 +3156,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.City"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; PostCode string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Capital",
@@ -3344,6 +3369,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																				PackageAlias:         "domain",
 																				CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																				UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "DeepConfig",
@@ -3370,6 +3396,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																			PackageAlias:         "domain",
 																			CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																			UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "DeepConfig",
@@ -3396,6 +3423,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("domain.Address"),
 																			PackageAlias:         "domain",
 																			CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																			UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Primary",
@@ -3424,6 +3452,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.Address"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																		UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Primary",
@@ -3452,6 +3481,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.Country"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																		UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Country",
@@ -3480,6 +3510,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.Country"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Country",
@@ -3508,6 +3539,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]domain.Region"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Regions",
@@ -3536,6 +3568,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]domain.Region"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Regions",
@@ -3579,6 +3612,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Region"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 														},
 														BaseCodeGenVarName: new("domain"),
 													},
@@ -3594,6 +3628,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.City"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; PostCode string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Capital",
@@ -3622,6 +3657,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.City"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; PostCode string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Capital",
@@ -3829,6 +3865,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*domain.User"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{ID string; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DefaultUser",
@@ -3855,6 +3892,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*domain.User"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{ID string; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DefaultUser",
@@ -4060,6 +4098,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Article"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{domain.BaseEntity; Title string; Content string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DefaultArticle",
@@ -4086,6 +4125,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Article"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{domain.BaseEntity; Title string; Content string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DefaultArticle",
@@ -4291,6 +4331,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Article"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{domain.BaseEntity; Title string; Content string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DefaultArticle",
@@ -4317,6 +4358,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Article"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{domain.BaseEntity; Title string; Content string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DefaultArticle",
@@ -4693,6 +4735,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.UserID"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "OwnerID",
@@ -4720,6 +4763,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("domain.UserID"),
 													PackageAlias:         "domain",
 													CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "OwnerID",
@@ -4741,6 +4785,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("domain.UserID"),
 												PackageAlias:         "domain",
 												CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+												UnderlyingTypeString: "string",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "OwnerID",
@@ -4869,6 +4914,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																		UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "DeepConfig",
@@ -4895,6 +4941,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "DeepConfig",
@@ -4992,6 +5039,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Address"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 														},
 														BaseCodeGenVarName: new("domain"),
 													},
@@ -5007,6 +5055,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Country"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Country",
@@ -5035,6 +5084,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Country"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Country",
@@ -5247,6 +5297,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																				PackageAlias:         "domain",
 																				CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																				UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "DeepConfig",
@@ -5273,6 +5324,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																			PackageAlias:         "domain",
 																			CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																			UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "DeepConfig",
@@ -5370,6 +5422,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.Address"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 																},
 																BaseCodeGenVarName: new("domain"),
 															},
@@ -5385,6 +5438,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.Country"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Country",
@@ -5413,6 +5467,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("domain.Country"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Country",
@@ -5441,6 +5496,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]domain.Region"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Regions",
@@ -5469,6 +5525,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]domain.Region"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Regions",
@@ -5512,6 +5569,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.Region"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 													},
 													BaseCodeGenVarName: new("domain"),
 												},
@@ -5712,6 +5770,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																					PackageAlias:         "domain",
 																					CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																					UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "DeepConfig",
@@ -5738,6 +5797,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("domain.DeepConfigType"),
 																				PackageAlias:         "domain",
 																				CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																				UnderlyingTypeString: "struct{Primary domain.Address; Secondary domain.Address; Lookup map[string]domain.Address}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "DeepConfig",
@@ -5835,6 +5895,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.Address"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																		UnderlyingTypeString: "struct{Street string; City string; Country domain.Country}",
 																	},
 																	BaseCodeGenVarName: new("domain"),
 																},
@@ -5850,6 +5911,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("domain.Country"),
 																		PackageAlias:         "domain",
 																		CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																		UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Country",
@@ -5878,6 +5940,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("domain.Country"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Name string; Code string; Regions []domain.Region}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Country",
@@ -5906,6 +5969,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]domain.Region"),
 																	PackageAlias:         "domain",
 																	CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																	UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Regions",
@@ -5934,6 +5998,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]domain.Region"),
 																PackageAlias:         "domain",
 																CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+																UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Regions",
@@ -5977,6 +6042,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.Region"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; Population int; Capital domain.City}",
 														},
 														BaseCodeGenVarName: new("domain"),
 													},
@@ -5992,6 +6058,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("domain.City"),
 															PackageAlias:         "domain",
 															CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+															UnderlyingTypeString: "struct{Name string; PostCode string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Capital",
@@ -6020,6 +6087,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("domain.City"),
 														PackageAlias:         "domain",
 														CanonicalPackagePath: "testcase_69_external_package_map_resolution/domain",
+														UnderlyingTypeString: "struct{Name string; PostCode string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Capital",

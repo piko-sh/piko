@@ -143,6 +143,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Header *pages_main_594861c5.HeaderData}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -170,6 +171,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.HeaderData"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Icon string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Header",
@@ -198,6 +200,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.HeaderData"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Icon string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Header",
@@ -388,6 +391,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Header *pages_main_594861c5.HeaderData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -415,6 +419,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.HeaderData"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Icon string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Header",
@@ -443,6 +448,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*pages_main_594861c5.HeaderData"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Icon string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Header",
@@ -547,6 +553,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Header *pages_main_594861c5.HeaderData}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -574,6 +581,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.HeaderData"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Icon string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Header",
@@ -602,6 +610,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.HeaderData"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Icon string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Header",
@@ -744,6 +753,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_appheader_4fd14528.Props"),
 													PackageAlias:         "partials_appheader_4fd14528",
 													CanonicalPackagePath: "testcase_144_partial_in_p_if/dist/partials/partials_appheader_4fd14528",
+													UnderlyingTypeString: "struct{Icon string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

@@ -271,6 +271,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -785,6 +786,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1161,6 +1163,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1737,6 +1740,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2251,6 +2255,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2889,6 +2894,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3527,6 +3533,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3965,6 +3972,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -4483,6 +4491,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "category",
@@ -4511,6 +4520,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -4538,6 +4548,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Items []string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Categories",
@@ -4566,6 +4577,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Categories",
@@ -4592,6 +4604,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Items []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Categories",
@@ -4613,6 +4626,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Items []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Categories",
@@ -4635,6 +4649,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string; Items []string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Categories",
@@ -4697,6 +4712,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Items []string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "category",
@@ -4764,6 +4780,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Name string; Items []string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "category",
@@ -4906,6 +4923,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Name string; Items []string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "category",
@@ -5012,6 +5030,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Name string; Items []string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "category",
@@ -5152,6 +5171,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Name string; Items []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "category",
@@ -5404,6 +5424,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Name string; Items []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "category",
@@ -5728,6 +5749,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -6519,6 +6541,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -7069,6 +7092,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -7819,6 +7843,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -8257,6 +8282,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -9333,6 +9359,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -9709,6 +9736,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -10085,6 +10113,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_068_for_loop_capacity_calculation/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Fruits []string; Vegetables []string; Categories []pages_main_594861c5.Category; Prices map[string]float64; Stock map[string]int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",

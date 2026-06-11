@@ -289,6 +289,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -510,6 +511,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -731,6 +733,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -952,6 +955,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -979,6 +983,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("maths.Decimal"),
 																PackageAlias:         "maths",
 																CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+																UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "DecimalVal",
@@ -1008,6 +1013,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DecimalVal",
@@ -1235,6 +1241,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1456,6 +1463,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1739,6 +1747,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1960,6 +1969,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2243,6 +2253,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2464,6 +2475,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2685,6 +2697,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2968,6 +2981,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3189,6 +3203,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3472,6 +3487,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3693,6 +3709,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3976,6 +3993,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -4195,6 +4213,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -4448,6 +4467,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -4563,6 +4583,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -4664,6 +4685,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_70_coercion_built_in_functions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{IntVal int; FloatVal float64; BoolVal bool; StringVal string; DecimalVal maths.Decimal; BigIntVal maths.BigInt}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",

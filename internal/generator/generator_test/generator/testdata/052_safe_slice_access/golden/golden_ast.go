@@ -199,6 +199,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.Address"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "address",
@@ -228,6 +229,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_052_safe_slice_access/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{User models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -255,6 +257,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.User"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/models",
+															UnderlyingTypeString: "struct{Addresses []dto.Address}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -283,6 +286,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/models",
+														UnderlyingTypeString: "struct{Addresses []dto.Address}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "User",
@@ -311,6 +315,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Addresses",
@@ -339,6 +344,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]dto.Address"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Addresses",
@@ -365,6 +371,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.Address"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Addresses",
@@ -386,6 +393,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]dto.Address"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Addresses",
@@ -408,6 +416,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]dto.Address"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+											UnderlyingTypeString: "struct{Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Addresses",
@@ -470,6 +479,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "address",
@@ -558,6 +568,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "address",
@@ -627,6 +638,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "address",
@@ -895,6 +907,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_052_safe_slice_access/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -922,6 +935,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses []dto.Address}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -950,6 +964,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/models",
+																UnderlyingTypeString: "struct{Addresses []dto.Address}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -978,6 +993,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Addresses",
@@ -1006,6 +1022,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.Address"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Addresses",
@@ -1049,6 +1066,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},
@@ -1241,6 +1259,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_052_safe_slice_access/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User models.User}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -1268,6 +1287,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/models",
+																	UnderlyingTypeString: "struct{Addresses []dto.Address}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -1296,6 +1316,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/models",
+																UnderlyingTypeString: "struct{Addresses []dto.Address}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -1324,6 +1345,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]dto.Address"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Addresses",
@@ -1352,6 +1374,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]dto.Address"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Addresses",
@@ -1395,6 +1418,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.Address"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_052_safe_slice_access/pkg/dto",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													BaseCodeGenVarName: new("pageData"),
 												},

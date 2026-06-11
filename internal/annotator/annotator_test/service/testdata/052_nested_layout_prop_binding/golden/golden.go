@@ -379,6 +379,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_52_nested_layout_prop_binding/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Theme string; UserID string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",
@@ -551,6 +552,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_52_nested_layout_prop_binding/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Theme string; UserID string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",
@@ -775,6 +777,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_52_nested_layout_prop_binding/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Theme string; UserID string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -895,6 +898,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_52_nested_layout_prop_binding/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Theme string; UserID string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -1077,6 +1081,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 																						PackageAlias:         "partials_child_d247007e",
 																						CanonicalPackagePath: "testcase_52_nested_layout_prop_binding/dist/partials/partials_child_d247007e",
+																						UnderlyingTypeString: "struct{DisplayText string}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "state",

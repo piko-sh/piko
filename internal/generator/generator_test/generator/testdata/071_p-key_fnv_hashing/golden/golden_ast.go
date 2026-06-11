@@ -228,6 +228,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID int; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -256,6 +257,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -283,6 +285,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{ID int; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "IntItems",
@@ -311,6 +314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID int; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "IntItems",
@@ -337,6 +341,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "IntItems",
@@ -358,6 +363,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "IntItems",
@@ -380,6 +386,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{ID int; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "IntItems",
@@ -420,6 +427,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID int; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -540,6 +548,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID int; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -683,6 +692,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{ID int; Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -840,6 +850,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StringItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Key string; Value string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -868,6 +879,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -895,6 +907,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.StringItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Key string; Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "StringItems",
@@ -923,6 +936,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.StringItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Key string; Value string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "StringItems",
@@ -949,6 +963,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StringItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Key string; Value string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StringItems",
@@ -970,6 +985,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StringItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Key string; Value string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StringItems",
@@ -992,6 +1008,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.StringItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Key string; Value string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "StringItems",
@@ -1032,6 +1049,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StringItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Key string; Value string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1152,6 +1170,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StringItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Key string; Value string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1295,6 +1314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.StringItem"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Key string; Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -1452,6 +1472,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.FloatItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Score float64; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1480,6 +1501,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1507,6 +1529,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.FloatItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Score float64; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "FloatItems",
@@ -1535,6 +1558,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.FloatItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Score float64; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "FloatItems",
@@ -1561,6 +1585,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.FloatItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Score float64; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FloatItems",
@@ -1582,6 +1607,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.FloatItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Score float64; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FloatItems",
@@ -1604,6 +1630,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.FloatItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Score float64; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "FloatItems",
@@ -1644,6 +1671,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.FloatItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Score float64; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1764,6 +1792,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.FloatItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Score float64; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1907,6 +1936,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.FloatItem"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Score float64; Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -2064,6 +2094,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.BoolItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Active bool; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -2092,6 +2123,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2119,6 +2151,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.BoolItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Active bool; Label string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "BoolItems",
@@ -2147,6 +2180,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.BoolItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Active bool; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "BoolItems",
@@ -2173,6 +2207,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.BoolItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Active bool; Label string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "BoolItems",
@@ -2194,6 +2229,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.BoolItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Active bool; Label string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "BoolItems",
@@ -2216,6 +2252,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.BoolItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Active bool; Label string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "BoolItems",
@@ -2256,6 +2293,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.BoolItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Active bool; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -2376,6 +2414,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.BoolItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Active bool; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -2519,6 +2558,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.BoolItem"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Active bool; Label string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -2676,6 +2716,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -2704,6 +2745,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -2731,6 +2773,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Title string; Desc string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "StructItems",
@@ -2759,6 +2802,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "StructItems",
@@ -2785,6 +2829,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Title string; Desc string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StructItems",
@@ -2806,6 +2851,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Title string; Desc string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StructItems",
@@ -2828,6 +2874,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Title string; Desc string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "StructItems",
@@ -2868,6 +2915,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -2987,6 +3035,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Title string; Desc string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",
@@ -3008,6 +3057,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Title string; Desc string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "item",
@@ -3069,6 +3119,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Title string; Desc string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "item",
@@ -3316,6 +3367,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3723,6 +3775,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -4101,6 +4154,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -4129,6 +4183,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -4156,6 +4211,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Title string; Desc string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "StructItems",
@@ -4184,6 +4240,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "StructItems",
@@ -4210,6 +4267,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Title string; Desc string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StructItems",
@@ -4231,6 +4289,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Title string; Desc string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StructItems",
@@ -4253,6 +4312,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Title string; Desc string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "StructItems",
@@ -4293,6 +4353,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -4435,6 +4496,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Title string; Desc string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "item",
@@ -4625,6 +4687,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Section"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "section",
@@ -4653,6 +4716,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -4680,6 +4744,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.Section"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Items []string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Sections",
@@ -4708,6 +4773,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.Section"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Sections",
@@ -4734,6 +4800,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Section"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Items []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Sections",
@@ -4755,6 +4822,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Section"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Items []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Sections",
@@ -4777,6 +4845,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]pages_main_594861c5.Section"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string; Items []string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Sections",
@@ -4907,6 +4976,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Section"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Name string; Items []string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "section",
@@ -5270,6 +5340,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.Section"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Name string; Items []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "section",
@@ -6157,6 +6228,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID int; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -6185,6 +6257,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -6212,6 +6285,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{ID int; Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "IntItems",
@@ -6240,6 +6314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID int; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "IntItems",
@@ -6266,6 +6341,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "IntItems",
@@ -6287,6 +6363,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ID int; Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "IntItems",
@@ -6309,6 +6386,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.IntItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{ID int; Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "IntItems",
@@ -6349,6 +6427,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{ID int; Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -6557,6 +6636,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{ID int; Name string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "item",
@@ -6804,6 +6884,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("pages_main_594861c5.IntItem"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{ID int; Name string}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "item",
@@ -6990,6 +7071,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -7018,6 +7100,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -7045,6 +7128,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Title string; Desc string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "StructItems",
@@ -7073,6 +7157,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "StructItems",
@@ -7099,6 +7184,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Title string; Desc string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StructItems",
@@ -7120,6 +7206,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Title string; Desc string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "StructItems",
@@ -7142,6 +7229,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.StructItem"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Title string; Desc string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "StructItems",
@@ -7182,6 +7270,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Title string; Desc string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -7303,6 +7392,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Title string; Desc string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "item",
@@ -7447,6 +7537,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.StructItem"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Title string; Desc string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "item",
@@ -7764,6 +7855,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -8615,6 +8707,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_071_p_key_fnv_hashing/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{IntItems []pages_main_594861c5.IntItem; StringItems []pages_main_594861c5.StringItem; FloatItems []pages_main_594861c5.FloatItem; BoolItems []pages_main_594861c5.BoolItem; StructItems []pages_main_594861c5.StructItem; SimpleStrings []string; Sections []pages_main_594861c5.Section; StringMap map[string]string; IntMap map[int]string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",

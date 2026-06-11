@@ -528,6 +528,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("testdata_modules_ui_components_components_buttonwithutils_9d255c0c.Response"),
 															PackageAlias:         "testdata_modules_ui_components_components_buttonwithutils_9d255c0c",
 															CanonicalPackagePath: "testcase_063_external_module_with_pkg_code/dist/partials/testdata_modules_ui_components_components_buttonwithutils_9d255c0c",
+															UnderlyingTypeString: "struct{FormattedLabel string; CssClass string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -804,6 +805,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("testdata_modules_ui_components_components_buttonwithutils_9d255c0c.Response"),
 															PackageAlias:         "testdata_modules_ui_components_components_buttonwithutils_9d255c0c",
 															CanonicalPackagePath: "testcase_063_external_module_with_pkg_code/dist/partials/testdata_modules_ui_components_components_buttonwithutils_9d255c0c",
+															UnderlyingTypeString: "struct{FormattedLabel string; CssClass string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1080,6 +1082,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("testdata_modules_ui_components_components_buttonwithutils_9d255c0c.Response"),
 															PackageAlias:         "testdata_modules_ui_components_components_buttonwithutils_9d255c0c",
 															CanonicalPackagePath: "testcase_063_external_module_with_pkg_code/dist/partials/testdata_modules_ui_components_components_buttonwithutils_9d255c0c",
+															UnderlyingTypeString: "struct{FormattedLabel string; CssClass string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",

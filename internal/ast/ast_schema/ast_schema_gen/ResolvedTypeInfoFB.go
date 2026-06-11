@@ -49,7 +49,7 @@ func (rcv *ResolvedTypeInfoFB) TypeExprString() []byte {
 	return nil
 }
 
-func (rcv *ResolvedTypeInfoFB) PackageAlias() []byte {
+func (rcv *ResolvedTypeInfoFB) UnderlyingTypeString() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -57,7 +57,7 @@ func (rcv *ResolvedTypeInfoFB) PackageAlias() []byte {
 	return nil
 }
 
-func (rcv *ResolvedTypeInfoFB) CanonicalPackagePath() []byte {
+func (rcv *ResolvedTypeInfoFB) PackageAlias() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -65,7 +65,7 @@ func (rcv *ResolvedTypeInfoFB) CanonicalPackagePath() []byte {
 	return nil
 }
 
-func (rcv *ResolvedTypeInfoFB) InitialPackagePath() []byte {
+func (rcv *ResolvedTypeInfoFB) CanonicalPackagePath() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -73,7 +73,7 @@ func (rcv *ResolvedTypeInfoFB) InitialPackagePath() []byte {
 	return nil
 }
 
-func (rcv *ResolvedTypeInfoFB) InitialFilePath() []byte {
+func (rcv *ResolvedTypeInfoFB) InitialPackagePath() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -81,19 +81,15 @@ func (rcv *ResolvedTypeInfoFB) InitialFilePath() []byte {
 	return nil
 }
 
-func (rcv *ResolvedTypeInfoFB) IsSynthetic() bool {
+func (rcv *ResolvedTypeInfoFB) InitialFilePath() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
-		return rcv._tab.GetBool(o + rcv._tab.Pos)
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
-	return false
+	return nil
 }
 
-func (rcv *ResolvedTypeInfoFB) MutateIsSynthetic(n bool) bool {
-	return rcv._tab.MutateBoolSlot(14, n)
-}
-
-func (rcv *ResolvedTypeInfoFB) IsExportedPackageSymbol() bool {
+func (rcv *ResolvedTypeInfoFB) IsSynthetic() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -101,33 +97,48 @@ func (rcv *ResolvedTypeInfoFB) IsExportedPackageSymbol() bool {
 	return false
 }
 
-func (rcv *ResolvedTypeInfoFB) MutateIsExportedPackageSymbol(n bool) bool {
+func (rcv *ResolvedTypeInfoFB) MutateIsSynthetic(n bool) bool {
 	return rcv._tab.MutateBoolSlot(16, n)
 }
 
+func (rcv *ResolvedTypeInfoFB) IsExportedPackageSymbol() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *ResolvedTypeInfoFB) MutateIsExportedPackageSymbol(n bool) bool {
+	return rcv._tab.MutateBoolSlot(18, n)
+}
+
 func ResolvedTypeInfoFBStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(8)
 }
 func ResolvedTypeInfoFBAddTypeExprString(builder *flatbuffers.Builder, typeExprString flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(typeExprString), 0)
 }
+func ResolvedTypeInfoFBAddUnderlyingTypeString(builder *flatbuffers.Builder, underlyingTypeString flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(underlyingTypeString), 0)
+}
 func ResolvedTypeInfoFBAddPackageAlias(builder *flatbuffers.Builder, packageAlias flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(packageAlias), 0)
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(packageAlias), 0)
 }
 func ResolvedTypeInfoFBAddCanonicalPackagePath(builder *flatbuffers.Builder, canonicalPackagePath flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(canonicalPackagePath), 0)
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(canonicalPackagePath), 0)
 }
 func ResolvedTypeInfoFBAddInitialPackagePath(builder *flatbuffers.Builder, initialPackagePath flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(initialPackagePath), 0)
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(initialPackagePath), 0)
 }
 func ResolvedTypeInfoFBAddInitialFilePath(builder *flatbuffers.Builder, initialFilePath flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(initialFilePath), 0)
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(initialFilePath), 0)
 }
 func ResolvedTypeInfoFBAddIsSynthetic(builder *flatbuffers.Builder, isSynthetic bool) {
-	builder.PrependBoolSlot(5, isSynthetic, false)
+	builder.PrependBoolSlot(6, isSynthetic, false)
 }
 func ResolvedTypeInfoFBAddIsExportedPackageSymbol(builder *flatbuffers.Builder, isExportedPackageSymbol bool) {
-	builder.PrependBoolSlot(6, isExportedPackageSymbol, false)
+	builder.PrependBoolSlot(7, isExportedPackageSymbol, false)
 }
 func ResolvedTypeInfoFBEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

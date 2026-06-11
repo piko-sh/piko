@@ -134,6 +134,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Users models.PagedResult[models.User]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -161,6 +162,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.PagedResult[models.User]"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+															UnderlyingTypeString: "struct{Items []T; TotalCount int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Users",
@@ -189,6 +191,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.PagedResult[models.User]"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+														UnderlyingTypeString: "struct{Items []T; TotalCount int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Users",
@@ -355,6 +358,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.User"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "user",
@@ -384,6 +388,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Users models.PagedResult[models.User]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -411,6 +416,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.PagedResult[models.User]"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+															UnderlyingTypeString: "struct{Items []T; TotalCount int}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Users",
@@ -439,6 +445,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.PagedResult[models.User]"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+														UnderlyingTypeString: "struct{Items []T; TotalCount int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Users",
@@ -467,6 +474,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Items",
@@ -495,6 +503,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]models.User"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Items",
@@ -521,6 +530,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]models.User"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -542,6 +552,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]models.User"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -564,6 +575,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]models.User"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+											UnderlyingTypeString: "struct{Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Items",
@@ -604,6 +616,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.User"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "user",
@@ -747,6 +760,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.User"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "user",
@@ -894,6 +908,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.User"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+																	UnderlyingTypeString: "struct{Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "user",
@@ -1032,6 +1047,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_21_type_alias_and_generics_resolution/models",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "user",

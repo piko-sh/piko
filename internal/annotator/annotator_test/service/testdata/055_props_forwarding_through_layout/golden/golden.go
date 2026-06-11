@@ -103,6 +103,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_55_props_forwarding_through_layout/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{InheritedID string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -275,6 +276,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_55_props_forwarding_through_layout/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{PageData string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -499,6 +501,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_55_props_forwarding_through_layout/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{InheritedID string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -676,6 +679,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_55_props_forwarding_through_layout/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{PageData string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -858,6 +862,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 																PackageAlias:         "partials_child_d247007e",
 																CanonicalPackagePath: "testcase_55_props_forwarding_through_layout/dist/partials/partials_child_d247007e",
+																UnderlyingTypeString: "struct{Display string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",

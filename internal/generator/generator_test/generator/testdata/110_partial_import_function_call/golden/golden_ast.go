@@ -195,6 +195,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 														PackageAlias:         "partials_card_bfc4a3cf",
 														CanonicalPackagePath: "testcase_110_partial_import_function_call/dist/partials/partials_card_bfc4a3cf",
+														UnderlyingTypeString: "struct{Price int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -400,6 +401,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_110_partial_import_function_call/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{FormattedPrice string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

@@ -303,6 +303,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ThumbnailImages []string; Counter int; Categories []pages_main_594861c5.Category; SelectedID int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1073,6 +1074,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{ThumbnailImages []string; Counter int; Categories []pages_main_594861c5.Category; SelectedID int}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -1221,6 +1223,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{ThumbnailImages []string; Counter int; Categories []pages_main_594861c5.Category; SelectedID int}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1456,6 +1459,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{ThumbnailImages []string; Counter int; Categories []pages_main_594861c5.Category; SelectedID int}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -1543,6 +1547,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{ThumbnailImages []string; Counter int; Categories []pages_main_594861c5.Category; SelectedID int}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -1803,6 +1808,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "category",
@@ -1831,6 +1837,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ThumbnailImages []string; Counter int; Categories []pages_main_594861c5.Category; SelectedID int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1858,6 +1865,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Items []string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Categories",
@@ -1886,6 +1894,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Categories",
@@ -1912,6 +1921,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Items []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Categories",
@@ -1933,6 +1943,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Items []string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Categories",
@@ -1955,6 +1966,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string; Items []string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Categories",
@@ -1995,6 +2007,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Items []string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "category",
@@ -2138,6 +2151,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Name string; Items []string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "category",
@@ -2286,6 +2300,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Name string; Items []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "category",
@@ -2450,6 +2465,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Name string; Items []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "category",
@@ -2577,6 +2593,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Name string; Items []string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "category",
@@ -2767,6 +2784,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Name string; Items []string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "category",
@@ -3020,6 +3038,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Name string; Items []string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "category",
@@ -3351,6 +3370,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Name string; Items []string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "category",
@@ -3713,6 +3733,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_097_event_handler_binary_expr_loop_var/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{ThumbnailImages []string; Counter int; Categories []pages_main_594861c5.Category; SelectedID int}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",

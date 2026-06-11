@@ -151,6 +151,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Property dto.PropertyData}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -178,6 +179,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.PropertyData"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+															UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Property",
@@ -206,6 +208,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.PropertyData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+														UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Property",
@@ -455,6 +458,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -482,6 +486,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PropertyData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																				UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Property",
@@ -510,6 +515,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PropertyData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																			UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Property",
@@ -538,6 +544,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.Embedded[dto.RoomSetup]"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																			UnderlyingTypeString: "struct{Data T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "RoomSetup",
@@ -566,6 +573,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.Embedded[dto.RoomSetup]"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																		UnderlyingTypeString: "struct{Data T}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "RoomSetup",
@@ -594,6 +602,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																		UnderlyingTypeString: "struct{Bedrooms fields.Number; Bathrooms fields.Number; Parking fields.Number; Receptions fields.Number}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -622,6 +631,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																	UnderlyingTypeString: "struct{Bedrooms fields.Number; Bathrooms fields.Number; Parking fields.Number; Receptions fields.Number}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -830,6 +840,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -857,6 +868,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PropertyData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																				UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Property",
@@ -885,6 +897,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PropertyData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																			UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Property",
@@ -913,6 +926,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.Embedded[dto.RoomSetup]"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																			UnderlyingTypeString: "struct{Data T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "RoomSetup",
@@ -941,6 +955,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.Embedded[dto.RoomSetup]"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																		UnderlyingTypeString: "struct{Data T}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "RoomSetup",
@@ -969,6 +984,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																		UnderlyingTypeString: "struct{Bedrooms fields.Number; Bathrooms fields.Number; Parking fields.Number; Receptions fields.Number}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -997,6 +1013,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																	UnderlyingTypeString: "struct{Bedrooms fields.Number; Bathrooms fields.Number; Parking fields.Number; Receptions fields.Number}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -1206,6 +1223,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -1233,6 +1251,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PropertyData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																					UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Property",
@@ -1261,6 +1280,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PropertyData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																				UnderlyingTypeString: "struct{Title string; RoomSetup dto.Embedded[dto.RoomSetup]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Property",
@@ -1289,6 +1309,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.Embedded[dto.RoomSetup]"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																				UnderlyingTypeString: "struct{Data T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "RoomSetup",
@@ -1317,6 +1338,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.Embedded[dto.RoomSetup]"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																			UnderlyingTypeString: "struct{Data T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "RoomSetup",
@@ -1345,6 +1367,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																			UnderlyingTypeString: "struct{Bedrooms fields.Number; Bathrooms fields.Number; Parking fields.Number; Receptions fields.Number}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -1373,6 +1396,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.RoomSetup"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_72_generic_embedded_named_field/dto",
+																		UnderlyingTypeString: "struct{Bedrooms fields.Number; Bathrooms fields.Number; Parking fields.Number; Receptions fields.Number}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -1401,6 +1425,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Number"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_72_generic_embedded_named_field/fields",
+																		UnderlyingTypeString: "struct{Value int}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Receptions",
@@ -1429,6 +1454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Number"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_72_generic_embedded_named_field/fields",
+																	UnderlyingTypeString: "struct{Value int}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Receptions",

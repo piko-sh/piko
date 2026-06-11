@@ -202,6 +202,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_069_server_prefixed_attribute_filtering/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{User string; DynamicValue string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -322,6 +323,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_069_server_prefixed_attribute_filtering/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{User string; DynamicValue string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

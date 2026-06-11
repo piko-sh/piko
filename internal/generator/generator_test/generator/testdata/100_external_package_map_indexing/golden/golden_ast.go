@@ -212,6 +212,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Props"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_100_external_package_map_indexing/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Parish string; Index int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -445,6 +446,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Props"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_100_external_package_map_indexing/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Parish string; Index int}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",

@@ -178,6 +178,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_029_dynamic_attribute_falsy/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsDisabled bool; IsEnabled bool; NilString *string; EmptyStringPtr *string; ValidStringPtr *string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -356,6 +357,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_029_dynamic_attribute_falsy/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsDisabled bool; IsEnabled bool; NilString *string; EmptyStringPtr *string; ValidStringPtr *string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -542,6 +544,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_029_dynamic_attribute_falsy/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsDisabled bool; IsEnabled bool; NilString *string; EmptyStringPtr *string; ValidStringPtr *string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -720,6 +723,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_029_dynamic_attribute_falsy/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{IsDisabled bool; IsEnabled bool; NilString *string; EmptyStringPtr *string; ValidStringPtr *string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -880,6 +884,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_029_dynamic_attribute_falsy/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsDisabled bool; IsEnabled bool; NilString *string; EmptyStringPtr *string; ValidStringPtr *string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1065,6 +1070,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_029_dynamic_attribute_falsy/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsDisabled bool; IsEnabled bool; NilString *string; EmptyStringPtr *string; ValidStringPtr *string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1250,6 +1256,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_029_dynamic_attribute_falsy/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{IsDisabled bool; IsEnabled bool; NilString *string; EmptyStringPtr *string; ValidStringPtr *string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

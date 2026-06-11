@@ -120,6 +120,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_07_advanced_expressions/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Score int; IsAdmin bool; CurrentUser *models.User}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -239,6 +240,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_07_advanced_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Score int; IsAdmin bool; CurrentUser *models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -481,6 +483,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 										PackageAlias:         "main_aaf9a2e0",
 										CanonicalPackagePath: "testcase_07_advanced_expressions/dist/pages/main_aaf9a2e0",
+										UnderlyingTypeString: "struct{Score int; IsAdmin bool; CurrentUser *models.User}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -599,6 +602,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_07_advanced_expressions/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Score int; IsAdmin bool; CurrentUser *models.User}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -626,6 +630,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*models.User"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_07_advanced_expressions/models",
+												UnderlyingTypeString: "struct{Name string; IsAdmin bool; Address *models.Address}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "CurrentUser",
@@ -654,6 +659,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*models.User"),
 											PackageAlias:         "models",
 											CanonicalPackagePath: "testcase_07_advanced_expressions/models",
+											UnderlyingTypeString: "struct{Name string; IsAdmin bool; Address *models.Address}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "CurrentUser",
@@ -875,6 +881,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_07_advanced_expressions/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Score int; IsAdmin bool; CurrentUser *models.User}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -902,6 +909,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*models.User"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_07_advanced_expressions/models",
+														UnderlyingTypeString: "struct{Name string; IsAdmin bool; Address *models.Address}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "CurrentUser",
@@ -930,6 +938,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*models.User"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_07_advanced_expressions/models",
+													UnderlyingTypeString: "struct{Name string; IsAdmin bool; Address *models.Address}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "CurrentUser",
@@ -958,6 +967,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*models.Address"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_07_advanced_expressions/models",
+													UnderlyingTypeString: "struct{Street string; City string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Address",
@@ -986,6 +996,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*models.Address"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_07_advanced_expressions/models",
+												UnderlyingTypeString: "struct{Street string; City string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Address",

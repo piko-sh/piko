@@ -104,6 +104,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -224,6 +225,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -251,6 +253,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("maths.Money"),
 												PackageAlias:         "maths",
 												CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+												UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "MoneyField",
@@ -280,6 +283,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("maths.Money"),
 											PackageAlias:         "maths",
 											CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+											UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "MoneyField",
@@ -311,6 +315,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("maths.Money"),
 										PackageAlias:         "maths",
 										CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+										UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "MoneyField",
@@ -344,6 +349,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -488,6 +494,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -607,6 +614,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -872,6 +880,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -959,6 +968,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1148,6 +1158,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1354,6 +1365,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1381,6 +1393,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Money"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "MoneyField",
@@ -1410,6 +1423,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Money"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "MoneyField",
@@ -1441,6 +1455,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1468,6 +1483,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DecimalField",
@@ -1497,6 +1513,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DecimalField",
@@ -1570,6 +1587,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1597,6 +1615,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Money"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "MoneyField",
@@ -1626,6 +1645,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Money"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; amount currency.Amount}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "MoneyField",
@@ -1776,6 +1796,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1803,6 +1824,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DecimalField",
@@ -1832,6 +1854,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DecimalField",
@@ -1863,6 +1886,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1890,6 +1914,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DecimalField",
@@ -1919,6 +1944,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DecimalField",
@@ -1992,6 +2018,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2019,6 +2046,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("maths.Decimal"),
 															PackageAlias:         "maths",
 															CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+															UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DecimalField",
@@ -2048,6 +2076,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("maths.Decimal"),
 														PackageAlias:         "maths",
 														CanonicalPackagePath: "piko.sh/piko/wdk/maths",
+														UnderlyingTypeString: "struct{err error; value apd.Decimal}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "DecimalField",
@@ -2458,6 +2487,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2656,6 +2686,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2864,6 +2895,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -3241,6 +3273,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 																PackageAlias:         "main_aaf9a2e0",
 																CanonicalPackagePath: "testcase_31_valid_expressions/dist/pages/main_aaf9a2e0",
+																UnderlyingTypeString: "struct{StringField string; IntField int; FloatField float64; BoolField bool; DecimalField maths.Decimal; MoneyField maths.Money; StringSlice []string; StringMap map[string]string; CurrentUser models.User}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3268,6 +3301,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.User"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_31_valid_expressions/models",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "CurrentUser",
@@ -3296,6 +3330,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.User"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_31_valid_expressions/models",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "CurrentUser",

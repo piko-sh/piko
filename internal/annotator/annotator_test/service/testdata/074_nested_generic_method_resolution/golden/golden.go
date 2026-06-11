@@ -153,6 +153,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -180,6 +181,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PropertyData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																	UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Property",
@@ -208,6 +210,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PropertyData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Property",
@@ -236,6 +239,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Text"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																UnderlyingTypeString: "struct{Value string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Title",
@@ -265,6 +269,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Text"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+															UnderlyingTypeString: "struct{Value string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Title",
@@ -507,6 +512,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -534,6 +540,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PropertyData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																					UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Property",
@@ -562,6 +569,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PropertyData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																				UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Property",
@@ -590,6 +598,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																				UnderlyingTypeString: "struct{Data T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "OpenViewing",
@@ -618,6 +627,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																			UnderlyingTypeString: "struct{Data T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "OpenViewing",
@@ -702,6 +712,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Text"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																		UnderlyingTypeString: "struct{Value string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Date",
@@ -731,6 +742,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Text"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Date",
@@ -876,6 +888,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -903,6 +916,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PropertyData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																		UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Property",
@@ -931,6 +945,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PropertyData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																	UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Property",
@@ -959,6 +974,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																	UnderlyingTypeString: "struct{Data T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "OpenViewing",
@@ -987,6 +1003,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																UnderlyingTypeString: "struct{Data T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "OpenViewing",
@@ -1071,6 +1088,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "ViewingAgent",
@@ -1099,6 +1117,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+														UnderlyingTypeString: "struct{ID string; Item *T}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "ViewingAgent",
@@ -1356,6 +1375,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																							PackageAlias:         "main_aaf9a2e0",
 																							CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dist/pages/main_aaf9a2e0",
+																							UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "props",
@@ -1383,6 +1403,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("dto.PropertyData"),
 																							PackageAlias:         "dto",
 																							CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																							UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "Property",
@@ -1411,6 +1432,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.PropertyData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																						UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Property",
@@ -1439,6 +1461,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																						PackageAlias:         "fields",
 																						CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																						UnderlyingTypeString: "struct{Data T}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "OpenViewing",
@@ -1467,6 +1490,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																					PackageAlias:         "fields",
 																					CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																					UnderlyingTypeString: "struct{Data T}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "OpenViewing",
@@ -1551,6 +1575,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																				UnderlyingTypeString: "struct{ID string; Item *T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "ViewingAgent",
@@ -1579,6 +1604,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																			UnderlyingTypeString: "struct{ID string; Item *T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "ViewingAgent",
@@ -1850,6 +1876,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																								TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																								PackageAlias:         "main_aaf9a2e0",
 																								CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dist/pages/main_aaf9a2e0",
+																								UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																							},
 																							Symbol: &ast_domain.ResolvedSymbol{
 																								Name: "props",
@@ -1877,6 +1904,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																								TypeExpression:       typeExprFromString("dto.PropertyData"),
 																								PackageAlias:         "dto",
 																								CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																								UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																							},
 																							Symbol: &ast_domain.ResolvedSymbol{
 																								Name: "Property",
@@ -1905,6 +1933,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("dto.PropertyData"),
 																							PackageAlias:         "dto",
 																							CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																							UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "Property",
@@ -1933,6 +1962,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																							PackageAlias:         "fields",
 																							CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																							UnderlyingTypeString: "struct{Data T}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "OpenViewing",
@@ -1961,6 +1991,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																						PackageAlias:         "fields",
 																						CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																						UnderlyingTypeString: "struct{Data T}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "OpenViewing",
@@ -2045,6 +2076,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																					PackageAlias:         "fields",
 																					CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																					UnderlyingTypeString: "struct{ID string; Item *T}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "ViewingAgent",
@@ -2073,6 +2105,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																				UnderlyingTypeString: "struct{ID string; Item *T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "ViewingAgent",
@@ -2171,6 +2204,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Text"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																		UnderlyingTypeString: "struct{Value string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "FirstName",
@@ -2200,6 +2234,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Text"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "FirstName",
@@ -2402,6 +2437,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																								TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																								PackageAlias:         "main_aaf9a2e0",
 																								CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dist/pages/main_aaf9a2e0",
+																								UnderlyingTypeString: "struct{Property dto.PropertyData}",
 																							},
 																							Symbol: &ast_domain.ResolvedSymbol{
 																								Name: "props",
@@ -2429,6 +2465,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																								TypeExpression:       typeExprFromString("dto.PropertyData"),
 																								PackageAlias:         "dto",
 																								CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																								UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																							},
 																							Symbol: &ast_domain.ResolvedSymbol{
 																								Name: "Property",
@@ -2457,6 +2494,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("dto.PropertyData"),
 																							PackageAlias:         "dto",
 																							CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/dto",
+																							UnderlyingTypeString: "struct{Title fields.Text; OpenViewing fields.Embedded[dto.OpenViewingData]}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "Property",
@@ -2485,6 +2523,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																							PackageAlias:         "fields",
 																							CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																							UnderlyingTypeString: "struct{Data T}",
 																						},
 																						Symbol: &ast_domain.ResolvedSymbol{
 																							Name: "OpenViewing",
@@ -2513,6 +2552,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("fields.Embedded[dto.OpenViewingData]"),
 																						PackageAlias:         "fields",
 																						CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																						UnderlyingTypeString: "struct{Data T}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "OpenViewing",
@@ -2597,6 +2637,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																					PackageAlias:         "fields",
 																					CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																					UnderlyingTypeString: "struct{ID string; Item *T}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "ViewingAgent",
@@ -2625,6 +2666,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																				UnderlyingTypeString: "struct{ID string; Item *T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "ViewingAgent",
@@ -2723,6 +2765,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Text"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																		UnderlyingTypeString: "struct{Value string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "PhoneNumber",
@@ -2752,6 +2795,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Text"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_74_nested_generic_method_resolution/fields",
+																	UnderlyingTypeString: "struct{Value string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "PhoneNumber",

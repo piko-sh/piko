@@ -144,6 +144,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "cat",
@@ -172,6 +173,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Categories []pages_main_594861c5.Category}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -199,6 +201,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Categories",
@@ -227,6 +230,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Categories",
@@ -253,6 +257,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{Name string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Categories",
@@ -274,6 +279,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{Name string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Categories",
@@ -296,6 +302,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("[]pages_main_594861c5.Category"),
 									PackageAlias:         "pages_main_594861c5",
 									CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+									UnderlyingTypeString: "struct{Name string}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Categories",
@@ -336,6 +343,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "cat",
@@ -479,6 +487,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "cat",
@@ -604,6 +613,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "cat",
@@ -747,6 +757,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "cat",
@@ -888,6 +899,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Name string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "cat",
@@ -1100,6 +1112,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Name string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "cat",
@@ -1237,6 +1250,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "cat",
@@ -1378,6 +1392,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 																			PackageAlias:         "partials_category_list_3eee8006",
 																			CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																			UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -1405,6 +1420,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*partials_category_list_3eee8006.Extra"),
 																			PackageAlias:         "partials_category_list_3eee8006",
 																			CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																			UnderlyingTypeString: "struct{Detail string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Extra",
@@ -1433,6 +1449,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*partials_category_list_3eee8006.Extra"),
 																		PackageAlias:         "partials_category_list_3eee8006",
 																		CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																		UnderlyingTypeString: "struct{Detail string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Extra",
@@ -1606,6 +1623,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 																		PackageAlias:         "partials_category_list_3eee8006",
 																		CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																		UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "item",
@@ -1798,6 +1816,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 															PackageAlias:         "partials_category_list_3eee8006",
 															CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+															UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -1826,6 +1845,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Response"),
 																PackageAlias:         "partials_category_list_3eee8006",
 																CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																UnderlyingTypeString: "struct{Items []partials_category_list_3eee8006.Item}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1853,6 +1873,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("[]partials_category_list_3eee8006.Item"),
 																PackageAlias:         "partials_category_list_3eee8006",
 																CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Items",
@@ -1881,6 +1902,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("[]partials_category_list_3eee8006.Item"),
 															PackageAlias:         "partials_category_list_3eee8006",
 															CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+															UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Items",
@@ -1907,6 +1929,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]partials_category_list_3eee8006.Item"),
 														PackageAlias:         "partials_category_list_3eee8006",
 														CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+														UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Items",
@@ -1928,6 +1951,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("[]partials_category_list_3eee8006.Item"),
 														PackageAlias:         "partials_category_list_3eee8006",
 														CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+														UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Items",
@@ -1950,6 +1974,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("[]partials_category_list_3eee8006.Item"),
 													PackageAlias:         "partials_category_list_3eee8006",
 													CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+													UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Items",
@@ -1990,6 +2015,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 															PackageAlias:         "partials_category_list_3eee8006",
 															CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+															UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "item",
@@ -2133,6 +2159,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Name string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "cat",
@@ -2252,6 +2279,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 																	PackageAlias:         "partials_category_list_3eee8006",
 																	CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																	UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -2373,6 +2401,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 																	PackageAlias:         "partials_category_list_3eee8006",
 																	CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																	UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "item",
@@ -2400,6 +2429,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*partials_category_list_3eee8006.Extra"),
 																	PackageAlias:         "partials_category_list_3eee8006",
 																	CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																	UnderlyingTypeString: "struct{Detail string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Extra",
@@ -2428,6 +2458,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*partials_category_list_3eee8006.Extra"),
 																PackageAlias:         "partials_category_list_3eee8006",
 																CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																UnderlyingTypeString: "struct{Detail string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Extra",
@@ -2549,6 +2580,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 																PackageAlias:         "partials_category_list_3eee8006",
 																CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "item",
@@ -2690,6 +2722,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_item_row_8e7dec6a.Response"),
 																	PackageAlias:         "partials_item_row_8e7dec6a",
 																	CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_item_row_8e7dec6a",
+																	UnderlyingTypeString: "struct{Label string; Detail string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -2833,6 +2866,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Name string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "cat",
@@ -2952,6 +2986,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 																			PackageAlias:         "partials_category_list_3eee8006",
 																			CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																			UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",
@@ -3095,6 +3130,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("partials_item_row_8e7dec6a.Response"),
 																		PackageAlias:         "partials_item_row_8e7dec6a",
 																		CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_item_row_8e7dec6a",
+																		UnderlyingTypeString: "struct{Label string; Detail string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -3233,6 +3269,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_item_row_8e7dec6a.Response"),
 																	PackageAlias:         "partials_item_row_8e7dec6a",
 																	CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_item_row_8e7dec6a",
+																	UnderlyingTypeString: "struct{Label string; Detail string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -3376,6 +3413,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("pages_main_594861c5.Category"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Name string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "cat",
@@ -3495,6 +3533,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("partials_category_list_3eee8006.Item"),
 																			PackageAlias:         "partials_category_list_3eee8006",
 																			CanonicalPackagePath: "testcase_142_nested_partial_p_for_loop_var_scope/dist/partials/partials_category_list_3eee8006",
+																			UnderlyingTypeString: "struct{Label string; Extra *partials_category_list_3eee8006.Extra}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "item",

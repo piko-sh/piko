@@ -112,6 +112,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -139,6 +140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																	UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -167,6 +169,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -195,6 +198,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "CategoryTree",
@@ -223,6 +227,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+															UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "CategoryTree",
@@ -435,6 +440,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Data dto.PageData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -462,6 +468,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.PageData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+												UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -490,6 +497,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("dto.PageData"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+											UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Data",
@@ -518,6 +526,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+											UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "CategoryTree",
@@ -546,6 +555,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+										UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "CategoryTree",
@@ -746,6 +756,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Data dto.PageData}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -773,6 +784,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.PageData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+													UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -801,6 +813,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.PageData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+												UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -829,6 +842,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+												UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "CategoryTree",
@@ -857,6 +871,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+											UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "CategoryTree",
@@ -940,6 +955,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 									PackageAlias:         "fields",
 									CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+									UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 								},
 								BaseCodeGenVarName: new("props"),
 							},
@@ -1068,6 +1084,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Data dto.PageData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -1095,6 +1112,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																			UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -1123,6 +1141,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																		UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -1151,6 +1170,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																		UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "CategoryTree",
@@ -1179,6 +1199,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																	UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "CategoryTree",
@@ -1262,6 +1283,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+															UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 														},
 														BaseCodeGenVarName: new("props"),
 													},
@@ -1520,6 +1542,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Data dto.PageData}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -1547,6 +1570,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PageData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																				UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Data",
@@ -1575,6 +1599,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																			UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -1603,6 +1628,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																			UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "CategoryTree",
@@ -1631,6 +1657,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																		UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "CategoryTree",
@@ -1659,6 +1686,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																		UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Children",
@@ -1687,6 +1715,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																	UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Children",
@@ -1730,6 +1759,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 															},
 															BaseCodeGenVarName: new("props"),
 														},
@@ -1815,6 +1845,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Name",
@@ -1844,6 +1875,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Name",
@@ -1989,6 +2021,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Data dto.PageData}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -2016,6 +2049,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.PageData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+														UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -2044,6 +2078,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.PageData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+													UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -2072,6 +2107,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+													UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "CategoryTree",
@@ -2100,6 +2136,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+												UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "CategoryTree",
@@ -2128,6 +2165,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+												UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Children",
@@ -2156,6 +2194,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+											UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Children",
@@ -2199,6 +2238,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+										UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 									},
 									BaseCodeGenVarName: new("props"),
 								},
@@ -2441,6 +2481,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -2468,6 +2509,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																	UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -2496,6 +2538,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -2524,6 +2567,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "TaskList",
@@ -2552,6 +2596,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+															UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "TaskList",
@@ -2764,6 +2809,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Data dto.PageData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -2791,6 +2837,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.PageData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+												UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -2819,6 +2866,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("dto.PageData"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+											UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Data",
@@ -2847,6 +2895,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+											UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "TaskList",
@@ -2875,6 +2924,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+										UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "TaskList",
@@ -3075,6 +3125,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 													PackageAlias:         "main_aaf9a2e0",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+													UnderlyingTypeString: "struct{Data dto.PageData}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",
@@ -3102,6 +3153,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.PageData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+													UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -3130,6 +3182,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.PageData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+												UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -3158,6 +3211,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+												UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "TaskList",
@@ -3186,6 +3240,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+											UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "TaskList",
@@ -3269,6 +3324,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("*fields.LinkedList[dto.Task]"),
 									PackageAlias:         "fields",
 									CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+									UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 								},
 								BaseCodeGenVarName: new("props"),
 							},
@@ -3398,6 +3454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Data dto.PageData}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -3425,6 +3482,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PageData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																				UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Data",
@@ -3453,6 +3511,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																			UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -3481,6 +3540,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																			UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "TaskList",
@@ -3509,6 +3569,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																		UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "TaskList",
@@ -3592,6 +3653,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*fields.LinkedList[dto.Task]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 															},
 															BaseCodeGenVarName: new("props"),
 														},
@@ -3677,6 +3739,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Title",
@@ -3706,6 +3769,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Title",
@@ -3909,6 +3973,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Data dto.PageData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -3936,6 +4001,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PageData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																					UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Data",
@@ -3964,6 +4030,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PageData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+																				UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Data",
@@ -3992,6 +4059,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																				UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "TaskList",
@@ -4020,6 +4088,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.LinkedList[dto.Task]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																			UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "TaskList",
@@ -4103,6 +4172,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*fields.LinkedList[dto.Task]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																	UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 																},
 																BaseCodeGenVarName: new("props"),
 															},
@@ -4173,6 +4243,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*fields.LinkedList[dto.Task]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+															UnderlyingTypeString: "struct{Value T; Next *fields.LinkedList[T]}",
 														},
 														BaseCodeGenVarName: new("props"),
 													},
@@ -4412,6 +4483,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+											UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "child",
@@ -4442,6 +4514,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_81_self_referential_generics/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Data dto.PageData}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -4469,6 +4542,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.PageData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+														UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -4497,6 +4571,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.PageData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/dto",
+													UnderlyingTypeString: "struct{CategoryTree fields.Node[dto.Category]; TaskList fields.LinkedList[dto.Task]}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -4525,6 +4600,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+													UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "CategoryTree",
@@ -4553,6 +4629,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("fields.Node[dto.Category]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+												UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "CategoryTree",
@@ -4581,6 +4658,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+												UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Children",
@@ -4609,6 +4687,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+											UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Children",
@@ -4635,6 +4714,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+										UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Children",
@@ -4656,6 +4736,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+										UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Children",
@@ -4678,6 +4759,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("[]*fields.Node[dto.Category]"),
 									PackageAlias:         "fields",
 									CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+									UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Children",
@@ -4722,6 +4804,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+															UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "child",
@@ -4819,6 +4902,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Name",
@@ -4848,6 +4932,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("fields.Text"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+												UnderlyingTypeString: "string",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Name",
@@ -4997,6 +5082,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																	UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "child",
@@ -5094,6 +5180,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Text"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+															UnderlyingTypeString: "string",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Name",
@@ -5123,6 +5210,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Name",
@@ -5289,6 +5377,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																			UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "child",
@@ -5386,6 +5475,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Text"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																	UnderlyingTypeString: "string",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Name",
@@ -5415,6 +5505,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Text"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																UnderlyingTypeString: "string",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Name",
@@ -5572,6 +5663,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*fields.Node[dto.Category]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																		UnderlyingTypeString: "struct{Value T; Children []*fields.Node[T]; Parent *fields.Node[T]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "child",
@@ -5669,6 +5761,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Text"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+																UnderlyingTypeString: "string",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Name",
@@ -5698,6 +5791,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Text"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_81_self_referential_generics/fields",
+															UnderlyingTypeString: "string",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Name",

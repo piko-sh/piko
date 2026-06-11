@@ -104,6 +104,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_parent_f5d0595c.Response"),
 															PackageAlias:         "partials_parent_f5d0595c",
 															CanonicalPackagePath: "testcase_026_cross_package_context_confusion/dist/partials/partials_parent_f5d0595c",
+															UnderlyingTypeString: "struct{Data data_a.ParentData}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -131,6 +132,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("data_a.ParentData"),
 															PackageAlias:         "data_a",
 															CanonicalPackagePath: "testcase_026_cross_package_context_confusion/pkg/data_a",
+															UnderlyingTypeString: "struct{ValueForChild string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Data",
@@ -159,6 +161,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("data_a.ParentData"),
 														PackageAlias:         "data_a",
 														CanonicalPackagePath: "testcase_026_cross_package_context_confusion/pkg/data_a",
+														UnderlyingTypeString: "struct{ValueForChild string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -372,6 +375,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("partials_child_d247007e.Props"),
 												PackageAlias:         "partials_child_d247007e",
 												CanonicalPackagePath: "testcase_026_cross_package_context_confusion/dist/partials/partials_child_d247007e",
+												UnderlyingTypeString: "struct{ForwardedProp string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -550,6 +554,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_parent_f5d0595c.Response"),
 													PackageAlias:         "partials_parent_f5d0595c",
 													CanonicalPackagePath: "testcase_026_cross_package_context_confusion/dist/partials/partials_parent_f5d0595c",
+													UnderlyingTypeString: "struct{Data data_a.ParentData}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -577,6 +582,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("data_a.ParentData"),
 													PackageAlias:         "data_a",
 													CanonicalPackagePath: "testcase_026_cross_package_context_confusion/pkg/data_a",
+													UnderlyingTypeString: "struct{ValueForChild string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -605,6 +611,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("data_a.ParentData"),
 												PackageAlias:         "data_a",
 												CanonicalPackagePath: "testcase_026_cross_package_context_confusion/pkg/data_a",
+												UnderlyingTypeString: "struct{ValueForChild string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -778,6 +785,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 														PackageAlias:         "partials_child_d247007e",
 														CanonicalPackagePath: "testcase_026_cross_package_context_confusion/dist/partials/partials_child_d247007e",
+														UnderlyingTypeString: "struct{OwnData data_b.ChildData}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -805,6 +813,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("data_b.ChildData"),
 														PackageAlias:         "data_b",
 														CanonicalPackagePath: "testcase_026_cross_package_context_confusion/pkg/data_b",
+														UnderlyingTypeString: "struct{InternalValue int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "OwnData",
@@ -833,6 +842,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("data_b.ChildData"),
 													PackageAlias:         "data_b",
 													CanonicalPackagePath: "testcase_026_cross_package_context_confusion/pkg/data_b",
+													UnderlyingTypeString: "struct{InternalValue int}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "OwnData",

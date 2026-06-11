@@ -96,6 +96,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Question string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -390,6 +391,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 														PackageAlias:         "partials_layout_ee037d9a",
 														CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/partials/partials_layout_ee037d9a",
+														UnderlyingTypeString: "struct{Hello string; Goodbye string; Place string; Question string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -517,6 +519,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 														PackageAlias:         "partials_layout_ee037d9a",
 														CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/partials/partials_layout_ee037d9a",
+														UnderlyingTypeString: "struct{Hello string; Goodbye string; Place string; Question string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -644,6 +647,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 														PackageAlias:         "partials_layout_ee037d9a",
 														CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/partials/partials_layout_ee037d9a",
+														UnderlyingTypeString: "struct{Hello string; Goodbye string; Place string; Question string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -929,6 +933,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Question string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -1135,6 +1140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 														PackageAlias:         "partials_layout_ee037d9a",
 														CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/partials/partials_layout_ee037d9a",
+														UnderlyingTypeString: "struct{Hello string; Goodbye string; Place string; Question string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1262,6 +1268,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 														PackageAlias:         "partials_layout_ee037d9a",
 														CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/partials/partials_layout_ee037d9a",
+														UnderlyingTypeString: "struct{Hello string; Goodbye string; Place string; Question string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1389,6 +1396,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 														PackageAlias:         "partials_layout_ee037d9a",
 														CanonicalPackagePath: "testcase_045_multiple_root_nodes/dist/partials/partials_layout_ee037d9a",
+														UnderlyingTypeString: "struct{Hello string; Goodbye string; Place string; Question string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

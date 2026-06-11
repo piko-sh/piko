@@ -865,12 +865,16 @@ func TestGetNativeBinaryOp(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name      string
-		op        ast_domain.BinaryOp
-		leftType  string
-		rightType string
-		wantToken token.Token
-		wantOk    bool
+		name            string
+		op              ast_domain.BinaryOp
+		leftType        string
+		rightType       string
+		leftPkg         string
+		rightPkg        string
+		leftUnderlying  string
+		rightUnderlying string
+		wantToken       token.Token
+		wantOk          bool
 	}{
 		{
 			name:      "logical AND returns ILLEGAL true",
@@ -985,12 +989,70 @@ func TestGetNativeBinaryOp(t *testing.T) {
 			wantOk:    true,
 		},
 		{
-			name:      "named type equality defers to the runtime helper",
+			name:      "named type without package or underlying defers to the runtime helper",
 			op:        ast_domain.OpEq,
 			leftType:  "ResultStatus",
 			rightType: "ResultStatus",
 			wantToken: token.ILLEGAL,
 			wantOk:    false,
+		},
+		{
+			name:            "same defined type with comparable underlying returns EQL true",
+			op:              ast_domain.OpEq,
+			leftType:        "ResultStatus",
+			rightType:       "ResultStatus",
+			leftPkg:         "example.com/app/models",
+			rightPkg:        "example.com/app/models",
+			leftUnderlying:  "int",
+			rightUnderlying: "int",
+			wantToken:       token.EQL,
+			wantOk:          true,
+		},
+		{
+			name:            "same defined type with comparable underlying returns NEQ true",
+			op:              ast_domain.OpNe,
+			leftType:        "ResultStatus",
+			rightType:       "ResultStatus",
+			leftPkg:         "example.com/app/models",
+			rightPkg:        "example.com/app/models",
+			leftUnderlying:  "int",
+			rightUnderlying: "int",
+			wantToken:       token.NEQ,
+			wantOk:          true,
+		},
+		{
+			name:            "same type name in different packages defers to the runtime helper",
+			op:              ast_domain.OpEq,
+			leftType:        "ResultStatus",
+			rightType:       "ResultStatus",
+			leftPkg:         "example.com/app/models",
+			rightPkg:        "example.com/app/other",
+			leftUnderlying:  "int",
+			rightUnderlying: "int",
+			wantToken:       token.ILLEGAL,
+			wantOk:          false,
+		},
+		{
+			name:            "defined type with non-comparable underlying defers to the runtime helper",
+			op:              ast_domain.OpEq,
+			leftType:        "Identifiers",
+			rightType:       "Identifiers",
+			leftPkg:         "example.com/app/models",
+			rightPkg:        "example.com/app/models",
+			leftUnderlying:  "[]int",
+			rightUnderlying: "[]int",
+			wantToken:       token.ILLEGAL,
+			wantOk:          false,
+		},
+		{
+			name:           "defined type vs primitive literal defers to the runtime helper",
+			op:             ast_domain.OpEq,
+			leftType:       "ResultStatus",
+			rightType:      "int",
+			leftPkg:        "example.com/app/models",
+			leftUnderlying: "int",
+			wantToken:      token.ILLEGAL,
+			wantOk:         false,
 		},
 		{
 			name:      "coalesce has no native equivalent",
@@ -1052,7 +1114,9 @@ func TestGetNativeBinaryOp(t *testing.T) {
 				leftAnn = nil
 			} else {
 				leftAnn = createTempAnnotation(&ast_domain.ResolvedTypeInfo{
-					TypeExpression: cachedIdent(tc.leftType),
+					TypeExpression:       cachedIdent(tc.leftType),
+					CanonicalPackagePath: tc.leftPkg,
+					UnderlyingTypeString: tc.leftUnderlying,
 				})
 			}
 
@@ -1060,7 +1124,9 @@ func TestGetNativeBinaryOp(t *testing.T) {
 				rightAnn = nil
 			} else {
 				rightAnn = createTempAnnotation(&ast_domain.ResolvedTypeInfo{
-					TypeExpression: cachedIdent(tc.rightType),
+					TypeExpression:       cachedIdent(tc.rightType),
+					CanonicalPackagePath: tc.rightPkg,
+					UnderlyingTypeString: tc.rightUnderlying,
 				})
 			}
 

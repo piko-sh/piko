@@ -82,6 +82,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_102_dynamic_bindings_in_p_if/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ShowImage bool; ImageURL string; ImageAlt string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -265,6 +266,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_102_dynamic_bindings_in_p_if/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ShowImage bool; ImageURL string; ImageAlt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -385,6 +387,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_102_dynamic_bindings_in_p_if/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ShowImage bool; ImageURL string; ImageAlt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -592,6 +595,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_102_dynamic_bindings_in_p_if/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ShowImage bool; ImageURL string; ImageAlt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -712,6 +716,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_102_dynamic_bindings_in_p_if/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{ShowImage bool; ImageURL string; ImageAlt string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

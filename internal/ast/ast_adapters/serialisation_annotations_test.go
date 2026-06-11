@@ -260,6 +260,7 @@ func TestEncodeDecodeAnnotations_ResolvedTypeInfo(t *testing.T) {
 							CanonicalPackagePath: "github.com/example/app/models",
 							InitialPackagePath:   "github.com/example/app/models",
 							InitialFilePath:      "/app/models/user.go",
+							UnderlyingTypeString: "int",
 						},
 					},
 				},
@@ -276,6 +277,29 @@ func TestEncodeDecodeAnnotations_ResolvedTypeInfo(t *testing.T) {
 		assert.Equal(t, "github.com/example/app/models", typeInfo.CanonicalPackagePath)
 		assert.Equal(t, "github.com/example/app/models", typeInfo.InitialPackagePath)
 		assert.Equal(t, "/app/models/user.go", typeInfo.InitialFilePath)
+		assert.Equal(t, "int", typeInfo.UnderlyingTypeString)
+	})
+
+	t.Run("empty underlying type string stays empty", func(t *testing.T) {
+		original := &ast_domain.TemplateAST{
+			RootNodes: []*ast_domain.TemplateNode{
+				{
+					NodeType: ast_domain.NodeElement,
+					TagName:  "div",
+					GoAnnotations: &ast_domain.GoGeneratorAnnotation{
+						ResolvedType: &ast_domain.ResolvedTypeInfo{
+							PackageAlias:         "models",
+							CanonicalPackagePath: "github.com/example/app/models",
+						},
+					},
+				},
+			},
+		}
+
+		decoded := mustRoundTrip(t, original)
+
+		require.NotNil(t, decoded.RootNodes[0].GoAnnotations.ResolvedType)
+		assert.Empty(t, decoded.RootNodes[0].GoAnnotations.ResolvedType.UnderlyingTypeString)
 	})
 
 	t.Run("nil type info is preserved", func(t *testing.T) {

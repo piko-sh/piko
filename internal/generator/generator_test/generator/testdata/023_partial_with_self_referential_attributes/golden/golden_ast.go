@@ -163,6 +163,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_parent_f5d0595c.Response"),
 													PackageAlias:         "partials_parent_f5d0595c",
 													CanonicalPackagePath: "testcase_023_partial_with_self_referential_attributes/dist/partials/partials_parent_f5d0595c",
+													UnderlyingTypeString: "struct{ParentMessage string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -349,6 +350,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 												PackageAlias:         "partials_child_d247007e",
 												CanonicalPackagePath: "testcase_023_partial_with_self_referential_attributes/dist/partials/partials_child_d247007e",
+												UnderlyingTypeString: "struct{ChildMessage string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",

@@ -112,6 +112,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -139,6 +140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -167,6 +169,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -195,6 +198,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Member",
@@ -223,6 +227,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Member",
@@ -435,6 +440,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Data dto.PageData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -462,6 +468,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.PageData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+												UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -490,6 +497,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("dto.PageData"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+											UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Data",
@@ -518,6 +526,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+											UnderlyingTypeString: "struct{ID string; Item *T}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Member",
@@ -546,6 +555,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+										UnderlyingTypeString: "struct{ID string; Item *T}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Member",
@@ -799,6 +809,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 															PackageAlias:         "main_aaf9a2e0",
 															CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+															UnderlyingTypeString: "struct{Data dto.PageData}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "props",
@@ -826,6 +837,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("dto.PageData"),
 															PackageAlias:         "dto",
 															CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+															UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Data",
@@ -854,6 +866,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.PageData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+														UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -882,6 +895,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+														UnderlyingTypeString: "struct{ID string; Item *T}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Member",
@@ -910,6 +924,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+													UnderlyingTypeString: "struct{ID string; Item *T}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Member",
@@ -1109,6 +1124,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Data dto.PageData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -1136,6 +1152,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																		UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -1164,6 +1181,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -1192,6 +1210,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																	UnderlyingTypeString: "struct{ID string; Item *T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Member",
@@ -1220,6 +1239,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Member",
@@ -1318,6 +1338,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FirstName",
@@ -1347,6 +1368,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "FirstName",
@@ -1546,6 +1568,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -1573,6 +1596,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -1601,6 +1625,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -1629,6 +1654,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.Product]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Product",
@@ -1657,6 +1683,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.Product]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Product",
@@ -1925,6 +1952,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -1952,6 +1980,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -1980,6 +2009,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -2008,6 +2038,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "DirectMember",
@@ -2036,6 +2067,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "DirectMember",
@@ -2316,6 +2348,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Data dto.PageData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -2343,6 +2376,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																		UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -2371,6 +2405,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -2399,6 +2434,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																	UnderlyingTypeString: "struct{ID string; Item *T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Member",
@@ -2427,6 +2463,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Member",
@@ -2525,6 +2562,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "LastName",
@@ -2554,6 +2592,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "LastName",
@@ -2691,6 +2730,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Data dto.PageData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -2718,6 +2758,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																		UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -2746,6 +2787,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -2774,6 +2816,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																	UnderlyingTypeString: "struct{ID string; Item *T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "DirectMember",
@@ -2802,6 +2845,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "DirectMember",
@@ -2900,6 +2944,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "LastName",
@@ -2929,6 +2974,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "LastName",
@@ -3072,6 +3118,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{Data dto.PageData}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "props",
@@ -3099,6 +3146,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("dto.PageData"),
 												PackageAlias:         "dto",
 												CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+												UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Data",
@@ -3127,6 +3175,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("dto.PageData"),
 											PackageAlias:         "dto",
 											CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+											UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Data",
@@ -3155,6 +3204,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("fields.Ref[dto.Product]"),
 											PackageAlias:         "fields",
 											CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+											UnderlyingTypeString: "struct{ID string; Item *T}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Product",
@@ -3183,6 +3233,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.Ref[dto.Product]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+										UnderlyingTypeString: "struct{ID string; Item *T}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Product",
@@ -3364,6 +3415,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																		PackageAlias:         "main_aaf9a2e0",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dist/pages/main_aaf9a2e0",
+																		UnderlyingTypeString: "struct{Data dto.PageData}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "props",
@@ -3391,6 +3443,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																		UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -3419,6 +3472,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]; Product fields.Ref[dto.Product]; DirectMember fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -3447,6 +3501,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Ref[dto.Product]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																	UnderlyingTypeString: "struct{ID string; Item *T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Product",
@@ -3475,6 +3530,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.Product]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Product",
@@ -3573,6 +3629,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Name",
@@ -3602,6 +3659,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_80_generic_type_alias/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Name",

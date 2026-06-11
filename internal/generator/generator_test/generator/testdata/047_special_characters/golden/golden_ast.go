@@ -509,6 +509,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -699,6 +700,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -900,6 +902,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1101,6 +1104,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1291,6 +1295,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1518,6 +1523,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 									PackageAlias:         "pages_main_594861c5",
 									CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+									UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "state",
@@ -1712,6 +1718,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 									PackageAlias:         "pages_main_594861c5",
 									CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+									UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "state",
@@ -1874,6 +1881,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 									PackageAlias:         "pages_main_594861c5",
 									CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+									UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "state",
@@ -2151,6 +2159,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -2347,6 +2356,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -2543,6 +2553,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -2707,6 +2718,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -3015,6 +3027,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_047_special_characters/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{SimpleHTML string; MaliciousString string; QuotesAndBackticks string; UnicodeContent string; TemplateDelimiters string; DynamicClassData map[string]bool; SafeHTML string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

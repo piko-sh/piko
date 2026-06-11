@@ -261,6 +261,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -433,6 +434,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -645,6 +647,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -765,6 +768,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -906,6 +910,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_basic_ae555b0a.Response"),
 															PackageAlias:         "partials_basic_ae555b0a",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_basic_ae555b0a",
+															UnderlyingTypeString: "struct{CardTitle string; CardDescription string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1054,6 +1059,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_basic_ae555b0a.Response"),
 															PackageAlias:         "partials_basic_ae555b0a",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_basic_ae555b0a",
+															UnderlyingTypeString: "struct{CardTitle string; CardDescription string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -1310,6 +1316,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1482,6 +1489,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -1694,6 +1702,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1814,6 +1823,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1955,6 +1965,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_required_e49b403b.Response"),
 															PackageAlias:         "partials_required_e49b403b",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_required_e49b403b",
+															UnderlyingTypeString: "struct{Name string; ID string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2103,6 +2114,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_required_e49b403b.Response"),
 															PackageAlias:         "partials_required_e49b403b",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_required_e49b403b",
+															UnderlyingTypeString: "struct{Name string; ID string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2492,6 +2504,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_default_value_b97ed726.Response"),
 															PackageAlias:         "partials_default_value_b97ed726",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_default_value_b97ed726",
+															UnderlyingTypeString: "struct{Theme string; Size string; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2634,6 +2647,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_default_value_b97ed726.Response"),
 															PackageAlias:         "partials_default_value_b97ed726",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_default_value_b97ed726",
+															UnderlyingTypeString: "struct{Theme string; Size string; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -2782,6 +2796,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_default_value_b97ed726.Response"),
 															PackageAlias:         "partials_default_value_b97ed726",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_default_value_b97ed726",
+															UnderlyingTypeString: "struct{Theme string; Size string; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -3150,6 +3165,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_default_value_b97ed726.Response"),
 															PackageAlias:         "partials_default_value_b97ed726",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_default_value_b97ed726",
+															UnderlyingTypeString: "struct{Theme string; Size string; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -3292,6 +3308,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_default_value_b97ed726.Response"),
 															PackageAlias:         "partials_default_value_b97ed726",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_default_value_b97ed726",
+															UnderlyingTypeString: "struct{Theme string; Size string; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -3440,6 +3457,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_default_value_b97ed726.Response"),
 															PackageAlias:         "partials_default_value_b97ed726",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_default_value_b97ed726",
+															UnderlyingTypeString: "struct{Theme string; Size string; Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -3763,6 +3781,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														PropDataSource: &ast_domain.PropDataSource{
 															ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -3838,6 +3857,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_factory_default_937e675c.Response"),
 																PackageAlias:         "partials_factory_default_937e675c",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_factory_default_937e675c",
+																UnderlyingTypeString: "struct{Options models.AvatarOptions; SizeDisplay string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -3865,6 +3885,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.AvatarOptions"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																UnderlyingTypeString: "struct{Size int; Shape string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Options",
@@ -3893,6 +3914,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Options",
@@ -4036,6 +4058,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_factory_default_937e675c.Response"),
 															PackageAlias:         "partials_factory_default_937e675c",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_factory_default_937e675c",
+															UnderlyingTypeString: "struct{Options models.AvatarOptions; SizeDisplay string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -4185,6 +4208,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -4212,6 +4236,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.AvatarOptions"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																UnderlyingTypeString: "struct{Size int; Shape string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "CustomOptions",
@@ -4259,6 +4284,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "CustomOptions",
@@ -4305,6 +4331,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.AvatarOptions"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+														UnderlyingTypeString: "struct{Size int; Shape string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "CustomOptions",
@@ -4399,6 +4426,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_factory_default_937e675c.Response"),
 																PackageAlias:         "partials_factory_default_937e675c",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_factory_default_937e675c",
+																UnderlyingTypeString: "struct{Options models.AvatarOptions; SizeDisplay string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -4426,6 +4454,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.AvatarOptions"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																UnderlyingTypeString: "struct{Size int; Shape string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Options",
@@ -4454,6 +4483,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Options",
@@ -4576,6 +4606,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -4603,6 +4634,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.AvatarOptions"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+														UnderlyingTypeString: "struct{Size int; Shape string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "CustomOptions",
@@ -4631,6 +4663,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.AvatarOptions"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+													UnderlyingTypeString: "struct{Size int; Shape string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "CustomOptions",
@@ -4661,6 +4694,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("models.AvatarOptions"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+												UnderlyingTypeString: "struct{Size int; Shape string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "CustomOptions",
@@ -4714,6 +4748,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_factory_default_937e675c.Response"),
 															PackageAlias:         "partials_factory_default_937e675c",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_factory_default_937e675c",
+															UnderlyingTypeString: "struct{Options models.AvatarOptions; SizeDisplay string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -5200,6 +5235,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_coercion_97bb15e1.Response"),
 															PackageAlias:         "partials_coercion_97bb15e1",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_coercion_97bb15e1",
+															UnderlyingTypeString: "struct{IsActive bool; Count int; Price float64}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -5380,6 +5416,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_coercion_97bb15e1.Response"),
 															PackageAlias:         "partials_coercion_97bb15e1",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_coercion_97bb15e1",
+															UnderlyingTypeString: "struct{IsActive bool; Count int; Price float64}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -5528,6 +5565,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_coercion_97bb15e1.Response"),
 															PackageAlias:         "partials_coercion_97bb15e1",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_coercion_97bb15e1",
+															UnderlyingTypeString: "struct{IsActive bool; Count int; Price float64}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -5677,6 +5715,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -5849,6 +5888,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -6021,6 +6061,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -6234,6 +6275,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -6354,6 +6396,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -6474,6 +6517,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -6616,6 +6660,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_coercion_97bb15e1.Response"),
 															PackageAlias:         "partials_coercion_97bb15e1",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_coercion_97bb15e1",
+															UnderlyingTypeString: "struct{IsActive bool; Count int; Price float64}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -6796,6 +6841,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_coercion_97bb15e1.Response"),
 															PackageAlias:         "partials_coercion_97bb15e1",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_coercion_97bb15e1",
+															UnderlyingTypeString: "struct{IsActive bool; Count int; Price float64}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -6944,6 +6990,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_coercion_97bb15e1.Response"),
 															PackageAlias:         "partials_coercion_97bb15e1",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_coercion_97bb15e1",
+															UnderlyingTypeString: "struct{IsActive bool; Count int; Price float64}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -7296,6 +7343,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_optional_68cf5cc2.Response"),
 																	PackageAlias:         "partials_optional_68cf5cc2",
 																	CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_optional_68cf5cc2",
+																	UnderlyingTypeString: "struct{HasProfile bool; ProfileName string; ProfileEmail string; Subtitle string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -7444,6 +7492,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_optional_68cf5cc2.Response"),
 																	PackageAlias:         "partials_optional_68cf5cc2",
 																	CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_optional_68cf5cc2",
+																	UnderlyingTypeString: "struct{HasProfile bool; ProfileName string; ProfileEmail string; Subtitle string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -7691,6 +7740,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -7718,6 +7768,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("models.UserProfile"),
 																	PackageAlias:         "models",
 																	CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																	UnderlyingTypeString: "struct{Name string; Email string; IsAdmin bool}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "UserProfile",
@@ -7765,6 +7816,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.UserProfile"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																UnderlyingTypeString: "struct{Name string; Email string; IsAdmin bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "UserProfile",
@@ -7903,6 +7955,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -7930,6 +7983,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.UserProfile"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+														UnderlyingTypeString: "struct{Name string; Email string; IsAdmin bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "UserProfile",
@@ -7958,6 +8012,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.UserProfile"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+													UnderlyingTypeString: "struct{Name string; Email string; IsAdmin bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "UserProfile",
@@ -7988,6 +8043,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("models.UserProfile"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+												UnderlyingTypeString: "struct{Name string; Email string; IsAdmin bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "UserProfile",
@@ -8084,6 +8140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_optional_68cf5cc2.Response"),
 																	PackageAlias:         "partials_optional_68cf5cc2",
 																	CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_optional_68cf5cc2",
+																	UnderlyingTypeString: "struct{HasProfile bool; ProfileName string; ProfileEmail string; Subtitle string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -8232,6 +8289,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("partials_optional_68cf5cc2.Response"),
 																	PackageAlias:         "partials_optional_68cf5cc2",
 																	CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_optional_68cf5cc2",
+																	UnderlyingTypeString: "struct{HasProfile bool; ProfileName string; ProfileEmail string; Subtitle string}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -8599,6 +8657,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -8853,6 +8912,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														PropDataSource: &ast_domain.PropDataSource{
 															ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -8925,6 +8985,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -9063,6 +9124,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -9205,6 +9267,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -9353,6 +9416,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -9502,6 +9566,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -9682,6 +9747,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -9831,6 +9897,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 																PackageAlias:         "partials_comprehensive_3b6160d5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+																UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -9858,6 +9925,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.AvatarOptions"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																UnderlyingTypeString: "struct{Size int; Shape string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Options",
@@ -9886,6 +9954,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Options",
@@ -10082,6 +10151,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -10346,6 +10416,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -10373,6 +10444,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.AvatarOptions"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																UnderlyingTypeString: "struct{Size int; Shape string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "CustomOptions",
@@ -10420,6 +10492,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "CustomOptions",
@@ -10466,6 +10539,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.AvatarOptions"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+														UnderlyingTypeString: "struct{Size int; Shape string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "CustomOptions",
@@ -10638,6 +10712,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -10776,6 +10851,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -10897,6 +10973,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{BasicTitle string; BasicDescription string; RequiredName string; RequiredID string; CustomOptions models.AvatarOptions; DynamicBool bool; DynamicInt int; DynamicFloat float64; UserProfile models.UserProfile; CompTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -10924,6 +11001,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("models.AvatarOptions"),
 														PackageAlias:         "models",
 														CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+														UnderlyingTypeString: "struct{Size int; Shape string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "CustomOptions",
@@ -10952,6 +11030,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("models.AvatarOptions"),
 													PackageAlias:         "models",
 													CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+													UnderlyingTypeString: "struct{Size int; Shape string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "CustomOptions",
@@ -10982,6 +11061,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("models.AvatarOptions"),
 												PackageAlias:         "models",
 												CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+												UnderlyingTypeString: "struct{Size int; Shape string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "CustomOptions",
@@ -11035,6 +11115,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -11183,6 +11264,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -11332,6 +11414,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -11512,6 +11595,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 															PackageAlias:         "partials_comprehensive_3b6160d5",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+															UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -11661,6 +11745,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_comprehensive_3b6160d5.Response"),
 																PackageAlias:         "partials_comprehensive_3b6160d5",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/dist/partials/partials_comprehensive_3b6160d5",
+																UnderlyingTypeString: "struct{Title string; Description string; Theme string; IsHighlighted bool; Priority int; Options models.AvatarOptions}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -11688,6 +11773,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("models.AvatarOptions"),
 																PackageAlias:         "models",
 																CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+																UnderlyingTypeString: "struct{Size int; Shape string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Options",
@@ -11716,6 +11802,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("models.AvatarOptions"),
 															PackageAlias:         "models",
 															CanonicalPackagePath: "testcase_072_prop_tags_comprehensive/pkg/models",
+															UnderlyingTypeString: "struct{Size int; Shape string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Options",

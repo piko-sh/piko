@@ -54,6 +54,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -141,6 +142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -294,6 +296,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -487,6 +490,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -610,6 +614,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -730,6 +735,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -871,6 +877,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -1023,6 +1030,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -1110,6 +1118,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1263,6 +1272,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -1456,6 +1466,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1579,6 +1590,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -1699,6 +1711,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "state",
@@ -1840,6 +1853,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_009_attributes_static_and_dynamic/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{ID int; Message string; Status string; IsActive bool; IsDisabled bool; BgColor string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",

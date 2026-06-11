@@ -23,8 +23,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -293,9 +295,25 @@ func (s *SSRServer) WithInterpreterProvider(provider templater_domain.Interprete
 // These symbols will be registered with the interpreter provider when running in dev-i
 // mode, making custom types and functions available to interpreted template code.
 //
-// Takes symbols (templater_domain.SymbolExports) which provides the symbols to expose.
-func (s *SSRServer) WithSymbols(symbols templater_domain.SymbolExports) {
-	s.symbols = symbols
+// Takes symbolSources (...templater_domain.SymbolExports) which provide the symbols to
+// expose.
+func (s *SSRServer) WithSymbols(symbolSources ...templater_domain.SymbolExports) {
+	for _, symbolPaths := range symbolSources {
+		for importPath, packageSymbols := range symbolPaths {
+			if len(packageSymbols) == 0 {
+				continue
+			}
+			if s.symbols == nil {
+				s.symbols = make(templater_domain.SymbolExports)
+			}
+			existing, ok := s.symbols[importPath]
+			if !ok {
+				existing = make(map[string]reflect.Value, len(packageSymbols))
+				s.symbols[importPath] = existing
+			}
+			maps.Copy(existing, packageSymbols)
+		}
+	}
 }
 
 // Generate produces a Piko build using the two-phase bootstrap process.

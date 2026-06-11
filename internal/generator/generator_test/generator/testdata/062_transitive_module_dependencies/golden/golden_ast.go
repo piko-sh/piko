@@ -350,6 +350,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81.Response"),
 														PackageAlias:         "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
 														CanonicalPackagePath: "testcase_062_transitive_module_dependencies/dist/partials/testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
+														UnderlyingTypeString: "struct{ButtonLabel string; LabelText string; HelpText string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -488,6 +489,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81.Response"),
 													PackageAlias:         "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
 													CanonicalPackagePath: "testcase_062_transitive_module_dependencies/dist/partials/testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
+													UnderlyingTypeString: "struct{ButtonLabel string; LabelText string; HelpText string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -688,6 +690,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("testdata_modules_ui_components_components_button_127f2b1d.Response"),
 															PackageAlias:         "testdata_modules_ui_components_components_button_127f2b1d",
 															CanonicalPackagePath: "testcase_062_transitive_module_dependencies/dist/partials/testdata_modules_ui_components_components_button_127f2b1d",
+															UnderlyingTypeString: "struct{Label string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -839,6 +842,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81.Response"),
 														PackageAlias:         "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
 														CanonicalPackagePath: "testcase_062_transitive_module_dependencies/dist/partials/testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
+														UnderlyingTypeString: "struct{ButtonLabel string; LabelText string; HelpText string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -977,6 +981,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81.Response"),
 													PackageAlias:         "testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
 													CanonicalPackagePath: "testcase_062_transitive_module_dependencies/dist/partials/testdata_modules_composite_widgets_widgets_actionbutton_44cbbf81",
+													UnderlyingTypeString: "struct{ButtonLabel string; LabelText string; HelpText string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

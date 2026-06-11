@@ -133,6 +133,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_030_interpolation_simple/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

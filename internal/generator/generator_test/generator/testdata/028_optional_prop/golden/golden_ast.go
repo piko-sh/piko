@@ -53,6 +53,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_028_optional_prop/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{State data.State}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -80,6 +81,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("data.State"),
 													PackageAlias:         "data",
 													CanonicalPackagePath: "testcase_028_optional_prop/pkg/data",
+													UnderlyingTypeString: "struct{Text string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "State",
@@ -127,6 +129,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("data.State"),
 												PackageAlias:         "data",
 												CanonicalPackagePath: "testcase_028_optional_prop/pkg/data",
+												UnderlyingTypeString: "struct{Text string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "State",
@@ -311,6 +314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("partials_partial_a840a93c.Response"),
 											PackageAlias:         "partials_partial_a840a93c",
 											CanonicalPackagePath: "testcase_028_optional_prop/dist/partials/partials_partial_a840a93c",
+											UnderlyingTypeString: "struct{Text string; OtherText string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -489,6 +493,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("partials_partial_a840a93c.Response"),
 											PackageAlias:         "partials_partial_a840a93c",
 											CanonicalPackagePath: "testcase_028_optional_prop/dist/partials/partials_partial_a840a93c",
+											UnderlyingTypeString: "struct{Text string; OtherText string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",

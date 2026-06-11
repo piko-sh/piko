@@ -106,6 +106,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_49_alias_generic_field_in_slotted_content/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{Query string; Results []runtime.SearchResult[models.Doc]; Total int}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -318,6 +319,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 																PackageAlias:         "partials_layout_ee037d9a",
 																CanonicalPackagePath: "testcase_49_alias_generic_field_in_slotted_content/dist/partials/partials_layout_ee037d9a",
+																UnderlyingTypeString: "struct{PageTitle string; Version string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -485,6 +487,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 													PackageAlias:         "runtime",
 													CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+													UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "result",
@@ -513,6 +516,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_49_alias_generic_field_in_slotted_content/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Query string; Results []runtime.SearchResult[models.Doc]; Total int}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -678,6 +682,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 														PackageAlias:         "runtime",
 														CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+														UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "result",
@@ -878,6 +883,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 																PackageAlias:         "runtime",
 																CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+																UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "result",
@@ -1083,6 +1089,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 																		PackageAlias:         "runtime",
 																		CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+																		UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "result",
@@ -1304,6 +1311,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 																				PackageAlias:         "runtime",
 																				CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+																				UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "result",
@@ -1488,6 +1496,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 																			PackageAlias:         "runtime",
 																			CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+																			UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "result",
@@ -1703,6 +1712,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 																		PackageAlias:         "runtime",
 																		CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+																		UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "result",
@@ -1924,6 +1934,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 																				PackageAlias:         "runtime",
 																				CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+																				UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "result",
@@ -2118,6 +2129,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("runtime.SearchResult[models.Doc]"),
 																		PackageAlias:         "runtime",
 																		CanonicalPackagePath: "piko.sh/piko/wdk/runtime",
+																		UnderlyingTypeString: "struct{FieldScores map[string]float64; Item T; Score float64}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "result",
@@ -2153,7 +2165,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			Column: 26,
 																		},
 																		DeclarationLocation: ast_domain.Location{
-																			Line:   693,
+																			Line:   692,
 																			Column: 1,
 																		},
 																	},
@@ -2182,7 +2194,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		Column: 26,
 																	},
 																	DeclarationLocation: ast_domain.Location{
-																		Line:   693,
+																		Line:   692,
 																		Column: 1,
 																	},
 																},
@@ -2205,7 +2217,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	Column: 26,
 																},
 																DeclarationLocation: ast_domain.Location{
-																	Line:   693,
+																	Line:   692,
 																	Column: 1,
 																},
 															},
@@ -2338,6 +2350,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Response"),
 																PackageAlias:         "partials_layout_ee037d9a",
 																CanonicalPackagePath: "testcase_49_alias_generic_field_in_slotted_content/dist/partials/partials_layout_ee037d9a",
+																UnderlyingTypeString: "struct{PageTitle string; Version string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",

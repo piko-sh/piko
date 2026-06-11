@@ -354,6 +354,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("partials_browser_4016e9df.Props"),
 														PackageAlias:         "partials_browser_4016e9df",
 														CanonicalPackagePath: "testcase_107_p_if_css_scoping_in_partial/dist/partials/partials_browser_4016e9df",
+														UnderlyingTypeString: "struct{ShowItems bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -605,6 +606,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_browser_4016e9df.Props"),
 													PackageAlias:         "partials_browser_4016e9df",
 													CanonicalPackagePath: "testcase_107_p_if_css_scoping_in_partial/dist/partials/partials_browser_4016e9df",
+													UnderlyingTypeString: "struct{ShowItems bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",

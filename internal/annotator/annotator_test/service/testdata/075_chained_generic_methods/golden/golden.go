@@ -112,6 +112,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																	PackageAlias:         "main_aaf9a2e0",
 																	CanonicalPackagePath: "testcase_75_chained_generic_methods/dist/pages/main_aaf9a2e0",
+																	UnderlyingTypeString: "struct{Data dto.PageData}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "props",
@@ -139,6 +140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("dto.PageData"),
 																	PackageAlias:         "dto",
 																	CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																	UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Data",
@@ -167,6 +169,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("dto.PageData"),
 																PackageAlias:         "dto",
 																CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Data",
@@ -195,6 +198,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Member",
@@ -223,6 +227,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Member",
@@ -493,6 +498,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																			PackageAlias:         "main_aaf9a2e0",
 																			CanonicalPackagePath: "testcase_75_chained_generic_methods/dist/pages/main_aaf9a2e0",
+																			UnderlyingTypeString: "struct{Data dto.PageData}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "props",
@@ -520,6 +526,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																			UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -548,6 +555,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("dto.PageData"),
 																		PackageAlias:         "dto",
 																		CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																		UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Data",
@@ -576,6 +584,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																		UnderlyingTypeString: "struct{ID string; Item *T}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Member",
@@ -604,6 +613,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																	UnderlyingTypeString: "struct{ID string; Item *T}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Member",
@@ -687,6 +697,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														BaseCodeGenVarName: new("props"),
 													},
@@ -947,6 +958,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																						PackageAlias:         "main_aaf9a2e0",
 																						CanonicalPackagePath: "testcase_75_chained_generic_methods/dist/pages/main_aaf9a2e0",
+																						UnderlyingTypeString: "struct{Data dto.PageData}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "props",
@@ -974,6 +986,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																						TypeExpression:       typeExprFromString("dto.PageData"),
 																						PackageAlias:         "dto",
 																						CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																						UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																					},
 																					Symbol: &ast_domain.ResolvedSymbol{
 																						Name: "Data",
@@ -1002,6 +1015,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PageData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																					UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Data",
@@ -1030,6 +1044,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																					PackageAlias:         "fields",
 																					CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																					UnderlyingTypeString: "struct{ID string; Item *T}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Member",
@@ -1058,6 +1073,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																				UnderlyingTypeString: "struct{ID string; Item *T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Member",
@@ -1141,6 +1157,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																		UnderlyingTypeString: "struct{ID string; Item *T}",
 																	},
 																	BaseCodeGenVarName: new("props"),
 																},
@@ -1211,6 +1228,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															BaseCodeGenVarName: new("props"),
 														},
@@ -1296,6 +1314,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "FirstName",
@@ -1325,6 +1344,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "FirstName",
@@ -1527,6 +1547,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																				PackageAlias:         "main_aaf9a2e0",
 																				CanonicalPackagePath: "testcase_75_chained_generic_methods/dist/pages/main_aaf9a2e0",
+																				UnderlyingTypeString: "struct{Data dto.PageData}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "props",
@@ -1554,6 +1575,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PageData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																				UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Data",
@@ -1582,6 +1604,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("dto.PageData"),
 																			PackageAlias:         "dto",
 																			CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																			UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Data",
@@ -1610,6 +1633,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																			UnderlyingTypeString: "struct{ID string; Item *T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Member",
@@ -1638,6 +1662,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																		PackageAlias:         "fields",
 																		CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																		UnderlyingTypeString: "struct{ID string; Item *T}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Member",
@@ -1738,6 +1763,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																PackageAlias:         "fields",
 																CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																UnderlyingTypeString: "struct{ID string; Item *T}",
 															},
 															BaseCodeGenVarName: new("props"),
 														},
@@ -1823,6 +1849,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("fields.Text"),
 														PackageAlias:         "fields",
 														CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+														UnderlyingTypeString: "string",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "LastName",
@@ -1852,6 +1879,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Text"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+													UnderlyingTypeString: "string",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "LastName",
@@ -2055,6 +2083,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 																					PackageAlias:         "main_aaf9a2e0",
 																					CanonicalPackagePath: "testcase_75_chained_generic_methods/dist/pages/main_aaf9a2e0",
+																					UnderlyingTypeString: "struct{Data dto.PageData}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "props",
@@ -2082,6 +2111,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("dto.PageData"),
 																					PackageAlias:         "dto",
 																					CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																					UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "Data",
@@ -2110,6 +2140,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("dto.PageData"),
 																				PackageAlias:         "dto",
 																				CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+																				UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Data",
@@ -2138,6 +2169,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																				PackageAlias:         "fields",
 																				CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																				UnderlyingTypeString: "struct{ID string; Item *T}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Member",
@@ -2166,6 +2198,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																			PackageAlias:         "fields",
 																			CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																			UnderlyingTypeString: "struct{ID string; Item *T}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Member",
@@ -2249,6 +2282,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 																	PackageAlias:         "fields",
 																	CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+																	UnderlyingTypeString: "struct{ID string; Item *T}",
 																},
 																BaseCodeGenVarName: new("props"),
 															},
@@ -2336,6 +2370,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 															PackageAlias:         "fields",
 															CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+															UnderlyingTypeString: "struct{ID string; Item *T}",
 														},
 														BaseCodeGenVarName: new("props"),
 													},
@@ -2537,6 +2572,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Props"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_75_chained_generic_methods/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{Data dto.PageData}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "props",
@@ -2564,6 +2600,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("dto.PageData"),
 														PackageAlias:         "dto",
 														CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+														UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Data",
@@ -2592,6 +2629,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("dto.PageData"),
 													PackageAlias:         "dto",
 													CanonicalPackagePath: "testcase_75_chained_generic_methods/dto",
+													UnderlyingTypeString: "struct{Member fields.Ref[dto.TeamMember]}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Data",
@@ -2620,6 +2658,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 													PackageAlias:         "fields",
 													CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+													UnderlyingTypeString: "struct{ID string; Item *T}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Member",
@@ -2648,6 +2687,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 												PackageAlias:         "fields",
 												CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+												UnderlyingTypeString: "struct{ID string; Item *T}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Member",
@@ -2731,6 +2771,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("fields.Ref[dto.TeamMember]"),
 										PackageAlias:         "fields",
 										CanonicalPackagePath: "testcase_75_chained_generic_methods/fields",
+										UnderlyingTypeString: "struct{ID string; Item *T}",
 									},
 									BaseCodeGenVarName: new("props"),
 								},

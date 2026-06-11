@@ -237,6 +237,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_layout_ee037d9a.Props"),
 													PackageAlias:         "partials_layout_ee037d9a",
 													CanonicalPackagePath: "testcase_013_partial_with_named_slot/dist/partials/partials_layout_ee037d9a",
+													UnderlyingTypeString: "struct{Title string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "props",

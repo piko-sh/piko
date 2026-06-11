@@ -142,6 +142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_011_partial_with_prop/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{FirstCardTitle string; SecondCardTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -353,6 +354,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_011_partial_with_prop/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{FirstCardTitle string; SecondCardTitle string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -494,6 +496,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 													PackageAlias:         "partials_card_bfc4a3cf",
 													CanonicalPackagePath: "testcase_011_partial_with_prop/dist/partials/partials_card_bfc4a3cf",
+													UnderlyingTypeString: "struct{Title string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -765,6 +768,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_011_partial_with_prop/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{FirstCardTitle string; SecondCardTitle string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -976,6 +980,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_011_partial_with_prop/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{FirstCardTitle string; SecondCardTitle string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1117,6 +1122,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_card_bfc4a3cf.Props"),
 													PackageAlias:         "partials_card_bfc4a3cf",
 													CanonicalPackagePath: "testcase_011_partial_with_prop/dist/partials/partials_card_bfc4a3cf",
+													UnderlyingTypeString: "struct{Title string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",

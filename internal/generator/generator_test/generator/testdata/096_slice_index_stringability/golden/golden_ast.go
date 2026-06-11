@@ -91,6 +91,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_096_slice_index_stringability/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Images []string; Mapping map[string]string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -261,6 +262,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_096_slice_index_stringability/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Images []string; Mapping map[string]string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -461,6 +463,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_096_slice_index_stringability/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Images []string; Mapping map[string]string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -631,6 +634,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_096_slice_index_stringability/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Images []string; Mapping map[string]string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",

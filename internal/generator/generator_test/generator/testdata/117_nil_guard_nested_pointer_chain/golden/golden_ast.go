@@ -207,6 +207,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -234,6 +235,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "User",
@@ -262,6 +264,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "User",
@@ -426,6 +429,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "state",
@@ -453,6 +457,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -481,6 +486,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "User",
@@ -620,6 +626,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "state",
@@ -647,6 +654,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "User",
@@ -675,6 +683,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "User",
@@ -703,6 +712,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "Profile",
@@ -731,6 +741,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Profile",
@@ -896,6 +907,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "state",
@@ -923,6 +935,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "User",
@@ -951,6 +964,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "User",
@@ -979,6 +993,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Profile",
@@ -1007,6 +1022,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Profile",
@@ -1147,6 +1163,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "state",
@@ -1174,6 +1191,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "User",
@@ -1202,6 +1220,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "User",
@@ -1230,6 +1249,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 																	PackageAlias:         "pages_main_594861c5",
 																	CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																	UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 																},
 																Symbol: &ast_domain.ResolvedSymbol{
 																	Name: "Profile",
@@ -1258,6 +1278,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Profile",
@@ -1286,6 +1307,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("*pages_main_594861c5.Avatar"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{URL string; Alt string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "Avatar",
@@ -1314,6 +1336,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															TypeExpression:       typeExprFromString("*pages_main_594861c5.Avatar"),
 															PackageAlias:         "pages_main_594861c5",
 															CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+															UnderlyingTypeString: "struct{URL string; Alt string}",
 														},
 														Symbol: &ast_domain.ResolvedSymbol{
 															Name: "Avatar",
@@ -1448,6 +1471,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 																					PackageAlias:         "pages_main_594861c5",
 																					CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																					UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "state",
@@ -1475,6 +1499,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																					PackageAlias:         "pages_main_594861c5",
 																					CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																					UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 																				},
 																				Symbol: &ast_domain.ResolvedSymbol{
 																					Name: "User",
@@ -1503,6 +1528,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("*pages_main_594861c5.User"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{Name string; Profile *pages_main_594861c5.Profile}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "User",
@@ -1531,6 +1557,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																				TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 																				PackageAlias:         "pages_main_594861c5",
 																				CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																				UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 																			},
 																			Symbol: &ast_domain.ResolvedSymbol{
 																				Name: "Profile",
@@ -1559,6 +1586,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*pages_main_594861c5.Profile"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{Bio string; Avatar *pages_main_594861c5.Avatar}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Profile",
@@ -1587,6 +1615,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			TypeExpression:       typeExprFromString("*pages_main_594861c5.Avatar"),
 																			PackageAlias:         "pages_main_594861c5",
 																			CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																			UnderlyingTypeString: "struct{URL string; Alt string}",
 																		},
 																		Symbol: &ast_domain.ResolvedSymbol{
 																			Name: "Avatar",
@@ -1615,6 +1644,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																		TypeExpression:       typeExprFromString("*pages_main_594861c5.Avatar"),
 																		PackageAlias:         "pages_main_594861c5",
 																		CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+																		UnderlyingTypeString: "struct{URL string; Alt string}",
 																	},
 																	Symbol: &ast_domain.ResolvedSymbol{
 																		Name: "Avatar",
@@ -1764,6 +1794,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1791,6 +1822,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Alt string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Image",
@@ -1819,6 +1851,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{URL string; Alt string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Image",
@@ -1923,6 +1956,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1950,6 +1984,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{URL string; Alt string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Image",
@@ -1978,6 +2013,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Alt string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Image",
@@ -2100,6 +2136,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.PageData"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{User *pages_main_594861c5.User; Image *pages_main_594861c5.Image}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -2127,6 +2164,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{URL string; Alt string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "Image",
@@ -2155,6 +2193,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("*pages_main_594861c5.Image"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_117_nil_guard_nested_pointer_chain/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{URL string; Alt string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Image",

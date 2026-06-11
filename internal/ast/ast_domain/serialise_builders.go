@@ -362,6 +362,9 @@ func addGoAnnotationTypeFields(ann *GoGeneratorAnnotation, elts *[]goast.Expr) {
 		if ann.ResolvedType.IsExportedPackageSymbol {
 			typeInfoElts = append(typeInfoElts, buildKV("IsExportedPackageSymbol", goast.NewIdent("true")))
 		}
+		if ann.ResolvedType.UnderlyingTypeString != "" {
+			typeInfoElts = append(typeInfoElts, buildKV("UnderlyingTypeString", strLit(ann.ResolvedType.UnderlyingTypeString)))
+		}
 		*elts = append(*elts, buildKV("ResolvedType", newUnaryExpr(token.AND, newCompositeLit(
 			astType("ResolvedTypeInfo"),
 			typeInfoElts,

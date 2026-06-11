@@ -108,6 +108,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string; Featured bool}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "item",
@@ -136,6 +137,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Response"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Items []pages_main_594861c5.Item}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -163,6 +165,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("[]pages_main_594861c5.Item"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Featured bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "Items",
@@ -191,6 +194,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("[]pages_main_594861c5.Item"),
 											PackageAlias:         "pages_main_594861c5",
 											CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+											UnderlyingTypeString: "struct{Name string; Featured bool}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "Items",
@@ -217,6 +221,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]pages_main_594861c5.Item"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{Name string; Featured bool}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Items",
@@ -238,6 +243,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										TypeExpression:       typeExprFromString("[]pages_main_594861c5.Item"),
 										PackageAlias:         "pages_main_594861c5",
 										CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+										UnderlyingTypeString: "struct{Name string; Featured bool}",
 									},
 									Symbol: &ast_domain.ResolvedSymbol{
 										Name: "Items",
@@ -260,6 +266,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									TypeExpression:       typeExprFromString("[]pages_main_594861c5.Item"),
 									PackageAlias:         "pages_main_594861c5",
 									CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+									UnderlyingTypeString: "struct{Name string; Featured bool}",
 								},
 								Symbol: &ast_domain.ResolvedSymbol{
 									Name: "Items",
@@ -322,6 +329,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 												PackageAlias:         "pages_main_594861c5",
 												CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+												UnderlyingTypeString: "struct{Name string; Featured bool}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "item",
@@ -389,6 +397,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Featured bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "item",
@@ -531,6 +540,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Featured bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",
@@ -614,6 +624,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 																PackageAlias:         "pages_main_594861c5",
 																CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+																UnderlyingTypeString: "struct{Name string; Featured bool}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "item",
@@ -803,6 +814,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 													PackageAlias:         "pages_main_594861c5",
 													CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+													UnderlyingTypeString: "struct{Name string; Featured bool}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "item",
@@ -923,6 +935,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													TypeExpression:       typeExprFromString("partials_badge_63370d86.Props"),
 													PackageAlias:         "partials_badge_63370d86",
 													CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/partials/partials_badge_63370d86",
+													UnderlyingTypeString: "struct{Label string}",
 												},
 												Symbol: &ast_domain.ResolvedSymbol{
 													Name: "state",
@@ -1065,6 +1078,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Featured bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",
@@ -1144,6 +1158,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("pages_main_594861c5.Item"),
 														PackageAlias:         "pages_main_594861c5",
 														CanonicalPackagePath: "testcase_146_partial_in_p_if_in_p_for/dist/pages/pages_main_594861c5",
+														UnderlyingTypeString: "struct{Name string; Featured bool}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "item",

@@ -103,6 +103,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_57_conditional_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{ShowChild bool; ChildData string; FallbackMessage string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -291,6 +292,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 											PackageAlias:         "main_aaf9a2e0",
 											CanonicalPackagePath: "testcase_57_conditional_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+											UnderlyingTypeString: "struct{ShowChild bool; ChildData string; FallbackMessage string}",
 										},
 										Symbol: &ast_domain.ResolvedSymbol{
 											Name: "state",
@@ -446,6 +448,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_57_conditional_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{ShowChild bool; ChildData string; FallbackMessage string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -628,6 +631,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_child_d247007e.Response"),
 																PackageAlias:         "partials_child_d247007e",
 																CanonicalPackagePath: "testcase_57_conditional_prop_binding_in_layout/dist/partials/partials_child_d247007e",
+																UnderlyingTypeString: "struct{Content string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
@@ -764,6 +768,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 														PackageAlias:         "main_aaf9a2e0",
 														CanonicalPackagePath: "testcase_57_conditional_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+														UnderlyingTypeString: "struct{ShowChild bool; ChildData string; FallbackMessage string}",
 													},
 													Symbol: &ast_domain.ResolvedSymbol{
 														Name: "state",
@@ -1018,6 +1023,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												TypeExpression:       typeExprFromString("main_aaf9a2e0.Response"),
 												PackageAlias:         "main_aaf9a2e0",
 												CanonicalPackagePath: "testcase_57_conditional_prop_binding_in_layout/dist/pages/main_aaf9a2e0",
+												UnderlyingTypeString: "struct{ShowChild bool; ChildData string; FallbackMessage string}",
 											},
 											Symbol: &ast_domain.ResolvedSymbol{
 												Name: "state",
@@ -1200,6 +1206,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																TypeExpression:       typeExprFromString("partials_fallback_6397e174.Response"),
 																PackageAlias:         "partials_fallback_6397e174",
 																CanonicalPackagePath: "testcase_57_conditional_prop_binding_in_layout/dist/partials/partials_fallback_6397e174",
+																UnderlyingTypeString: "struct{Text string}",
 															},
 															Symbol: &ast_domain.ResolvedSymbol{
 																Name: "state",
