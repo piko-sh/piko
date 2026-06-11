@@ -482,6 +482,23 @@ func TestCoerceToInt64ReflectPaths(t *testing.T) {
 	assert.InDelta(t, int64(3), CoerceToInt64(customFloat(3.7)), 0.0001)
 }
 
+func TestCoerceToInt64ReflectNamedBool(t *testing.T) {
+	t.Parallel()
+
+	type myBool bool
+	assert.Equal(t, int64(1), CoerceToInt64(myBool(true)))
+	assert.Equal(t, int64(0), CoerceToInt64(myBool(false)))
+}
+
+func TestCoerceToInt64ReflectNamedString(t *testing.T) {
+	t.Parallel()
+
+	type myString string
+	assert.Equal(t, int64(42), CoerceToInt64(myString("42")))
+	assert.Equal(t, int64(-7), CoerceToInt64(myString("-7")))
+	assert.Equal(t, int64(0), CoerceToInt64(myString("not-a-number")))
+}
+
 func TestCoerceToDecimalFloat32(t *testing.T) {
 	t.Parallel()
 

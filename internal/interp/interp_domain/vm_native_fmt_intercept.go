@@ -406,12 +406,12 @@ func restoreNamedTypeForFmt(vm *VM, argument any, staticTypeString string) any {
 	if dotIndex <= 0 || dotIndex >= len(staticTypeString)-1 {
 		return argument
 	}
-	pkgPath := staticTypeString[:dotIndex]
+	pkgQualifier := staticTypeString[:dotIndex]
 	typeName := staticTypeString[dotIndex+1:]
-	if strings.ContainsAny(pkgPath, "[]*") || strings.ContainsAny(typeName, "[]*") {
+	if strings.ContainsAny(pkgQualifier, "[]*") || strings.ContainsAny(typeName, "[]*") {
 		return argument
 	}
-	namedType, ok := vm.symbols.ReflectTypeForNamed(pkgPath, typeName)
+	namedType, ok := resolveRegisteredNamedType(vm.symbols, pkgQualifier, typeName)
 	if !ok {
 		return argument
 	}
@@ -424,6 +424,25 @@ func restoreNamedTypeForFmt(vm *VM, argument any, staticTypeString string) any {
 		return argument
 	}
 	return out.Interface()
+}
+
+// resolveRegisteredNamedType resolves a named type registered in the symbol registry from
+// the qualifier recorded in a call site's static type string.
+//
+// Takes symbols (*SymbolRegistry) which holds the typed-nil pointer registrations.
+// Takes pkgQualifier (string) which is the package path or short name from the static
+// type string.
+// Takes typeName (string) which is the bare type symbol name.
+//
+// Returns the registered reflect.Type and true on success, or nil and false on a miss.
+func resolveRegisteredNamedType(symbols *SymbolRegistry, pkgQualifier, typeName string) (reflect.Type, bool) {
+	if symbols == nil {
+		return nil, false
+	}
+	if namedType, ok := symbols.ReflectTypeForNamed(pkgQualifier, typeName); ok {
+		return namedType, true
+	}
+	return symbols.ReflectTypeForNamedByPackageName(pkgQualifier, typeName)
 }
 
 // setScalarFromValue copies the scalar payload of source into target, which must be a

@@ -622,6 +622,24 @@ func adaptArgForNativeAny(vm *VM, cached any, raw any) any {
 	return wrapPikoSynthesisedFmtArg(vm, raw)
 }
 
+// readNativeAnyArg reads one argument destined for a native interface ({}) parameter and
+// re-clothes it with its source-level named type before adapting.
+//
+// Takes vm (*VM) which provides the symbol registry for the type restore.
+// Takes cached (any) which is the native callee, used by adaptArgForNativeAny.
+// Takes site (*callSite) which carries the per-argument static type strings.
+// Takes registers (*Registers) which holds the source value.
+// Takes argumentIndex (int) which selects the argument and its static type string.
+//
+// Returns the prepared argument value ready to pass to the native function.
+func readNativeAnyArg(vm *VM, cached any, site *callSite, registers *Registers, argumentIndex int) any {
+	raw := readAnyArg(registers, site.arguments[argumentIndex])
+	if argumentIndex < len(site.argumentStaticTypeStrings) {
+		raw = restoreNamedTypeForFmt(vm, raw, site.argumentStaticTypeStrings[argumentIndex])
+	}
+	return adaptArgForNativeAny(vm, cached, raw)
+}
+
 // calleeIsPikoMakeFuncClosure reports whether the cached native function value is
 // actually a piko-side reflect.MakeFunc closure. All reflect.MakeFunc closures share one
 // trampoline code pointer (captured at init in reflectMakeFuncStubPointer); native Go
@@ -1105,7 +1123,7 @@ func fpDispatchAnyBool(vm *VM, cached any, site *callSite, registers *Registers)
 		return
 	}
 
-	registers.bools[site.returns[0].register] = f(adaptArgForNativeAny(vm, cached, readAnyArg(registers, site.arguments[0])))
+	registers.bools[site.returns[0].register] = f(readNativeAnyArg(vm, cached, site, registers, 0))
 }
 
 // fpDispatchAnyString dispatches a native function with the signature func(any) string
@@ -1121,7 +1139,7 @@ func fpDispatchAnyString(vm *VM, cached any, site *callSite, registers *Register
 		return
 	}
 
-	registers.strings[site.returns[0].register] = f(adaptArgForNativeAny(vm, cached, readAnyArg(registers, site.arguments[0])))
+	registers.strings[site.returns[0].register] = f(readNativeAnyArg(vm, cached, site, registers, 0))
 }
 
 // fpDispatchAnyInt dispatches a native function with the signature func(any) int via
@@ -1137,7 +1155,7 @@ func fpDispatchAnyInt(vm *VM, cached any, site *callSite, registers *Registers) 
 		return
 	}
 
-	registers.ints[site.returns[0].register] = int64(f(adaptArgForNativeAny(vm, cached, readAnyArg(registers, site.arguments[0]))))
+	registers.ints[site.returns[0].register] = int64(f(readNativeAnyArg(vm, cached, site, registers, 0)))
 }
 
 // fpDispatchAnyInt64 dispatches a native function with the signature func(any) int64 via
@@ -1153,7 +1171,7 @@ func fpDispatchAnyInt64(vm *VM, cached any, site *callSite, registers *Registers
 		return
 	}
 
-	registers.ints[site.returns[0].register] = f(adaptArgForNativeAny(vm, cached, readAnyArg(registers, site.arguments[0])))
+	registers.ints[site.returns[0].register] = f(readNativeAnyArg(vm, cached, site, registers, 0))
 }
 
 // fpDispatchAnyFloat64 dispatches a native function with the signature func(any) float64
@@ -1169,7 +1187,7 @@ func fpDispatchAnyFloat64(vm *VM, cached any, site *callSite, registers *Registe
 		return
 	}
 
-	registers.floats[site.returns[0].register] = f(adaptArgForNativeAny(vm, cached, readAnyArg(registers, site.arguments[0])))
+	registers.floats[site.returns[0].register] = f(readNativeAnyArg(vm, cached, site, registers, 0))
 }
 
 // fpDispatchAny2Any dispatches a native function with the signature func(any, any) any
@@ -1185,7 +1203,7 @@ func fpDispatchAny2Any(vm *VM, cached any, site *callSite, registers *Registers)
 		return
 	}
 
-	result := f(adaptArgForNativeAny(vm, cached, readAnyArg(registers, site.arguments[0])), adaptArgForNativeAny(vm, cached, readAnyArg(registers, site.arguments[1])))
+	result := f(readNativeAnyArg(vm, cached, site, registers, 0), readNativeAnyArg(vm, cached, site, registers, 1))
 	if result != nil {
 		registers.general[site.returns[0].register] = reflect.ValueOf(result)
 	} else {

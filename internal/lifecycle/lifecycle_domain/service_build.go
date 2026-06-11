@@ -422,6 +422,18 @@ func (ls *lifecycleService) reloadRoutesIfNeeded(ctx context.Context, newRunner 
 	l.Internal("Routes successfully loaded")
 }
 
+// SetCurrentRunner records the interpreted runner from outside the build-notification
+// flow.
+//
+// In dev-i the initial runner is built by the bootstrap builder, not by
+// handleInitialBuild, so the builder calls this after the initial build to seed the
+// runner snapshot that file-event route reloads depend on.
+//
+// Takes runner (templater_domain.ManifestRunnerPort) which is the runner to store.
+func (ls *lifecycleService) SetCurrentRunner(runner templater_domain.ManifestRunnerPort) {
+	ls.setCurrentRunner(runner)
+}
+
 // setCurrentRunner stores the interpreted runner so the watch goroutine can read it
 // without racing the build-notification goroutine.
 //
@@ -464,6 +476,22 @@ type interpretedRunnerView interface {
 	// Returns templater_domain.PageEntryView which is the page entry if found.
 	// Returns bool which indicates whether the entry was found.
 	GetPageEntryByPath(path string) (templater_domain.PageEntryView, bool)
+
+	// FindErrorPage looks up the most specific custom error page for the given status code
+	// and request path, so reloaded routers continue to resolve user-provided error pages
+	// (e.g. !404.pk) after a hot reload.
+	//
+	// Takes statusCode (int) which is the HTTP status code to match.
+	// Takes requestPath (string) which is the URL path being requested.
+	//
+	// Returns templater_domain.PageEntryView which is the matching error page entry.
+	// Returns bool which indicates whether a matching error page was found.
+	FindErrorPage(statusCode int, requestPath string) (templater_domain.PageEntryView, bool)
+
+	// ListPreviewEntries returns all entries that expose a Preview function.
+	//
+	// Returns []templater_domain.PreviewCatalogueEntry which contains the preview entries.
+	ListPreviewEntries() []templater_domain.PreviewCatalogueEntry
 }
 
 // interpretedManifestStoreViewAdapter implements ManifestStoreView by wrapping an
@@ -490,23 +518,25 @@ func (a *interpretedManifestStoreViewAdapter) GetPageEntry(path string) (templat
 	return a.runner.GetPageEntryByPath(path)
 }
 
-// FindErrorPage is not supported in interpreted mode, where error pages require the
-// compiled manifest store, and always returns (nil, false).
+// FindErrorPage resolves the most specific custom error page by delegating to the runner.
 //
-// Takes statusCode (int) which is the HTTP status code (unused).
-// Takes requestPath (string) which is the request path (unused).
+// This keeps user-provided error pages (e.g. !404.pk) working after a hot reload rebuilds
+// the router.
 //
-// Returns (nil, false) always.
-func (*interpretedManifestStoreViewAdapter) FindErrorPage(_ int, _ string) (templater_domain.PageEntryView, bool) {
-	return nil, false
+// Takes statusCode (int) which is the HTTP status code to match.
+// Takes requestPath (string) which is the request path being served.
+//
+// Returns templater_domain.PageEntryView which is the matching error page entry.
+// Returns bool which indicates whether a matching error page was found.
+func (a *interpretedManifestStoreViewAdapter) FindErrorPage(statusCode int, requestPath string) (templater_domain.PageEntryView, bool) {
+	return a.runner.FindErrorPage(statusCode, requestPath)
 }
 
-// ListPreviewEntries is not supported in this adapter. The interpreted mode preview
-// support is provided by the InterpretedManifestStoreView instead.
+// ListPreviewEntries returns all preview entries from the wrapped interpreted runner.
 //
-// Returns nil always.
-func (*interpretedManifestStoreViewAdapter) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
-	return nil
+// Returns []templater_domain.PreviewCatalogueEntry which contains the preview entries.
+func (a *interpretedManifestStoreViewAdapter) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
+	return a.runner.ListPreviewEntries()
 }
 
 // newInterpretedManifestStoreView creates a store view adapter for an interpreted runner.

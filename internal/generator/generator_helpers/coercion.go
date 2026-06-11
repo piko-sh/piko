@@ -443,6 +443,14 @@ func coerceToInt64ViaReflect(value any) int64 {
 		return safeconv.Uint64ToInt64(rv.Uint())
 	case reflect.Float32, reflect.Float64:
 		return int64(rv.Float())
+	case reflect.Bool:
+		if rv.Bool() {
+			return 1
+		}
+		return 0
+	case reflect.String:
+		parsed, _ := strconv.ParseInt(rv.String(), baseDecimal, 64)
+		return parsed
 	default:
 		return 0
 	}

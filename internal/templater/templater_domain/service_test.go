@@ -24,6 +24,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync/atomic"
 	"testing"
 
@@ -31,6 +32,7 @@ import (
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -557,6 +559,35 @@ func TestTemplaterService_ProbePage_NotFound(t *testing.T) {
 		t.Fatal("expected result to be nil")
 	}
 	AssertContains(t, err.Error(), "not found in manifest")
+}
+
+func TestTemplaterService_ProbePage_NotFoundReturns404(t *testing.T) {
+	t.Parallel()
+
+	fixture := NewTestFixture(t)
+	ctx := context.Background()
+	page := NewTestPageDefinition("pages/scan.pk")
+	request := NewTestRequest("GET", "/")
+	websiteConfig := NewTestConfig()
+
+	fixture.MockRunner.GetPageEntryFunc = func(_ context.Context, _ string) (templater_domain.PageEntryView, error) {
+		return nil, os.ErrNotExist
+	}
+
+	result, err := fixture.Service.ProbePage(ctx, page, request, websiteConfig)
+
+	AssertError(t, err)
+	if result != nil {
+		t.Fatal("expected result to be nil")
+	}
+
+	var actionError daemon_dto.ActionError
+	if !errors.As(err, &actionError) {
+		t.Fatalf("expected error to satisfy daemon_dto.ActionError, got %T", err)
+	}
+	if actionError.StatusCode() != http.StatusNotFound {
+		t.Errorf("expected status code %d, got %d", http.StatusNotFound, actionError.StatusCode())
+	}
 }
 
 func TestTemplaterService_ProbePage_MetadataCollectionError(t *testing.T) {

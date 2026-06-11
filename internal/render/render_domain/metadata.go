@@ -406,6 +406,11 @@ func ClearSpriteSheetCacheForTesting() {
 	getSpriteSheetCache().InvalidateAll()
 }
 
+// InvalidateSpriteSheetCache clears every assembled sprite sheet from the cache.
+func InvalidateSpriteSheetCache() {
+	getSpriteSheetCache().InvalidateAll()
+}
+
 // formatComponentNotFoundError creates an error message for when a component cannot be
 // found.
 //

@@ -57,6 +57,15 @@ type LifecycleService interface {
 	//
 	// Takes causationID (string) which identifies the request for tracing.
 	RequestRebuild(ctx context.Context, causationID string)
+
+	// SetCurrentRunner records the interpreted runner used for file-event route reloads.
+	//
+	// In dev-i the initial runner is built by the bootstrap builder rather than the
+	// lifecycle service, so without this seeding the runner snapshot stays nil and route
+	// reloads are silently skipped.
+	//
+	// Takes runner (templater_domain.ManifestRunnerPort) which wraps the live orchestrator.
+	SetCurrentRunner(runner templater_domain.ManifestRunnerPort)
 }
 
 // FileSystemWatcher provides file system event detection for source files and assets. It

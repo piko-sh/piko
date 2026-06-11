@@ -61,9 +61,10 @@ func (v *interpretedManifestStoreView) GetPageEntry(path string) (templater_doma
 	return pe, ok
 }
 
-// FindErrorPage looks up the most specific error page for the given HTTP status code and
-// request path using the same three-tier fallback chain as the compiled ManifestStore:
-// exact status-code match first, then range match, then catch-all. Within each tier the
+// FindErrorPage looks up the most specific error page for a status code and path.
+//
+// It uses the same three-tier fallback chain as the compiled ManifestStore: exact
+// status-code match first, then range match, then catch-all. Within each tier the
 // candidate with the longest matching ScopePath wins.
 //
 // Takes statusCode (int) which is the HTTP status code to match.
@@ -71,24 +72,37 @@ func (v *interpretedManifestStoreView) GetPageEntry(path string) (templater_doma
 //
 // Returns templater_domain.PageEntryView which is the matching error page entry.
 // Returns bool which is true when a matching error page was found.
-//
-// Concurrency: read-locks the runner's progCache for the scan duration.
 func (v *interpretedManifestStoreView) FindErrorPage(statusCode int, requestPath string) (templater_domain.PageEntryView, bool) {
-	v.r.cacheLock.RLock()
-	defer v.r.cacheLock.RUnlock()
+	return v.r.FindErrorPage(statusCode, requestPath)
+}
 
-	if entry, ok := findErrorPageTier(v.r.progCache, requestPath, func(d *ErrorPageDispatch) bool {
+// findErrorPageInEntries runs the three-tier error-page resolution over the supplied
+// entry set: exact status-code match first, then range match, then catch-all. Within each
+// tier the candidate with the longest matching ScopePath wins.
+//
+// Takes entries (map[string]*PageEntry) which holds the candidate entries to scan.
+// Takes statusCode (int) which is the HTTP status code to match.
+// Takes requestPath (string) which is the URL path being requested.
+//
+// Returns templater_domain.PageEntryView and true when a matching error page was found;
+// nil and false otherwise.
+func findErrorPageInEntries(
+	entries map[string]*PageEntry,
+	statusCode int,
+	requestPath string,
+) (templater_domain.PageEntryView, bool) {
+	if entry, ok := findErrorPageTier(entries, requestPath, func(d *ErrorPageDispatch) bool {
 		return !d.IsCatchAll && d.StatusCodeMin == 0 && d.StatusCodeMax == 0 && d.StatusCode == statusCode
 	}); ok {
 		return entry, true
 	}
-	if entry, ok := findErrorPageTier(v.r.progCache, requestPath, func(d *ErrorPageDispatch) bool {
+	if entry, ok := findErrorPageTier(entries, requestPath, func(d *ErrorPageDispatch) bool {
 		return !d.IsCatchAll && d.StatusCodeMin > 0 && d.StatusCodeMax > 0 &&
 			statusCode >= d.StatusCodeMin && statusCode <= d.StatusCodeMax
 	}); ok {
 		return entry, true
 	}
-	return findErrorPageTier(v.r.progCache, requestPath, func(d *ErrorPageDispatch) bool {
+	return findErrorPageTier(entries, requestPath, func(d *ErrorPageDispatch) bool {
 		return d.IsCatchAll
 	})
 }
@@ -141,25 +155,35 @@ func (v *interpretedManifestStoreView) ListPreviewEntries() []templater_domain.P
 	v.r.cacheLock.RLock()
 	defer v.r.cacheLock.RUnlock()
 
-	var entries []templater_domain.PreviewCatalogueEntry
-	for _, entry := range v.r.progCache {
-		if !entry.HasPreview || entry.previewFunc == nil {
+	return listPreviewEntriesFromCache(v.r.progCache)
+}
+
+// listPreviewEntriesFromCache builds the preview catalogue from the supplied entry set,
+// returning entries with a Preview function sorted by source path.
+//
+// Takes entries (map[string]*PageEntry) which holds the candidate entries to scan.
+//
+// Returns []templater_domain.PreviewCatalogueEntry sorted by source path.
+func listPreviewEntriesFromCache(entries map[string]*PageEntry) []templater_domain.PreviewCatalogueEntry {
+	var previews []templater_domain.PreviewCatalogueEntry
+	for _, entry := range entries {
+		if entry == nil || !entry.HasPreview || entry.previewFunc == nil {
 			continue
 		}
 		componentType := classifyComponentType(entry.OriginalSourcePath)
 		scenarios := entry.previewFunc()
-		entries = append(entries, templater_domain.PreviewCatalogueEntry{
+		previews = append(previews, templater_domain.PreviewCatalogueEntry{
 			OriginalSourcePath: entry.OriginalSourcePath,
 			ComponentType:      componentType,
 			Scenarios:          scenarios,
 		})
 	}
 
-	slices.SortFunc(entries, func(a, b templater_domain.PreviewCatalogueEntry) int {
+	slices.SortFunc(previews, func(a, b templater_domain.PreviewCatalogueEntry) int {
 		return cmp.Compare(a.OriginalSourcePath, b.OriginalSourcePath)
 	})
 
-	return entries
+	return previews
 }
 
 // classifyComponentType determines the component type from its source path prefix.
