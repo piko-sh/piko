@@ -120,8 +120,7 @@ func ApplyRestrictedSurface(registry *SymbolRegistry, policy RestrictedPackageSe
 	return removed
 }
 
-// DescribeRestrictedSurface returns a human-readable summary of the policy, useful for
-// `pinkas validate --explain-hardening` or equivalent CLI flags.
+// DescribeRestrictedSurface returns a human-readable summary of the policy.
 //
 // Takes policy (RestrictedPackageSet) which is the active policy.
 //

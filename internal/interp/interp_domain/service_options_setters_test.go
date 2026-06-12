@@ -151,6 +151,29 @@ func TestWithBytecodeVerification_PlumbedToConfig(t *testing.T) {
 		"WithBytecodeVerification(true) should clear disable flag")
 }
 
+func TestWithDeniedImports_PlumbedToConfig(t *testing.T) {
+	t.Parallel()
+	service := NewService(WithDeniedImports("unsafe", "runtime"))
+
+	require.NotNil(t, service.config)
+	require.Contains(t, service.config.deniedImports, "unsafe")
+	require.Contains(t, service.config.deniedImports, "runtime")
+}
+
+func TestWithImportAllowlist_PlumbedToConfig(t *testing.T) {
+	t.Parallel()
+	service := NewService(WithImportAllowlist("host/widgets"))
+
+	require.NotNil(t, service.config)
+	require.Contains(t, service.config.allowedImports, "host/widgets")
+	require.Contains(t, service.config.allowedImports, importAllowlistSentinel,
+		"a configured allowlist must stay non-empty so it is distinguishable from no allowlist")
+
+	empty := NewService(WithImportAllowlist())
+	require.NotEmpty(t, empty.config.allowedImports,
+		"an empty allowlist must still install the sentinel so it denies all external imports")
+}
+
 func TestWithCompilationSnapshot_PlumbedToConfig(t *testing.T) {
 	t.Parallel()
 	var captured *CompiledFileSet

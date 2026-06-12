@@ -26,10 +26,7 @@ import (
 )
 
 // ModuleBundle is the self-contained artefact pairing a ModuleDescriptor with the piko
-// bytecode that implements it. Bundles travel between machines as opaque byte sequences
-// (or as the envelope formats defined by hosts: pinkas's .pkbundle, pipit's XDG-cache
-// layout, OCI artefacts, etc.); this in-memory form is what crosses the piko API
-// boundary.
+// bytecode that implements it.
 //
 // Bytecode is the output of interp_domain.Service.PackCompiledFileSetToBytes, already
 // schema-hash versioned. Hosts SHOULD NOT inspect or mutate the bytes; piko's loader is

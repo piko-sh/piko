@@ -229,8 +229,8 @@ func WithYieldInterval(interval uint32) Option {
 
 // CapabilityHook is the port consulted before every gated native operation (file open,
 // network dial, process spawn, environment access, native function dispatch). Re-exported
-// from interp_domain so external hosts (pinkas, pipit, custom embedders) can implement it
-// without reaching into internal packages.
+// from interp_domain so external hosts can implement it without reaching into internal
+// packages.
 //
 // A nil CapabilityHook preserves the pre-hook execution model. See
 // interp_domain.CapabilityHook for the full contract.

@@ -132,6 +132,15 @@ type globalStore struct {
 	// registration and lookup.
 	externalMethodsMu sync.RWMutex
 
+	// interpreterLock serialises interpreted bytecode execution across every VM that shares
+	// this store, but only under the runtime safe mode.
+	//
+	// At most one interpreted goroutine runs bytecode at a time, so multi-word writes to
+	// shared upvalue cells, maps, and slice headers can never tear or race. It is released
+	// around blocking channel ops and at the periodic checkpoint so siblings make progress,
+	// and is never locked outside safe mode so fast mode pays nothing.
+	interpreterLock sync.Mutex
+
 	// shared toggles the locked vs fast-path mode for this store.
 	//
 	// False until any VM using this store launches its first goroutine; while false,

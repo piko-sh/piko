@@ -235,6 +235,19 @@ type VM struct {
 	// snapshot. Keyed by *abi.Type so different types do not share chunks.
 	boundarySnapshotChunks map[unsafe.Pointer]*boundaryChunk
 
+	// pointerProvenance records the valid byte window of the allocation each interpreted
+	// unsafe pointer was derived from, keyed by raw address.
+	//
+	// It is consulted only under the runtime safe mode (vm.limits.safeMode) to bounds-check
+	// unsafe pointer arithmetic, and is nil and never allocated in fast mode. See
+	// vm_safe_provenance.go.
+	pointerProvenance map[uintptr]pointerBound
+
+	// pointerProvenanceKeepAlive pins the pointees recorded in pointerProvenance so their
+	// addresses remain valid for the whole execution (the map holds only uintptrs, invisible
+	// to the GC). Safe mode only.
+	pointerProvenanceKeepAlive []reflect.Value
+
 	// symbols provides access to pre-registered native functions and values.
 	symbols *SymbolRegistry
 
@@ -463,6 +476,22 @@ type VM struct {
 	// child-goroutine panic) remain on their atomic fields because they're set from other
 	// goroutines.
 	checkpointFlags uint8
+
+	// holdsInterpreterLock is true while this VM holds its family's interpreter lock (the
+	// per-family GIL) in safe mode.
+	//
+	// It makes acquire idempotent across the goroutine's nested dispatch calls and gates the
+	// release-around and periodic-yield helpers. It is always false in fast mode.
+	holdsInterpreterLock bool
+
+	// reentrantInterpreterVM marks a fresh VM created to run an interpreted closure or
+	// method invoked by native code.
+	//
+	// The native caller is a reflect.MakeFunc wrapper or a bound method value. Such a VM
+	// must never acquire the interpreter lock: on the same goroutine it already runs under
+	// the caller's held lock, and a native-goroutine invocation is the documented
+	// native-concurrency residual. It is set at creation of those fresh VMs only.
+	reentrantInterpreterVM bool
 }
 
 // updateASMCallInfoBase sets the asmCallInfoBases entry for the current frame after a
@@ -647,6 +676,9 @@ func (vm *VM) releaseArena() {
 // Panics when a non-budget recover surfaces a runtime panic that the deferred handler
 // re-raises.
 func (vm *VM) execute(compiledFunction *CompiledFunction) (result any, err error) {
+	if vm.limits.safeMode {
+		vm.resetPointerProvenance()
+	}
 	defer vm.finishWatcher()
 	ownArena := false
 	defer func() {

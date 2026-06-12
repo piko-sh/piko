@@ -313,6 +313,11 @@ type vmLimits struct {
 	// forceGoDispatch forces the pure Go dispatch loop even on architectures with ASM
 	// threaded dispatch (amd64, arm64). Used for testing dispatch parity.
 	forceGoDispatch bool
+
+	// safeMode enables the runtime guard mode for untrusted code (the WithSafeMode option),
+	// distinct from the "safe" build tag. It implies forceGoDispatch so the guards run on
+	// the pure Go path, leaving the ASM fast path untouched.
+	safeMode bool
 }
 
 // resourceTracker holds shared atomic counters for resource tracking across parent and

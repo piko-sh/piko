@@ -26,8 +26,7 @@ import (
 // host's CapabilityHook interprets these claims - piko itself does not enforce semantics
 // on Axis or Scope values.
 //
-// Axis names a category of operation, in dotted form. Conventional axes (used by pinkas
-// and pipit by default):
+// Axis names a category of operation, in dotted form:
 //
 //   - "filesystem.read", "filesystem.write": file I/O
 //   - "exec": process spawn

@@ -580,6 +580,9 @@ func (s *Service) evalMixed(ctx context.Context, code string) (any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("evaluating mixed source: %w", err)
 	}
+	if err := s.checkFileImports(nil, file); err != nil {
+		return nil, fmt.Errorf("evaluating mixed source: %w", err)
+	}
 	result, evalError := s.doEvalFile(ctx, file)
 	if evalError != nil {
 		return nil, fmt.Errorf("evaluating mixed source: %w", evalError)
@@ -817,6 +820,9 @@ func (s *Service) compileMixed(ctx context.Context, code string) (*CompiledFunct
 	if err != nil {
 		return nil, fmt.Errorf("compiling mixed source: %w", err)
 	}
+	if err := s.checkFileImports(nil, file); err != nil {
+		return nil, fmt.Errorf("compiling mixed source: %w", err)
+	}
 	compiled, compileErr := s.compileFile(ctx, file)
 	if compileErr != nil {
 		return nil, fmt.Errorf("compiling mixed source: %w", compileErr)
@@ -889,11 +895,16 @@ func (s *Service) buildTagMatcher() func(string) bool {
 // Environ, Setenv, and Unsetenv operate on the configured environment map instead of the
 // host process.
 func (s *Service) applyEnvOverrides() {
-	if s.config == nil || len(s.config.env) == 0 || s.config.envApplied {
+	if s.config == nil || len(s.config.env) == 0 || s.config.envOnce == nil {
 		return
 	}
-	s.config.envApplied = true
+	s.config.envOnce.Do(s.installEnvOverrides)
+}
 
+// installEnvOverrides performs the registry patch for applyEnvOverrides. It runs under
+// the config's sync.Once, so it executes exactly once across all pooled clones sharing
+// the config and the underlying symbol registry.
+func (s *Service) installEnvOverrides() {
 	env := s.config.env
 
 	existing, ok := s.symbols.PackageSymbols("os")

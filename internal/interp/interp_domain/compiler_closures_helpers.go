@@ -120,16 +120,26 @@ func isUnsafePointerConversion(source, destination types.Type) bool {
 }
 
 // isSliceToArrayConversion reports whether the conversion is from a slice type to an
-// array type.
+// array type or to a pointer-to-array type.
 //
 // Takes source (types.Type) which is the source type.
 // Takes destination (types.Type) which is the destination type.
 //
-// Returns true when source underlies a slice and destination underlies an array.
+// Returns true when source underlies a slice and destination underlies an array or a
+// pointer to an array.
 func isSliceToArrayConversion(source, destination types.Type) bool {
-	_, sourceSlice := source.Underlying().(*types.Slice)
-	_, destinationArray := destination.Underlying().(*types.Array)
-	return sourceSlice && destinationArray
+	if _, sourceSlice := source.Underlying().(*types.Slice); !sourceSlice {
+		return false
+	}
+	switch destinationUnderlying := destination.Underlying().(type) {
+	case *types.Array:
+		return true
+	case *types.Pointer:
+		_, pointerToArray := destinationUnderlying.Elem().Underlying().(*types.Array)
+		return pointerToArray
+	default:
+		return false
+	}
 }
 
 // isSliceOfByte reports whether t's underlying type is []byte.

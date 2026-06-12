@@ -56,7 +56,7 @@ const (
 //
 // Returns the execution result and any error encountered.
 func (vm *VM) runDispatched(baseFramePointer int) (any, error) {
-	if vm.limits.forceGoDispatch || (vm.debugActive != nil && vm.debugActive.Load() != 0) {
+	if vm.limits.forceGoDispatch || vm.limits.safeMode || (vm.debugActive != nil && vm.debugActive.Load() != 0) {
 		return vm.run(baseFramePointer)
 	}
 

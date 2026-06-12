@@ -29,6 +29,7 @@ import (
 	"io"
 	"maps"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -137,12 +138,21 @@ type serviceConfig struct {
 	// env holds environment variable overrides for interpreted code.
 	env map[string]string
 
+	// deniedImports holds import paths a script may never import.
+	deniedImports map[string]struct{}
+
+	// allowedImports restricts which external packages a script may import.
+	allowedImports map[string]struct{}
+
 	// debugger is an optional debugger to attach to each VM.
 	debugger *Debugger
 
 	// costTable is the per-opcode cost table for cost metering. Nil means use the default
 	// cost table.
 	costTable *CostTable
+
+	// envOnce guards one-time application of environment overrides.
+	envOnce *sync.Once
 
 	// buildTags holds additional build tags for constraint evaluation.
 	buildTags []string
@@ -228,8 +238,23 @@ type serviceConfig struct {
 	// forceGoDispatch forces the pure Go dispatch loop on all architectures.
 	forceGoDispatch bool
 
-	// envApplied tracks whether environment overrides have been applied.
-	envApplied bool
+	// safeMode enables the runtime guard mode for untrusted code (the WithSafeMode option),
+	// distinct from the "safe" build tag. When set, execution is routed onto the pure Go
+	// dispatch loop so per-instruction guards can run; the ASM fast path is left untouched,
+	// so default fast mode keeps zero added overhead.
+	safeMode bool
+}
+
+// newServiceConfig returns a serviceConfig with its one-time guards initialised.
+//
+// The empty literal is kept separate from the field assignment so exhaustruct does not
+// require every field to be set.
+//
+// Returns *serviceConfig which has its envOnce guard ready for use.
+func newServiceConfig() *serviceConfig {
+	config := &serviceConfig{}
+	config.envOnce = new(sync.Once)
+	return config
 }
 
 // Option configures the interpreter service.
@@ -302,7 +327,7 @@ type Service struct {
 //
 // Returns *Service which is ready to evaluate code.
 func NewService(opts ...Option) *Service {
-	config := &serviceConfig{}
+	config := newServiceConfig()
 	for _, opt := range opts {
 		opt(config)
 	}
@@ -540,7 +565,7 @@ func (s *Service) CompileFileSet(ctx context.Context, sources map[string]string)
 
 	s.applyEnvOverrides()
 
-	files, err := s.parseAndFilterFiles(sources)
+	files, err := s.parseAndValidateFileSet(sources)
 	if err != nil {
 		return nil, safeerror.NewError(safeMessageCompilationFailed, fmt.Errorf(errFmtCompilingFileSet, err))
 	}
@@ -880,7 +905,7 @@ func (s *Service) CompileProgram(ctx context.Context, modulePath string, package
 
 	s.applyEnvOverrides()
 
-	parsed, err := s.parseAllPackages(modulePath, packages)
+	parsed, err := s.parseAndValidateImports(modulePath, packages)
 	if err != nil {
 		return nil, safeerror.NewError(safeMessageCompilationFailed, fmt.Errorf(errFmtCompilingProgram, err))
 	}
@@ -1088,7 +1113,7 @@ func (s *Service) Clone() *Service {
 // Takes callback (func(*CompiledFileSet)) which receives the snapshot.
 func (s *Service) SetCompilationSnapshot(callback func(*CompiledFileSet)) {
 	if s.config == nil {
-		s.config = &serviceConfig{}
+		s.config = newServiceConfig()
 	} else {
 		s.config = new(*s.config)
 	}
@@ -1109,7 +1134,7 @@ func (s *Service) SetCompilationSnapshot(callback func(*CompiledFileSet)) {
 // Takes hook (CapabilityHook) which is the new hook, or nil to clear.
 func (s *Service) SetCapabilityHook(hook CapabilityHook) {
 	if s.config == nil {
-		s.config = &serviceConfig{}
+		s.config = newServiceConfig()
 	}
 	s.config.capabilityHook = hook
 	s.limits.capabilityHook = hook
@@ -1289,6 +1314,10 @@ func (s *Service) applyConfigLimits(limits *vmLimits) {
 	limits.arenaFactory = s.config.arenaFactory
 	limits.maxCallDepth = s.config.maxCallDepth
 	limits.forceGoDispatch = s.config.forceGoDispatch
+	limits.safeMode = s.config.safeMode
+	if s.config.safeMode {
+		limits.forceGoDispatch = true
+	}
 	if s.config.maxAllocSize > 0 {
 		limits.maxAllocSize = s.config.maxAllocSize
 	}

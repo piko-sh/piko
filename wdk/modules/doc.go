@@ -16,10 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package modules is the public surface for piko's module-loading contract. Hosts (pipit,
-// pinkas, custom embedders) implement [ModuleProvider] to bring bundles in from their
-// chosen transport and consume the rest of the package's types when interacting with
-// piko's loader.
+// Package modules is the public surface for piko's module-loading contract.
 //
 // The contract is intentionally narrow:
 //

@@ -62,11 +62,6 @@ func TestPackageModuleRejectsInvalidDescriptor(t *testing.T) {
 	}
 }
 
-func TestPackageModuleFingerprintIsStable(t *testing.T) {
-	t.Parallel()
-	t.Skip("CompileProgram requires a populated symbol registry; covered by integration tests in pinkas plane work")
-}
-
 func TestLoadModuleVerifiesPin(t *testing.T) {
 	t.Parallel()
 	service := NewService()

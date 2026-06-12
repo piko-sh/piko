@@ -135,6 +135,7 @@ func makeClosureWrapperFunc(vm *VM, closure *runtimeClosure, funcType reflect.Ty
 
 	return reflect.MakeFunc(funcType, func(arguments []reflect.Value) []reflect.Value {
 		freshVM := newVM(ctx, globals, symbols)
+		freshVM.reentrantInterpreterVM = true
 		freshVM.limits = limits
 		freshVM.functions = functions
 		freshVM.rootFunction = rootFunction

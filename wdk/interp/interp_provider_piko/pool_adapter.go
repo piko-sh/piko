@@ -31,6 +31,11 @@ type poolAdapter struct {
 	// pool holds reusable interpreter service instances.
 	pool *sync.Pool
 
+	// loadErr, when non-nil, is a module-load failure recorded at pool construction; it is
+	// surfaced on every Get so a bad module fails loudly rather than silently serving an
+	// interpreter without the module.
+	loadErr error
+
 	// bytecodeEmissionDirectory is the root directory for emitting source and compiled
 	// bytecode to disk. Empty disables emission.
 	bytecodeEmissionDirectory string
@@ -46,6 +51,9 @@ var (
 // Returns templater_domain.InterpreterPort which is a ready-to-use interpreter.
 // Returns error when the pool returns an invalid type.
 func (p *poolAdapter) Get() (templater_domain.InterpreterPort, error) {
+	if p.loadErr != nil {
+		return nil, p.loadErr
+	}
 	item := p.pool.Get()
 	service, ok := item.(*interp_domain.Service)
 	if !ok {
@@ -77,13 +85,14 @@ func (p *poolAdapter) Put(i templater_domain.InterpreterPort) {
 // source and bytecode to disk. Empty disables emission.
 //
 // Returns *poolAdapter which provides pooled interpreters.
-func newPoolAdapter(golden *interp_domain.Service, bytecodeEmissionDirectory string) *poolAdapter {
+func newPoolAdapter(golden *interp_domain.Service, bytecodeEmissionDirectory string, loadErr error) *poolAdapter {
 	return &poolAdapter{
 		pool: &sync.Pool{
 			New: func() any {
 				return golden.Clone()
 			},
 		},
+		loadErr:                   loadErr,
 		bytecodeEmissionDirectory: bytecodeEmissionDirectory,
 	}
 }
