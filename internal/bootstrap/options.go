@@ -50,6 +50,7 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/seo/seo_domain"
 	"piko.sh/piko/internal/seo/seo_dto"
+	"piko.sh/piko/internal/worker/worker_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -161,6 +162,22 @@ func WithOrchestratorService(service orchestrator_domain.OrchestratorService) Op
 	return func(c *Container) {
 		c.orchestratorServiceOverride = service
 		registerCloseableForShutdown(c.GetAppContext(), "OrchestratorService", service)
+	}
+}
+
+// WithWorkerService sets a custom WorkerService for the container, bypassing the default
+// otter/sqlite/postgres store resolution.
+//
+// If the service has a shutdown method (Close, Shutdown, or Stop), it will be registered
+// for graceful shutdown.
+//
+// Takes service (worker_domain.Service) which is the custom worker service to use.
+//
+// Returns Option which sets the container to use the given service.
+func WithWorkerService(service worker_domain.Service) Option {
+	return func(c *Container) {
+		c.workerServiceOverride = service
+		registerCloseableForShutdown(c.GetAppContext(), "WorkerService", service)
 	}
 }
 

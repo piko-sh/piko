@@ -34,6 +34,7 @@ import (
 	registry_otter "piko.sh/piko/internal/registry/registry_dal/otter"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/wal/wal_domain"
+	worker_otter "piko.sh/piko/internal/worker/worker_dal/otter"
 )
 
 const (
@@ -42,6 +43,10 @@ const (
 
 	// defaultOrchestratorCapacity is the default capacity for the orchestrator.
 	defaultOrchestratorCapacity = 100_000
+
+	// defaultWorkerCapacity is the default advisory capacity hint for the worker DAL. The
+	// worker otter's job store is unbounded; this is kept for wiring parity.
+	defaultWorkerCapacity = 100_000
 
 	// defaultSnapshotThreshold is the default number of operations before a cache snapshot
 	// is triggered.
@@ -70,6 +75,11 @@ type Config struct {
 	// OrchestratorCapacity is the maximum number of orchestrator tasks to store. Defaults to
 	// 100,000 if zero or negative.
 	OrchestratorCapacity int64
+
+	// WorkerCapacity is an advisory capacity hint for the worker DAL. The worker otter's job
+	// store is unbounded (a queue must never silently evict); defaults to 100,000 if zero or
+	// negative.
+	WorkerCapacity int64
 }
 
 // PersistenceProviderConfig configures WAL-based persistence for the provider.
@@ -104,6 +114,12 @@ type Provider struct {
 
 	// orchestratorDALFactory is the orchestrator DAL factory; initialised by Connect.
 	orchestratorDALFactory *otterOrchestratorDALFactory
+
+	// workerDAL provides data access for the worker (job queue).
+	workerDAL any
+
+	// workerDALFactory is the worker DAL factory; initialised by Connect.
+	workerDALFactory *otterWorkerDALFactory
 
 	// persistentCaches holds caches created with WAL persistence. These must be closed
 	// separately from the DALs because DALs that receive injected caches (ownsCache=false)
@@ -147,6 +163,7 @@ func (p *Provider) Connect(ctx context.Context) error {
 
 	registryCapacity := valueOrDefault(p.config.RegistryCapacity, defaultRegistryCapacity)
 	orchestratorCapacity := valueOrDefault(p.config.OrchestratorCapacity, defaultOrchestratorCapacity)
+	workerCapacity := valueOrDefault(p.config.WorkerCapacity, defaultWorkerCapacity)
 
 	var registryOpts []registry_otter.Option
 	var orchestratorOpts []orchestrator_otter.Option
@@ -161,32 +178,9 @@ func (p *Provider) Connect(ctx context.Context) error {
 		p.persistentCaches = []interface{ Close(context.Context) error }{registryCache, orchCache}
 	}
 
-	registryDAL, err := registry_otter.NewOtterDAL(registry_otter.Config{
-		Capacity: registryCapacity,
-	}, registryOpts...)
-	if err != nil {
-		return fmt.Errorf("creating registry DAL: %w", err)
+	if err := p.buildOtterDALs(ctx, registryCapacity, orchestratorCapacity, workerCapacity, registryOpts, orchestratorOpts); err != nil {
+		return err
 	}
-	p.registryDAL = registryDAL
-
-	if p.persistenceEnabled() {
-		rebuildIndexes(ctx, registryDAL)
-	}
-
-	orchestratorDAL, err := orchestrator_otter.NewOtterDAL(orchestrator_otter.Config{
-		Capacity: orchestratorCapacity,
-	}, orchestratorOpts...)
-	if err != nil {
-		return fmt.Errorf("creating orchestrator DAL: %w", err)
-	}
-	p.orchestratorDAL = orchestratorDAL
-
-	if p.persistenceEnabled() {
-		rebuildIndexes(ctx, orchestratorDAL)
-	}
-
-	p.registryDALFactory = &otterRegistryDALFactory{dal: registryDAL}
-	p.orchestratorDALFactory = &otterOrchestratorDALFactory{dal: orchestratorDAL}
 
 	p.connected = true
 
@@ -194,6 +188,7 @@ func (p *Provider) Connect(ctx context.Context) error {
 	l.Internal("Otter persistence provider connected",
 		logger_domain.Int64("registry_capacity", registryCapacity),
 		logger_domain.Int64("orchestrator_capacity", orchestratorCapacity),
+		logger_domain.Int64("worker_capacity", workerCapacity),
 		logger_domain.Bool("persistence_enabled", p.persistenceEnabled()))
 
 	return nil
@@ -226,6 +221,12 @@ func (p *Provider) Close(ctx context.Context) error {
 		}
 	}
 
+	if closer, ok := p.workerDAL.(interface{ Close() error }); ok {
+		if err := closer.Close(); err != nil {
+			l.Warn("Error closing worker DAL", logger_domain.Error(err))
+		}
+	}
+
 	for _, cache := range p.persistentCaches {
 		_ = cache.Close(context.WithoutCancel(ctx))
 	}
@@ -233,6 +234,7 @@ func (p *Provider) Close(ctx context.Context) error {
 
 	p.registryDAL = nil
 	p.orchestratorDAL = nil
+	p.workerDAL = nil
 	p.connected = false
 
 	l.Internal("Otter persistence provider closed")
@@ -276,6 +278,7 @@ func (p *Provider) GetHealthDetails(_ context.Context) map[string]any {
 		"connected":             p.connected,
 		"registry_capacity":     p.config.RegistryCapacity,
 		"orchestrator_capacity": p.config.OrchestratorCapacity,
+		"worker_capacity":       p.config.WorkerCapacity,
 	}
 }
 
@@ -318,11 +321,71 @@ func (p *Provider) OrchestratorDALFactory() (OrchestratorDALFactory, error) {
 	return p.orchestratorDALFactory, nil
 }
 
+// WorkerDALFactory returns a factory for creating Worker data access layers.
+//
+// Returns WorkerDALFactory which provides worker DAL instances.
+// Returns error when called before Connect has been called.
+//
+// Safe for concurrent use.
+func (p *Provider) WorkerDALFactory() (WorkerDALFactory, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if p.workerDALFactory == nil {
+		return nil, errors.New("otter: WorkerDALFactory called before Connect")
+	}
+	return p.workerDALFactory, nil
+}
+
 // persistenceEnabled reports whether WAL-based persistence is configured and active.
 //
 // Returns bool which is true when persistence is both configured and enabled.
 func (p *Provider) persistenceEnabled() bool {
 	return p.config.Persistence != nil && p.config.Persistence.Enabled
+}
+
+// buildOtterDALs constructs the registry, orchestrator and worker otter DALs, rebuilds
+// their indexes when persistence is enabled, and records the DAL factories on the
+// provider.
+//
+// Takes the registry, orchestrator and worker capacities (int64) which bound each DAL.
+// Takes registryOpts ([]registry_otter.Option) and orchestratorOpts
+// ([]orchestrator_otter.Option) which carry the optional WAL-backed caches.
+//
+// Returns error when any DAL cannot be created.
+func (p *Provider) buildOtterDALs(
+	ctx context.Context,
+	registryCapacity, orchestratorCapacity, workerCapacity int64,
+	registryOpts []registry_otter.Option,
+	orchestratorOpts []orchestrator_otter.Option,
+) error {
+	registryDAL, err := registry_otter.NewOtterDAL(registry_otter.Config{Capacity: registryCapacity}, registryOpts...)
+	if err != nil {
+		return fmt.Errorf("creating registry DAL: %w", err)
+	}
+	p.registryDAL = registryDAL
+
+	orchestratorDAL, err := orchestrator_otter.NewOtterDAL(orchestrator_otter.Config{Capacity: orchestratorCapacity}, orchestratorOpts...)
+	if err != nil {
+		return fmt.Errorf("creating orchestrator DAL: %w", err)
+	}
+	p.orchestratorDAL = orchestratorDAL
+
+	workerDAL, err := worker_otter.NewOtterDAL(worker_otter.Config{Capacity: workerCapacity})
+	if err != nil {
+		return fmt.Errorf("creating worker DAL: %w", err)
+	}
+	p.workerDAL = workerDAL
+
+	if p.persistenceEnabled() {
+		rebuildIndexes(ctx, registryDAL)
+		rebuildIndexes(ctx, orchestratorDAL)
+	}
+
+	p.registryDALFactory = &otterRegistryDALFactory{dal: registryDAL}
+	p.orchestratorDALFactory = &otterOrchestratorDALFactory{dal: orchestratorDAL}
+	p.workerDALFactory = &otterWorkerDALFactory{dal: workerDAL}
+	return nil
 }
 
 // createPersistentCaches creates caches with WAL persistence enabled.
@@ -415,6 +478,21 @@ type otterOrchestratorDALFactory struct {
 // Returns any which is the otter orchestrator DAL instance.
 // Returns error which is always nil.
 func (f *otterOrchestratorDALFactory) NewOrchestratorDAL() (any, error) {
+	return f.dal, nil
+}
+
+// otterWorkerDALFactory creates worker DALs from a shared otter DAL. It implements
+// WorkerDALFactory.
+type otterWorkerDALFactory struct {
+	// dal holds the cached worker Store instance.
+	dal any
+}
+
+// NewWorkerDAL returns the shared otter worker DAL.
+//
+// Returns any which is the otter worker DAL instance.
+// Returns error which is always nil.
+func (f *otterWorkerDALFactory) NewWorkerDAL() (any, error) {
 	return f.dal, nil
 }
 

@@ -32,7 +32,7 @@ import (
 
 // getOtterProvider returns the default otter persistence provider, creating and
 // connecting it on first call. The otter provider manages in-memory caches with WAL
-// persistence for both registry and orchestrator data.
+// persistence for registry and orchestrator data, plus the in-memory worker job store.
 //
 // Returns *persistence.Provider which is the connected otter provider.
 // Returns error when the provider fails to connect.
@@ -44,6 +44,7 @@ func (c *Container) getOtterProvider() (*persistence.Provider, error) {
 		provider := persistence.NewProvider(persistence.Config{
 			RegistryCapacity:     100_000,
 			OrchestratorCapacity: 100_000,
+			WorkerCapacity:       100_000,
 			Persistence: &persistence.PersistenceProviderConfig{
 				Enabled:           true,
 				WALDir:            ".piko/wal/persistence",
@@ -110,4 +111,22 @@ func (c *Container) createOtterOrchestratorDAL() (any, error) {
 	}
 
 	return factory.NewOrchestratorDAL()
+}
+
+// createOtterWorkerDAL creates a worker DAL from the otter provider.
+//
+// Returns any which is the worker DAL instance (type worker_domain.Store).
+// Returns error when the otter provider or DAL factory fails.
+func (c *Container) createOtterWorkerDAL() (any, error) {
+	provider, err := c.getOtterProvider()
+	if err != nil {
+		return nil, err
+	}
+
+	factory, factoryErr := provider.WorkerDALFactory()
+	if factoryErr != nil {
+		return nil, factoryErr
+	}
+
+	return factory.NewWorkerDAL()
 }

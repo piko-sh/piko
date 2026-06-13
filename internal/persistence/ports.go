@@ -47,3 +47,14 @@ type OrchestratorDALFactory interface {
 	// Returns error when the DAL cannot be created.
 	NewOrchestratorDAL() (any, error)
 }
+
+// WorkerDALFactory creates Worker data access layers from the otter backend.
+type WorkerDALFactory interface {
+	// NewWorkerDAL creates a new Worker data access layer instance.
+	//
+	// Returns any which should be type-asserted to worker_domain.Store. The any type avoids
+	// import cycles between persistence and worker packages.
+	//
+	// Returns error when the DAL cannot be created.
+	NewWorkerDAL() (any, error)
+}

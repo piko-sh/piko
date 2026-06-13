@@ -91,6 +91,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/video/video_domain"
+	"piko.sh/piko/internal/worker/worker_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -318,6 +319,10 @@ type Container struct {
 	// service; nil uses the default.
 	orchestratorServiceOverride orchestrator_domain.OrchestratorService
 
+	// workerServiceOverride holds an optional replacement for the default worker service;
+	// nil uses the default.
+	workerServiceOverride worker_domain.Service
+
 	// renderRegistryOverride is an optional registry used instead of the default.
 	renderRegistryOverride render_domain.RegistryPort
 
@@ -448,19 +453,9 @@ type Container struct {
 	// metricsExporter holds the metrics exporter (e.g., Prometheus). Nil when disabled.
 	metricsExporter monitoring_domain.MetricsExporter
 
-	// extraSpanProcessors holds additional OTEL span processors registered via
-	// WithSpanProcessor, appended to the tracer provider during OTEL setup alongside the
-	// monitoring service's own processor.
-	extraSpanProcessors []monitoring_domain.SpanProcessor
-
 	// queryObserver receives a QueryObservation after each instrumented database statement
 	// (registered via WithQueryObserver). Nil when no observer was registered.
 	queryObserver monitoring_domain.QueryObserver
-
-	// readinessInfoKeyFilter reports whether a provider info key is sensitive and must be
-	// dropped before readiness info egresses off-box (registered via
-	// WithReadinessInfoKeyFilter). Nil when the built-in default filter applies.
-	readinessInfoKeyFilter func(string) bool
 
 	// orchestratorInspector holds the orchestrator inspector for monitoring; nil when not
 	// available.
@@ -494,12 +489,25 @@ type Container struct {
 	// markdownParser holds the user-provided markdown parser implementation.
 	markdownParser markdown_domain.MarkdownParserPort
 
-	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is set.
-	cspBuilder *security_domain.CSPBuilder
+	// spamdetectFeedbackStore holds a deferred feedback store applied when the spam
+	// detection service is lazily created.
+	spamdetectFeedbackStore spamdetect_domain.FeedbackStore
 
-	// onServerBound is an optional callback invoked after the main HTTP server binds to a
-	// port. Used to print the startup banner with the actual port.
-	onServerBound func(address string)
+	// seoURLProvider supplies additional sitemap URLs at build time, in-process; nil means
+	// no extra build-time URLs.
+	seoURLProvider seo_domain.SitemapURLProvider
+
+	// workerService is the cached worker service instance; nil until first built.
+	workerService worker_domain.Service
+
+	// workerNotifier is the in-process notifier that wakes worker loops on enqueue.
+	workerNotifier worker_domain.Notifier
+
+	// workerErr is the error captured when building the worker service failed.
+	workerErr error
+
+	// typeDataProvider creates a TypeDataProvider for the given cache sandbox.
+	typeDataProvider func(sandbox safedisk.Sandbox) inspector_domain.TypeDataProvider
 
 	// querierDBService holds the querier database service for named SQL connections and
 	// migrations.
@@ -513,7 +521,7 @@ type Container struct {
 	rateLimiter *ratelimiter_domain.Limiter
 
 	// dbProvider stores the otter persistence provider for the default in-memory backend.
-	// Only used when no SQL database is registered via AddDatabase.
+	// Only used when no SQL database is registered via ..
 	dbProvider *persistence.Provider
 
 	// dbRegistrations maps names to database registration configs. Populated by AddDatabase
@@ -523,8 +531,9 @@ type Container struct {
 	// storageProviders maps names to storage provider instances for data storage.
 	storageProviders map[string]storage_domain.StorageProviderPort
 
-	// typeDataProvider creates a TypeDataProvider for the given cache sandbox.
-	typeDataProvider func(sandbox safedisk.Sandbox) inspector_domain.TypeDataProvider
+	// onServerBound is an optional callback invoked after the main HTTP server binds to a
+	// port. Used to print the startup banner with the actual port.
+	onServerBound func(address string)
 
 	// sandboxFactory creates sandboxes for filesystem operations; nil uses the default
 	// factory from config.
@@ -563,10 +572,6 @@ type Container struct {
 	// captchaProviders maps provider names to their captcha handlers.
 	captchaProviders map[string]captcha_domain.CaptchaProvider
 
-	// spamdetectFeedbackStore holds a deferred feedback store applied when the spam
-	// detection service is lazily created.
-	spamdetectFeedbackStore spamdetect_domain.FeedbackStore
-
 	// spamdetectDetectors maps detector names to their spam detection handlers.
 	spamdetectDetectors map[string]spamdetect_domain.Detector
 
@@ -594,10 +599,6 @@ type Container struct {
 	// fails open (a live site keeps indexing) rather than de-indexing it. Bootstrap sets it
 	// from the daemon run mode.
 	seoProductionMode *bool
-
-	// seoURLProvider supplies additional sitemap URLs at build time, in-process; nil means
-	// no extra build-time URLs.
-	seoURLProvider seo_domain.SitemapURLProvider
 
 	// routeSources enumerate the concrete URLs for pages bound to a p-route-source
 	// directive; registered via WithRouteSource and composable across calls.
@@ -662,6 +663,13 @@ type Container struct {
 	// sriEnabled controls whether Subresource Integrity (SRI) hashes are added to script and
 	// link tags. Nil means use the default (enabled).
 	sriEnabled *bool
+
+	// readinessInfoKeyFilter reports whether a provider info key is sensitive and must be
+	// dropped before readiness info egresses off-box.
+	readinessInfoKeyFilter func(string) bool
+
+	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is set.
+	cspBuilder *security_domain.CSPBuilder
 
 	// crossOriginResourcePolicy overrides the default CORP header value. Empty means use the
 	// config default ("same-origin").
@@ -735,16 +743,13 @@ type Container struct {
 	// Empty when no override is set.
 	websiteConfig config.WebsiteConfig
 
-	// analyticsCollectors holds user-registered backend analytics collectors. Empty means no
-	// analytics middleware is installed.
-	analyticsCollectors []analytics_domain.Collector
-
-	// reportingEndpoints holds the configured reporting endpoints for the
-	// Reporting-Endpoints header.
-	reportingEndpoints []config.ReportingEndpoint
-
 	// frontendModules stores the registered frontend modules and their settings.
 	frontendModules []daemon_frontend.ModuleEntry
+
+	// extraSpanProcessors holds additional OTEL span processors registered via
+	// WithSpanProcessor, appended to the tracer provider during OTEL setup alongside the
+	// monitoring service's own processor.
+	extraSpanProcessors []monitoring_domain.SpanProcessor
 
 	// configResolvers holds the resolvers that process configuration during bootstrap.
 	configResolvers []config_domain.Resolver
@@ -758,6 +763,17 @@ type Container struct {
 	// cssTreeShakingSafelist lists CSS class names preserved during tree-shaking.
 	cssTreeShakingSafelist []string
 
+	// reportingEndpoints holds the configured reporting endpoints for the
+	// Reporting-Endpoints header.
+	reportingEndpoints []config.ReportingEndpoint
+
+	// analyticsCollectors holds user-registered backend analytics collectors. Empty means no
+	// analytics middleware is installed.
+	analyticsCollectors []analytics_domain.Collector
+
+	// workerOptions holds the service options applied when building the worker service.
+	workerOptions []worker_domain.ServiceOption
+
 	// serverConfig holds the resolved server configuration. It is populated during bootstrap
 	// by merging configServerOverrides (set by With* options) with struct-tag defaults via
 	// config_domain.Load.
@@ -766,32 +782,23 @@ type Container struct {
 	// csrfTokenMaxAge overrides the default CSRF token maximum age when positive.
 	csrfTokenMaxAge time.Duration
 
-	// hybridCacheWriteExpirationOverride is the operator-supplied write expiration on the
-	// hybrid-collections cache.
-	hybridCacheWriteExpirationOverride time.Duration
+	// actionResponseCacheMaxBytesOverride is the operator-supplied byte cap on the
+	// action-response cache.
+	actionResponseCacheMaxBytesOverride uint64
 
 	// hybridCacheMaxBytesOverride is the operator-supplied byte cap on the
 	// hybrid-collections cache.
 	hybridCacheMaxBytesOverride uint64
 
-	// actionResponseCacheMaxBytesOverride is the operator-supplied byte cap on the
-	// action-response cache.
-	actionResponseCacheMaxBytesOverride uint64
+	// hybridCacheWriteExpirationOverride is the operator-supplied write expiration on the
+	// hybrid-collections cache.
+	hybridCacheWriteExpirationOverride time.Duration
 
-	// renderRegOnce guards single initialisation of the render registry.
-	renderRegOnce sync.Once
+	// llmOnce guards single initialisation of the LLM service.
+	llmOnce sync.Once
 
-	// videoOnce guards single initialisation of the video service.
-	videoOnce sync.Once
-
-	// querierDBOnce guards single initialisation of the querier database service.
-	querierDBOnce sync.Once
-
-	// dbProviderOnce guards single initialisation of the database provider.
-	dbProviderOnce sync.Once
-
-	// i18nOnce guards single initialisation of the i18n service.
-	i18nOnce sync.Once
+	// cryptoOnce guards single initialisation of the crypto service.
+	cryptoOnce sync.Once
 
 	// generatorOnce guards single initialisation of the generator service.
 	generatorOnce sync.Once
@@ -804,6 +811,9 @@ type Container struct {
 
 	// orchestratorOnce guards single initialisation of the orchestrator service.
 	orchestratorOnce sync.Once
+
+	// workerOnce guards single initialisation of the worker service.
+	workerOnce sync.Once
 
 	// sandboxFactoryOnce guards single initialisation of the cached sandbox factory.
 	sandboxFactoryOnce sync.Once
@@ -841,8 +851,8 @@ type Container struct {
 	// emailOnce guards single initialisation of the email service.
 	emailOnce sync.Once
 
-	// llmOnce guards single initialisation of the LLM service.
-	llmOnce sync.Once
+	// dbProviderOnce guards single initialisation of the database provider.
+	dbProviderOnce sync.Once
 
 	// imageOnce guards single initialisation of the image service.
 	imageOnce sync.Once
@@ -859,8 +869,8 @@ type Container struct {
 	// cacheOnce guards single initialisation of the cache service.
 	cacheOnce sync.Once
 
-	// cryptoOnce guards single initialisation of the crypto service.
-	cryptoOnce sync.Once
+	// i18nOnce guards single initialisation of the i18n service.
+	i18nOnce sync.Once
 
 	// captchaOnce guards single initialisation of the captcha service.
 	captchaOnce sync.Once
@@ -889,18 +899,17 @@ type Container struct {
 	// componentRegistryOnce guards single initialisation of the component registry.
 	componentRegistryOnce sync.Once
 
-	// cspPolicyStringSet tracks whether SetCSPPolicyString was called. This tells apart "not
-	// set" from "set to empty string".
-	cspPolicyStringSet bool
+	// renderRegOnce guards single initialisation of the render registry.
+	renderRegOnce sync.Once
 
-	// hasEmailDispatcher indicates whether an email dispatcher has been set up.
-	hasEmailDispatcher bool
+	// videoOnce guards single initialisation of the video service.
+	videoOnce sync.Once
 
-	// hasStorageDispatcher indicates whether a storage dispatcher has been set up.
-	hasStorageDispatcher bool
+	// querierDBOnce guards single initialisation of the querier database service.
+	querierDBOnce sync.Once
 
-	// hasNotificationDispatcher indicates whether a notification dispatcher has been set up.
-	hasNotificationDispatcher bool
+	// verifyGeneratedCode re-parses each generated file to confirm it is valid Go.
+	verifyGeneratedCode bool
 
 	// cssTreeShaking enables CSS tree-shaking during scaffold generation.
 	cssTreeShaking bool
@@ -919,8 +928,8 @@ type Container struct {
 	// formatGeneratedCode runs go/format.Source on generated code so it is gofmt-canonical.
 	formatGeneratedCode bool
 
-	// verifyGeneratedCode re-parses each generated file to confirm it is valid Go.
-	verifyGeneratedCode bool
+	// hasNotificationDispatcher indicates whether a notification dispatcher has been set up.
+	hasNotificationDispatcher bool
 
 	// useStandardLoader causes the type inspector to use the standard
 	// golang.org/x/tools/go/packages.Load instead of the faster quickpackages.Load. This is
@@ -930,6 +939,16 @@ type Container struct {
 	// devWidgetEnabled controls whether the dev tools overlay widget is rendered on pages in
 	// dev mode.
 	devWidgetEnabled bool
+
+	// hasStorageDispatcher indicates whether a storage dispatcher has been set up.
+	hasStorageDispatcher bool
+
+	// hasEmailDispatcher indicates whether an email dispatcher has been set up.
+	hasEmailDispatcher bool
+
+	// cspPolicyStringSet tracks whether SetCSPPolicyString was called. This tells apart "not
+	// set" from "set to empty string".
+	cspPolicyStringSet bool
 
 	// devHotreloadEnabled controls whether the SSE hot-reload JS module is loaded in dev
 	// mode to trigger automatic page refreshes on rebuild.

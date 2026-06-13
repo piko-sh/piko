@@ -34,6 +34,8 @@ DAL_TARGETS=(
     "internal/registry/registry_dal/querier_sqlite:db:sqlite"
     "internal/orchestrator/orchestrator_dal/querier_postgres:db:postgres"
     "internal/registry/registry_dal/querier_postgres:db:postgres"
+    "internal/worker/worker_dal/querier_sqlite:db:sqlite"
+    "internal/worker/worker_dal/querier_postgres:db:postgres"
 )
 
 # generate_dal runs the generate_dal tool for all DAL targets.

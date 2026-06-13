@@ -33,6 +33,7 @@ use (
 	./tests/integration/storage
 	./tests/integration/testutil
 	./tests/integration/wasm_runner
+	./tests/integration/worker
 	./tests/testutil
 	./wdk/analytics/analytics_collector_grpcfb
 	./wdk/browser
