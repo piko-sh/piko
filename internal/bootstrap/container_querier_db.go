@@ -55,6 +55,12 @@ const (
 	// in-memory backend for the orchestrator.
 	DatabaseNameOrchestrator = "piko_orchestrator"
 
+	// DatabaseNameWorker is the reserved database name for piko's internal worker subsystem.
+	// When a database with this name is registered via WithDatabase, the framework uses the
+	// querier-based DAL adapter instead of the default otter in-memory backend for the
+	// registry.
+	DatabaseNameWorker = "piko_worker"
+
 	// databaseServiceName defines the health probe name for the database service.
 	databaseServiceName = "DatabaseService"
 

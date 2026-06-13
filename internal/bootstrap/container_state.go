@@ -74,6 +74,7 @@ import (
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/video/video_domain"
+	"piko.sh/piko/internal/worker/worker_domain"
 	"piko.sh/safedisk"
 )
 
@@ -115,6 +116,9 @@ type containerOnceGuards struct {
 
 	// orchestratorOnce guards single initialisation of the orchestrator service.
 	orchestratorOnce sync.Once
+
+	// workerOnce guards single initialisation of the worker service.
+	workerOnce sync.Once
 
 	// sandboxFactoryOnce guards single initialisation of the cached sandbox factory.
 	sandboxFactoryOnce sync.Once
@@ -272,6 +276,9 @@ type containerServiceErrors struct {
 
 	// orchestratorErr holds any error from creating the orchestrator service.
 	orchestratorErr error
+
+	// workerErr is the error captured when building the worker service failed.
+	workerErr error
 
 	// capabilityErr holds any error from creating the capability service.
 	capabilityErr error
@@ -471,6 +478,12 @@ type containerFeatureServices struct {
 	// metricsExporter holds the metrics exporter (e.g., Prometheus). Nil when disabled.
 	metricsExporter monitoring_domain.MetricsExporter
 
+	// workerService is the cached worker service instance; nil until first built.
+	workerService worker_domain.Service
+
+	// workerNotifier is the in-process notifier that wakes worker loops on enqueue.
+	workerNotifier worker_domain.Notifier
+
 	// deferredBlobStores are the blob stores a build writes without syncing each blob;
 	// FlushPersistenceSnapshot syncs them.
 	deferredBlobStores []blobFlusher
@@ -491,6 +504,10 @@ type containerOverrides struct {
 	// orchestratorServiceOverride holds an optional replacement for the default orchestrator
 	// service; nil uses the default.
 	orchestratorServiceOverride orchestrator_domain.OrchestratorService
+
+	// workerServiceOverride holds an optional replacement for the default worker service;
+	// nil uses the default.
+	workerServiceOverride worker_domain.Service
 
 	// renderRegistryOverride is an optional registry used instead of the default.
 	renderRegistryOverride render_domain.RegistryPort
@@ -856,6 +873,9 @@ type containerSettings struct {
 	// inMemoryRuntimeStoreBytes is the byte budget for the opt-in in-memory registry blob
 	// overlay, used only when inMemoryRuntimeStoreEnabled is set.
 	inMemoryRuntimeStoreBytes int64
+
+	// workerOptions holds the service options applied when building the worker service.
+	workerOptions []worker_domain.ServiceOption
 }
 
 // containerFeatureFlags holds the boolean toggles and state flags that switch container

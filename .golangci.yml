@@ -103,7 +103,17 @@ linters:
         - name: bool-literal-in-expr
         - name: empty-block
         - name: var-naming
-          arguments: [[], [], [{"skip-initialism-name-checks": false, "skip-package-name-checks": true}]]
+          arguments:
+            [
+              [],
+              [],
+              [
+                {
+                  "skip-initialism-name-checks": false,
+                  "skip-package-name-checks": true,
+                },
+              ],
+            ]
         - name: receiver-naming
         - name: error-naming
         - name: exported
