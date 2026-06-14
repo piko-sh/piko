@@ -1,0 +1,18 @@
+<template>
+	<div class="autoimport">{{ state.Shout }}</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type AutoImportResponse struct {
+	Shout string
+}
+
+func Render(_ *piko.RequestData, _ piko.NoProps) (AutoImportResponse, piko.Metadata, error) {
+	shout := strings.ToUpper("piko")
+	return AutoImportResponse{Shout: shout}, piko.Metadata{}, nil
+}
+</script>

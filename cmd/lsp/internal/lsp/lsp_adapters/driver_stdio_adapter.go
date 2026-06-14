@@ -27,6 +27,7 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
+	"piko.sh/piko/cmd/lsp/internal/lsp/gopls_bridge"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_domain"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/config"
@@ -71,12 +72,18 @@ type stdioAdapter struct {
 	// pathsConfig supplies workspace path settings for the LSP server.
 	pathsConfig *config.PathsConfig
 
-	// sandboxFactory creates sandboxes for filesystem access. When nil, a no-op sandbox is
-	// used as a fallback.
+	// sandboxFactory creates sandboxes for filesystem access. When nil, a sandbox scoped to
+	// the temp directory is used as a fallback.
 	sandboxFactory safedisk.Factory
+
+	// goplsManager owns the shared gopls child processes for Go-block requests.
+	goplsManager *gopls_bridge.Manager
 
 	// formattingEnabled controls whether formatting features are shown to clients.
 	formattingEnabled bool
+
+	// goplsBridgeEnabled is the process-level default for the Go-block bridge.
+	goplsBridgeEnabled bool
 }
 
 var (
@@ -119,6 +126,10 @@ func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error
 	logRes := setupLogFile(nil, a.sandboxFactory)
 	defer logRes.close()
 
+	if a.goplsManager != nil {
+		defer func() { _ = a.goplsManager.Close(context.WithoutCancel(ctx)) }()
+	}
+
 	rpcStream := jsonrpc2.NewStream(stream)
 	loggingStream := rpcStream
 	if logRes != nil && logRes.logFile != nil {
@@ -134,7 +145,9 @@ func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error
 		FSReader:             a.lspReader,
 		PathsConfig:          a.pathsConfig,
 		Formatter:            formatter,
+		GoplsManager:         a.goplsManager,
 		FormattingEnabled:    a.formattingEnabled,
+		GoplsBridgeEnabled:   a.goplsBridgeEnabled,
 	})
 
 	_, conn, client := protocol.NewServer(ctx, pikoServer, loggingStream, slog.Default())
@@ -147,53 +160,68 @@ func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error
 	return conn.Err()
 }
 
-// NewStdioAdapter is the factory function for creating the stdio driving adapter. It
-// requires all the dependencies that the LSP server needs.
+// StdioAdapterDeps holds the dependencies for creating a stdio driving adapter.
+type StdioAdapterDeps struct {
+	// CoordinatorService coordinates build and annotation operations.
+	CoordinatorService coordinator_domain.CoordinatorService
+
+	// Resolver resolves module and import paths.
+	Resolver resolver_domain.ResolverPort
+
+	// TypeInspectorManager builds Go type information for documentation analysis.
+	TypeInspectorManager *inspector_domain.TypeBuilder
+
+	// DocCache caches parsed documents.
+	DocCache *lsp_domain.DocumentCache
+
+	// LSPReader reads files from the filesystem.
+	LSPReader annotator_domain.FSReaderPort
+
+	// PathsConfig supplies workspace path settings.
+	PathsConfig *config.PathsConfig
+
+	// GoplsManager owns the shared gopls child processes for Go-block requests.
+	GoplsManager *gopls_bridge.Manager
+
+	// FormattingEnabled controls whether formatting is applied.
+	FormattingEnabled bool
+
+	// GoplsBridgeEnabled is the process-level default for the Go-block bridge.
+	GoplsBridgeEnabled bool
+}
+
+// NewStdioAdapter is the factory function for creating the stdio driving adapter.
 //
-// Takes coordinatorService (coordinator_domain.CoordinatorService) which provides
-// coordination between build and annotation operations.
-// Takes resolver (resolver_domain.ResolverPort) which resolves module paths.
-// Takes typeInspectorManager (*inspector_domain.TypeBuilder) which inspects Go types for
-// documentation analysis.
-// Takes docCache (*lsp_domain.DocumentCache) which caches parsed documents.
-// Takes lspReader (annotator_domain.FSReaderPort) which reads files from the filesystem.
-// Takes pathsConfig (*config.PathsConfig) which supplies workspace path settings.
-// Takes formattingEnabled (bool) which controls whether formatting is applied.
+// Takes deps (StdioAdapterDeps) which provides all dependencies the LSP server needs.
 //
 // Returns lsp_domain.LSPServerPort which is the configured LSP server adapter ready to
 // handle stdio communication.
 // Returns error when any required dependency is nil.
-func NewStdioAdapter(
-	coordinatorService coordinator_domain.CoordinatorService,
-	resolver resolver_domain.ResolverPort,
-	typeInspectorManager *inspector_domain.TypeBuilder,
-	docCache *lsp_domain.DocumentCache,
-	lspReader annotator_domain.FSReaderPort,
-	pathsConfig *config.PathsConfig,
-	formattingEnabled bool,
-) (lsp_domain.LSPServerPort, error) {
+func NewStdioAdapter(deps StdioAdapterDeps) (lsp_domain.LSPServerPort, error) {
 	switch {
-	case coordinatorService == nil:
+	case deps.CoordinatorService == nil:
 		return nil, errors.New("NewStdioAdapter: coordinatorService cannot be nil")
-	case resolver == nil:
+	case deps.Resolver == nil:
 		return nil, errors.New("NewStdioAdapter: resolver cannot be nil")
-	case typeInspectorManager == nil:
+	case deps.TypeInspectorManager == nil:
 		return nil, errors.New("NewStdioAdapter: typeInspectorManager cannot be nil")
-	case docCache == nil:
+	case deps.DocCache == nil:
 		return nil, errors.New("NewStdioAdapter: docCache cannot be nil")
-	case lspReader == nil:
+	case deps.LSPReader == nil:
 		return nil, errors.New("NewStdioAdapter: lspReader cannot be nil")
-	case pathsConfig == nil:
+	case deps.PathsConfig == nil:
 		return nil, errors.New("NewStdioAdapter: pathsConfig cannot be nil")
 	}
 	return &stdioAdapter{
-		coordinatorService:   coordinatorService,
-		resolver:             resolver,
-		typeInspectorManager: typeInspectorManager,
-		docCache:             docCache,
-		lspReader:            lspReader,
-		pathsConfig:          pathsConfig,
-		formattingEnabled:    formattingEnabled,
+		coordinatorService:   deps.CoordinatorService,
+		resolver:             deps.Resolver,
+		typeInspectorManager: deps.TypeInspectorManager,
+		docCache:             deps.DocCache,
+		lspReader:            deps.LSPReader,
+		pathsConfig:          deps.PathsConfig,
+		goplsManager:         deps.GoplsManager,
+		formattingEnabled:    deps.FormattingEnabled,
+		goplsBridgeEnabled:   deps.GoplsBridgeEnabled,
 	}, nil
 }
 
@@ -202,7 +230,8 @@ func NewStdioAdapter(
 // Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for testing. When
 // nil, a sandbox is created for the temp directory.
 // Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
-// nil, a no-op sandbox is used as a fallback.
+// nil, a real sandbox scoped to the temp directory is created directly, so the protocol
+// log writer is still confined and never falls back to unsandboxed access.
 //
 // Returns *lspLogResources which holds the log file and sandbox handles, or nil if the
 // log file could not be created. The LSP server will continue without protocol logging in
@@ -219,7 +248,7 @@ func setupLogFile(injectedSandbox safedisk.Sandbox, factory safedisk.Factory) *l
 		if factory != nil {
 			sandbox, err = factory.Create("lsp-log", os.TempDir(), safedisk.ModeReadWrite)
 		} else {
-			sandbox, err = safedisk.NewNoOpSandbox(os.TempDir(), safedisk.ModeReadWrite)
+			sandbox, err = safedisk.NewSandbox(os.TempDir(), safedisk.ModeReadWrite)
 		}
 		if err != nil {
 			l.Warn("LSP protocol logging disabled: could not create sandbox for temp directory",

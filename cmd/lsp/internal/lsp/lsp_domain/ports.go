@@ -55,7 +55,10 @@ type WorkspacePort interface {
 	//
 	// Takes uri (protocol.DocumentURI) which identifies the document to update.
 	// Takes content ([]byte) which provides the new document content.
-	UpdateDocument(uri protocol.DocumentURI, content []byte)
+	// Takes version (int32) which is the editor's document version, or 0 if unknown.
+	//
+	// Returns the new monotonic content generation for this URI.
+	UpdateDocument(uri protocol.DocumentURI, content []byte, version int32) uint64
 
 	// RemoveDocument removes a document from the workspace and clears its diagnostics.
 	//

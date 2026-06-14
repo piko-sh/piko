@@ -19,6 +19,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
@@ -27,12 +28,15 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	sonicjson "piko.sh/piko/wdk/json/json_provider_sonic"
 
+	"piko.sh/piko/cmd/lsp/internal/lsp/gopls_bridge"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_adapters"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_domain"
 	"piko.sh/piko/internal/annotator/annotator_domain"
@@ -51,6 +55,18 @@ type stdrwc struct {
 	io.WriteCloser
 }
 
+// deadlineWriteCloser applies a per-write deadline to the stdio output file so a wedged
+// editor cannot block the server indefinitely. SetWriteDeadline is best-effort (it
+// applies to pollable pipes and is ignored otherwise), so a write to a non-pollable
+// target degrades to the prior blocking behaviour rather than erroring.
+type deadlineWriteCloser struct {
+	// file is the stdio output file the deadline is applied to before each write.
+	file *os.File
+
+	// timeout is the per-write deadline; a non-positive value disables the deadline.
+	timeout time.Duration
+}
+
 const (
 	// defaultDriverMode is the default driver mode used when the PIKO_LSP_DRIVER environment
 	// variable is not set.
@@ -64,6 +80,9 @@ const (
 
 	// defaultPprofPort is the default port for the pprof HTTP server.
 	defaultPprofPort = 6060
+
+	// stdioWriteTimeout bounds a single write to the editor over stdio.
+	stdioWriteTimeout = 15 * time.Second
 )
 
 var (
@@ -87,6 +106,24 @@ var (
 
 	// flagFileLogging holds the --file-logging flag that enables logging to a file.
 	flagFileLogging = flag.Bool("file-logging", false, "Enable file logging to /tmp/piko-lsp-<pid>.log")
+
+	// flagGoplsBridge holds the --gopls-bridge flag that enables delegating Go script blocks
+	// to a child gopls process. It is off by default; editors opt in (VS Code via
+	// initialisationOptions, Zed via this flag).
+	flagGoplsBridge = flag.Bool("gopls-bridge", false, "Delegate Go script blocks to a child gopls process for Go intelligence")
+
+	// flagGoplsPath holds the --gopls-path flag overriding gopls discovery.
+	flagGoplsPath = flag.String("gopls-path", "", "Path to the gopls executable (defaults to PATH and Go bin discovery)")
+
+	// flagGoplsDisable holds the --gopls-disable flag, the operator's hard veto on the
+	// Go-block bridge. When set, no client opt-in can spawn gopls.
+	flagGoplsDisable = flag.Bool("gopls-disable", false, "Hard-disable the Go-block gopls bridge regardless of any client request")
+
+	// flagGoplsMaxChildren caps concurrent gopls child processes; 0 keeps the default.
+	flagGoplsMaxChildren = flag.Int("gopls-max-children", 0, "Maximum concurrent gopls child processes (0 uses the default); raise it for large multi-module workspaces")
+
+	// flagGoplsMaxOverlays caps open Go-block overlays per gopls child; 0 keeps the default.
+	flagGoplsMaxOverlays = flag.Int("gopls-max-overlays", 0, "Maximum open Go-block overlays per gopls child (0 uses the default)")
 )
 
 // lspServices holds the services needed for LSP operation.
@@ -108,6 +145,7 @@ type lspServices struct {
 func main() {
 	sonicjson.New().Activate()
 	flag.Parse()
+	validatePortFlags()
 
 	driverMode, tcpAddr := getDriverConfig()
 
@@ -191,6 +229,17 @@ func getDriverConfig() (driverMode, tcpAddr string) {
 	return driverMode, tcpAddr
 }
 
+// envTruthy reports whether an environment variable is set to a truthy value (1, true,
+// yes, or on, case-insensitive).
+//
+// Takes key (string) which names the environment variable to read.
+//
+// Returns true when the variable holds a recognised truthy value.
+func envTruthy(key string) bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	return slices.Contains([]string{"1", "true", "yes", "on"}, value)
+}
+
 // initialiseLSP bootstraps the DI container and LSP-specific components.
 //
 // Returns lspServices which contains the initialised container, config provider, document
@@ -247,6 +296,8 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 		fatalf("Failed to get type inspector manager: %v", err)
 	}
 
+	goplsManager, goplsBridgeEnabled := buildGoplsManager()
+
 	switch driverMode {
 	case "tcp":
 		getLog().Info("Creating TCP driver adapter", logger.String("address", tcpAddr))
@@ -258,6 +309,8 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 			DocCache:             service.docCache,
 			LSPReader:            service.lspReader,
 			PathsConfig:          service.pathsConfig,
+			GoplsManager:         goplsManager,
+			GoplsBridgeEnabled:   goplsBridgeEnabled,
 			FormattingEnabled:    *flagFormatting,
 		})
 		if driverErr != nil {
@@ -266,7 +319,17 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 		return driver
 	case "stdio":
 		getLog().Info("Creating STDIO driver adapter")
-		driver, driverErr := lsp_adapters.NewStdioAdapter(coordinatorService, resolver, typeInspectorMgr, service.docCache, service.lspReader, service.pathsConfig, *flagFormatting)
+		driver, driverErr := lsp_adapters.NewStdioAdapter(lsp_adapters.StdioAdapterDeps{
+			CoordinatorService:   coordinatorService,
+			Resolver:             resolver,
+			TypeInspectorManager: typeInspectorMgr,
+			DocCache:             service.docCache,
+			LSPReader:            service.lspReader,
+			PathsConfig:          service.pathsConfig,
+			GoplsManager:         goplsManager,
+			GoplsBridgeEnabled:   goplsBridgeEnabled,
+			FormattingEnabled:    *flagFormatting,
+		})
 		if driverErr != nil {
 			fatalf("Failed to create STDIO driver adapter: %v", driverErr)
 		}
@@ -275,6 +338,78 @@ func createDriver(driverMode, tcpAddr string, service lspServices) lsp_domain.LS
 		fatalf("Unknown driver mode: %s (must be 'stdio' or 'tcp')", driverMode)
 		return nil
 	}
+}
+
+// buildGoplsManager resolves the gopls bridge configuration and builds the shared
+// Manager.
+//
+// The Manager is always allowed to discover gopls lazily; whether a connection uses the
+// bridge is decided per-connection by the returned default (the process --gopls-bridge
+// flag, overridable by initializationOptions.goBridge), so a client such as VS Code can
+// opt in even when the process default is off, while a process where nobody opts in never
+// pays for discovery.
+//
+// Returns the shared gopls Manager and the process-level bridge default.
+func buildGoplsManager() (*gopls_bridge.Manager, bool) {
+	goplsBridgeEnabled := *flagGoplsBridge || envTruthy("PIKO_LSP_GOPLS_BRIDGE")
+	goplsPath := cmp.Or(*flagGoplsPath, os.Getenv("PIKO_GOPLS_PATH"))
+
+	allow := !*flagGoplsDisable && !envTruthy("PIKO_LSP_GOPLS_DISABLE")
+	manager := gopls_bridge.NewManager(gopls_bridge.ManagerConfig{
+		GoplsPath:           goplsPath,
+		Allow:               allow,
+		MaxChildren:         cmp.Or(*flagGoplsMaxChildren, envInt("PIKO_LSP_GOPLS_MAX_CHILDREN")),
+		MaxOverlaysPerChild: cmp.Or(*flagGoplsMaxOverlays, envInt("PIKO_LSP_GOPLS_MAX_OVERLAYS")),
+	})
+	return manager, goplsBridgeEnabled
+}
+
+// envInt reads a non-negative integer from an environment variable, returning 0 when it
+// is unset, blank, malformed, or negative so the caller falls back to the configured
+// default.
+//
+// Takes key (string) which names the environment variable to read.
+//
+// Returns the parsed non-negative integer, or 0 when the value is absent or invalid.
+func envInt(key string) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return 0
+	}
+	parsed, parseErr := strconv.Atoi(value)
+	if parseErr != nil || parsed < 0 {
+		return 0
+	}
+	return parsed
+}
+
+// newDeadlineWriteCloser wraps the stdio output file with a per-write deadline.
+//
+// Takes file (*os.File) which is the stdio output file to wrap.
+// Takes timeout (time.Duration) which is the per-write deadline.
+//
+// Returns an io.WriteCloser that applies the deadline before each write.
+func newDeadlineWriteCloser(file *os.File, timeout time.Duration) io.WriteCloser {
+	return &deadlineWriteCloser{file: file, timeout: timeout}
+}
+
+// Write sets the write deadline before delegating to the underlying file.
+//
+// Takes payload ([]byte) which holds the bytes to write.
+//
+// Returns the number of bytes written and any write error.
+func (d *deadlineWriteCloser) Write(payload []byte) (int, error) {
+	if d.timeout > 0 {
+		_ = d.file.SetWriteDeadline(time.Now().Add(d.timeout))
+	}
+	return d.file.Write(payload)
+}
+
+// Close closes the underlying file.
+//
+// Returns any error from closing the file.
+func (d *deadlineWriteCloser) Close() error {
+	return d.file.Close()
 }
 
 // runServer starts the LSP server and handles shutdown.
@@ -286,7 +421,7 @@ func runServer(ctx context.Context, driverMode string, driver lsp_domain.LSPServ
 
 	var stream io.ReadWriteCloser
 	if driverMode == "stdio" {
-		stream = &stdrwc{Reader: os.Stdin, WriteCloser: os.Stdout}
+		stream = &stdrwc{Reader: os.Stdin, WriteCloser: newDeadlineWriteCloser(os.Stdout, stdioWriteTimeout)}
 	}
 
 	if err := driver.Run(ctx, stream); err != nil {
@@ -315,6 +450,19 @@ func cleanStaleLSPLogs() {
 		if info.ModTime().Before(cutoff) {
 			_ = os.Remove(path)
 		}
+	}
+}
+
+// validatePortFlags rejects out-of-range --port and --pprof-port values up front so a
+// misconfiguration fails with a clear message rather than an opaque late net.Listen
+// error.
+func validatePortFlags() {
+	const minPort, maxPort = 1, 65535
+	if *flagPort < minPort || *flagPort > maxPort {
+		fatalf("invalid --port %d: must be between %d and %d", *flagPort, minPort, maxPort)
+	}
+	if *flagPprofPort < minPort || *flagPprofPort > maxPort {
+		fatalf("invalid --pprof-port %d: must be between %d and %d", *flagPprofPort, minPort, maxPort)
 	}
 }
 

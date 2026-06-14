@@ -22,6 +22,9 @@ const (
 	// keyURI is the logging key for document URIs.
 	keyURI = "uri"
 
+	// keyOperation is the logging key for the LSP operation that triggered work.
+	keyOperation = "operation"
+
 	// keyFiles is the logging key for the number of files in workspace operations.
 	keyFiles = "files"
 

@@ -21,6 +21,7 @@ package lsp_domain
 import (
 	"context"
 	"slices"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -169,6 +170,65 @@ func TestServer_SetClient_UpdatesWorkspace(t *testing.T) {
 
 	if ws.client != client {
 		t.Error("expected workspace client to be updated")
+	}
+}
+
+func TestServer_RunBoundedAnalysis_RecoversWorkerPanic(t *testing.T) {
+
+	ws := &workspace{
+		documents:           make(map[protocol.DocumentURI]*document),
+		docCache:            NewDocumentCache(),
+		analysisDone:        make(map[protocol.DocumentURI]chan struct{}),
+		requestedGeneration: make(map[protocol.DocumentURI]uint64),
+		client:              &mockClient{},
+	}
+	server := &Server{
+		workspace:         ws,
+		analysisSemaphore: make(chan struct{}, maxConcurrentAnalysis),
+	}
+
+	server.runBoundedAnalysis(context.Background(), []protocol.DocumentURI{"file:///panic-a.pk", "file:///panic-b.pk"}, "panic-recovery-1")
+	server.runBoundedAnalysis(context.Background(), []protocol.DocumentURI{"file:///panic-c.pk"}, "panic-recovery-2")
+
+	if len(ws.inFlight) != 0 {
+		t.Errorf("expected no leaked in-flight analyses after recovered panics, got %d", len(ws.inFlight))
+	}
+}
+
+func TestGoBackground_SkipsAfterShutdownBegins(t *testing.T) {
+	t.Parallel()
+
+	server := &Server{}
+	server.mu.Lock()
+	server.shuttingDown = true
+	server.mu.Unlock()
+
+	var ran atomic.Bool
+	server.goBackground(func(context.Context) { ran.Store(true) })
+
+	if ran.Load() {
+		t.Fatal("goBackground ran an operation after shutdown began")
+	}
+}
+
+func TestGoBackground_NoAddRaceWithTeardownWait(t *testing.T) {
+	t.Parallel()
+
+	for range 100 {
+		server := &Server{}
+		server.mu.Lock()
+		server.serverCtx, server.serverCancel = context.WithCancelCause(context.Background())
+		server.mu.Unlock()
+
+		var spawners sync.WaitGroup
+		spawners.Go(func() {
+			for range 50 {
+				server.goBackground(func(context.Context) {})
+			}
+		})
+
+		server.teardownConnection(context.Background())
+		spawners.Wait()
 	}
 }
 

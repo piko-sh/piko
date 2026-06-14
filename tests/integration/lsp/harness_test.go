@@ -24,9 +24,12 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -57,16 +60,18 @@ func buildLSPBinary(t *testing.T) string {
 		tmpDir := os.TempDir()
 		lspBinaryPath = filepath.Join(tmpDir, "piko-lsp-stress-test")
 
-		lspSrcDir := filepath.Join("..", "..", "..", "cmd", "lsp")
-		absLspSrcDir, err := filepath.Abs(lspSrcDir)
+		repoRoot, err := filepath.Abs(filepath.Join("..", "..", ".."))
 		if err != nil {
 			lspBuildErr = err
 			return
 		}
+		absLspSrcDir := filepath.Join(repoRoot, "cmd", "lsp")
+		goWorkPath := filepath.Join(repoRoot, "go.work")
 
 		cmd := exec.Command("go", "build", "-o", lspBinaryPath, ".")
 		cmd.Dir = absLspSrcDir
-		cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
+
+		cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOWORK="+goWorkPath)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			lspBuildErr = &buildError{output: output, err: err}
@@ -96,21 +101,102 @@ type stressHarness struct {
 }
 
 func newStressHarness(t *testing.T) *stressHarness {
+	return newStressHarnessForFixture(t, "stress_project", t.TempDir())
+}
+
+func newStressHarnessForFixture(t *testing.T, fixtureName, destRoot string) *stressHarness {
 	t.Helper()
 	buildLSPBinary(t)
 
 	return &stressHarness{
 		t:      t,
-		srcDir: copyFixtureToTemp(t),
+		srcDir: copyFixtureToTemp(t, fixtureName, destRoot),
 	}
 }
 
+var (
+	fakeGoplsOnce sync.Once
+	fakeGoplsPath string
+	fakeGoplsErr  error
+)
+
+func requireGopls(t *testing.T) string {
+	t.Helper()
+	goplsPath, err := exec.LookPath("gopls")
+	if err != nil {
+		t.Skip("gopls not found on PATH; skipping real-gopls bridge test")
+	}
+	return goplsPath
+}
+
+func buildFakeGoplsBinary(t *testing.T) string {
+	t.Helper()
+	fakeGoplsOnce.Do(func() {
+		fakeGoplsPath = filepath.Join(os.TempDir(), "piko-fakegopls")
+		cmd := exec.Command("go", "build", "-o", fakeGoplsPath, "./testdata/fakegopls")
+		cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			fakeGoplsErr = &buildError{output: output, err: err}
+		}
+	})
+	require.NoError(t, fakeGoplsErr, "building fake gopls binary")
+	return fakeGoplsPath
+}
+
+func spacedTempDir(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "dir with space")
+	require.NoError(t, os.MkdirAll(dir, 0755))
+	return dir
+}
+
+type sessionOptions struct {
+	Args        []string
+	Env         []string
+	InitOptions map[string]any
+}
+
+var (
+	goplsSessionSlots = make(chan struct{}, goplsTestConcurrency())
+)
+
+func goplsTestConcurrency() int {
+	if raw := os.Getenv("PIKO_TEST_GOPLS_CONCURRENCY"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
+			return parsed
+		}
+	}
+	return 4
+}
+
+func sessionUsesGoplsBridge(opts sessionOptions) bool {
+	for _, arg := range opts.Args {
+		if strings.HasPrefix(arg, "--gopls-bridge") {
+			return true
+		}
+	}
+	enabled, isBool := opts.InitOptions["goBridge"].(bool)
+	return isBool && enabled
+}
+
 func (h *stressHarness) startSession() (*stressClient, func()) {
+	return h.startSessionWithOptions(sessionOptions{})
+}
+
+func (h *stressHarness) startSessionWithOptions(opts sessionOptions) (*stressClient, func()) {
+	if sessionUsesGoplsBridge(opts) {
+
+		goplsSessionSlots <- struct{}{}
+		h.t.Cleanup(func() { <-goplsSessionSlots })
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(ctx, lspBinaryPath)
+	cmd := exec.CommandContext(ctx, lspBinaryPath, opts.Args...)
 	cmd.Dir = h.srcDir
 	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), opts.Env...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Cancel = func() error {
@@ -135,7 +221,7 @@ func (h *stressHarness) startSession() (*stressClient, func()) {
 	time.Sleep(200 * time.Millisecond)
 
 	rootURI := protocol.DocumentURI(uri.File(h.srcDir))
-	_, initErr := client.Initialize(ctx, rootURI)
+	_, initErr := client.InitializeWithOptions(ctx, rootURI, opts.InitOptions)
 	require.NoError(h.t, initErr, "LSP initialise failed")
 	require.NoError(h.t, client.Initialized(ctx), "LSP initialised notification failed")
 
@@ -152,6 +238,74 @@ func (h *stressHarness) startSession() (*stressClient, func()) {
 	}
 
 	return client, cleanup
+}
+
+func (h *stressHarness) startTCPBridgeServer(goplsPath string) (int, func()) {
+	goplsSessionSlots <- struct{}{}
+	h.t.Cleanup(func() { <-goplsSessionSlots })
+
+	port := freeTCPPort(h.t)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	cmd := exec.CommandContext(ctx, lspBinaryPath,
+		"--tcp", "--port", strconv.Itoa(port),
+		"--gopls-bridge=true", "--gopls-path="+goplsPath)
+	cmd.Dir = h.srcDir
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error {
+		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	}
+	cmd.WaitDelay = 10 * time.Second
+
+	require.NoError(h.t, cmd.Start(), "starting LSP TCP server")
+	waitForTCPListen(h.t, port)
+
+	return port, func() {
+		cancel()
+		_ = cmd.Wait()
+	}
+}
+
+func (h *stressHarness) dialTCPClient(port int) (*stressClient, func()) {
+	conn, err := net.Dial("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+	require.NoError(h.t, err)
+
+	client := newStressClient(h.t, jsonrpc2.NewStream(conn))
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+
+	rootURI := protocol.DocumentURI(uri.File(h.srcDir))
+	_, initErr := client.InitializeWithOptions(ctx, rootURI, map[string]any{"goBridge": true})
+	require.NoError(h.t, initErr, "TCP client initialise failed")
+	require.NoError(h.t, client.Initialized(ctx), "TCP client initialised failed")
+
+	return client, func() { _ = client.Close() }
+}
+
+func freeTCPPort(t *testing.T) int {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	port, ok := listener.Addr().(*net.TCPAddr)
+	require.True(t, ok, "listener address is not TCP")
+	require.NoError(t, listener.Close())
+	return port.Port
+}
+
+func waitForTCPListen(t *testing.T, port int) {
+	t.Helper()
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	require.Eventually(t, func() bool {
+		conn, err := net.DialTimeout("tcp", addr, time.Second)
+		if err != nil {
+			return false
+		}
+		_ = conn.Close()
+		return true
+	}, 30*time.Second, 100*time.Millisecond, "LSP TCP server did not start listening")
 }
 
 func (h *stressHarness) fileURI(relPath string) protocol.DocumentURI {
@@ -185,12 +339,11 @@ func (s *stdioRWC) Close() error {
 	return wErr
 }
 
-func copyFixtureToTemp(t *testing.T) string {
+func copyFixtureToTemp(t *testing.T, fixtureName, destRoot string) string {
 	t.Helper()
 
-	fixtureDir := filepath.Join("testdata", "stress_project", "src")
-	tmpDir := t.TempDir()
-	dstDir := filepath.Join(tmpDir, "src")
+	fixtureDir := filepath.Join("testdata", fixtureName, "src")
+	dstDir := filepath.Join(destRoot, "src")
 
 	err := filepath.WalkDir(fixtureDir, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -263,9 +416,8 @@ func splitLines(s string) []string {
 }
 
 func joinLines(lines []string) string {
-	result := ""
-	for _, line := range lines {
-		result += line + "\n"
+	if len(lines) == 0 {
+		return ""
 	}
-	return result
+	return strings.Join(lines, "\n") + "\n"
 }

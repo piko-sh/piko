@@ -37,11 +37,15 @@ import (
 func createTestWorkspace() *workspace {
 	docCache := NewDocumentCache()
 	return &workspace{
-		documents:    make(map[protocol.DocumentURI]*document),
-		docCache:     docCache,
-		cancelFuncs:  make(map[protocol.DocumentURI]context.CancelCauseFunc),
-		analysisDone: make(map[protocol.DocumentURI]chan struct{}),
-		client:       &mockClient{},
+		documents:           make(map[protocol.DocumentURI]*document),
+		docCache:            docCache,
+		cancelFuncs:         make(map[protocol.DocumentURI]context.CancelCauseFunc),
+		analysisDone:        make(map[protocol.DocumentURI]chan struct{}),
+		versions:            make(map[protocol.DocumentURI]int32),
+		committedVersion:    make(map[protocol.DocumentURI]int32),
+		requestedGeneration: make(map[protocol.DocumentURI]uint64),
+		inFlight:            make(map[protocol.DocumentURI]analysisOwner),
+		client:              &mockClient{},
 	}
 }
 
@@ -82,7 +86,7 @@ func TestWorkspace_UpdateDocument_New(t *testing.T) {
 	uri := protocol.DocumentURI("file:///test.pk")
 	content := []byte("<template>new</template>")
 
-	ws.UpdateDocument(uri, content)
+	ws.UpdateDocument(uri, content, 1)
 
 	document, exists := ws.documents[uri]
 	if !exists {
@@ -112,7 +116,7 @@ func TestWorkspace_UpdateDocument_Existing(t *testing.T) {
 	ws.documents[uri] = existingDoc
 
 	newContent := []byte("<template>updated</template>")
-	ws.UpdateDocument(uri, newContent)
+	ws.UpdateDocument(uri, newContent, 2)
 
 	if !existingDoc.dirty {
 		t.Error("expected existing document to be marked dirty after update")
@@ -142,7 +146,7 @@ func TestWorkspace_ConcurrentUpdateDocument(t *testing.T) {
 			defer wg.Done()
 			for j := range iterations {
 				content := fmt.Appendf(nil, "<template>content-%d-%d</template>", id, j)
-				ws.UpdateDocument(uri, content)
+				ws.UpdateDocument(uri, content, 1)
 			}
 		}(i)
 	}
@@ -206,7 +210,7 @@ func TestWorkspace_ConcurrentUpdateAndGet(t *testing.T) {
 			defer wg.Done()
 			for j := range iterations {
 				content := fmt.Appendf(nil, "<template>content-%d-%d</template>", id, j)
-				ws.UpdateDocument(uri, content)
+				ws.UpdateDocument(uri, content, 1)
 			}
 		}(i)
 	}
@@ -228,7 +232,7 @@ func TestWorkspace_SetupAnalysisContext_CancelsPrevious(t *testing.T) {
 	uri := protocol.DocumentURI("file:///test.pk")
 	ctx := context.Background()
 
-	_, doneChan1 := ws.setupAnalysisContext(ctx, uri)
+	_, doneChan1, _ := ws.setupAnalysisContext(ctx, uri, 1)
 
 	ws.mu.RLock()
 	_, hasCancel := ws.cancelFuncs[uri]
@@ -242,7 +246,7 @@ func TestWorkspace_SetupAnalysisContext_CancelsPrevious(t *testing.T) {
 		t.Error("expected done channel to be registered")
 	}
 
-	_, doneChan2 := ws.setupAnalysisContext(ctx, uri)
+	_, doneChan2, _ := ws.setupAnalysisContext(ctx, uri, 2)
 
 	select {
 	case <-doneChan1:
@@ -264,9 +268,9 @@ func TestWorkspace_CleanupAnalysisContext_SignalsCompletion(t *testing.T) {
 	uri := protocol.DocumentURI("file:///test.pk")
 	ctx := context.Background()
 
-	_, doneChan := ws.setupAnalysisContext(ctx, uri)
+	_, doneChan, token := ws.setupAnalysisContext(ctx, uri, 1)
 
-	ws.cleanupAnalysisContext(ctx, uri, doneChan)
+	ws.cleanupAnalysisContext(ctx, uri, doneChan, token)
 
 	select {
 	case <-doneChan:
@@ -307,9 +311,9 @@ func TestWorkspace_ConcurrentSetupCleanup(t *testing.T) {
 			ctx := context.Background()
 
 			for range iterations {
-				_, doneChan := ws.setupAnalysisContext(ctx, uri)
+				_, doneChan, token := ws.setupAnalysisContext(ctx, uri, 1)
 
-				ws.cleanupAnalysisContext(ctx, uri, doneChan)
+				ws.cleanupAnalysisContext(ctx, uri, doneChan, token)
 			}
 		}(i)
 	}
@@ -336,8 +340,8 @@ func TestWorkspace_ConcurrentSetupCleanup_SameURI(t *testing.T) {
 			ctx := context.Background()
 
 			for range iterations {
-				_, doneChan := ws.setupAnalysisContext(ctx, uri)
-				ws.cleanupAnalysisContext(ctx, uri, doneChan)
+				_, doneChan, token := ws.setupAnalysisContext(ctx, uri, 1)
+				ws.cleanupAnalysisContext(ctx, uri, doneChan, token)
 			}
 		}()
 	}
@@ -573,7 +577,7 @@ func TestHandleNilProjectResult_WithNonCancelError_ReturnsErrorDoc(t *testing.T)
 		Resolver: &resolver_domain.MockResolver{},
 	}
 
-	document, err := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, errors.New("analysis failed"))
+	document, err := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, errors.New("analysis failed"), 0)
 
 	if err != nil {
 		t.Errorf("expected nil error from handleNilProjectResult, got %v", err)
@@ -601,7 +605,7 @@ func TestHandleNilProjectResult_WithCancelError_ReturnsErrorDoc(t *testing.T) {
 		Resolver: &resolver_domain.MockResolver{},
 	}
 
-	document, err := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, context.Canceled)
+	document, err := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, context.Canceled, 0)
 
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
@@ -619,7 +623,7 @@ func TestHandleNilProjectResult_NilError_ReturnsErrorDoc(t *testing.T) {
 		Resolver: &resolver_domain.MockResolver{},
 	}
 
-	document, err := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, nil)
+	document, err := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, nil, 0)
 
 	if err != nil {
 		t.Errorf("expected nil error, got %v", err)
@@ -637,7 +641,7 @@ func TestHandleNilProjectResult_StoresDocumentInWorkspace(t *testing.T) {
 		Resolver: &resolver_domain.MockResolver{},
 	}
 
-	document, _ := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, errors.New("fail"))
+	document, _ := ws.handleNilProjectResult(context.Background(), testURI, moduleCtx, errors.New("fail"), 0)
 
 	storedDoc, exists := ws.GetDocument(testURI)
 	if !exists {

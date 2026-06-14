@@ -59,6 +59,9 @@ func testScenarioTypeChange(t *testing.T) {
 	typesURI := harness.fileURI("types.go")
 	require.NoError(t, client.DidOpen(ctx, typesURI, modifiedTypes))
 
+	require.True(t, client.WaitForAnalysisComplete(typesURI, analysisTimeout),
+		"the changed shared type should re-analyse")
+
 	require.NoError(t, client.DidChange(ctx, homeURI, 2, harness.readFile("pages/home.pk")))
 	require.True(t, client.WaitForAnalysisComplete(homeURI, analysisTimeout),
 		"home should re-analyse after type change")

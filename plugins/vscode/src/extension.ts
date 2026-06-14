@@ -793,10 +793,10 @@ function createClientOptions(): LanguageClientOptions {
         synchronize: {
             fileEvents: vscode.workspace.createFileSystemWatcher('**/*.pk')
         },
-        middleware: createPikoLspMiddleware(),
+        middleware: createPikoLspMiddleware(outputChannel),
         outputChannel,
         traceOutputChannel: traceLevel !== 'off' ? outputChannel : undefined,
-        initializationOptions: {},
+        initializationOptions: {goBridge: true},
         errorHandler: {
             error: (error, message, _count) => {
                 outputChannel.appendLine(`LSP Error: ${error.message}`);

@@ -56,3 +56,33 @@ func testScenarioRapidEdits(t *testing.T) {
 
 	assert.Empty(t, client.GetErrors(), "no protocol errors during rapid edits")
 }
+
+func testScenarioRapidEditsHighVolume(t *testing.T) {
+	t.Parallel()
+
+	harness := newStressHarness(t)
+	client, cleanup := harness.startSession()
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	defer cancel()
+
+	homeURI := harness.fileURI("pages/home.pk")
+	homeContent := harness.readFile("pages/home.pk")
+
+	require.NoError(t, client.DidOpen(ctx, homeURI, homeContent))
+	require.True(t, client.WaitForAnalysisComplete(homeURI, analysisTimeout),
+		"initial analysis should complete")
+
+	const edits = 250
+	for i := range edits {
+		modified := generateModifiedTemplate(homeContent, i)
+		require.NoError(t, client.DidChange(ctx, homeURI, int32(i+2), modified),
+			"DidChange %d should not fail", i)
+	}
+
+	require.True(t, client.WaitForAnalysisComplete(homeURI, analysisTimeout),
+		"final analysis should complete after a high-volume rapid-edit burst")
+
+	assert.Empty(t, client.GetErrors(), "no protocol errors during high-volume rapid edits")
+}

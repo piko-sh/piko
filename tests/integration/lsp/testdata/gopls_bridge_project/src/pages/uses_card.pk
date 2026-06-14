@@ -1,0 +1,21 @@
+<template>
+	<div class="uses-card">{{ state.Greeting }}</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	card "testcase_gopls_bridge/partials/card.pk"
+
+	"piko.sh/piko"
+)
+
+type UsesCardResponse struct {
+	Greeting string
+}
+
+func Render(_ *piko.RequestData, _ piko.NoProps) (UsesCardResponse, piko.Metadata, error) {
+	return UsesCardResponse{Greeting: card.Greeting()}, piko.Metadata{}, nil
+}
+</script>

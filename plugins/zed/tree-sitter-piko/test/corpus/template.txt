@@ -1,0 +1,136 @@
+================================================================================
+Interpolation
+================================================================================
+
+<template>
+	<h1>{{ title }}</h1>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (start_tag
+      name: (tag_name))
+    (interpolation
+      (expression))
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+Control-flow and binding directives
+================================================================================
+
+<template>
+	<div p-if="showButton" p-for="item in items"></div>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression))))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+Shorthand bind and event directives with modifiers
+================================================================================
+
+<template>
+	<button :id="props.name" @click.prevent="handle">x</button>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (start_tag
+      name: (tag_name)
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression))))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+Piko component self-closing tag
+================================================================================
+
+<template>
+	<piko:Icon name="star" p-if="ok" />
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (self_closing_tag
+      name: (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value)))
+      (attribute
+        (directive
+          name: (directive_name)
+          value: (directive_value
+            (expression)))))
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+Comment inside template
+================================================================================
+
+<template>
+	<!-- hello -->
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (comment)
+    (end_tag
+      (tag_name)))
+  (text))

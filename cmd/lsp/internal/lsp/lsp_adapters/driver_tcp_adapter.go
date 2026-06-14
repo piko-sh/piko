@@ -31,6 +31,7 @@ import (
 
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
+	"piko.sh/piko/cmd/lsp/internal/lsp/gopls_bridge"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_domain"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/config"
@@ -43,13 +44,22 @@ import (
 )
 
 const (
-	// defaultMaxLSPMessageBytes caps the size of a single LSP message read from the wire at
-	// 16 MiB.
+	// defaultMaxLSPMessageBytes caps the CUMULATIVE bytes read over a connection's lifetime
+	// (not a single message) at 512 MiB.
 	//
 	// Real LSP traffic is small structured JSON; an unbounded Content-Length lets a
 	// malformed or hostile peer drive the server to OOM via io.ReadFull. The cap is enforced
-	// by the cappedReadWriteCloser that wraps each accepted connection.
-	defaultMaxLSPMessageBytes = 16 * 1024 * 1024
+	// by the cappedReadWriteCloser, which counts bytes for the life of the connection
+	// because the byte stream below the jsonrpc2 framer has no message boundaries to reset
+	// on. The ceiling is therefore generous enough that a long full-sync editing session
+	// never reaches it, while still bounding a runaway peer.
+	defaultMaxLSPMessageBytes = 512 * 1024 * 1024
+
+	// defaultLSPConnectionWriteTimeout bounds a single write to an editor. A wedged editor
+	// that stops reading must not block the server (and, for the shared gopls child, must
+	// not stall diagnostics fan-out to co-tenant connections); the write fails after this
+	// deadline and the connection is torn down.
+	defaultLSPConnectionWriteTimeout = 15 * time.Second
 
 	// defaultMaxConcurrentLSPConnections caps concurrent in-flight LSP connections handled
 	// by the TCP adapter. Excess connections are accepted, rejected with an error
@@ -69,6 +79,14 @@ const (
 	// peer wedges a handler.
 	shutdownDrainTimeout = 30 * time.Second
 
+	// minAcceptBackoff and maxAcceptBackoff bound the exponential backoff applied after a
+	// transient listener Accept error (e.g. fd exhaustion), so the accept loop throttles
+	// instead of spinning until descriptors free up.
+	minAcceptBackoff = 5 * time.Millisecond
+
+	// maxAcceptBackoff is the upper bound on the exponential accept backoff delay.
+	maxAcceptBackoff = 1 * time.Second
+
 	// attributeKeyRemoteAddr is the structured-log attribute key for the remote address of
 	// an accepted TCP connection.
 	attributeKeyRemoteAddr = "remoteAddr"
@@ -86,8 +104,10 @@ type tcpAdapter struct {
 	// lspReader provides file system access for the LSP server.
 	lspReader annotator_domain.FSReaderPort
 
-	// typeInspectorManager builds type data for LSP requests.
-	typeInspectorManager *inspector_domain.TypeBuilder
+	// connectionSemaphore caps concurrent in-flight handler goroutines. nil means unlimited
+	// (only used when MaxConcurrentConnections is set to a non-positive value via the
+	// option).
+	connectionSemaphore chan struct{}
 
 	// docCache stores parsed documentation for files to avoid repeated parsing.
 	docCache *lsp_domain.DocumentCache
@@ -95,10 +115,12 @@ type tcpAdapter struct {
 	// pathsConfig provides workspace path settings for document processing.
 	pathsConfig *config.PathsConfig
 
-	// connectionSemaphore caps concurrent in-flight handler goroutines. nil means unlimited
-	// (only used when MaxConcurrentConnections is set to a non-positive value via the
-	// option).
-	connectionSemaphore chan struct{}
+	// typeInspectorManager builds type data for LSP requests.
+	typeInspectorManager *inspector_domain.TypeBuilder
+
+	// goplsManager owns the shared gopls child processes for Go-block requests, shared
+	// across every connection this adapter serves.
+	goplsManager *gopls_bridge.Manager
 
 	// addr is the TCP address to listen on (e.g. "localhost:8080").
 	addr string
@@ -114,6 +136,9 @@ type tcpAdapter struct {
 
 	// formattingEnabled controls whether formatting capabilities are advertised.
 	formattingEnabled bool
+
+	// goplsBridgeEnabled is the process-level default for the Go-block bridge.
+	goplsBridgeEnabled bool
 }
 
 var (
@@ -122,14 +147,17 @@ var (
 
 // TCPAdapterDeps holds the dependencies for creating a TCP adapter.
 type TCPAdapterDeps struct {
-	// CoordinatorService handles LSP coordination for connections.
-	CoordinatorService coordinator_domain.CoordinatorService
-
 	// Resolver finds symbol definitions for LSP operations.
 	Resolver resolver_domain.ResolverPort
 
 	// LSPReader provides file system access for the LSP server.
 	LSPReader annotator_domain.FSReaderPort
+
+	// CoordinatorService handles LSP coordination for connections.
+	CoordinatorService coordinator_domain.CoordinatorService
+
+	// GoplsManager owns the shared gopls child processes for Go-block requests.
+	GoplsManager *gopls_bridge.Manager
 
 	// TypeInspectorManager builds type data for LSP requests.
 	TypeInspectorManager *inspector_domain.TypeBuilder
@@ -143,10 +171,6 @@ type TCPAdapterDeps struct {
 	// Addr is the TCP address to listen on (e.g. "localhost:8080").
 	Addr string
 
-	// MaxMessageBytes caps the size of a single LSP message read from the wire. Zero or
-	// negative falls back to defaultMaxLSPMessageBytes.
-	MaxMessageBytes int64
-
 	// MaxConcurrentConnections caps concurrent handler goroutines. Zero or negative falls
 	// back to defaultMaxConcurrentLSPConnections; pass a very large value to effectively
 	// disable the cap.
@@ -156,8 +180,15 @@ type TCPAdapterDeps struct {
 	// falls back to defaultLSPConnectionInactivityTimeout.
 	ConnectionInactivityTimeout time.Duration
 
+	// MaxMessageBytes caps the size of a single LSP message read from the wire. Zero or
+	// negative falls back to defaultMaxLSPMessageBytes.
+	MaxMessageBytes int64
+
 	// FormattingEnabled controls whether formatting capabilities are advertised.
 	FormattingEnabled bool
+
+	// GoplsBridgeEnabled is the process-level default for the Go-block bridge.
+	GoplsBridgeEnabled bool
 }
 
 // Run starts the TCP server and accepts client connections in a loop. The stream
@@ -183,6 +214,7 @@ func (a *tcpAdapter) Run(ctx context.Context, _ io.ReadWriteCloser) error {
 		_ = listener.Close()
 	}()
 
+	var acceptBackoff time.Duration
 	for {
 		conn, acceptErr := listener.Accept()
 		if acceptErr != nil {
@@ -195,9 +227,10 @@ func (a *tcpAdapter) Run(ctx context.Context, _ io.ReadWriteCloser) error {
 				l.Debug("LSP TCP listener closed", logger_domain.Error(acceptErr))
 				break
 			}
-			l.Debug("Error accepting LSP TCP connection", logger_domain.Error(acceptErr))
+			acceptBackoff = backoffOnAcceptError(ctx, acceptErr, acceptBackoff)
 			continue
 		}
+		acceptBackoff = 0
 
 		if !a.acquireConnectionSlot() {
 			l.Warn("Rejecting LSP TCP connection: concurrent-connection cap reached",
@@ -214,7 +247,40 @@ func (a *tcpAdapter) Run(ctx context.Context, _ io.ReadWriteCloser) error {
 	}
 
 	a.drainHandlers(ctx)
+	if a.goplsManager != nil {
+		_ = a.goplsManager.Close(context.WithoutCancel(ctx))
+	}
 	return nil
+}
+
+// backoffOnAcceptError sleeps for an exponentially increasing, capped delay after a
+// transient listener Accept error.
+//
+// The delay throttles the accept loop instead of spinning (e.g. under fd exhaustion)
+// until descriptors free up, and returns immediately when ctx is cancelled so shutdown is
+// not delayed. Mirrors net/http's Server.Serve.
+//
+// Takes acceptErr (error) which is the transient Accept error that triggered the backoff.
+// Takes current (time.Duration) which is the previous backoff delay, doubled and capped
+// to derive the next one.
+//
+// Returns time.Duration which is the next backoff delay.
+func backoffOnAcceptError(ctx context.Context, acceptErr error, current time.Duration) time.Duration {
+	ctx, l := logger_domain.From(ctx, log)
+	next := minAcceptBackoff
+	if current != 0 {
+		next = min(current*2, maxAcceptBackoff)
+	}
+	l.Debug("Error accepting LSP TCP connection; backing off",
+		logger_domain.Error(acceptErr),
+		logger_domain.String("retryIn", next.String()))
+	timer := time.NewTimer(next)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-ctx.Done():
+	}
+	return next
 }
 
 // acquireConnectionSlot reserves a semaphore slot for a new handler goroutine.
@@ -289,7 +355,8 @@ func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
 		}
 	}
 
-	capped := newCappedReadWriteCloser(conn, a.maxMessageBytes)
+	deadlined := &writeDeadlineConn{Conn: conn, timeout: defaultLSPConnectionWriteTimeout}
+	capped := newCappedReadWriteCloser(deadlined, a.maxMessageBytes)
 	stream := jsonrpc2.NewStream(capped)
 	formatter := formatter_domain.NewFormatterService()
 
@@ -301,8 +368,12 @@ func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
 		FSReader:             a.lspReader,
 		PathsConfig:          a.pathsConfig,
 		Formatter:            formatter,
+		GoplsManager:         a.goplsManager,
 		FormattingEnabled:    a.formattingEnabled,
+		GoplsBridgeEnabled:   a.goplsBridgeEnabled,
 	})
+
+	defer func() { _ = pikoServer.Shutdown(context.WithoutCancel(ctx)) }()
 
 	_, jsonrpcConn, client := protocol.NewServer(ctx, pikoServer, stream, slog.Default())
 	pikoServer.SetClient(client)
@@ -316,7 +387,26 @@ func (a *tcpAdapter) handleConnection(ctx context.Context, conn net.Conn) {
 		_ = jsonrpcConn.Close()
 		<-jsonrpcConn.Done()
 	}
-	l.Debug("LSP client disconnected", logger_domain.String(attributeKeyRemoteAddr, remoteAddr))
+
+	logConnectionClose(ctx, remoteAddr, jsonrpcConn.Err())
+}
+
+// logConnectionClose logs an LSP disconnect, surfacing the read-cap cause distinctly so a
+// peer that exceeded the size cap is not mistaken for a normal client close.
+//
+// Takes remoteAddr (string) which is the remote address of the disconnected client.
+// Takes connErr (error) which is the connection's terminal error, if any.
+func logConnectionClose(ctx context.Context, remoteAddr string, connErr error) {
+	_, l := logger_domain.From(ctx, log)
+	switch {
+	case errors.Is(connErr, errMessageTooLarge):
+		l.Warn("LSP client disconnected: message exceeded the read cap",
+			logger_domain.String(attributeKeyRemoteAddr, remoteAddr), logger_domain.Error(connErr))
+	case connErr != nil:
+		l.Debug("LSP client disconnected", logger_domain.String(attributeKeyRemoteAddr, remoteAddr), logger_domain.Error(connErr))
+	default:
+		l.Debug("LSP client disconnected", logger_domain.String(attributeKeyRemoteAddr, remoteAddr))
+	}
 }
 
 // NewTCPAdapter creates a new TCP adapter for the LSP server.
@@ -368,7 +458,9 @@ func NewTCPAdapter(deps TCPAdapterDeps) (lsp_domain.LSPServerPort, error) {
 		docCache:                    deps.DocCache,
 		lspReader:                   deps.LSPReader,
 		pathsConfig:                 deps.PathsConfig,
+		goplsManager:                deps.GoplsManager,
 		formattingEnabled:           deps.FormattingEnabled,
+		goplsBridgeEnabled:          deps.GoplsBridgeEnabled,
 		maxMessageBytes:             maxMessageBytes,
 		connectionInactivityTimeout: inactivity,
 		connectionSemaphore:         make(chan struct{}, maxConnections),
@@ -456,4 +548,28 @@ func (c *cappedReadWriteCloser) Write(p []byte) (int, error) {
 // Returns error which is the inner Close error.
 func (c *cappedReadWriteCloser) Close() error {
 	return c.inner.Close()
+}
+
+// writeDeadlineConn applies a per-write deadline to an editor connection so a client that
+// stops reading cannot block the server. On timeout the write returns an error, jsonrpc2
+// surfaces it, and the connection is torn down.
+type writeDeadlineConn struct {
+	net.Conn
+
+	// timeout bounds how long a single write to the editor may block.
+	timeout time.Duration
+}
+
+// Write sets the write deadline before delegating, bounding how long a single write to a
+// wedged editor can block.
+//
+// Takes p ([]byte) which is the bytes to write.
+//
+// Returns int which is the number of bytes written.
+// Returns error which is the inner Write error.
+func (c *writeDeadlineConn) Write(p []byte) (int, error) {
+	if c.timeout > 0 {
+		_ = c.SetWriteDeadline(time.Now().Add(c.timeout))
+	}
+	return c.Conn.Write(p)
 }

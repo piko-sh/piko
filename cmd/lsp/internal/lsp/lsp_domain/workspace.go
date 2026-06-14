@@ -53,25 +53,47 @@ const (
 type analysisCompleteParams struct {
 	// URI is the document URI that was analysed.
 	URI protocol.DocumentURI `json:"uri"`
+
+	// Version is the latest editor document version recorded when this analysis completed.
+	//
+	// It is 0 when the document has no recorded version. Once edits settle it equals the
+	// analysed version, so a client can wait for completed-version to reach the version it
+	// last sent rather than racing a version-less, fire-once signal across a burst of rapid
+	// edits.
+	Version int32 `json:"version"`
+}
+
+// analysisOwner identifies the analysis currently responsible for a URI: a process-unique
+// token (so ownership transfers correctly even when two analyses share a generation) and
+// the content generation that analysis satisfies.
+type analysisOwner struct {
+	// token is the process-unique identifier of the owning analysis.
+	token uint64
+
+	// gen is the content generation that owning analysis satisfies.
+	gen uint64
 }
 
 // workspace manages open documents and analysis results for the LSP server. It implements
 // WorkspacePort and keeps an in-memory cache of semantic analysis results for .pk files.
 type workspace struct {
+	// conn is the JSON-RPC connection for sending notifications to the client.
+	conn jsonrpc2.Conn
+
 	// coordinator manages analysis across the whole project.
 	coordinator coordinator_domain.CoordinatorService
-
-	// moduleManager caches module resolvers and entry points for each module.
-	moduleManager *ModuleContextManager
 
 	// client sends diagnostics and notifications to the connected LSP client.
 	client protocol.Client
 
-	// conn is the JSON-RPC connection for sending notifications to the client.
-	conn jsonrpc2.Conn
+	// goplsDiagnostics holds the latest gopls diagnostics for each document, already
+	// reverse-mapped to .pk coordinates, to be merged into the published diagnostics.
+	// Guarded by goplsDiagnosticsMu.
+	goplsDiagnostics map[protocol.DocumentURI][]protocol.Diagnostic
 
-	// documents maps document URIs to their state for tracking open files.
-	documents map[protocol.DocumentURI]*document
+	// cachedModuleCtx is the module context from the last successful analysis. Stored so
+	// scoped rebuilds can reuse it without rediscovery.
+	cachedModuleCtx *ModuleContext
 
 	// typeInspectorManager manages type inspection and provides access to the TypeQuerier.
 	typeInspectorManager *inspector_domain.TypeBuilder
@@ -90,6 +112,44 @@ type workspace struct {
 	// analysisDone maps document URIs to channels that close when analysis finishes.
 	analysisDone map[protocol.DocumentURI]chan struct{}
 
+	// versions maps document URIs to the latest content version the editor sent, so the
+	// piko/analysisComplete notification can report which version an analysis reflects.
+	// Decoupled from the document object because analysis replaces that object wholesale,
+	// which would otherwise drop the version.
+	versions map[protocol.DocumentURI]int32
+
+	// committedVersion maps document URIs to the editor version of the latest analysis that
+	// actually committed a result. piko/analysisComplete reports THIS, not the latest
+	// requested version, so a superseded analysis that committed nothing cannot signal a
+	// version it never produced and unblock a client prematurely.
+	committedVersion map[protocol.DocumentURI]int32
+
+	// requestedGeneration is a per-URI strictly-increasing edit identity, bumped under mu on
+	// every UpdateDocument. It orders content snapshots so cancellation and the
+	// result-commit decision use content version, not goroutine setup order, which is what
+	// lets a burst of rapid edits always converge on analysing the latest content.
+	requestedGeneration map[protocol.DocumentURI]uint64
+
+	// inFlight records the analysis currently owning each URI.
+	//
+	// Each entry holds the owning analysis's unique token and the content generation it
+	// satisfies, or is absent when none owns it. Written under mu by setupAnalysisContext
+	// and cleared by cleanupAnalysisContext. The unique token makes ownership transfer
+	// correct even when two analyses share a generation (a re-arm racing a completion), and
+	// the generation lets a newer analysis supersede an older owner while an older one
+	// defers to a newer.
+	inFlight map[protocol.DocumentURI]analysisOwner
+
+	// moduleManager caches module resolvers and entry points for each module.
+	moduleManager *ModuleContextManager
+
+	// goplsOverlays maps a virtual Go overlay URI to its .pk URI and position mapper so
+	// gopls diagnostics can be reverse-mapped. Guarded by goplsDiagnosticsMu.
+	goplsOverlays map[protocol.DocumentURI]*goplsOverlayInfo
+
+	// documents maps document URIs to their state for tracking open files.
+	documents map[protocol.DocumentURI]*document
+
 	// cachedProjectResult holds the last full project annotation result. Used as the base
 	// for merging targeted rebuild results so that scoped rebuilds only re-annotate affected
 	// components.
@@ -100,24 +160,45 @@ type workspace struct {
 	// analysis via annotator_dto.BuildReverseDependencyMapFromGraph.
 	reverseDependencyMap map[string][]string
 
-	// cachedModuleCtx is the module context from the last successful analysis. Stored so
-	// scoped rebuilds can reuse it without rediscovery.
-	cachedModuleCtx *ModuleContext
-
 	// rootURI is the base path for all files in the workspace folder.
 	rootURI protocol.DocumentURI
+
+	// analysisCounter assigns each analysis setup a process-unique token.
+	//
+	// Guarded by mu. Placed among the non-pointer fields so it does not split the
+	// pointer-scan region (fieldalignment).
+	analysisCounter uint64
 
 	// goroutineWG tracks every goroutine spawned by the workspace so Close can wait for them
 	// to drain. Without this, server shutdown can race with diagnostic publishes, leaking
 	// goroutines under goleak.
 	goroutineWG sync.WaitGroup
 
+	// spawnMu guards closing and serialises spawnTracked's Add against Close's Wait.
+	//
+	// This stops a late diagnostic publish adding to goroutineWG after Close has begun
+	// draining it (which would panic with "WaitGroup is reused before previous Wait has
+	// returned"). It is a dedicated lock, never nested with mu, so spawnTracked stays safe
+	// to call whether or not the caller holds mu.
+	spawnMu sync.Mutex
+
+	// closing is set under spawnMu once Close begins draining; spawnTracked then skips its
+	// Add so no goroutine is registered after the Wait has started.
+	closing bool
+
+	// hasInitialBuild tracks whether the first full build has completed.
+	//
+	// Before this is true, all analysis uses the full entry point set. Placed here so it
+	// packs into the WaitGroup's trailing padding rather than adding its own
+	// (fieldalignment).
+	hasInitialBuild bool
+
 	// mu guards access to the workspace fields during concurrent operations.
 	mu sync.RWMutex
 
-	// hasInitialBuild tracks whether the first full build has completed. Before this is
-	// true, all analysis uses the full entry point set.
-	hasInitialBuild bool
+	// goplsDiagnosticsMu guards goplsDiagnostics and goplsOverlays. It is independent of mu
+	// because it is written from gopls callback goroutines and held only briefly.
+	goplsDiagnosticsMu sync.Mutex
 }
 
 // Close waits for every tracked workspace goroutine to finish.
@@ -135,6 +216,10 @@ func (w *workspace) Close(ctx context.Context) error {
 	}
 
 	_, l := logger_domain.From(ctx, log)
+
+	w.spawnMu.Lock()
+	w.closing = true
+	w.spawnMu.Unlock()
 
 	done := make(chan struct{})
 	go func() {
@@ -190,17 +275,36 @@ func (w *workspace) GetDocument(uri protocol.DocumentURI) (*document, bool) {
 	return document, exists
 }
 
-// UpdateDocument updates the content of a document and marks it as dirty.
+// UpdateDocument updates the content of a document and marks it as dirty. version is the
+// editor's monotonic document version (0 when the source notification carries none, such
+// as didSave); a non-zero version is recorded so a later piko/analysisComplete can report
+// which version the analysis reflects.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to update.
 // Takes content ([]byte) which provides the new document content.
+// Takes version (int32) which is the editor's document version, or 0 if unknown.
+//
+// Returns the new monotonic generation for this URI; pass it to the analysis it schedules
+// so the analysis is tagged with the exact content snapshot it must satisfy.
 //
 // Safe for concurrent use; access is protected by a mutex.
-func (w *workspace) UpdateDocument(uri protocol.DocumentURI, content []byte) {
+func (w *workspace) UpdateDocument(uri protocol.DocumentURI, content []byte, version int32) uint64 {
 	w.mu.Lock()
-	defer w.mu.Unlock()
 
 	w.docCache.Set(uri, content)
+
+	if w.requestedGeneration == nil {
+		w.requestedGeneration = make(map[protocol.DocumentURI]uint64)
+	}
+	w.requestedGeneration[uri]++
+	generation := w.requestedGeneration[uri]
+
+	if version > 0 {
+		if w.versions == nil {
+			w.versions = make(map[protocol.DocumentURI]int32)
+		}
+		w.versions[uri] = version
+	}
 
 	if existing, exists := w.documents[uri]; exists {
 		existing.dirty = true
@@ -211,6 +315,11 @@ func (w *workspace) UpdateDocument(uri protocol.DocumentURI, content []byte) {
 			dirty:   true,
 		}
 	}
+	w.mu.Unlock()
+
+	w.invalidateGoplsDiagnostics(uri)
+
+	return generation
 }
 
 // RemoveDocument removes a document from the workspace and clears its diagnostics. Called
@@ -241,11 +350,17 @@ func (w *workspace) RemoveDocument(ctx context.Context, uri protocol.DocumentURI
 	}
 
 	delete(w.documents, uri)
+	delete(w.versions, uri)
+	delete(w.committedVersion, uri)
+	delete(w.requestedGeneration, uri)
+	delete(w.inFlight, uri)
 
 	w.docCache.Delete(uri)
 
 	client := w.client
 	w.mu.Unlock()
+
+	w.invalidateGoplsDiagnostics(uri)
 
 	if client != nil {
 		detached := context.WithoutCancel(ctx)
@@ -268,50 +383,8 @@ func (w *workspace) RemoveDocument(ctx context.Context, uri protocol.DocumentURI
 //
 // Returns *document which contains the analysis result for the URI.
 // Returns error when analysis fails or is cancelled.
-//
-// Safe for concurrent use. Uses mutex protection when updating the document cache.
-// Analysis may be cancelled during rapid edits.
 func (w *workspace) RunAnalysisForURI(ctx context.Context, uri protocol.DocumentURI) (*document, error) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	l.Debug("Running analysis for URI", logger_domain.String(keyURI, uri.Filename()))
-
-	if document := w.getCachedCleanDocument(ctx, uri); document != nil {
-		return document, nil
-	}
-
-	l.Debug("Document is dirty, running analysis", logger_domain.String(keyURI, uri.Filename()))
-
-	analysisCtx, doneChan := w.setupAnalysisContext(ctx, uri)
-
-	defer w.cleanupAnalysisContext(ctx, uri, doneChan)
-
-	moduleCtx, entryPoints, err := w.prepareAnalysisInputs(analysisCtx, uri)
-	if err != nil {
-		return nil, fmt.Errorf("preparing analysis inputs for %s: %w", uri.Filename(), err)
-	}
-
-	w.mu.RLock()
-	hasCache := w.hasInitialBuild && w.cachedProjectResult != nil
-	w.mu.RUnlock()
-
-	if hasCache {
-		doc, scopedErr := w.runScopedAnalysis(ctx, analysisCtx, uri, moduleCtx, entryPoints)
-		if scopedErr == nil && doc != nil {
-			return doc, nil
-		}
-
-		if scopedErr != nil {
-			if errors.Is(scopedErr, context.Canceled) || errors.Is(scopedErr, context.DeadlineExceeded) {
-				return nil, scopedErr
-			}
-			l.Debug("Scoped analysis failed, falling back to full build",
-				logger_domain.Error(scopedErr),
-				logger_domain.String(keyURI, uri.Filename()))
-		}
-	}
-
-	return w.runFullAnalysis(ctx, analysisCtx, uri, moduleCtx, entryPoints)
+	return w.runAnalysisForGeneration(ctx, uri, w.currentGeneration(uri))
 }
 
 // GetDocumentForCompletion returns a document suitable for completion requests by waiting
@@ -409,6 +482,11 @@ func (w *workspace) FindAllReferences(ctx context.Context, uri protocol.Document
 // "lsp.workspace.<name>").
 // Takes operation (func()) which is the function body to run.
 func (w *workspace) spawnTracked(ctx context.Context, component string, operation func()) {
+	w.spawnMu.Lock()
+	defer w.spawnMu.Unlock()
+	if w.closing {
+		return
+	}
 	w.goroutineWG.Go(func() {
 		defer goroutine.RecoverPanic(ctx, component)
 		operation()
@@ -435,6 +513,7 @@ func (w *workspace) runFullAnalysis(
 	uri protocol.DocumentURI,
 	moduleCtx *ModuleContext,
 	entryPoints []annotator_dto.EntryPoint,
+	gen uint64,
 ) (*document, error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -455,7 +534,7 @@ func (w *workspace) runFullAnalysis(
 	}
 
 	if projectResult == nil {
-		return w.handleNilProjectResult(ctx, uri, moduleCtx, err)
+		return w.handleNilProjectResult(ctx, uri, moduleCtx, err, gen)
 	}
 
 	if err != nil {
@@ -478,9 +557,11 @@ func (w *workspace) runFullAnalysis(
 
 	newDoc := w.createDocumentFromResult(ctx, uri, projectResult, moduleCtx)
 
-	w.mu.Lock()
-	w.documents[uri] = newDoc
-	w.mu.Unlock()
+	if !w.commitAnalysedDocument(uri, newDoc, gen) {
+		l.Trace("Discarding superseded full-analysis result (newer edit arrived mid-build)",
+			logger_domain.String(keyURI, uri.Filename()))
+		return nil, context.Canceled
+	}
 
 	w.publishDiagnostics(context.WithoutCancel(ctx), uri, newDoc)
 
@@ -500,15 +581,13 @@ func (w *workspace) runFullAnalysis(
 // Returns *document which contains the analysis result for the URI, or nil if the scoped
 // build could not proceed (caller should fall back to full build).
 // Returns error when the build fails or is cancelled.
-//
-// Safe for concurrent use. Delegates to mergeAndCommitScopedResult for atomic cache
-// updates.
 func (w *workspace) runScopedAnalysis(
 	ctx context.Context,
 	analysisCtx context.Context,
 	uri protocol.DocumentURI,
 	moduleCtx *ModuleContext,
 	entryPoints []annotator_dto.EntryPoint,
+	gen uint64,
 ) (*document, error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -546,13 +625,20 @@ func (w *workspace) runScopedAnalysis(
 			logger_domain.String(keyURI, uri.Filename()))
 	}
 
-	mergedResult := w.mergeAndCommitScopedResult(ctx, uri, targetedResult, affected, moduleCtx)
+	mergedResult := w.mergeAndCommitScopedResult(ctx, uri, gen, targetedResult, affected, moduleCtx)
+	if mergedResult == nil {
+		l.Trace("Discarding superseded scoped-analysis result before merge (newer edit arrived)",
+			logger_domain.String(keyURI, uri.Filename()))
+		return nil, context.Canceled
+	}
 
 	newDoc := w.createDocumentFromResult(ctx, uri, mergedResult, moduleCtx)
 
-	w.mu.Lock()
-	w.documents[uri] = newDoc
-	w.mu.Unlock()
+	if !w.commitAnalysedDocument(uri, newDoc, gen) {
+		l.Trace("Discarding superseded scoped-analysis result (newer edit arrived mid-build)",
+			logger_domain.String(keyURI, uri.Filename()))
+		return nil, context.Canceled
+	}
 
 	w.publishDiagnostics(context.WithoutCancel(ctx), uri, newDoc)
 
@@ -625,13 +711,18 @@ func (w *workspace) resolveAffectedEntryPoints(
 // read-merge-write cycle.
 func (w *workspace) mergeAndCommitScopedResult(
 	_ context.Context,
-	_ protocol.DocumentURI,
+	uri protocol.DocumentURI,
+	gen uint64,
 	targetedResult *annotator_dto.ProjectAnnotationResult,
 	affectedRelPaths []string,
 	moduleCtx *ModuleContext,
 ) *annotator_dto.ProjectAnnotationResult {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+
+	if w.requestedGeneration[uri] != gen {
+		return nil
+	}
 
 	cached := w.cachedProjectResult
 	if cached == nil {
@@ -726,6 +817,9 @@ func mergeScopedAnnotationResults(
 // Takes affectedRelPaths ([]string) which are the project-relative paths of affected
 // components (excluding the directly edited file).
 // Takes moduleCtx (*ModuleContext) which provides the module root for path conversion.
+//
+// Concurrency: takes a read lock on mu while checking whether each affected URI is
+// tracked.
 func (w *workspace) publishDiagnosticsForAffectedPaths(
 	ctx context.Context,
 	projectResult *annotator_dto.ProjectAnnotationResult,
@@ -743,7 +837,15 @@ func (w *workspace) publishDiagnosticsForAffectedPaths(
 		absPath := filepath.Join(moduleCtx.ModuleRoot, relPath)
 		affectedURI := protocol.DocumentURI("file://" + absPath)
 
+		w.mu.RLock()
+		_, isTracked := w.documents[affectedURI]
+		w.mu.RUnlock()
+		if !isTracked {
+			continue
+		}
+
 		lspDiagnostics := convertDiagnosticsToLSP(ctx, projectResult.AllDiagnostics, absPath)
+		lspDiagnostics = append(lspDiagnostics, w.goplsDiagnosticsFor(affectedURI)...)
 
 		if err := client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI:         affectedURI,
@@ -901,6 +1003,68 @@ func (w *workspace) searchAllDocuments(target *symbolTarget) []protocol.Location
 	return allLocations
 }
 
+// runAnalysisForGeneration analyses uri on behalf of a specific content generation.
+//
+// The generation tags the analysis with the content snapshot it must satisfy: an
+// older-content analysis that loses the setup race self-aborts instead of cancelling the
+// latest survivor, and a result is committed (clearing dirty) only when its generation is
+// still the latest requested, so a stale build never masks newer content.
+//
+// Takes uri (protocol.DocumentURI) which identifies the document to analyse.
+// Takes gen (uint64) which is the content generation this analysis must satisfy.
+//
+// Returns *document which contains the analysis result for the URI.
+// Returns error when analysis fails or is cancelled.
+//
+// Concurrency: takes a read lock on mu to read the cached project result, and delegates
+// further synchronisation to setupAnalysisContext and the scoped or full analysis paths.
+func (w *workspace) runAnalysisForGeneration(ctx context.Context, uri protocol.DocumentURI, gen uint64) (*document, error) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	l.Debug("Running analysis for URI", logger_domain.String(keyURI, uri.Filename()))
+
+	if document := w.getCachedCleanDocument(ctx, uri); document != nil {
+		return document, nil
+	}
+
+	l.Debug("Document is dirty, running analysis", logger_domain.String(keyURI, uri.Filename()))
+
+	analysisCtx, doneChan, token := w.setupAnalysisContext(ctx, uri, gen)
+
+	defer w.cleanupAnalysisContext(ctx, uri, doneChan, token)
+
+	if analysisCtx.Err() != nil {
+		return nil, analysisCtx.Err()
+	}
+
+	moduleCtx, entryPoints, err := w.prepareAnalysisInputs(analysisCtx, uri)
+	if err != nil {
+		return nil, fmt.Errorf("preparing analysis inputs for %s: %w", uri.Filename(), err)
+	}
+
+	w.mu.RLock()
+	hasCache := w.hasInitialBuild && w.cachedProjectResult != nil
+	w.mu.RUnlock()
+
+	if hasCache {
+		doc, scopedErr := w.runScopedAnalysis(ctx, analysisCtx, uri, moduleCtx, entryPoints, gen)
+		if scopedErr == nil && doc != nil {
+			return doc, nil
+		}
+
+		if scopedErr != nil {
+			if errors.Is(scopedErr, context.Canceled) || errors.Is(scopedErr, context.DeadlineExceeded) {
+				return nil, scopedErr
+			}
+			l.Debug("Scoped analysis failed, falling back to full build",
+				logger_domain.Error(scopedErr),
+				logger_domain.String(keyURI, uri.Filename()))
+		}
+	}
+
+	return w.runFullAnalysis(ctx, analysisCtx, uri, moduleCtx, entryPoints, gen)
+}
+
 // getCachedCleanDocument returns the cached document if it exists and is clean, or nil if
 // not found or dirty.
 //
@@ -924,21 +1088,38 @@ func (w *workspace) getCachedCleanDocument(ctx context.Context, uri protocol.Doc
 	return nil
 }
 
-// setupAnalysisContext cancels any previous analysis and creates a new cancellable
+// setupAnalysisContext claims a URI for the given generation and returns its analysis
 // context.
+//
+// It supersedes an equal-or-older active analysis. Cancellation is ordered by content
+// generation, not goroutine setup order: if a strictly-newer generation already owns the
+// URI, it returns an already-cancelled context and a closed done channel without
+// disturbing that survivor, so an out-of-order older analysis self-aborts. The caller
+// detects the abort via analysisCtx.Err().
 //
 // Takes ctx (context.Context) which is the parent context for the new analysis.
 // Takes uri (protocol.DocumentURI) which identifies the document being analysed.
+// Takes gen (uint64) which is the content generation this analysis intends to satisfy.
 //
-// Returns context.Context which is the new cancellable analysis context.
-// Returns chan struct{} which signals completion when closed.
+// Returns the cancellable analysis context, a done channel closed on completion, and the
+// process-unique ownership token to pass to cleanupAnalysisContext.
 //
 // Safe for concurrent use. Acquires the workspace mutex.
-func (w *workspace) setupAnalysisContext(ctx context.Context, uri protocol.DocumentURI) (context.Context, chan struct{}) {
+func (w *workspace) setupAnalysisContext(ctx context.Context, uri protocol.DocumentURI, gen uint64) (context.Context, chan struct{}, uint64) {
 	ctx, l := logger_domain.From(ctx, log)
 
 	w.mu.Lock()
 	defer w.mu.Unlock()
+
+	if owner, owned := w.inFlight[uri]; owned && owner.gen > gen {
+		l.Debug("Newer analysis already owns URI, aborting older setup",
+			logger_domain.String(keyURI, uri.Filename()))
+		deadCtx, cancel := context.WithCancelCause(ctx)
+		cancel(errors.New("analysis superseded before setup by newer document version"))
+		closed := make(chan struct{})
+		close(closed)
+		return deadCtx, closed, 0
+	}
 
 	if cancelFunc, exists := w.cancelFuncs[uri]; exists {
 		l.Debug("Cancelling previous analysis for URI", logger_domain.String(keyURI, uri.Filename()))
@@ -956,23 +1137,62 @@ func (w *workspace) setupAnalysisContext(ctx context.Context, uri protocol.Docum
 
 	analysisCtx, cancel := context.WithCancelCause(ctx)
 	w.cancelFuncs[uri] = cancel
+	w.analysisCounter++
+	if w.analysisCounter == 0 {
+		w.analysisCounter++
+	}
+	token := w.analysisCounter
+	if w.inFlight == nil {
+		w.inFlight = make(map[protocol.DocumentURI]analysisOwner)
+	}
+	w.inFlight[uri] = analysisOwner{token: token, gen: gen}
 
 	doneChan := make(chan struct{})
 	w.analysisDone[uri] = doneChan
 
-	return analysisCtx, doneChan
+	return analysisCtx, doneChan, token
 }
 
-// cleanupAnalysisContext removes the cancel function and signals completion.
+// supersede cancels any active analysis for uri whose generation is older than gen.
+//
+// The stale slot-holder is signalled to abort and frees its analysis semaphore slot
+// before a newer edit competes for one. It is a no-op when nothing older is active, and
+// it never cancels an equal-or-newer generation. Called before the semaphore acquire so
+// cancellation does not depend on winning a slot. Ownership is left in place for the
+// cancelled analysis's own cleanup to release.
+//
+// Takes uri (protocol.DocumentURI) which identifies the document whose older analysis to
+// cancel.
+// Takes gen (uint64) which is the generation that any older analysis must defer to.
+//
+// Safe for concurrent use. Acquires the workspace mutex.
+func (w *workspace) supersede(uri protocol.DocumentURI, gen uint64) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if owner, owned := w.inFlight[uri]; owned && owner.gen < gen {
+		if cancelFunc, exists := w.cancelFuncs[uri]; exists {
+			cancelFunc(errors.New("analysis superseded by newer document version"))
+			delete(w.cancelFuncs, uri)
+		}
+	}
+}
+
+// cleanupAnalysisContext removes the cancel function, releases this analysis's ownership
+// of the URI (only when it still owns it, identified by its unique token), and signals
+// completion.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to clean up.
 // Takes doneChan (chan struct{}) which is the channel to close when done.
+// Takes token (uint64) which is the ownership token from setupAnalysisContext.
 //
 // Safe for concurrent use. Acquires the workspace mutex to modify internal maps before
 // signalling completion.
-func (w *workspace) cleanupAnalysisContext(ctx context.Context, uri protocol.DocumentURI, doneChan chan struct{}) {
+func (w *workspace) cleanupAnalysisContext(ctx context.Context, uri protocol.DocumentURI, doneChan chan struct{}, token uint64) {
 	w.mu.Lock()
-	delete(w.cancelFuncs, uri)
+	if owner, owned := w.inFlight[uri]; owned && owner.token == token {
+		delete(w.inFlight, uri)
+		delete(w.cancelFuncs, uri)
+	}
 	if existingDoneChan, exists := w.analysisDone[uri]; exists && existingDoneChan == doneChan {
 		close(doneChan)
 		delete(w.analysisDone, uri)
@@ -982,9 +1202,74 @@ func (w *workspace) cleanupAnalysisContext(ctx context.Context, uri protocol.Doc
 	w.signalAnalysisComplete(context.WithoutCancel(ctx), uri)
 }
 
+// settleGeneration reports the generation that still needs analysing for uri.
+//
+// Takes uri (protocol.DocumentURI) which identifies the document.
+// Takes attemptedGen (uint64) which is the generation whose analysis just finished.
+//
+// Returns the generation that still needs analysing, or 0 when none is pending.
+//
+// Safe for concurrent use. Acquires the workspace mutex.
+func (w *workspace) settleGeneration(uri protocol.DocumentURI, attemptedGen uint64) uint64 {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	document, exists := w.documents[uri]
+	stillDirty := !exists || document.dirty
+	latest := w.requestedGeneration[uri]
+	if _, owned := w.inFlight[uri]; stillDirty && !owned && latest > attemptedGen {
+		return latest
+	}
+	return 0
+}
+
+// currentGeneration returns the latest requested content generation for uri.
+//
+// Takes uri (protocol.DocumentURI) which identifies the document.
+//
+// Returns the latest requested content generation, or 0 when the document has never been
+// updated.
+//
+// Safe for concurrent use. Acquires the workspace read lock.
+func (w *workspace) currentGeneration(uri protocol.DocumentURI) uint64 {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	return w.requestedGeneration[uri]
+}
+
+// commitAnalysedDocument stores newDoc only when gen is still the latest requested
+// content for uri.
+//
+// This ensures a stale completed build never masks a newer edit. The stored document has
+// its dirty flag cleared.
+//
+// Takes uri (protocol.DocumentURI) which identifies the document to commit.
+// Takes newDoc (*document) which is the analysed document to store.
+// Takes gen (uint64) which is the content generation the new document satisfies.
+//
+// Returns bool which is true when the commit happened; a false result means a newer edit
+// arrived mid-build and the caller should discard the stale result.
+//
+// Safe for concurrent use. Acquires the workspace mutex.
+func (w *workspace) commitAnalysedDocument(uri protocol.DocumentURI, newDoc *document, gen uint64) bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.requestedGeneration[uri] != gen {
+		return false
+	}
+	w.documents[uri] = newDoc
+
+	if w.committedVersion == nil {
+		w.committedVersion = make(map[protocol.DocumentURI]int32)
+	}
+	w.committedVersion[uri] = w.versions[uri]
+	return true
+}
+
 // signalAnalysisComplete sends the piko/analysisComplete notification.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document that was analysed.
+//
+// Concurrency: takes a read lock on mu to read the committed version before notifying.
 func (w *workspace) signalAnalysisComplete(ctx context.Context, uri protocol.DocumentURI) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -995,8 +1280,12 @@ func (w *workspace) signalAnalysisComplete(ctx context.Context, uri protocol.Doc
 		return
 	}
 
+	w.mu.RLock()
+	version := w.committedVersion[uri]
+	w.mu.RUnlock()
+
 	l.Debug("Sending piko/analysisComplete notification", logger_domain.String(keyURI, uri.Filename()))
-	if err := conn.Notify(ctx, "piko/analysisComplete", &analysisCompleteParams{URI: uri}); err != nil {
+	if err := conn.Notify(ctx, "piko/analysisComplete", &analysisCompleteParams{URI: uri, Version: version}); err != nil {
 		l.Error("Failed to send piko/analysisComplete notification",
 			logger_domain.Error(err),
 			logger_domain.String(keyURI, uri.Filename()))
@@ -1095,14 +1384,12 @@ func (w *workspace) copyActionProviders() map[string]annotator_domain.ActionInfo
 //
 // Returns *document which is a fallback document with cached content.
 // Returns error which is always nil.
-//
-// Safe for concurrent use. Uses a mutex when updating the document cache. Publishes error
-// diagnostics in a separate goroutine for non-cancellation errors.
 func (w *workspace) handleNilProjectResult(
 	ctx context.Context,
 	uri protocol.DocumentURI,
 	moduleCtx *ModuleContext,
 	analysisErr error,
+	gen uint64,
 ) (*document, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -1131,9 +1418,11 @@ func (w *workspace) handleNilProjectResult(
 		dirty:    false,
 	}
 
-	w.mu.Lock()
-	w.documents[uri] = errorDoc
-	w.mu.Unlock()
+	if !w.commitAnalysedDocument(uri, errorDoc, gen) {
+		l.Trace("Discarding superseded nil-result document (newer edit arrived mid-build)",
+			logger_domain.String(keyURI, uri.Filename()))
+		return nil, context.Canceled
+	}
 
 	return errorDoc, nil
 }
@@ -1327,6 +1616,7 @@ func (w *workspace) publishDiagnostics(ctx context.Context, uri protocol.Documen
 	filePath, _ := uriToPath(uri)
 
 	lspDiagnostics := convertDiagnosticsToLSP(ctx, document.ProjectResult.AllDiagnostics, filePath)
+	lspDiagnostics = append(lspDiagnostics, w.goplsDiagnosticsFor(uri)...)
 
 	l.Info("publishDiagnostics: Publishing diagnostics to client",
 		logger_domain.String(keyURI, uri.Filename()),
@@ -1437,6 +1727,10 @@ func newWorkspace(deps workspaceDeps, rootURI protocol.DocumentURI) *workspace {
 		actionProviders:      make(map[string]annotator_domain.ActionInfoProvider),
 		cancelFuncs:          make(map[protocol.DocumentURI]context.CancelCauseFunc),
 		analysisDone:         make(map[protocol.DocumentURI]chan struct{}),
+		versions:             make(map[protocol.DocumentURI]int32),
+		committedVersion:     make(map[protocol.DocumentURI]int32),
+		requestedGeneration:  make(map[protocol.DocumentURI]uint64),
+		inFlight:             make(map[protocol.DocumentURI]analysisOwner),
 		reverseDependencyMap: make(map[string][]string),
 	}
 }

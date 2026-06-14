@@ -576,23 +576,32 @@ func (s *AnnotatorService) handlePhase1Error(
 	phase1Result *Phase1IntrospectionResult,
 	phase1Err error,
 ) (*Phase1Result, error) {
-	ctx, l := logger_domain.From(ctx, log)
+	_, l := logger_domain.From(ctx, log)
+
+	if phase1Result == nil {
+		l.Warn("Phase 1 failed with a nil introspection result; returning a minimal LSP-safe result")
+		return &Phase1Result{Logs: s.logStore}, phase1Err
+	}
+
+	diagnostics := phase1ErrorDiagnostics(phase1Result, phase1Err)
+
 	l.Internal("Phase 1 returned error",
 		logger_domain.Error(phase1Err),
-		logger_domain.Int(attributeKeyDiagnosticCount, len(phase1Result.Diagnostics)),
-		logger_domain.Bool("has_component_graph", phase1Result.ComponentGraph != nil))
+		logger_domain.Int(attributeKeyDiagnosticCount, len(diagnostics)),
+		logger_domain.Bool("has_component_graph", phase1Result.ComponentGraph != nil),
+		logger_domain.Bool("has_virtual_module", phase1Result.VirtualModule != nil))
 
-	if len(phase1Result.Diagnostics) > 0 {
+	if len(diagnostics) > 0 || phase1Result.VirtualModule != nil {
 		minimalResult := &annotator_dto.ProjectAnnotationResult{
 			ComponentResults:        nil,
-			AllDiagnostics:          phase1Result.Diagnostics,
+			AllDiagnostics:          diagnostics,
 			AllSourceContents:       nil,
 			FinalAssetManifest:      nil,
-			VirtualModule:           nil,
+			VirtualModule:           phase1Result.VirtualModule,
 			FinalGeneratedArtefacts: nil,
 		}
-		l.Warn("Phase 1 failed, returning minimal result with diagnostics for LSP",
-			logger_domain.Int(attributeKeyDiagnosticCount, len(phase1Result.Diagnostics)))
+		l.Warn("Phase 1 failed, returning minimal result with diagnostics and virtual module for LSP",
+			logger_domain.Int(attributeKeyDiagnosticCount, len(diagnostics)))
 		return &Phase1Result{
 			ComponentGraph: phase1Result.ComponentGraph,
 			VirtualModule:  phase1Result.VirtualModule,
@@ -602,7 +611,7 @@ func (s *AnnotatorService) handlePhase1Error(
 		}, phase1Err
 	}
 
-	l.Warn("Phase 1 failed but no diagnostics available, returning nil result")
+	l.Warn("Phase 1 failed but no diagnostics or virtual module available, returning nil result")
 	return &Phase1Result{
 		ComponentGraph: phase1Result.ComponentGraph,
 		VirtualModule:  phase1Result.VirtualModule,
@@ -610,6 +619,28 @@ func (s *AnnotatorService) handlePhase1Error(
 		Annotations:    nil,
 		Logs:           s.logStore,
 	}, phase1Err
+}
+
+// phase1ErrorDiagnostics recovers the diagnostics that explain a phase-1 failure.
+//
+// They may live on the result (the graph and expansion stages append them there) or only
+// inside the error: the type-resolver stage wraps them in a SemanticError without also
+// appending them to the result, leaving phase1Result.Diagnostics empty.
+//
+// Takes phase1Result (*Phase1IntrospectionResult) which carries any diagnostics the
+// introspection stage already appended.
+// Takes phase1Err (error) which may wrap a SemanticError holding the diagnostics.
+//
+// Returns the diagnostics that describe the failure, or nil when none are available.
+func phase1ErrorDiagnostics(phase1Result *Phase1IntrospectionResult, phase1Err error) []*ast_domain.Diagnostic {
+	if phase1Result != nil && len(phase1Result.Diagnostics) > 0 {
+		return phase1Result.Diagnostics
+	}
+	var semanticErr *SemanticError
+	if errors.As(phase1Err, &semanticErr) {
+		return semanticErr.Diagnostics
+	}
+	return nil
 }
 
 // Phase1IntrospectionResult contains the artefacts produced by the introspection stage of

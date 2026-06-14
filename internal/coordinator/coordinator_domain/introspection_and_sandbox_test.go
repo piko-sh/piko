@@ -1621,11 +1621,14 @@ func TestTriggerBuild_EmptyRequest(t *testing.T) {
 	})
 
 	select {
-	case received := <-service.rebuildTrigger:
-		assert.Same(t, request, received)
+	case <-service.rebuildSignal:
 	case <-time.After(time.Second):
-		t.Fatal("expected request in channel")
+		t.Fatal("expected the build loop to be signalled")
 	}
+
+	queued, found := service.takeNextPendingBuild()
+	require.True(t, found, "expected a queued build request")
+	assert.Same(t, request, queued)
 }
 
 func TestUpdateStatus_IdleState(t *testing.T) {
@@ -1761,7 +1764,7 @@ func TestNotifyWaiters_ResultAndError(t *testing.T) {
 		applyCoordinatorOptions(),
 	)
 
-	waiter := &buildWaiter{done: make(chan struct{})}
+	waiter := &buildWaiter{done: make(chan struct{}), signature: "hash-both"}
 	service.waiters.Store("hash-both", waiter)
 
 	result := &annotator_dto.ProjectAnnotationResult{}
@@ -1890,7 +1893,7 @@ func TestNewCoordinatorService_ChannelCapacity(t *testing.T) {
 		applyCoordinatorOptions(),
 	)
 
-	assert.Equal(t, 1, cap(service.rebuildTrigger))
+	assert.Equal(t, 1, cap(service.rebuildSignal))
 }
 
 func TestNewCoordinatorService_SubscriberMapInitialised(t *testing.T) {

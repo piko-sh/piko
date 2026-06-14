@@ -37,10 +37,13 @@ func (s *Server) Definition(ctx context.Context, params *protocol.DefinitionPara
 
 	l.Debug("Definition request received", logger_domain.String("uri", params.TextDocument.URI.Filename()))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), params.TextDocument.URI)
-	if err != nil {
-		l.Error("Definition: analysis failed", logger_domain.Error(err))
+	document := s.documentWithLastKnownFallback(ctx, "Definition", params.TextDocument.URI)
+	if document == nil {
 		return nil, nil
+	}
+
+	if locations, handled := s.goplsDefinition(ctx, document, params.Position); handled {
+		return locations, nil
 	}
 
 	return document.GetDefinition(ctx, params.Position)

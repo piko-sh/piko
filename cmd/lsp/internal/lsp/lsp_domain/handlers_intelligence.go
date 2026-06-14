@@ -40,7 +40,7 @@ func (s *Server) getDocumentForURIHandler(ctx context.Context, handlerName strin
 
 	l.Debug(handlerName, logger_domain.String(keyURI, uri.Filename()))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), uri)
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, uri)
 	if err != nil {
 		l.Error(handlerName+": analysis failed", logger_domain.Error(err))
 		return nil
@@ -64,10 +64,30 @@ func (s *Server) getDocumentForHandler(ctx context.Context, handlerName string, 
 
 	l.Debug(handlerName, logger_domain.String(keyURI, uri.Filename()), logger_domain.Field(keyPosition, position))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), uri)
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, uri)
 	if err != nil {
 		l.Error(handlerName+": analysis failed", logger_domain.Error(err))
 		return nil
+	}
+	return document
+}
+
+// documentWithLastKnownFallback runs analysis for a URI with a last-known fallback.
+//
+// On a transient failure (e.g. a cancelled rapid edit), it falls back to the last-known
+// document so a gopls-routed Go-block request still has a chance rather than going dark.
+//
+// Takes handlerName (string) which names the calling handler for trace logging.
+// Takes uri (protocol.DocumentURI) which identifies the document to analyse.
+//
+// Returns *document which is the analysed document, or nil only when no document is known
+// at all.
+func (s *Server) documentWithLastKnownFallback(ctx context.Context, handlerName string, uri protocol.DocumentURI) *document {
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, uri)
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Trace(handlerName+": analysis failed, attempting with last-known document", logger_domain.Error(err))
+		document, _ = s.workspace.GetDocument(uri)
 	}
 	return document
 }
@@ -99,9 +119,12 @@ func (*Server) CompletionResolve(ctx context.Context, params *protocol.Completio
 // or an empty slice if none exist.
 // Returns error when the type definition lookup fails.
 func (s *Server) TypeDefinition(ctx context.Context, params *protocol.TypeDefinitionParams) ([]protocol.Location, error) {
-	document := s.getDocumentForHandler(ctx, "TypeDefinition", params.TextDocument.URI, params.Position)
+	document := s.documentWithLastKnownFallback(ctx, "TypeDefinition", params.TextDocument.URI)
 	if document == nil {
 		return []protocol.Location{}, nil
+	}
+	if locations, handled := s.goplsTypeDefinition(ctx, document, params.Position); handled {
+		return locations, nil
 	}
 	return document.GetTypeDefinition(ctx, params.Position)
 }
@@ -127,6 +150,10 @@ func (s *Server) Implementation(ctx context.Context, params *protocol.Implementa
 	if !exists {
 		l.Debug("Implementation: Document not found")
 		return []protocol.Location{}, nil
+	}
+
+	if locations, handled := s.goplsImplementation(ctx, document, params.Position); handled {
+		return locations, nil
 	}
 
 	return document.GetImplementations(ctx, params.Position)
@@ -166,6 +193,12 @@ func (s *Server) References(ctx context.Context, params *protocol.ReferenceParam
 
 	l.Debug("References", logger_domain.String(keyURI, params.TextDocument.URI.Filename()), logger_domain.Field(keyPosition, params.Position))
 
+	if document := s.getDocumentForHandler(ctx, "References", params.TextDocument.URI, params.Position); document != nil {
+		if locations, handled := s.goplsReferences(ctx, document, params.Position); handled {
+			return locations, nil
+		}
+	}
+
 	locations, err := s.workspace.FindAllReferences(ctx, params.TextDocument.URI, params.Position)
 	if err != nil {
 		l.Error("References: workspace search failed", logger_domain.Error(err))
@@ -191,6 +224,9 @@ func (s *Server) DocumentHighlight(ctx context.Context, params *protocol.Documen
 	document := s.getDocumentForHandler(ctx, "DocumentHighlight", params.TextDocument.URI, params.Position)
 	if document == nil {
 		return []protocol.DocumentHighlight{}, nil
+	}
+	if highlights, handled := s.goplsDocumentHighlight(ctx, document, params.Position); handled {
+		return highlights, nil
 	}
 	return document.GetDocumentHighlights(ctx, params.Position)
 }
@@ -218,6 +254,9 @@ func (s *Server) SignatureHelp(ctx context.Context, params *protocol.SignatureHe
 	document := s.getDocumentForHandler(ctx, "SignatureHelp", params.TextDocument.URI, params.Position)
 	if document == nil {
 		return &protocol.SignatureHelp{Signatures: []protocol.SignatureInformation{}}, nil
+	}
+	if help, handled := s.goplsSignatureHelp(ctx, document, params.Position); handled {
+		return help, nil
 	}
 	return document.GetSignatureHelp(params.Position)
 }
@@ -300,7 +339,7 @@ func (s *Server) DocumentLink(ctx context.Context, params *protocol.DocumentLink
 
 	l.Debug("DocumentLink", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), params.TextDocument.URI)
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, params.TextDocument.URI)
 	if err != nil {
 		l.Error("DocumentLink: analysis failed", logger_domain.Error(err))
 		return []protocol.DocumentLink{}, nil
@@ -350,7 +389,7 @@ func (s *Server) ColorPresentation(ctx context.Context, params *protocol.ColorPr
 
 	l.Debug("ColorPresentation", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), params.TextDocument.URI)
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, params.TextDocument.URI)
 	if err != nil {
 		l.Error("ColorPresentation: analysis failed", logger_domain.Error(err))
 		return []protocol.ColorPresentation{}, nil
@@ -369,6 +408,12 @@ func (s *Server) Rename(ctx context.Context, params *protocol.RenameParams) (*pr
 	ctx, l := logger_domain.From(ctx, log)
 
 	l.Debug("Rename", logger_domain.String(keyURI, params.TextDocument.URI.Filename()), logger_domain.Field(keyPosition, params.Position), logger_domain.String("newName", params.NewName))
+
+	if document := s.getDocumentForHandler(ctx, "Rename", params.TextDocument.URI, params.Position); document != nil {
+		if edit, handled := s.goplsRename(ctx, document, params.Position, params.NewName); handled {
+			return s.mergeTemplateRenameEdits(ctx, document, params.Position, params.NewName, edit), nil
+		}
+	}
 
 	locations, err := s.workspace.FindAllReferences(context.WithoutCancel(ctx), params.TextDocument.URI, params.Position)
 	if err != nil {
@@ -416,10 +461,14 @@ func (s *Server) PrepareRename(ctx context.Context, params *protocol.PrepareRena
 
 	l.Debug("PrepareRename", logger_domain.String(keyURI, params.TextDocument.URI.Filename()), logger_domain.Field(keyPosition, params.Position))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), params.TextDocument.URI)
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, params.TextDocument.URI)
 	if err != nil {
 		l.Error("PrepareRename: analysis failed", logger_domain.Error(err))
 		return nil, nil
+	}
+
+	if rng, handled := s.goplsPrepareRename(ctx, document, params.Position); handled {
+		return rng, nil
 	}
 
 	return document.PrepareRename(ctx, params.Position)

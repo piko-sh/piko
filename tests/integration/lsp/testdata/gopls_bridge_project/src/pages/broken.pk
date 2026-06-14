@@ -1,0 +1,19 @@
+<template>
+	<div class="broken">{{ state.Value }}</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type BrokenResponse struct {
+	Value string
+}
+
+func Render(_ *piko.RequestData, _ piko.NoProps) (BrokenResponse, piko.Metadata, error) {
+	var deliberate int = "not an int"
+	_ = deliberate
+	return BrokenResponse{Value: "x"}, piko.Metadata{}, nil
+}
+</script>

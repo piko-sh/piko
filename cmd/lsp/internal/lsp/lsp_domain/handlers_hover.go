@@ -37,10 +37,13 @@ func (s *Server) Hover(ctx context.Context, params *protocol.HoverParams) (*prot
 
 	l.Debug("Hover request received", logger_domain.String("uri", params.TextDocument.URI.Filename()))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), params.TextDocument.URI)
-	if err != nil {
-		l.Error("Hover: analysis failed", logger_domain.Error(err))
+	document := s.documentWithLastKnownFallback(ctx, "Hover", params.TextDocument.URI)
+	if document == nil {
 		return nil, nil
+	}
+
+	if hover, handled := s.goplsHover(ctx, document, params.Position); handled {
+		return hover, nil
 	}
 
 	return document.GetHoverInfo(ctx, params.Position)

@@ -23,7 +23,38 @@ import (
 	"testing"
 
 	protocol "github.com/politepixels/golang-language-server"
+	"github.com/stretchr/testify/assert"
+	"piko.sh/piko/internal/sfcparser"
 )
+
+func TestDocument_IsPositionInScriptContent_UTF16Columns(t *testing.T) {
+	t.Parallel()
+
+	const file = `<script data="🎉">CODE`
+	document := &document{Content: []byte(file), URI: "file:///emoji.pk"}
+	script := &sfcparser.Script{
+		Content:         "CODE",
+		ContentLocation: sfcparser.Location{Line: 1, Column: 18},
+	}
+
+	testCases := []struct {
+		name      string
+		character uint32
+		inBlock   bool
+	}{
+		{name: "cursor on the closing tag bracket (markup)", character: 17, inBlock: false},
+		{name: "cursor at the first content character", character: 18, inBlock: true},
+		{name: "cursor at the last content character", character: 22, inBlock: true},
+		{name: "cursor past the content", character: 23, inBlock: false},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			got := document.isPositionInScriptContent(script, protocol.Position{Line: 0, Character: testCase.character})
+			assert.Equal(t, testCase.inBlock, got)
+		})
+	}
+}
 
 func TestDocument_GetSFCResult_ValidContent(t *testing.T) {
 	document := &document{

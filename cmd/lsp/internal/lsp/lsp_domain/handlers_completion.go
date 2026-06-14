@@ -56,5 +56,9 @@ func (s *Server) Completion(ctx context.Context, params *protocol.CompletionPara
 		return &protocol.CompletionList{Items: []protocol.CompletionItem{}}, nil
 	}
 
+	if completions, handled := s.goplsCompletion(ctx, document, params.Position); handled {
+		return completions, nil
+	}
+
 	return document.GetCompletions(ctx, params.Position)
 }

@@ -18,7 +18,7 @@
 
 import * as vscode from 'vscode';
 import {Middleware} from 'vscode-languageclient';
-import {BlockInfo, BlockType, detectBlockAtPosition, isInTemplateBlock} from './blockDetector';
+import {BlockInfo, BlockType, detectBlockAtPosition} from './blockDetector';
 
 /**
  * Number of lines added by type reference directives in virtual TS documents.
@@ -27,18 +27,6 @@ import {BlockInfo, BlockType, detectBlockAtPosition, isInTemplateBlock} from './
  * - 1 refs declaration (per-file p-ref types or generic fallback)
  */
 const TS_REFERENCE_LINE_OFFSET = 5;
-
-/**
- * Creates a URI for a virtual Go document.
- *
- * Converts file:///path/to/doc.pk to piko-virtual-go:///path/to/doc.pk.go
- *
- * @param docUri - The original document URI.
- * @returns The virtual Go URI with .go extension.
- */
-export function createVirtualGoUri(docUri: vscode.Uri): vscode.Uri {
-    return vscode.Uri.parse(`piko-virtual-go:///${docUri.fsPath}.go`);
-}
 
 /**
  * Creates a URI for a virtual TypeScript document.
@@ -50,189 +38,6 @@ export function createVirtualGoUri(docUri: vscode.Uri): vscode.Uri {
  */
 export function createVirtualTsUri(docUri: vscode.Uri): vscode.Uri {
     return vscode.Uri.parse(`piko-virtual-ts:///${docUri.fsPath}.ts`);
-}
-
-/**
- * Calculates the position within the virtual Go document.
- *
- * Maps a position in the full .pk file to the position within the script block.
- *
- * @param document - The Piko document.
- * @param position - The position in the full document.
- * @param block - The script block info.
- * @returns The position within the script block content.
- */
-export function calculatePositionInBlock(
-    document: vscode.TextDocument,
-    position: vscode.Position,
-    block: BlockInfo
-): vscode.Position {
-    const contentStartPos = document.positionAt(block.contentStartOffset);
-    const lineOffset = contentStartPos.line;
-    const charOffset = contentStartPos.character;
-
-    if (position.line === lineOffset) {
-        return new vscode.Position(0, position.character - charOffset);
-    }
-    return new vscode.Position(position.line - lineOffset, position.character);
-
-}
-
-/**
- * Translates a location from the virtual Go document back to the .pk document.
- *
- * Locations not in the virtual file (like Go stdlib) are returned unchanged.
- *
- * @param document - The Piko document.
- * @param location - The location from the virtual document.
- * @param block - The script block info.
- * @returns The translated location in the .pk document.
- */
-export function translateLocation(
-    document: vscode.TextDocument,
-    location: vscode.Location,
-    block: BlockInfo
-): vscode.Location {
-    if (location.uri.scheme !== 'piko-virtual-go') {
-        return location;
-    }
-
-    const contentStartPos = document.positionAt(block.contentStartOffset);
-    const lineOffset = contentStartPos.line;
-    const charOffset = contentStartPos.character;
-
-    const translate = (pos: vscode.Position): vscode.Position => {
-        if (pos.line === 0) {
-            return new vscode.Position(lineOffset, pos.character + charOffset);
-        }
-        return new vscode.Position(pos.line + lineOffset, pos.character);
-
-    };
-
-    return new vscode.Location(
-        document.uri,
-        new vscode.Range(
-            translate(location.range.start),
-            translate(location.range.end)
-        )
-    );
-}
-
-/**
- * Handles Go-to-Definition requests for script blocks by proxying to gopls.
- *
- * @param document - The Piko document.
- * @param position - The cursor position.
- * @param block - The script block info.
- * @returns The definition locations, or null if not found.
- */
-async function handleScriptDefinition(
-    document: vscode.TextDocument,
-    position: vscode.Position,
-    block: BlockInfo
-): Promise<vscode.Location[] | null> {
-    const virtualUri = createVirtualGoUri(document.uri);
-    const positionInScript = calculatePositionInBlock(document, position, block);
-
-    const locations = await vscode.commands.executeCommand<vscode.Location[]>(
-        'vscode.executeDefinitionProvider',
-        virtualUri,
-        positionInScript
-    );
-
-    if (locations.length === 0) {
-        return null;
-    }
-    return locations.map(loc => translateLocation(document, loc, block));
-}
-
-/**
- * Handles Hover requests for script blocks by proxying to gopls.
- *
- * @param document - The Piko document.
- * @param position - The cursor position.
- * @param block - The script block info.
- * @returns The hover info, or null if not found.
- */
-async function handleScriptHover(
-    document: vscode.TextDocument,
-    position: vscode.Position,
-    block: BlockInfo
-): Promise<vscode.Hover | null> {
-    const virtualUri = createVirtualGoUri(document.uri);
-    const positionInScript = calculatePositionInBlock(document, position, block);
-
-    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
-        'vscode.executeHoverProvider',
-        virtualUri,
-        positionInScript
-    );
-
-    if (hovers.length === 0) {
-        return null;
-    }
-
-    const translatedHover = hovers[0];
-    const hoverRange = translatedHover.range;
-    if (hoverRange) {
-        const start = translateLocation(document, new vscode.Location(virtualUri, hoverRange), block).range.start;
-        const end = translateLocation(document, new vscode.Location(virtualUri, hoverRange), block).range.end;
-        translatedHover.range = new vscode.Range(start, end);
-    }
-
-    return translatedHover;
-}
-
-/**
- * Handles Code Completion requests for script blocks by proxying to gopls.
- *
- * @param document - The Piko document.
- * @param position - The cursor position.
- * @param block - The script block info.
- * @param triggerCharacter - The character that triggered completion.
- * @returns The completion list, or null if not available.
- */
-async function handleScriptCompletion(
-    document: vscode.TextDocument,
-    position: vscode.Position,
-    block: BlockInfo,
-    triggerCharacter: string | undefined
-): Promise<vscode.CompletionList | null> {
-    const virtualUri = createVirtualGoUri(document.uri);
-    const positionInScript = calculatePositionInBlock(document, position, block);
-
-    return vscode.commands.executeCommand<vscode.CompletionList>(
-        'vscode.executeCompletionItemProvider',
-        virtualUri,
-        positionInScript,
-        triggerCharacter
-    );
-}
-
-/**
- * Handles Signature Help requests for script blocks by proxying to gopls.
- *
- * @param document - The Piko document.
- * @param position - The cursor position.
- * @param block - The script block info.
- * @param triggerCharacter - The character that triggered signature help.
- * @returns The signature help, or null if not available.
- */
-async function handleScriptSignatureHelp(
-    document: vscode.TextDocument,
-    position: vscode.Position,
-    block: BlockInfo,
-    triggerCharacter: string | undefined
-): Promise<vscode.SignatureHelp | null> {
-    const virtualUri = createVirtualGoUri(document.uri);
-    const positionInScript = calculatePositionInBlock(document, position, block);
-
-    return vscode.commands.executeCommand<vscode.SignatureHelp>(
-        'vscode.executeSignatureHelpProvider',
-        virtualUri,
-        positionInScript,
-        triggerCharacter
-    );
 }
 
 /**
@@ -317,13 +122,13 @@ async function handleTsDefinition(
     const virtualUri = createVirtualTsUri(document.uri);
     const positionInScript = calculateTsPositionInBlock(document, position, block);
 
-    const locations = await vscode.commands.executeCommand<vscode.Location[]>(
+    const locations = await vscode.commands.executeCommand<vscode.Location[] | undefined>(
         'vscode.executeDefinitionProvider',
         virtualUri,
         positionInScript
     );
 
-    if (locations.length === 0) {
+    if (!locations || locations.length === 0) {
         return null;
     }
     return locations.map(loc => translateTsLocation(document, loc, block));
@@ -345,22 +150,21 @@ async function handleTsHover(
     const virtualUri = createVirtualTsUri(document.uri);
     const positionInScript = calculateTsPositionInBlock(document, position, block);
 
-    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+    const hovers = await vscode.commands.executeCommand<vscode.Hover[] | undefined>(
         'vscode.executeHoverProvider',
         virtualUri,
         positionInScript
     );
 
-    if (hovers.length === 0) {
+    if (!hovers || hovers.length === 0) {
         return null;
     }
 
     const translatedHover = hovers[0];
     const hoverRange = translatedHover.range;
     if (hoverRange) {
-        const start = translateTsLocation(document, new vscode.Location(virtualUri, hoverRange), block).range.start;
-        const end = translateTsLocation(document, new vscode.Location(virtualUri, hoverRange), block).range.end;
-        translatedHover.range = new vscode.Range(start, end);
+        const translatedRange = translateTsLocation(document, new vscode.Location(virtualUri, hoverRange), block).range;
+        translatedHover.range = new vscode.Range(translatedRange.start, translatedRange.end);
     }
 
     return translatedHover;
@@ -419,95 +223,112 @@ async function handleTsSignatureHelp(
 }
 
 /**
+ * Runs a middleware handler with error isolation.
+ *
+ * An unexpected throw in a provide* handler would otherwise fail the request
+ * with no logging, so failures are logged and resolved to null (which lets the
+ * request fall through harmlessly).
+ *
+ * @param outputChannel - Optional output channel for logging handler failures.
+ * @param label - The handler name used in failure logs.
+ * @param handler - The handler body to run.
+ * @returns The handler result, or null on failure.
+ */
+async function runHandler<T>(
+    outputChannel: vscode.OutputChannel | undefined,
+    label: string,
+    handler: () => T | Thenable<T> | null | undefined
+): Promise<T | null | undefined> {
+    try {
+        return await handler();
+    } catch (error) {
+        outputChannel?.appendLine(`[Middleware] ${label} failed: ${error}`);
+        return null;
+    }
+}
+
+/**
  * Creates the LSP middleware that proxies requests to the right handler.
  *
  * Template blocks are handled by the Piko LSP.
  * Script blocks are proxied to gopls via virtual Go documents.
  *
+ * @param outputChannel - Optional output channel for logging handler failures.
  * @returns The middleware for the language client.
  */
-export function createPikoLspMiddleware(): Middleware {
+export function createPikoLspMiddleware(outputChannel?: vscode.OutputChannel): Middleware {
     return {
-        provideDefinition: async (document, position, token, next) => {
+        provideDefinition: (document, position, token, next) => runHandler(outputChannel, 'provideDefinition', () => {
             if (document.languageId !== 'piko') {
                 return null;
             }
-
             const block = detectBlockAtPosition(document, position);
-            if (block.type === BlockType.Template) {
+            if (block.type === BlockType.Template || block.type === BlockType.Script) {
                 return next(document, position, token);
-            }
-            if (block.type === BlockType.Script) {
-                return handleScriptDefinition(document, position, block);
             }
             if (block.type === BlockType.ScriptTS) {
                 return handleTsDefinition(document, position, block);
             }
             return null;
-        },
+        }),
 
-        provideHover: async (document, position, token, next) => {
+        provideHover: (document, position, token, next) => runHandler(outputChannel, 'provideHover', () => {
             if (document.languageId !== 'piko') {
                 return null;
             }
-
             const block = detectBlockAtPosition(document, position);
-            if (block.type === BlockType.Template) {
+            if (block.type === BlockType.Template || block.type === BlockType.Script) {
                 return next(document, position, token);
-            }
-            if (block.type === BlockType.Script) {
-                return handleScriptHover(document, position, block);
             }
             if (block.type === BlockType.ScriptTS) {
                 return handleTsHover(document, position, block);
             }
             return null;
-        },
+        }),
 
-        provideCompletionItem: async (document, position, context, token, next) => {
+        provideCompletionItem: (document, position, context, token, next) => runHandler(outputChannel, 'provideCompletionItem', () => {
             if (document.languageId !== 'piko') {
                 return null;
             }
-
             const block = detectBlockAtPosition(document, position);
-            if (block.type === BlockType.Template) {
+            if (block.type === BlockType.Template || block.type === BlockType.Script) {
                 return next(document, position, context, token);
-            }
-            if (block.type === BlockType.Script) {
-                return handleScriptCompletion(document, position, block, context.triggerCharacter);
             }
             if (block.type === BlockType.ScriptTS) {
                 return handleTsCompletion(document, position, block, context.triggerCharacter);
             }
             return null;
-        },
+        }),
 
-        provideSignatureHelp: async (document, position, context, token, next) => {
+        provideSignatureHelp: (document, position, context, token, next) => runHandler(outputChannel, 'provideSignatureHelp', () => {
             if (document.languageId !== 'piko') {
                 return null;
             }
-
             const block = detectBlockAtPosition(document, position);
-            if (block.type === BlockType.Template) {
+            if (block.type === BlockType.Template || block.type === BlockType.Script) {
                 return next(document, position, context, token);
-            }
-            if (block.type === BlockType.Script) {
-                return handleScriptSignatureHelp(document, position, block, context.triggerCharacter);
             }
             if (block.type === BlockType.ScriptTS) {
                 return handleTsSignatureHelp(document, position, block, context.triggerCharacter);
             }
             return null;
-        },
+        }),
 
         provideCodeLenses: (document, token, next) => document.languageId === 'piko' ? next(document, token) : null,
         provideDocumentLinks: (document, token, next) => document.languageId === 'piko' ? next(document, token) : null,
         provideDocumentFormattingEdits: (document, options, token, next) => document.languageId === 'piko' ? next(document, options, token) : null,
 
-        provideReferences: (document, position, context, token, next) => isInTemplateBlock(document, position) ? next(document, position, context, token) : null,
-        provideDocumentHighlights: (document, position, token, next) => isInTemplateBlock(document, position) ? next(document, position, token) : null,
-        prepareRename: (document, position, token, next) => isInTemplateBlock(document, position) ? next(document, position, token) : null,
-        provideRenameEdits: (document, position, newName, token, next) => isInTemplateBlock(document, position) ? next(document, position, newName, token) : null,
-        provideCodeActions: (document, range, context, token, next) => isInTemplateBlock(document, range.start) ? next(document, range, context, token) : null,
+        provideReferences: (document, position, context, token, next) => isInTemplateOrGoBlock(document, position) ? next(document, position, context, token) : null,
+        provideDocumentHighlights: (document, position, token, next) => isInTemplateOrGoBlock(document, position) ? next(document, position, token) : null,
+        prepareRename: (document, position, token, next) => isInTemplateOrGoBlock(document, position) ? next(document, position, token) : null,
+        provideRenameEdits: (document, position, newName, token, next) => isInTemplateOrGoBlock(document, position) ? next(document, position, newName, token) : null,
+        provideCodeActions: (document, range, context, token, next) => isInTemplateOrGoBlock(document, range.start) ? next(document, range, context, token) : null,
     };
+}
+
+// isInTemplateOrGoBlock reports whether a position is in the template or the Go
+// (application/x-go) block, both of which are served by piko-lsp.
+function isInTemplateOrGoBlock(document: vscode.TextDocument, position: vscode.Position): boolean {
+    const type = detectBlockAtPosition(document, position).type;
+    return type === BlockType.Template || type === BlockType.Script;
 }
