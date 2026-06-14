@@ -667,5 +667,10 @@ func isWithinRoot(root, path string) bool {
 		return true
 	}
 
-	return len(path) > len(root) && path[:len(root)] == root && path[len(root)] == filepath.Separator
+	prefix := root
+	if prefix[len(prefix)-1] != filepath.Separator {
+		prefix += string(filepath.Separator)
+	}
+
+	return strings.HasPrefix(path, prefix)
 }

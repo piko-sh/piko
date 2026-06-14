@@ -313,11 +313,12 @@ func isWithinOrEqual(parent, path string) bool {
 		return true
 	}
 
-	if strings.HasPrefix(path, parent+string(filepath.Separator)) {
-		return true
+	prefix := parent
+	if prefix[len(prefix)-1] != filepath.Separator {
+		prefix += string(filepath.Separator)
 	}
 
-	return false
+	return strings.HasPrefix(path, prefix)
 }
 
 // initialiseGlobalFactory initialises the global factory with the given configuration.

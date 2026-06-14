@@ -24,6 +24,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -711,7 +712,11 @@ func (c *Container) createDefaultTypeInspectorManager() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default TypeInspectorManager...")
 	serverConfig := c.serverConfig
-	cacheDir := filepath.Join(deref(serverConfig.Paths.BaseDir, "."), ".piko", "cache", "types")
+	cacheDir, cacheDirErr := resolveTypeInspectorCacheDir(deref(serverConfig.Paths.BaseDir, "."))
+	if cacheDirErr != nil {
+		c.typeInspectorBuilderErr = fmt.Errorf("resolving type inspector cache directory: %w", cacheDirErr)
+		return
+	}
 
 	cacheSandbox, err := c.createSandbox("type-inspector-cache", cacheDir, safedisk.ModeReadWrite)
 	if err != nil {
@@ -747,6 +752,47 @@ func (c *Container) createDefaultTypeInspectorManager() {
 		},
 		inspector_domain.WithProvider(provider),
 	)
+}
+
+// resolveTypeInspectorCacheDir resolves a writable directory for the type inspector's
+// on-disk cache.
+//
+// The cache normally lives under the project base directory at .piko/cache/types. When
+// the base directory resolves to a filesystem root, which happens when an editor launches
+// the language server with a working directory of "/" while the base directory keeps its
+// relative default, that location is not writable for an unprivileged process. The
+// per-user cache directory is used as a fallback in that case.
+//
+// Takes baseDir (string) which is the configured project base directory.
+//
+// Returns string which is the absolute directory to use for the type inspector cache.
+// Returns error when the base directory cannot be made absolute or no fallback cache
+// directory is available.
+func resolveTypeInspectorCacheDir(baseDir string) (string, error) {
+	absBase, err := filepath.Abs(baseDir)
+	if err != nil {
+		return "", fmt.Errorf("making base directory %q absolute: %w", baseDir, err)
+	}
+
+	if !isFilesystemRoot(absBase) {
+		return filepath.Join(absBase, ".piko", "cache", "types"), nil
+	}
+
+	userCacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", fmt.Errorf("base directory %q is a filesystem root and no user cache directory is available: %w", absBase, err)
+	}
+	return filepath.Join(userCacheDir, "piko", "cache", "types"), nil
+}
+
+// isFilesystemRoot reports whether dir is a filesystem root such as "/" or "C:\\".
+//
+// Takes dir (string) which is the directory path to test.
+//
+// Returns bool which is true when dir is its own parent, which marks it as a root.
+func isFilesystemRoot(dir string) bool {
+	cleaned := filepath.Clean(dir)
+	return filepath.Dir(cleaned) == cleaned
 }
 
 // GetCollectionService returns the collection service, initialising it if needed. The

@@ -873,6 +873,9 @@ func TestIsWithinOrEqual(t *testing.T) {
 		{name: "path outside parent", parent: "/home/user", path: "/home/other", expected: false},
 		{name: "path with similar prefix", parent: "/home/user", path: "/home/username", expected: false},
 		{name: "nested path", parent: "/a/b", path: "/a/b/c/d/e", expected: true},
+		{name: "root parent allows child", parent: "/", path: "/.piko/cache/types", expected: true},
+		{name: "root parent allows nested child", parent: "/", path: "/home/user/project", expected: true},
+		{name: "root parent equals root", parent: "/", path: "/", expected: true},
 	}
 
 	for _, tc := range testCases {
@@ -896,6 +899,8 @@ func TestIsWithinRoot(t *testing.T) {
 		{name: "path within root", root: "/tmp/sandbox", path: "/tmp/sandbox/file.txt", expected: true},
 		{name: "path outside root", root: "/tmp/sandbox", path: "/tmp/other/file.txt", expected: false},
 		{name: "similar prefix", root: "/tmp/sandbox", path: "/tmp/sandboxed/file.txt", expected: false},
+		{name: "root allows child", root: "/", path: "/var/cache/piko", expected: true},
+		{name: "root equals root", root: "/", path: "/", expected: true},
 	}
 
 	for _, tc := range testCases {
@@ -904,6 +909,22 @@ func TestIsWithinRoot(t *testing.T) {
 			assert.Equal(t, tc.expected, result)
 		})
 	}
+}
+
+func TestFactory_RootAllowedPath_AllowsChildren(t *testing.T) {
+	t.Parallel()
+
+	factory, err := NewFactory(FactoryConfig{
+		CWD:          t.TempDir(),
+		AllowedPaths: []string{string(filepath.Separator)},
+		Enabled:      false,
+	})
+	require.NoError(t, err)
+
+	assert.True(t, factory.IsPathAllowed(filepath.Join(string(filepath.Separator), "etc", "somewhere", "file")),
+		"a root allowed path should permit any child path")
+	assert.True(t, factory.IsPathAllowed(string(filepath.Separator)),
+		"a root allowed path should permit the root itself")
 }
 
 func TestCleanPath(t *testing.T) {
