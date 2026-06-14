@@ -19,7 +19,7 @@
 package lsp_domain
 
 import (
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 // InlayHint represents an inline annotation displayed in the editor. It can show type

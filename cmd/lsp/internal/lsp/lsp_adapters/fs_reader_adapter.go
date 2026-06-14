@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/uri"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_domain"
 	"piko.sh/piko/internal/annotator/annotator_domain"

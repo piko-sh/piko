@@ -19,7 +19,7 @@
 package lsp_domain
 
 import (
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 // getPKCCompletions returns completion suggestions for PKC files at the given position.

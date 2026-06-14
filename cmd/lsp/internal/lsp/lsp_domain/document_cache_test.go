@@ -23,7 +23,7 @@ import (
 	"sync"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 func TestDocumentCache_GetNonExistent_ReturnsNotFound(t *testing.T) {

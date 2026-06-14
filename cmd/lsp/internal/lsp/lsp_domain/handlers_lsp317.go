@@ -22,7 +22,7 @@ import (
 	"context"
 	"fmt"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 )

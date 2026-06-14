@@ -22,7 +22,7 @@ import (
 	"sync"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 func TestDocument_GetSFCResult_ValidContent(t *testing.T) {

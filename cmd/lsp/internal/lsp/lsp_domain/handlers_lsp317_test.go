@@ -23,7 +23,7 @@ import (
 	"math"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 func TestRemarshalParams(t *testing.T) {

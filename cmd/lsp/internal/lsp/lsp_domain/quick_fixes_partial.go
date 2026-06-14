@@ -21,7 +21,7 @@ package lsp_domain
 import (
 	"fmt"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 // generateUndefinedPartialAliasFixes creates fixes for undefined partial aliases. This

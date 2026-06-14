@@ -221,18 +221,22 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Tag WDK sub-modules
+      - name: Tag WDK and command sub-modules
         run: |
           version="${GITHUB_REF_NAME}"
 
-          find wdk -name 'go.mod' -exec sed -i "s|piko.sh/piko\(.*\) v0\.0\.0|piko.sh/piko\1 ${version}|g" {} +
+          modules=$(grep -oP '^\s+\./\K(wdk|cmd)/\S+' go.work)
+
+          echo "${modules}" | while read -r module; do
+            sed -i "s|piko.sh/piko\(.*\) v0\.0\.0|piko.sh/piko\1 ${version}|g" "${module}/go.mod"
+          done
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add wdk/
-          git commit -m "release: update WDK module versions to ${version}"
+          git add wdk/ cmd/
+          git commit -m "release: update WDK and command module versions to ${version}"
 
-          grep -oP '^\s+\./\Kwdk/\S+' go.work | while read -r module; do
+          echo "${modules}" | while read -r module; do
             tag="${module}/${version}"
             echo "Creating tag: ${tag}"
             git tag "${tag}"

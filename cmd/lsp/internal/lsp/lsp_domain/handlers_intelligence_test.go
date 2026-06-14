@@ -22,7 +22,7 @@ import (
 	"context"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 func TestTypeDefinition_NilDocument_ReturnsEmptyList(t *testing.T) {

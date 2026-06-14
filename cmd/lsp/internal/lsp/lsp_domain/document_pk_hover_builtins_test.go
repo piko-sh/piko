@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 func TestCheckBuiltinHoverContext_CoreFunctions(t *testing.T) {

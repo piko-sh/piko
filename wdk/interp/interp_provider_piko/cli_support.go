@@ -254,7 +254,7 @@ func WithCapabilityHook(hook CapabilityHook) Option {
 // Distinct from wdk/clock.Clock: that interface is for piko's internal services and
 // returns wrapped Timer/Ticker abstractions; Clock must return stdlib *time.Timer /
 // *time.Ticker because interpreted code expects those exact types. Hosts that have a
-// wdk/clock.Clock can adapt via wdk/interp/interp_clock_bridge.
+// wdk/clock.Clock can adapt via FromWDKClock.
 type Clock = interp_domain.Clock
 
 var (

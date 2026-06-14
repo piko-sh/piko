@@ -29,8 +29,8 @@ import (
 	"testing"
 	"time"
 
+	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
-	"go.lsp.dev/protocol"
 	"piko.sh/piko/wdk/json"
 )
 

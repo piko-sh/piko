@@ -22,7 +22,7 @@ import (
 	"context"
 	"path/filepath"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"

@@ -22,7 +22,7 @@ import (
 	"context"
 	"fmt"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 // GetRenameEdits generates workspace edits to rename a symbol across the document. This

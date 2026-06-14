@@ -48,5 +48,3 @@ require (
 	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace go.lsp.dev/protocol => github.com/politepixels/golang-language-server v0.0.0-20251021203416-834c07056957

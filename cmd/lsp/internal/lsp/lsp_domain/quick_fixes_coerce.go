@@ -25,7 +25,7 @@ import (
 	goast "go/ast"
 	"go/token"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/sfcparser"
 )

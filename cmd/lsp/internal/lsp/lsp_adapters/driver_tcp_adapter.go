@@ -29,8 +29,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
-	"go.lsp.dev/protocol"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_domain"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/config"

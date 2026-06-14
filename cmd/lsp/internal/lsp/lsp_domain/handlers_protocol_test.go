@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"testing"
 
+	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
-	"go.lsp.dev/protocol"
 	"piko.sh/piko/internal/formatter/formatter_domain"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"

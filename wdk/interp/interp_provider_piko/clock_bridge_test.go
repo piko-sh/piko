@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package interp_clock_bridge
+package interp_provider_piko
 
 import (
 	"testing"
@@ -25,28 +25,28 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-func TestFromWDKNilReturnsNil(t *testing.T) {
+func TestFromWDKClockNilReturnsNil(t *testing.T) {
 	t.Parallel()
-	if got := FromWDK(nil); got != nil {
-		t.Fatalf("FromWDK(nil) = %v, want nil", got)
+	if got := FromWDKClock(nil); got != nil {
+		t.Fatalf("FromWDKClock(nil) = %v, want nil", got)
 	}
 }
 
-func TestFromWDKNowDelegates(t *testing.T) {
+func TestFromWDKClockNowDelegates(t *testing.T) {
 	t.Parallel()
 	fixed := time.Date(2026, 5, 24, 12, 0, 0, 0, time.UTC)
 	mock := clock.NewMockClock(fixed)
-	bridge := FromWDK(mock)
+	bridge := FromWDKClock(mock)
 	if got := bridge.Now(); !got.Equal(fixed) {
 		t.Fatalf("Now() = %v, want %v", got, fixed)
 	}
 }
 
-func TestFromWDKSinceDerivedFromNow(t *testing.T) {
+func TestFromWDKClockSinceDerivedFromNow(t *testing.T) {
 	t.Parallel()
 	fixed := time.Date(2026, 5, 24, 12, 0, 0, 0, time.UTC)
 	mock := clock.NewMockClock(fixed)
-	bridge := FromWDK(mock)
+	bridge := FromWDKClock(mock)
 
 	earlier := fixed.Add(-5 * time.Minute)
 	if got := bridge.Since(earlier); got != 5*time.Minute {
@@ -54,11 +54,11 @@ func TestFromWDKSinceDerivedFromNow(t *testing.T) {
 	}
 }
 
-func TestFromWDKUntilDerivedFromNow(t *testing.T) {
+func TestFromWDKClockUntilDerivedFromNow(t *testing.T) {
 	t.Parallel()
 	fixed := time.Date(2026, 5, 24, 12, 0, 0, 0, time.UTC)
 	mock := clock.NewMockClock(fixed)
-	bridge := FromWDK(mock)
+	bridge := FromWDKClock(mock)
 
 	later := fixed.Add(3 * time.Minute)
 	if got := bridge.Until(later); got != 3*time.Minute {
@@ -66,11 +66,11 @@ func TestFromWDKUntilDerivedFromNow(t *testing.T) {
 	}
 }
 
-func TestFromWDKSleepUsesWDKTimer(t *testing.T) {
+func TestFromWDKClockSleepUsesWDKTimer(t *testing.T) {
 	t.Parallel()
 	fixed := time.Date(2026, 5, 24, 12, 0, 0, 0, time.UTC)
 	mock := clock.NewMockClock(fixed)
-	bridge := FromWDK(mock)
+	bridge := FromWDKClock(mock)
 
 	baseline := mock.TimerCount()
 	done := make(chan struct{})
@@ -90,11 +90,10 @@ func TestFromWDKSleepUsesWDKTimer(t *testing.T) {
 	}
 }
 
-func TestFromWDKSleepZeroIsNoop(t *testing.T) {
+func TestFromWDKClockSleepZeroIsNoop(t *testing.T) {
 	t.Parallel()
 	mock := clock.NewMockClock(time.Now())
-	bridge := FromWDK(mock)
+	bridge := FromWDKClock(mock)
 	bridge.Sleep(0)
 	bridge.Sleep(-1 * time.Second)
-
 }

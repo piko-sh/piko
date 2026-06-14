@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package interp_clock_bridge
+package interp_provider_piko
 
 import (
 	"time"
 
 	"piko.sh/piko/wdk/clock"
-	"piko.sh/piko/wdk/interp/interp_provider_piko"
 )
 
 // FromWDK adapts a wdk/clock.Clock so it implements the interpreter-side Clock interface
@@ -33,17 +32,19 @@ import (
 //
 // Takes source (clock.Clock) which is the wdk clock to adapt.
 //
-// Returns interp_provider_piko.Clock (the interpreter's Clock interface) backed by
-// source.
-func FromWDK(source clock.Clock) interp_provider_piko.Clock {
+// Returns Clock (the interpreter's Clock interface) backed by source.
+func FromWDKClock(source clock.Clock) Clock {
 	if source == nil {
 		return nil
 	}
-	return &bridge{source: source}
+	return &clockBridge{source: source}
 }
 
-// bridge wraps a wdk/clock.Clock to expose the interpreter Clock surface.
-type bridge struct {
+// clockBridge wraps a wdk/clock.Clock to expose the interpreter Clock surface.
+//
+// It is safe for concurrent use; method calls forward directly to the underlying
+// wdk/clock.Clock, which is documented as concurrent safe.
+type clockBridge struct {
 	// source is the underlying wdk clock supplying time values.
 	source clock.Clock
 }
@@ -51,7 +52,7 @@ type bridge struct {
 // Now returns the wdk clock's current time.
 //
 // Returns time.Time which is the current time from the wdk source.
-func (b *bridge) Now() time.Time {
+func (b *clockBridge) Now() time.Time {
 	return b.source.Now()
 }
 
@@ -60,7 +61,7 @@ func (b *bridge) Now() time.Time {
 // Takes t (time.Time) which is the reference point.
 //
 // Returns time.Duration which is the elapsed time from t to now.
-func (b *bridge) Since(t time.Time) time.Duration {
+func (b *clockBridge) Since(t time.Time) time.Duration {
 	return b.source.Now().Sub(t)
 }
 
@@ -69,7 +70,7 @@ func (b *bridge) Since(t time.Time) time.Duration {
 // Takes t (time.Time) which is the target time.
 //
 // Returns time.Duration which is the duration from now until t.
-func (b *bridge) Until(t time.Time) time.Duration {
+func (b *clockBridge) Until(t time.Time) time.Duration {
 	return t.Sub(b.source.Now())
 }
 
@@ -78,7 +79,7 @@ func (b *bridge) Until(t time.Time) time.Duration {
 // MockClock-based tests can advance through the sleep synchronously.
 //
 // Takes d (time.Duration) which is the minimum duration to block.
-func (b *bridge) Sleep(d time.Duration) {
+func (b *clockBridge) Sleep(d time.Duration) {
 	if d <= 0 {
 		return
 	}
@@ -94,9 +95,7 @@ func (b *bridge) Sleep(d time.Duration) {
 // Takes d (time.Duration) which is the timer duration.
 //
 // Returns *time.Timer which is the stdlib timer scheduled for d.
-//
-// SeeAlso: package doc for the partial-virtualisation note.
-func (*bridge) NewTimer(d time.Duration) *time.Timer {
+func (*clockBridge) NewTimer(d time.Duration) *time.Timer {
 	return time.NewTimer(d)
 }
 
@@ -105,8 +104,6 @@ func (*bridge) NewTimer(d time.Duration) *time.Timer {
 // Takes d (time.Duration) which is the ticker period.
 //
 // Returns *time.Ticker which is the stdlib ticker firing every d.
-//
-// SeeAlso: package doc for the partial-virtualisation note.
-func (*bridge) NewTicker(d time.Duration) *time.Ticker {
+func (*clockBridge) NewTicker(d time.Duration) *time.Ticker {
 	return time.NewTicker(d)
 }

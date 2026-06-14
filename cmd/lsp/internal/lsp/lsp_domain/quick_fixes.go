@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 // generateQuickFixes analyses a diagnostic and returns appropriate code actions. It

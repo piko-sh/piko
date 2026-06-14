@@ -23,9 +23,9 @@ import (
 	"strings"
 	"testing"
 
+	protocol "github.com/politepixels/golang-language-server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.lsp.dev/protocol"
 )
 
 const (

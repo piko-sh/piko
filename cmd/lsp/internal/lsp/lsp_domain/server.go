@@ -26,8 +26,8 @@ import (
 	"sync"
 	"time"
 
+	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
-	"go.lsp.dev/protocol"
 	"golang.org/x/sync/errgroup"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/config"

@@ -24,7 +24,7 @@ import (
 	goast "go/ast"
 	"strings"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"

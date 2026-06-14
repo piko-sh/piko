@@ -32,9 +32,9 @@ import (
 	"testing"
 	"time"
 
+	protocol "github.com/politepixels/golang-language-server"
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
-	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
 

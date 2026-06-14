@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"

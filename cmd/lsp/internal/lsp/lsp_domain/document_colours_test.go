@@ -22,7 +22,7 @@ import (
 	"math"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/sfcparser"
 )

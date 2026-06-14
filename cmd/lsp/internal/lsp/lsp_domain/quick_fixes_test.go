@@ -22,7 +22,7 @@ import (
 	"context"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 func TestExtractVariableName_UndefinedColon(t *testing.T) {

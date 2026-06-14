@@ -21,7 +21,7 @@ package lsp_domain
 import (
 	"context"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 // GetHoverInfo finds the AST node at the given position and returns hover information for

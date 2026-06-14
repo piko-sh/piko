@@ -22,7 +22,7 @@ import (
 	"context"
 	"strings"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/esbuild/js_parser"
 	"piko.sh/piko/internal/esbuild/logger"

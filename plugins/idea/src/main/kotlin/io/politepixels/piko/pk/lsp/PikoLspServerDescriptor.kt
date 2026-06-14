@@ -600,7 +600,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
     private fun getPluginVersion(): String {
         return try {
             val pluginId = com.intellij.openapi.extensions.PluginId.getId("io.politepixels.piko")
-            com.intellij.ide.plugins.PluginManagerCore.getPlugin(pluginId)?.version ?: "unknown"
+            com.intellij.ide.plugins.PluginManager.getInstance().findEnabledPlugin(pluginId)?.version ?: "unknown"
         } catch (e: Exception) {
             log.debug("Could not determine plugin version: ${e.message}")
             "unknown"

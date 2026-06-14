@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/uri"
 	"piko.sh/piko/internal/formatter/formatter_domain"
 )

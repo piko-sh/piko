@@ -22,7 +22,7 @@ import (
 	"context"
 	"testing"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 func TestDefinition_AnalysisFails_ReturnsNil(t *testing.T) {

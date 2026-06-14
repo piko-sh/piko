@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 	"piko.sh/piko/internal/config"
 )
 

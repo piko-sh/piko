@@ -21,7 +21,7 @@ package lsp_domain
 import (
 	"sync"
 
-	"go.lsp.dev/protocol"
+	protocol "github.com/politepixels/golang-language-server"
 )
 
 // DocumentCache is a thread-safe in-memory store for open documents.

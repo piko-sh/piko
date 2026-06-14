@@ -4,9 +4,9 @@ go 1.26.0
 
 require (
 	github.com/go-chi/chi/v5 v5.2.5
+	github.com/politepixels/golang-language-server v0.12.1
 	github.com/stretchr/testify v1.11.1
 	go.lsp.dev/jsonrpc2 v0.10.0
-	go.lsp.dev/protocol v0.12.0
 	go.lsp.dev/uri v0.3.0
 	go.opentelemetry.io/otel v1.42.0
 	go.uber.org/goleak v1.3.0
@@ -62,5 +62,3 @@ require (
 	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace go.lsp.dev/protocol => github.com/politepixels/golang-language-server v0.0.0-20251021203416-834c07056957
