@@ -307,3 +307,165 @@ func TestCopyUserCode(t *testing.T) {
 		assert.Empty(t, fileAST.Decls, "Should handle nil component gracefully")
 	})
 }
+
+func fileASTUsing(qualifiers ...string) *goast.File {
+	decls := buildBoilerplateVarAcks()
+	if len(qualifiers) > 0 {
+		stmts := make([]goast.Stmt, 0, len(qualifiers))
+		for _, q := range qualifiers {
+			stmts = append(stmts, &goast.ExprStmt{
+				X: &goast.SelectorExpr{X: goast.NewIdent(q), Sel: goast.NewIdent("Ref")},
+			})
+		}
+		decls = append(decls, &goast.FuncDecl{
+			Name: goast.NewIdent("_uses"),
+			Type: &goast.FuncType{Params: &goast.FieldList{}},
+			Body: &goast.BlockStmt{List: stmts},
+		})
+	}
+	return &goast.File{Name: goast.NewIdent("p"), Decls: decls}
+}
+
+func importSpecsForPath(decl *goast.GenDecl, path string) []*goast.ImportSpec {
+	var out []*goast.ImportSpec
+	for _, s := range decl.Specs {
+		if imp, ok := s.(*goast.ImportSpec); ok && importSpecPath(imp) == path {
+			out = append(out, imp)
+		}
+	}
+	return out
+}
+
+func TestCollectUsedQualifiers(t *testing.T) {
+	t.Parallel()
+
+	file := &goast.File{
+		Name: goast.NewIdent("p"),
+		Decls: []goast.Decl{
+			&goast.FuncDecl{
+				Name: goast.NewIdent("f"),
+				Type: &goast.FuncType{Params: &goast.FieldList{}},
+				Body: &goast.BlockStmt{List: []goast.Stmt{
+					&goast.ExprStmt{X: &goast.SelectorExpr{X: goast.NewIdent("a"), Sel: goast.NewIdent("B")}},
+					&goast.ExprStmt{X: &goast.SelectorExpr{
+						X:   &goast.SelectorExpr{X: goast.NewIdent("c"), Sel: goast.NewIdent("D")},
+						Sel: goast.NewIdent("E"),
+					}},
+				}},
+			},
+		},
+	}
+
+	used := collectUsedQualifiers(file)
+	assert.Contains(t, used, "a")
+	assert.Contains(t, used, "c")
+	assert.NotContains(t, used, "z")
+}
+
+func TestBuildImportBlock_PrunesUnused(t *testing.T) {
+	t.Parallel()
+
+	em := &emitter{
+		ctx:    NewEmitterContext(),
+		config: EmitterConfig{CanonicalGoPackagePath: "test.com/pkg"},
+	}
+	em.ctx.requiredImports["example.com/used"] = "used"
+	em.ctx.requiredImports["example.com/unused"] = "unused"
+
+	result := createMinimalAnnotationResult("test")
+	mainComponent := result.VirtualModule.ComponentsByHash["test"]
+
+	decl := em.buildImportBlock(result, mainComponent, fileASTUsing("used"))
+
+	assert.Len(t, importSpecsForPath(decl, "example.com/used"), 1, "referenced import kept")
+	assert.Empty(t, importSpecsForPath(decl, "example.com/unused"), "unreferenced import pruned")
+
+	for _, s := range decl.Specs {
+		imp := requireAstImportSpec(t, s, "import spec")
+		assert.NotEqual(t, ".", importSpecName(imp), "no dot import should be emitted")
+	}
+}
+
+func TestBuildImportBlock_DualPath(t *testing.T) {
+	t.Parallel()
+
+	const path = "example.com/x/dto"
+
+	newEmitter := func() *emitter {
+		em := &emitter{
+			ctx:    NewEmitterContext(),
+			config: EmitterConfig{CanonicalGoPackagePath: "test.com/pkg"},
+		}
+
+		em.ctx.requiredImports[path] = "dto"
+		return em
+	}
+	mainComponent := func() *annotator_dto.VirtualComponent {
+		return &annotator_dto.VirtualComponent{
+			HashedName: "test",
+			RewrittenScriptAST: &goast.File{Decls: []goast.Decl{
+				&goast.GenDecl{Tok: token.IMPORT, Specs: []goast.Spec{
+					&goast.ImportSpec{Name: goast.NewIdent("tdto"), Path: &goast.BasicLit{Value: `"` + path + `"`}},
+				}},
+			}},
+		}
+	}
+	result := createMinimalAnnotationResult("test")
+
+	t.Run("both qualifiers referenced emits two specs", func(t *testing.T) {
+		t.Parallel()
+		decl := newEmitter().buildImportBlock(result, mainComponent(), fileASTUsing("tdto", "dto"))
+
+		specs := importSpecsForPath(decl, path)
+		assert.Len(t, specs, 2, "both the user alias and the canonical-name spec are emitted")
+
+		var hasAliased, hasUnaliased bool
+		for _, s := range specs {
+			switch importSpecName(s) {
+			case "tdto":
+				hasAliased = true
+			case "":
+				hasUnaliased = true
+			}
+		}
+		assert.True(t, hasAliased, "user alias spec present")
+		assert.True(t, hasUnaliased, "canonical-name spec present and unaliased")
+	})
+
+	t.Run("only user alias referenced emits one spec", func(t *testing.T) {
+		t.Parallel()
+		decl := newEmitter().buildImportBlock(result, mainComponent(), fileASTUsing("tdto"))
+
+		specs := importSpecsForPath(decl, path)
+		assert.Len(t, specs, 1, "the unreferenced canonical-name spec is pruned")
+		assert.Equal(t, "tdto", importSpecName(specs[0]))
+	})
+}
+
+func TestInsertImportGroupBlankLine(t *testing.T) {
+	t.Parallel()
+
+	t.Run("separates stdlib and third-party groups", func(t *testing.T) {
+		t.Parallel()
+		src := "package p\n\nimport (\n\t\"fmt\"\n\t\"example.com/x\"\n)\n"
+		want := "package p\n\nimport (\n\t\"fmt\"\n\n\t\"example.com/x\"\n)\n"
+		assert.Equal(t, want, string(insertImportGroupBlankLine([]byte(src))))
+	})
+
+	t.Run("no blank line within a single group", func(t *testing.T) {
+		t.Parallel()
+		src := "package p\n\nimport (\n\t\"fmt\"\n\t\"sort\"\n)\n"
+		assert.Equal(t, src, string(insertImportGroupBlankLine([]byte(src))))
+	})
+
+	t.Run("does not corrupt a user raw string that mimics an import block", func(t *testing.T) {
+		t.Parallel()
+
+		rawString := "`import (\n\"fmt\"\n\"example.com/x\"\n)`"
+		src := "package p\n\nimport (\n\t\"fmt\"\n\t\"example.com/x\"\n)\n\nconst tmpl = " + rawString + "\n"
+		want := "package p\n\nimport (\n\t\"fmt\"\n\n\t\"example.com/x\"\n)\n\nconst tmpl = " + rawString + "\n"
+		got := string(insertImportGroupBlankLine([]byte(src)))
+		assert.Equal(t, want, got)
+		assert.Contains(t, got, rawString, "the user raw string must be left untouched")
+	})
+}

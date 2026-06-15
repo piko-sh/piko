@@ -84,10 +84,6 @@ const (
 	// for each component it processes. Default: true.
 	CompilerEnableDebugLogFiles = true
 
-	// CompilerVerifyGeneratedCode controls whether the compiler parses generated Go code as
-	// a sanity check. Default: true.
-	CompilerVerifyGeneratedCode = true
-
 	// CompilerEnableStaticHoisting controls whether static template nodes are hoisted to
 	// package-level variables. Default: true.
 	CompilerEnableStaticHoisting = true

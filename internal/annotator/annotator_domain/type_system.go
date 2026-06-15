@@ -253,33 +253,43 @@ func (tr *TypeResolver) determineInspectorContext(ctx context.Context, analysisC
 	importerPackagePath := typeInfo.CanonicalPackagePath
 	importerFilePath := analysisContext.CurrentGoSourcePath
 
-	analysisContext.Logger.Trace("[stringability] Determining inspector context...",
-		logger_domain.String("initial_pkg_path", importerPackagePath),
-		logger_domain.String("initial_file_path", importerFilePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[stringability] Determining inspector context...",
+			logger_domain.String("initial_pkg_path", importerPackagePath),
+			logger_domain.String("initial_file_path", importerFilePath),
+		)
+	}
 
 	if importerPackagePath == "" {
 		importerPackagePath = analysisContext.CurrentGoFullPackagePath
-		analysisContext.Logger.Trace("[stringability] No canonical path on typeInfo, falling back to current context.",
-			logger_domain.String("using_pkg_path", importerPackagePath),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[stringability] No canonical path on typeInfo, falling back to current context.",
+				logger_domain.String("using_pkg_path", importerPackagePath),
+			)
+		}
 		return importerPackagePath, importerFilePath
 	}
 
-	analysisContext.Logger.Trace("[stringability] Canonical path found. Looking up type DTO to find its defining file.",
-		logger_domain.String("type_to_find", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
-		logger_domain.String("in_pkg", importerPackagePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[stringability] Canonical path found. Looking up type DTO to find its defining file.",
+			logger_domain.String("type_to_find", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
+			logger_domain.String("in_pkg", importerPackagePath),
+		)
+	}
 	dto, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(ctx, typeInfo.TypeExpression, importerPackagePath, importerFilePath)
 	if dto != nil && dto.DefinedInFilePath != "" {
 		importerFilePath = dto.DefinedInFilePath
-		analysisContext.Logger.Trace("[stringability] Found type DTO and its defining file.",
-			logger_domain.String("resolved_file_path", importerFilePath),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[stringability] Found type DTO and its defining file.",
+				logger_domain.String("resolved_file_path", importerFilePath),
+			)
+		}
 	} else {
-		analysisContext.Logger.Trace("[stringability] Could not find specific DTO for type, proceeding with best-effort file path.",
-			logger_domain.String("best_effort_file_path", importerFilePath),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[stringability] Could not find specific DTO for type, proceeding with best-effort file path.",
+				logger_domain.String("best_effort_file_path", importerFilePath),
+			)
+		}
 	}
 
 	return importerPackagePath, importerFilePath
@@ -303,9 +313,11 @@ func (tr *TypeResolver) checkPointerStringability(
 	typeInfo *ast_domain.ResolvedTypeInfo,
 	starExpr *goast.StarExpr,
 ) (stringability int, isPointer, isStringable bool) {
-	analysisContext.Logger.Trace("[stringability] Type is a pointer, unwrapping and recursing.",
-		logger_domain.String("pointer_type", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[stringability] Type is a pointer, unwrapping and recursing.",
+			logger_domain.String("pointer_type", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
+		)
+	}
 
 	elementTypeInfo := &ast_domain.ResolvedTypeInfo{
 		TypeExpression:          starExpr.X,
@@ -319,9 +331,11 @@ func (tr *TypeResolver) checkPointerStringability(
 
 	baseStringability, _ := tr.determineStringability(ctx, analysisContext, elementTypeInfo)
 	if baseStringability != int(inspector_dto.StringableNone) {
-		analysisContext.Logger.Trace("[stringability] Found stringability on pointer's base type.",
-			logger_domain.Int("stringability_code", baseStringability),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[stringability] Found stringability on pointer's base type.",
+				logger_domain.Int("stringability_code", baseStringability),
+			)
+		}
 		return baseStringability, true, true
 	}
 
@@ -342,11 +356,13 @@ func (tr *TypeResolver) determineStringability(ctx context.Context, analysisCont
 		return int(inspector_dto.StringableNone), false
 	}
 
-	analysisContext.Logger.Trace("[stringability] Starting check",
-		logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
-		logger_domain.String("type_info_pkg_alias", typeInfo.PackageAlias),
-		logger_domain.String("type_info_canonical_path", typeInfo.CanonicalPackagePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[stringability] Starting check",
+			logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
+			logger_domain.String("type_info_pkg_alias", typeInfo.PackageAlias),
+			logger_domain.String("type_info_canonical_path", typeInfo.CanonicalPackagePath),
+		)
+	}
 
 	if starExpr, isPointer := typeInfo.TypeExpression.(*goast.StarExpr); isPointer {
 		if stringability, isViaPointer, found := tr.checkPointerStringability(ctx, analysisContext, typeInfo, starExpr); found {
@@ -356,26 +372,52 @@ func (tr *TypeResolver) determineStringability(ctx context.Context, analysisCont
 
 	typeString := goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)
 	if goastutil.IsPrimitiveOrBuiltin(typeString) {
-		analysisContext.Logger.Trace("[stringability] Type is a primitive or built-in.",
-			logger_domain.String("type", typeString),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[stringability] Type is a primitive or built-in.",
+				logger_domain.String("type", typeString),
+			)
+		}
 		return int(inspector_dto.StringablePrimitive), false
 	}
 
 	if tr.isJSONStringableType(ctx, analysisContext, typeInfo.TypeExpression) {
-		analysisContext.Logger.Trace("[stringability] Type is a map or slice, using JSON stringability.",
-			logger_domain.String("type", typeString),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[stringability] Type is a map or slice, using JSON stringability.",
+				logger_domain.String("type", typeString),
+			)
+		}
 		return int(inspector_dto.StringableViaJSON), false
 	}
 
+	return tr.resolveStringabilityViaInspector(ctx, analysisContext, typeInfo)
+}
+
+// resolveStringabilityViaInspector resolves a type to its named-type DTO's stringability.
+//
+// It is the final step of determineStringability for a non-primitive, non-JSON type. It
+// is split out so the trace guards (which keep their argument evaluation inline) do not
+// inflate the caller's cognitive complexity. It returns StringableNone when the inspector
+// cannot resolve the type.
+//
+// Takes analysisContext (*AnalysisContext) which provides the logger and current context.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to resolve.
+//
+// Returns int which is the resolved stringability value.
+// Returns bool which is true when the stringability applies via a pointer.
+func (tr *TypeResolver) resolveStringabilityViaInspector(
+	ctx context.Context,
+	analysisContext *AnalysisContext,
+	typeInfo *ast_domain.ResolvedTypeInfo,
+) (int, bool) {
 	importerPackagePath, importerFilePath := tr.determineInspectorContext(ctx, analysisContext, typeInfo)
 
-	analysisContext.Logger.Trace("[stringability] Calling ResolveExprToNamedTypeWithMemoization for final lookup.",
-		logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
-		logger_domain.String("using_pkg_context", importerPackagePath),
-		logger_domain.String("using_file_context", importerFilePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[stringability] Calling ResolveExprToNamedTypeWithMemoization for final lookup.",
+			logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
+			logger_domain.String("using_pkg_context", importerPackagePath),
+			logger_domain.String("using_file_context", importerFilePath),
+		)
+	}
 	namedType, packageName := tr.inspector.ResolveExprToNamedTypeWithMemoization(
 		ctx,
 		typeInfo.TypeExpression,
@@ -384,17 +426,21 @@ func (tr *TypeResolver) determineStringability(ctx context.Context, analysisCont
 	)
 
 	if namedType != nil {
-		analysisContext.Logger.Trace("[stringability] SUCCESS: Inspector found named type DTO.",
-			logger_domain.String("found_type_name", namedType.Name),
-			logger_domain.String("found_in_pkg_alias", packageName),
-			logger_domain.Int("stringability_from_dto", int(namedType.Stringability)),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[stringability] SUCCESS: Inspector found named type DTO.",
+				logger_domain.String("found_type_name", namedType.Name),
+				logger_domain.String("found_in_pkg_alias", packageName),
+				logger_domain.Int("stringability_from_dto", int(namedType.Stringability)),
+			)
+		}
 		return int(namedType.Stringability), false
 	}
 
-	analysisContext.Logger.Trace("[stringability] FAILURE: Inspector could not resolve a named type DTO. Type is not stringable.",
-		logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[stringability] FAILURE: Inspector could not resolve a named type DTO. Type is not stringable.",
+			logger_domain.String("type_expr", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
+		)
+	}
 	return int(inspector_dto.StringableNone), false
 }
 

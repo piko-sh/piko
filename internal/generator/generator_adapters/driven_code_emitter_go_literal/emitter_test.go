@@ -229,7 +229,7 @@ func TestBuildImportBlock(t *testing.T) {
 	result := createMinimalAnnotationResult("test")
 	mainComponent := result.VirtualModule.ComponentsByHash["test"]
 
-	genDecl := em.buildImportBlock(result, mainComponent)
+	genDecl := em.buildImportBlock(result, mainComponent, fileASTUsing("strings"))
 
 	require.NotNil(t, genDecl, "buildImportBlock returned nil")
 
@@ -265,7 +265,7 @@ func TestBuildImportBlock_Empty(t *testing.T) {
 	result := createMinimalAnnotationResult("test")
 	mainComponent := result.VirtualModule.ComponentsByHash["test"]
 
-	importDecl := em.buildImportBlock(result, mainComponent)
+	importDecl := em.buildImportBlock(result, mainComponent, fileASTUsing())
 
 	if importDecl == nil {
 		t.Error("buildImportBlock should return standard imports even with no custom imports")

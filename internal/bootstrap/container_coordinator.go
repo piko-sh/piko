@@ -382,6 +382,8 @@ func (c *Container) getCoordinatorOptions() []coordinator_domain.CoordinatorOpti
 		coordinator_domain.WithPrerendering(c.experimentalPrerendering),
 		coordinator_domain.WithStripHTMLComments(c.experimentalCommentStripping),
 		coordinator_domain.WithDwarfLineDirectives(c.experimentalDwarfLineDirectives),
+		coordinator_domain.WithFormatGeneratedCode(c.formatGeneratedCode),
+		coordinator_domain.WithVerifyGeneratedCode(c.verifyGeneratedCode),
 	)
 
 	return opts
@@ -538,6 +540,8 @@ func (c *Container) createDefaultGeneratorService() {
 		generator_domain.WithPrerendering(c.experimentalPrerendering),
 		generator_domain.WithStripHTMLComments(c.experimentalCommentStripping),
 		generator_domain.WithDwarfLineDirectives(c.experimentalDwarfLineDirectives),
+		generator_domain.WithFormatGeneratedCode(c.formatGeneratedCode),
+		generator_domain.WithVerifyGeneratedCode(c.verifyGeneratedCode),
 	)
 }
 

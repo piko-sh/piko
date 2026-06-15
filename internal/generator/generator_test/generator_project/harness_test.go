@@ -222,9 +222,11 @@ func runProjectTestCase(t *testing.T, tc testCase) {
 	for virtualPath, content := range allGeneratedGoFiles {
 		relPath, err := filepath.Rel(absSrcDir, virtualPath)
 		require.NoError(t, err, "Failed to make VirtualGoFilePath relative: %s", virtualPath)
+		formatted, fmtErr := format.Source(content)
+		require.NoError(t, fmtErr, "Failed to gofmt generated code for %s", relPath)
 		diskPath := filepath.Join(goldenDir, relPath)
 		require.NoError(t, os.MkdirAll(filepath.Dir(diskPath), 0755))
-		require.NoError(t, os.WriteFile(diskPath, content, 0644))
+		require.NoError(t, os.WriteFile(diskPath, formatted, 0644))
 	}
 	verifyGoldenBuild(t, tc.Path)
 }

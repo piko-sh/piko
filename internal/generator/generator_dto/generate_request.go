@@ -109,9 +109,9 @@ type GenerateRequest struct {
 	// IsPage indicates whether the source file is a page entry point.
 	IsPage bool
 
-	// VerifyGeneratedCode controls whether the emitter parses the generated Go code as a
-	// sanity check. Disabling this avoids the verification pass but skips syntactic
-	// validation of the output.
+	// VerifyGeneratedCode re-parses each generated file to confirm it is valid Go. Off by
+	// default: the check is redundant with the downstream `go build` of dist and is a top
+	// build allocation cost (enable it to localise an emitter defect to a specific file).
 	VerifyGeneratedCode bool
 
 	// IsEmail indicates whether this is an email template. Email templates are never
@@ -138,4 +138,8 @@ type GenerateRequest struct {
 	// directives (no space) or plain comments (// line, with space). When true, debuggers
 	// like Delve can map breakpoints back to .pk files.
 	EnableDwarfLineDirectives bool
+
+	// FormatGeneratedCode makes the emitter run go/format.Source for gofmt-canonical output.
+	// Off by default; the unformatted output is still valid, compilable Go.
+	FormatGeneratedCode bool
 }
