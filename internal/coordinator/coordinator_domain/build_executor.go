@@ -763,13 +763,14 @@ func (s *coordinatorService) generateSingleArtefact(
 		CollectionName:            vc.Source.CollectionName,
 		CollectionParamName:       vc.Source.CollectionParamName,
 		ModuleName:                s.resolver.GetModuleName(),
-		VerifyGeneratedCode:       false,
+		VerifyGeneratedCode:       s.verifyGeneratedCode,
 		IsEmail:                   vc.IsEmail,
 		IsPdf:                     vc.IsPdf,
 		EnablePrerendering:        s.enablePrerendering && !vc.IsEmail && !vc.IsPdf,
 		EnableStaticHoisting:      s.enableStaticHoisting,
 		StripHTMLComments:         s.stripHTMLComments,
 		EnableDwarfLineDirectives: s.enableDwarfLineDirectives,
+		FormatGeneratedCode:       s.formatGeneratedCode,
 	}
 
 	emittedCode, emitDiags, err := s.codeEmitter.EmitCode(ctx, annotationResult, request)

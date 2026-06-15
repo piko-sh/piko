@@ -41,7 +41,9 @@ import (
 // Returns *ast_domain.GoGeneratorAnnotation which holds the result type, or a fallback
 // value if either operand cannot be resolved.
 func (a *typeExpressionAnalyser) resolveBinaryExpression(ctx context.Context, n *ast_domain.BinaryExpression) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveBinaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveBinaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	}
 
 	leftAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Left, a.location, a.depth+1)
 	rightAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Right, a.location, a.depth+1)
@@ -50,10 +52,12 @@ func (a *typeExpressionAnalyser) resolveBinaryExpression(ctx context.Context, n 
 		return a.createBinaryFallbackAnnotation()
 	}
 
-	a.ctx.Logger.Trace("Binary operands resolved",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String("leftType", a.typeResolver.logAnn(leftAnn)),
-		logger_domain.String("rightType", a.typeResolver.logAnn(rightAnn)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Binary operands resolved",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String("leftType", a.typeResolver.logAnn(leftAnn)),
+			logger_domain.String("rightType", a.typeResolver.logAnn(rightAnn)))
+	}
 
 	resultTypeExpr, resultPackageAlias, earlyReturn := a.resolveBinaryOperator(n, leftAnn, rightAnn)
 	if earlyReturn != nil {
@@ -61,10 +65,12 @@ func (a *typeExpressionAnalyser) resolveBinaryExpression(ctx context.Context, n 
 	}
 
 	ann := a.createBinaryResultAnnotation(ctx, resultTypeExpr, resultPackageAlias)
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveBinaryExpression",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveBinaryExpression",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	}
 	return ann
 }
 
@@ -404,7 +410,9 @@ func (a *typeExpressionAnalyser) resolveMoneyMulDiv(n *ast_domain.BinaryExpressi
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information,
 // or a fallback annotation when the operand cannot be resolved.
 func (a *typeExpressionAnalyser) resolveUnaryExpression(ctx context.Context, n *ast_domain.UnaryExpression) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveUnaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveUnaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	}
 
 	rightAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Right, a.location, a.depth+1)
 
@@ -445,10 +453,12 @@ func (a *typeExpressionAnalyser) resolveUnaryExpression(ctx context.Context, n *
 	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, resultTypeInfo)
 	ann := newAnnotationFull(resultTypeInfo, &a.ctx.SFCSourcePath, stringability)
 	ann.IsPointerToStringable = isPointer
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveUnaryExpression",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveUnaryExpression",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	}
 	return ann
 }
 
@@ -458,7 +468,9 @@ func (a *typeExpressionAnalyser) resolveUnaryExpression(ctx context.Context, n *
 //
 // Returns *ast_domain.GoGeneratorAnnotation which holds the type from the true branch.
 func (a *typeExpressionAnalyser) resolveTernaryExpression(ctx context.Context, n *ast_domain.TernaryExpression) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveTernaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveTernaryExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	}
 	conditionAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Condition, a.location, a.depth+1)
 	a.validateBooleanCondition(conditionAnn, n.Condition, n, n.GoAnnotations)
 	consequentAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Consequent, a.location, a.depth+1)
@@ -468,10 +480,12 @@ func (a *typeExpressionAnalyser) resolveTernaryExpression(ctx context.Context, n
 	if !branchResult.Valid {
 		a.ctx.addDiagnosticForExpression(ast_domain.Error, branchResult.Message, n, a.location.Add(n.RelativeLocation), n.GoAnnotations, annotator_dto.CodeTypeMismatch)
 	}
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveTernaryExpression",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(consequentAnn)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveTernaryExpression",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(consequentAnn)))
+	}
 	return consequentAnn
 }
 

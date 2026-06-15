@@ -3605,6 +3605,25 @@ func WithExperimentalDwarfLineDirectives(enabled bool) Option {
 	return bootstrap.WithExperimentalDwarfLineDirectives(enabled)
 }
 
+// WithFormattedGeneratedCode toggles gofmt formatting of the generated Go code.
+//
+// Takes enabled (bool) which specifies whether generated code is gofmt-formatted.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithFormattedGeneratedCode(enabled bool) Option {
+	return bootstrap.WithFormattedGeneratedCode(enabled)
+}
+
+// WithVerifiedGeneratedCode toggles the generator's validity re-parse of generated Go
+// code.
+//
+// Takes enabled (bool) which specifies whether generated code is verified.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithVerifiedGeneratedCode(enabled bool) Option {
+	return bootstrap.WithVerifiedGeneratedCode(enabled)
+}
+
 // WithSpamDetector registers a named spam detection detector with the service.
 //
 // Takes name (string) which identifies the detector.

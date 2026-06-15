@@ -62,6 +62,9 @@ type Inliner struct {
 	// cache stores parsed CSS stylesheets to avoid parsing the same file twice.
 	cache cssParseCache
 
+	// parseCache is the shared, content-addressed CSS parse cache; nil disables it.
+	parseCache *parseCache
+
 	// diagnostics collects errors found while processing CSS imports.
 	diagnostics []*ast.Diagnostic
 }
@@ -84,7 +87,7 @@ var (
 // Takes diagnosticCode (string) which is assigned to generated diagnostics.
 //
 // Returns *Inliner which is ready to use.
-func GetInliner(resolver resolver_domain.ResolverPort, parserOptions css_parser.Options, fsReader FSReaderPort, diagnosticCode string) *Inliner {
+func GetInliner(resolver resolver_domain.ResolverPort, parserOptions css_parser.Options, fsReader FSReaderPort, diagnosticCode string, sharedParseCache *parseCache) *Inliner {
 	inliner, ok := inlinerPool.Get().(*Inliner)
 	if !ok {
 		inliner = &Inliner{}
@@ -94,6 +97,7 @@ func GetInliner(resolver resolver_domain.ResolverPort, parserOptions css_parser.
 	inliner.fsReader = fsReader
 	inliner.diagnosticCode = diagnosticCode
 	inliner.cache = make(cssParseCache)
+	inliner.parseCache = sharedParseCache
 	inliner.diagnostics = nil
 	return inliner
 }
@@ -107,6 +111,7 @@ func PutInliner(inliner *Inliner) {
 	inliner.fsReader = nil
 	inliner.diagnosticCode = ""
 	inliner.cache = nil
+	inliner.parseCache = nil
 	inliner.diagnostics = nil
 	inlinerPool.Put(inliner)
 }
@@ -171,9 +176,8 @@ func (i *Inliner) parseRecursive(
 		tree = processedTree
 	}
 
-	clonedTree := CloneAST(&tree)
-	i.cache[containingPath] = clonedTree
-	return clonedTree, nil
+	i.cache[containingPath] = &tree
+	return &tree, nil
 }
 
 // checkCircularDependency detects if a CSS import path creates a cycle.
@@ -206,18 +210,48 @@ func (i *Inliner) checkCircularDependency(containingPath string, startLocation a
 // Returns css_ast.AST which is the parsed stylesheet tree.
 // Returns bool which is true when parsing errors occurred.
 func (i *Inliner) parseCSSContent(cssContent, containingPath string, startLocation ast.Location) (css_ast.AST, bool) {
+	tree, messages := i.parseOrLoadCSS(cssContent, containingPath)
+
+	diagnostics := ConvertESBuildMessagesToDiagnostics(messages, containingPath, startLocation, i.diagnosticCode)
+	if len(diagnostics) > 0 {
+		i.diagnostics = append(i.diagnostics, diagnostics...)
+	}
+	return tree, ast.HasErrors(diagnostics)
+}
+
+// parseOrLoadCSS parses CSS, returning a private clone on a cache hit.
+//
+// The shared cache's master AST is never handed out: every consumer gets its own
+// CloneAST, since downstream mutates the tree in place. The raw parse messages are
+// returned so the caller can re-offset them to its own location, keeping cache-hit
+// diagnostics identical.
+//
+// Takes cssContent (string) which is the CSS source text to parse.
+// Takes containingPath (string) which identifies the source file for diagnostics.
+//
+// Returns css_ast.AST which is a private parsed stylesheet tree.
+// Returns []es_logger.Msg which are the raw esbuild parse messages.
+func (i *Inliner) parseOrLoadCSS(cssContent, containingPath string) (css_ast.AST, []es_logger.Msg) {
+	if i.parseCache != nil {
+		if entry := i.parseCache.get(cssContent); entry != nil {
+			return *CloneAST(entry.master), entry.diags
+		}
+	}
+
 	esLog := es_logger.NewDeferLog(es_logger.DeferLogNoVerboseOrDebug, nil)
 	source := es_logger.Source{
 		KeyPath:  es_logger.Path{Text: containingPath},
 		Contents: cssContent,
 	}
 	tree := css_parser.Parse(esLog, source, i.parserOptions)
+	messages := esLog.Done()
 
-	diagnostics := ConvertESBuildMessagesToDiagnostics(esLog.Done(), containingPath, startLocation, i.diagnosticCode)
-	if len(diagnostics) > 0 {
-		i.diagnostics = append(i.diagnostics, diagnostics...)
+	if i.parseCache == nil {
+		return tree, messages
 	}
-	return tree, ast.HasErrors(diagnostics)
+
+	winner := i.parseCache.put(cssContent, &parseCacheEntry{master: &tree, diags: messages, content: cssContent})
+	return *CloneAST(winner.master), winner.diags
 }
 
 // processImports resolves and inlines CSS @import rules into the AST.
@@ -505,6 +539,14 @@ func reIndexTokens(tokens []css_ast.Token, symbolOffset, importRecordOffset uint
 }
 
 // CloneAST creates a deep copy of an AST for use in caching.
+//
+// It copies only the fields the inliner and CSS printer read downstream:
+// SourceMapComment, ApproximateLineCount, Symbols, ImportRecords, and Rules. The other
+// css_ast.AST fields (CharFreq, the scope and symbol maps, Composes, and the Layers
+// slices) are intentionally NOT copied: nothing after inlining consumes them, and
+// dropping them avoids aliasing the cached master's maps/slices. Because the parse cache
+// makes CloneAST the sole path for every parsed tree, a future consumer that reads those
+// fields (e.g. CSS Modules via Composes / LocalScope) must extend this clone.
 //
 // When original is nil, returns nil.
 //

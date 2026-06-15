@@ -257,17 +257,23 @@ func (tr *TypeResolver) resolveRecursive(
 	depth int,
 ) *ast_domain.GoGeneratorAnnotation {
 	if expression == nil {
-		analysisContext.Logger.Trace("resolveRecursive: nil expression", logger_domain.Int(logKeyDepth, depth))
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("resolveRecursive: nil expression", logger_domain.Int(logKeyDepth, depth))
+		}
 		return nil
 	}
 
-	analysisContext.Logger.Trace("Enter resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("expr", expression.String()))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("Enter resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("expr", expression.String()))
+	}
 
 	ann := tr.dispatchExpressionType(ctx, analysisContext, expression, location, depth)
 	tr.stampUnderlyingType(ann)
 	tr.propagateAnnotation(expression, ann)
 
-	analysisContext.Logger.Trace("Exit resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("resolvedType", tr.logAnn(ann)))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("Exit resolveRecursive", logger_domain.Int(logKeyDepth, depth), logger_domain.String("resolvedType", tr.logAnn(ann)))
+	}
 	return ann
 }
 
@@ -469,10 +475,12 @@ func (tr *TypeResolver) resolvePackageMember(
 	location ast_domain.Location,
 	depth int,
 ) *ast_domain.GoGeneratorAnnotation {
-	ctx.Logger.Trace("Enter resolvePackageMember",
-		logger_domain.String("pkg", packageAlias),
-		logger_domain.String("member", prop.Name),
-		logger_domain.Int(logKeyDepth, depth))
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace("Enter resolvePackageMember",
+			logger_domain.String("pkg", packageAlias),
+			logger_domain.String("member", prop.Name),
+			logger_domain.Int(logKeyDepth, depth))
+	}
 
 	if packageAlias == "" {
 		return newFallbackAnnotation()
@@ -482,9 +490,11 @@ func (tr *TypeResolver) resolvePackageMember(
 	canonicalPath := imports[packageAlias]
 
 	if tr.inspector.FindFuncSignature(packageAlias, prop.Name, ctx.CurrentGoFullPackagePath, ctx.CurrentGoSourcePath) != nil {
-		ctx.Logger.Trace("Found function in package",
-			logger_domain.String("func", prop.Name),
-			logger_domain.String("pkg", packageAlias))
+		if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			ctx.Logger.Trace("Found function in package",
+				logger_domain.String("func", prop.Name),
+				logger_domain.String("pkg", packageAlias))
+		}
 		return newPackageFunctionAnnotation(packageMemberAnnotationParams{
 			typeExpr:      nil,
 			packageAlias:  packageAlias,
@@ -499,10 +509,12 @@ func (tr *TypeResolver) resolvePackageMember(
 	}
 
 	if variable := tr.inspector.FindPackageVariable(packageAlias, prop.Name, ctx.CurrentGoFullPackagePath, ctx.CurrentGoSourcePath); variable != nil {
-		ctx.Logger.Trace("Found variable in package",
-			logger_domain.String("var", prop.Name),
-			logger_domain.String("pkg", packageAlias),
-			logger_domain.String("type", variable.TypeString))
+		if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			ctx.Logger.Trace("Found variable in package",
+				logger_domain.String("var", prop.Name),
+				logger_domain.String("pkg", packageAlias),
+				logger_domain.String("type", variable.TypeString))
+		}
 		return newPackageVariableAnnotation(packageMemberAnnotationParams{
 			typeExpr:      goastutil.TypeStringToAST(variable.TypeString),
 			packageAlias:  packageAlias,
@@ -517,7 +529,9 @@ func (tr *TypeResolver) resolvePackageMember(
 	}
 
 	message := fmt.Sprintf("Undefined symbol '%s' in package '%s'", prop.Name, packageAlias)
-	ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+	}
 	ctx.addDiagnosticForExpression(ast_domain.Error, message, n, location.Add(n.RelativeLocation), n.GoAnnotations, annotator_dto.CodeUndefinedMember)
 	return newFallbackAnnotation()
 }
@@ -867,26 +881,32 @@ func (tr *TypeResolver) resolveReturnTypeCanonicalPath(
 	if methodInfo != nil && methodInfo.DefinitionFilePath != "" {
 		importerPackagePath = methodInfo.DeclaringPackagePath
 		importerFilePath = methodInfo.DefinitionFilePath
-		ctx.Logger.Trace("[resolveReturnTypeCanonicalPath] Using method's defining context",
-			logger_domain.String("packageAlias", packageAlias),
-			logger_domain.String("methodPackage", importerPackagePath),
-			logger_domain.String("methodFile", importerFilePath),
-		)
+		if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			ctx.Logger.Trace("[resolveReturnTypeCanonicalPath] Using method's defining context",
+				logger_domain.String("packageAlias", packageAlias),
+				logger_domain.String("methodPackage", importerPackagePath),
+				logger_domain.String("methodFile", importerFilePath),
+			)
+		}
 	} else {
 		importerPackagePath = ctx.CurrentGoFullPackagePath
 		importerFilePath = ctx.CurrentGoSourcePath
-		ctx.Logger.Trace("[resolveReturnTypeCanonicalPath] Using caller's context (no method info)",
-			logger_domain.String("packageAlias", packageAlias),
-			logger_domain.String("callerPackage", importerPackagePath),
-			logger_domain.String("callerFile", importerFilePath),
-		)
+		if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			ctx.Logger.Trace("[resolveReturnTypeCanonicalPath] Using caller's context (no method info)",
+				logger_domain.String("packageAlias", packageAlias),
+				logger_domain.String("callerPackage", importerPackagePath),
+				logger_domain.String("callerFile", importerFilePath),
+			)
+		}
 	}
 
 	canonicalPath := tr.inspector.ResolvePackageAlias(packageAlias, importerPackagePath, importerFilePath)
-	ctx.Logger.Trace("[resolveReturnTypeCanonicalPath] Resolved canonical path",
-		logger_domain.String("packageAlias", packageAlias),
-		logger_domain.String("canonicalPath", canonicalPath),
-	)
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace("[resolveReturnTypeCanonicalPath] Resolved canonical path",
+			logger_domain.String("packageAlias", packageAlias),
+			logger_domain.String("canonicalPath", canonicalPath),
+		)
+	}
 	return canonicalPath
 }
 
@@ -908,7 +928,9 @@ func (tr *TypeResolver) diagnoseCallFailure(
 	location ast_domain.Location,
 	depth int,
 ) *ast_domain.GoGeneratorAnnotation {
-	ctx.Logger.Trace("Enter diagnoseCallFailure", logger_domain.String("callee", n.Callee.String()), logger_domain.Int(logKeyDepth, depth))
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace("Enter diagnoseCallFailure", logger_domain.String("callee", n.Callee.String()), logger_domain.Int(logKeyDepth, depth))
+	}
 
 	fallback := newFallbackAnnotation()
 
@@ -917,7 +939,9 @@ func (tr *TypeResolver) diagnoseCallFailure(
 	}
 
 	message := tr.buildUndefinedCalleeMessage(ctx, n)
-	ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+	}
 	ctx.addDiagnosticForExpression(ast_domain.Error, message, n.Callee, location.Add(n.Callee.GetRelativeLocation()), n.GoAnnotations, annotator_dto.CodeInvalidFunctionCall)
 	return fallback
 }
@@ -1197,7 +1221,9 @@ func validateArgumentCount(ctx *AnalysisContext, n *ast_domain.CallExpression, s
 		minArgs := len(sig.Params) - 1
 		if len(n.Args) < minArgs {
 			message := fmt.Sprintf("Incorrect number of arguments for call to '%s': expected at least %d, but got %d", n.Callee.String(), minArgs, len(n.Args))
-			ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+			if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+				ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+			}
 			ctx.addDiagnosticForExpression(ast_domain.Error, message, n, location.Add(n.RelativeLocation), n.GoAnnotations, annotator_dto.CodeInvalidFunctionCall)
 			return false
 		}
@@ -1206,7 +1232,9 @@ func validateArgumentCount(ctx *AnalysisContext, n *ast_domain.CallExpression, s
 
 	if len(n.Args) != len(sig.Params) {
 		message := fmt.Sprintf("Incorrect number of arguments for call to '%s': expected %d, but got %d", n.Callee.String(), len(sig.Params), len(n.Args))
-		ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+		if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+		}
 		ctx.addDiagnosticForExpression(ast_domain.Error, message, n, location.Add(n.RelativeLocation), n.GoAnnotations, annotator_dto.CodeInvalidFunctionCall)
 		return false
 	}
@@ -1271,15 +1299,19 @@ func validateSingleArgument(params *argumentValidationContext) {
 	destInfo := newSimpleTypeInfoWithAlias(destTypeExpr, destPackageAlias)
 
 	sourceTypeString := goastutil.ASTToTypeString(params.sourceAnn.ResolvedType.TypeExpression, params.sourceAnn.ResolvedType.PackageAlias)
-	params.ctx.Logger.Trace("Validating call argument",
-		logger_domain.Int("argIndex", params.argIndex+1),
-		logger_domain.String("sourceType", sourceTypeString),
-		logger_domain.String("destParamType", destParamType))
+	if params.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		params.ctx.Logger.Trace("Validating call argument",
+			logger_domain.Int("argIndex", params.argIndex+1),
+			logger_domain.String("sourceType", sourceTypeString),
+			logger_domain.String("destParamType", destParamType))
+	}
 
 	if !isAssignable(params.sourceAnn.ResolvedType, destInfo) {
 		expectedTypeForError := getExpectedTypeForError(params.signature, params.argIndex, params.isVariadic)
 		message := fmt.Sprintf("Cannot use type '%s' as argument %d of type '%s' in call to '%s'", sourceTypeString, params.argIndex+1, expectedTypeForError, params.callExpr.Callee.String())
-		params.ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+		if params.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			params.ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+		}
 		params.ctx.addDiagnosticForExpression(
 			ast_domain.Error, message, params.argExpr,
 			params.location.Add(params.argExpr.GetRelativeLocation()),
@@ -1364,7 +1396,9 @@ func diagnoseNonCallableExpression(ctx *AnalysisContext, n *ast_domain.CallExpre
 
 	typeName := goastutil.ASTToTypeString(calleeAnn.ResolvedType.TypeExpression, calleeAnn.ResolvedType.PackageAlias)
 	message := fmt.Sprintf("Expression is not callable. '%s' is a value of type '%s', not a function or method", n.Callee.String(), typeName)
-	ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace(logKeyDiagnostic, logger_domain.String(logKeyMessage, message))
+	}
 	ctx.addDiagnosticForExpression(ast_domain.Error, message, n.Callee, location.Add(n.Callee.GetRelativeLocation()), n.GoAnnotations, annotator_dto.CodeInvalidFunctionCall)
 	return true
 }

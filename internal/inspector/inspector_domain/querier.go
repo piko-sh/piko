@@ -222,8 +222,10 @@ func (ti *TypeQuerier) ResolveExprToNamedTypeWithMemoization(
 	_, l := logger_domain.From(ctx, log)
 	typeName, pkgAlias, ok := DeconstructTypeExpr(typeExpr)
 	if !ok {
-		l.Trace("Type expression could not be deconstructed, bypassing cache",
-			logger_domain.String(logKeyImporterFile, importerFilePath))
+		if l.Enabled(logger_domain.LevelTrace) {
+			l.Trace("Type expression could not be deconstructed, bypassing cache",
+				logger_domain.String(logKeyImporterFile, importerFilePath))
+		}
 		return ti.ResolveExprToNamedType(typeExpr, importerPackagePath, importerFilePath)
 	}
 
@@ -294,12 +296,14 @@ func (ti *TypeQuerier) ResolveToUnderlyingASTWithContext(ctx context.Context, ty
 	}
 	if cachedVal, cacheOk := ti.underlyingASTCache.Load(cacheKey); cacheOk {
 		if cached, typeOk := cachedVal.(underlyingASTCacheValue); typeOk {
-			l.Trace("ResolveToUnderlyingASTWithContext: CACHE HIT",
-				logger_domain.String("typeExprString", typeExprString),
-				logger_domain.String("currentFilePath", currentFilePath),
-				logger_domain.String("cached.resolvedExprString", cached.resolvedExprString),
-				logger_domain.String("cached.resolvedFilePath", cached.resolvedFilePath),
-			)
+			if l.Enabled(logger_domain.LevelTrace) {
+				l.Trace("ResolveToUnderlyingASTWithContext: CACHE HIT",
+					logger_domain.String("typeExprString", typeExprString),
+					logger_domain.String("currentFilePath", currentFilePath),
+					logger_domain.String("cached.resolvedExprString", cached.resolvedExprString),
+					logger_domain.String("cached.resolvedFilePath", cached.resolvedFilePath),
+				)
+			}
 			return goastutil.TypeStringToAST(cached.resolvedExprString), cached.resolvedFilePath
 		}
 	}
@@ -313,12 +317,14 @@ func (ti *TypeQuerier) ResolveToUnderlyingASTWithContext(ctx context.Context, ty
 	finalFilePath := resolver.currentFilePath
 
 	resolvedExprString := goastutil.ASTToTypeString(finalExpr)
-	l.Trace("ResolveToUnderlyingASTWithContext: CACHE STORE",
-		logger_domain.String("typeExprString", typeExprString),
-		logger_domain.String("currentFilePath", currentFilePath),
-		logger_domain.String("resolvedExprString", resolvedExprString),
-		logger_domain.String("finalFilePath", finalFilePath),
-	)
+	if l.Enabled(logger_domain.LevelTrace) {
+		l.Trace("ResolveToUnderlyingASTWithContext: CACHE STORE",
+			logger_domain.String("typeExprString", typeExprString),
+			logger_domain.String("currentFilePath", currentFilePath),
+			logger_domain.String("resolvedExprString", resolvedExprString),
+			logger_domain.String("finalFilePath", finalFilePath),
+		)
+	}
 	ti.underlyingASTCache.Store(cacheKey, underlyingASTCacheValue{
 		resolvedExprString: resolvedExprString,
 		resolvedFilePath:   finalFilePath,
@@ -445,12 +451,14 @@ func (r *aliasResolver) tryResolveDTOAlias(ctx context.Context) bool {
 	if namedType == nil || !namedType.IsAlias {
 		return false
 	}
-	l.Trace("tryResolveDTOAlias: found alias",
-		logger_domain.String("currentExpr", goastutil.ASTToTypeString(r.currentExpr)),
-		logger_domain.String("namedType.TypeString", namedType.TypeString),
-		logger_domain.String("namedType.DefinedInFilePath", namedType.DefinedInFilePath),
-		logger_domain.Strings("namedType.TypeParams", namedType.TypeParams),
-	)
+	if l.Enabled(logger_domain.LevelTrace) {
+		l.Trace("tryResolveDTOAlias: found alias",
+			logger_domain.String("currentExpr", goastutil.ASTToTypeString(r.currentExpr)),
+			logger_domain.String("namedType.TypeString", namedType.TypeString),
+			logger_domain.String("namedType.DefinedInFilePath", namedType.DefinedInFilePath),
+			logger_domain.Strings("namedType.TypeParams", namedType.TypeParams),
+		)
+	}
 
 	resolvedTypeString := r.resolveGenericAliasTypeString(namedType)
 	r.currentExpr = goastutil.TypeStringToAST(resolvedTypeString)
@@ -494,17 +502,21 @@ func (r *aliasResolver) updateFilePathForResolvedAlias(ctx context.Context, name
 	_, l := logger_domain.From(ctx, log)
 	aliasTypeAST := goastutil.TypeStringToAST(namedType.TypeString)
 	aliasPackagePath := r.ti.lookupPackagePathForFile(namedType.DefinedInFilePath)
-	l.Trace("tryResolveDTOAlias: resolving target type",
-		logger_domain.String("aliasTypeAST", goastutil.ASTToTypeString(aliasTypeAST)),
-		logger_domain.String("aliasPackagePath", aliasPackagePath),
-		logger_domain.String("namedType.DefinedInFilePath", namedType.DefinedInFilePath),
-	)
+	if l.Enabled(logger_domain.LevelTrace) {
+		l.Trace("tryResolveDTOAlias: resolving target type",
+			logger_domain.String("aliasTypeAST", goastutil.ASTToTypeString(aliasTypeAST)),
+			logger_domain.String("aliasPackagePath", aliasPackagePath),
+			logger_domain.String("namedType.DefinedInFilePath", namedType.DefinedInFilePath),
+		)
+	}
 
 	resolvedType, _ := r.ti.ResolveExprToNamedType(aliasTypeAST, aliasPackagePath, namedType.DefinedInFilePath)
 	r.currentFilePath = r.determineResolvedFilePath(ctx, resolvedType, namedType)
-	l.Trace("tryResolveDTOAlias: updated file path",
-		logger_domain.String("r.currentFilePath", r.currentFilePath),
-	)
+	if l.Enabled(logger_domain.LevelTrace) {
+		l.Trace("tryResolveDTOAlias: updated file path",
+			logger_domain.String("r.currentFilePath", r.currentFilePath),
+		)
+	}
 }
 
 // determineResolvedFilePath finds the best file path for the resolved alias.
@@ -518,16 +530,20 @@ func (r *aliasResolver) updateFilePathForResolvedAlias(ctx context.Context, name
 func (*aliasResolver) determineResolvedFilePath(ctx context.Context, resolvedType, namedType *inspector_dto.Type) string {
 	_, l := logger_domain.From(ctx, log)
 	if resolvedType != nil && resolvedType.DefinedInFilePath != "" {
-		l.Trace("tryResolveDTOAlias: resolved target type",
-			logger_domain.String("resolvedType.Name", resolvedType.Name),
-			logger_domain.String("resolvedType.DefinedInFilePath", resolvedType.DefinedInFilePath),
-		)
+		if l.Enabled(logger_domain.LevelTrace) {
+			l.Trace("tryResolveDTOAlias: resolved target type",
+				logger_domain.String("resolvedType.Name", resolvedType.Name),
+				logger_domain.String("resolvedType.DefinedInFilePath", resolvedType.DefinedInFilePath),
+			)
+		}
 		return resolvedType.DefinedInFilePath
 	}
 	if namedType.DefinedInFilePath != "" {
-		l.Trace("tryResolveDTOAlias: fallback to alias defining file",
-			logger_domain.String("namedType.DefinedInFilePath", namedType.DefinedInFilePath),
-		)
+		if l.Enabled(logger_domain.LevelTrace) {
+			l.Trace("tryResolveDTOAlias: fallback to alias defining file",
+				logger_domain.String("namedType.DefinedInFilePath", namedType.DefinedInFilePath),
+			)
+		}
 		return namedType.DefinedInFilePath
 	}
 	return ""
@@ -646,10 +662,12 @@ func (ti *TypeQuerier) checkNamedTypeCache(ctx context.Context, key namedTypeCac
 	cachedVal, cacheOk := ti.namedTypeCache.Load(key)
 	if !cacheOk {
 		QuerierCacheMissCount.Add(ctx, 1)
-		l.Trace("Cache MISS for type resolution",
-			logger_domain.String("type_name", key.typeName),
-			logger_domain.String("pkg_alias", key.typePackageAlias),
-			logger_domain.String(logKeyImporterFile, key.importerFilePath))
+		if l.Enabled(logger_domain.LevelTrace) {
+			l.Trace("Cache MISS for type resolution",
+				logger_domain.String("type_name", key.typeName),
+				logger_domain.String("pkg_alias", key.typePackageAlias),
+				logger_domain.String(logKeyImporterFile, key.importerFilePath))
+		}
 		return namedTypeCacheValue{}, false
 	}
 
@@ -660,11 +678,13 @@ func (ti *TypeQuerier) checkNamedTypeCache(ctx context.Context, key namedTypeCac
 	}
 
 	QuerierCacheHitCount.Add(ctx, 1)
-	l.Trace("Cache HIT for type resolution",
-		logger_domain.String("type_name", key.typeName),
-		logger_domain.String("pkg_alias", key.typePackageAlias),
-		logger_domain.String(logKeyImporterFile, key.importerFilePath),
-		logger_domain.String("resolved_pkg", cached.PackageName))
+	if l.Enabled(logger_domain.LevelTrace) {
+		l.Trace("Cache HIT for type resolution",
+			logger_domain.String("type_name", key.typeName),
+			logger_domain.String("pkg_alias", key.typePackageAlias),
+			logger_domain.String(logKeyImporterFile, key.importerFilePath),
+			logger_domain.String("resolved_pkg", cached.PackageName))
+	}
 	return cached, true
 }
 
@@ -676,11 +696,13 @@ func (ti *TypeQuerier) checkNamedTypeCache(ctx context.Context, key namedTypeCac
 func (ti *TypeQuerier) storeNamedTypeCache(ctx context.Context, key namedTypeCacheKey, namedType *inspector_dto.Type, packageName string) {
 	_, l := logger_domain.From(ctx, log)
 	ti.namedTypeCache.Store(key, namedTypeCacheValue{Type: namedType, PackageName: packageName})
-	l.Trace("Cache entry stored",
-		logger_domain.String("type_name", key.typeName),
-		logger_domain.String("pkg_alias", key.typePackageAlias),
-		logger_domain.String(logKeyImporterFile, key.importerFilePath),
-		logger_domain.String("resolved_pkg", packageName))
+	if l.Enabled(logger_domain.LevelTrace) {
+		l.Trace("Cache entry stored",
+			logger_domain.String("type_name", key.typeName),
+			logger_domain.String("pkg_alias", key.typePackageAlias),
+			logger_domain.String(logKeyImporterFile, key.importerFilePath),
+			logger_domain.String("resolved_pkg", packageName))
+	}
 }
 
 // resolveCompositeInnerTypes routes a type expression to the correct helper function

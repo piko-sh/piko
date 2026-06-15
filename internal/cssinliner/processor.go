@@ -57,6 +57,10 @@ type Processor struct {
 	// options controls CSS output formatting.
 	options *config.Options
 
+	// parseCache is the shared content-addressed CSS parse cache, created once per Processor
+	// and shared by its WithResolver copies (which carry identical options).
+	parseCache *parseCache
+
 	// diagnosticCode is assigned to generated diagnostics.
 	diagnosticCode string
 
@@ -79,6 +83,7 @@ func NewProcessor(cfg ProcessorConfig) *Processor {
 		options:        options,
 		parserOptions:  css_parser.OptionsFromConfig(cfg.Loader, options),
 		diagnosticCode: cfg.DiagnosticCode,
+		parseCache:     newParseCache(),
 	}
 }
 
@@ -103,6 +108,7 @@ func (p *Processor) WithResolver(resolver resolver_domain.ResolverPort) *Process
 		options:        p.options,
 		parserOptions:  p.parserOptions,
 		diagnosticCode: p.diagnosticCode,
+		parseCache:     p.parseCache,
 	}
 }
 
@@ -161,7 +167,7 @@ func (p *Processor) Process(
 		return "", nil, nil
 	}
 
-	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode)
+	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode, p.parseCache)
 	defer PutInliner(inliner)
 	tree, inlinerDiags := inliner.InlineAndParse(ctx, trimmed, sourcePath, startLocation)
 
@@ -223,7 +229,7 @@ func (p *Processor) InlineToAST(
 		return nil, nil, nil
 	}
 
-	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode)
+	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode, p.parseCache)
 	defer PutInliner(inliner)
 	tree, inlinerDiags := inliner.InlineAndParse(ctx, trimmed, sourcePath, startLocation)
 

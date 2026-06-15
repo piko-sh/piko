@@ -150,6 +150,16 @@ type generatorService struct {
 	// enableDwarfLineDirectives emits valid DWARF //line directives in generated code so
 	// debuggers can map back to .pk files.
 	enableDwarfLineDirectives bool
+
+	// formatGeneratedCode runs go/format.Source on emitted code for gofmt-canonical output.
+	// Off by default: skipping it avoids a per-artefact parse+reprint that dominates build
+	// allocation/GC, and the generated code compiles either way.
+	formatGeneratedCode bool
+
+	// verifyGeneratedCode re-parses each generated file (parser.AllErrors) to confirm it is
+	// valid Go. Off by default: it is a defensive check redundant with the downstream `go
+	// build` of dist, and the per-artefact parse is a top build allocation source.
+	verifyGeneratedCode bool
 }
 
 // GeneratorPorts groups all adapter ports required by the generator service. It follows
@@ -225,6 +235,12 @@ type generatorServiceOptions struct {
 	// enableDwarfLineDirectives emits valid DWARF //line directives in generated code so
 	// debuggers can map back to .pk files.
 	enableDwarfLineDirectives bool
+
+	// formatGeneratedCode runs go/format.Source on emitted code (gofmt-canonical output).
+	formatGeneratedCode bool
+
+	// verifyGeneratedCode re-parses each generated file to confirm it is valid Go.
+	verifyGeneratedCode bool
 }
 
 // Generate runs the full annotation and generation pipeline for a single entry-point
@@ -945,7 +961,7 @@ func (s *generatorService) processComponentWorker(
 			VirtualInstances:          convertVirtualInstances(vc.VirtualInstances),
 			CollectionName:            vc.Source.CollectionName,
 			CollectionParamName:       vc.Source.CollectionParamName,
-			VerifyGeneratedCode:       config.CompilerVerifyGeneratedCode,
+			VerifyGeneratedCode:       s.verifyGeneratedCode,
 			ModuleName:                s.resolver.GetModuleName(),
 			IsEmail:                   vc.IsEmail,
 			IsPdf:                     vc.IsPdf,
@@ -953,6 +969,7 @@ func (s *generatorService) processComponentWorker(
 			EnableStaticHoisting:      config.CompilerEnableStaticHoisting,
 			StripHTMLComments:         s.stripHTMLComments,
 			EnableDwarfLineDirectives: s.enableDwarfLineDirectives,
+			FormatGeneratedCode:       s.formatGeneratedCode,
 		}
 
 		artefact, err := s.generateSingleArtefact(ctx, request, annotationResult, vc)
@@ -1299,6 +1316,35 @@ func WithDwarfLineDirectives(enabled bool) GeneratorServiceOption {
 	}
 }
 
+// WithFormatGeneratedCode makes the emitter run go/format.Source on its output.
+//
+// Default off (skipped) for faster, lower-allocation builds; enable it when readable
+// generated output is wanted (e.g. golden-file debugging in tests).
+//
+// Takes enabled (bool) which turns output formatting on or off.
+//
+// Returns GeneratorServiceOption which toggles output formatting.
+func WithFormatGeneratedCode(enabled bool) GeneratorServiceOption {
+	return func(o *generatorServiceOptions) {
+		o.formatGeneratedCode = enabled
+	}
+}
+
+// WithVerifyGeneratedCode controls whether the emitter re-parses each generated file.
+//
+// The re-parse confirms the output is valid Go. Default off: it is a defensive check
+// redundant with the downstream `go build` of dist, and its per-artefact parse is a top
+// build cost. Enable it in dev/CI to localise an emitter bug to the artefact.
+//
+// Takes enabled (bool) which turns the validity re-parse on or off.
+//
+// Returns GeneratorServiceOption which toggles generated-code verification.
+func WithVerifyGeneratedCode(enabled bool) GeneratorServiceOption {
+	return func(o *generatorServiceOptions) {
+		o.verifyGeneratedCode = enabled
+	}
+}
+
 // NewGeneratorService creates a new, fully configured generator service.
 //
 // It takes all its dependencies as interfaces, adhering to the Hexagonal architecture.
@@ -1356,6 +1402,8 @@ func NewGeneratorService(ctx context.Context, pathsConfig GeneratorPathsConfig, 
 		enablePrerendering:        options.enablePrerendering,
 		stripHTMLComments:         options.stripHTMLComments,
 		enableDwarfLineDirectives: options.enableDwarfLineDirectives,
+		formatGeneratedCode:       options.formatGeneratedCode,
+		verifyGeneratedCode:       options.verifyGeneratedCode,
 	}, nil
 }
 

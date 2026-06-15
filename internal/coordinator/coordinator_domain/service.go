@@ -81,6 +81,12 @@ type coordinatorOptions struct {
 
 	// enableDwarfLineDirectives enables valid DWARF //line directives in generated code.
 	enableDwarfLineDirectives bool
+
+	// formatGeneratedCode runs go/format.Source on emitted code so it is gofmt-canonical.
+	formatGeneratedCode bool
+
+	// verifyGeneratedCode re-parses emitted code as a validity check before writing it.
+	verifyGeneratedCode bool
 }
 
 // CoordinatorOption is a functional option for configuring the coordinator service.
@@ -212,6 +218,12 @@ type coordinatorService struct {
 
 	// enableDwarfLineDirectives enables valid DWARF //line directives in generated code.
 	enableDwarfLineDirectives bool
+
+	// formatGeneratedCode runs go/format.Source on emitted code so it is gofmt-canonical.
+	formatGeneratedCode bool
+
+	// verifyGeneratedCode re-parses emitted code as a validity check before writing it.
+	verifyGeneratedCode bool
 }
 
 // GetResult retrieves the latest successful build or triggers an initial build on cold
@@ -627,6 +639,30 @@ func WithDwarfLineDirectives(enabled bool) CoordinatorOption {
 	}
 }
 
+// WithFormatGeneratedCode controls whether the emitter runs go/format.Source on its
+// output so the generated Go is gofmt-canonical.
+//
+// Takes enabled (bool) which turns output formatting on or off.
+//
+// Returns CoordinatorOption which configures generated-code formatting.
+func WithFormatGeneratedCode(enabled bool) CoordinatorOption {
+	return func(o *coordinatorOptions) {
+		o.formatGeneratedCode = enabled
+	}
+}
+
+// WithVerifyGeneratedCode controls whether the emitter re-parses generated code as a
+// validity check before writing it.
+//
+// Takes enabled (bool) which turns the verification pass on or off.
+//
+// Returns CoordinatorOption which configures generated-code verification.
+func WithVerifyGeneratedCode(enabled bool) CoordinatorOption {
+	return func(o *coordinatorOptions) {
+		o.verifyGeneratedCode = enabled
+	}
+}
+
 // NewService creates a new coordinator service. It requires its core dependencies as
 // interfaces, adhering to the hexagonal architecture.
 //
@@ -754,5 +790,7 @@ func newCoordinatorService(
 		enablePrerendering:        options.enablePrerendering,
 		stripHTMLComments:         options.stripHTMLComments,
 		enableDwarfLineDirectives: options.enableDwarfLineDirectives,
+		formatGeneratedCode:       options.formatGeneratedCode,
+		verifyGeneratedCode:       options.verifyGeneratedCode,
 	}
 }

@@ -503,3 +503,27 @@ func TestParseStructTag(t *testing.T) {
 		})
 	}
 }
+
+func TestTypeStringToAST_CacheReturnsIndependentClones(t *testing.T) {
+	const typeStr = "[]*models.User"
+
+	a := goastutil.TypeStringToAST(typeStr)
+	b := goastutil.TypeStringToAST(typeStr)
+	require.NotNil(t, a)
+	require.NotNil(t, b)
+	assert.NotSame(t, a, b, "each call must return an independent clone")
+	assert.Equal(t, typeStr, goastutil.ASTToTypeString(a))
+	assert.Equal(t, typeStr, goastutil.ASTToTypeString(b))
+
+	if arr, ok := a.(*ast.ArrayType); ok {
+		arr.Elt = ast.NewIdent("MUTATED")
+	}
+	assert.Equal(t, typeStr, goastutil.ASTToTypeString(b), "mutating one result must not affect another")
+}
+
+func TestTypeStringToAST_CompositeShapesRoundTrip(t *testing.T) {
+	for _, ts := range []string{"struct{ F int }", "interface{ M() error }", "func(x int) error", "[3]byte", "chan int"} {
+		got := goastutil.ASTToTypeString(goastutil.TypeStringToAST(ts))
+		assert.Equal(t, ts, got, "composite shape %q must round-trip identically", ts)
+	}
+}

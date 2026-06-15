@@ -1382,6 +1382,42 @@ func WithExperimentalDwarfLineDirectives(enabled bool) Option {
 	}
 }
 
+// WithFormattedGeneratedCode controls whether the code generator runs go/format.Source on
+// its output so the generated Go is gofmt-canonical.
+//
+// When disabled (default), the emitter's direct printer output is written as-is: it is
+// valid, compilable Go that behaves identically, just not gofmt-formatted (e.g.
+// single-line function bodies, different long-expression wrapping). Skipping the format
+// pass removes a per-artefact parse+reprint that is the dominant build allocation and GC
+// cost. Enable it when you want the generated code to be gofmt-pretty, for example to
+// keep committed dist diffs canonical.
+//
+// Takes enabled (bool) which specifies whether generated code is gofmt-formatted.
+//
+// Returns Option which configures the container's generated-code formatting behaviour.
+func WithFormattedGeneratedCode(enabled bool) Option {
+	return func(c *Container) {
+		c.formatGeneratedCode = enabled
+	}
+}
+
+// WithVerifiedGeneratedCode controls whether the code generator re-parses each generated
+// file to confirm it is valid Go before writing it.
+//
+// When disabled (default), the check is skipped. It is a defensive measure redundant with
+// the downstream `go build` of the generated dist (which catches any invalid Go far more
+// thoroughly), and its per-artefact parse is a top build allocation/GC cost. Enable it in
+// dev/CI to localise an emitter defect to the specific artefact that produced bad output.
+//
+// Takes enabled (bool) which specifies whether generated code is verified.
+//
+// Returns Option which configures the container's generated-code verification behaviour.
+func WithVerifiedGeneratedCode(enabled bool) Option {
+	return func(c *Container) {
+		c.verifyGeneratedCode = enabled
+	}
+}
+
 // WithStandardLoader causes the type inspector to use the standard
 // golang.org/x/tools/go/packages.Load instead of the faster quickpackages loader.
 //

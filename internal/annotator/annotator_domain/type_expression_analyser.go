@@ -72,20 +72,25 @@ type typeExpressionAnalyser struct {
 // or nil if not found.
 // Returns bool which is true if the symbol was found.
 func (a *typeExpressionAnalyser) resolveIdentifier(ctx context.Context, n *ast_domain.Identifier) (*ast_domain.GoGeneratorAnnotation, bool) {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIdentifier", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
-
-	a.ctx.Logger.Trace("Attempting to find symbol", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIdentifier", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
+		a.ctx.Logger.Trace("Attempting to find symbol", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
+	}
 	if ann, ok := a.typeResolver.tryResolveSymbol(ctx, a.ctx, n, a.location); ok {
-		a.ctx.Logger.Trace("Resolved identifier", logger_domain.Int(logKeyDepth, a.depth),
-			logger_domain.String(logKeyName, n.Name), logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
-		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveIdentifier",
-			logger_domain.Int(logKeyDepth, a.depth),
-			logger_domain.String(logKeyName, n.Name),
-			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Resolved identifier", logger_domain.Int(logKeyDepth, a.depth),
+				logger_domain.String(logKeyName, n.Name), logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+			a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveIdentifier",
+				logger_domain.Int(logKeyDepth, a.depth),
+				logger_domain.String(logKeyName, n.Name),
+				logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+		}
 		return ann, true
 	}
 
-	a.ctx.Logger.Trace("Symbol not found", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Symbol not found", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
+	}
 	return nil, false
 }
 
@@ -98,7 +103,9 @@ func (a *typeExpressionAnalyser) resolveIdentifier(ctx context.Context, n *ast_d
 // Returns *ast_domain.GoGeneratorAnnotation which is the resolved type annotation, or nil
 // if resolution fails.
 func (a *typeExpressionAnalyser) resolveMemberExpression(ctx context.Context, n *ast_domain.MemberExpression) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveMemberExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveMemberExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	}
 
 	if ann := a.tryResolveAsPackageMember(n); ann != nil {
 		return ann
@@ -119,14 +126,20 @@ func (a *typeExpressionAnalyser) tryResolveAsPackageMember(n *ast_domain.MemberE
 		return nil
 	}
 
-	a.ctx.Logger.Trace("Base is an identifier", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Base is an identifier", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+	}
 
 	if _, isVariable := a.ctx.Symbols.Find(baseIdent.Name); isVariable {
-		a.ctx.Logger.Trace("Base is a variable in scope. Proceeding with standard member access.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Base is a variable in scope. Proceeding with standard member access.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+		}
 		return nil
 	}
 
-	a.ctx.Logger.Trace("Base is not a variable in the current scope. Checking if it's a package alias.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Base is not a variable in the current scope. Checking if it's a package alias.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+	}
 
 	imports := a.typeResolver.inspector.GetImportsForFile(a.ctx.CurrentGoFullPackagePath, a.ctx.CurrentGoSourcePath)
 	effectiveAlias := baseIdent.Name
@@ -134,13 +147,17 @@ func (a *typeExpressionAnalyser) tryResolveAsPackageMember(n *ast_domain.MemberE
 	if _, isPackageAlias := imports[baseIdent.Name]; !isPackageAlias {
 		hashedName := a.typeResolver.lookupPikoImportAlias(a.ctx.CurrentGoFullPackagePath, baseIdent.Name)
 		if hashedName == "" {
-			a.ctx.Logger.Trace("Base is not a package alias. Treating as an undefined variable.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+			if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+				a.ctx.Logger.Trace("Base is not a package alias. Treating as an undefined variable.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, baseIdent.Name))
+			}
 			return nil
 		}
-		a.ctx.Logger.Trace("Base is a Piko import alias, using hashed name for resolution.",
-			logger_domain.Int(logKeyDepth, a.depth),
-			logger_domain.String("userAlias", baseIdent.Name),
-			logger_domain.String("hashedName", hashedName))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Base is a Piko import alias, using hashed name for resolution.",
+				logger_domain.Int(logKeyDepth, a.depth),
+				logger_domain.String("userAlias", baseIdent.Name),
+				logger_domain.String("hashedName", hashedName))
+		}
 		effectiveAlias = hashedName
 	}
 
@@ -159,12 +176,16 @@ func (a *typeExpressionAnalyser) tryResolveAsPackageMember(n *ast_domain.MemberE
 // Returns *ast_domain.GoGeneratorAnnotation which is the resolved type, or a fallback if
 // the property is computed or if resolution fails.
 func (a *typeExpressionAnalyser) resolvePackageMemberAccessWithAlias(n *ast_domain.MemberExpression, baseIdent *ast_domain.Identifier, effectiveAlias string) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("Base IS a package alias. Resolving as package member.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, effectiveAlias))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Base IS a package alias. Resolving as package member.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, effectiveAlias))
+	}
 
 	propIdent, isPropIdent := n.Property.(*ast_domain.Identifier)
 	if !isPropIdent {
 		message := "Computed properties `[...]` are not supported for package member access"
-		a.ctx.Logger.Trace("Diagnostic: Computed property on package.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Diagnostic: Computed property on package.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+		}
 		a.ctx.addDiagnosticForExpression(ast_domain.Error, message, n, a.location.Add(n.RelativeLocation), n.GoAnnotations, annotator_dto.CodeComputedPropertyError)
 		return newFallbackAnnotation()
 	}
@@ -172,10 +193,12 @@ func (a *typeExpressionAnalyser) resolvePackageMemberAccessWithAlias(n *ast_doma
 	finalAnn := a.typeResolver.resolvePackageMember(a.ctx, effectiveAlias, propIdent, n, a.location, a.depth+1)
 	a.stampBaseAsPackageWithAlias(n.Base, baseIdent, effectiveAlias)
 
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveMemberExpression (Package Path)",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(finalAnn)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveMemberExpression (Package Path)",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(finalAnn)))
+	}
 	return finalAnn
 }
 
@@ -227,7 +250,9 @@ func (a *typeExpressionAnalyser) stampBaseAsPackageWithAlias(base ast_domain.Exp
 		IsMapAccess:             false,
 	}
 	setAnnotationOnExpression(base, baseAnn)
-	a.ctx.Logger.Trace("Stamped base as package", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, effectiveAlias))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Stamped base as package", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, effectiveAlias))
+	}
 }
 
 // resolveStandardMemberAccess resolves a standard member access on a variable or
@@ -238,19 +263,27 @@ func (a *typeExpressionAnalyser) stampBaseAsPackageWithAlias(base ast_domain.Exp
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type annotation,
 // or a fallback annotation if resolution fails.
 func (a *typeExpressionAnalyser) resolveStandardMemberAccess(ctx context.Context, n *ast_domain.MemberExpression) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("Resolving base expression recursively", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, n.Base.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Resolving base expression recursively", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, n.Base.String()))
+	}
 	baseAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Base, a.location, a.depth+1)
 
 	if baseAnn == nil || baseAnn.ResolvedType == nil || baseAnn.ResolvedType.TypeExpression == nil {
-		a.ctx.Logger.Trace("Base expression resolution failed or yielded no type. Halting member resolution.", logger_domain.Int(logKeyDepth, a.depth))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Base expression resolution failed or yielded no type. Halting member resolution.", logger_domain.Int(logKeyDepth, a.depth))
+		}
 		return newFallbackAnnotation()
 	}
-	a.ctx.Logger.Trace("Base resolved successfully", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(baseAnn)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Base resolved successfully", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(baseAnn)))
+	}
 
 	propIdent, ok := n.Property.(*ast_domain.Identifier)
 	if !ok {
 		message := "Computed properties `[...]` are not supported for member access"
-		a.ctx.Logger.Trace("Diagnostic: Computed property on variable.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Diagnostic: Computed property on variable.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+		}
 		a.ctx.addDiagnosticForExpression(ast_domain.Error, message, n, a.location.Add(n.RelativeLocation), n.GoAnnotations, annotator_dto.CodeComputedPropertyError)
 		return newFallbackAnnotation()
 	}
@@ -258,10 +291,12 @@ func (a *typeExpressionAnalyser) resolveStandardMemberAccess(ctx context.Context
 	finalAnn := a.resolveMemberProperty(ctx, n, baseAnn, propIdent)
 	a.finaliseMemberAnnotation(n, finalAnn, baseAnn)
 
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveMemberExpression (Standard Path)",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(finalAnn)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveMemberExpression (Standard Path)",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(finalAnn)))
+	}
 	return finalAnn
 }
 
@@ -281,9 +316,13 @@ func (a *typeExpressionAnalyser) resolveMemberProperty(
 	baseAnn *ast_domain.GoGeneratorAnnotation,
 	propIdent *ast_domain.Identifier,
 ) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("Attempting to resolve property as a field...", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Attempting to resolve property as a field...", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+	}
 	if ann, substMap, ok := a.typeResolver.tryResolveField(ctx, a.ctx, baseAnn, propIdent.Name, a.location); ok {
-		a.ctx.Logger.Trace("SUCCESS: Found property as a field.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("SUCCESS: Found property as a field.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+		}
 		a.applyGenericSubstitution(ann, substMap)
 		return ann
 	}
@@ -306,10 +345,12 @@ func (a *typeExpressionAnalyser) applyGenericSubstitution(
 ) {
 	substitutedType := substituteType(ann.ResolvedType.TypeExpression, substMap)
 	if substitutedType != ann.ResolvedType.TypeExpression {
-		a.ctx.Logger.Trace("Substituting generic type for field",
-			logger_domain.Int(logKeyDepth, a.depth),
-			logger_domain.String("original", goastutil.ASTToTypeString(ann.ResolvedType.TypeExpression)),
-			logger_domain.String("new", goastutil.ASTToTypeString(substitutedType)))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Substituting generic type for field",
+				logger_domain.Int(logKeyDepth, a.depth),
+				logger_domain.String("original", goastutil.ASTToTypeString(ann.ResolvedType.TypeExpression)),
+				logger_domain.String("new", goastutil.ASTToTypeString(substitutedType)))
+		}
 		ann.ResolvedType.TypeExpression = substitutedType
 		ann.ResolvedType.PackageAlias = getPackageAliasFromType(substitutedType, ann.ResolvedType.PackageAlias)
 	}
@@ -325,10 +366,12 @@ func (a *typeExpressionAnalyser) applyGenericSubstitution(
 // Returns *ast_domain.GoGeneratorAnnotation which marks the expression as a map access
 // with interface{} as the resolved type.
 func (a *typeExpressionAnalyser) createMapAccessAnnotation(n *ast_domain.MemberExpression, propIdent *ast_domain.Identifier) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("Base is map[string]interface{}. Allowing dot-notation access.",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyBase, n.Base.String()),
-		logger_domain.String("property", propIdent.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Base is map[string]interface{}. Allowing dot-notation access.",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyBase, n.Base.String()),
+			logger_domain.String("property", propIdent.Name))
+	}
 
 	ann := newAnnotationWithType(&ast_domain.ResolvedTypeInfo{
 		TypeExpression:          goast.NewIdent("interface{}"),
@@ -359,13 +402,19 @@ func (a *typeExpressionAnalyser) tryResolveAsMethod(
 	baseAnn *ast_domain.GoGeneratorAnnotation,
 	propIdent *ast_domain.Identifier,
 ) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("Property is not a field. Attempting to resolve as a method...", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Property is not a field. Attempting to resolve as a method...", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+	}
 	if ann, ok := a.typeResolver.tryResolveMethod(ctx, a.ctx, baseAnn, propIdent.Name, a.location); ok {
-		a.ctx.Logger.Trace("SUCCESS: Found property as a method.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("SUCCESS: Found property as a method.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+		}
 		return ann
 	}
 
-	a.ctx.Logger.Trace("Property is not a method. Handling as an unknown member.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Property is not a method. Handling as an unknown member.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyProp, propIdent.Name))
+	}
 	return a.typeResolver.handleUnknownMember(ctx, a.ctx, baseAnn, propIdent.Name, n, a.location)
 }
 
@@ -381,9 +430,11 @@ func (a *typeExpressionAnalyser) tryResolveAsMethod(
 func (a *typeExpressionAnalyser) finaliseMemberAnnotation(n *ast_domain.MemberExpression, finalAnn *ast_domain.GoGeneratorAnnotation, baseAnn *ast_domain.GoGeneratorAnnotation) {
 	finalAnn.BaseCodeGenVarName = baseAnn.BaseCodeGenVarName
 	if finalAnn.BaseCodeGenVarName != nil {
-		a.ctx.Logger.Trace("Propagating BaseCodeGenVarName from base to member expression",
-			logger_domain.Int(logKeyDepth, a.depth),
-			logger_domain.String("baseCodeGenVarName", *finalAnn.BaseCodeGenVarName))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Propagating BaseCodeGenVarName from base to member expression",
+				logger_domain.Int(logKeyDepth, a.depth),
+				logger_domain.String("baseCodeGenVarName", *finalAnn.BaseCodeGenVarName))
+		}
 	}
 
 	if !requiresPointerSafetyCheck(baseAnn) {
@@ -391,9 +442,11 @@ func (a *typeExpressionAnalyser) finaliseMemberAnnotation(n *ast_domain.MemberEx
 	}
 
 	if isFunctionType(finalAnn) {
-		a.ctx.Logger.Trace("Skipping runtime safety check for method reference (will check call result instead).",
-			logger_domain.String(logKeyExpr, n.String()),
-		)
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Skipping runtime safety check for method reference (will check call result instead).",
+				logger_domain.String(logKeyExpr, n.String()),
+			)
+		}
 		return
 	}
 
@@ -411,18 +464,22 @@ func (a *typeExpressionAnalyser) checkMemberPointerSafety(n *ast_domain.MemberEx
 
 	if n.Optional {
 		finalAnn.NeedsRuntimeSafetyCheck = false
-		a.ctx.Logger.Trace("Skipping runtime safety check (optional chaining ?. is self-guarding).",
-			logger_domain.String(logKeyExpr, n.String()),
-		)
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Skipping runtime safety check (optional chaining ?. is self-guarding).",
+				logger_domain.String(logKeyExpr, n.String()),
+			)
+		}
 		return
 	}
 
 	if a.ctx.IsKnownNonNil(baseExprString) {
 		finalAnn.NeedsRuntimeSafetyCheck = false
-		a.ctx.Logger.Trace("Skipping runtime safety check (base is guarded by p-if).",
-			logger_domain.String(logKeyExpr, n.String()),
-			logger_domain.String("guardedBase", baseExprString),
-		)
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Skipping runtime safety check (base is guarded by p-if).",
+				logger_domain.String(logKeyExpr, n.String()),
+				logger_domain.String("guardedBase", baseExprString),
+			)
+		}
 		return
 	}
 
@@ -451,9 +508,11 @@ func (a *typeExpressionAnalyser) emitNilPointerWarning(n *ast_domain.MemberExpre
 		finalAnn,
 		annotator_dto.CodeTypeMismatch,
 	)
-	a.ctx.Logger.Trace("Flagging member expression for runtime safety check (base is a pointer).",
-		logger_domain.String(logKeyExpr, n.String()),
-	)
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Flagging member expression for runtime safety check (base is a pointer).",
+			logger_domain.String(logKeyExpr, n.String()),
+		)
+	}
 }
 
 // resolveIndexExpression resolves an index expression and returns its type.
@@ -463,16 +522,20 @@ func (a *typeExpressionAnalyser) emitNilPointerWarning(n *ast_domain.MemberExpre
 // Returns *ast_domain.GoGeneratorAnnotation which holds the resolved type of the indexed
 // element, or a fallback annotation if resolution fails.
 func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *ast_domain.IndexExpression) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIndexExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIndexExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	}
 
 	baseAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Base, a.location, a.depth+1)
 	indexAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Index, a.location, a.depth+1)
 	fallback := newFallbackAnnotation()
 
-	a.ctx.Logger.Trace("Index base and key resolved",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String("baseType", a.typeResolver.logAnn(baseAnn)),
-		logger_domain.String("indexType", a.typeResolver.logAnn(indexAnn)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Index base and key resolved",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String("baseType", a.typeResolver.logAnn(baseAnn)),
+			logger_domain.String("indexType", a.typeResolver.logAnn(indexAnn)))
+	}
 
 	if baseAnn == nil || baseAnn.ResolvedType == nil || baseAnn.ResolvedType.TypeExpression == nil {
 		return fallback
@@ -483,7 +546,9 @@ func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *
 
 	itemTypeInfo := a.typeResolver.DetermineIterationItemType(ctx, a.ctx, n.Base, baseAnn.ResolvedType)
 	itemTypeString := goastutil.ASTToTypeString(itemTypeInfo.TypeExpression, itemTypeInfo.PackageAlias)
-	a.ctx.Logger.Trace("Determined item/value type", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String("itemType", itemTypeString))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Determined item/value type", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String("itemType", itemTypeString))
+	}
 
 	if itemTypeInfo.TypeExpression == nil || itemTypeString == typeAny {
 		a.emitNotIndexableDiagnostic(n, baseAnn)
@@ -493,10 +558,12 @@ func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *
 	a.validateIndexType(n, baseAnn, indexAnn)
 	finalAnn := a.buildIndexExprAnnotation(ctx, n, baseAnn, itemTypeInfo)
 
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveIndexExpression",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(finalAnn)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveIndexExpression",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(finalAnn)))
+	}
 	return finalAnn
 }
 
@@ -508,7 +575,9 @@ func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *
 func (a *typeExpressionAnalyser) emitNotIndexableDiagnostic(n *ast_domain.IndexExpression, baseAnn *ast_domain.GoGeneratorAnnotation) {
 	baseTypeName := goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)
 	message := fmt.Sprintf("Type '%s' is not indexable", baseTypeName)
-	a.ctx.Logger.Trace("Diagnostic", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Diagnostic", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+	}
 	a.ctx.addDiagnosticForExpression(ast_domain.Error, message, n.Base, a.location.Add(n.Base.GetRelativeLocation()), n.GoAnnotations, annotator_dto.CodeInvalidIndexing)
 }
 
@@ -523,13 +592,17 @@ func (a *typeExpressionAnalyser) emitNotIndexableDiagnostic(n *ast_domain.IndexE
 func (a *typeExpressionAnalyser) validateIndexType(n *ast_domain.IndexExpression, baseAnn, indexAnn *ast_domain.GoGeneratorAnnotation) {
 	indexTypeInfo := a.typeResolver.DetermineIterationIndexType(a.ctx, baseAnn.ResolvedType)
 	indexTypeString := goastutil.ASTToTypeString(indexTypeInfo.TypeExpression, indexTypeInfo.PackageAlias)
-	a.ctx.Logger.Trace("Determined expected index/key type", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String("indexType", indexTypeString))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("Determined expected index/key type", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String("indexType", indexTypeString))
+	}
 
 	if !isAssignable(indexAnn.ResolvedType, indexTypeInfo) {
 		indexTypeName := goastutil.ASTToTypeString(indexAnn.ResolvedType.TypeExpression, indexAnn.ResolvedType.PackageAlias)
 		baseTypeName := goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)
 		message := fmt.Sprintf("Cannot use type '%s' as index into type '%s'", indexTypeName, baseTypeName)
-		a.ctx.Logger.Trace("Diagnostic", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("Diagnostic", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyMessage, message))
+		}
 		a.ctx.addDiagnosticForExpression(ast_domain.Error, message, n.Index, a.location.Add(n.Index.GetRelativeLocation()), n.GoAnnotations, annotator_dto.CodeInvalidIndexing)
 	}
 }
@@ -582,12 +655,16 @@ func (a *typeExpressionAnalyser) buildIndexExprAnnotation(
 
 	if baseAnn.ResolvedType != nil && isNillableIndexable(baseAnn.ResolvedType.TypeExpression) {
 		if n.Optional {
-			a.ctx.Logger.Trace("Skipping runtime safety check for index expr (optional chaining ?.[ is self-guarding).",
-				logger_domain.String(logKeyExpr, n.String()))
+			if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+				a.ctx.Logger.Trace("Skipping runtime safety check for index expr (optional chaining ?.[ is self-guarding).",
+					logger_domain.String(logKeyExpr, n.String()))
+			}
 		} else {
 			finalAnn.NeedsRuntimeSafetyCheck = true
-			a.ctx.Logger.Trace("Flagging index expression for runtime safety check (base is a slice or map).",
-				logger_domain.String(logKeyExpr, n.String()))
+			if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+				a.ctx.Logger.Trace("Flagging index expression for runtime safety check (base is a slice or map).",
+					logger_domain.String(logKeyExpr, n.String()))
+			}
 		}
 	}
 
@@ -602,7 +679,9 @@ func (a *typeExpressionAnalyser) buildIndexExprAnnotation(
 // arrays resolve to []any. Non-empty arrays use the first element to work out the
 // expected type and report errors for elements with different types.
 func (a *typeExpressionAnalyser) resolveArrayLiteral(ctx context.Context, n *ast_domain.ArrayLiteral) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveArrayLiteral", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveArrayLiteral", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	}
 
 	if len(n.Elements) == 0 {
 		return a.resolveEmptyArrayLiteral(n)
@@ -644,10 +723,12 @@ func (a *typeExpressionAnalyser) resolveArrayLiteral(ctx context.Context, n *ast
 		InitialFilePath:         "",
 	}
 	ann := newAnnotationFull(finalArrayTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveArrayLiteral",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveArrayLiteral",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	}
 	return ann
 }
 
@@ -668,10 +749,12 @@ func (a *typeExpressionAnalyser) resolveEmptyArrayLiteral(n *ast_domain.ArrayLit
 		InitialFilePath:         "",
 	}
 	ann := newAnnotationFull(finalArrayTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveArrayLiteral",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, "[]any"))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveArrayLiteral",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, "[]any"))
+	}
 	return ann
 }
 
@@ -724,14 +807,18 @@ func (a *typeExpressionAnalyser) createEmptyObjectLiteralAnnotation() *ast_domai
 // Returns *ast_domain.GoGeneratorAnnotation which holds the map type with its resolved
 // value type.
 func (a *typeExpressionAnalyser) resolveObjectLiteral(ctx context.Context, n *ast_domain.ObjectLiteral) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveObjectLiteral", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveObjectLiteral", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
+	}
 
 	if len(n.Pairs) == 0 {
 		ann := a.createEmptyObjectLiteralAnnotation()
-		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveObjectLiteral",
-			logger_domain.Int(logKeyDepth, a.depth),
-			logger_domain.String(logKeyExpr, n.String()),
-			logger_domain.String(logKeyResolvedType, "map[string]any"))
+		if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveObjectLiteral",
+				logger_domain.Int(logKeyDepth, a.depth),
+				logger_domain.String(logKeyExpr, n.String()),
+				logger_domain.String(logKeyResolvedType, "map[string]any"))
+		}
 		return ann
 	}
 
@@ -773,10 +860,12 @@ func (a *typeExpressionAnalyser) resolveObjectLiteral(ctx context.Context, n *as
 		InitialFilePath:         "",
 	}
 	ann := newAnnotationFull(finalMapTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveObjectLiteral",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveObjectLiteral",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, a.typeResolver.logAnn(ann)))
+	}
 	return ann
 }
 
@@ -788,9 +877,11 @@ func (a *typeExpressionAnalyser) resolveObjectLiteral(ctx context.Context, n *as
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved string type
 // information.
 func (a *typeExpressionAnalyser) resolveTemplateLiteral(ctx context.Context, n *ast_domain.TemplateLiteral) *ast_domain.GoGeneratorAnnotation {
-	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveTemplateLiteral",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveTemplateLiteral",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()))
+	}
 
 	for _, part := range n.Parts {
 		if !part.IsLiteral {
@@ -809,10 +900,12 @@ func (a *typeExpressionAnalyser) resolveTemplateLiteral(ctx context.Context, n *
 	}
 	ann := newAnnotationFull(resultTypeInfo, &a.ctx.SFCSourcePath, int(inspector_dto.StringablePrimitive))
 
-	a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveTemplateLiteral",
-		logger_domain.Int(logKeyDepth, a.depth),
-		logger_domain.String(logKeyExpr, n.String()),
-		logger_domain.String(logKeyResolvedType, "string"))
+	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		a.ctx.Logger.Trace("[TR-DEBUG] Exit resolveTemplateLiteral",
+			logger_domain.Int(logKeyDepth, a.depth),
+			logger_domain.String(logKeyExpr, n.String()),
+			logger_domain.String(logKeyResolvedType, "string"))
+	}
 	return ann
 }
 

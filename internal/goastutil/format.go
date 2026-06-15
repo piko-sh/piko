@@ -25,6 +25,8 @@ import (
 	"go/printer"
 	"go/token"
 	"strings"
+	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -33,6 +35,18 @@ const (
 
 	// printerTabWidth is the tab width used when formatting AST expressions.
 	printerTabWidth = 8
+
+	// maxParseFileSetBase bounds FileSet reuse so pooled FileSets cannot grow without bound.
+	//
+	// A recycled FileSet accumulates base offset and file records on every parse, so it is
+	// retired once its base passes ~1 GiB. (token.Pos is an int, so this guards retained
+	// memory, not 32-bit position overflow.)
+	maxParseFileSetBase = 1 << 30
+
+	// typeASTCacheMaxEntries bounds typeASTCache so a long-lived process (watch daemon)
+	// cannot accrete type-string templates without limit. On overflow the cache is wiped
+	// wholesale; type strings recur, so a wipe only costs a re-parse of those still in use.
+	typeASTCacheMaxEntries = 10000
 )
 
 var (
@@ -75,7 +89,47 @@ var (
 		"interface{}": true,
 		"map":         true, "slice": true, "chan": true, "func": true,
 	}
+
+	// parseFileSetPool recycles FileSets across expression parses. parser.ParseExpr
+	// allocates a fresh FileSet on every call purely for position bookkeeping that goastutil
+	// never reads (printing uses the separate sharedPrintFileSet), so the FileSet is pure
+	// churn; pooling it removes that per-parse allocation.
+	parseFileSetPool = sync.Pool{New: func() any { return token.NewFileSet() }}
+
+	// typeASTCache memoises parsed type-string ASTs (string -> ast.Expr template). Only
+	// position-independent shapes (see cloneExprStructural) are stored; the template is
+	// never returned directly, every caller gets an independent clone, preserving the
+	// copy-on-handout invariant the qualify*/unqualify* passes (which mutate in place) rely
+	// on.
+	typeASTCache sync.Map
+
+	// typeASTCacheEntries counts live typeASTCache entries so it can be wiped wholesale once
+	// it passes typeASTCacheMaxEntries.
+	typeASTCacheEntries atomic.Int64
 )
+
+// parseTypeExpr parses a Go expression against a pooled FileSet.
+//
+// This reuses a pooled FileSet instead of the fresh one parser.ParseExpr mints per call.
+// Safe because goastutil never reads position information from the result (positions are
+// int offsets, not pointers into the FileSet), and the pool hands each parse an
+// exclusively-owned FileSet.
+//
+// Takes src (string) which is the Go expression source to parse.
+//
+// Returns ast.Expr which is the parsed expression.
+// Returns error which is non-nil when src fails to parse.
+func parseTypeExpr(src string) (ast.Expr, error) {
+	fset, ok := parseFileSetPool.Get().(*token.FileSet)
+	if !ok || fset == nil {
+		fset = token.NewFileSet()
+	}
+	expr, err := parser.ParseExprFrom(fset, "", src, 0)
+	if fset.Base() < maxParseFileSetBase {
+		parseFileSetPool.Put(fset)
+	}
+	return expr, err
+}
 
 // TypeStringToAST parses a Go type string into its matching AST expression.
 //
@@ -94,11 +148,134 @@ func TypeStringToAST(typeString string) ast.Expr {
 		return ast.NewIdent(typeString)
 	}
 
-	expression, err := parser.ParseExpr(typeString)
+	if template, ok := typeASTCache.Load(typeString); ok {
+		if clone := cloneExprStructural(template.(ast.Expr)); clone != nil {
+			return clone
+		}
+	}
+
+	expression, err := parseTypeExpr(typeString)
 	if err != nil {
 		return ast.NewIdent("any /* failed to parse type string: " + strings.ReplaceAll(typeString, " ", "_") + " */")
 	}
+	if clone := cloneExprStructural(expression); clone != nil {
+		if _, loaded := typeASTCache.LoadOrStore(typeString, expression); !loaded {
+			if typeASTCacheEntries.Add(1) > typeASTCacheMaxEntries {
+				typeASTCache.Clear()
+				typeASTCacheEntries.Store(0)
+			}
+		}
+		return clone
+	}
 	return expression
+}
+
+// cloneExprStructural deep-clones expression shapes with position-independent output.
+//
+// It returns nil for any shape whose printed form does depend on token positions (chan,
+// fixed-length array, func, struct, interface, and anything containing one). A nil result
+// signals the caller to use a fresh parse instead, so output stays byte-identical to
+// go/format.Source.
+//
+// Takes e (ast.Expr) which is the expression to clone structurally.
+//
+// Returns ast.Expr which is the position-independent clone, or nil when e is not a
+// position-independent shape and the caller should re-parse.
+func cloneExprStructural(e ast.Expr) ast.Expr {
+	switch n := e.(type) {
+	case *ast.Ident:
+		return ast.NewIdent(n.Name)
+	case *ast.SelectorExpr:
+		if x := cloneExprStructural(n.X); x != nil {
+			return &ast.SelectorExpr{X: x, Sel: ast.NewIdent(n.Sel.Name)}
+		}
+	case *ast.StarExpr:
+		if x := cloneExprStructural(n.X); x != nil {
+			return &ast.StarExpr{X: x}
+		}
+	case *ast.ArrayType:
+		return cloneArrayTypeStructural(n)
+	case *ast.MapType:
+		return cloneMapTypeStructural(n)
+	case *ast.IndexExpr:
+		return cloneIndexExprStructural(n)
+	case *ast.IndexListExpr:
+		return cloneIndexListExprStructural(n)
+	}
+	return nil
+}
+
+// cloneArrayTypeStructural clones a slice type ([]T).
+//
+// Fixed-length arrays ([N]T) depend on the length expression's position, so they are
+// refused (nil) to force a fresh parse.
+//
+// Takes n (*ast.ArrayType) which is the slice or array type to clone.
+//
+// Returns ast.Expr which is the cloned slice type, or nil when n is not a
+// position-independent shape and the caller should re-parse.
+func cloneArrayTypeStructural(n *ast.ArrayType) ast.Expr {
+	if n.Len != nil {
+		return nil
+	}
+	elt := cloneExprStructural(n.Elt)
+	if elt == nil {
+		return nil
+	}
+	return &ast.ArrayType{Elt: elt}
+}
+
+// cloneMapTypeStructural clones a map type.
+//
+// It refuses (nil) when either the key or value is a non-cacheable (position-dependent)
+// shape.
+//
+// Takes n (*ast.MapType) which is the map type to clone.
+//
+// Returns ast.Expr which is the cloned map type, or nil when n is not a
+// position-independent shape and the caller should re-parse.
+func cloneMapTypeStructural(n *ast.MapType) ast.Expr {
+	key, value := cloneExprStructural(n.Key), cloneExprStructural(n.Value)
+	if key == nil || value == nil {
+		return nil
+	}
+	return &ast.MapType{Key: key, Value: value}
+}
+
+// cloneIndexExprStructural clones a single-type-argument generic instantiation (T[A]).
+//
+// Takes n (*ast.IndexExpr) which is the generic instantiation to clone.
+//
+// Returns ast.Expr which is the cloned instantiation, or nil when n is not a
+// position-independent shape and the caller should re-parse.
+func cloneIndexExprStructural(n *ast.IndexExpr) ast.Expr {
+	x, index := cloneExprStructural(n.X), cloneExprStructural(n.Index)
+	if x == nil || index == nil {
+		return nil
+	}
+	return &ast.IndexExpr{X: x, Index: index}
+}
+
+// cloneIndexListExprStructural clones a multi-argument generic instantiation (T[A, B]).
+//
+// Takes n (*ast.IndexListExpr) which is the generic instantiation to clone.
+//
+// Returns ast.Expr which is the cloned instantiation, or nil when n is not a
+// position-independent shape and the caller should re-parse.
+func cloneIndexListExprStructural(n *ast.IndexListExpr) ast.Expr {
+	x := cloneExprStructural(n.X)
+	if x == nil {
+		return nil
+	}
+	indices := make([]ast.Expr, len(n.Indices))
+	for i, index := range n.Indices {
+		clone := cloneExprStructural(index)
+		if clone == nil {
+			return nil
+		}
+		indices[i] = clone
+	}
+	return &ast.IndexListExpr{X: x, Indices: indices}
 }
 
 // ASTToTypeString converts an AST expression back into its Go type string representation.
@@ -470,20 +647,24 @@ func qualifyTypeAssertExpr(n *ast.TypeAssertExpr, pkgAlias string) *ast.TypeAsse
 	return n
 }
 
-// deepCopyAST creates a deep copy of an AST expression by printing the node to a string
-// and parsing it again. This prevents side effects, as AST nodes are mutable pointers.
+// deepCopyAST creates a deep copy of an AST expression.
+//
+// It copies by printing the node to a string and parsing it again. This prevents side
+// effects, as AST nodes are mutable pointers. The reparse also re-establishes the
+// position information go/printer relies on to keep composite types (structs, interfaces)
+// on a single line, which a structural clone would lose. Parsing goes through the pooled
+// FileSet to avoid the per-call FileSet allocation.
 //
 // Takes node (ast.Expr) which is the expression to copy.
 //
 // Returns ast.Expr which is a new, independent copy of the input expression.
 func deepCopyAST(node ast.Expr) ast.Expr {
 	var buffer bytes.Buffer
-	err := printer.Fprint(&buffer, sharedPrintFileSet, node)
-	if err != nil {
+	if err := printer.Fprint(&buffer, sharedPrintFileSet, node); err != nil {
 		return ast.NewIdent("any /* internal copy error */")
 	}
 
-	newNode, err := parser.ParseExpr(buffer.String())
+	newNode, err := parseTypeExpr(buffer.String())
 	if err != nil {
 		return ast.NewIdent("any")
 	}

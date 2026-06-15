@@ -75,6 +75,12 @@ type EmitterConfig struct {
 	// EnableDwarfLineDirectives controls whether //line directives are valid DWARF
 	// directives (true) or plain comments with a space (false).
 	EnableDwarfLineDirectives bool
+
+	// FormatGeneratedCode runs go/format.Source on the emitted code so it is
+	// gofmt-canonical. Off by default: the direct printer output is already valid,
+	// compilable Go, and skipping the format pass avoids its per-artefact parse+reprint (the
+	// dominant build allocation).
+	FormatGeneratedCode bool
 }
 
 // LoopIterableInfo holds information about an extracted p-for collection variable. This

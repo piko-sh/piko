@@ -66,12 +66,14 @@ func (tr *TypeResolver) tryResolveField(
 		return nil, nil, false
 	}
 
-	analysisContext.Logger.Trace("[tryResolveField] Starting field lookup",
-		logger_domain.String("property_name", propName),
-		logger_domain.String("on_base_type", goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)),
-		logger_domain.String("initial_context_pkg", analysisContext.CurrentGoFullPackagePath),
-		logger_domain.String("initial_context_file", analysisContext.CurrentGoSourcePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Starting field lookup",
+			logger_domain.String("property_name", propName),
+			logger_domain.String("on_base_type", goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)),
+			logger_domain.String("initial_context_pkg", analysisContext.CurrentGoFullPackagePath),
+			logger_domain.String("initial_context_file", analysisContext.CurrentGoSourcePath),
+		)
+	}
 
 	importerPackagePath, importerFilePath := tr.determineFieldLookupContext(ctx, analysisContext, baseAnn)
 
@@ -133,8 +135,10 @@ func (tr *TypeResolver) switchContextForExternalType(
 	baseAnn *ast_domain.GoGeneratorAnnotation,
 	importerPackagePath, importerFilePath string,
 ) (newPackagePath, newFilePath string) {
-	analysisContext.Logger.Trace("[tryResolveField] Context Switch needed for external package.",
-		logger_domain.String("target_pkg", baseAnn.ResolvedType.CanonicalPackagePath))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Context Switch needed for external package.",
+			logger_domain.String("target_pkg", baseAnn.ResolvedType.CanonicalPackagePath))
+	}
 
 	baseTypeDto, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(
 		ctx,
@@ -145,7 +149,7 @@ func (tr *TypeResolver) switchContextForExternalType(
 	if baseTypeDto != nil && baseTypeDto.DefinedInFilePath != "" {
 		newPackagePath = baseAnn.ResolvedType.CanonicalPackagePath
 		newFilePath = baseTypeDto.DefinedInFilePath
-		if importerFilePath != newFilePath {
+		if importerFilePath != newFilePath && analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
 			analysisContext.Logger.Trace("[tryResolveField] Context Switch: Found authoritative defining file.",
 				logger_domain.String("old_file", importerFilePath),
 				logger_domain.String("new_file", newFilePath))
@@ -153,31 +157,39 @@ func (tr *TypeResolver) switchContextForExternalType(
 		return newPackagePath, newFilePath
 	}
 
-	analysisContext.Logger.Trace("[tryResolveField] Context Switch: Could not find DTO for base type. Trying parent package context.",
-		logger_domain.String("type_to_find", goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)),
-		logger_domain.String("canonical_pkg", baseAnn.ResolvedType.CanonicalPackagePath))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Context Switch: Could not find DTO for base type. Trying parent package context.",
+			logger_domain.String("type_to_find", goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)),
+			logger_domain.String("canonical_pkg", baseAnn.ResolvedType.CanonicalPackagePath))
+	}
 
 	pkgFiles := tr.inspector.GetFilesForPackage(baseAnn.ResolvedType.CanonicalPackagePath)
 	if len(pkgFiles) > 0 {
 		newPackagePath = baseAnn.ResolvedType.CanonicalPackagePath
 		newFilePath = pkgFiles[0]
-		analysisContext.Logger.Trace("[tryResolveField] Context Switch: Using file from canonical package.",
-			logger_domain.String("new_pkg", newPackagePath),
-			logger_domain.String("new_file", newFilePath))
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[tryResolveField] Context Switch: Using file from canonical package.",
+				logger_domain.String("new_pkg", newPackagePath),
+				logger_domain.String("new_file", newFilePath))
+		}
 		return newPackagePath, newFilePath
 	}
 
 	if definingFile := tr.findDefiningFileFromTypeData(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.CanonicalPackagePath); definingFile != "" {
 		newPackagePath = baseAnn.ResolvedType.CanonicalPackagePath
-		analysisContext.Logger.Trace("[tryResolveField] Context Switch: Found defining file via type name lookup in canonical package.",
-			logger_domain.String("new_pkg", newPackagePath),
-			logger_domain.String("new_file", definingFile))
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[tryResolveField] Context Switch: Found defining file via type name lookup in canonical package.",
+				logger_domain.String("new_pkg", newPackagePath),
+				logger_domain.String("new_file", definingFile))
+		}
 		return newPackagePath, definingFile
 	}
 
-	analysisContext.Logger.Trace("[tryResolveField] Context Switch: No files found for canonical package. Keeping original context.",
-		logger_domain.String("keeping_pkg", importerPackagePath),
-		logger_domain.String("keeping_file", importerFilePath))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Context Switch: No files found for canonical package. Keeping original context.",
+			logger_domain.String("keeping_pkg", importerPackagePath),
+			logger_domain.String("keeping_file", importerFilePath))
+	}
 	return importerPackagePath, importerFilePath
 }
 
@@ -270,12 +282,14 @@ func (tr *TypeResolver) inspectFieldInType(
 	propName, effectivePackagePath, effectiveFilePath, packageAlias string,
 ) *inspector_dto.FieldInfo {
 	resolvedTypeString := goastutil.ASTToTypeString(resolvedBaseTypeAST, packageAlias)
-	analysisContext.Logger.Trace("[tryResolveField] Calling inspector.FindFieldInfo",
-		logger_domain.String("property_name", propName),
-		logger_domain.String("on_resolved_type", resolvedTypeString),
-		logger_domain.String("using_pkg_context", effectivePackagePath),
-		logger_domain.String("using_file_context", effectiveFilePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Calling inspector.FindFieldInfo",
+			logger_domain.String("property_name", propName),
+			logger_domain.String("on_resolved_type", resolvedTypeString),
+			logger_domain.String("using_pkg_context", effectivePackagePath),
+			logger_domain.String("using_file_context", effectiveFilePath),
+		)
+	}
 	fieldInfo := tr.inspector.FindFieldInfo(
 		ctx,
 		resolvedBaseTypeAST,
@@ -289,11 +303,13 @@ func (tr *TypeResolver) inspectFieldInType(
 		return nil
 	}
 
-	analysisContext.Logger.Trace("[tryResolveField] Inspector returned FieldInfo successfully.",
-		logger_domain.String("found_field_name", fieldInfo.Name),
-		logger_domain.String("field_type", goastutil.ASTToTypeString(fieldInfo.Type, fieldInfo.PackageAlias)),
-		logger_domain.String("field_canonical_pkg", fieldInfo.CanonicalPackagePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Inspector returned FieldInfo successfully.",
+			logger_domain.String("found_field_name", fieldInfo.Name),
+			logger_domain.String("field_type", goastutil.ASTToTypeString(fieldInfo.Type, fieldInfo.PackageAlias)),
+			logger_domain.String("field_canonical_pkg", fieldInfo.CanonicalPackagePath),
+		)
+	}
 	return fieldInfo
 }
 
@@ -312,10 +328,12 @@ func (*TypeResolver) logAliasResolution(
 	originalTypeString := goastutil.ASTToTypeString(original, packageAlias)
 	resolvedTypeString := goastutil.ASTToTypeString(resolved, packageAlias)
 	if originalTypeString != resolvedTypeString {
-		ctx.Logger.Trace("[tryResolveField] Alias Resolution: Base type was resolved through an alias.",
-			logger_domain.String("original_type", originalTypeString),
-			logger_domain.String("resolved_underlying_type", resolvedTypeString),
-		)
+		if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			ctx.Logger.Trace("[tryResolveField] Alias Resolution: Base type was resolved through an alias.",
+				logger_domain.String("original_type", originalTypeString),
+				logger_domain.String("resolved_underlying_type", resolvedTypeString),
+			)
+		}
 	} else {
 		ctx.Logger.Trace("[tryResolveField] Alias Resolution: Base type is not an alias.")
 	}
@@ -345,10 +363,12 @@ func (tr *TypeResolver) buildFieldAnnotation(
 ) (*ast_domain.GoGeneratorAnnotation, map[string]goast.Expr, bool) {
 	finalFieldTypeAST := tr.inspector.ResolveToUnderlyingAST(fieldInfo.Type, fieldInfo.DefiningFilePath)
 	if goastutil.ASTToTypeString(finalFieldTypeAST) != goastutil.ASTToTypeString(fieldInfo.Type) {
-		analysisContext.Logger.Trace("[tryResolveField] Alias Resolution: Resolved field's own type.",
-			logger_domain.String("original_field_type", goastutil.ASTToTypeString(fieldInfo.Type, fieldInfo.PackageAlias)),
-			logger_domain.String("final_field_type", goastutil.ASTToTypeString(finalFieldTypeAST)),
-		)
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("[tryResolveField] Alias Resolution: Resolved field's own type.",
+				logger_domain.String("original_field_type", goastutil.ASTToTypeString(fieldInfo.Type, fieldInfo.PackageAlias)),
+				logger_domain.String("final_field_type", goastutil.ASTToTypeString(finalFieldTypeAST)),
+			)
+		}
 	}
 
 	finalCanonicalPath, finalPackageAlias := tr.correctFieldTypeContext(ctx, analysisContext, fieldInfo, finalFieldTypeAST)
@@ -364,10 +384,12 @@ func (tr *TypeResolver) buildFieldAnnotation(
 	}
 
 	stringability, isPointer := tr.determineStringability(ctx, analysisContext, resolvedTypeInfo)
-	analysisContext.Logger.Trace("[tryResolveField] Determined stringability for field type.",
-		logger_domain.Int("stringability_code", stringability),
-		logger_domain.Bool("is_pointer_to_stringable", isPointer),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Determined stringability for field type.",
+			logger_domain.Int("stringability_code", stringability),
+			logger_domain.Bool("is_pointer_to_stringable", isPointer),
+		)
+	}
 
 	virtualLocation := ast_domain.Location{Line: fieldInfo.DefinitionLine, Column: fieldInfo.DefinitionColumn, Offset: 0}
 	originalDefLocation := tr.unmapVirtualLocationToOriginal(analysisContext, virtualLocation)
@@ -383,9 +405,11 @@ func (tr *TypeResolver) buildFieldAnnotation(
 	finalAnnotation.FieldTag = &fieldInfo.RawTag
 	finalAnnotation.IsPointerToStringable = isPointer
 
-	analysisContext.Logger.Trace("[tryResolveField] SUCCESS: Field resolved. Returning full annotation.",
-		logger_domain.String("final_type", goastutil.ASTToTypeString(finalAnnotation.ResolvedType.TypeExpression, finalAnnotation.ResolvedType.PackageAlias)),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] SUCCESS: Field resolved. Returning full annotation.",
+			logger_domain.String("final_type", goastutil.ASTToTypeString(finalAnnotation.ResolvedType.TypeExpression, finalAnnotation.ResolvedType.PackageAlias)),
+		)
+	}
 	return finalAnnotation, fieldInfo.SubstMap, true
 }
 
@@ -466,8 +490,10 @@ func (tr *TypeResolver) resolveCorrectFieldContext(
 		return "", ""
 	}
 
-	analysisContext.Logger.Trace("[tryResolveField] Found true canonical path for underlying type.",
-		logger_domain.String("path", trueCanonicalPath))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveField] Found true canonical path for underlying type.",
+			logger_domain.String("path", trueCanonicalPath))
+	}
 
 	_, newAlias, _ := inspector_domain.DeconstructTypeExpr(finalFieldTypeAST)
 	return trueCanonicalPath, newAlias
@@ -494,18 +520,22 @@ func (tr *TypeResolver) tryResolveMethod(
 		return nil, false
 	}
 
-	analysisContext.Logger.Trace("[tryResolveMethod] Starting method lookup",
-		logger_domain.String("property_name", propName),
-		logger_domain.String("on_base_type", goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)),
-		logger_domain.String("initial_context_pkg", analysisContext.CurrentGoFullPackagePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveMethod] Starting method lookup",
+			logger_domain.String("property_name", propName),
+			logger_domain.String("on_base_type", goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)),
+			logger_domain.String("initial_context_pkg", analysisContext.CurrentGoFullPackagePath),
+		)
+	}
 
 	importerPackagePath, importerFilePath := tr.determineMethodLookupContext(ctx, analysisContext, baseAnn)
 
-	analysisContext.Logger.Trace("[tryResolveMethod] Resolved final context for inspector call",
-		logger_domain.String("using_pkg_context", importerPackagePath),
-		logger_domain.String("using_file_context", importerFilePath),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveMethod] Resolved final context for inspector call",
+			logger_domain.String("using_pkg_context", importerPackagePath),
+			logger_domain.String("using_file_context", importerFilePath),
+		)
+	}
 
 	methodInfo := tr.inspector.FindMethodInfo(
 		baseAnn.ResolvedType.TypeExpression,
@@ -519,11 +549,13 @@ func (tr *TypeResolver) tryResolveMethod(
 		return nil, false
 	}
 
-	analysisContext.Logger.Trace("[tryResolveMethod] SUCCESS: Found method info.",
-		logger_domain.String("signature", methodInfo.Signature.ToSignatureString()),
-		logger_domain.Int("defLine", methodInfo.DefinitionLine),
-		logger_domain.Int("defColumn", methodInfo.DefinitionColumn),
-		logger_domain.String("defFile", methodInfo.DefinitionFilePath))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[tryResolveMethod] SUCCESS: Found method info.",
+			logger_domain.String("signature", methodInfo.Signature.ToSignatureString()),
+			logger_domain.Int("defLine", methodInfo.DefinitionLine),
+			logger_domain.Int("defColumn", methodInfo.DefinitionColumn),
+			logger_domain.String("defFile", methodInfo.DefinitionFilePath))
+	}
 
 	return tr.buildMethodAnnotation(analysisContext, baseAnn, methodInfo, propName, location), true
 }
@@ -698,11 +730,13 @@ func (tr *TypeResolver) findCallSignature(
 		return nil, baseAnn, nil, false
 	}
 
-	analysisContext.Logger.Trace("[DEEP_DEBUG] findCallSignature",
-		logger_domain.String(logKeyCallee, callee.String()),
-		logger_domain.String("baseType", tr.logAnn(baseAnn)),
-		logger_domain.String("methodName", prop.Name),
-	)
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[DEEP_DEBUG] findCallSignature",
+			logger_domain.String(logKeyCallee, callee.String()),
+			logger_domain.String("baseType", tr.logAnn(baseAnn)),
+			logger_domain.String("methodName", prop.Name),
+		)
+	}
 
 	if baseAnn.ResolvedType != nil && baseAnn.ResolvedType.TypeExpression == nil {
 		sig, ann, found := tr.findPackageFunctionSignature(analysisContext, baseAnn, prop.Name, callee)
@@ -713,7 +747,9 @@ func (tr *TypeResolver) findCallSignature(
 		return tr.findMethodOnTypeSignature(ctx, analysisContext, baseAnn, prop.Name, callee)
 	}
 
-	analysisContext.Logger.Trace("  -> Outcome: Signature NOT found.", logger_domain.String(logKeyCallee, callee.String()))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("  -> Outcome: Signature NOT found.", logger_domain.String(logKeyCallee, callee.String()))
+	}
 	return nil, baseAnn, nil, false
 }
 
@@ -736,8 +772,10 @@ func (tr *TypeResolver) findPackageFunctionSignature(
 	functionName string,
 	callee *ast_domain.MemberExpression,
 ) (*inspector_dto.FunctionSignature, *ast_domain.GoGeneratorAnnotation, bool) {
-	ctx.Logger.Trace("  -> Path: Trying as package function.",
-		logger_domain.String("packageAlias", baseAnn.ResolvedType.PackageAlias))
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace("  -> Path: Trying as package function.",
+			logger_domain.String("packageAlias", baseAnn.ResolvedType.PackageAlias))
+	}
 
 	sig := tr.inspector.FindFuncSignature(
 		baseAnn.ResolvedType.PackageAlias,
@@ -747,11 +785,15 @@ func (tr *TypeResolver) findPackageFunctionSignature(
 	)
 
 	if sig != nil {
-		ctx.Logger.Trace("  -> Outcome: Found signature.", logger_domain.String(logKeyCallee, callee.String()))
+		if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+			ctx.Logger.Trace("  -> Outcome: Found signature.", logger_domain.String(logKeyCallee, callee.String()))
+		}
 		return sig, baseAnn, true
 	}
 
-	ctx.Logger.Trace("  -> Outcome: Signature NOT found.", logger_domain.String(logKeyCallee, callee.String()))
+	if ctx.Logger.Enabled(logger_domain.LevelTrace) {
+		ctx.Logger.Trace("  -> Outcome: Signature NOT found.", logger_domain.String(logKeyCallee, callee.String()))
+	}
 	return nil, baseAnn, false
 }
 
@@ -775,42 +817,23 @@ func (tr *TypeResolver) findMethodOnTypeSignature(
 	methodName string,
 	callee *ast_domain.MemberExpression,
 ) (*inspector_dto.FunctionSignature, *ast_domain.GoGeneratorAnnotation, *inspector_dto.Method, bool) {
-	analysisContext.Logger.Trace("  -> Path: Trying as method on a type.",
-		logger_domain.String("packageAlias", baseAnn.ResolvedType.PackageAlias))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("  -> Path: Trying as method on a type.",
+			logger_domain.String("packageAlias", baseAnn.ResolvedType.PackageAlias))
+	}
 
 	importerPackagePath := analysisContext.CurrentGoFullPackagePath
 	importerFilePath := analysisContext.CurrentGoSourcePath
 
-	analysisContext.Logger.Trace("[findCallSignature] Initial context for method lookup",
-		logger_domain.String("pkg", importerPackagePath),
-		logger_domain.String("file", importerFilePath),
-	)
-
-	if baseAnn.ResolvedType.CanonicalPackagePath != "" {
-		analysisContext.Logger.Trace("[findCallSignature] Context Switch: Base type is from an external package.",
-			logger_domain.String("old_pkg_path", importerPackagePath),
-			logger_domain.String("new_pkg_path", baseAnn.ResolvedType.CanonicalPackagePath),
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[findCallSignature] Initial context for method lookup",
+			logger_domain.String("pkg", importerPackagePath),
+			logger_domain.String("file", importerFilePath),
 		)
-		importerPackagePath = baseAnn.ResolvedType.CanonicalPackagePath
-
-		baseTypeDto, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(
-			ctx,
-			baseAnn.ResolvedType.TypeExpression,
-			importerPackagePath,
-			importerFilePath,
-		)
-		if baseTypeDto != nil && baseTypeDto.DefinedInFilePath != "" {
-			analysisContext.Logger.Trace("[findCallSignature] Context Switch: Found specific defining file for base type.",
-				logger_domain.String("old_file_path", importerFilePath),
-				logger_domain.String("new_file_path", baseTypeDto.DefinedInFilePath),
-			)
-			importerFilePath = baseTypeDto.DefinedInFilePath
-		} else {
-			analysisContext.Logger.Trace("[findCallSignature] Context Switch: Could not find specific DTO for base type; proceeding with best-effort file path.")
-		}
-	} else {
-		analysisContext.Logger.Trace("[findCallSignature] No context switch needed; base type is in the current package.")
 	}
+
+	importerPackagePath, importerFilePath = tr.resolveExternalTypeContext(
+		ctx, analysisContext, baseAnn, importerPackagePath, importerFilePath)
 
 	methodInfo := tr.inspector.FindMethodInfo(
 		baseAnn.ResolvedType.TypeExpression,
@@ -820,15 +843,72 @@ func (tr *TypeResolver) findMethodOnTypeSignature(
 	)
 
 	if methodInfo != nil {
-		analysisContext.Logger.Trace("  -> Outcome: Found method info.",
-			logger_domain.String(logKeyCallee, callee.String()),
-			logger_domain.String("definingPackage", methodInfo.DeclaringPackagePath),
-			logger_domain.String("definingFile", methodInfo.DefinitionFilePath))
+		if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+			analysisContext.Logger.Trace("  -> Outcome: Found method info.",
+				logger_domain.String(logKeyCallee, callee.String()),
+				logger_domain.String("definingPackage", methodInfo.DeclaringPackagePath),
+				logger_domain.String("definingFile", methodInfo.DefinitionFilePath))
+		}
 		return &methodInfo.Signature, baseAnn, methodInfo, true
 	}
 
-	analysisContext.Logger.Trace("  -> Outcome: Method NOT found.", logger_domain.String(logKeyCallee, callee.String()))
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("  -> Outcome: Method NOT found.", logger_domain.String(logKeyCallee, callee.String()))
+	}
 	return nil, baseAnn, nil, false
+}
+
+// resolveExternalTypeContext narrows the lookup context to a base type's location.
+//
+// When the base type comes from an external package, the package and file paths are
+// switched to that package's defining file so the following method lookup searches the
+// right place. The inputs are returned unchanged when the base type is local.
+//
+// Takes analysisContext (*AnalysisContext) which provides the logger and current context.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which describes the base type.
+// Takes importerPackagePath (string) which is the current package path to start from.
+// Takes importerFilePath (string) which is the current file path to start from.
+//
+// Returns string which is the package path to use for the lookup.
+// Returns string which is the file path to use for the lookup.
+func (tr *TypeResolver) resolveExternalTypeContext(
+	ctx context.Context,
+	analysisContext *AnalysisContext,
+	baseAnn *ast_domain.GoGeneratorAnnotation,
+	importerPackagePath string,
+	importerFilePath string,
+) (packagePath, filePath string) {
+	if baseAnn.ResolvedType.CanonicalPackagePath == "" {
+		analysisContext.Logger.Trace("[findCallSignature] No context switch needed; base type is in the current package.")
+		return importerPackagePath, importerFilePath
+	}
+
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[findCallSignature] Context Switch: Base type is from an external package.",
+			logger_domain.String("old_pkg_path", importerPackagePath),
+			logger_domain.String("new_pkg_path", baseAnn.ResolvedType.CanonicalPackagePath),
+		)
+	}
+	importerPackagePath = baseAnn.ResolvedType.CanonicalPackagePath
+
+	baseTypeDto, _ := tr.inspector.ResolveExprToNamedTypeWithMemoization(
+		ctx,
+		baseAnn.ResolvedType.TypeExpression,
+		importerPackagePath,
+		importerFilePath,
+	)
+	if baseTypeDto == nil || baseTypeDto.DefinedInFilePath == "" {
+		analysisContext.Logger.Trace("[findCallSignature] Context Switch: Could not find specific DTO for base type; proceeding with best-effort file path.")
+		return importerPackagePath, importerFilePath
+	}
+
+	if analysisContext.Logger.Enabled(logger_domain.LevelTrace) {
+		analysisContext.Logger.Trace("[findCallSignature] Context Switch: Found specific defining file for base type.",
+			logger_domain.String("old_file_path", importerFilePath),
+			logger_domain.String("new_file_path", baseTypeDto.DefinedInFilePath),
+		)
+	}
+	return importerPackagePath, baseTypeDto.DefinedInFilePath
 }
 
 // findFuncDeclInCurrentContext finds a function declaration in the current component.

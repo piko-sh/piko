@@ -887,6 +887,12 @@ type Container struct {
 	// compiler treats as a plain comment.
 	experimentalDwarfLineDirectives bool
 
+	// formatGeneratedCode runs go/format.Source on generated code so it is gofmt-canonical.
+	formatGeneratedCode bool
+
+	// verifyGeneratedCode re-parses each generated file to confirm it is valid Go.
+	verifyGeneratedCode bool
+
 	// useStandardLoader causes the type inspector to use the standard
 	// golang.org/x/tools/go/packages.Load instead of the faster quickpackages.Load. This is
 	// slower but always stable as a fallback.
