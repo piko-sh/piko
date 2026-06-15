@@ -555,22 +555,23 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
         val versionFile = dataDir.resolve(".version")
         val currentVersion = getPluginVersion()
 
+        val resourcePath = "/bin/$platformDir/$binaryName"
+        val resourceUrl = javaClass.getResource(resourcePath)
+        if (resourceUrl == null) {
+            log.debug("Bundled LSP not found in resources: $resourcePath")
+            return null
+        }
+        val bundledSize = bundledResourceSize(resourceUrl)
+
         if (Files.exists(binaryFile) && binaryFile.toFile().canExecute()
-            && isVersionCurrent(versionFile, currentVersion, binaryFile)) {
+            && isBinaryCurrent(versionFile, currentVersion, bundledSize, binaryFile)) {
             log.debug("Bundled LSP is up to date (version: $currentVersion)")
             return binaryFile.toString()
         }
 
-        val resourcePath = "/bin/$platformDir/$binaryName"
-        val resourceStream = javaClass.getResourceAsStream(resourcePath)
-        if (resourceStream == null) {
-            log.debug("Bundled LSP not found in resources: $resourcePath")
-            return null
-        }
-
         try {
             Files.createDirectories(binaryFile.parent)
-            resourceStream.use { input ->
+            resourceUrl.openStream().use { input ->
                 Files.copy(input, binaryFile, StandardCopyOption.REPLACE_EXISTING)
             }
 
@@ -599,31 +600,52 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
      */
     private fun getPluginVersion(): String {
         return try {
-            val pluginId = com.intellij.openapi.extensions.PluginId.getId("io.politepixels.piko")
-            com.intellij.ide.plugins.PluginManager.getInstance().findEnabledPlugin(pluginId)?.version ?: "unknown"
-        } catch (e: Exception) {
+            javaClass.getResourceAsStream("/piko-plugin-version.properties")?.use { stream ->
+                val properties = java.util.Properties()
+                properties.load(stream)
+                properties.getProperty("version")
+            } ?: "unknown"
+        } catch (e: IOException) {
             log.debug("Could not determine plugin version: ${e.message}")
             "unknown"
         }
     }
 
     /**
-     * Checks if the extracted binary version and file size match expectations.
+     * Reads the uncompressed size of a bundled resource without inflating it.
      *
-     * The version file stores "version:filesize" (e.g. "1.2.3:57803264").
-     * Both must match for the binary to be considered current. The size check
-     * catches partial writes from interrupted extractions.
-     *
-     * Falls back to version-only comparison for legacy version files that
-     * don't contain a size component.
+     * @param resourceUrl The URL of the bundled resource.
+     * @return The size in bytes, or -1 if it cannot be determined.
+     */
+    private fun bundledResourceSize(resourceUrl: java.net.URL): Long {
+        return try {
+            resourceUrl.openConnection().contentLengthLong
+        } catch (e: IOException) {
+            log.debug("Could not determine bundled LSP size: ${e.message}")
+            -1L
+        }
+    }
+
+    /**
+     * Checks whether the extracted binary matches the currently bundled one.
      *
      * @param versionFile The path to the version marker file.
      * @param currentVersion The current plugin version.
+     * @param bundledSize The size of the bundled binary, or -1 if unknown.
      * @param binaryFile The path to the extracted binary.
-     * @return True if version and size both match, false otherwise.
+     * @return True if the extracted binary is current, false otherwise.
      */
-    private fun isVersionCurrent(versionFile: Path, currentVersion: String, binaryFile: Path): Boolean {
+    private fun isBinaryCurrent(
+        versionFile: Path,
+        currentVersion: String,
+        bundledSize: Long,
+        binaryFile: Path,
+    ): Boolean {
         if (!Files.exists(versionFile)) return false
+        if (bundledSize < 0) {
+            log.debug("Bundled size unknown, forcing re-extraction")
+            return false
+        }
         return try {
             val stored = Files.readString(versionFile).trim()
             val parts = stored.split(":", limit = 2)
@@ -636,15 +658,20 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
                 return false
             }
 
-            val expectedSize = parts[1].toLongOrNull()
-            if (expectedSize == null) {
+            val storedSize = parts[1].toLongOrNull()
+            if (storedSize == null) {
                 log.debug("Version file has invalid size component: ${parts[1]}")
                 return false
             }
 
+            if (storedSize != bundledSize) {
+                log.debug("Bundled binary changed (recorded: $storedSize, bundled: $bundledSize), re-extracting")
+                return false
+            }
+
             val actualSize = Files.size(binaryFile)
-            if (actualSize != expectedSize) {
-                log.warn("Binary size mismatch (expected: $expectedSize, actual: $actualSize), forcing re-extraction")
+            if (actualSize != bundledSize) {
+                log.warn("Binary size mismatch (expected: $bundledSize, actual: $actualSize), forcing re-extraction")
                 return false
             }
 
