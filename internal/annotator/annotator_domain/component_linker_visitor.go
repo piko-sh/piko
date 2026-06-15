@@ -105,6 +105,12 @@ func (v *linkingVisitor) Enter(ctx context.Context, node *ast_domain.TemplateNod
 
 	ctxForChildren = v.handleForDirective(ctx, node, ctxForThisNode, ctxForChildren, indent)
 
+	if node.DirIf != nil && node.DirIf.Expression != nil {
+		if guards := ExtractNilGuardsFromCondition(node.DirIf.Expression); len(guards) > 0 {
+			ctxForChildren = ctxForChildren.ForChildScopeWithNilGuards(guards)
+		}
+	}
+
 	l.Trace("[Linker.Exit] Descending to children", logger_domain.Int(logKeyDepth, v.depth), logger_domain.String("pkg", ctxForChildren.CurrentGoFullPackagePath))
 	return v.newVisitorForChild(ctxForChildren, childInvocationKey), nil
 }

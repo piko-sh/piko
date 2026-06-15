@@ -1,12 +1,7 @@
 {
-  "description": "Validates nil-guard tracking: expressions inside p-if guards should not need runtime safety checks, while unguarded access should.",
-  "expectedDiagnostics": 3,
+  "description": "Validates nil-guard tracking: expressions inside p-if guards should not need runtime safety checks, while unguarded access should. This includes p-for collection expressions whose base pointer is guarded by an ancestor p-if (e.g. props.Team.Members under p-if='props.Team != nil').",
+  "expectedDiagnostics": 2,
   "diagnostics": [
-    {
-      "severity": "warning",
-      "messageContains": "Accessing 'props.Team.Members' on potentially nil pointer 'props.Team'",
-      "onLine": 45
-    },
     {
       "severity": "warning",
       "messageContains": "Accessing 'props.User.Profile.Bio' on potentially nil pointer 'props.User.Profile'",
@@ -103,6 +98,16 @@
         {
           "rawExpression": "props.Image.URL",
           "resolvedTypeIs": "string",
+          "needsRuntimeSafetyCheck": false
+        }
+      ]
+    },
+    {
+      "select": "#loop-collection",
+      "description": "p-for collection whose base pointer (props.Team) is guarded by an ancestor p-if='props.Team != nil' must NOT need a runtime safety check. Regression guard: the linker resolves p-for collections itself and must honour ancestor nil-guards (otherwise it emits a false-positive nil warning).",
+      "assertOnSubExpression": [
+        {
+          "rawExpression": "props.Team.Members",
           "needsRuntimeSafetyCheck": false
         }
       ]

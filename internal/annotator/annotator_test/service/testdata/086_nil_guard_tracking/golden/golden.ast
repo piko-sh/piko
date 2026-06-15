@@ -47,7 +47,7 @@
     </span>
   </div>
   <div id="loop-guard-outer" [p-if: (props.Team != nil)] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
-    <div [p-for: (idx, member) in props.Team.Members] [p-key: idx] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    <div id="loop-collection" [p-for: (idx, member) in props.Team.Members] [p-key: idx] [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
       <span id="loop-member-name" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
         <RichText>
           {{ member.Name }}

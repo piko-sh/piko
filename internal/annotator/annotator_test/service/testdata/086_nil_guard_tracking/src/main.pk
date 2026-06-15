@@ -42,7 +42,7 @@
     </div>
 
     <div id="loop-guard-outer" p-if="props.Team != nil">
-      <div p-for="(idx, member) in props.Team.Members" p-key="idx">
+      <div id="loop-collection" p-for="(idx, member) in props.Team.Members" p-key="idx">
         <span id="loop-member-name">{{ member.Name }}</span>
       </div>
     </div>

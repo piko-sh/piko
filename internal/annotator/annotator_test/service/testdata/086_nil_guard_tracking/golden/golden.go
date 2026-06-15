@@ -3404,11 +3404,11 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									Type: ast_domain.DirectiveFor,
 									Location: ast_domain.Location{
 										Line:   45,
-										Column: 19,
+										Column: 40,
 									},
 									NameLocation: ast_domain.Location{
 										Line:   45,
-										Column: 12,
+										Column: 33,
 									},
 									RawExpression: "(idx, member) in props.Team.Members",
 									Expression: &ast_domain.ForInExpression{
@@ -3486,7 +3486,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Name: "props",
 															ReferenceLocation: ast_domain.Location{
 																Line:   45,
-																Column: 19,
+																Column: 40,
 															},
 															DeclarationLocation: ast_domain.Location{
 																Line:   0,
@@ -3514,7 +3514,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Name: "Team",
 															ReferenceLocation: ast_domain.Location{
 																Line:   45,
-																Column: 19,
+																Column: 40,
 															},
 															DeclarationLocation: ast_domain.Location{
 																Line:   76,
@@ -3543,7 +3543,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														Name: "Team",
 														ReferenceLocation: ast_domain.Location{
 															Line:   45,
-															Column: 19,
+															Column: 40,
 														},
 														DeclarationLocation: ast_domain.Location{
 															Line:   76,
@@ -3572,7 +3572,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														Name: "Members",
 														ReferenceLocation: ast_domain.Location{
 															Line:   45,
-															Column: 19,
+															Column: 40,
 														},
 														DeclarationLocation: ast_domain.Location{
 															Line:   70,
@@ -3601,7 +3601,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													Name: "Members",
 													ReferenceLocation: ast_domain.Location{
 														Line:   45,
-														Column: 19,
+														Column: 40,
 													},
 													DeclarationLocation: ast_domain.Location{
 														Line:   70,
@@ -3628,7 +3628,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												Name: "Members",
 												ReferenceLocation: ast_domain.Location{
 													Line:   45,
-													Column: 19,
+													Column: 40,
 												},
 												DeclarationLocation: ast_domain.Location{
 													Line:   70,
@@ -3650,7 +3650,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												Name: "Members",
 												ReferenceLocation: ast_domain.Location{
 													Line:   45,
-													Column: 19,
+													Column: 40,
 												},
 												DeclarationLocation: ast_domain.Location{
 													Line:   70,
@@ -3673,7 +3673,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											Name: "Members",
 											ReferenceLocation: ast_domain.Location{
 												Line:   45,
-												Column: 19,
+												Column: 40,
 											},
 											DeclarationLocation: ast_domain.Location{
 												Line:   70,
@@ -3689,11 +3689,11 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 									Type: ast_domain.DirectiveKey,
 									Location: ast_domain.Location{
 										Line:   45,
-										Column: 63,
+										Column: 84,
 									},
 									NameLocation: ast_domain.Location{
 										Line:   45,
-										Column: 56,
+										Column: 77,
 									},
 									RawExpression: "idx",
 									Expression: &ast_domain.Identifier{
@@ -3734,7 +3734,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 											Name: "idx",
 											ReferenceLocation: ast_domain.Location{
 												Line:   45,
-												Column: 63,
+												Column: 84,
 											},
 											DeclarationLocation: ast_domain.Location{
 												Line:   0,
@@ -3822,6 +3822,20 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 										},
 										OriginalSourcePath: new("main.pk"),
 										Stringability:      1,
+									},
+								},
+								Attributes: []ast_domain.HTMLAttribute{
+									ast_domain.HTMLAttribute{
+										Name:  "id",
+										Value: "loop-collection",
+										Location: ast_domain.Location{
+											Line:   45,
+											Column: 16,
+										},
+										NameLocation: ast_domain.Location{
+											Line:   45,
+											Column: 12,
+										},
 									},
 								},
 								Children: []*ast_domain.TemplateNode{
