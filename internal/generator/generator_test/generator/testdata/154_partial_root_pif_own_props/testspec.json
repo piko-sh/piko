@@ -1,0 +1,5 @@
+{
+  "description": "A partial whose template ROOT element has a p-if referencing the partial's own props, invoked unconditionally by the page. Regression test: the SSR inliner previously emitted the partial's props-var declaration INSIDE the root p-if condition that references it, producing invalid Go (variable used before declaration).",
+  "packageName": "partial_root_pif_test",
+  "isPage": true
+}

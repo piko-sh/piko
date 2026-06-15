@@ -395,6 +395,41 @@ func isConditionalNode(node *ast_domain.TemplateNode) bool {
 	return node.DirIf != nil || node.DirElseIf != nil || node.DirElse != nil
 }
 
+// governingConditional returns the conditional directive that governs the node,
+// preferring p-if, then p-else-if, then p-else.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to inspect.
+//
+// Returns *ast_domain.Directive which is the governing conditional directive, or nil.
+func governingConditional(node *ast_domain.TemplateNode) *ast_domain.Directive {
+	switch {
+	case node.DirIf != nil:
+		return node.DirIf
+	case node.DirElseIf != nil:
+		return node.DirElseIf
+	case node.DirElse != nil:
+		return node.DirElse
+	default:
+		return nil
+	}
+}
+
+// conditionalIsPartialOwnRoot reports whether node is an inlined partial-invocation root
+// whose conditional directive originates from the partial's OWN template root, rather
+// than being copied from the invocation site.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to inspect.
+//
+// Returns bool which is true when the node is a partial invocation governed by its own
+// root conditional.
+func conditionalIsPartialOwnRoot(node *ast_domain.TemplateNode) bool {
+	if node.GoAnnotations == nil || node.GoAnnotations.PartialInfo == nil {
+		return false
+	}
+	d := governingConditional(node)
+	return d != nil && d.GoAnnotations != nil && d.GoAnnotations.OriginalPackageAlias == nil
+}
+
 // conditionalGuardInfo records, per invocation key, whether any occurrence sits under a
 // conditional and whether any occurrence sits unguarded (outside every conditional).
 type conditionalGuardInfo struct {
@@ -455,7 +490,8 @@ func collectGuardInfoRecursive(node *ast_domain.TemplateNode, underConditional b
 	nodeUnderConditional := underConditional || isConditionalNode(node)
 
 	if node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil {
-		recordGuardInfo(infos, node.GoAnnotations.PartialInfo.InvocationKey, nodeUnderConditional)
+		occurrenceUnderConditional := underConditional || (isConditionalNode(node) && !conditionalIsPartialOwnRoot(node))
+		recordGuardInfo(infos, node.GoAnnotations.PartialInfo.InvocationKey, occurrenceUnderConditional)
 	}
 
 	for _, child := range node.Children {
