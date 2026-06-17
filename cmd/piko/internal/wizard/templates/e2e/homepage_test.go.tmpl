@@ -28,46 +28,6 @@ func TestHomepage_PersonalizedTitle(t *testing.T) {
 	p.Assert(".hero-title").HasText("Welcome, Alice")
 }
 
-func TestHomepage_GreetingAppearsWithName(t *testing.T) {
-	p := browser.New(t)
-	defer p.Close()
-
-	p.Navigate("/?name=Bob")
-	p.WaitFor(".hero-greeting")
-
-	p.Assert(".hero-greeting").Exists().ContainsText("Bob")
-}
-
-func TestHomepage_GreetingHiddenWithoutName(t *testing.T) {
-	p := browser.New(t)
-	defer p.Close()
-
-	p.Navigate("/")
-	p.WaitFor(".hero-title")
-
-	p.Assert(".hero-greeting").NotExists()
-}
-
-func TestHomepage_FeatureCards(t *testing.T) {
-	p := browser.New(t)
-	defer p.Close()
-
-	p.Navigate("/")
-	p.WaitFor(".features-grid")
-
-	p.Assert(".features-grid > div").Count(4)
-}
-
-func TestHomepage_QuickstartSteps(t *testing.T) {
-	p := browser.New(t)
-	defer p.Close()
-
-	p.Navigate("/")
-	p.WaitFor(".steps")
-
-	p.Assert(".step").Count(3)
-}
-
 func TestHomepage_HeroStructure(t *testing.T) {
 	p := browser.New(t)
 	defer p.Close()
@@ -77,8 +37,8 @@ func TestHomepage_HeroStructure(t *testing.T) {
 
 	p.Assert(".hero-badge").Exists()
 	p.Assert(".hero-subtitle").ContainsText("Go web framework")
-	p.Assert(".btn-primary").Exists().ContainsText("Get Started")
-	p.Assert(".btn-secondary").Exists().ContainsText("Documentation")
+	p.Assert(".button-primary").Exists().ContainsText("Get started")
+	p.Assert(".button-secondary").Exists().ContainsText("Documentation")
 }
 
 func TestHomepage_NoConsoleErrors(t *testing.T) {

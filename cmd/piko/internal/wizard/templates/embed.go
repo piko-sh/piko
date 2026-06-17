@@ -52,4 +52,9 @@ var (
 	//
 	//go:embed icons/*
 	IconsFS embed.FS
+
+	// StylesFS holds the embedded shared stylesheet(s) for the scaffold project.
+	//
+	//go:embed styles/*
+	StylesFS embed.FS
 )

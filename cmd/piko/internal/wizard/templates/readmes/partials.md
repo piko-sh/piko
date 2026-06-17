@@ -1,6 +1,6 @@
 # `/partials`: Your reusable server views
 
-This directory contains your **Partials**. These are reusable `.pk` files that are not directly accessible via a URL. Think of them as **server-side components**. You'll find `layout.pk` (the master HTML layout) and `feature-card.pk` (a reusable card component) already scaffolded here.
+This directory contains your **Partials**. These are reusable `.pk` files that are not directly accessible via a URL. Think of them as **server-side components**. You'll find `layout.pk` (the master HTML layout) and `code-window.pk` (a reusable partial) already scaffolded here.
 
 Partials are the building blocks you use to construct your pages and create a consistent, maintainable user interface.
 

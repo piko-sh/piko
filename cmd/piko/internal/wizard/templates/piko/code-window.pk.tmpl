@@ -1,0 +1,123 @@
+<template>
+  <div class="code-window">
+    <div class="code-titlebar">
+      <div class="code-dots">
+        <span class="code-dot code-dot--red"></span>
+        <span class="code-dot code-dot--yellow"></span>
+        <span class="code-dot code-dot--green"></span>
+      </div>
+      <span class="code-filename">{{ "{{ state.Filename }}" }}</span>
+    </div>
+    <pre class="code-block"><code><span class="token-tag">&lt;template&gt;</span>
+  <span class="token-tag">&lt;h1&gt;</span>{{ "{{ state.Greeting }}" }}<span class="token-tag">&lt;/h1&gt;</span>
+<span class="token-tag">&lt;/template&gt;</span>
+
+<span class="token-tag">&lt;script </span><span class="token-attribute">type</span>=<span class="token-string">"application/x-go"</span><span class="token-tag">&gt;</span>
+<span class="token-declaration">package</span> main
+
+<span class="token-declaration">import</span> <span class="token-string">"piko.sh/piko"</span>
+
+<span class="token-declaration">type</span> <span class="token-type">Response</span> <span class="token-keyword">struct</span> {
+    Greeting <span class="token-type">string</span>
+}
+
+<span class="token-declaration">func</span> <span class="token-function">Render</span>(r *<span class="token-type">piko.RequestData</span>, props <span class="token-type">piko.NoProps</span>) (<span class="token-type">Response</span>, <span class="token-type">piko.Metadata</span>, <span class="token-type">error</span>) {
+    <span class="token-keyword">return</span> <span class="token-type">Response</span>{Greeting: <span class="token-string">"Hello, world!"</span>}, <span class="token-type">piko.Metadata</span>{}, <span class="token-keyword">nil</span>
+}
+<span class="token-tag">&lt;/script&gt;</span></code></pre>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+// Props defines the data this partial receives from its parent.
+// Each field maps to a server.* attribute on the <piko:partial> tag.
+type Props struct {
+    Filename string `prop:"filename" validate:"required"`
+}
+
+// Response is the data available in the template as "state".
+type Response struct {
+    Filename string
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    return Response{
+        Filename: props.Filename,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+@import "{{ .ModuleName }}/styles/theme.css";
+
+.code-window {
+  background: #282a36;
+  border-radius: var(--g-radius-xl, 30px);
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid var(--g-colour-grey-500, #788A9B);
+  box-shadow: 0 4px 0 var(--g-colour-grey-500, #788A9B);
+  margin-bottom: 4px;
+}
+
+.code-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.code-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.code-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.code-dot--red { background: #ff5f57; }
+.code-dot--yellow { background: #febc2e; }
+.code-dot--green { background: #28c840; }
+
+.code-filename {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: var(--g-font-family-mono);
+}
+
+.code-block {
+  padding: 1.25rem 1.5rem;
+  margin: 0;
+  overflow-x: auto;
+  font-family: var(--g-font-family-mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  color: #f8f8f2;
+  tab-size: 2;
+}
+
+.code-block code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Syntax colours (Dracula, matches the piko.sh prose code theme) */
+.code-block .token-declaration { color: #8be9fd; font-style: italic; }
+.code-block .token-keyword     { color: #ff79c6; }
+.code-block .token-type        { color: #8be9fd; }
+.code-block .token-function    { color: #50fa7b; }
+.code-block .token-string      { color: #f1fa8c; }
+.code-block .token-tag         { color: #ff79c6; }
+.code-block .token-attribute   { color: #50fa7b; }
+</style>

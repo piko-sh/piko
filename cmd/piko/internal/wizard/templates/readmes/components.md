@@ -51,11 +51,11 @@ A Piko Component file encapsulates everything it needs into a single file. It co
     display: inline-block;
   }
   button {
-    background-color: var(--g-colour-primary, #6F47EB);
+    background-color: var(--g-colour-primary-500, #6F47EB);
     color: white;
     padding: 0.5rem 1rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--g-radius-sm, 10px);
     cursor: pointer;
   }
 </style>
