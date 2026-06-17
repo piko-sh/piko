@@ -19,20 +19,19 @@
 package pdfwriter_domain
 
 import (
-	"strings"
+	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStructTree_IsEmpty(t *testing.T) {
 	st := NewStructTree()
-	if !st.IsEmpty() {
-		t.Error("new tree should be empty")
-	}
+	assert.True(t, st.IsEmpty(), "new tree should be empty")
 
 	st.AddElement(TagP)
-	if st.IsEmpty() {
-		t.Error("tree with element should not be empty")
-	}
+	assert.False(t, st.IsEmpty(), "tree with element should not be empty")
 }
 
 func TestStructTree_MarkContent_AllocatesMCIDs(t *testing.T) {
@@ -40,28 +39,38 @@ func TestStructTree_MarkContent_AllocatesMCIDs(t *testing.T) {
 	node := st.AddElement(TagP)
 
 	mcid0 := st.MarkContent(node, 0)
-	if mcid0 != 0 {
-		t.Errorf("expected first MCID=0, got %d", mcid0)
-	}
+	assert.Equal(t, 0, mcid0, "expected first MCID=0")
 
 	mcid1 := st.MarkContent(node, 0)
-	if mcid1 != 1 {
-		t.Errorf("expected second MCID=1, got %d", mcid1)
-	}
+	assert.Equal(t, 1, mcid1, "expected second MCID=1")
 
 	mcid_page1 := st.MarkContent(node, 1)
-	if mcid_page1 != 0 {
-		t.Errorf("expected MCID=0 for page 1, got %d", mcid_page1)
-	}
+	assert.Equal(t, 0, mcid_page1, "expected MCID=0 for page 1")
 }
 
 func TestStructTree_WriteObjects_Empty(t *testing.T) {
 	st := NewStructTree()
 	writer := &PdfDocumentWriter{}
-	result := st.WriteObjects(writer, []int{3})
-	if result != 0 {
-		t.Errorf("expected 0 for empty tree, got %d", result)
+	result := st.WriteObjects(context.Background(), writer, []int{3})
+	assert.Equal(t, 0, result, "expected 0 for empty tree")
+}
+
+func TestStructTree_WriteObjects_DeepNestingTerminates(t *testing.T) {
+
+	st := NewStructTree()
+	current := st.AddElement(TagDiv)
+	const nesting = maxStructTreeDepth + 64
+	for range nesting {
+		current = st.AddChild(current, TagDiv)
 	}
+	st.MarkContent(current, 0)
+
+	writer := &PdfDocumentWriter{}
+	writer.WriteHeader()
+
+	root_number := st.WriteObjects(context.Background(), writer, []int{5})
+
+	require.NotZero(t, root_number, "expected non-zero struct tree root for deeply nested tree")
 }
 
 func TestStructTree_WriteObjects_SingleElement(t *testing.T) {
@@ -71,25 +80,15 @@ func TestStructTree_WriteObjects_SingleElement(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
-	root_number := st.WriteObjects(writer, []int{5})
+	root_number := st.WriteObjects(context.Background(), writer, []int{5})
 
-	if root_number == 0 {
-		t.Fatal("expected non-zero StructTreeRoot number")
-	}
+	require.NotZero(t, root_number, "expected non-zero StructTreeRoot number")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/Type /StructTreeRoot") {
-		t.Error("expected /Type /StructTreeRoot in output")
-	}
-	if !strings.Contains(output, "/S /P") {
-		t.Error("expected /S /P for paragraph element")
-	}
-	if !strings.Contains(output, "/Type /MCR") {
-		t.Error("expected /Type /MCR for marked content reference")
-	}
-	if !strings.Contains(output, "/MCID 0") {
-		t.Error("expected /MCID 0")
-	}
+	assert.Contains(t, output, "/Type /StructTreeRoot", "expected /Type /StructTreeRoot in output")
+	assert.Contains(t, output, "/S /P", "expected /S /P for paragraph element")
+	assert.Contains(t, output, "/Type /MCR", "expected /Type /MCR for marked content reference")
+	assert.Contains(t, output, "/MCID 0", "expected /MCID 0")
 }
 
 func TestStructTree_WriteObjects_NestedElements(t *testing.T) {
@@ -102,22 +101,14 @@ func TestStructTree_WriteObjects_NestedElements(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
-	root_number := st.WriteObjects(writer, []int{5})
+	root_number := st.WriteObjects(context.Background(), writer, []int{5})
 
-	if root_number == 0 {
-		t.Fatal("expected non-zero StructTreeRoot number")
-	}
+	require.NotZero(t, root_number, "expected non-zero StructTreeRoot number")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/S /Div") {
-		t.Error("expected /S /Div")
-	}
-	if !strings.Contains(output, "/S /H1") {
-		t.Error("expected /S /H1")
-	}
-	if !strings.Contains(output, "/S /P") {
-		t.Error("expected /S /P")
-	}
+	assert.Contains(t, output, "/S /Div", "expected /S /Div")
+	assert.Contains(t, output, "/S /H1", "expected /S /H1")
+	assert.Contains(t, output, "/S /P", "expected /S /P")
 }
 
 func TestStructTree_WriteObjects_WithAltText(t *testing.T) {
@@ -128,12 +119,10 @@ func TestStructTree_WriteObjects_WithAltText(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
-	st.WriteObjects(writer, []int{5})
+	st.WriteObjects(context.Background(), writer, []int{5})
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/Alt (A cat)") {
-		t.Errorf("expected /Alt (A cat) in output, got %q", output)
-	}
+	assert.Contains(t, output, "/Alt (A cat)", "expected /Alt (A cat) in output")
 }
 
 func TestMapHTMLToStructTag(t *testing.T) {
@@ -145,7 +134,12 @@ func TestMapHTMLToStructTag(t *testing.T) {
 		{html: "h6", want: TagH6},
 		{html: "p", want: TagP},
 		{html: "div", want: TagDiv},
-		{html: "section", want: TagDiv},
+		{html: "section", want: TagSect},
+		{html: "article", want: TagArt},
+		{html: "blockquote", want: TagBlockQuote},
+		{html: "figcaption", want: TagCaption},
+		{html: "caption", want: TagCaption},
+		{html: "tfoot", want: TagTFoot},
 		{html: "span", want: TagSpan},
 		{html: "strong", want: TagSpan},
 		{html: "table", want: TagTable},
@@ -161,9 +155,7 @@ func TestMapHTMLToStructTag(t *testing.T) {
 	}
 	for _, test := range tests {
 		got := MapHTMLToStructTag(test.html)
-		if got != test.want {
-			t.Errorf("MapHTMLToStructTag(%q) = %q, want %q", test.html, got, test.want)
-		}
+		assert.Equal(t, test.want, got, "MapHTMLToStructTag(%q)", test.html)
 	}
 }
 
@@ -172,9 +164,7 @@ func TestBeginMarkedContent(t *testing.T) {
 	stream.BeginMarkedContent("P", 3)
 	got := stream.String()
 	want := "/P <</MCID 3>> BDC\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestEndMarkedContent(t *testing.T) {
@@ -182,7 +172,5 @@ func TestEndMarkedContent(t *testing.T) {
 	stream.EndMarkedContent()
 	got := stream.String()
 	want := "EMC\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }

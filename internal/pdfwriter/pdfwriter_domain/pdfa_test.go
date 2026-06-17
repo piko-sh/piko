@@ -19,9 +19,11 @@
 package pdfwriter_domain
 
 import (
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildXMPMetadata_ContainsPdfAIdentification(t *testing.T) {
@@ -44,9 +46,7 @@ func TestBuildXMPMetadata_ContainsPdfAIdentification(t *testing.T) {
 		"<?xpacket end=",
 	}
 	for _, check := range checks {
-		if !strings.Contains(xmp, check) {
-			t.Errorf("XMP missing %q", check)
-		}
+		assert.Contains(t, xmp, check, "XMP missing %q", check)
 	}
 }
 
@@ -62,9 +62,7 @@ func TestBuildXMPMetadata_ConformanceLevels(t *testing.T) {
 	for _, tt := range tests {
 		config := &PdfAConfig{Level: tt.level}
 		xmp := string(buildXMPMetadata(config, nil, time.Now()))
-		if !strings.Contains(xmp, tt.want) {
-			t.Errorf("level %d: XMP missing %q", tt.level, tt.want)
-		}
+		assert.Contains(t, xmp, tt.want, "level %d: XMP missing %q", tt.level, tt.want)
 	}
 }
 
@@ -72,12 +70,8 @@ func TestBuildXMPMetadata_NilMetadataUsesDefaults(t *testing.T) {
 	config := &PdfAConfig{Level: PdfA2B}
 	xmp := string(buildXMPMetadata(config, nil, time.Now()))
 
-	if !strings.Contains(xmp, "Untitled") {
-		t.Error("expected default title 'Untitled'")
-	}
-	if !strings.Contains(xmp, "<dc:creator><rdf:Seq><rdf:li>Piko</rdf:li>") {
-		t.Error("expected default author 'Piko'")
-	}
+	assert.Contains(t, xmp, "Untitled", "expected default title 'Untitled'")
+	assert.Contains(t, xmp, "<dc:creator><rdf:Seq><rdf:li>Piko</rdf:li>", "expected default author 'Piko'")
 }
 
 func TestBuildXMPMetadata_KeywordsAsSeparateBagItems(t *testing.T) {
@@ -85,12 +79,8 @@ func TestBuildXMPMetadata_KeywordsAsSeparateBagItems(t *testing.T) {
 	metadata := &PdfMetadata{Keywords: "pdf, accessibility, compliance"}
 	xmp := string(buildXMPMetadata(config, metadata, time.Now()))
 
-	if !strings.Contains(xmp, "<rdf:li>pdf</rdf:li>") {
-		t.Error("expected keyword 'pdf' as bag item")
-	}
-	if !strings.Contains(xmp, "<rdf:li>accessibility</rdf:li>") {
-		t.Error("expected keyword 'accessibility' as bag item")
-	}
+	assert.Contains(t, xmp, "<rdf:li>pdf</rdf:li>", "expected keyword 'pdf' as bag item")
+	assert.Contains(t, xmp, "<rdf:li>accessibility</rdf:li>", "expected keyword 'accessibility' as bag item")
 }
 
 func TestBuildXMPMetadata_EscapesXMLSpecialCharacters(t *testing.T) {
@@ -98,58 +88,37 @@ func TestBuildXMPMetadata_EscapesXMLSpecialCharacters(t *testing.T) {
 	metadata := &PdfMetadata{Title: "A & B <C> \"D\""}
 	xmp := string(buildXMPMetadata(config, metadata, time.Now()))
 
-	if !strings.Contains(xmp, "A &amp; B &lt;C&gt; &quot;D&quot;") {
-		t.Error("expected XML-escaped title")
-	}
+	assert.Contains(t, xmp, "A &amp; B &lt;C&gt; &quot;D&quot;", "expected XML-escaped title")
 }
 
 func TestBuildSRGBICCProfile_ValidStructure(t *testing.T) {
 	profile := buildSRGBICCProfile()
 
-	if len(profile) < 128 {
-		t.Fatalf("profile too small: %d bytes", len(profile))
-	}
+	require.GreaterOrEqual(t, len(profile), 128, "profile too small")
 
 	sig := string(profile[36:40])
-	if sig != "acsp" {
-		t.Errorf("expected 'acsp' signature, got %q", sig)
-	}
+	assert.Equal(t, "acsp", sig)
 
 	cs := string(profile[16:20])
-	if cs != "RGB " {
-		t.Errorf("expected 'RGB ' colour space, got %q", cs)
-	}
+	assert.Equal(t, "RGB ", cs, "expected 'RGB ' colour space")
 
 	dc := string(profile[12:16])
-	if dc != "mntr" {
-		t.Errorf("expected 'mntr' device class, got %q", dc)
-	}
+	assert.Equal(t, "mntr", dc, "expected 'mntr' device class")
 
 	size := int(profile[0])<<24 | int(profile[1])<<16 | int(profile[2])<<8 | int(profile[3])
-	if size != len(profile) {
-		t.Errorf("profile size field %d != buffer length %d", size, len(profile))
-	}
+	assert.Equal(t, len(profile), size, "profile size field != buffer length")
 
 	tag_table_offset := 128
 	tag_count := int(profile[tag_table_offset])<<24 | int(profile[tag_table_offset+1])<<16 |
 		int(profile[tag_table_offset+2])<<8 | int(profile[tag_table_offset+3])
-	if tag_count != 9 {
-		t.Errorf("expected 9 tags, got %d", tag_count)
-	}
+	assert.Equal(t, 9, tag_count, "expected 9 tags")
 }
 
 func TestBuildSRGBICCProfile_Deterministic(t *testing.T) {
 	p1 := buildSRGBICCProfile()
 	p2 := buildSRGBICCProfile()
 
-	if len(p1) != len(p2) {
-		t.Fatalf("profile sizes differ: %d vs %d", len(p1), len(p2))
-	}
-	for i := range p1 {
-		if p1[i] != p2[i] {
-			t.Fatalf("profiles differ at byte %d", i)
-		}
-	}
+	assert.Equal(t, p1, p2, "profiles should be deterministic")
 }
 
 func TestWritePdfAObjects_CatalogEntries(t *testing.T) {
@@ -162,26 +131,14 @@ func TestWritePdfAObjects_CatalogEntries(t *testing.T) {
 
 	result := writePdfAObjects(writer, config, metadata, now)
 
-	if !strings.Contains(result, "/Metadata") {
-		t.Error("expected /Metadata in catalog entries")
-	}
-	if !strings.Contains(result, "/OutputIntents") {
-		t.Error("expected /OutputIntents in catalog entries")
-	}
+	assert.Contains(t, result, "/Metadata", "expected /Metadata in catalog entries")
+	assert.Contains(t, result, "/OutputIntents", "expected /OutputIntents in catalog entries")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/Type /Metadata") {
-		t.Error("expected metadata stream object")
-	}
-	if !strings.Contains(output, "/Type /OutputIntent") {
-		t.Error("expected output intent object")
-	}
-	if !strings.Contains(output, "/S /GTS_PDFA1") {
-		t.Error("expected /S /GTS_PDFA1 in output intent")
-	}
-	if !strings.Contains(output, "sRGB IEC61966-2.1") {
-		t.Error("expected sRGB identifier in output intent")
-	}
+	assert.Contains(t, output, "/Type /Metadata", "expected metadata stream object")
+	assert.Contains(t, output, "/Type /OutputIntent", "expected output intent object")
+	assert.Contains(t, output, "/S /GTS_PDFA1", "expected /S /GTS_PDFA1 in output intent")
+	assert.Contains(t, output, "sRGB IEC61966-2.1", "expected sRGB identifier in output intent")
 }
 
 func TestWritePdfAObjects_XMPStreamUncompressed(t *testing.T) {
@@ -194,31 +151,23 @@ func TestWritePdfAObjects_XMPStreamUncompressed(t *testing.T) {
 
 	output := string(writer.Bytes())
 
-	if !strings.Contains(output, "<?xpacket begin=") {
-		t.Error("XMP stream should be uncompressed (readable)")
-	}
+	assert.Contains(t, output, "<?xpacket begin=", "XMP stream should be uncompressed (readable)")
 }
 
 func TestSetPdfA_A2AEnablesTaggedPDF(t *testing.T) {
 	painter := NewPdfPainter(595, 842, nil, nil)
-	if painter.structTree != nil {
-		t.Fatal("struct tree should be nil initially")
-	}
+	require.Nil(t, painter.structTree, "struct tree should be nil initially")
 
 	painter.setPdfA(&PdfAConfig{Level: PdfA2A})
 
-	if painter.structTree == nil {
-		t.Error("PDF/A-2a should automatically enable tagged PDF")
-	}
+	assert.NotNil(t, painter.structTree, "PDF/A-2a should automatically enable tagged PDF")
 }
 
 func TestSetPdfA_B2BDoesNotEnableTaggedPDF(t *testing.T) {
 	painter := NewPdfPainter(595, 842, nil, nil)
 	painter.setPdfA(&PdfAConfig{Level: PdfA2B})
 
-	if painter.structTree != nil {
-		t.Error("PDF/A-2b should not automatically enable tagged PDF")
-	}
+	assert.Nil(t, painter.structTree, "PDF/A-2b should not automatically enable tagged PDF")
 }
 
 func TestS15Fixed16(t *testing.T) {
@@ -232,8 +181,39 @@ func TestS15Fixed16(t *testing.T) {
 	}
 	for _, tt := range tests {
 		got := s15Fixed16(tt.input)
-		if got != tt.want {
-			t.Errorf("s15Fixed16(%v) = 0x%08X, want 0x%08X", tt.input, got, tt.want)
-		}
+		assert.Equal(t, tt.want, got, "s15Fixed16(%v)", tt.input)
 	}
+}
+
+func TestXMLEscape(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "entities", input: `a<b>&"'`, want: "a&lt;b&gt;&amp;&quot;&apos;"},
+		{name: "keeps tab newline cr", input: "a\tb\nc\rd", want: "a\tb\nc\rd"},
+		{name: "drops control characters", input: "a\x00b\x07c\x1fd", want: "abcd"},
+		{name: "drops vertical tab and form feed", input: "a\x0bb\x0cc", want: "abc"},
+		{name: "keeps astral", input: "x\U0001F600y", want: "x\U0001F600y"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, xmlEscape(test.input), "xmlEscape(%q)", test.input)
+		})
+	}
+}
+
+func TestXMLEscape_InvalidUTF8(t *testing.T) {
+	got := xmlEscape("a\x80b")
+	assert.NotContains(t, got, "\x80", "expected invalid UTF-8 byte to be replaced")
+	assert.Contains(t, got, "�", "expected replacement character")
+}
+
+func TestBuildXMPMetadata_KeywordsEscapedExactlyOnce(t *testing.T) {
+	metadata := &PdfMetadata{Title: "T", Keywords: "R&D, C++"}
+	xmp := string(buildXMPMetadata(nil, metadata, time.Unix(0, 0).UTC()))
+
+	assert.Contains(t, xmp, "<rdf:li>R&amp;D</rdf:li>", "expected keyword escaped once (R&amp;D)")
+	assert.NotContains(t, xmp, "&amp;amp;", "keyword was double-escaped")
 }

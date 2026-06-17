@@ -25,6 +25,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
@@ -55,9 +58,7 @@ func TestParseOriginComponent(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := parseOriginComponent(test.input)
-			if math.Abs(got-test.want) > 1e-9 {
-				t.Errorf("parseOriginComponent(%q) = %f, want %f", test.input, got, test.want)
-			}
+			assert.InDelta(t, test.want, got, 1e-9)
 		})
 	}
 }
@@ -82,12 +83,8 @@ func TestParseObjectPosition(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			gotX, gotY := parseObjectPosition(test.input)
-			if math.Abs(gotX-test.wantX) > 1e-9 {
-				t.Errorf("x = %f, want %f", gotX, test.wantX)
-			}
-			if math.Abs(gotY-test.wantY) > 1e-9 {
-				t.Errorf("y = %f, want %f", gotY, test.wantY)
-			}
+			assert.InDelta(t, test.wantX, gotX, 1e-9, "x")
+			assert.InDelta(t, test.wantY, gotY, 1e-9, "y")
 		})
 	}
 }
@@ -142,12 +139,8 @@ func TestResolveObjectFitSize(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			gotW, gotH := painter.resolveObjectFitSize(test.fit, contentW, contentH, intrinsicW, intrinsicH)
-			if math.Abs(gotW-test.wantW) > 1e-9 {
-				t.Errorf("width = %f, want %f", gotW, test.wantW)
-			}
-			if math.Abs(gotH-test.wantH) > 1e-9 {
-				t.Errorf("height = %f, want %f", gotH, test.wantH)
-			}
+			assert.InDelta(t, test.wantW, gotW, 1e-9, "width")
+			assert.InDelta(t, test.wantH, gotH, 1e-9, "height")
 		})
 	}
 
@@ -159,9 +152,8 @@ func TestResolveObjectFitSize(t *testing.T) {
 			layouter_domain.ObjectFitScaleDown,
 			contentW, contentH, smallW, smallH,
 		)
-		if math.Abs(gotW-smallW) > 1e-9 || math.Abs(gotH-smallH) > 1e-9 {
-			t.Errorf("scale-down should not enlarge: got (%f, %f), want (%f, %f)", gotW, gotH, smallW, smallH)
-		}
+		assert.InDelta(t, smallW, gotW, 1e-9, "scale-down should not enlarge width")
+		assert.InDelta(t, smallH, gotH, 1e-9, "scale-down should not enlarge height")
 	})
 }
 
@@ -172,9 +164,7 @@ func TestExtractTextContent(t *testing.T) {
 		t.Parallel()
 		box := newLayoutBox().WithText("Hello World").Build()
 		got := extractTextContent(box)
-		if got != "Hello World" {
-			t.Errorf("got %q, want %q", got, "Hello World")
-		}
+		assert.Equal(t, "Hello World", got)
 	})
 
 	t.Run("nested children", func(t *testing.T) {
@@ -183,9 +173,7 @@ func TestExtractTextContent(t *testing.T) {
 		child2 := newLayoutBox().WithText("World").Build()
 		parent := newLayoutBox().WithChildren(child1, child2).Build()
 		got := extractTextContent(parent)
-		if got != "Hello World" {
-			t.Errorf("got %q, want %q", got, "Hello World")
-		}
+		assert.Equal(t, "Hello World", got)
 	})
 
 	t.Run("deeply nested", func(t *testing.T) {
@@ -194,18 +182,14 @@ func TestExtractTextContent(t *testing.T) {
 		mid := newLayoutBox().WithChildren(leaf).Build()
 		root := newLayoutBox().WithChildren(mid).Build()
 		got := extractTextContent(root)
-		if got != "deep" {
-			t.Errorf("got %q, want %q", got, "deep")
-		}
+		assert.Equal(t, "deep", got)
 	})
 
 	t.Run("no text returns empty", func(t *testing.T) {
 		t.Parallel()
 		box := newLayoutBox().Build()
 		got := extractTextContent(box)
-		if got != "" {
-			t.Errorf("got %q, want empty", got)
-		}
+		assert.Equal(t, "", got)
 	})
 }
 
@@ -249,18 +233,10 @@ func TestDarkenColour(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := darkenColour(test.colour, test.factor)
-			if math.Abs(got.Red-test.wantR) > 1e-9 {
-				t.Errorf("red = %f, want %f", got.Red, test.wantR)
-			}
-			if math.Abs(got.Green-test.wantG) > 1e-9 {
-				t.Errorf("green = %f, want %f", got.Green, test.wantG)
-			}
-			if math.Abs(got.Blue-test.wantB) > 1e-9 {
-				t.Errorf("blue = %f, want %f", got.Blue, test.wantB)
-			}
-			if got.Alpha != test.colour.Alpha {
-				t.Errorf("alpha should be preserved: got %f, want %f", got.Alpha, test.colour.Alpha)
-			}
+			assert.InDelta(t, test.wantR, got.Red, 1e-9, "red")
+			assert.InDelta(t, test.wantG, got.Green, 1e-9, "green")
+			assert.InDelta(t, test.wantB, got.Blue, 1e-9, "blue")
+			assert.Equal(t, test.colour.Alpha, got.Alpha, "alpha should be preserved")
 		})
 	}
 }
@@ -305,18 +281,10 @@ func TestLightenColour(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := lightenColour(test.colour, test.factor)
-			if math.Abs(got.Red-test.wantR) > 1e-9 {
-				t.Errorf("red = %f, want %f", got.Red, test.wantR)
-			}
-			if math.Abs(got.Green-test.wantG) > 1e-9 {
-				t.Errorf("green = %f, want %f", got.Green, test.wantG)
-			}
-			if math.Abs(got.Blue-test.wantB) > 1e-9 {
-				t.Errorf("blue = %f, want %f", got.Blue, test.wantB)
-			}
-			if got.Alpha != test.colour.Alpha {
-				t.Errorf("alpha should be preserved: got %f, want %f", got.Alpha, test.colour.Alpha)
-			}
+			assert.InDelta(t, test.wantR, got.Red, 1e-9, "red")
+			assert.InDelta(t, test.wantG, got.Green, 1e-9, "green")
+			assert.InDelta(t, test.wantB, got.Blue, 1e-9, "blue")
+			assert.Equal(t, test.colour.Alpha, got.Alpha, "alpha should be preserved")
 		})
 	}
 }
@@ -343,9 +311,7 @@ func TestHasAnyBorderRadius(t *testing.T) {
 			t.Parallel()
 			box := newLayoutBox().WithBorderRadius(test.tl, test.tr, test.br, test.bl).Build()
 			got := painter.hasAnyBorderRadius(box)
-			if got != test.want {
-				t.Errorf("hasAnyBorderRadius() = %v, want %v", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -370,9 +336,7 @@ func TestIsEditableFormElement(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := isEditableFormElement(test.tagName)
-			if got != test.want {
-				t.Errorf("isEditableFormElement(%q) = %v, want %v", test.tagName, got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -387,9 +351,7 @@ func TestIsUniformBorder(t *testing.T) {
 			WithBorderStyle(layouter_domain.BorderStyleSolid).
 			WithBorderColour(testColour(1, 0, 0, 1)).
 			Build()
-		if !isUniformBorder(box) {
-			t.Error("expected uniform border")
-		}
+		assert.True(t, isUniformBorder(box), "expected uniform border")
 	})
 
 	t.Run("non-uniform widths", func(t *testing.T) {
@@ -399,9 +361,7 @@ func TestIsUniformBorder(t *testing.T) {
 			WithBorderStyle(layouter_domain.BorderStyleSolid).
 			WithBorderColour(testColour(1, 0, 0, 1)).
 			Build()
-		if isUniformBorder(box) {
-			t.Error("expected non-uniform border due to different widths")
-		}
+		assert.False(t, isUniformBorder(box), "expected non-uniform border due to different widths")
 	})
 
 	t.Run("non-uniform colours", func(t *testing.T) {
@@ -413,9 +373,7 @@ func TestIsUniformBorder(t *testing.T) {
 			Build()
 
 		box.Style.BorderRightColour = testColour(0, 1, 0, 1)
-		if isUniformBorder(box) {
-			t.Error("expected non-uniform border due to different colours")
-		}
+		assert.False(t, isUniformBorder(box), "expected non-uniform border due to different colours")
 	})
 
 	t.Run("non-uniform styles", func(t *testing.T) {
@@ -426,9 +384,7 @@ func TestIsUniformBorder(t *testing.T) {
 			WithBorderColour(testColour(1, 0, 0, 1)).
 			Build()
 		box.Style.BorderBottomStyle = layouter_domain.BorderStyleDashed
-		if isUniformBorder(box) {
-			t.Error("expected non-uniform border due to different styles")
-		}
+		assert.False(t, isUniformBorder(box), "expected non-uniform border due to different styles")
 	})
 }
 
@@ -442,9 +398,10 @@ func TestResolveBorderImageEdges(t *testing.T) {
 			Build()
 		box.Style.BorderImageWidth = 10
 		top, right, bottom, left := resolveBorderImageEdges(box)
-		if top != 10 || right != 10 || bottom != 10 || left != 10 {
-			t.Errorf("expected all edges 10, got %f %f %f %f", top, right, bottom, left)
-		}
+		assert.Equal(t, 10.0, top, "top")
+		assert.Equal(t, 10.0, right, "right")
+		assert.Equal(t, 10.0, bottom, "bottom")
+		assert.Equal(t, 10.0, left, "left")
 	})
 
 	t.Run("falls back to border widths", func(t *testing.T) {
@@ -453,9 +410,10 @@ func TestResolveBorderImageEdges(t *testing.T) {
 			WithBorder(1, 2, 3, 4).
 			Build()
 		top, right, bottom, left := resolveBorderImageEdges(box)
-		if top != 1 || right != 2 || bottom != 3 || left != 4 {
-			t.Errorf("expected 1 2 3 4, got %f %f %f %f", top, right, bottom, left)
-		}
+		assert.Equal(t, 1.0, top, "top")
+		assert.Equal(t, 2.0, right, "right")
+		assert.Equal(t, 3.0, bottom, "bottom")
+		assert.Equal(t, 4.0, left, "left")
 	})
 }
 
@@ -469,9 +427,7 @@ func TestResolveBaselineOffset(t *testing.T) {
 			WithFontStyle("sans-serif", 400, 0, 12).
 			Build()
 		got := resolveBaselineOffset(box)
-		if math.Abs(got-15.5) > 1e-9 {
-			t.Errorf("got %f, want 15.5", got)
-		}
+		assert.InDelta(t, 15.5, got, 1e-9)
 	})
 
 	t.Run("falls back to font size ratio when zero", func(t *testing.T) {
@@ -481,9 +437,7 @@ func TestResolveBaselineOffset(t *testing.T) {
 			Build()
 		got := resolveBaselineOffset(box)
 		want := 20.0 * 0.8
-		if math.Abs(got-want) > 1e-9 {
-			t.Errorf("got %f, want %f", got, want)
-		}
+		assert.InDelta(t, want, got, 1e-9)
 	})
 }
 
@@ -505,9 +459,7 @@ func TestPdfEscapeString(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := pdfEscapeString(test.input)
-			if got != test.want {
-				t.Errorf("pdfEscapeString(%q) = %q, want %q", test.input, got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -518,9 +470,7 @@ func TestPaintOuterBoxShadows_EmptyShadowList(t *testing.T) {
 	var stream ContentStream
 	box := newLayoutBox().WithContentRect(10, 10, 100, 50).WithBorder(2, 2, 2, 2).Build()
 	painter.paintOuterBoxShadows(&stream, box)
-	if stream.String() != "" {
-		t.Errorf("expected empty stream, got %q", stream.String())
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream")
 }
 
 func TestPaintOuterBoxShadows_SharpShadow(t *testing.T) {
@@ -544,9 +494,7 @@ func TestPaintOuterBoxShadows_BlurredShadow(t *testing.T) {
 	painter.paintOuterBoxShadows(&stream, box)
 	got := stream.String()
 	qCount := strings.Count(got, "\nq\n") + strings.Count(got, "q\n")
-	if qCount < 2 {
-		t.Errorf("blurred shadow expected at least 2 save states, got %d", qCount)
-	}
+	assert.GreaterOrEqual(t, qCount, 2, "blurred shadow expected at least 2 save states")
 	requireStreamContains(t, &stream, "f*")
 }
 
@@ -557,9 +505,7 @@ func TestPaintOuterBoxShadows_SkipsInset(t *testing.T) {
 	box := newLayoutBox().WithContentRect(20, 20, 100, 50).WithBorder(2, 2, 2, 2).Build()
 	box.Style.BoxShadow = []layouter_domain.BoxShadowValue{{OffsetX: 5, OffsetY: 5, Colour: testColour(0, 0, 0, 0.5), Inset: true}}
 	painter.paintOuterBoxShadows(&stream, box)
-	if stream.String() != "" {
-		t.Errorf("expected empty stream for inset-only shadows, got %q", stream.String())
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream for inset-only shadows")
 }
 
 func TestPaintOuterBoxShadows_WithBorderRadius(t *testing.T) {
@@ -588,9 +534,7 @@ func TestPaintInsetBoxShadows_EmptyShadowList(t *testing.T) {
 	var stream ContentStream
 	box := newLayoutBox().WithContentRect(10, 10, 100, 50).WithBorder(2, 2, 2, 2).Build()
 	painter.paintInsetBoxShadows(&stream, box)
-	if stream.String() != "" {
-		t.Errorf("expected empty stream, got %q", stream.String())
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream")
 }
 
 func TestPaintInsetBoxShadows_SharpInset(t *testing.T) {
@@ -614,9 +558,7 @@ func TestPaintInsetBoxShadows_BlurredInset(t *testing.T) {
 	painter.paintInsetBoxShadows(&stream, box)
 	got := stream.String()
 	qCount := strings.Count(got, "\nq\n") + strings.Count(got, "q\n")
-	if qCount < 2 {
-		t.Errorf("blurred inset shadow expected at least 2 save states, got %d", qCount)
-	}
+	assert.GreaterOrEqual(t, qCount, 2, "blurred inset shadow expected at least 2 save states")
 }
 
 func TestPaintInsetBoxShadows_SkipsNonInset(t *testing.T) {
@@ -626,9 +568,7 @@ func TestPaintInsetBoxShadows_SkipsNonInset(t *testing.T) {
 	box := newLayoutBox().WithContentRect(20, 20, 100, 50).WithBorder(2, 2, 2, 2).Build()
 	box.Style.BoxShadow = []layouter_domain.BoxShadowValue{{OffsetX: 5, OffsetY: 5, Colour: testColour(0, 0, 0, 0.5)}}
 	painter.paintInsetBoxShadows(&stream, box)
-	if stream.String() != "" {
-		t.Errorf("expected empty stream for non-inset shadows, got %q", stream.String())
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream for non-inset shadows")
 }
 
 func TestPaintInsetBoxShadows_WithBorderRadius(t *testing.T) {
@@ -656,15 +596,9 @@ func TestCollectLinkAnnotation_ExternalURI(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithBorder(0, 0, 0, 0).WithSourceNode(testSourceNode("a", "href", "https://example.com")).Build()
 	painter.collectLinkAnnotation(box)
-	if len(painter.annotations) != 1 {
-		t.Fatalf("expected 1 annotation, got %d", len(painter.annotations))
-	}
-	if painter.annotations[0].uri != "https://example.com" {
-		t.Errorf("expected URI, got %q", painter.annotations[0].uri)
-	}
-	if painter.annotations[0].dest != "" {
-		t.Errorf("expected empty dest, got %q", painter.annotations[0].dest)
-	}
+	require.Len(t, painter.annotations, 1)
+	assert.Equal(t, "https://example.com", painter.annotations[0].uri)
+	assert.Equal(t, "", painter.annotations[0].dest)
 }
 
 func TestCollectLinkAnnotation_InternalFragment(t *testing.T) {
@@ -672,15 +606,9 @@ func TestCollectLinkAnnotation_InternalFragment(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithBorder(0, 0, 0, 0).WithSourceNode(testSourceNode("a", "href", "#section1")).Build()
 	painter.collectLinkAnnotation(box)
-	if len(painter.annotations) != 1 {
-		t.Fatalf("expected 1 annotation, got %d", len(painter.annotations))
-	}
-	if painter.annotations[0].dest != "section1" {
-		t.Errorf("expected dest 'section1', got %q", painter.annotations[0].dest)
-	}
-	if painter.annotations[0].uri != "" {
-		t.Errorf("expected empty URI, got %q", painter.annotations[0].uri)
-	}
+	require.Len(t, painter.annotations, 1)
+	assert.Equal(t, "section1", painter.annotations[0].dest)
+	assert.Equal(t, "", painter.annotations[0].uri)
 }
 
 func TestCollectLinkAnnotation_NonAnchorSkipped(t *testing.T) {
@@ -688,9 +616,7 @@ func TestCollectLinkAnnotation_NonAnchorSkipped(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithSourceNode(testSourceNode("div", "href", "https://example.com")).Build()
 	painter.collectLinkAnnotation(box)
-	if len(painter.annotations) != 0 {
-		t.Errorf("expected 0 annotations, got %d", len(painter.annotations))
-	}
+	assert.Empty(t, painter.annotations, "expected 0 annotations")
 }
 
 func TestCollectLinkAnnotation_NilSourceNode(t *testing.T) {
@@ -698,9 +624,7 @@ func TestCollectLinkAnnotation_NilSourceNode(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).Build()
 	painter.collectLinkAnnotation(box)
-	if len(painter.annotations) != 0 {
-		t.Errorf("expected 0 annotations, got %d", len(painter.annotations))
-	}
+	assert.Empty(t, painter.annotations, "expected 0 annotations")
 }
 
 func TestCollectLinkAnnotation_EmptyHref(t *testing.T) {
@@ -708,9 +632,7 @@ func TestCollectLinkAnnotation_EmptyHref(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithSourceNode(testSourceNode("a")).Build()
 	painter.collectLinkAnnotation(box)
-	if len(painter.annotations) != 0 {
-		t.Errorf("expected 0 annotations, got %d", len(painter.annotations))
-	}
+	assert.Empty(t, painter.annotations, "expected 0 annotations")
 }
 
 func TestCollectLinkAnnotation_RecordsPageIndex(t *testing.T) {
@@ -718,12 +640,8 @@ func TestCollectLinkAnnotation_RecordsPageIndex(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithBorder(0, 0, 0, 0).WithPageIndex(3).WithSourceNode(testSourceNode("a", "href", "https://example.com")).Build()
 	painter.collectLinkAnnotation(box)
-	if len(painter.annotations) != 1 {
-		t.Fatalf("expected 1 annotation, got %d", len(painter.annotations))
-	}
-	if painter.annotations[0].pageIndex != 3 {
-		t.Errorf("expected page index 3, got %d", painter.annotations[0].pageIndex)
-	}
+	require.Len(t, painter.annotations, 1)
+	assert.Equal(t, 3, painter.annotations[0].pageIndex)
 }
 
 func TestCollectNamedDestination_WithId(t *testing.T) {
@@ -731,12 +649,8 @@ func TestCollectNamedDestination_WithId(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithBorder(0, 0, 0, 0).WithSourceNode(testSourceNode("div", "id", "section1")).Build()
 	painter.collectNamedDestination(box)
-	if len(painter.namedDests) != 1 {
-		t.Fatalf("expected 1 named dest, got %d", len(painter.namedDests))
-	}
-	if painter.namedDests[0].name != "section1" {
-		t.Errorf("expected name 'section1', got %q", painter.namedDests[0].name)
-	}
+	require.Len(t, painter.namedDests, 1)
+	assert.Equal(t, "section1", painter.namedDests[0].name)
 }
 
 func TestCollectNamedDestination_NoId(t *testing.T) {
@@ -744,9 +658,7 @@ func TestCollectNamedDestination_NoId(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithSourceNode(testSourceNode("div", "class", "content")).Build()
 	painter.collectNamedDestination(box)
-	if len(painter.namedDests) != 0 {
-		t.Errorf("expected 0 named dests, got %d", len(painter.namedDests))
-	}
+	assert.Empty(t, painter.namedDests, "expected 0 named dests")
 }
 
 func TestCollectNamedDestination_NilSourceNode(t *testing.T) {
@@ -754,9 +666,7 @@ func TestCollectNamedDestination_NilSourceNode(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).Build()
 	painter.collectNamedDestination(box)
-	if len(painter.namedDests) != 0 {
-		t.Errorf("expected 0 named dests, got %d", len(painter.namedDests))
-	}
+	assert.Empty(t, painter.namedDests, "expected 0 named dests")
 }
 
 func TestCollectNamedDestination_RecordsPageIndex(t *testing.T) {
@@ -764,12 +674,8 @@ func TestCollectNamedDestination_RecordsPageIndex(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 100, 20).WithBorder(0, 0, 0, 0).WithPageIndex(2).WithSourceNode(testSourceNode("h1", "id", "chapter2")).Build()
 	painter.collectNamedDestination(box)
-	if len(painter.namedDests) != 1 {
-		t.Fatalf("expected 1 named dest, got %d", len(painter.namedDests))
-	}
-	if painter.namedDests[0].pageIndex != 2 {
-		t.Errorf("expected page index 2, got %d", painter.namedDests[0].pageIndex)
-	}
+	require.Len(t, painter.namedDests, 1)
+	assert.Equal(t, 2, painter.namedDests[0].pageIndex)
 }
 
 func TestCollectOutlineEntry_HeadingWithText(t *testing.T) {
@@ -778,9 +684,7 @@ func TestCollectOutlineEntry_HeadingWithText(t *testing.T) {
 	child := newLayoutBox().WithText("Chapter One").Build()
 	box := newLayoutBox().WithContentRect(10, 10, 200, 30).WithBorder(0, 0, 0, 0).WithSourceNode(testSourceNode("h1")).WithChildren(child).Build()
 	painter.collectOutlineEntry(box)
-	if !painter.outlineBuilder.HasEntries() {
-		t.Error("expected outline entry")
-	}
+	assert.True(t, painter.outlineBuilder.HasEntries(), "expected outline entry")
 }
 
 func TestCollectOutlineEntry_H2ThroughH6(t *testing.T) {
@@ -792,9 +696,7 @@ func TestCollectOutlineEntry_H2ThroughH6(t *testing.T) {
 			child := newLayoutBox().WithText("Heading").Build()
 			box := newLayoutBox().WithContentRect(10, 10, 200, 30).WithBorder(0, 0, 0, 0).WithSourceNode(testSourceNode(tag)).WithChildren(child).Build()
 			painter.collectOutlineEntry(box)
-			if !painter.outlineBuilder.HasEntries() {
-				t.Errorf("expected outline entry for %s", tag)
-			}
+			assert.True(t, painter.outlineBuilder.HasEntries(), "expected outline entry for %s", tag)
 		})
 	}
 }
@@ -804,9 +706,7 @@ func TestCollectOutlineEntry_NonHeadingSkipped(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 200, 30).WithSourceNode(testSourceNode("p")).Build()
 	painter.collectOutlineEntry(box)
-	if painter.outlineBuilder.HasEntries() {
-		t.Error("expected no outline entry for non-heading")
-	}
+	assert.False(t, painter.outlineBuilder.HasEntries(), "expected no outline entry for non-heading")
 }
 
 func TestCollectOutlineEntry_EmptyTextSkipped(t *testing.T) {
@@ -814,9 +714,7 @@ func TestCollectOutlineEntry_EmptyTextSkipped(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 200, 30).WithSourceNode(testSourceNode("h1")).Build()
 	painter.collectOutlineEntry(box)
-	if painter.outlineBuilder.HasEntries() {
-		t.Error("expected no outline entry for empty heading")
-	}
+	assert.False(t, painter.outlineBuilder.HasEntries(), "expected no outline entry for empty heading")
 }
 
 func TestCollectOutlineEntry_NilSourceNodeSkipped(t *testing.T) {
@@ -824,9 +722,7 @@ func TestCollectOutlineEntry_NilSourceNodeSkipped(t *testing.T) {
 	painter := newPainterWithDefaults()
 	box := newLayoutBox().WithContentRect(10, 10, 200, 30).Build()
 	painter.collectOutlineEntry(box)
-	if painter.outlineBuilder.HasEntries() {
-		t.Error("expected no outline entry for nil source node")
-	}
+	assert.False(t, painter.outlineBuilder.HasEntries(), "expected no outline entry for nil source node")
 }
 
 func TestEmitOverflowClip_WithoutBorderRadius(t *testing.T) {
@@ -846,9 +742,7 @@ func TestEmitOverflowClip_WithBorderRadius(t *testing.T) {
 	box := newLayoutBox().WithContentRect(20, 20, 100, 50).WithPadding(5, 5, 5, 5).WithBorder(2, 2, 2, 2).WithBorderRadius(10, 10, 10, 10).Build()
 	painter.emitOverflowClip(&stream, box)
 	requireStreamContains(t, &stream, "W")
-	if !strings.Contains(stream.String(), "c") {
-		t.Error("expected Bezier curves for rounded overflow clip")
-	}
+	assert.Contains(t, stream.String(), "c", "expected Bezier curves for rounded overflow clip")
 }
 
 func TestEmitOverflowClip_ClipsPaddingBox(t *testing.T) {
@@ -868,12 +762,8 @@ func TestResolveTransformOrigin_DefaultCentre(t *testing.T) {
 	ox, oy := painter.resolveTransformOrigin(box)
 	expectedX := box.BorderBoxX() + box.BorderBoxWidth()*0.5
 	expectedY := painter.pageHeight - box.BorderBoxY() - box.BorderBoxHeight()*0.5
-	if math.Abs(ox-expectedX) > 1e-9 {
-		t.Errorf("originX: got %v, want %v", ox, expectedX)
-	}
-	if math.Abs(oy-expectedY) > 1e-9 {
-		t.Errorf("originY: got %v, want %v", oy, expectedY)
-	}
+	assert.InDelta(t, expectedX, ox, 1e-9, "originX")
+	assert.InDelta(t, expectedY, oy, 1e-9, "originY")
 }
 
 func TestResolveTransformOrigin_LeftTop(t *testing.T) {
@@ -884,12 +774,8 @@ func TestResolveTransformOrigin_LeftTop(t *testing.T) {
 	ox, oy := painter.resolveTransformOrigin(box)
 	expectedX := box.BorderBoxX()
 	expectedY := painter.pageHeight - box.BorderBoxY()
-	if math.Abs(ox-expectedX) > 1e-9 {
-		t.Errorf("originX: got %v, want %v", ox, expectedX)
-	}
-	if math.Abs(oy-expectedY) > 1e-9 {
-		t.Errorf("originY: got %v, want %v", oy, expectedY)
-	}
+	assert.InDelta(t, expectedX, ox, 1e-9, "originX")
+	assert.InDelta(t, expectedY, oy, 1e-9, "originY")
 }
 
 func TestResolveTransformOrigin_RightBottom(t *testing.T) {
@@ -900,12 +786,8 @@ func TestResolveTransformOrigin_RightBottom(t *testing.T) {
 	ox, oy := painter.resolveTransformOrigin(box)
 	expectedX := box.BorderBoxX() + box.BorderBoxWidth()
 	expectedY := painter.pageHeight - box.BorderBoxY() - box.BorderBoxHeight()
-	if math.Abs(ox-expectedX) > 1e-9 {
-		t.Errorf("originX: got %v, want %v", ox, expectedX)
-	}
-	if math.Abs(oy-expectedY) > 1e-9 {
-		t.Errorf("originY: got %v, want %v", oy, expectedY)
-	}
+	assert.InDelta(t, expectedX, ox, 1e-9, "originX")
+	assert.InDelta(t, expectedY, oy, 1e-9, "originY")
 }
 
 func TestResolveTransformOrigin_PercentageValues(t *testing.T) {
@@ -916,12 +798,8 @@ func TestResolveTransformOrigin_PercentageValues(t *testing.T) {
 	ox, oy := painter.resolveTransformOrigin(box)
 	expectedX := box.BorderBoxX() + box.BorderBoxWidth()*0.25
 	expectedY := painter.pageHeight - box.BorderBoxY() - box.BorderBoxHeight()*0.75
-	if math.Abs(ox-expectedX) > 1e-9 {
-		t.Errorf("originX: got %v, want %v", ox, expectedX)
-	}
-	if math.Abs(oy-expectedY) > 1e-9 {
-		t.Errorf("originY: got %v, want %v", oy, expectedY)
-	}
+	assert.InDelta(t, expectedX, ox, 1e-9, "originX")
+	assert.InDelta(t, expectedY, oy, 1e-9, "originY")
 }
 
 func TestEmitBorderBoxCutout_Rectangle(t *testing.T) {
@@ -939,7 +817,5 @@ func TestEmitBorderBoxCutout_RoundedRect(t *testing.T) {
 	var stream ContentStream
 	box := newLayoutBox().WithContentRect(20, 20, 100, 50).WithBorder(2, 2, 2, 2).WithBorderRadius(10, 10, 10, 10).Build()
 	painter.emitBorderBoxCutout(&stream, box, 18, 750, 104, 54, true)
-	if !strings.Contains(stream.String(), "c") {
-		t.Error("expected rounded rect path with curves")
-	}
+	assert.Contains(t, stream.String(), "c", "expected rounded rect path with curves")
 }

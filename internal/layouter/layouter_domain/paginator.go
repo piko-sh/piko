@@ -22,6 +22,13 @@ import (
 	"context"
 )
 
+const (
+	// pageBoundaryEpsilon is a tiny fraction of a page added before truncating a Y position
+	// to a page index, so floating-point error in cumulative page heights does not push a
+	// boundary-aligned box one page too early.
+	pageBoundaryEpsilon = 1e-6
+)
+
 // PageGeometry provides page content-area heights, supporting a distinct first-page
 // height for @page :first CSS rules. When FirstPageHeight is zero, all pages use
 // DefaultHeight.
@@ -96,7 +103,7 @@ func (g PageGeometry) pageForY(y float64) int {
 	if y < firstH {
 		return 0
 	}
-	return 1 + int((y-firstH)/g.DefaultHeight)
+	return 1 + int((y-firstH)/g.DefaultHeight+pageBoundaryEpsilon)
 }
 
 // Paginate walks the box tree and assigns PageIndex to each box based on which page it

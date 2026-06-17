@@ -278,9 +278,6 @@ const (
 	// pdfFlagItalic marks the font as italic.
 	pdfFlagItalic = 0x0040
 
-	// os2FSTypeEmbedding is the fsType bit for editable embedding.
-	os2FSTypeEmbedding uint16 = 0x0008
-
 	// os2FSSelectionItalic is the fsSelection bit for italic.
 	os2FSSelectionItalic uint16 = 0x0001
 

@@ -24,6 +24,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/fonts"
 )
 
@@ -31,12 +34,8 @@ func TestNewFontEmbedder(t *testing.T) {
 	t.Parallel()
 
 	embedder := NewFontEmbedder()
-	if embedder == nil {
-		t.Fatal("expected non-nil embedder")
-	}
-	if embedder.HasFonts() {
-		t.Error("new embedder should have no fonts")
-	}
+	require.NotNil(t, embedder, "expected non-nil embedder")
+	assert.False(t, embedder.HasFonts(), "new embedder should have no fonts")
 }
 
 func TestFontEmbedder_RegisterFont(t *testing.T) {
@@ -46,12 +45,8 @@ func TestFontEmbedder_RegisterFont(t *testing.T) {
 		t.Parallel()
 		embedder := NewFontEmbedder()
 		name := embedder.RegisterFont(fonts.NotoSansRegularTTF, "NotoSans:400:0")
-		if name != "F1" {
-			t.Errorf("expected F1, got %s", name)
-		}
-		if !embedder.HasFonts() {
-			t.Error("expected HasFonts() to be true after registration")
-		}
+		assert.Equal(t, "F1", name)
+		assert.True(t, embedder.HasFonts(), "expected HasFonts() to be true after registration")
 	})
 
 	t.Run("second registration returns F2", func(t *testing.T) {
@@ -59,9 +54,7 @@ func TestFontEmbedder_RegisterFont(t *testing.T) {
 		embedder := NewFontEmbedder()
 		_ = embedder.RegisterFont(fonts.NotoSansRegularTTF, "NotoSans:400:0")
 		name := embedder.RegisterFont(fonts.NotoSansBoldTTF, "NotoSans:700:0")
-		if name != "F2" {
-			t.Errorf("expected F2, got %s", name)
-		}
+		assert.Equal(t, "F2", name)
 	})
 
 	t.Run("duplicate instance key returns existing name", func(t *testing.T) {
@@ -69,9 +62,7 @@ func TestFontEmbedder_RegisterFont(t *testing.T) {
 		embedder := NewFontEmbedder()
 		name1 := embedder.RegisterFont(fonts.NotoSansRegularTTF, "NotoSans:400:0")
 		name2 := embedder.RegisterFont(fonts.NotoSansRegularTTF, "NotoSans:400:0")
-		if name1 != name2 {
-			t.Errorf("expected same name for duplicate key, got %s and %s", name1, name2)
-		}
+		assert.Equal(t, name1, name2, "expected same name for duplicate key")
 	})
 
 	t.Run("empty instance key uses data length", func(t *testing.T) {
@@ -80,9 +71,7 @@ func TestFontEmbedder_RegisterFont(t *testing.T) {
 		name1 := embedder.RegisterFont(fonts.NotoSansRegularTTF, "")
 
 		name2 := embedder.RegisterFont(fonts.NotoSansRegularTTF, "")
-		if name1 != name2 {
-			t.Errorf("expected same name for same data with empty key, got %s and %s", name1, name2)
-		}
+		assert.Equal(t, name1, name2, "expected same name for same data with empty key")
 	})
 
 	t.Run("different instance keys produce different names", func(t *testing.T) {
@@ -90,9 +79,7 @@ func TestFontEmbedder_RegisterFont(t *testing.T) {
 		embedder := NewFontEmbedder()
 		name1 := embedder.RegisterFont(fonts.NotoSansRegularTTF, "key-a")
 		name2 := embedder.RegisterFont(fonts.NotoSansRegularTTF, "key-b")
-		if name1 == name2 {
-			t.Errorf("expected different names for different keys, both got %s", name1)
-		}
+		assert.NotEqual(t, name1, name2, "expected different names for different keys")
 	})
 }
 
@@ -159,18 +146,14 @@ func TestFontEmbedder_HasFonts(t *testing.T) {
 	t.Run("false when empty", func(t *testing.T) {
 		t.Parallel()
 		embedder := NewFontEmbedder()
-		if embedder.HasFonts() {
-			t.Error("expected HasFonts() to be false")
-		}
+		assert.False(t, embedder.HasFonts(), "expected HasFonts() to be false")
 	})
 
 	t.Run("true after registration", func(t *testing.T) {
 		t.Parallel()
 		embedder := NewFontEmbedder()
 		embedder.RegisterFont(fonts.NotoSansRegularTTF, "NotoSans:400:0")
-		if !embedder.HasFonts() {
-			t.Error("expected HasFonts() to be true")
-		}
+		assert.True(t, embedder.HasFonts(), "expected HasFonts() to be true")
 	})
 }
 
@@ -190,31 +173,15 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 		entries := embedder.WriteObjects(writer)
 		output := string(writer.Bytes())
 
-		if !strings.Contains(entries, "/F1") {
-			t.Errorf("expected /F1 in entries, got %q", entries)
-		}
+		assert.Contains(t, entries, "/F1", "expected /F1 in entries")
 
-		if !strings.Contains(output, "/Type /Font") {
-			t.Error("expected /Type /Font in output")
-		}
-		if !strings.Contains(output, "/CIDFontType2") {
-			t.Error("expected /CIDFontType2 in output")
-		}
-		if !strings.Contains(output, "/Type /FontDescriptor") {
-			t.Error("expected /Type /FontDescriptor in output")
-		}
-		if !strings.Contains(output, "/FontFile2") {
-			t.Error("expected /FontFile2 reference in output")
-		}
-		if !strings.Contains(output, "/ToUnicode") {
-			t.Error("expected /ToUnicode reference in output")
-		}
-		if !strings.Contains(output, "/Type0") {
-			t.Error("expected /Type0 (composite font) in output")
-		}
-		if !strings.Contains(output, "/Identity-H") {
-			t.Error("expected /Identity-H encoding in output")
-		}
+		assert.Contains(t, output, "/Type /Font", "expected /Type /Font in output")
+		assert.Contains(t, output, "/CIDFontType2", "expected /CIDFontType2 in output")
+		assert.Contains(t, output, "/Type /FontDescriptor", "expected /Type /FontDescriptor in output")
+		assert.Contains(t, output, "/FontFile2", "expected /FontFile2 reference in output")
+		assert.Contains(t, output, "/ToUnicode", "expected /ToUnicode reference in output")
+		assert.Contains(t, output, "/Type0", "expected /Type0 (composite font) in output")
+		assert.Contains(t, output, "/Identity-H", "expected /Identity-H encoding in output")
 	})
 
 	t.Run("two fonts produce two resource entries", func(t *testing.T) {
@@ -229,12 +196,8 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 		writer.WriteHeader()
 		entries := embedder.WriteObjects(writer)
 
-		if !strings.Contains(entries, "/F1") {
-			t.Error("expected /F1 in entries")
-		}
-		if !strings.Contains(entries, "/F2") {
-			t.Error("expected /F2 in entries")
-		}
+		assert.Contains(t, entries, "/F1", "expected /F1 in entries")
+		assert.Contains(t, entries, "/F2", "expected /F2 in entries")
 	})
 
 	t.Run("font with no recorded glyphs still writes objects", func(t *testing.T) {
@@ -246,9 +209,7 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 		writer.WriteHeader()
 		entries := embedder.WriteObjects(writer)
 
-		if !strings.Contains(entries, "/F1") {
-			t.Errorf("expected /F1 in entries even with no glyphs, got %q", entries)
-		}
+		assert.Contains(t, entries, "/F1", "expected /F1 in entries even with no glyphs")
 	})
 
 	t.Run("font with width overrides", func(t *testing.T) {
@@ -262,14 +223,10 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 		writer.WriteHeader()
 		entries := embedder.WriteObjects(writer)
 
-		if !strings.Contains(entries, "/F1") {
-			t.Errorf("expected /F1 in entries, got %q", entries)
-		}
+		assert.Contains(t, entries, "/F1", "expected /F1 in entries")
 		output := string(writer.Bytes())
 
-		if !strings.Contains(output, "/W") {
-			t.Error("expected /W (width array) in output")
-		}
+		assert.Contains(t, output, "/W", "expected /W (width array) in output")
 	})
 
 	t.Run("empty embedder produces no entries", func(t *testing.T) {
@@ -280,9 +237,7 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 		writer.WriteHeader()
 		entries := embedder.WriteObjects(writer)
 
-		if entries != "" {
-			t.Errorf("expected empty entries for empty embedder, got %q", entries)
-		}
+		assert.Empty(t, entries, "expected empty entries for empty embedder")
 	})
 
 	t.Run("output contains subset tag for static fonts", func(t *testing.T) {
@@ -296,9 +251,7 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 		embedder.WriteObjects(writer)
 		output := string(writer.Bytes())
 
-		if !strings.Contains(output, "+") {
-			t.Error("expected subset tag with '+' separator in PostScript name")
-		}
+		assert.Contains(t, output, "+", "expected subset tag with '+' separator in PostScript name")
 	})
 
 	t.Run("FontDescriptor contains required fields", func(t *testing.T) {
@@ -324,9 +277,7 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 			"/FontFile2",
 		}
 		for _, field := range requiredFields {
-			if !strings.Contains(output, field) {
-				t.Errorf("FontDescriptor missing required field %s", field)
-			}
+			assert.Contains(t, output, field, "FontDescriptor missing required field %s", field)
 		}
 	})
 
@@ -342,9 +293,7 @@ func TestFontEmbedder_WriteObjects(t *testing.T) {
 		embedder.WriteObjects(writer)
 		output := string(writer.Bytes())
 
-		if !strings.Contains(output, "/ToUnicode") {
-			t.Error("expected ToUnicode reference in output")
-		}
+		assert.Contains(t, output, "/ToUnicode", "expected ToUnicode reference in output")
 	})
 }
 
@@ -356,9 +305,7 @@ func TestFontEmbedder_FullLifecycle(t *testing.T) {
 	regularName := embedder.RegisterFont(fonts.NotoSansRegularTTF, "NotoSans:400:0")
 	boldName := embedder.RegisterFont(fonts.NotoSansBoldTTF, "NotoSans:700:0")
 
-	if regularName == boldName {
-		t.Fatalf("expected different resource names, both got %s", regularName)
-	}
+	require.NotEqual(t, regularName, boldName, "expected different resource names")
 
 	embedder.RecordGlyph(regularName, 36, "A")
 	embedder.RecordGlyph(regularName, 68, "e")
@@ -391,22 +338,10 @@ func TestFontEmbedder_FullLifecycle(t *testing.T) {
 
 	output := string(writer.Bytes())
 
-	if !strings.HasPrefix(output, "%PDF-1.7") {
-		t.Error("missing PDF header")
-	}
-	if !strings.Contains(output, "%"+"%EOF") {
-		t.Error("missing EOF marker")
-	}
-	if !strings.Contains(output, "/F1") {
-		t.Error("missing F1 font reference")
-	}
-	if !strings.Contains(output, "/F2") {
-		t.Error("missing F2 font reference")
-	}
-	if !strings.Contains(output, "/CIDFontType2") {
-		t.Error("missing CIDFontType2")
-	}
-	if strings.Count(output, "/Type /FontDescriptor") < 2 {
-		t.Error("expected at least 2 FontDescriptor objects for 2 fonts")
-	}
+	assert.True(t, strings.HasPrefix(output, "%PDF-1.7"), "missing PDF header")
+	assert.Contains(t, output, "%"+"%EOF", "missing EOF marker")
+	assert.Contains(t, output, "/F1", "missing F1 font reference")
+	assert.Contains(t, output, "/F2", "missing F2 font reference")
+	assert.Contains(t, output, "/CIDFontType2", "missing CIDFontType2")
+	assert.GreaterOrEqual(t, strings.Count(output, "/Type /FontDescriptor"), 2, "expected at least 2 FontDescriptor objects for 2 fonts")
 }

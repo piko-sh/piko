@@ -19,10 +19,16 @@
 package pdfwriter_domain
 
 import (
+	"context"
 	"fmt"
+
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 const (
+	// maxOutlineDepth bounds the recursion depth when serialising the document outline.
+	maxOutlineDepth = 512
+
 	// headingLevelH1 holds the numeric level for an h1 heading.
 	headingLevelH1 = 1
 
@@ -101,12 +107,13 @@ type outlineNode struct {
 // WriteObjects writes the outline tree as PDF objects and returns the outline root object
 // number for inclusion in the catalog. Returns 0 if there are no entries.
 //
+// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes pageObjectNumbers ([]int) which maps page indices to their PDF object numbers for
 // destination references.
 //
 // Returns the object number of the outline root, or 0 if empty.
-func (ob *OutlineBuilder) WriteObjects(writer *PdfDocumentWriter, pageObjectNumbers []int) int {
+func (ob *OutlineBuilder) WriteObjects(ctx context.Context, writer *PdfDocumentWriter, pageObjectNumbers []int) int {
 	if !ob.HasEntries() {
 		return 0
 	}
@@ -114,7 +121,7 @@ func (ob *OutlineBuilder) WriteObjects(writer *PdfDocumentWriter, pageObjectNumb
 	roots := ob.buildTree()
 
 	rootNumber := writer.AllocateObject()
-	firstChild, lastChild, totalCount := ob.writeChildren(writer, roots, rootNumber, pageObjectNumbers)
+	firstChild, lastChild, totalCount := ob.writeChildren(ctx, writer, roots, rootNumber, pageObjectNumbers, 0)
 
 	writer.WriteObject(rootNumber, fmt.Sprintf(
 		"<< /Type /Outlines /First %s /Last %s /Count %d >>",
@@ -129,21 +136,31 @@ func (ob *OutlineBuilder) WriteObjects(writer *PdfDocumentWriter, pageObjectNumb
 // writeChildren writes a list of sibling nodes and returns the first and last object
 // numbers plus the total visible item count.
 //
+// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes nodes ([]*outlineNode) which is the sibling list to write.
 // Takes parentNumber (int) which is the parent object number for /Parent references.
 // Takes pageObjectNumbers ([]int) which maps page indices to PDF object numbers.
+// Takes depth (int) which is the current recursion depth, used to cap nesting.
 //
 // Returns firstNumber (int) which is the first child object number.
 // Returns lastNumber (int) which is the last child object number.
 // Returns count (int) which is the total visible item count.
 func (ob *OutlineBuilder) writeChildren(
+	ctx context.Context,
 	writer *PdfDocumentWriter,
 	nodes []*outlineNode,
 	parentNumber int,
 	pageObjectNumbers []int,
+	depth int,
 ) (firstNumber int, lastNumber int, count int) {
 	if len(nodes) == 0 {
+		return 0, 0, 0
+	}
+	if depth >= maxOutlineDepth {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Outline nesting exceeds maximum depth; dropping deeper children",
+			logger_domain.Int("max_depth", maxOutlineDepth))
 		return 0, 0, 0
 	}
 
@@ -158,7 +175,7 @@ func (ob *OutlineBuilder) writeChildren(
 		var childFirst, childLast int
 		if len(node.children) > 0 {
 			childFirst, childLast, childCounts[i] = ob.writeChildren(
-				writer, node.children, numbers[i], pageObjectNumbers)
+				ctx, writer, node.children, numbers[i], pageObjectNumbers, depth+1)
 		}
 
 		pageRef := "null"
@@ -166,8 +183,8 @@ func (ob *OutlineBuilder) writeChildren(
 			pageRef = FormatReference(pageObjectNumbers[node.entry.PageIndex])
 		}
 
-		dict := fmt.Sprintf("<< /Title (%s) /Parent %s /Dest [%s /XYZ 0 %s null]",
-			pdfEscapeString(node.entry.Title),
+		dict := fmt.Sprintf("<< /Title %s /Parent %s /Dest [%s /XYZ 0 %s null]",
+			encodePdfTextString(node.entry.Title),
 			FormatReference(parentNumber),
 			pageRef,
 			FormatNumber(node.entry.YPosition),

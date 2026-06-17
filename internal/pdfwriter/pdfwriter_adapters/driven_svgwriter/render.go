@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 )
 
@@ -31,6 +32,19 @@ const (
 	// kappa is the cubic Bezier control-point coefficient for a quarter-circle arc
 	// approximation (4*(sqrt(2)-1)/3).
 	kappa = 0.5522847498
+
+	// maxSVGRenderDepth bounds the recursion depth while traversing the SVG tree.
+	//
+	// It acts as a backstop against pathological documents (for example, deeply nested
+	// groups or chains of <use> references) that could otherwise exhaust the goroutine stack
+	// and crash the process. The default is deliberately high so legitimate documents are
+	// never affected.
+	maxSVGRenderDepth = 256
+)
+
+var (
+	// log is the package-level logger for the driven_svgwriter package.
+	log = logger_domain.GetLogger("piko/internal/pdfwriter/pdfwriter_adapters/driven_svgwriter")
 )
 
 // SVGWriter implements pdfwriter_domain.SVGWriterPort by parsing SVG markup and emitting
@@ -77,6 +91,7 @@ func (*SVGWriter) RenderSVG(ctx context.Context, svgData string, svgRenderContex
 		registerFont:     svgRenderContext.RegisterFont,
 		measureText:      svgRenderContext.MeasureText,
 		getImageData:     svgRenderContext.GetImageData,
+		activeHrefs:      make(map[string]struct{}),
 	}
 
 	rc.stream.SaveState()
@@ -85,7 +100,16 @@ func (*SVGWriter) RenderSVG(ctx context.Context, svgData string, svgRenderContex
 
 	applyViewportTransform(rc, svg, renderW, renderH)
 
-	renderNode(ctx, rc, svg.Root, new(DefaultStyle()))
+	rootStyle := DefaultStyle()
+	if svgRenderContext.CurrentColourSet {
+		rootStyle.Colour = Colour{
+			R: svgRenderContext.CurrentColourR,
+			G: svgRenderContext.CurrentColourG,
+			B: svgRenderContext.CurrentColourB,
+			A: svgRenderContext.CurrentColourA,
+		}
+	}
+	renderNode(ctx, rc, svg.Root, &rootStyle)
 
 	rc.stream.RestoreState()
 	return nil
@@ -122,6 +146,17 @@ type renderContext struct {
 	// getImageData holds the callback that retrieves image data and format from a source
 	// reference.
 	getImageData func(ctx context.Context, source string) ([]byte, string, error)
+
+	// activeHrefs tracks the set of <use> href targets currently being rendered higher up
+	// the call stack. It provides precise cycle detection so that mutually referential <use>
+	// elements (for example "#a" referencing "#b" referencing "#a") terminate instead of
+	// recursing until the stack is exhausted.
+	activeHrefs map[string]struct{}
+
+	// depth tracks the current recursion depth while traversing the SVG tree. It is
+	// incremented on each descent and compared against maxSVGRenderDepth to guard against
+	// unbounded recursion.
+	depth int
 }
 
 // applyViewportTransform applies the viewport-to-viewBox coordinate transformation
@@ -230,6 +265,16 @@ func renderNode(ctx context.Context, rc *renderContext, node *Node, parentStyle 
 		return
 	}
 
+	if rc.depth >= maxSVGRenderDepth {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("SVG render depth limit reached, refusing to descend further",
+			logger_domain.Int("max_depth", maxSVGRenderDepth),
+			logger_domain.String("tag", node.Tag))
+		return
+	}
+	rc.depth++
+	defer func() { rc.depth-- }()
+
 	style := ResolveStyle(node, parentStyle)
 
 	if style.Display == "none" {
@@ -311,7 +356,7 @@ func renderShapeOrContent(ctx context.Context, rc *renderContext, node *Node, st
 	case "path":
 		rc.stream.SaveState()
 		applyTransform(rc, node)
-		renderPath(rc, node, style)
+		renderPath(ctx, rc, node, style)
 		rc.stream.RestoreState()
 	case "text":
 		rc.stream.SaveState()
@@ -370,6 +415,15 @@ func renderUse(ctx context.Context, rc *renderContext, node *Node, parentStyle *
 	if !ok {
 		return
 	}
+
+	if _, active := rc.activeHrefs[href]; active {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("cyclic SVG <use> reference detected, skipping to avoid unbounded recursion",
+			logger_domain.String("href", href))
+		return
+	}
+	rc.activeHrefs[href] = struct{}{}
+	defer delete(rc.activeHrefs, href)
 
 	rc.stream.SaveState()
 	applyTransform(rc, node)
@@ -501,13 +555,16 @@ func renderPolyline(rc *renderContext, node *Node, style *Style, closed bool) {
 // Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes node (*Node) which holds the path element to render.
 // Takes style (*Style) which holds the resolved style properties.
-func renderPath(rc *renderContext, node *Node, style *Style) {
+func renderPath(ctx context.Context, rc *renderContext, node *Node, style *Style) {
 	d, ok := node.Attrs["d"]
 	if !ok || d == "" {
 		return
 	}
 	commands, err := ParsePathData(d)
 	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Debug("failed to parse SVG path data, skipping path",
+			logger_domain.Error(err))
 		return
 	}
 

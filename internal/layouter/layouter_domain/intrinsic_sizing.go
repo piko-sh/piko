@@ -141,26 +141,86 @@ func measureTextIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics Font
 // Returns float64 which is the intrinsic width in points.
 func measureBlockIntrinsicWidth(box *LayoutBox, mode SizingMode, fontMetrics FontMetricsPort) float64 {
 	if !box.Style.Width.IsAuto() && !box.Style.Width.IsIntrinsic() {
-		if box.Style.BoxSizing == BoxSizingBorderBox {
-			return box.Style.Width.Resolve(0, 0)
-		}
-		return box.Style.Width.Resolve(0, 0) +
-			box.Style.PaddingLeft + box.Style.PaddingRight +
-			box.Style.BorderLeftWidth + box.Style.BorderRightWidth
+		return resolveExplicitBlockWidth(box)
 	}
 
+	var maxChildWidth float64
+	if mode == SizingModeMaxContent {
+		maxChildWidth = measureMaxContentChildrenWidth(box, fontMetrics)
+	} else {
+		maxChildWidth = measureMinContentChildrenWidth(box, fontMetrics)
+	}
+
+	return maxChildWidth + box.Style.PaddingLeft + box.Style.PaddingRight +
+		box.Style.BorderLeftWidth + box.Style.BorderRightWidth
+}
+
+// resolveExplicitBlockWidth returns the border-box width of a block whose width property
+// is a definite (non-auto, non-intrinsic) value, adding padding and border for
+// content-box sizing.
+//
+// Takes box (*LayoutBox) which is the block box with a definite width.
+//
+// Returns float64 which is the resolved border-box width in points.
+func resolveExplicitBlockWidth(box *LayoutBox) float64 {
+	if box.Style.BoxSizing == BoxSizingBorderBox {
+		return box.Style.Width.Resolve(0, 0)
+	}
+	return box.Style.Width.Resolve(0, 0) +
+		box.Style.PaddingLeft + box.Style.PaddingRight +
+		box.Style.BorderLeftWidth + box.Style.BorderRightWidth
+}
+
+// measureMaxContentChildrenWidth returns the max-content width of a block's children
+// content area.
+//
+// Takes box (*LayoutBox) which owns the children to measure.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
+//
+// Returns float64 which is the children content max-content width in points.
+func measureMaxContentChildrenWidth(box *LayoutBox, fontMetrics FontMetricsPort) float64 {
+	maxChildWidth := 0.0
+	currentRun := 0.0
+	for _, child := range box.Children {
+		if child.Type == BoxListMarker {
+			continue
+		}
+		childWidth := measureIntrinsicWidth(child, SizingModeMaxContent, fontMetrics)
+		if child.Type.IsInlineLevel() {
+			currentRun += childWidth
+			if currentRun > maxChildWidth {
+				maxChildWidth = currentRun
+			}
+			continue
+		}
+		currentRun = 0
+		if childWidth > maxChildWidth {
+			maxChildWidth = childWidth
+		}
+	}
+	return maxChildWidth
+}
+
+// measureMinContentChildrenWidth returns the min-content width of a block's children
+// content area: the narrowest width avoiding overflow is the widest unbreakable child
+// piece, i.e. the max across children.
+//
+// Takes box (*LayoutBox) which owns the children to measure.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement.
+//
+// Returns float64 which is the children content min-content width in points.
+func measureMinContentChildrenWidth(box *LayoutBox, fontMetrics FontMetricsPort) float64 {
 	maxChildWidth := 0.0
 	for _, child := range box.Children {
 		if child.Type == BoxListMarker {
 			continue
 		}
-		childWidth := measureIntrinsicWidth(child, mode, fontMetrics)
+		childWidth := measureIntrinsicWidth(child, SizingModeMinContent, fontMetrics)
 		if childWidth > maxChildWidth {
 			maxChildWidth = childWidth
 		}
 	}
-	return maxChildWidth + box.Style.PaddingLeft + box.Style.PaddingRight +
-		box.Style.BorderLeftWidth + box.Style.BorderRightWidth
+	return maxChildWidth
 }
 
 // measureTableIntrinsicWidth computes the intrinsic width of a table by summing column

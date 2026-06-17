@@ -873,8 +873,8 @@ Run 'piko agents install' to get started.
 // configure with Piko framework knowledge, then copies the relevant files to each tool's
 // expected location.
 //
-// Takes version (string) which is the Piko CLI version, forwarded to the install targets so
-// the Claude Code target can fetch a matching pikopls.
+// Takes version (string) which is the Piko CLI version, forwarded to the install targets
+// so the Claude Code target can fetch a matching pikopls.
 // Takes arguments ([]string) which holds any command-line flags (currently unused).
 //
 // Returns int which is the exit code: 0 on success, 1 on error or cancellation.

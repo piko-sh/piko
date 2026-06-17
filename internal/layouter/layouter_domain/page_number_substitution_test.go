@@ -22,6 +22,8 @@ package layouter_domain
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type stubFontMetrics struct{}
@@ -68,12 +70,8 @@ func TestSubstitutePageNumbers_ReplacesPagePlaceholder(t *testing.T) {
 
 	SubstitutePageNumbers(root, 5, &stubFontMetrics{})
 
-	if box.Text != "Page 3" {
-		t.Errorf("expected 'Page 3', got %q", box.Text)
-	}
-	if len(box.Glyphs) != 6 {
-		t.Errorf("expected 6 glyphs, got %d", len(box.Glyphs))
-	}
+	assert.Equal(t, "Page 3", box.Text)
+	assert.Len(t, box.Glyphs, 6)
 }
 
 func TestSubstitutePageNumbers_ReplacesPagesPlaceholder(t *testing.T) {
@@ -90,9 +88,7 @@ func TestSubstitutePageNumbers_ReplacesPagesPlaceholder(t *testing.T) {
 
 	SubstitutePageNumbers(root, 10, &stubFontMetrics{})
 
-	if box.Text != "1 of 10" {
-		t.Errorf("expected '1 of 10', got %q", box.Text)
-	}
+	assert.Equal(t, "1 of 10", box.Text)
 }
 
 func TestSubstitutePageNumbers_NoPlaceholderUnchanged(t *testing.T) {
@@ -105,12 +101,8 @@ func TestSubstitutePageNumbers_NoPlaceholderUnchanged(t *testing.T) {
 
 	SubstitutePageNumbers(root, 3, &stubFontMetrics{})
 
-	if box.Text != "Hello World" {
-		t.Errorf("expected unchanged text, got %q", box.Text)
-	}
-	if len(box.Glyphs) != 1 {
-		t.Errorf("expected original glyphs, got %d", len(box.Glyphs))
-	}
+	assert.Equal(t, "Hello World", box.Text, "expected unchanged text")
+	assert.Len(t, box.Glyphs, 1, "expected original glyphs")
 }
 
 func TestSubstitutePageNumbers_NestedBoxes(t *testing.T) {
@@ -127,7 +119,5 @@ func TestSubstitutePageNumbers_NestedBoxes(t *testing.T) {
 
 	SubstitutePageNumbers(root, 8, &stubFontMetrics{})
 
-	if inner.Text != "Page 5" {
-		t.Errorf("expected 'Page 5', got %q", inner.Text)
-	}
+	assert.Equal(t, "Page 5", inner.Text)
 }

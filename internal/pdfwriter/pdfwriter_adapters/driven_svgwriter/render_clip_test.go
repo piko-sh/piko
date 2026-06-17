@@ -23,6 +23,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 )
 
@@ -47,19 +49,12 @@ func TestRenderSVG_ClipPath(t *testing.T) {
 		</g>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "W n") {
-		t.Error("expected clip operator 'W n' in output")
-	}
-
-	if !strings.Contains(output, "re") {
-		t.Error("expected rectangle within clipped group")
-	}
+	assert.Contains(t, output, "W n", "expected clip operator 'W n' in output")
+	assert.Contains(t, output, "re", "expected rectangle within clipped group")
 }
 
 func TestRenderSVG_ClipPathEvenOdd(t *testing.T) {
@@ -83,14 +78,10 @@ func TestRenderSVG_ClipPathEvenOdd(t *testing.T) {
 		</g>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "W* n") {
-		t.Error("expected even-odd clip operator 'W* n' in output")
-	}
+	assert.Contains(t, output, "W* n", "expected even-odd clip operator 'W* n' in output")
 }
 
 func TestRenderSVG_ClipPathWithEllipse(t *testing.T) {
@@ -108,18 +99,12 @@ func TestRenderSVG_ClipPathWithEllipse(t *testing.T) {
 		</g>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if strings.Count(output, " c\n") < 4 {
-		t.Errorf("expected at least 4 curves for ellipse clip, got %d", strings.Count(output, " c\n"))
-	}
-	if !strings.Contains(output, "W n") {
-		t.Error("expected clip operator 'W n' in output")
-	}
+	assert.GreaterOrEqual(t, strings.Count(output, " c\n"), 4, "expected at least 4 curves for ellipse clip")
+	assert.Contains(t, output, "W n", "expected clip operator 'W n' in output")
 }
 
 func TestRenderSVG_ClipPathWithPolygon(t *testing.T) {
@@ -137,24 +122,14 @@ func TestRenderSVG_ClipPathWithPolygon(t *testing.T) {
 		</g>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "m\n") {
-		t.Error("expected moveto 'm' for polygon clip path")
-	}
-	if !strings.Contains(output, "l\n") {
-		t.Error("expected lineto 'l' for polygon clip path")
-	}
-	if !strings.Contains(output, "h\n") {
-		t.Error("expected closepath 'h' for polygon clip path")
-	}
-	if !strings.Contains(output, "W n") {
-		t.Error("expected clip operator 'W n' in output")
-	}
+	assert.Contains(t, output, "m\n", "expected moveto 'm' for polygon clip path")
+	assert.Contains(t, output, "l\n", "expected lineto 'l' for polygon clip path")
+	assert.Contains(t, output, "h\n", "expected closepath 'h' for polygon clip path")
+	assert.Contains(t, output, "W n", "expected clip operator 'W n' in output")
 }
 
 func TestRenderSVG_ClipPathWithPath(t *testing.T) {
@@ -172,24 +147,14 @@ func TestRenderSVG_ClipPathWithPath(t *testing.T) {
 		</g>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "m\n") {
-		t.Error("expected moveto for path clip")
-	}
-	if !strings.Contains(output, "l\n") {
-		t.Error("expected lineto for path clip")
-	}
-	if !strings.Contains(output, "h\n") {
-		t.Error("expected closepath for path clip")
-	}
-	if !strings.Contains(output, "W n") {
-		t.Error("expected clip operator 'W n' in output")
-	}
+	assert.Contains(t, output, "m\n", "expected moveto for path clip")
+	assert.Contains(t, output, "l\n", "expected lineto for path clip")
+	assert.Contains(t, output, "h\n", "expected closepath for path clip")
+	assert.Contains(t, output, "W n", "expected clip operator 'W n' in output")
 }
 
 func TestRenderSVG_ClipPathWithUse(t *testing.T) {
@@ -208,18 +173,12 @@ func TestRenderSVG_ClipPathWithUse(t *testing.T) {
 		</g>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "re") {
-		t.Error("expected rectangle operator 're' from <use> clip child")
-	}
-	if !strings.Contains(output, "W n") {
-		t.Error("expected clip operator 'W n' in output")
-	}
+	assert.Contains(t, output, "re", "expected rectangle operator 're' from <use> clip child")
+	assert.Contains(t, output, "W n", "expected clip operator 'W n' in output")
 }
 
 func TestRenderSVG_ClipPathViaInlineStyle(t *testing.T) {
@@ -237,15 +196,11 @@ func TestRenderSVG_ClipPathViaInlineStyle(t *testing.T) {
 		</g>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "W n") {
-		t.Error("expected clip operator 'W n' for inline style clip-path")
-	}
+	assert.Contains(t, output, "W n", "expected clip operator 'W n' for inline style clip-path")
 }
 
 func TestTrimHash(t *testing.T) {
@@ -265,9 +220,7 @@ func TestTrimHash(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := trimHash(tt.input)
-			if got != tt.want {
-				t.Errorf("trimHash(%q) = %q, want %q", tt.input, got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -846,12 +846,14 @@ func (r *typeResolver) addRawDerivedTableToScope(
 	})
 }
 
-// addRawTableValuedFunctionsToScope registers the FROM-clause table-valued functions of
-// an inner subquery (for example json_each(payload) je or generate_series(1, 10) g) into
-// the given scope, so a column or parameter inside an EXISTS, scalar, derived, or
-// predicate subquery that references the function's alias still resolves. Without this a
-// reference such as je.value raised a spurious Q001, because addRawTablesToScope walked
-// only FROM/JOIN/CTE/derived relations and never the table-valued functions.
+// addRawTableValuedFunctionsToScope registers an inner subquery's FROM-clause
+// table-valued functions into the given scope.
+//
+// This covers functions such as json_each(payload) je or generate_series(1, 10) g, so a
+// column or parameter inside an EXISTS, scalar, derived, or predicate subquery that
+// references the function's alias still resolves. Without this a reference such as
+// je.value raised a spurious Q001, because addRawTablesToScope walked only
+// FROM/JOIN/CTE/derived relations and never the table-valued functions.
 //
 // The scope builder stays silent: a function whose columns cannot be resolved is skipped
 // (as an unresolvable FROM relation is), and the alias-count-mismatch diagnostic is

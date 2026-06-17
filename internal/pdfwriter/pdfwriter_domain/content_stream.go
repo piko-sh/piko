@@ -24,6 +24,7 @@ package pdfwriter_domain
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -411,6 +412,9 @@ func (stream *ContentStream) String() string {
 //
 // Returns string which holds the formatted representation.
 func formatFloat(value float64) string {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return "0"
+	}
 	if value == float64(int64(value)) {
 		return fmt.Sprintf("%d", int64(value))
 	}

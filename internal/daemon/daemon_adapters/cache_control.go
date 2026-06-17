@@ -60,7 +60,7 @@ func cacheControlForMode(disableHTTPCache bool, prodValue string) string {
 }
 
 // isCosmeticMediaVariant reports whether a stable-URL variant is an image whose staleness
-// is merely cosmetic, letting it use the bounded mutable-asset tier rather than
+// has only cosmetic impact, letting it use the bounded mutable-asset tier rather than
 // must-revalidate.
 //
 // Takes variant (*registry_dto.Variant) which is the variant being served.

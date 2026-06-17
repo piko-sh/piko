@@ -24,6 +24,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
@@ -60,10 +62,7 @@ func TestPaintText_EmptyTextSkipped(t *testing.T) {
 
 	painter.paintText(&stream, box)
 
-	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream for empty text, got %q", got)
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream for empty text")
 }
 
 func TestPaintText_NonTextBoxSkipped(t *testing.T) {
@@ -79,10 +78,7 @@ func TestPaintText_NonTextBoxSkipped(t *testing.T) {
 
 	painter.paintText(&stream, box)
 
-	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream for non-text box, got %q", got)
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream for non-text box")
 }
 
 func TestPaintText_ListMarkerIsPainted(t *testing.T) {
@@ -210,10 +206,7 @@ func TestPaintTextDecorations_NoDecorationSkipped(t *testing.T) {
 
 	painter.paintTextDecorations(&stream, box)
 
-	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream with no decoration, got %q", got)
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream with no decoration")
 }
 
 func TestPaintTextDecorations_EmptyTextSkipped(t *testing.T) {
@@ -230,10 +223,7 @@ func TestPaintTextDecorations_EmptyTextSkipped(t *testing.T) {
 
 	painter.paintTextDecorations(&stream, box)
 
-	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream for empty text, got %q", got)
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream for empty text")
 }
 
 func TestPaintTextDecorations_CustomDecorationColour(t *testing.T) {
@@ -268,9 +258,7 @@ func TestDrawDecorationLine_Solid(t *testing.T) {
 	requireStreamContains(t, &stream, "l")
 	requireStreamContains(t, &stream, "S")
 
-	if strings.Contains(got, " d") {
-		t.Error("solid decoration should not set dash pattern")
-	}
+	assert.NotContains(t, got, " d", "solid decoration should not set dash pattern")
 }
 
 func TestDrawDecorationLine_Dashed(t *testing.T) {
@@ -309,9 +297,7 @@ func TestDrawDecorationLine_Double(t *testing.T) {
 	got := stream.String()
 
 	strokeCount := strings.Count(got, "\nS\n") + strings.Count(got, " S\n")
-	if strokeCount < 2 {
-		t.Errorf("double decoration expected at least 2 strokes, got %d", strokeCount)
-	}
+	assert.GreaterOrEqual(t, strokeCount, 2, "double decoration expected at least 2 strokes")
 
 	requireStreamContains(t, &stream, "1 w")
 }
@@ -337,9 +323,7 @@ func TestExtractSrcAttribute_Found(t *testing.T) {
 		Build()
 
 	got := extractSrcAttribute(box)
-	if got != "photo.jpg" {
-		t.Errorf("expected photo.jpg, got %q", got)
-	}
+	assert.Equal(t, "photo.jpg", got)
 }
 
 func TestExtractSrcAttribute_NoSrc(t *testing.T) {
@@ -351,9 +335,7 @@ func TestExtractSrcAttribute_NoSrc(t *testing.T) {
 		Build()
 
 	got := extractSrcAttribute(box)
-	if got != "" {
-		t.Errorf("expected empty string, got %q", got)
-	}
+	assert.Equal(t, "", got)
 }
 
 func TestExtractSrcAttribute_NilSourceNode(t *testing.T) {
@@ -364,9 +346,7 @@ func TestExtractSrcAttribute_NilSourceNode(t *testing.T) {
 		Build()
 
 	got := extractSrcAttribute(box)
-	if got != "" {
-		t.Errorf("expected empty string, got %q", got)
-	}
+	assert.Equal(t, "", got)
 }
 
 func TestPaintImage_NonReplacedBoxSkipped(t *testing.T) {
@@ -381,10 +361,7 @@ func TestPaintImage_NonReplacedBoxSkipped(t *testing.T) {
 
 	painter.paintImage(nil, &stream, box)
 
-	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream for non-replaced box, got %q", got)
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream for non-replaced box")
 }
 
 func TestPaintImage_NilSourceNodeSkipped(t *testing.T) {
@@ -399,10 +376,7 @@ func TestPaintImage_NilSourceNodeSkipped(t *testing.T) {
 
 	painter.paintImage(nil, &stream, box)
 
-	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream for nil source node, got %q", got)
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream for nil source node")
 }
 
 func TestPaintImage_NoSrcAttributeSkipped(t *testing.T) {
@@ -418,10 +392,7 @@ func TestPaintImage_NoSrcAttributeSkipped(t *testing.T) {
 
 	painter.paintImage(nil, &stream, box)
 
-	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream without src attribute, got %q", got)
-	}
+	assert.Equal(t, "", stream.String(), "expected empty stream without src attribute")
 }
 
 func TestEmitWavyLine_ProducesCurves(t *testing.T) {

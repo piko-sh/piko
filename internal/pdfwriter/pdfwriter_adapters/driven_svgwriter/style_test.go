@@ -21,6 +21,9 @@ package driven_svgwriter
 import (
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveStyle_FillOpacity(t *testing.T) {
@@ -43,9 +46,7 @@ func TestResolveStyle_FillOpacity(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"fill-opacity": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if math.Abs(s.FillOpacity-tt.want) > 1e-9 {
-				t.Errorf("FillOpacity = %v, want %v", s.FillOpacity, tt.want)
-			}
+			assert.InDelta(t, tt.want, s.FillOpacity, 1e-9)
 		})
 	}
 }
@@ -68,9 +69,7 @@ func TestResolveStyle_FillRule(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"fill-rule": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if s.FillRule != tt.want {
-				t.Errorf("FillRule = %q, want %q", s.FillRule, tt.want)
-			}
+			assert.Equal(t, tt.want, s.FillRule)
 		})
 	}
 }
@@ -79,9 +78,7 @@ func TestResolveStyle_StrokeWidth(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"stroke-width": "3.5"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if math.Abs(s.StrokeWidth-3.5) > 1e-9 {
-		t.Errorf("StrokeWidth = %v, want 3.5", s.StrokeWidth)
-	}
+	assert.InDelta(t, 3.5, s.StrokeWidth, 1e-9)
 }
 
 func TestResolveStyle_StrokeLineCap(t *testing.T) {
@@ -103,9 +100,7 @@ func TestResolveStyle_StrokeLineCap(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"stroke-linecap": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if s.StrokeLineCap != tt.want {
-				t.Errorf("StrokeLineCap = %q, want %q", s.StrokeLineCap, tt.want)
-			}
+			assert.Equal(t, tt.want, s.StrokeLineCap)
 		})
 	}
 }
@@ -129,9 +124,7 @@ func TestResolveStyle_StrokeLineJoin(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"stroke-linejoin": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if s.StrokeLineJoin != tt.want {
-				t.Errorf("StrokeLineJoin = %q, want %q", s.StrokeLineJoin, tt.want)
-			}
+			assert.Equal(t, tt.want, s.StrokeLineJoin)
 		})
 	}
 }
@@ -140,9 +133,7 @@ func TestResolveStyle_StrokeMitreLimit(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"stroke-miterlimit": "8"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if math.Abs(s.StrokeMitreLimit-8) > 1e-9 {
-		t.Errorf("StrokeMitreLimit = %v, want 8", s.StrokeMitreLimit)
-	}
+	assert.InDelta(t, 8.0, s.StrokeMitreLimit, 1e-9)
 }
 
 func TestResolveStyle_StrokeDashArray(t *testing.T) {
@@ -150,13 +141,9 @@ func TestResolveStyle_StrokeDashArray(t *testing.T) {
 	node := &Node{Attrs: map[string]string{"stroke-dasharray": "5,10,15"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
 	want := []float64{5, 10, 15}
-	if len(s.StrokeDashArray) != len(want) {
-		t.Fatalf("StrokeDashArray length = %d, want %d", len(s.StrokeDashArray), len(want))
-	}
+	require.Len(t, s.StrokeDashArray, len(want))
 	for i, v := range want {
-		if math.Abs(s.StrokeDashArray[i]-v) > 1e-9 {
-			t.Errorf("StrokeDashArray[%d] = %v, want %v", i, s.StrokeDashArray[i], v)
-		}
+		assert.InDelta(t, v, s.StrokeDashArray[i], 1e-9, "StrokeDashArray[%d]", i)
 	}
 }
 
@@ -167,36 +154,28 @@ func TestResolveStyle_StrokeDashArrayNone(t *testing.T) {
 	parent.StrokeDashArray = []float64{1, 2}
 	node := &Node{Attrs: map[string]string{"stroke-dasharray": "none"}}
 	s := ResolveStyle(node, &parent)
-	if s.StrokeDashArray != nil {
-		t.Errorf("StrokeDashArray = %v, want nil for 'none'", s.StrokeDashArray)
-	}
+	assert.Nil(t, s.StrokeDashArray, "StrokeDashArray want nil for 'none'")
 }
 
 func TestResolveStyle_StrokeDashOffset(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"stroke-dashoffset": "3.5"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if math.Abs(s.StrokeDashOffset-3.5) > 1e-9 {
-		t.Errorf("StrokeDashOffset = %v, want 3.5", s.StrokeDashOffset)
-	}
+	assert.InDelta(t, 3.5, s.StrokeDashOffset, 1e-9)
 }
 
 func TestResolveStyle_Opacity(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"opacity": "0.7"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if math.Abs(s.Opacity-0.7) > 1e-9 {
-		t.Errorf("Opacity = %v, want 0.7", s.Opacity)
-	}
+	assert.InDelta(t, 0.7, s.Opacity, 1e-9)
 }
 
 func TestResolveStyle_DisplayNone(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"display": "none"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.Display != "none" {
-		t.Errorf("Display = %q, want %q", s.Display, "none")
-	}
+	assert.Equal(t, "none", s.Display)
 }
 
 func TestResolveStyle_Visibility(t *testing.T) {
@@ -218,9 +197,7 @@ func TestResolveStyle_Visibility(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"visibility": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if s.Visibility != tt.want {
-				t.Errorf("Visibility = %q, want %q", s.Visibility, tt.want)
-			}
+			assert.Equal(t, tt.want, s.Visibility)
 		})
 	}
 }
@@ -229,18 +206,14 @@ func TestResolveStyle_Color(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"color": "#ff0000"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if math.Abs(s.Colour.R-1.0) > 0.01 || s.Colour.G > 0.01 || s.Colour.B > 0.01 {
-		t.Errorf("Color = (%v,%v,%v), want ~(1,0,0)", s.Colour.R, s.Colour.G, s.Colour.B)
-	}
+	assert.True(t, math.Abs(s.Colour.R-1.0) <= 0.01 && s.Colour.G <= 0.01 && s.Colour.B <= 0.01, "Color want ~(1,0,0)")
 }
 
 func TestResolveStyle_FontFamily(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"font-family": "Helvetica"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.FontFamily != "Helvetica" {
-		t.Errorf("FontFamily = %q, want %q", s.FontFamily, "Helvetica")
-	}
+	assert.Equal(t, "Helvetica", s.FontFamily)
 }
 
 func TestResolveStyle_FontSize(t *testing.T) {
@@ -261,9 +234,7 @@ func TestResolveStyle_FontSize(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"font-size": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if math.Abs(s.FontSize-tt.want) > 1e-9 {
-				t.Errorf("FontSize = %v, want %v", s.FontSize, tt.want)
-			}
+			assert.InDelta(t, tt.want, s.FontSize, 1e-9)
 		})
 	}
 }
@@ -272,18 +243,14 @@ func TestResolveStyle_FontWeight(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"font-weight": "bold"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.FontWeight != "bold" {
-		t.Errorf("FontWeight = %q, want %q", s.FontWeight, "bold")
-	}
+	assert.Equal(t, "bold", s.FontWeight)
 }
 
 func TestResolveStyle_FontStyle(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"font-style": "italic"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.FontStyle != "italic" {
-		t.Errorf("FontStyle = %q, want %q", s.FontStyle, "italic")
-	}
+	assert.Equal(t, "italic", s.FontStyle)
 }
 
 func TestResolveStyle_TextAnchor(t *testing.T) {
@@ -305,9 +272,7 @@ func TestResolveStyle_TextAnchor(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"text-anchor": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if s.TextAnchor != tt.want {
-				t.Errorf("TextAnchor = %q, want %q", s.TextAnchor, tt.want)
-			}
+			assert.Equal(t, tt.want, s.TextAnchor)
 		})
 	}
 }
@@ -335,9 +300,7 @@ func TestResolveStyle_DominantBaseline(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"dominant-baseline": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if s.DominantBaseline != tt.want {
-				t.Errorf("DominantBaseline = %q, want %q", s.DominantBaseline, tt.want)
-			}
+			assert.Equal(t, tt.want, s.DominantBaseline)
 		})
 	}
 }
@@ -361,9 +324,7 @@ func TestResolveStyle_LetterSpacing(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"letter-spacing": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if math.Abs(s.LetterSpacing-tt.want) > 1e-9 {
-				t.Errorf("LetterSpacing = %v, want %v", s.LetterSpacing, tt.want)
-			}
+			assert.InDelta(t, tt.want, s.LetterSpacing, 1e-9)
 		})
 	}
 }
@@ -386,9 +347,7 @@ func TestResolveStyle_WordSpacing(t *testing.T) {
 			t.Parallel()
 			node := &Node{Attrs: map[string]string{"word-spacing": tt.val}}
 			s := ResolveStyle(node, new(DefaultStyle()))
-			if math.Abs(s.WordSpacing-tt.want) > 1e-9 {
-				t.Errorf("WordSpacing = %v, want %v", s.WordSpacing, tt.want)
-			}
+			assert.InDelta(t, tt.want, s.WordSpacing, 1e-9)
 		})
 	}
 }
@@ -400,19 +359,11 @@ func TestResolveStyle_InlineStyle(t *testing.T) {
 	}}
 	s := ResolveStyle(node, new(DefaultStyle()))
 
-	if s.Fill == nil {
-		t.Fatal("Fill is nil, want red")
-	}
-	if math.Abs(s.Fill.R-1.0) > 0.01 || s.Fill.G > 0.01 || s.Fill.B > 0.01 {
-		t.Errorf("Fill = (%v,%v,%v), want ~(1,0,0)", s.Fill.R, s.Fill.G, s.Fill.B)
-	}
+	require.NotNil(t, s.Fill, "Fill is nil, want red")
+	assert.True(t, math.Abs(s.Fill.R-1.0) <= 0.01 && s.Fill.G <= 0.01 && s.Fill.B <= 0.01, "Fill want ~(1,0,0)")
 
-	if s.Stroke == nil {
-		t.Fatal("Stroke is nil, want blue")
-	}
-	if s.Stroke.R > 0.01 || s.Stroke.G > 0.01 || math.Abs(s.Stroke.B-1.0) > 0.01 {
-		t.Errorf("Stroke = (%v,%v,%v), want ~(0,0,1)", s.Stroke.R, s.Stroke.G, s.Stroke.B)
-	}
+	require.NotNil(t, s.Stroke, "Stroke is nil, want blue")
+	assert.True(t, s.Stroke.R <= 0.01 && s.Stroke.G <= 0.01 && math.Abs(s.Stroke.B-1.0) <= 0.01, "Stroke want ~(0,0,1)")
 }
 
 func TestResolveStyle_InlineStyleOverridesAttribute(t *testing.T) {
@@ -422,30 +373,22 @@ func TestResolveStyle_InlineStyleOverridesAttribute(t *testing.T) {
 		"style": "fill:blue",
 	}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.Fill == nil {
-		t.Fatal("Fill is nil, want blue")
-	}
-	if s.Fill.R > 0.01 || s.Fill.G > 0.01 || math.Abs(s.Fill.B-1.0) > 0.01 {
-		t.Errorf("Fill = (%v,%v,%v), want ~(0,0,1) from inline override", s.Fill.R, s.Fill.G, s.Fill.B)
-	}
+	require.NotNil(t, s.Fill, "Fill is nil, want blue")
+	assert.True(t, s.Fill.R <= 0.01 && s.Fill.G <= 0.01 && math.Abs(s.Fill.B-1.0) <= 0.01, "Fill want ~(0,0,1) from inline override")
 }
 
 func TestResolveStyle_NilNode(t *testing.T) {
 	t.Parallel()
 	s := ResolveStyle(nil, new(DefaultStyle()))
 
-	if s.FillRule != "nonzero" {
-		t.Errorf("FillRule = %q, want %q", s.FillRule, "nonzero")
-	}
+	assert.Equal(t, "nonzero", s.FillRule)
 }
 
 func TestResolveStyle_NilAttrs(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: nil}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.FillRule != "nonzero" {
-		t.Errorf("FillRule = %q, want %q", s.FillRule, "nonzero")
-	}
+	assert.Equal(t, "nonzero", s.FillRule)
 }
 
 func TestResolveStyle_NonInheritedReset(t *testing.T) {
@@ -459,18 +402,10 @@ func TestResolveStyle_NonInheritedReset(t *testing.T) {
 	node := &Node{Attrs: map[string]string{}}
 	s := ResolveStyle(node, &parent)
 
-	if math.Abs(s.Opacity-1.0) > 1e-9 {
-		t.Errorf("Opacity = %v, want 1 (reset)", s.Opacity)
-	}
-	if s.Display != "inline" {
-		t.Errorf("Display = %q, want %q (reset)", s.Display, "inline")
-	}
-	if s.StrokeDashArray != nil {
-		t.Errorf("StrokeDashArray = %v, want nil (reset)", s.StrokeDashArray)
-	}
-	if s.StrokeDashOffset != 0 {
-		t.Errorf("StrokeDashOffset = %v, want 0 (reset)", s.StrokeDashOffset)
-	}
+	assert.InDelta(t, 1.0, s.Opacity, 1e-9, "Opacity want 1 (reset)")
+	assert.Equal(t, "inline", s.Display, "Display want inline (reset)")
+	assert.Nil(t, s.StrokeDashArray, "StrokeDashArray want nil (reset)")
+	assert.Equal(t, 0.0, s.StrokeDashOffset, "StrokeDashOffset want 0 (reset)")
 }
 
 func TestParseDashArray(t *testing.T) {
@@ -494,18 +429,12 @@ func TestParseDashArray(t *testing.T) {
 			t.Parallel()
 			got := parseDashArray(tt.in)
 			if tt.want == nil {
-				if got != nil {
-					t.Errorf("parseDashArray(%q) = %v, want nil", tt.in, got)
-				}
+				assert.Nil(t, got)
 				return
 			}
-			if len(got) != len(tt.want) {
-				t.Fatalf("parseDashArray(%q) length = %d, want %d", tt.in, len(got), len(tt.want))
-			}
+			require.Len(t, got, len(tt.want))
 			for i, v := range tt.want {
-				if math.Abs(got[i]-v) > 1e-9 {
-					t.Errorf("parseDashArray(%q)[%d] = %v, want %v", tt.in, i, got[i], v)
-				}
+				assert.InDelta(t, v, got[i], 1e-9, "parseDashArray(%q)[%d]", tt.in, i)
 			}
 		})
 	}
@@ -555,13 +484,11 @@ func TestParseInlineStyle(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := parseInlineStyle(tt.in)
-			if len(got) != len(tt.want) {
-				t.Fatalf("parseInlineStyle(%q) = %v, want %v", tt.in, got, tt.want)
-			}
+			require.Len(t, got, len(tt.want))
 			for k, wantV := range tt.want {
-				if gotV, ok := got[k]; !ok || gotV != wantV {
-					t.Errorf("parseInlineStyle(%q)[%q] = %q, want %q", tt.in, k, gotV, wantV)
-				}
+				gotV, ok := got[k]
+				assert.True(t, ok, "parseInlineStyle(%q) missing key %q", tt.in, k)
+				assert.Equal(t, wantV, gotV, "parseInlineStyle(%q)[%q]", tt.in, k)
 			}
 		})
 	}
@@ -571,9 +498,7 @@ func TestResolveStyle_FillNone(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"fill": "none"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.Fill != nil {
-		t.Errorf("Fill = %v, want nil for fill=none", s.Fill)
-	}
+	assert.Nil(t, s.Fill, "Fill want nil for fill=none")
 }
 
 func TestResolveStyle_StrokeNone(t *testing.T) {
@@ -582,115 +507,65 @@ func TestResolveStyle_StrokeNone(t *testing.T) {
 	parent.Stroke = &Colour{R: 1, G: 0, B: 0, A: 1}
 	node := &Node{Attrs: map[string]string{"stroke": "none"}}
 	s := ResolveStyle(node, &parent)
-	if s.Stroke != nil {
-		t.Errorf("Stroke = %v, want nil for stroke=none", s.Stroke)
-	}
+	assert.Nil(t, s.Stroke, "Stroke want nil for stroke=none")
 }
 
 func TestResolveStyle_StrokeColour(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"stroke": "#00ff00"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.Stroke == nil {
-		t.Fatal("Stroke is nil, want green")
-	}
-	if s.Stroke.R > 0.01 || math.Abs(s.Stroke.G-1.0) > 0.01 || s.Stroke.B > 0.01 {
-		t.Errorf("Stroke = (%v,%v,%v), want ~(0,1,0)", s.Stroke.R, s.Stroke.G, s.Stroke.B)
-	}
+	require.NotNil(t, s.Stroke, "Stroke is nil, want green")
+	assert.True(t, s.Stroke.R <= 0.01 && math.Abs(s.Stroke.G-1.0) <= 0.01 && s.Stroke.B <= 0.01, "Stroke want ~(0,1,0)")
 }
 
 func TestResolveStyle_StrokeOpacity(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"stroke-opacity": "0.3"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if math.Abs(s.StrokeOpacity-0.3) > 1e-9 {
-		t.Errorf("StrokeOpacity = %v, want 0.3", s.StrokeOpacity)
-	}
+	assert.InDelta(t, 0.3, s.StrokeOpacity, 1e-9)
 }
 
 func TestResolveStyle_TextDecoration(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"text-decoration": "underline"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.TextDecoration != "underline" {
-		t.Errorf("TextDecoration = %q, want %q", s.TextDecoration, "underline")
-	}
+	assert.Equal(t, "underline", s.TextDecoration)
 }
 
 func TestResolveStyle_FillURLRef(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"fill": "url(#grad1)"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.FillRef != "grad1" {
-		t.Errorf("FillRef = %q, want %q", s.FillRef, "grad1")
-	}
+	assert.Equal(t, "grad1", s.FillRef)
 }
 
 func TestResolveStyle_StrokeURLRef(t *testing.T) {
 	t.Parallel()
 	node := &Node{Attrs: map[string]string{"stroke": "url(#grad2)"}}
 	s := ResolveStyle(node, new(DefaultStyle()))
-	if s.StrokeRef != "grad2" {
-		t.Errorf("StrokeRef = %q, want %q", s.StrokeRef, "grad2")
-	}
+	assert.Equal(t, "grad2", s.StrokeRef)
 }
 
 func TestDefaultStyle(t *testing.T) {
 	t.Parallel()
 	s := DefaultStyle()
 
-	if s.Fill == nil {
-		t.Fatal("Fill is nil, want black")
-	}
-	if s.Fill.R != 0 || s.Fill.G != 0 || s.Fill.B != 0 || s.Fill.A != 1 {
-		t.Errorf("Fill = (%v,%v,%v,%v), want (0,0,0,1)", s.Fill.R, s.Fill.G, s.Fill.B, s.Fill.A)
-	}
-	if math.Abs(s.FillOpacity-1) > 1e-9 {
-		t.Errorf("FillOpacity = %v, want 1", s.FillOpacity)
-	}
-	if s.FillRule != "nonzero" {
-		t.Errorf("FillRule = %q, want %q", s.FillRule, "nonzero")
-	}
-	if math.Abs(s.StrokeOpacity-1) > 1e-9 {
-		t.Errorf("StrokeOpacity = %v, want 1", s.StrokeOpacity)
-	}
-	if math.Abs(s.StrokeWidth-1) > 1e-9 {
-		t.Errorf("StrokeWidth = %v, want 1", s.StrokeWidth)
-	}
-	if s.StrokeLineCap != "butt" {
-		t.Errorf("StrokeLineCap = %q, want %q", s.StrokeLineCap, "butt")
-	}
-	if s.StrokeLineJoin != "miter" {
-		t.Errorf("StrokeLineJoin = %q, want %q", s.StrokeLineJoin, "miter")
-	}
-	if math.Abs(s.StrokeMitreLimit-4) > 1e-9 {
-		t.Errorf("StrokeMitreLimit = %v, want 4", s.StrokeMitreLimit)
-	}
-	if math.Abs(s.Opacity-1) > 1e-9 {
-		t.Errorf("Opacity = %v, want 1", s.Opacity)
-	}
-	if s.Display != "inline" {
-		t.Errorf("Display = %q, want %q", s.Display, "inline")
-	}
-	if s.Visibility != "visible" {
-		t.Errorf("Visibility = %q, want %q", s.Visibility, "visible")
-	}
-	if s.FontFamily != "sans-serif" {
-		t.Errorf("FontFamily = %q, want %q", s.FontFamily, "sans-serif")
-	}
-	if math.Abs(s.FontSize-16) > 1e-9 {
-		t.Errorf("FontSize = %v, want 16", s.FontSize)
-	}
-	if s.FontWeight != "normal" {
-		t.Errorf("FontWeight = %q, want %q", s.FontWeight, "normal")
-	}
-	if s.FontStyle != "normal" {
-		t.Errorf("FontStyle = %q, want %q", s.FontStyle, "normal")
-	}
-	if s.TextAnchor != "start" {
-		t.Errorf("TextAnchor = %q, want %q", s.TextAnchor, "start")
-	}
-	if s.DominantBaseline != "auto" {
-		t.Errorf("DominantBaseline = %q, want %q", s.DominantBaseline, "auto")
-	}
+	require.NotNil(t, s.Fill, "Fill is nil, want black")
+	assert.True(t, s.Fill.R == 0 && s.Fill.G == 0 && s.Fill.B == 0 && s.Fill.A == 1, "Fill want (0,0,0,1)")
+	assert.InDelta(t, 1.0, s.FillOpacity, 1e-9)
+	assert.Equal(t, "nonzero", s.FillRule)
+	assert.InDelta(t, 1.0, s.StrokeOpacity, 1e-9)
+	assert.InDelta(t, 1.0, s.StrokeWidth, 1e-9)
+	assert.Equal(t, "butt", s.StrokeLineCap)
+	assert.Equal(t, "miter", s.StrokeLineJoin)
+	assert.InDelta(t, 4.0, s.StrokeMitreLimit, 1e-9)
+	assert.InDelta(t, 1.0, s.Opacity, 1e-9)
+	assert.Equal(t, "inline", s.Display)
+	assert.Equal(t, "visible", s.Visibility)
+	assert.Equal(t, "sans-serif", s.FontFamily)
+	assert.InDelta(t, 16.0, s.FontSize, 1e-9)
+	assert.Equal(t, "normal", s.FontWeight)
+	assert.Equal(t, "normal", s.FontStyle)
+	assert.Equal(t, "start", s.TextAnchor)
+	assert.Equal(t, "auto", s.DominantBaseline)
 }

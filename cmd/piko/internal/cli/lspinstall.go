@@ -40,8 +40,8 @@ import (
 
 const (
 	// binaryName is the language-server executable, both on PATH and inside release
-	// archives. Go names the binary after the cmd/pikopls package's last path segment,
-	// so `go install piko.sh/piko/cmd/pikopls@latest` produces a `pikopls` binary directly.
+	// archives. Go names the binary after the cmd/pikopls package's last path segment, so
+	// `go install piko.sh/piko/cmd/pikopls@latest` produces a `pikopls` binary directly.
 	binaryName = "pikopls"
 
 	// downloadTimeout bounds the archive download. Release binaries are tens of megabytes,
@@ -66,6 +66,8 @@ var (
 )
 
 // EnsureInstalled guarantees pikopls is available for editors and agents to launch.
+//
+// Takes version (string) which is the running CLI version used to pick the release asset.
 //
 // Returns string which is a human-readable, single-line status describing what happened.
 // It never reports a hard failure: the plugin still works once the user installs the
@@ -136,8 +138,10 @@ func currentPlatform() (platform, error) {
 	return platform{os: osToken, arch: archToken, archiveExt: ext, binaryFile: binFile}, nil
 }
 
-// assetName builds the release-asset filename for a version on a platform. The version is
-// embedded without a leading "v" (e.g. pikopls-0.0.0-alpha.26-linux-amd64.tar.gz).
+// assetName builds the release-asset filename for a version on a platform.
+//
+// The version is embedded without a leading "v" (e.g.
+// pikopls-0.0.0-alpha.26-linux-amd64.tar.gz).
 //
 // Takes version (string) which is the release version without a leading "v".
 // Takes plat (platform) which holds the host asset tokens.
@@ -148,8 +152,8 @@ func assetName(version string, plat platform) string {
 }
 
 // fetchBinary downloads and extracts the pikopls executable, trying the exact CLI version
-// first and falling back to the latest published release (covering development builds whose
-// version was never released).
+// first and falling back to the latest published release (covering development builds
+// whose version was never released).
 //
 // Takes ctx (context.Context) which bounds the network operations.
 // Takes version (string) which is the running CLI version (with or without "v").

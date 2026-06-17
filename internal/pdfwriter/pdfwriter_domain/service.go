@@ -45,6 +45,12 @@ type pdfWriterService struct {
 	// page number substitution is not needed.
 	fontMetrics layouter_domain.FontMetricsPort
 
+	// svgWriter renders SVGs as native PDF vector commands. May be nil.
+	svgWriter SVGWriterPort
+
+	// svgData provides raw SVG markup for src-based SVG sources. May be nil.
+	svgData SVGDataPort
+
 	// fontEntries holds the fonts available for embedding in PDF output.
 	fontEntries []layouter_dto.FontEntry
 }
@@ -52,6 +58,25 @@ type pdfWriterService struct {
 var (
 	_ PdfWriterService = (*pdfWriterService)(nil)
 )
+
+// PdfServiceOption configures optional behaviour on a pdfWriterService.
+type PdfServiceOption func(*pdfWriterService)
+
+// WithSVGRenderer enables native SVG-to-PDF vector rendering.
+//
+// The writer paints SVG markup; the data port resolves src-based SVG sources (e.g. data:
+// URIs).
+//
+// Takes writer (SVGWriterPort) which paints SVG documents as PDF vectors.
+// Takes data (SVGDataPort) which provides raw SVG markup for src-based sources.
+//
+// Returns PdfServiceOption which applies the configuration.
+func WithSVGRenderer(writer SVGWriterPort, data SVGDataPort) PdfServiceOption {
+	return func(s *pdfWriterService) {
+		s.svgWriter = writer
+		s.svgData = data
+	}
+}
 
 // NewPdfWriterService creates a new PDF writer service.
 //
@@ -72,14 +97,19 @@ func NewPdfWriterService(
 	fontEntries []layouter_dto.FontEntry,
 	imageData ImageDataPort,
 	fontMetrics layouter_domain.FontMetricsPort,
+	opts ...PdfServiceOption,
 ) PdfWriterService {
-	return &pdfWriterService{
+	service := &pdfWriterService{
 		templateRunner: templateRunner,
 		layouter:       layouter,
 		fontEntries:    fontEntries,
 		imageData:      imageData,
 		fontMetrics:    fontMetrics,
 	}
+	for _, opt := range opts {
+		opt(service)
+	}
+	return service
 }
 
 // NewRender creates a RenderBuilder for composing a PDF render operation using a fluent
@@ -89,7 +119,10 @@ func NewPdfWriterService(
 // it via Do(ctx).
 func (s *pdfWriterService) NewRender() *RenderBuilder {
 	return &RenderBuilder{
-		service: s,
+		service:   s,
+		svgWriter: s.svgWriter,
+		svgData:   s.svgData,
+		tagged:    true,
 	}
 }
 
@@ -133,13 +166,19 @@ func (s *pdfWriterService) Render(
 		Stylesheets:       config.Stylesheets,
 	}
 
+	layoutConfig.Page = applyPageCSS(styling, layoutConfig.Page)
+
 	layoutResult, err := s.layouter.Layout(ctx, templateAST, styling, layoutConfig)
 	if err != nil {
 		l.ReportError(span, err, "Layout failed for PDF template")
 		return nil, fmt.Errorf("layout failed for PDF template '%s': %w", templatePath, err)
 	}
 
-	painter := NewPdfPainter(config.Page.Width, config.Page.Height, s.fontEntries, s.imageData)
+	painter := NewPdfPainter(layoutConfig.Page.Width, layoutConfig.Page.Height, s.fontEntries, s.imageData)
+	if s.svgWriter != nil {
+		painter.setSVGWriter(s.svgWriter, s.svgData)
+	}
+	painter.setPageMargins(layoutConfig.Page.MarginLeft, layoutConfig.Page.MarginTop, layoutConfig.Page.ContentAreaHeight())
 
 	var buffer bytes.Buffer
 	if err := painter.Paint(ctx, layoutResult, &buffer); err != nil {

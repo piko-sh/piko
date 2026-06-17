@@ -25,6 +25,17 @@ import (
 	"strings"
 )
 
+// nameTreePair is a single entry in a PDF name tree, pairing an already-encoded key
+// string with its serialised PDF value.
+type nameTreePair struct {
+	// key holds the PDF string used as the lookup name, already delimited by
+	// encodePdfTextString.
+	key string
+
+	// value holds the serialised PDF value associated with the key.
+	value string
+}
+
 // buildNamedDestsDict writes a /Dests name tree for internal link targets and returns the
 // catalogue entry string.
 //
@@ -52,25 +63,42 @@ func (painter *PdfPainter) buildNamedDestsDict(writer *PdfDocumentWriter, pageOb
 	}
 	painter.namedDests = unique
 
-	var names strings.Builder
-	names.WriteByte('[')
-	for i, dest := range painter.namedDests {
-		if i > 0 {
-			names.WriteByte(' ')
-		}
+	pairs := make([]nameTreePair, 0, len(painter.namedDests))
+	for _, dest := range painter.namedDests {
 		pageRef := ""
 		if dest.pageIndex >= 0 && dest.pageIndex < len(pageObjNumbers) {
 			pageRef = FormatReference(pageObjNumbers[dest.pageIndex])
 		}
-		escapedName := pdfEscapeString(dest.name)
-		fmt.Fprintf(&names, "(%s) [%s /XYZ 0 %s null]",
-			escapedName, pageRef, FormatNumber(dest.y))
+		value := fmt.Sprintf("[%s /XYZ 0 %s null]", pageRef, FormatNumber(dest.y))
+		pairs = append(pairs, nameTreePair{key: encodePdfTextString(dest.name), value: value})
+	}
+
+	destsNumber := buildNameTreeDict(writer, pairs)
+	return fmt.Sprintf(" /Dests %s", FormatReference(destsNumber))
+}
+
+// buildNameTreeDict writes a single-node PDF name tree object from the given pairs and
+// returns its object number.
+//
+// The caller must sort pairs by key, as the PDF name-tree specification requires. It is
+// shared by the named-destinations and embedded-files trees.
+//
+// Takes writer (*PdfDocumentWriter) which receives the object.
+// Takes pairs ([]nameTreePair) which holds the sorted name/value entries.
+//
+// Returns int which is the allocated object number.
+func buildNameTreeDict(writer *PdfDocumentWriter, pairs []nameTreePair) int {
+	var names strings.Builder
+	names.WriteByte('[')
+	for i, pair := range pairs {
+		if i > 0 {
+			names.WriteByte(' ')
+		}
+		fmt.Fprintf(&names, "%s %s", pair.key, pair.value)
 	}
 	names.WriteByte(']')
 
-	destsNumber := writer.AllocateObject()
-	writer.WriteObject(destsNumber, fmt.Sprintf(
-		"<< /Names %s >>", names.String()))
-
-	return fmt.Sprintf(" /Dests %s", FormatReference(destsNumber))
+	number := writer.AllocateObject()
+	writer.WriteObject(number, fmt.Sprintf("<< /Names %s >>", names.String()))
+	return number
 }

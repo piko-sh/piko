@@ -47,6 +47,22 @@ type Config = pdfwriter_dto.PdfConfig
 // Metadata holds optional PDF info dictionary fields.
 type Metadata = pdfwriter_domain.PdfMetadata
 
+// StructuredMetadata holds machine-readable structured metadata (such as schema.org
+// JSON-LD) embedded into the document's XMP packet.
+type StructuredMetadata = pdfwriter_domain.StructuredMetadata
+
+// EmbeddedFile describes a machine-readable payload attached to the PDF as an associated
+// file.
+type EmbeddedFile = pdfwriter_domain.EmbeddedFile
+
+// AFRelationship describes how an embedded associated file relates to the visible
+// document.
+type AFRelationship = pdfwriter_domain.AFRelationship
+
+// EmbeddedDataLimits bounds the size and count of machine-readable data a render may
+// embed.
+type EmbeddedDataLimits = pdfwriter_domain.EmbeddedDataLimits
+
 // ViewerPreferences configures how PDF viewers display the document.
 type ViewerPreferences = pdfwriter_domain.ViewerPreferences
 
@@ -138,6 +154,32 @@ const (
 	// PdfA2A is PDF/A-2a conformance (accessible, auto-enables tagged PDF).
 	PdfA2A = pdfwriter_domain.PdfA2A
 
+	// PdfA3B is PDF/A-3b conformance (basic, permits embedded associated files).
+	PdfA3B = pdfwriter_domain.PdfA3B
+
+	// PdfA3U is PDF/A-3u conformance (Unicode, permits embedded associated files).
+	PdfA3U = pdfwriter_domain.PdfA3U
+
+	// PdfA3A is PDF/A-3a conformance (accessible, auto-enables tagged PDF, permits embedded
+	// associated files).
+	PdfA3A = pdfwriter_domain.PdfA3A
+
+	// AFSource marks an embedded file as the authoritative source the page was rendered
+	// from.
+	AFSource = pdfwriter_domain.AFSource
+
+	// AFData marks an embedded file as data referenced by the document.
+	AFData = pdfwriter_domain.AFData
+
+	// AFAlternative marks an embedded file as an alternative representation of the document.
+	AFAlternative = pdfwriter_domain.AFAlternative
+
+	// AFSupplement marks an embedded file as supplementary material.
+	AFSupplement = pdfwriter_domain.AFSupplement
+
+	// AFUnspecified leaves the embedded file relationship unspecified.
+	AFUnspecified = pdfwriter_domain.AFUnspecified
+
 	// LabelDecimal uses decimal page numbers (1, 2, 3, ...).
 	LabelDecimal = pdfwriter_domain.LabelDecimal
 
@@ -184,6 +226,21 @@ var (
 
 	// PageLetter is the US Letter page size (8.5in x 11in).
 	PageLetter = layouter_dto.PageLetter
+)
+
+var (
+	// ErrTooManyEmbeddedFiles is returned when too many associated files are embedded.
+	ErrTooManyEmbeddedFiles = pdfwriter_domain.ErrTooManyEmbeddedFiles
+
+	// ErrEmbeddedFileTooLarge is returned when an embedded payload is too large.
+	ErrEmbeddedFileTooLarge = pdfwriter_domain.ErrEmbeddedFileTooLarge
+
+	// ErrStructuredMetadataTooLarge is returned when the structured metadata is too large.
+	ErrStructuredMetadataTooLarge = pdfwriter_domain.ErrStructuredMetadataTooLarge
+
+	// ErrEmbeddedFileMetadataTooLong is returned when an embedded file name or description
+	// is too long.
+	ErrEmbeddedFileMetadataTooLong = pdfwriter_domain.ErrEmbeddedFileMetadataTooLong
 )
 
 // GetDefaultService returns the PDF writer service initialised by the framework during

@@ -93,8 +93,12 @@ func (adapter *LayouterAdapter) Layout(
 		layoutHeight = autoHeightSentinel
 	}
 
+	contentWidth := config.Page.ContentAreaWidth()
+
 	cssAdapter := layouter_adapters.NewCSSResolutionAdapter(rootFontSize)
-	cssAdapter.SetViewportDimensions(config.Page.Width, layoutHeight)
+	cssAdapter.SetViewportDimensions(contentWidth, layoutHeight)
+
+	expandRawHTMLNodes(ctx, tree)
 
 	styleMap, pseudoStyleMap, err := cssAdapter.ResolveStyles(ctx, tree, styling, config.Stylesheets)
 	if err != nil {
@@ -103,7 +107,7 @@ func (adapter *LayouterAdapter) Layout(
 
 	rootBox, err := layouter_domain.BuildBoxTree(
 		ctx, tree, styleMap, pseudoStyleMap,
-		adapter.imageResolver, config.Page.Width, layoutHeight,
+		adapter.imageResolver, contentWidth, layoutHeight,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("box tree construction failed: %w", err)
@@ -122,6 +126,73 @@ func (adapter *LayouterAdapter) Layout(
 	}, nil
 }
 
+// expandRawHTMLNodes walks the template AST and materialises raw HTML into real child
+// nodes so the box builder can lay them out.
+//
+// Both p-html (an element's InnerHTML) and bare NodeRawHTML nodes are expanded. The web
+// renderer emits InnerHTML raw for the browser to parse; the PDF pipeline has no DOM, so
+// the expansion happens here. It must run before CSS resolution so the injected nodes get
+// cascaded styles (including UA bold/italic).
+//
+// Takes tree (*ast_domain.TemplateAST) which is the template AST to expand in place.
+func expandRawHTMLNodes(ctx context.Context, tree *ast_domain.TemplateAST) {
+	if tree == nil {
+		return
+	}
+	tree.RootNodes = expandRawHTMLList(ctx, tree.RootNodes)
+}
+
+// expandRawHTMLList returns the node list with any raw HTML expanded in place. It checks
+// ctx cancellation before recursing so a deeply nested template cannot perform unbounded
+// uninterruptible work; on cancellation the remaining nodes are returned unexpanded and
+// the caller surfaces the cancellation error.
+//
+// Takes nodes ([]*ast_domain.TemplateNode) which is the node list to expand.
+//
+// Returns []*ast_domain.TemplateNode which is the node list with raw HTML expanded.
+func expandRawHTMLList(ctx context.Context, nodes []*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
+	if ctx.Err() != nil {
+		return nodes
+	}
+	out := make([]*ast_domain.TemplateNode, 0, len(nodes))
+	for _, node := range nodes {
+		if node == nil {
+			continue
+		}
+		switch {
+		case node.NodeType == ast_domain.NodeRawHTML && node.InnerHTML != "":
+
+			out = append(out, parseRawHTMLFragment(ctx, node.InnerHTML)...)
+			continue
+		case node.NodeType == ast_domain.NodeElement && node.InnerHTML != "" && len(node.Children) == 0:
+
+			node.Children = parseRawHTMLFragment(ctx, node.InnerHTML)
+			node.InnerHTML = ""
+		default:
+			node.Children = expandRawHTMLList(ctx, node.Children)
+		}
+		out = append(out, node)
+	}
+	return out
+}
+
+// parseRawHTMLFragment parses a raw HTML string into template nodes using Piko's own AST
+// parser, then recursively expands any nested raw HTML in the result. On parse failure it
+// returns nil (the content is dropped rather than crashing the render, matching today's
+// behaviour for unparseable raw HTML).
+//
+// Takes raw (string) which is the raw HTML fragment to parse.
+//
+// Returns []*ast_domain.TemplateNode which holds the parsed and expanded nodes, or nil on
+// parse failure.
+func parseRawHTMLFragment(ctx context.Context, raw string) []*ast_domain.TemplateNode {
+	parsed, err := ast_domain.Parse(ctx, raw, "<p-html>", nil)
+	if err != nil || parsed == nil {
+		return nil
+	}
+	return expandRawHTMLList(ctx, parsed.RootNodes)
+}
+
 // buildPages produces the page output list. For auto-height layouts a single page is
 // measured from the content extent; otherwise the box tree is paginated uniformly.
 //
@@ -137,7 +208,7 @@ func buildPages(
 ) []layouter_dto.PageOutput {
 	if config.Page.AutoHeight {
 		extent := layouter_domain.MeasureContentExtent(rootBox)
-		measuredHeight := extent + config.Page.MarginBottom
+		measuredHeight := extent + config.Page.MarginTop + config.Page.MarginBottom
 		return []layouter_dto.PageOutput{{
 			Index:  0,
 			Width:  config.Page.Width,
@@ -145,7 +216,7 @@ func buildPages(
 		}}
 	}
 
-	maxPage := layouter_domain.Paginate(ctx, rootBox, layouter_domain.UniformPageGeometry(config.Page.Height))
+	maxPage := layouter_domain.Paginate(ctx, rootBox, layouter_domain.UniformPageGeometry(config.Page.ContentAreaHeight()))
 
 	pages := make([]layouter_dto.PageOutput, maxPage+1)
 	for i := range pages {

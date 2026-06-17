@@ -1,0 +1,231 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+  <div class="matrix">
+    <h1>{{ state.Title }}</h1>
+
+    <section class="block">
+      <h2>A · direct p-for + interpolation</h2>
+      <ul>
+        <li p-for="(i, item) in state.Items" p-key="i">{{ item.Label }}</li>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2>B · template p-for + interpolation</h2>
+      <ul>
+        <template p-for="(i, item) in state.Items" p-key="i">
+          <li>{{ item.Label }}</li>
+        </template>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2>C · single element p-html (no loop)</h2>
+      <p class="rich" p-html="state.RichLine"></p>
+    </section>
+
+    <section class="block">
+      <h2>D · template p-for + p-html</h2>
+      <ul>
+        <template p-for="(i, item) in state.Items" p-key="i">
+          <li p-html="item.Rich"></li>
+        </template>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2>E · direct p-for + p-html (co-located)</h2>
+      <ul>
+        <li p-for="(i, item) in state.Items" p-key="i" p-html="item.Rich"></li>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2>G · inline span inside a block (control)</h2>
+      <p>Prefix text <span style="color: #2563eb; font-weight: 700;">inline span</span> then suffix — should stay on one line.</p>
+    </section>
+
+    <section class="block">
+      <h2>H · flex: plain text item + flex-grow rule</h2>
+      <div style="display: flex; align-items: center;">
+        <span>Section label</span>
+        <span style="flex: 1; height: 0; border-bottom: 1px solid #9ca3af; margin-left: 10px;"></span>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>I · flex: nested inline span + text + rule (the CV heading pattern)</h2>
+      <div style="display: flex; align-items: center;">
+        <span><span style="color: #2563eb;">Exp</span>erience</span>
+        <span style="flex: 1; height: 0; border-bottom: 1px solid #9ca3af; margin-left: 10px;"></span>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>J · flex row: label + right-aligned value (the CV aside pattern)</h2>
+      <div style="display: flex;">
+        <span>Organisation name</span>
+        <span style="margin-left: auto; text-align: right;">Right-aligned date</span>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>K · raw inline &lt;svg&gt;</h2>
+      <p><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#16a34a"></circle></svg> green dot via raw inline svg</p>
+    </section>
+
+    <section class="block">
+      <h2>L · piko:svg inlined from an asset</h2>
+      <p><piko:svg src="@/lib/icons/dot.svg" width="16" height="16"></piko:svg> green dot via piko:svg</p>
+    </section>
+
+    <section class="block">
+      <h2>S · p-html wrapping multi-word bold in a flex column</h2>
+      <div style="display: flex; gap: 24px;">
+        <div style="flex: 1; min-width: 0;">
+          <ul>
+            <li p-html="state.LongRich"></li>
+          </ul>
+        </div>
+        <aside style="flex: 0 0 110px; text-align: right;">aside</aside>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2>M · p-if (show / hide)</h2>
+      <p p-if="state.ShowFlag">VISIBLE — p-if true rendered this line.</p>
+      <p p-if="state.HideFlag">HIDDEN — p-if false; this must NOT appear.</p>
+    </section>
+
+    <section class="block">
+      <h2>N · :class bound from state</h2>
+      <p :class="state.BoundClass">Coloured via a state-bound class binding.</p>
+    </section>
+
+    <section class="block">
+      <h2>O · p-class object syntax</h2>
+      <p class="base" p-class="{ 'accent-text': state.ToggleOn }">Coloured via a toggled p-class.</p>
+    </section>
+
+    <section class="block">
+      <h2>P · flex gap</h2>
+      <div style="display: flex; gap: 30px;">
+        <span style="background: #dbeafe; padding: 3px 6px;">One</span>
+        <span style="background: #dbeafe; padding: 3px 6px;">Two</span>
+        <span style="background: #dbeafe; padding: 3px 6px;">Three</span>
+      </div>
+    </section>
+
+    <section class="block" style="--probe-size: 18px; --probe-colour: #2563eb;">
+      <h2>Q · CSS variable for size + border colour</h2>
+      <p style="font-size: var(--probe-size); border: 2px solid var(--probe-colour); padding: 4px;">Sized 18px and blue-bordered via CSS variables.</p>
+    </section>
+
+    <section class="block">
+      <h2>R · literal inline &lt;b&gt; / &lt;em&gt; (written in template, not p-html)</h2>
+      <p>Plain text with <b>literal bold</b> and <em>literal italic</em> in the template.</p>
+    </section>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Item struct {
+	Label string
+	Rich  string
+}
+
+type Response struct {
+	Title      string
+	Items      []Item
+	RichLine   string
+	LongRich   string
+	ShowFlag   bool
+	HideFlag   bool
+	BoundClass string
+	ToggleOn   bool
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+	return Response{
+		Title: "Template directive matrix",
+		Items: []Item{
+			{Label: "Alpha", Rich: `Alpha — <b>bold</b> emphasis`},
+			{Label: "Beta", Rich: `Beta — <b>bold</b> emphasis`},
+			{Label: "Gamma", Rich: `Gamma — <b>bold</b> emphasis`},
+		},
+		RichLine:   `One line with <b>bold</b> and <em>italic</em> spans.`,
+		LongRich:   `Created a golden path for developers by standardising Helm charts and CI/CD pipelines, which enabled <b>developer self-service</b> and reduced deployment friction across the team.`,
+		ShowFlag:   true,
+		HideFlag:   false,
+		BoundClass: "accent-text",
+		ToggleOn:   true,
+	}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+.matrix {
+  width: 555px;
+  padding: 20px;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  color: #1f2937;
+}
+.matrix h1 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #111418;
+}
+.matrix .block {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.matrix h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 6px;
+}
+.matrix ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+.matrix li {
+  margin-bottom: 3px;
+}
+.matrix li b,
+.matrix .rich b {
+  font-weight: 700;
+  color: #111418;
+}
+.matrix .accent-text {
+  color: #2563eb;
+  font-weight: 700;
+}
+</style>

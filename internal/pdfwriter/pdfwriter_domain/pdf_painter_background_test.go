@@ -25,6 +25,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
@@ -50,9 +53,7 @@ func TestPaintBackground_SolidColour(t *testing.T) {
 
 	requireStreamContains(t, &stream, "1 0 0 rg")
 
-	if strings.Contains(got, " c\n") {
-		t.Error("expected no curve operators without border-radius")
-	}
+	assert.NotContains(t, got, " c\n", "expected no curve operators without border-radius")
 }
 
 func TestPaintBackground_TransparentSkipped(t *testing.T) {
@@ -68,9 +69,7 @@ func TestPaintBackground_TransparentSkipped(t *testing.T) {
 	painter.paintBackground(context.Background(), &stream, box)
 
 	got := stream.String()
-	if strings.Contains(got, "rg") {
-		t.Error("expected no fill colour when background alpha is 0")
-	}
+	assert.NotContains(t, got, "rg", "expected no fill colour when background alpha is 0")
 }
 
 func TestPaintBackground_WithBorderRadius(t *testing.T) {
@@ -122,9 +121,8 @@ func TestResolveBackgroundSize_Cover(t *testing.T) {
 	painter := newPainterWithDefaults()
 	w, h := painter.resolveBackgroundSize("cover", 200, 100, 400, 200)
 
-	if w != 200 || h != 100 {
-		t.Errorf("cover: got (%v, %v), want (200, 100)", w, h)
-	}
+	assert.EqualValues(t, 200, w, "cover width")
+	assert.EqualValues(t, 100, h, "cover height")
 }
 
 func TestResolveBackgroundSize_CoverWider(t *testing.T) {
@@ -134,9 +132,8 @@ func TestResolveBackgroundSize_CoverWider(t *testing.T) {
 
 	w, h := painter.resolveBackgroundSize("cover", 200, 200, 400, 100)
 
-	if w != 800 || h != 200 {
-		t.Errorf("cover wider: got (%v, %v), want (800, 200)", w, h)
-	}
+	assert.EqualValues(t, 800, w, "cover wider width")
+	assert.EqualValues(t, 200, h, "cover wider height")
 }
 
 func TestResolveBackgroundSize_Contain(t *testing.T) {
@@ -145,9 +142,8 @@ func TestResolveBackgroundSize_Contain(t *testing.T) {
 	painter := newPainterWithDefaults()
 	w, h := painter.resolveBackgroundSize("contain", 200, 100, 400, 200)
 
-	if w != 200 || h != 100 {
-		t.Errorf("contain: got (%v, %v), want (200, 100)", w, h)
-	}
+	assert.EqualValues(t, 200, w, "contain width")
+	assert.EqualValues(t, 100, h, "contain height")
 }
 
 func TestResolveBackgroundSize_ContainTaller(t *testing.T) {
@@ -157,9 +153,8 @@ func TestResolveBackgroundSize_ContainTaller(t *testing.T) {
 
 	w, h := painter.resolveBackgroundSize("contain", 200, 200, 400, 100)
 
-	if w != 200 || h != 50 {
-		t.Errorf("contain taller: got (%v, %v), want (200, 50)", w, h)
-	}
+	assert.EqualValues(t, 200, w, "contain taller width")
+	assert.EqualValues(t, 50, h, "contain taller height")
 }
 
 func TestResolveBackgroundSize_Auto(t *testing.T) {
@@ -168,9 +163,8 @@ func TestResolveBackgroundSize_Auto(t *testing.T) {
 	painter := newPainterWithDefaults()
 	w, h := painter.resolveBackgroundSize("auto", 200, 100, 400, 300)
 
-	if w != 400 || h != 300 {
-		t.Errorf("auto: got (%v, %v), want (400, 300)", w, h)
-	}
+	assert.EqualValues(t, 400, w, "auto width")
+	assert.EqualValues(t, 300, h, "auto height")
 }
 
 func TestResolveBackgroundSize_EmptyIsAuto(t *testing.T) {
@@ -179,9 +173,8 @@ func TestResolveBackgroundSize_EmptyIsAuto(t *testing.T) {
 	painter := newPainterWithDefaults()
 	w, h := painter.resolveBackgroundSize("", 200, 100, 400, 300)
 
-	if w != 400 || h != 300 {
-		t.Errorf("empty: got (%v, %v), want (400, 300)", w, h)
-	}
+	assert.EqualValues(t, 400, w, "empty width")
+	assert.EqualValues(t, 300, h, "empty height")
 }
 
 func TestResolveBackgroundSize_ExplicitPixels(t *testing.T) {
@@ -190,9 +183,8 @@ func TestResolveBackgroundSize_ExplicitPixels(t *testing.T) {
 	painter := newPainterWithDefaults()
 	w, h := painter.resolveBackgroundSize("150px 75px", 200, 100, 400, 300)
 
-	if w != 150 || h != 75 {
-		t.Errorf("explicit: got (%v, %v), want (150, 75)", w, h)
-	}
+	assert.EqualValues(t, 150, w, "explicit width")
+	assert.EqualValues(t, 75, h, "explicit height")
 }
 
 func TestResolveBackgroundSize_Percentage(t *testing.T) {
@@ -201,9 +193,8 @@ func TestResolveBackgroundSize_Percentage(t *testing.T) {
 	painter := newPainterWithDefaults()
 	w, h := painter.resolveBackgroundSize("50% 25%", 200, 100, 400, 300)
 
-	if w != 100 || h != 25 {
-		t.Errorf("percentage: got (%v, %v), want (100, 25)", w, h)
-	}
+	assert.EqualValues(t, 100, w, "percentage width")
+	assert.EqualValues(t, 25, h, "percentage height")
 }
 
 func TestResolveBackgroundSize_SingleValueMaintainsAspectRatio(t *testing.T) {
@@ -213,40 +204,29 @@ func TestResolveBackgroundSize_SingleValueMaintainsAspectRatio(t *testing.T) {
 
 	w, h := painter.resolveBackgroundSize("200px", 400, 300, 400, 300)
 
-	if w != 200 {
-		t.Errorf("single value width: got %v, want 200", w)
-	}
-
-	if h != 150 {
-		t.Errorf("single value height: got %v, want 150", h)
-	}
+	assert.EqualValues(t, 200, w, "single value width")
+	assert.EqualValues(t, 150, h, "single value height")
 }
 
 func TestResolveStartPosition_NoRepeat(t *testing.T) {
 	t.Parallel()
 
 	start := resolveStartPosition(50, 0, 100, false)
-	if start != 50 {
-		t.Errorf("no-repeat: got %v, want 50", start)
-	}
+	assert.EqualValues(t, 50, start, "no-repeat")
 }
 
 func TestResolveStartPosition_RepeatShiftsBack(t *testing.T) {
 	t.Parallel()
 
 	start := resolveStartPosition(150, 0, 100, true)
-	if start != -50 {
-		t.Errorf("repeat shift back: got %v, want -50", start)
-	}
+	assert.EqualValues(t, -50, start, "repeat shift back")
 }
 
 func TestResolveStartPosition_RepeatAlreadyBefore(t *testing.T) {
 	t.Parallel()
 
 	start := resolveStartPosition(-20, 0, 100, true)
-	if start != -20 {
-		t.Errorf("repeat already before: got %v, want -20", start)
-	}
+	assert.EqualValues(t, -20, start, "repeat already before")
 }
 
 func TestConvertToGrayscaleStops(t *testing.T) {
@@ -261,27 +241,20 @@ func TestConvertToGrayscaleStops(t *testing.T) {
 
 	grey := painter.convertToGrayscaleStops(stops)
 
-	if len(grey) != 3 {
-		t.Fatalf("expected 3 stops, got %d", len(grey))
-	}
+	require.Len(t, grey, 3, "expected 3 stops")
 
 	expectedRed := luminanceRed*1.0 + luminanceGreen*0.0 + luminanceBlue*0.0
-	if grey[0].Red != expectedRed {
-		t.Errorf("red stop luminance: got %v, want %v", grey[0].Red, expectedRed)
-	}
+	assert.Equal(t, expectedRed, grey[0].Red, "red stop luminance")
 
-	if grey[0].Red != grey[0].Green || grey[0].Red != grey[0].Blue {
-		t.Errorf("red stop is not greyscale: R=%v G=%v B=%v", grey[0].Red, grey[0].Green, grey[0].Blue)
-	}
+	assert.Equal(t, grey[0].Red, grey[0].Green, "red stop is not greyscale (green)")
+	assert.Equal(t, grey[0].Red, grey[0].Blue, "red stop is not greyscale (blue)")
 
 	expectedGreen := luminanceGreen * 1.0
-	if grey[1].Red != expectedGreen {
-		t.Errorf("green stop luminance: got %v, want %v", grey[1].Red, expectedGreen)
-	}
+	assert.Equal(t, expectedGreen, grey[1].Red, "green stop luminance")
 
-	if grey[0].Position != 0.0 || grey[1].Position != 0.5 || grey[2].Position != 1.0 {
-		t.Error("positions should be preserved")
-	}
+	assert.EqualValues(t, 0.0, grey[0].Position, "positions should be preserved")
+	assert.EqualValues(t, 0.5, grey[1].Position, "positions should be preserved")
+	assert.EqualValues(t, 1.0, grey[2].Position, "positions should be preserved")
 }
 
 func TestPaintLinearGradient_OpaqueStops(t *testing.T) {
@@ -314,9 +287,7 @@ func TestPaintLinearGradient_OpaqueStops(t *testing.T) {
 	requireStreamContains(t, &stream, "re")
 	requireStreamContains(t, &stream, "W")
 
-	if strings.Contains(got, "/GS") {
-		t.Error("expected no soft mask for opaque gradient stops")
-	}
+	assert.NotContains(t, got, "/GS", "expected no soft mask for opaque gradient stops")
 }
 
 func TestPaintLinearGradient_SkipsWithFewerThanTwoStops(t *testing.T) {
@@ -339,9 +310,7 @@ func TestPaintLinearGradient_SkipsWithFewerThanTwoStops(t *testing.T) {
 	painter.paintBackground(context.Background(), &stream, box)
 
 	got := stream.String()
-	if strings.Contains(got, "sh") {
-		t.Error("should not paint gradient with fewer than 2 stops")
-	}
+	assert.NotContains(t, got, "sh", "should not paint gradient with fewer than 2 stops")
 }
 
 func TestPaintLinearGradient_WithBorderRadius(t *testing.T) {
@@ -437,9 +406,7 @@ func TestApplyMaskImage_NonGradientReturnsFalse(t *testing.T) {
 
 	applied := painter.applyMaskImage(&stream, box)
 
-	if applied {
-		t.Error("expected false for non-gradient mask-image")
-	}
+	assert.False(t, applied, "expected false for non-gradient mask-image")
 }
 
 func TestApplyMaskImage_EmptyReturnsFalse(t *testing.T) {
@@ -453,9 +420,7 @@ func TestApplyMaskImage_EmptyReturnsFalse(t *testing.T) {
 
 	applied := painter.applyMaskImage(&stream, box)
 
-	if applied {
-		t.Error("expected false for empty mask-image")
-	}
+	assert.False(t, applied, "expected false for empty mask-image")
 }
 
 func TestPaintBackground_BgOriginPaddingBox(t *testing.T) {
@@ -484,9 +449,7 @@ func TestBuildMaskContent(t *testing.T) {
 	content := painter.buildMaskContent("S1")
 
 	got := string(content)
-	if !strings.Contains(got, "/S1 sh") {
-		t.Errorf("expected shading reference /S1, got %q", got)
-	}
+	assert.Contains(t, got, "/S1 sh", "expected shading reference /S1")
 }
 
 type mockImageData struct {
@@ -522,16 +485,9 @@ func TestPaintBackgroundImage_JPEG_EmitsXObject(t *testing.T) {
 
 	output := stream.String()
 
-	if !strings.Contains(output, "q") {
-		t.Error("expected SaveState (q) in background image output")
-	}
-	if !strings.Contains(output, "Q") {
-		t.Error("expected RestoreState (Q) in background image output")
-	}
-
-	if !strings.Contains(output, "Do") {
-		t.Error("expected PaintXObject (Do) in background image output")
-	}
+	assert.Contains(t, output, "q", "expected SaveState (q) in background image output")
+	assert.Contains(t, output, "Q", "expected RestoreState (Q) in background image output")
+	assert.Contains(t, output, "Do", "expected PaintXObject (Do) in background image output")
 }
 
 func TestPaintBackgroundImage_NilImageData_Noop(t *testing.T) {
@@ -553,9 +509,7 @@ func TestPaintBackgroundImage_NilImageData_Noop(t *testing.T) {
 	painter.paintBackground(context.Background(), stream, box)
 
 	output := stream.String()
-	if strings.Contains(output, "Do") {
-		t.Error("expected no PaintXObject when imageData is nil")
-	}
+	assert.NotContains(t, output, "Do", "expected no PaintXObject when imageData is nil")
 }
 
 func TestPaintBackgroundTiles_NoRepeat(t *testing.T) {
@@ -584,9 +538,7 @@ func TestPaintBackgroundTiles_NoRepeat(t *testing.T) {
 	output := stream.String()
 
 	count := strings.Count(output, "Do")
-	if count != 1 {
-		t.Errorf("expected exactly 1 PaintXObject for no-repeat, got %d", count)
-	}
+	assert.Equal(t, 1, count, "expected exactly 1 PaintXObject for no-repeat")
 }
 
 func TestPaintBackgroundTiles_RepeatX(t *testing.T) {
@@ -615,27 +567,21 @@ func TestPaintBackgroundTiles_RepeatX(t *testing.T) {
 	output := stream.String()
 
 	count := strings.Count(output, "Do")
-	if count < 2 {
-		t.Errorf("expected multiple PaintXObject calls for repeat-x, got %d", count)
-	}
+	assert.GreaterOrEqual(t, count, 2, "expected multiple PaintXObject calls for repeat-x")
 }
 
 func TestResolveStartPosition_NoRepeat_KeepsOriginal(t *testing.T) {
 	t.Parallel()
 
 	start := resolveStartPosition(50, 0, 100, false)
-	if start != 50 {
-		t.Errorf("expected 50 for no-repeat, got %v", start)
-	}
+	assert.EqualValues(t, 50, start, "expected 50 for no-repeat")
 }
 
 func TestResolveStartPosition_Repeat_ShiftsBack(t *testing.T) {
 	t.Parallel()
 
 	start := resolveStartPosition(150, 0, 100, true)
-	if start > 0 {
-		t.Errorf("expected start <= 0 for repeated image at 150 in area starting at 0, got %v", start)
-	}
+	assert.LessOrEqual(t, start, float64(0), "expected start <= 0 for repeated image at 150 in area starting at 0")
 }
 
 func TestBackgroundBox_PaddingBox_ReturnsCorrectRect(t *testing.T) {
@@ -654,10 +600,10 @@ func TestBackgroundBox_PaddingBox_ReturnsCorrectRect(t *testing.T) {
 	expectedW := box.ContentWidth + box.Padding.Horizontal()
 	expectedH := box.ContentHeight + box.Padding.Vertical()
 
-	if x != expectedX || y != expectedY || w != expectedW || h != expectedH {
-		t.Errorf("padding-box: got (%v,%v,%v,%v), want (%v,%v,%v,%v)",
-			x, y, w, h, expectedX, expectedY, expectedW, expectedH)
-	}
+	assert.Equal(t, expectedX, x, "padding-box x")
+	assert.Equal(t, expectedY, y, "padding-box y")
+	assert.Equal(t, expectedW, w, "padding-box w")
+	assert.Equal(t, expectedH, h, "padding-box h")
 }
 
 func TestBackgroundBox_ContentBox_ReturnsContentRect(t *testing.T) {
@@ -669,9 +615,10 @@ func TestBackgroundBox_ContentBox_ReturnsContentRect(t *testing.T) {
 		Build()
 
 	x, y, w, h := backgroundBox(box, "content-box")
-	if x != 20 || y != 20 || w != 100 || h != 50 {
-		t.Errorf("content-box: got (%v,%v,%v,%v), want (20,20,100,50)", x, y, w, h)
-	}
+	assert.EqualValues(t, 20, x, "content-box x")
+	assert.EqualValues(t, 20, y, "content-box y")
+	assert.EqualValues(t, 100, w, "content-box w")
+	assert.EqualValues(t, 50, h, "content-box h")
 }
 
 func TestBackgroundBox_BorderBox_ReturnsBorderRect(t *testing.T) {
@@ -684,8 +631,8 @@ func TestBackgroundBox_BorderBox_ReturnsBorderRect(t *testing.T) {
 		Build()
 
 	x, y, w, h := backgroundBox(box, "border-box")
-	if x != box.BorderBoxX() || y != box.BorderBoxY() ||
-		w != box.BorderBoxWidth() || h != box.BorderBoxHeight() {
-		t.Error("border-box should return border box dimensions")
-	}
+	assert.Equal(t, box.BorderBoxX(), x, "border-box x")
+	assert.Equal(t, box.BorderBoxY(), y, "border-box y")
+	assert.Equal(t, box.BorderBoxWidth(), w, "border-box w")
+	assert.Equal(t, box.BorderBoxHeight(), h, "border-box h")
 }

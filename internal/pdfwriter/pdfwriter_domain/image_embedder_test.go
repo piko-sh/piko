@@ -21,20 +21,19 @@ package pdfwriter_domain
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"image"
 	"image/color"
 	"image/png"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewImageEmbedder_HasImagesReturnsFalse(t *testing.T) {
 	embedder := NewImageEmbedder()
 
-	if embedder.HasImages() {
-		t.Error("expected HasImages to return false for a freshly created embedder")
-	}
+	assert.False(t, embedder.HasImages(), "expected HasImages to return false for a freshly created embedder")
 }
 
 func TestRegisterImage_FirstRegistrationReturnsIm1(t *testing.T) {
@@ -42,9 +41,7 @@ func TestRegisterImage_FirstRegistrationReturnsIm1(t *testing.T) {
 
 	name := embedder.RegisterImage("photo.jpg", []byte{0xFF}, "jpeg", 100, 50)
 
-	if name != "Im1" {
-		t.Errorf("expected first registration to return \"Im1\", got %q", name)
-	}
+	assert.Equal(t, "Im1", name)
 }
 
 func TestRegisterImage_SameSourceReturnsSameName(t *testing.T) {
@@ -53,9 +50,7 @@ func TestRegisterImage_SameSourceReturnsSameName(t *testing.T) {
 	first := embedder.RegisterImage("photo.jpg", []byte{0xFF}, "jpeg", 100, 50)
 	second := embedder.RegisterImage("photo.jpg", []byte{0xFF}, "jpeg", 100, 50)
 
-	if first != second {
-		t.Errorf("expected duplicate registration to return same name %q, got %q", first, second)
-	}
+	assert.Equal(t, first, second, "expected duplicate registration to return same name")
 }
 
 func TestRegisterImage_DifferentSourcesReturnDifferentNames(t *testing.T) {
@@ -64,21 +59,15 @@ func TestRegisterImage_DifferentSourcesReturnDifferentNames(t *testing.T) {
 	first := embedder.RegisterImage("photo_a.jpg", []byte{0xFF}, "jpeg", 100, 50)
 	second := embedder.RegisterImage("photo_b.jpg", []byte{0xFE}, "jpeg", 200, 100)
 
-	if first != "Im1" {
-		t.Errorf("expected first source to return \"Im1\", got %q", first)
-	}
-	if second != "Im2" {
-		t.Errorf("expected second source to return \"Im2\", got %q", second)
-	}
+	assert.Equal(t, "Im1", first)
+	assert.Equal(t, "Im2", second)
 }
 
 func TestHasImages_ReturnsTrueAfterRegistration(t *testing.T) {
 	embedder := NewImageEmbedder()
 	embedder.RegisterImage("photo.jpg", []byte{0xFF}, "jpeg", 100, 50)
 
-	if !embedder.HasImages() {
-		t.Error("expected HasImages to return true after registering an image")
-	}
+	assert.True(t, embedder.HasImages(), "expected HasImages to return true after registering an image")
 }
 
 func TestExtractImageDimensions_JPEG(t *testing.T) {
@@ -98,12 +87,8 @@ func TestExtractImageDimensions_JPEG(t *testing.T) {
 
 	width, height := ExtractImageDimensions(data, "jpeg")
 
-	if width != 400 {
-		t.Errorf("expected JPEG width 400, got %d", width)
-	}
-	if height != 200 {
-		t.Errorf("expected JPEG height 200, got %d", height)
-	}
+	assert.Equal(t, 400, width)
+	assert.Equal(t, 200, height)
 }
 
 func TestExtractImageDimensions_JPEG_Truncated(t *testing.T) {
@@ -112,9 +97,8 @@ func TestExtractImageDimensions_JPEG_Truncated(t *testing.T) {
 
 	width, height := ExtractImageDimensions(data, "jpeg")
 
-	if width != 0 || height != 0 {
-		t.Errorf("expected (0, 0) for truncated JPEG, got (%d, %d)", width, height)
-	}
+	assert.Zero(t, width, "expected 0 width for truncated JPEG")
+	assert.Zero(t, height, "expected 0 height for truncated JPEG")
 }
 
 func TestExtractImageDimensions_PNG(t *testing.T) {
@@ -134,12 +118,8 @@ func TestExtractImageDimensions_PNG(t *testing.T) {
 
 	width, height := ExtractImageDimensions(data, "png")
 
-	if width != 400 {
-		t.Errorf("expected PNG width 400, got %d", width)
-	}
-	if height != 200 {
-		t.Errorf("expected PNG height 200, got %d", height)
-	}
+	assert.Equal(t, 400, width)
+	assert.Equal(t, 200, height)
 }
 
 func TestExtractImageDimensions_PNG_Truncated(t *testing.T) {
@@ -148,9 +128,8 @@ func TestExtractImageDimensions_PNG_Truncated(t *testing.T) {
 
 	width, height := ExtractImageDimensions(data, "png")
 
-	if width != 0 || height != 0 {
-		t.Errorf("expected (0, 0) for truncated PNG, got (%d, %d)", width, height)
-	}
+	assert.Zero(t, width, "expected 0 width for truncated PNG")
+	assert.Zero(t, height, "expected 0 height for truncated PNG")
 }
 
 func TestExtractImageDimensions_UnknownFormat(t *testing.T) {
@@ -158,9 +137,8 @@ func TestExtractImageDimensions_UnknownFormat(t *testing.T) {
 
 	width, height := ExtractImageDimensions(data, "bmp")
 
-	if width != 0 || height != 0 {
-		t.Errorf("expected (0, 0) for unknown format, got (%d, %d)", width, height)
-	}
+	assert.Zero(t, width, "expected 0 width for unknown format")
+	assert.Zero(t, height, "expected 0 height for unknown format")
 }
 
 func buildMinimalJPEG(width, height int) []byte {
@@ -219,26 +197,14 @@ func TestWriteObjects_JPEG_ProducesValidPDFOutput(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries, writeError := embedder.WriteObjects(writer)
-	if writeError != nil {
-		t.Fatalf("unexpected error: %v", writeError)
-	}
+	require.NoError(t, writeError)
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/Subtype /Image") {
-		t.Error("expected /Subtype /Image in PDF output")
-	}
-	if !strings.Contains(output, "/Filter /DCTDecode") {
-		t.Error("expected /Filter /DCTDecode for JPEG image")
-	}
-	if !strings.Contains(output, "/Width 320") {
-		t.Error("expected /Width 320 in PDF output")
-	}
-	if !strings.Contains(output, "/Height 240") {
-		t.Error("expected /Height 240 in PDF output")
-	}
-	if !strings.Contains(entries, "/Im1") {
-		t.Errorf("expected resource entry with /Im1, got %q", entries)
-	}
+	assert.Contains(t, output, "/Subtype /Image")
+	assert.Contains(t, output, "/Filter /DCTDecode", "expected /Filter /DCTDecode for JPEG image")
+	assert.Contains(t, output, "/Width 320")
+	assert.Contains(t, output, "/Height 240")
+	assert.Contains(t, entries, "/Im1")
 }
 
 func TestWriteObjects_PNG_ProducesValidPDFOutput(t *testing.T) {
@@ -251,20 +217,12 @@ func TestWriteObjects_PNG_ProducesValidPDFOutput(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries, writeError := embedder.WriteObjects(writer)
-	if writeError != nil {
-		t.Fatalf("unexpected error: %v", writeError)
-	}
+	require.NoError(t, writeError)
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/Subtype /Image") {
-		t.Error("expected /Subtype /Image in PDF output")
-	}
-	if !strings.Contains(output, "/Filter /FlateDecode") {
-		t.Error("expected /Filter /FlateDecode for PNG image")
-	}
-	if !strings.Contains(entries, "/Im1") {
-		t.Errorf("expected resource entry with /Im1, got %q", entries)
-	}
+	assert.Contains(t, output, "/Subtype /Image")
+	assert.Contains(t, output, "/Filter /FlateDecode", "expected /Filter /FlateDecode for PNG image")
+	assert.Contains(t, entries, "/Im1")
 }
 
 func TestWriteObjects_PNGWithAlpha_WritesSMask(t *testing.T) {
@@ -277,17 +235,11 @@ func TestWriteObjects_PNGWithAlpha_WritesSMask(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	_, writeError := embedder.WriteObjects(writer)
-	if writeError != nil {
-		t.Fatalf("unexpected error: %v", writeError)
-	}
+	require.NoError(t, writeError)
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/SMask") {
-		t.Error("expected /SMask reference for PNG with alpha channel")
-	}
-	if !strings.Contains(output, "/ColorSpace /DeviceGray") {
-		t.Error("expected /ColorSpace /DeviceGray for SMask")
-	}
+	assert.Contains(t, output, "/SMask", "expected /SMask reference for PNG with alpha channel")
+	assert.Contains(t, output, "/ColorSpace /DeviceGray", "expected /ColorSpace /DeviceGray for SMask")
 }
 
 func TestWriteObjects_MultipleImages_SortedOrder(t *testing.T) {
@@ -303,13 +255,10 @@ func TestWriteObjects_MultipleImages_SortedOrder(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries, writeError := embedder.WriteObjects(writer)
-	if writeError != nil {
-		t.Fatalf("unexpected error: %v", writeError)
-	}
+	require.NoError(t, writeError)
 
-	if !strings.Contains(entries, "/Im1") || !strings.Contains(entries, "/Im2") {
-		t.Errorf("expected both /Im1 and /Im2 in entries, got %q", entries)
-	}
+	assert.Contains(t, entries, "/Im1")
+	assert.Contains(t, entries, "/Im2")
 }
 
 func TestWriteObjects_InvalidPNG_WritesPlaceholder(t *testing.T) {
@@ -322,18 +271,12 @@ func TestWriteObjects_InvalidPNG_WritesPlaceholder(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries, writeError := embedder.WriteObjects(writer)
-	if writeError != nil {
-		t.Fatalf("unexpected error: %v", writeError)
-	}
+	require.NoError(t, writeError)
 
 	output := string(writer.Bytes())
 
-	if !strings.Contains(output, "/Subtype /Image") {
-		t.Error("expected placeholder /Subtype /Image for broken PNG")
-	}
-	if !strings.Contains(entries, "/Im1") {
-		t.Errorf("expected resource entry with /Im1 for broken PNG, got %q", entries)
-	}
+	assert.Contains(t, output, "/Subtype /Image", "expected placeholder /Subtype /Image for broken PNG")
+	assert.Contains(t, entries, "/Im1")
 }
 
 func TestWriteObjects_Empty_ReturnsEmptyEntries(t *testing.T) {
@@ -343,22 +286,17 @@ func TestWriteObjects_Empty_ReturnsEmptyEntries(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries, writeError := embedder.WriteObjects(writer)
-	if writeError != nil {
-		t.Fatalf("unexpected error: %v", writeError)
-	}
+	require.NoError(t, writeError)
 
-	if entries != "" {
-		t.Errorf("expected empty entries for no images, got %q", entries)
-	}
+	assert.Empty(t, entries, "expected empty entries for no images")
 }
 
 func TestExtractJPEGDimensions_InvalidSignature(t *testing.T) {
 	t.Parallel()
 
 	w, h := ExtractImageDimensions([]byte{0x00, 0x00}, "jpeg")
-	if w != 0 || h != 0 {
-		t.Errorf("expected (0,0) for invalid JPEG signature, got (%d,%d)", w, h)
-	}
+	assert.Zero(t, w, "expected 0 width for invalid JPEG signature")
+	assert.Zero(t, h, "expected 0 height for invalid JPEG signature")
 }
 
 func TestExtractJPEGDimensions_FFPadding(t *testing.T) {
@@ -376,9 +314,8 @@ func TestExtractJPEGDimensions_FFPadding(t *testing.T) {
 	}
 
 	w, h := ExtractImageDimensions(data, "jpeg")
-	if w != 200 || h != 100 {
-		t.Errorf("expected (200, 100), got (%d, %d)", w, h)
-	}
+	assert.Equal(t, 200, w)
+	assert.Equal(t, 100, h)
 }
 
 func TestExtractJPEGDimensions_NonMarkerByte(t *testing.T) {
@@ -395,9 +332,8 @@ func TestExtractJPEGDimensions_NonMarkerByte(t *testing.T) {
 	}
 
 	w, h := ExtractImageDimensions(data, "jpeg")
-	if w != 150 || h != 50 {
-		t.Errorf("expected (150, 50), got (%d, %d)", w, h)
-	}
+	assert.Equal(t, 150, w)
+	assert.Equal(t, 50, h)
 }
 
 func TestExtractJPEGDimensions_TruncatedSOF(t *testing.T) {
@@ -411,9 +347,8 @@ func TestExtractJPEGDimensions_TruncatedSOF(t *testing.T) {
 	}
 
 	w, h := ExtractImageDimensions(data, "jpeg")
-	if w != 0 || h != 0 {
-		t.Errorf("expected (0,0) for truncated SOF, got (%d,%d)", w, h)
-	}
+	assert.Zero(t, w, "expected 0 width for truncated SOF")
+	assert.Zero(t, h, "expected 0 height for truncated SOF")
 }
 
 func TestExtractPNGDimensions_BadSignature(t *testing.T) {
@@ -423,9 +358,8 @@ func TestExtractPNGDimensions_BadSignature(t *testing.T) {
 	data[0] = 0x00
 
 	w, h := ExtractImageDimensions(data, "png")
-	if w != 0 || h != 0 {
-		t.Errorf("expected (0,0) for bad PNG signature, got (%d,%d)", w, h)
-	}
+	assert.Zero(t, w, "expected 0 width for bad PNG signature")
+	assert.Zero(t, h, "expected 0 height for bad PNG signature")
 }
 
 func TestImageEmbedder_RejectsHugeDimensions(t *testing.T) {
@@ -438,10 +372,6 @@ func TestImageEmbedder_RejectsHugeDimensions(t *testing.T) {
 	writer.WriteHeader()
 
 	_, err := embedder.WriteObjects(writer)
-	if err == nil {
-		t.Fatal("expected ErrImageDimensionsTooLarge, got nil")
-	}
-	if !errors.Is(err, ErrImageDimensionsTooLarge) {
-		t.Errorf("expected ErrImageDimensionsTooLarge, got: %v", err)
-	}
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrImageDimensionsTooLarge)
 }

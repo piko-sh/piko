@@ -132,7 +132,28 @@ func TestMeasureBlockIntrinsicWidth_Children(t *testing.T) {
 	}
 
 	result := measureBlockIntrinsicWidth(box, SizingModeMaxContent, font_metrics)
-	assert.InDelta(t, 142.0, result, 0.001)
+	assert.InDelta(t, 172.0, result, 0.001)
+}
+
+func TestMeasureBlockIntrinsicWidth_FlexItemNestedInline(t *testing.T) {
+	font_metrics := &mockFontMetrics{}
+
+	inner_text := &LayoutBox{Type: BoxTextRun, Text: "Exp", Style: ComputedStyle{FontSize: 12}}
+	inner_span := &LayoutBox{
+		Type:     BoxInline,
+		Children: []*LayoutBox{inner_text},
+		Style:    ComputedStyle{FontSize: 12},
+	}
+	outer_text := &LayoutBox{Type: BoxTextRun, Text: "erience", Style: ComputedStyle{FontSize: 12}}
+
+	flex_item := &LayoutBox{
+		Type:     BoxFlexItem,
+		Children: []*LayoutBox{inner_span, outer_text},
+		Style:    ComputedStyle{Display: DisplayInline, Width: DimensionAuto()},
+	}
+
+	result := measureMaxContentWidth(flex_item, font_metrics)
+	assert.InDelta(t, 60.0, result, 0.001)
 }
 
 func TestMeasureFlexIntrinsicWidth_Row(t *testing.T) {

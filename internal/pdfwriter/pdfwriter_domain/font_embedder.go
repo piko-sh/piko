@@ -136,6 +136,19 @@ func (embedder *FontEmbedder) HasFonts() bool {
 	return len(embedder.fonts) > 0
 }
 
+// UnmappedGlyphCount returns the number of drawn glyphs across all embedded fonts that
+// carry no Unicode mapping and so would extract, copy and search as nothing. A non-zero
+// result signals that some on-page text is not machine-readable.
+//
+// Returns int which is the count of unmapped glyphs.
+func (embedder *FontEmbedder) UnmappedGlyphCount() int {
+	total := 0
+	for _, state := range embedder.fonts {
+		total += len(missingToUnicodeGlyphs(state.usedGlyphs))
+	}
+	return total
+}
+
 // WriteObjects writes all font-related PDF objects (FontFile2 stream, FontDescriptor,
 // CIDFont, ToUnicode CMap, Type0 font) for each registered font and returns the font
 // resource dictionary entries.

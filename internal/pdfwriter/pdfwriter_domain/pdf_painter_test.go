@@ -23,9 +23,14 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/layouter/layouter_domain"
 	"piko.sh/piko/internal/layouter/layouter_dto"
+	"piko.sh/piko/wdk/clock"
 )
 
 func newTestPainter(entries []layouter_dto.FontEntry) *PdfPainter {
@@ -41,12 +46,8 @@ func TestResolveFontData_ExactMatch(t *testing.T) {
 
 	resolved := painter.resolveFontData("NotoSans", 700, 0)
 
-	if !resolved.found {
-		t.Fatal("expected font to be found")
-	}
-	if string(resolved.data) != string(bold) {
-		t.Errorf("expected bold font data, got %q", string(resolved.data))
-	}
+	require.True(t, resolved.found, "expected font to be found")
+	assert.Equal(t, string(bold), string(resolved.data), "expected bold font data")
 }
 
 func TestResolveFontData_FallsBackToNormalStyle(t *testing.T) {
@@ -57,12 +58,8 @@ func TestResolveFontData_FallsBackToNormalStyle(t *testing.T) {
 
 	resolved := painter.resolveFontData("NotoSans", 700, 1)
 
-	if !resolved.found {
-		t.Fatal("expected font to be found via style fallback")
-	}
-	if string(resolved.data) != string(regular) {
-		t.Errorf("expected regular style fallback, got %q", string(resolved.data))
-	}
+	require.True(t, resolved.found, "expected font to be found via style fallback")
+	assert.Equal(t, string(regular), string(resolved.data), "expected regular style fallback")
 }
 
 func TestResolveFontData_FallsBackToWeight400(t *testing.T) {
@@ -73,12 +70,8 @@ func TestResolveFontData_FallsBackToWeight400(t *testing.T) {
 
 	resolved := painter.resolveFontData("NotoSans", 700, 0)
 
-	if !resolved.found {
-		t.Fatal("expected font to be found via weight fallback")
-	}
-	if string(resolved.data) != string(regular) {
-		t.Errorf("expected weight 400 fallback, got %q", string(resolved.data))
-	}
+	require.True(t, resolved.found, "expected font to be found via weight fallback")
+	assert.Equal(t, string(regular), string(resolved.data), "expected weight 400 fallback")
 }
 
 func TestResolveFontData_FallsBackToWeight400AndNormalStyle(t *testing.T) {
@@ -89,12 +82,8 @@ func TestResolveFontData_FallsBackToWeight400AndNormalStyle(t *testing.T) {
 
 	resolved := painter.resolveFontData("NotoSans", 700, 1)
 
-	if !resolved.found {
-		t.Fatal("expected font to be found via weight+style fallback")
-	}
-	if string(resolved.data) != string(regular) {
-		t.Errorf("expected weight+style fallback, got %q", string(resolved.data))
-	}
+	require.True(t, resolved.found, "expected font to be found via weight+style fallback")
+	assert.Equal(t, string(regular), string(resolved.data), "expected weight+style fallback")
 }
 
 func TestResolveFontData_FallsBackToFirstRegistered(t *testing.T) {
@@ -105,12 +94,8 @@ func TestResolveFontData_FallsBackToFirstRegistered(t *testing.T) {
 
 	resolved := painter.resolveFontData("NotoSans", 400, 0)
 
-	if !resolved.found {
-		t.Fatal("expected font to be found via first-font fallback")
-	}
-	if string(resolved.data) != string(first) {
-		t.Errorf("expected first registered font, got %q", string(resolved.data))
-	}
+	require.True(t, resolved.found, "expected font to be found via first-font fallback")
+	assert.Equal(t, string(first), string(resolved.data), "expected first registered font")
 }
 
 func TestResolveFontData_NoFontsRegistered(t *testing.T) {
@@ -118,9 +103,7 @@ func TestResolveFontData_NoFontsRegistered(t *testing.T) {
 
 	resolved := painter.resolveFontData("NotoSans", 400, 0)
 
-	if resolved.found {
-		t.Error("expected no font to be found when none registered")
-	}
+	assert.False(t, resolved.found, "expected no font to be found when none registered")
 }
 
 func TestResolveFontData_PrefersSameWeightOverSameStyle(t *testing.T) {
@@ -133,55 +116,39 @@ func TestResolveFontData_PrefersSameWeightOverSameStyle(t *testing.T) {
 
 	resolved := painter.resolveFontData("NotoSans", 700, 0)
 
-	if !resolved.found {
-		t.Fatal("expected font to be found")
-	}
+	require.True(t, resolved.found, "expected font to be found")
 
-	if string(resolved.data) != string(regular) {
-		t.Errorf("expected regular fallback, got %q", string(resolved.data))
-	}
+	assert.Equal(t, string(regular), string(resolved.data), "expected regular fallback")
 }
 
 func TestNeedsSyntheticBold(t *testing.T) {
-	if !needsSyntheticBold(
+	assert.True(t, needsSyntheticBold(
 		pdfFontKey{weight: 700, style: 0},
 		pdfFontKey{weight: 400, style: 0},
-	) {
-		t.Error("expected synthetic bold when requesting 700 but resolved 400")
-	}
-	if needsSyntheticBold(
+	), "expected synthetic bold when requesting 700 but resolved 400")
+	assert.False(t, needsSyntheticBold(
 		pdfFontKey{weight: 700, style: 0},
 		pdfFontKey{weight: 700, style: 0},
-	) {
-		t.Error("should not need synthetic bold when resolved weight matches")
-	}
-	if needsSyntheticBold(
+	), "should not need synthetic bold when resolved weight matches")
+	assert.False(t, needsSyntheticBold(
 		pdfFontKey{weight: 400, style: 0},
 		pdfFontKey{weight: 400, style: 0},
-	) {
-		t.Error("should not need synthetic bold for normal weight")
-	}
+	), "should not need synthetic bold for normal weight")
 }
 
 func TestNeedsSyntheticItalic(t *testing.T) {
-	if !needsSyntheticItalic(
+	assert.True(t, needsSyntheticItalic(
 		pdfFontKey{weight: 400, style: int(layouter_domain.FontStyleItalic)},
 		pdfFontKey{weight: 400, style: 0},
-	) {
-		t.Error("expected synthetic italic when requesting italic but resolved normal")
-	}
-	if needsSyntheticItalic(
+	), "expected synthetic italic when requesting italic but resolved normal")
+	assert.False(t, needsSyntheticItalic(
 		pdfFontKey{weight: 400, style: int(layouter_domain.FontStyleItalic)},
 		pdfFontKey{weight: 400, style: int(layouter_domain.FontStyleItalic)},
-	) {
-		t.Error("should not need synthetic italic when resolved style matches")
-	}
-	if needsSyntheticItalic(
+	), "should not need synthetic italic when resolved style matches")
+	assert.False(t, needsSyntheticItalic(
 		pdfFontKey{weight: 400, style: 0},
 		pdfFontKey{weight: 400, style: 0},
-	) {
-		t.Error("should not need synthetic italic for normal style")
-	}
+	), "should not need synthetic italic for normal style")
 }
 
 func TestNewPdfPainter_RegistersMultipleWeights(t *testing.T) {
@@ -192,19 +159,15 @@ func TestNewPdfPainter_RegistersMultipleWeights(t *testing.T) {
 	}
 	painter := newTestPainter(entries)
 
-	if len(painter.fontDataMap) != 3 {
-		t.Errorf("expected 3 font entries, got %d", len(painter.fontDataMap))
-	}
+	assert.Len(t, painter.fontDataMap, 3)
 }
 
 func TestBuildInfoDictionary_DefaultProducerOnly(t *testing.T) {
 	painter := newTestPainter(nil)
 
-	result := painter.buildInfoDictionary()
+	result := painter.buildInfoDictionary(time.Time{})
 
-	if result != "<< /Producer (Piko) >>" {
-		t.Errorf("expected default info dict, got %q", result)
-	}
+	assert.Equal(t, "<< /Producer (Piko) >>", result, "expected default info dict")
 }
 
 func TestBuildInfoDictionary_WithAllMetadata(t *testing.T) {
@@ -217,7 +180,7 @@ func TestBuildInfoDictionary_WithAllMetadata(t *testing.T) {
 		Creator:  "Test Suite",
 	})
 
-	result := painter.buildInfoDictionary()
+	result := painter.buildInfoDictionary(time.Time{})
 
 	for _, expected := range []string{
 		"/Producer (Piko)",
@@ -227,9 +190,7 @@ func TestBuildInfoDictionary_WithAllMetadata(t *testing.T) {
 		"/Keywords (pdf, test)",
 		"/Creator (Test Suite)",
 	} {
-		if !strings.Contains(result, expected) {
-			t.Errorf("expected info dict to contain %q, got %q", expected, result)
-		}
+		assert.Contains(t, result, expected, "expected info dict to contain %q", expected)
 	}
 }
 
@@ -239,11 +200,9 @@ func TestBuildInfoDictionary_EscapesParentheses(t *testing.T) {
 		Title: "Title (with parens)",
 	})
 
-	result := painter.buildInfoDictionary()
+	result := painter.buildInfoDictionary(time.Time{})
 
-	if !strings.Contains(result, `/Title (Title \(with parens\))`) {
-		t.Errorf("expected escaped parentheses, got %q", result)
-	}
+	assert.Contains(t, result, `/Title (Title \(with parens\))`, "expected escaped parentheses")
 }
 
 func TestBuildInfoDictionary_SkipsEmptyFields(t *testing.T) {
@@ -252,14 +211,71 @@ func TestBuildInfoDictionary_SkipsEmptyFields(t *testing.T) {
 		Title: "Only Title",
 	})
 
-	result := painter.buildInfoDictionary()
+	result := painter.buildInfoDictionary(time.Time{})
 
-	if strings.Contains(result, "/Author") {
-		t.Errorf("expected no /Author when empty, got %q", result)
+	assert.NotContains(t, result, "/Author", "expected no /Author when empty")
+	assert.Contains(t, result, "/Title (Only Title)", "expected /Title")
+}
+
+func TestBuildInfoDictionary_NoDatesWhenXMPDisabled(t *testing.T) {
+	painter := newTestPainter(nil)
+
+	result := painter.buildInfoDictionary(time.Date(2026, 6, 26, 17, 0, 0, 0, time.UTC))
+
+	assert.NotContains(t, result, "/CreationDate", "expected no dates when XMP disabled")
+	assert.NotContains(t, result, "/ModDate", "expected no dates when XMP disabled")
+}
+
+func TestBuildInfoDictionary_DatesWhenXMPEnabled(t *testing.T) {
+	painter := newTestPainter(nil)
+	painter.emitXMP = true
+
+	result := painter.buildInfoDictionary(time.Date(2026, 6, 26, 17, 0, 0, 0, time.UTC))
+
+	for _, expected := range []string{
+		"/CreationDate (D:20260626170000+00'00')",
+		"/ModDate (D:20260626170000+00'00')",
+	} {
+		assert.Contains(t, result, expected, "expected info dict to contain %q", expected)
 	}
-	if !strings.Contains(result, "/Title (Only Title)") {
-		t.Errorf("expected /Title, got %q", result)
-	}
+}
+
+func TestResolveCreationTime_UsesInjectedClock(t *testing.T) {
+	fixed := time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)
+	painter := newTestPainter(nil)
+	painter.clock = clock.NewMockClock(fixed)
+
+	got := painter.resolveCreationTime()
+	assert.True(t, got.Equal(fixed), "resolveCreationTime = %v, want injected clock time %v", got, fixed)
+}
+
+func TestResolveCreationTime_MetadataOverridesClock(t *testing.T) {
+	metaTime := time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC)
+	painter := newTestPainter(nil)
+	painter.clock = clock.NewMockClock(time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC))
+	painter.setMetadata(&PdfMetadata{CreatedAt: metaTime})
+
+	got := painter.resolveCreationTime()
+	assert.True(t, got.Equal(metaTime), "resolveCreationTime = %v, want metadata time %v", got, metaTime)
+}
+
+func TestConfigurePainter_SetsClock(t *testing.T) {
+	painter := newTestPainter(nil)
+	mock := clock.NewMockClock(time.Unix(0, 0))
+
+	ConfigurePainter(painter, PainterConfig{Clock: mock})
+
+	assert.Same(t, mock, painter.clock, "ConfigurePainter should set the injected clock")
+}
+
+func TestBuildInfoDictionary_EncodesUnicodeTitle(t *testing.T) {
+	painter := newTestPainter(nil)
+	painter.setMetadata(&PdfMetadata{Title: "Michael Haddon — CV"})
+
+	result := painter.buildInfoDictionary(time.Time{})
+
+	assert.NotContains(t, result, "\xe2\x80\x94", "expected em dash to be UTF-16BE encoded, not raw UTF-8")
+	assert.Contains(t, result, "/Title <FEFF", "expected UTF-16BE title token")
 }
 
 func newTestBox() *layouter_domain.LayoutBox {
@@ -277,12 +293,10 @@ func TestBackgroundBox_BorderBox(t *testing.T) {
 	box := newTestBox()
 	x, y, w, h := backgroundBox(box, "border-box")
 
-	if x != box.BorderBoxX() || y != box.BorderBoxY() {
-		t.Errorf("border-box position: got (%v, %v), want (%v, %v)", x, y, box.BorderBoxX(), box.BorderBoxY())
-	}
-	if w != box.BorderBoxWidth() || h != box.BorderBoxHeight() {
-		t.Errorf("border-box size: got (%v, %v), want (%v, %v)", w, h, box.BorderBoxWidth(), box.BorderBoxHeight())
-	}
+	assert.Equal(t, box.BorderBoxX(), x, "border-box position x")
+	assert.Equal(t, box.BorderBoxY(), y, "border-box position y")
+	assert.Equal(t, box.BorderBoxWidth(), w, "border-box size width")
+	assert.Equal(t, box.BorderBoxHeight(), h, "border-box size height")
 }
 
 func TestBackgroundBox_PaddingBox(t *testing.T) {
@@ -294,21 +308,20 @@ func TestBackgroundBox_PaddingBox(t *testing.T) {
 	expected_w := box.ContentWidth + box.Padding.Horizontal()
 	expected_h := box.ContentHeight + box.Padding.Vertical()
 
-	if x != expected_x || y != expected_y {
-		t.Errorf("padding-box position: got (%v, %v), want (%v, %v)", x, y, expected_x, expected_y)
-	}
-	if w != expected_w || h != expected_h {
-		t.Errorf("padding-box size: got (%v, %v), want (%v, %v)", w, h, expected_w, expected_h)
-	}
+	assert.Equal(t, expected_x, x, "padding-box position x")
+	assert.Equal(t, expected_y, y, "padding-box position y")
+	assert.Equal(t, expected_w, w, "padding-box size width")
+	assert.Equal(t, expected_h, h, "padding-box size height")
 }
 
 func TestBackgroundBox_ContentBox(t *testing.T) {
 	box := newTestBox()
 	x, y, w, h := backgroundBox(box, "content-box")
 
-	if x != 20 || y != 30 || w != 100 || h != 50 {
-		t.Errorf("content-box: got (%v, %v, %v, %v), want (20, 30, 100, 50)", x, y, w, h)
-	}
+	assert.Equal(t, 20.0, x, "content-box x")
+	assert.Equal(t, 30.0, y, "content-box y")
+	assert.Equal(t, 100.0, w, "content-box width")
+	assert.Equal(t, 50.0, h, "content-box height")
 }
 
 func TestBackgroundBox_DefaultIsBorderBox(t *testing.T) {
@@ -316,9 +329,10 @@ func TestBackgroundBox_DefaultIsBorderBox(t *testing.T) {
 	x1, y1, w1, h1 := backgroundBox(box, "")
 	x2, y2, w2, h2 := backgroundBox(box, "border-box")
 
-	if x1 != x2 || y1 != y2 || w1 != w2 || h1 != h2 {
-		t.Error("empty string should default to border-box")
-	}
+	assert.Equal(t, x2, x1, "empty string should default to border-box (x)")
+	assert.Equal(t, y2, y1, "empty string should default to border-box (y)")
+	assert.Equal(t, w2, w1, "empty string should default to border-box (w)")
+	assert.Equal(t, h2, h1, "empty string should default to border-box (h)")
 }
 
 func TestPaint_SingleEmptyPage(t *testing.T) {
@@ -337,17 +351,11 @@ func TestPaint_SingleEmptyPage(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err != nil {
-		t.Fatalf("Paint failed: %v", err)
-	}
+	require.NoError(t, err, "Paint failed")
 
 	output := buf.String()
-	if !strings.HasPrefix(output, "%PDF-1.7") {
-		t.Errorf("output should start with %%PDF-1.7, got %q", output[:min(len(output), 20)])
-	}
-	if !strings.HasSuffix(strings.TrimSpace(output), "%%EOF") {
-		t.Error("output should end with the PDF end-of-file marker")
-	}
+	assert.True(t, strings.HasPrefix(output, "%PDF-1.7"), "output should start with %%PDF-1.7, got %q", output[:min(len(output), 20)])
+	assert.True(t, strings.HasSuffix(strings.TrimSpace(output), "%%EOF"), "output should end with the PDF end-of-file marker")
 }
 
 func TestPaint_SinglePageWithBackground(t *testing.T) {
@@ -367,15 +375,11 @@ func TestPaint_SinglePageWithBackground(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err != nil {
-		t.Fatalf("Paint failed: %v", err)
-	}
+	require.NoError(t, err, "Paint failed")
 
 	output := buf.String()
 
-	if !strings.Contains(output, "/FlateDecode") {
-		t.Error("expected /FlateDecode in output (content stream with background)")
-	}
+	assert.Contains(t, output, "/FlateDecode", "expected /FlateDecode in output (content stream with background)")
 }
 
 func TestPaint_MultiplePages(t *testing.T) {
@@ -410,9 +414,7 @@ func TestPaint_MultiplePages(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err != nil {
-		t.Fatalf("Paint failed: %v", err)
-	}
+	require.NoError(t, err, "Paint failed")
 
 	output := buf.String()
 	typePageCount := strings.Count(output, "/Type /Page\n")
@@ -422,9 +424,7 @@ func TestPaint_MultiplePages(t *testing.T) {
 
 		allPageRefs := strings.Count(output, "/Type /Page")
 
-		if allPageRefs < 3 {
-			t.Errorf("expected at least 2 page objects, found %d /Type /Page references", allPageRefs)
-		}
+		assert.GreaterOrEqual(t, allPageRefs, 3, "expected at least 2 page objects")
 	}
 }
 
@@ -440,12 +440,8 @@ func TestPaint_InvalidRootBox(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err == nil {
-		t.Fatal("expected error for non-LayoutBox root")
-	}
-	if !strings.Contains(err.Error(), "not *LayoutBox") {
-		t.Errorf("expected error about LayoutBox type, got %q", err.Error())
-	}
+	require.Error(t, err, "expected error for non-LayoutBox root")
+	assert.Contains(t, err.Error(), "not *LayoutBox", "expected error about LayoutBox type")
 }
 
 func TestPaint_WithMetadata(t *testing.T) {
@@ -469,17 +465,11 @@ func TestPaint_WithMetadata(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err != nil {
-		t.Fatalf("Paint failed: %v", err)
-	}
+	require.NoError(t, err, "Paint failed")
 
 	output := buf.String()
-	if !strings.Contains(output, "/Producer") {
-		t.Error("expected /Producer in output")
-	}
-	if !strings.Contains(output, "/Title") {
-		t.Error("expected /Title in output")
-	}
+	assert.Contains(t, output, "/Producer", "expected /Producer in output")
+	assert.Contains(t, output, "/Title", "expected /Title in output")
 }
 
 func TestPaint_NoPages_DefaultsToOnePage(t *testing.T) {
@@ -498,14 +488,10 @@ func TestPaint_NoPages_DefaultsToOnePage(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err != nil {
-		t.Fatalf("Paint failed: %v", err)
-	}
+	require.NoError(t, err, "Paint failed")
 
 	output := buf.String()
-	if !strings.Contains(output, "/Count 1") {
-		t.Error("expected /Count 1 for single default page")
-	}
+	assert.Contains(t, output, "/Count 1", "expected /Count 1 for single default page")
 }
 
 func TestConfigurePainter_AllOptions(t *testing.T) {
@@ -542,24 +528,13 @@ func TestConfigurePainter_AllOptions(t *testing.T) {
 		Tagged:      true,
 	})
 
-	if painter.metadata != metadata {
-		t.Error("metadata not propagated")
-	}
-	if painter.viewerPrefs != viewerPrefs {
-		t.Error("viewer preferences not propagated")
-	}
-	if len(painter.pageLabels) != 1 {
-		t.Errorf("page labels: got %d, want 1", len(painter.pageLabels))
-	}
-	if painter.watermark == nil || painter.watermark.Text != "DRAFT" {
-		t.Error("watermark not propagated")
-	}
-	if painter.pdfaConfig != pdfaConfig {
-		t.Error("PDF/A config not propagated")
-	}
-	if painter.structTree == nil {
-		t.Error("tagged PDF should enable struct tree")
-	}
+	assert.Same(t, metadata, painter.metadata, "metadata not propagated")
+	assert.Same(t, viewerPrefs, painter.viewerPrefs, "viewer preferences not propagated")
+	assert.Len(t, painter.pageLabels, 1, "page labels")
+	require.NotNil(t, painter.watermark, "watermark not propagated")
+	assert.Equal(t, "DRAFT", painter.watermark.Text, "watermark not propagated")
+	assert.Same(t, pdfaConfig, painter.pdfaConfig, "PDF/A config not propagated")
+	assert.NotNil(t, painter.structTree, "tagged PDF should enable struct tree")
 }
 
 func TestConfigurePainter_Minimal(t *testing.T) {
@@ -569,21 +544,11 @@ func TestConfigurePainter_Minimal(t *testing.T) {
 
 	ConfigurePainter(painter, PainterConfig{})
 
-	if painter.metadata != nil {
-		t.Error("metadata should remain nil")
-	}
-	if painter.viewerPrefs != nil {
-		t.Error("viewer prefs should remain nil")
-	}
-	if painter.watermark != nil {
-		t.Error("watermark should remain nil")
-	}
-	if painter.structTree != nil {
-		t.Error("struct tree should remain nil")
-	}
-	if painter.pdfaConfig != nil {
-		t.Error("PDF/A config should remain nil")
-	}
+	assert.Nil(t, painter.metadata, "metadata should remain nil")
+	assert.Nil(t, painter.viewerPrefs, "viewer prefs should remain nil")
+	assert.Nil(t, painter.watermark, "watermark should remain nil")
+	assert.Nil(t, painter.structTree, "struct tree should remain nil")
+	assert.Nil(t, painter.pdfaConfig, "PDF/A config should remain nil")
 }
 
 func TestConfigurePainter_PdfA2A_EnablesTagging(t *testing.T) {
@@ -595,9 +560,7 @@ func TestConfigurePainter_PdfA2A_EnablesTagging(t *testing.T) {
 		PdfAConfig: &PdfAConfig{Level: PdfA2A},
 	})
 
-	if painter.structTree == nil {
-		t.Error("PDF/A-2a should automatically enable tagged PDF")
-	}
+	assert.NotNil(t, painter.structTree, "PDF/A-2a should automatically enable tagged PDF")
 }
 
 func TestConfigurePainter_GlyphWidthFunc(t *testing.T) {
@@ -610,12 +573,8 @@ func TestConfigurePainter_GlyphWidthFunc(t *testing.T) {
 		GlyphWidthFunc: fn,
 	})
 
-	if painter.glyphWidthFunc == nil {
-		t.Error("glyph width function should be set")
-	}
-	if painter.glyphWidthFunc("test", 400, 0, 0) != 600 {
-		t.Error("glyph width function should return the expected value")
-	}
+	require.NotNil(t, painter.glyphWidthFunc, "glyph width function should be set")
+	assert.Equal(t, 600, painter.glyphWidthFunc("test", 400, 0, 0), "glyph width function should return the expected value")
 }
 
 func TestMarkVariableFont(t *testing.T) {
@@ -626,13 +585,9 @@ func TestMarkVariableFont(t *testing.T) {
 	painter.MarkVariableFont("NotoSans", 400, 0)
 	painter.MarkVariableFont("NotoSans", 700, 0)
 
-	if len(painter.variableFonts) != 2 {
-		t.Errorf("expected 2 variable font entries, got %d", len(painter.variableFonts))
-	}
+	assert.Len(t, painter.variableFonts, 2)
 	key := pdfFontKey{family: "NotoSans", weight: 400, style: 0}
-	if !painter.variableFonts[key] {
-		t.Error("expected NotoSans/400/0 to be marked as variable")
-	}
+	assert.True(t, painter.variableFonts[key], "expected NotoSans/400/0 to be marked as variable")
 }
 
 func TestPaint_WithWatermark(t *testing.T) {
@@ -656,15 +611,11 @@ func TestPaint_WithWatermark(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err != nil {
-		t.Fatalf("Paint failed: %v", err)
-	}
+	require.NoError(t, err, "Paint failed")
 
 	output := buf.String()
 
-	if !strings.Contains(output, "/BaseFont /Helvetica") {
-		t.Error("expected Helvetica font object for watermark")
-	}
+	assert.Contains(t, output, "/BaseFont /Helvetica", "expected Helvetica font object for watermark")
 }
 
 func TestPaint_WithTaggedPDF(t *testing.T) {
@@ -696,15 +647,11 @@ func TestPaint_WithTaggedPDF(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := painter.Paint(context.Background(), result, &buf)
-	if err != nil {
-		t.Fatalf("Paint failed: %v", err)
-	}
+	require.NoError(t, err, "Paint failed")
 
 	output := buf.String()
 
-	if !strings.Contains(output, "/MarkInfo") {
-		t.Error("expected /MarkInfo in tagged PDF output")
-	}
+	assert.Contains(t, output, "/MarkInfo", "expected /MarkInfo in tagged PDF output")
 }
 
 type mockSVGWriter struct{}
@@ -728,12 +675,8 @@ func TestSetSVGWriter_SetsFields(t *testing.T) {
 
 	painter.setSVGWriter(writer, data)
 
-	if painter.svgWriter == nil {
-		t.Error("expected svgWriter to be set")
-	}
-	if painter.svgData == nil {
-		t.Error("expected svgData to be set")
-	}
+	assert.NotNil(t, painter.svgWriter, "expected svgWriter to be set")
+	assert.NotNil(t, painter.svgData, "expected svgData to be set")
 }
 
 func TestIsVariableFont_ReturnsFalseWhenNilMap(t *testing.T) {
@@ -742,9 +685,7 @@ func TestIsVariableFont_ReturnsFalseWhenNilMap(t *testing.T) {
 	painter := newPainterWithDefaults()
 	key := pdfFontKey{family: "NotoSans", weight: 400, style: 0}
 
-	if painter.isVariableFont(key) {
-		t.Error("expected false when variableFonts map is nil")
-	}
+	assert.False(t, painter.isVariableFont(key), "expected false when variableFonts map is nil")
 }
 
 func TestIsVariableFont_ReturnsTrueWhenMarked(t *testing.T) {
@@ -754,9 +695,7 @@ func TestIsVariableFont_ReturnsTrueWhenMarked(t *testing.T) {
 	painter.MarkVariableFont("NotoSans", 400, 0)
 	key := pdfFontKey{family: "NotoSans", weight: 400, style: 0}
 
-	if !painter.isVariableFont(key) {
-		t.Error("expected true for marked variable font")
-	}
+	assert.True(t, painter.isVariableFont(key), "expected true for marked variable font")
 }
 
 func TestIsVariableFont_ReturnsFalseForUnmarkedKey(t *testing.T) {
@@ -766,9 +705,7 @@ func TestIsVariableFont_ReturnsFalseForUnmarkedKey(t *testing.T) {
 	painter.MarkVariableFont("NotoSans", 400, 0)
 	differentKey := pdfFontKey{family: "NotoSans", weight: 700, style: 0}
 
-	if painter.isVariableFont(differentKey) {
-		t.Error("expected false for unmarked key")
-	}
+	assert.False(t, painter.isVariableFont(differentKey), "expected false for unmarked key")
 }
 
 func TestGlyphAdvanceWidth_DelegatesToGlyphWidthFunc(t *testing.T) {
@@ -783,9 +720,7 @@ func TestGlyphAdvanceWidth_DelegatesToGlyphWidthFunc(t *testing.T) {
 	key := pdfFontKey{family: "TestFont", weight: 400, style: 0}
 	width := painter.glyphAdvanceWidth(key, nil, 1)
 
-	if width != 999 {
-		t.Errorf("expected glyphWidthFunc result 999, got %d", width)
-	}
+	assert.Equal(t, 999, width, "expected glyphWidthFunc result 999")
 }
 
 func TestGlyphAdvanceWidth_FallsBackToGlyphAdvanceWidth(t *testing.T) {
@@ -797,9 +732,7 @@ func TestGlyphAdvanceWidth_FallsBackToGlyphAdvanceWidth(t *testing.T) {
 
 	width := painter.glyphAdvanceWidth(key, nil, 1)
 
-	if width != 0 {
-		t.Errorf("expected 0 for nil font data fallback, got %d", width)
-	}
+	assert.Equal(t, 0, width, "expected 0 for nil font data fallback")
 }
 
 func TestFontInstanceKey_FormatsCorrectly(t *testing.T) {
@@ -809,9 +742,7 @@ func TestFontInstanceKey_FormatsCorrectly(t *testing.T) {
 	result := fontInstanceKey(key)
 
 	expected := "NotoSans:700:1"
-	if result != expected {
-		t.Errorf("expected %q, got %q", expected, result)
-	}
+	assert.Equal(t, expected, result)
 }
 
 func TestSetFillColour_Grey(t *testing.T) {
@@ -827,9 +758,7 @@ func TestSetFillColour_Grey(t *testing.T) {
 
 	painter.setFillColour(stream, colour)
 	output := stream.String()
-	if !strings.Contains(output, "g") {
-		t.Errorf("expected grey fill colour operator, got %q", output)
-	}
+	assert.Contains(t, output, "g", "expected grey fill colour operator")
 }
 
 func TestSetFillColour_CMYK(t *testing.T) {
@@ -848,9 +777,7 @@ func TestSetFillColour_CMYK(t *testing.T) {
 
 	painter.setFillColour(stream, colour)
 	output := stream.String()
-	if !strings.Contains(output, "k") {
-		t.Errorf("expected CMYK fill colour operator, got %q", output)
-	}
+	assert.Contains(t, output, "k", "expected CMYK fill colour operator")
 }
 
 func TestSetStrokeColour_Grey(t *testing.T) {
@@ -866,9 +793,7 @@ func TestSetStrokeColour_Grey(t *testing.T) {
 
 	painter.setStrokeColour(stream, colour)
 	output := stream.String()
-	if !strings.Contains(output, "G") {
-		t.Errorf("expected grey stroke colour operator, got %q", output)
-	}
+	assert.Contains(t, output, "G", "expected grey stroke colour operator")
 }
 
 func TestSetStrokeColour_CMYK(t *testing.T) {
@@ -887,9 +812,7 @@ func TestSetStrokeColour_CMYK(t *testing.T) {
 
 	painter.setStrokeColour(stream, colour)
 	output := stream.String()
-	if !strings.Contains(output, "K") {
-		t.Errorf("expected CMYK stroke colour operator, got %q", output)
-	}
+	assert.Contains(t, output, "K", "expected CMYK stroke colour operator")
 }
 
 func TestSetStrokeColour_RGB(t *testing.T) {
@@ -906,9 +829,7 @@ func TestSetStrokeColour_RGB(t *testing.T) {
 
 	painter.setStrokeColour(stream, colour)
 	output := stream.String()
-	if !strings.Contains(output, "RG") {
-		t.Errorf("expected RGB stroke colour operator, got %q", output)
-	}
+	assert.Contains(t, output, "RG", "expected RGB stroke colour operator")
 }
 
 func TestApplyFilterOpacity_WithOpacityFilter(t *testing.T) {
@@ -924,14 +845,10 @@ func TestApplyFilterOpacity_WithOpacityFilter(t *testing.T) {
 	}
 
 	result := painter.applyFilterOpacity(stream, box)
-	if !result {
-		t.Error("expected true for opacity filter with amount < 1.0")
-	}
+	assert.True(t, result, "expected true for opacity filter with amount < 1.0")
 
 	output := stream.String()
-	if !strings.Contains(output, "gs") {
-		t.Error("expected ExtGState (gs) operator for filter opacity")
-	}
+	assert.Contains(t, output, "gs", "expected ExtGState (gs) operator for filter opacity")
 }
 
 func TestApplyFilterOpacity_NoFilter(t *testing.T) {
@@ -944,9 +861,7 @@ func TestApplyFilterOpacity_NoFilter(t *testing.T) {
 		Build()
 
 	result := painter.applyFilterOpacity(stream, box)
-	if result {
-		t.Error("expected false for no filter")
-	}
+	assert.False(t, result, "expected false for no filter")
 }
 
 func TestApplyClipPath_Circle(t *testing.T) {
@@ -962,14 +877,10 @@ func TestApplyClipPath_Circle(t *testing.T) {
 	box.Style.ClipPath = "circle(50%)"
 
 	result := painter.applyClipPath(stream, box)
-	if !result {
-		t.Error("expected true for circle clip path")
-	}
+	assert.True(t, result, "expected true for circle clip path")
 
 	output := stream.String()
-	if !strings.Contains(output, "W") {
-		t.Error("expected clip operator (W) in output")
-	}
+	assert.Contains(t, output, "W", "expected clip operator (W) in output")
 }
 
 func TestApplyClipPath_None(t *testing.T) {
@@ -983,9 +894,7 @@ func TestApplyClipPath_None(t *testing.T) {
 	box.Style.ClipPath = "none"
 
 	result := painter.applyClipPath(stream, box)
-	if result {
-		t.Error("expected false for 'none' clip path")
-	}
+	assert.False(t, result, "expected false for 'none' clip path")
 }
 
 func TestApplyClipPath_Empty(t *testing.T) {
@@ -998,9 +907,7 @@ func TestApplyClipPath_Empty(t *testing.T) {
 		Build()
 
 	result := painter.applyClipPath(stream, box)
-	if result {
-		t.Error("expected false for empty clip path")
-	}
+	assert.False(t, result, "expected false for empty clip path")
 }
 
 func TestApplyTransform_WithTranslate(t *testing.T) {
@@ -1017,14 +924,10 @@ func TestApplyTransform_WithTranslate(t *testing.T) {
 	box.Style.TransformValue = "translate(10, 20)"
 
 	result := painter.applyTransform(stream, box)
-	if !result {
-		t.Error("expected true for translate transform")
-	}
+	assert.True(t, result, "expected true for translate transform")
 
 	output := stream.String()
-	if !strings.Contains(output, "cm") {
-		t.Error("expected ConcatMatrix (cm) operator for transform")
-	}
+	assert.Contains(t, output, "cm", "expected ConcatMatrix (cm) operator for transform")
 }
 
 func TestApplyTransform_NoTransform(t *testing.T) {
@@ -1038,9 +941,7 @@ func TestApplyTransform_NoTransform(t *testing.T) {
 	box.Style.HasTransform = false
 
 	result := painter.applyTransform(stream, box)
-	if result {
-		t.Error("expected false for no transform")
-	}
+	assert.False(t, result, "expected false for no transform")
 }
 
 func TestApplyTransform_EmptyValue(t *testing.T) {
@@ -1055,9 +956,7 @@ func TestApplyTransform_EmptyValue(t *testing.T) {
 	box.Style.TransformValue = ""
 
 	result := painter.applyTransform(stream, box)
-	if result {
-		t.Error("expected false for empty transform value")
-	}
+	assert.False(t, result, "expected false for empty transform value")
 }
 
 func TestApplyBoxStates_WithOpacityAndBlendMode(t *testing.T) {
@@ -1072,17 +971,11 @@ func TestApplyBoxStates_WithOpacityAndBlendMode(t *testing.T) {
 	box.Style.MixBlendMode = layouter_domain.BlendModeMultiply
 
 	states := painter.applyBoxStates(stream, box)
-	if !states.hasOpacity {
-		t.Error("expected hasOpacity to be true")
-	}
-	if !states.hasBlendMode {
-		t.Error("expected hasBlendMode to be true")
-	}
+	assert.True(t, states.hasOpacity, "expected hasOpacity to be true")
+	assert.True(t, states.hasBlendMode, "expected hasBlendMode to be true")
 
 	output := stream.String()
-	if !strings.Contains(output, "q") {
-		t.Error("expected SaveState for opacity/blend mode")
-	}
+	assert.Contains(t, output, "q", "expected SaveState for opacity/blend mode")
 }
 
 func TestApplyBoxStates_WithOverflowHidden(t *testing.T) {
@@ -1096,9 +989,7 @@ func TestApplyBoxStates_WithOverflowHidden(t *testing.T) {
 		Build()
 
 	states := painter.applyBoxStates(stream, box)
-	if !states.hasOverflowClip {
-		t.Error("expected hasOverflowClip to be true")
-	}
+	assert.True(t, states.hasOverflowClip, "expected hasOverflowClip to be true")
 }
 
 func TestRestoreBoxStates_RestoresAllStates(t *testing.T) {
@@ -1126,9 +1017,7 @@ func TestRestoreBoxStates_RestoresAllStates(t *testing.T) {
 	output := stream.String()
 
 	qCount := strings.Count(output, "Q\n")
-	if qCount < 5 {
-		t.Errorf("expected at least 5 RestoreState operators, got %d in output: %q", qCount, output)
-	}
+	assert.GreaterOrEqual(t, qCount, 5, "expected at least 5 RestoreState operators in output: %q", output)
 }
 
 func TestApplyStructTag_NilStructTree_ReturnsFalse(t *testing.T) {
@@ -1141,9 +1030,7 @@ func TestApplyStructTag_NilStructTree_ReturnsFalse(t *testing.T) {
 		Build()
 
 	result := painter.applyStructTag(stream, box)
-	if result {
-		t.Error("expected false when struct tree is nil")
-	}
+	assert.False(t, result, "expected false when struct tree is nil")
 }
 
 func TestApplyStructTag_NilSourceNode_ReturnsFalse(t *testing.T) {
@@ -1155,9 +1042,7 @@ func TestApplyStructTag_NilSourceNode_ReturnsFalse(t *testing.T) {
 	box := newLayoutBox().Build()
 
 	result := painter.applyStructTag(stream, box)
-	if result {
-		t.Error("expected false when source node is nil")
-	}
+	assert.False(t, result, "expected false when source node is nil")
 }
 
 func TestWriteAcroformObjects_NoFields_ReturnsZero(t *testing.T) {
@@ -1171,12 +1056,8 @@ func TestWriteAcroformObjects_NoFields_ReturnsZero(t *testing.T) {
 	pageAnnotRefs := [][]string{{}}
 
 	result, err := painter.writeAcroformObjects(writer, pageObjNumbers, pageAnnotRefs, 1)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result != 0 {
-		t.Errorf("expected 0 for no acroform fields, got %d", result)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 0, result, "expected 0 for no acroform fields")
 }
 
 func TestNewPdfPainter_VariableFontEntries_RegisteredMultipleTimes(t *testing.T) {
@@ -1200,15 +1081,9 @@ func TestNewPdfPainter_VariableFontEntries_RegisteredMultipleTimes(t *testing.T)
 	key200 := pdfFontKey{family: "TestFont", weight: 200, style: 0}
 	key300 := pdfFontKey{family: "TestFont", weight: 300, style: 0}
 
-	if _, ok := painter.fontDataMap[key100]; !ok {
-		t.Error("expected weight 100 to be registered")
-	}
-	if _, ok := painter.fontDataMap[key200]; !ok {
-		t.Error("expected weight 200 to be registered")
-	}
-	if _, ok := painter.fontDataMap[key300]; !ok {
-		t.Error("expected weight 300 to be registered")
-	}
+	assert.Contains(t, painter.fontDataMap, key100, "expected weight 100 to be registered")
+	assert.Contains(t, painter.fontDataMap, key200, "expected weight 200 to be registered")
+	assert.Contains(t, painter.fontDataMap, key300, "expected weight 300 to be registered")
 }
 
 func TestConfigurePainter_WithSVGWriter(t *testing.T) {
@@ -1223,12 +1098,8 @@ func TestConfigurePainter_WithSVGWriter(t *testing.T) {
 		SVGData:   svgData,
 	})
 
-	if painter.svgWriter == nil {
-		t.Error("expected svgWriter to be configured")
-	}
-	if painter.svgData == nil {
-		t.Error("expected svgData to be configured")
-	}
+	assert.NotNil(t, painter.svgWriter, "expected svgWriter to be configured")
+	assert.NotNil(t, painter.svgData, "expected svgData to be configured")
 }
 
 func TestConfigurePainter_WithGlyphWidthFunc(t *testing.T) {
@@ -1243,15 +1114,9 @@ func TestConfigurePainter_WithGlyphWidthFunc(t *testing.T) {
 		},
 	})
 
-	if painter.glyphWidthFunc == nil {
-		t.Error("expected glyphWidthFunc to be set")
-	}
+	require.NotNil(t, painter.glyphWidthFunc, "expected glyphWidthFunc to be set")
 
 	result := painter.glyphWidthFunc("test", 400, 0, 1)
-	if !called {
-		t.Error("expected glyphWidthFunc to be called")
-	}
-	if result != 500 {
-		t.Errorf("expected 500, got %d", result)
-	}
+	assert.True(t, called, "expected glyphWidthFunc to be called")
+	assert.Equal(t, 500, result)
 }

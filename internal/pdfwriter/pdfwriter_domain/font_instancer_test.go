@@ -25,6 +25,9 @@ import (
 	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/fonts"
 )
 
@@ -35,9 +38,7 @@ func TestInstanceVariableFont_EmptyData(t *testing.T) {
 		return InstancedGlyphData{}
 	})
 
-	if err == nil {
-		t.Fatal("expected error for nil font data")
-	}
+	require.Error(t, err, "expected error for nil font data")
 }
 
 func TestInstanceVariableFont_TruncatedData(t *testing.T) {
@@ -47,9 +48,7 @@ func TestInstanceVariableFont_TruncatedData(t *testing.T) {
 		return InstancedGlyphData{}
 	})
 
-	if err == nil {
-		t.Fatal("expected error for truncated font data")
-	}
+	require.Error(t, err, "expected error for truncated font data")
 }
 
 func TestInstanceVariableFont_InvalidData(t *testing.T) {
@@ -64,9 +63,7 @@ func TestInstanceVariableFont_InvalidData(t *testing.T) {
 		return InstancedGlyphData{}
 	})
 
-	if err == nil {
-		t.Fatal("expected error for garbled font data")
-	}
+	require.Error(t, err, "expected error for garbled font data")
 }
 
 func TestInstanceVariableFont_StaticFontIdentity(t *testing.T) {
@@ -82,18 +79,12 @@ func TestInstanceVariableFont_StaticFontIdentity(t *testing.T) {
 	}
 
 	result, err := InstanceVariableFont(fonts.NotoSansRegularTTF, identity)
-	if err != nil {
-		t.Fatalf("InstanceVariableFont failed: %v", err)
-	}
+	require.NoError(t, err, "InstanceVariableFont failed")
 
-	if len(result) < ttfHeaderSize {
-		t.Fatalf("output too short: %d bytes", len(result))
-	}
+	require.GreaterOrEqual(t, len(result), ttfHeaderSize, "output too short")
 
 	scalerType := binary.BigEndian.Uint32(result[:4])
-	if scalerType != ttfScalerType {
-		t.Errorf("expected scaler type 0x%08X, got 0x%08X", ttfScalerType, scalerType)
-	}
+	assert.Equal(t, uint32(ttfScalerType), scalerType, "expected scaler type 0x%08X", ttfScalerType)
 }
 
 func TestInstanceVariableFont_StaticFontWithContours(t *testing.T) {
@@ -121,40 +112,30 @@ func TestInstanceVariableFont_StaticFontWithContours(t *testing.T) {
 	}
 
 	result, err := InstanceVariableFont(fonts.NotoSansRegularTTF, glyphDataFunc)
-	if err != nil {
-		t.Fatalf("InstanceVariableFont failed: %v", err)
-	}
+	require.NoError(t, err, "InstanceVariableFont failed")
 
-	if len(result) < ttfHeaderSize {
-		t.Fatalf("output too short: %d bytes", len(result))
-	}
+	require.GreaterOrEqual(t, len(result), ttfHeaderSize, "output too short")
 }
 
 func TestEncodeSimpleGlyph_EmptyContours(t *testing.T) {
 	t.Parallel()
 
 	result := encodeSimpleGlyph(nil)
-	if result != nil {
-		t.Errorf("expected nil for empty contours, got %d bytes", len(result))
-	}
+	assert.Nil(t, result, "expected nil for empty contours")
 }
 
 func TestEncodeSimpleGlyph_EmptyContourSlice(t *testing.T) {
 	t.Parallel()
 
 	result := encodeSimpleGlyph([][]GlyphOutlinePoint{})
-	if result != nil {
-		t.Errorf("expected nil for empty contour slice, got %d bytes", len(result))
-	}
+	assert.Nil(t, result, "expected nil for empty contour slice")
 }
 
 func TestEncodeSimpleGlyph_ContourWithEmptyPoints(t *testing.T) {
 	t.Parallel()
 
 	result := encodeSimpleGlyph([][]GlyphOutlinePoint{{}})
-	if result != nil {
-		t.Errorf("expected nil for contour with zero points, got %d bytes", len(result))
-	}
+	assert.Nil(t, result, "expected nil for contour with zero points")
 }
 
 func TestEncodeSimpleGlyph_Triangle(t *testing.T) {
@@ -169,28 +150,22 @@ func TestEncodeSimpleGlyph_Triangle(t *testing.T) {
 	}
 
 	result := encodeSimpleGlyph(contours)
-	if result == nil {
-		t.Fatal("expected non-nil glyph data for triangle")
-	}
+	require.NotNil(t, result, "expected non-nil glyph data for triangle")
 
 	numberOfContours := int(binary.BigEndian.Uint16(result[0:2]))
-	if numberOfContours != 1 {
-		t.Errorf("expected 1 contour, got %d", numberOfContours)
-	}
+	assert.Equal(t, 1, numberOfContours, "expected 1 contour")
 
 	xMin := int16(binary.BigEndian.Uint16(result[2:4]))
 	yMin := int16(binary.BigEndian.Uint16(result[4:6]))
 	xMax := int16(binary.BigEndian.Uint16(result[6:8]))
 	yMax := int16(binary.BigEndian.Uint16(result[8:10]))
-	if xMin != 0 || yMin != 0 || xMax != 1000 || yMax != 700 {
-		t.Errorf("bounding box mismatch: got (%d, %d, %d, %d), want (0, 0, 1000, 700)",
-			xMin, yMin, xMax, yMax)
-	}
+	assert.Equal(t, int16(0), xMin, "bounding box xMin")
+	assert.Equal(t, int16(0), yMin, "bounding box yMin")
+	assert.Equal(t, int16(1000), xMax, "bounding box xMax")
+	assert.Equal(t, int16(700), yMax, "bounding box yMax")
 
 	endPt := binary.BigEndian.Uint16(result[10:12])
-	if endPt != 2 {
-		t.Errorf("expected endPt 2, got %d", endPt)
-	}
+	assert.Equal(t, uint16(2), endPt, "expected endPt 2")
 }
 
 func TestEncodeSimpleGlyph_WithOffCurvePoints(t *testing.T) {
@@ -205,14 +180,10 @@ func TestEncodeSimpleGlyph_WithOffCurvePoints(t *testing.T) {
 	}
 
 	result := encodeSimpleGlyph(contours)
-	if result == nil {
-		t.Fatal("expected non-nil glyph data with off-curve points")
-	}
+	require.NotNil(t, result, "expected non-nil glyph data with off-curve points")
 
 	numberOfContours := int(binary.BigEndian.Uint16(result[0:2]))
-	if numberOfContours != 1 {
-		t.Errorf("expected 1 contour, got %d", numberOfContours)
-	}
+	assert.Equal(t, 1, numberOfContours, "expected 1 contour")
 }
 
 func TestEncodeSimpleGlyph_MultipleContours(t *testing.T) {
@@ -232,23 +203,15 @@ func TestEncodeSimpleGlyph_MultipleContours(t *testing.T) {
 	}
 
 	result := encodeSimpleGlyph(contours)
-	if result == nil {
-		t.Fatal("expected non-nil glyph data for multiple contours")
-	}
+	require.NotNil(t, result, "expected non-nil glyph data for multiple contours")
 
 	numberOfContours := int(binary.BigEndian.Uint16(result[0:2]))
-	if numberOfContours != 2 {
-		t.Errorf("expected 2 contours, got %d", numberOfContours)
-	}
+	assert.Equal(t, 2, numberOfContours, "expected 2 contours")
 
 	endPt0 := binary.BigEndian.Uint16(result[10:12])
 	endPt1 := binary.BigEndian.Uint16(result[12:14])
-	if endPt0 != 2 {
-		t.Errorf("expected endPt[0]=2, got %d", endPt0)
-	}
-	if endPt1 != 5 {
-		t.Errorf("expected endPt[1]=5, got %d", endPt1)
-	}
+	assert.Equal(t, uint16(2), endPt0, "expected endPt[0]=2")
+	assert.Equal(t, uint16(5), endPt1, "expected endPt[1]=5")
 }
 
 func TestCollectGlyphPoints_MultipleContours(t *testing.T) {
@@ -266,18 +229,10 @@ func TestCollectGlyphPoints_MultipleContours(t *testing.T) {
 
 	allPoints, endPts := collectGlyphPoints(contours)
 
-	if len(allPoints) != 3 {
-		t.Errorf("expected 3 points, got %d", len(allPoints))
-	}
-	if len(endPts) != 2 {
-		t.Errorf("expected 2 end points, got %d", len(endPts))
-	}
-	if endPts[0] != 1 {
-		t.Errorf("expected endPts[0]=1, got %d", endPts[0])
-	}
-	if endPts[1] != 2 {
-		t.Errorf("expected endPts[1]=2, got %d", endPts[1])
-	}
+	assert.Len(t, allPoints, 3, "expected 3 points")
+	require.Len(t, endPts, 2, "expected 2 end points")
+	assert.Equal(t, uint16(1), endPts[0], "expected endPts[0]=1")
+	assert.Equal(t, uint16(2), endPts[1], "expected endPts[1]=2")
 }
 
 func TestCollectGlyphPoints_EmptyContourSkipped(t *testing.T) {
@@ -292,12 +247,8 @@ func TestCollectGlyphPoints_EmptyContourSkipped(t *testing.T) {
 
 	allPoints, endPts := collectGlyphPoints(contours)
 
-	if len(allPoints) != 1 {
-		t.Errorf("expected 1 point, got %d", len(allPoints))
-	}
-	if len(endPts) != 1 {
-		t.Errorf("expected 1 end point, got %d", len(endPts))
-	}
+	assert.Len(t, allPoints, 1, "expected 1 point")
+	assert.Len(t, endPts, 1, "expected 1 end point")
 }
 
 func TestCollectGlyphPoints_AllEmpty(t *testing.T) {
@@ -307,12 +258,8 @@ func TestCollectGlyphPoints_AllEmpty(t *testing.T) {
 
 	allPoints, endPts := collectGlyphPoints(contours)
 
-	if len(allPoints) != 0 {
-		t.Errorf("expected 0 points, got %d", len(allPoints))
-	}
-	if len(endPts) != 0 {
-		t.Errorf("expected 0 end points, got %d", len(endPts))
-	}
+	assert.Empty(t, allPoints, "expected 0 points")
+	assert.Empty(t, endPts, "expected 0 end points")
 }
 
 func TestConvertToIntPoints_BoundingBox(t *testing.T) {
@@ -326,32 +273,19 @@ func TestConvertToIntPoints_BoundingBox(t *testing.T) {
 
 	intPts, bbox := convertToIntPoints(points)
 
-	if len(intPts) != 3 {
-		t.Fatalf("expected 3 int points, got %d", len(intPts))
-	}
+	require.Len(t, intPts, 3, "expected 3 int points")
 
-	if intPts[0].x != -100 || intPts[0].y != 51 {
-		t.Errorf("point 0: got (%d, %d), want (-100, 51)", intPts[0].x, intPts[0].y)
-	}
-	if intPts[1].x != 200 || intPts[1].y != -30 {
-		t.Errorf("point 1: got (%d, %d), want (200, -30)", intPts[1].x, intPts[1].y)
-	}
-	if intPts[2].x != 0 || intPts[2].y != 401 {
-		t.Errorf("point 2: got (%d, %d), want (0, 401)", intPts[2].x, intPts[2].y)
-	}
+	assert.Equal(t, int16(-100), intPts[0].x, "point 0 x")
+	assert.Equal(t, int16(51), intPts[0].y, "point 0 y")
+	assert.Equal(t, int16(200), intPts[1].x, "point 1 x")
+	assert.Equal(t, int16(-30), intPts[1].y, "point 1 y")
+	assert.Equal(t, int16(0), intPts[2].x, "point 2 x")
+	assert.Equal(t, int16(401), intPts[2].y, "point 2 y")
 
-	if bbox.xMin != -100 {
-		t.Errorf("xMin: got %d, want -100", bbox.xMin)
-	}
-	if bbox.xMax != 200 {
-		t.Errorf("xMax: got %d, want 200", bbox.xMax)
-	}
-	if bbox.yMin != -30 {
-		t.Errorf("yMin: got %d, want -30", bbox.yMin)
-	}
-	if bbox.yMax != 401 {
-		t.Errorf("yMax: got %d, want 401", bbox.yMax)
-	}
+	assert.Equal(t, int16(-100), bbox.xMin, "xMin")
+	assert.Equal(t, int16(200), bbox.xMax, "xMax")
+	assert.Equal(t, int16(-30), bbox.yMin, "yMin")
+	assert.Equal(t, int16(401), bbox.yMax, "yMax")
 }
 
 func TestConvertToIntPoints_PreservesOnCurve(t *testing.T) {
@@ -364,12 +298,8 @@ func TestConvertToIntPoints_PreservesOnCurve(t *testing.T) {
 
 	intPts, _ := convertToIntPoints(points)
 
-	if !intPts[0].onCurve {
-		t.Error("expected point 0 to be on-curve")
-	}
-	if intPts[1].onCurve {
-		t.Error("expected point 1 to be off-curve")
-	}
+	assert.True(t, intPts[0].onCurve, "expected point 0 to be on-curve")
+	assert.False(t, intPts[1].onCurve, "expected point 1 to be off-curve")
 }
 
 func TestEncodeDeltaCoordinates_ZeroDelta(t *testing.T) {
@@ -381,21 +311,13 @@ func TestEncodeDeltaCoordinates_ZeroDelta(t *testing.T) {
 
 	flags, xCoords, yCoords := encodeDeltaCoordinates(points)
 
-	if len(flags) != 1 {
-		t.Fatalf("expected 1 flag, got %d", len(flags))
-	}
+	require.Len(t, flags, 1, "expected 1 flag")
 
 	expectedFlag := glyphFlagOnCurve | glyphFlagXSameOrPositive | glyphFlagYSameOrPositive
-	if flags[0] != expectedFlag {
-		t.Errorf("flag: got 0x%02X, want 0x%02X", flags[0], expectedFlag)
-	}
+	assert.Equal(t, expectedFlag, flags[0], "flag")
 
-	if len(xCoords) != 0 {
-		t.Errorf("expected 0 x-coord bytes, got %d", len(xCoords))
-	}
-	if len(yCoords) != 0 {
-		t.Errorf("expected 0 y-coord bytes, got %d", len(yCoords))
-	}
+	assert.Empty(t, xCoords, "expected 0 x-coord bytes")
+	assert.Empty(t, yCoords, "expected 0 y-coord bytes")
 }
 
 func TestEncodeDeltaCoordinates_ShortPositive(t *testing.T) {
@@ -410,16 +332,10 @@ func TestEncodeDeltaCoordinates_ShortPositive(t *testing.T) {
 	expectedFlag := glyphFlagOnCurve |
 		glyphFlagXShortVector | glyphFlagXSameOrPositive |
 		glyphFlagYShortVector | glyphFlagYSameOrPositive
-	if flags[0] != expectedFlag {
-		t.Errorf("flag: got 0x%02X, want 0x%02X", flags[0], expectedFlag)
-	}
+	assert.Equal(t, expectedFlag, flags[0], "flag")
 
-	if len(xCoords) != 1 || xCoords[0] != 100 {
-		t.Errorf("x-coord: got %v, want [100]", xCoords)
-	}
-	if len(yCoords) != 1 || yCoords[0] != 50 {
-		t.Errorf("y-coord: got %v, want [50]", yCoords)
-	}
+	assert.Equal(t, []byte{100}, xCoords, "x-coord: want [100]")
+	assert.Equal(t, []byte{50}, yCoords, "y-coord: want [50]")
 }
 
 func TestEncodeDeltaCoordinates_ShortNegative(t *testing.T) {
@@ -432,16 +348,10 @@ func TestEncodeDeltaCoordinates_ShortNegative(t *testing.T) {
 	flags, xCoords, yCoords := encodeDeltaCoordinates(points)
 
 	expectedFlag := glyphFlagXShortVector | glyphFlagYShortVector
-	if flags[0] != expectedFlag {
-		t.Errorf("flag: got 0x%02X, want 0x%02X", flags[0], expectedFlag)
-	}
+	assert.Equal(t, expectedFlag, flags[0], "flag")
 
-	if len(xCoords) != 1 || xCoords[0] != 80 {
-		t.Errorf("x-coord: got %v, want [80]", xCoords)
-	}
-	if len(yCoords) != 1 || yCoords[0] != 120 {
-		t.Errorf("y-coord: got %v, want [120]", yCoords)
-	}
+	assert.Equal(t, []byte{80}, xCoords, "x-coord: want [80]")
+	assert.Equal(t, []byte{120}, yCoords, "y-coord: want [120]")
 }
 
 func TestEncodeDeltaCoordinates_LongDelta(t *testing.T) {
@@ -454,25 +364,15 @@ func TestEncodeDeltaCoordinates_LongDelta(t *testing.T) {
 	flags, xCoords, yCoords := encodeDeltaCoordinates(points)
 
 	expectedFlag := glyphFlagOnCurve
-	if flags[0] != expectedFlag {
-		t.Errorf("flag: got 0x%02X, want 0x%02X", flags[0], expectedFlag)
-	}
+	assert.Equal(t, expectedFlag, flags[0], "flag")
 
-	if len(xCoords) != 2 {
-		t.Fatalf("expected 2 x-coord bytes, got %d", len(xCoords))
-	}
+	require.Len(t, xCoords, 2, "expected 2 x-coord bytes")
 	xVal := int16(binary.BigEndian.Uint16(xCoords))
-	if xVal != 500 {
-		t.Errorf("x-coord value: got %d, want 500", xVal)
-	}
+	assert.Equal(t, int16(500), xVal, "x-coord value")
 
-	if len(yCoords) != 2 {
-		t.Fatalf("expected 2 y-coord bytes, got %d", len(yCoords))
-	}
+	require.Len(t, yCoords, 2, "expected 2 y-coord bytes")
 	yVal := int16(binary.BigEndian.Uint16(yCoords))
-	if yVal != -400 {
-		t.Errorf("y-coord value: got %d, want -400", yVal)
-	}
+	assert.Equal(t, int16(-400), yVal, "y-coord value")
 }
 
 func TestEncodeDeltaCoordinates_BoundaryShortMax(t *testing.T) {
@@ -484,25 +384,13 @@ func TestEncodeDeltaCoordinates_BoundaryShortMax(t *testing.T) {
 
 	flags, xCoords, yCoords := encodeDeltaCoordinates(points)
 
-	if flags[0]&glyphFlagXShortVector == 0 {
-		t.Error("x delta of 255 should use short vector")
-	}
-	if flags[0]&glyphFlagXSameOrPositive == 0 {
-		t.Error("x delta of 255 (positive) should set sameOrPositive")
-	}
-	if len(xCoords) != 1 || xCoords[0] != 255 {
-		t.Errorf("x-coord: got %v, want [255]", xCoords)
-	}
+	assert.NotZero(t, flags[0]&glyphFlagXShortVector, "x delta of 255 should use short vector")
+	assert.NotZero(t, flags[0]&glyphFlagXSameOrPositive, "x delta of 255 (positive) should set sameOrPositive")
+	assert.Equal(t, []byte{255}, xCoords, "x-coord: want [255]")
 
-	if flags[0]&glyphFlagYShortVector == 0 {
-		t.Error("y delta of -255 should use short vector")
-	}
-	if flags[0]&glyphFlagYSameOrPositive != 0 {
-		t.Error("y delta of -255 (negative) should not set sameOrPositive")
-	}
-	if len(yCoords) != 1 || yCoords[0] != 255 {
-		t.Errorf("y-coord: got %v, want [255]", yCoords)
-	}
+	assert.NotZero(t, flags[0]&glyphFlagYShortVector, "y delta of -255 should use short vector")
+	assert.Zero(t, flags[0]&glyphFlagYSameOrPositive, "y delta of -255 (negative) should not set sameOrPositive")
+	assert.Equal(t, []byte{255}, yCoords, "y-coord: want [255]")
 }
 
 func TestEncodeDeltaCoordinates_BoundaryLongMin(t *testing.T) {
@@ -514,27 +402,15 @@ func TestEncodeDeltaCoordinates_BoundaryLongMin(t *testing.T) {
 
 	flags, xCoords, yCoords := encodeDeltaCoordinates(points)
 
-	if flags[0]&glyphFlagXShortVector != 0 {
-		t.Error("x delta of 256 should NOT use short vector")
-	}
-	if len(xCoords) != 2 {
-		t.Fatalf("expected 2 x-coord bytes for long encoding, got %d", len(xCoords))
-	}
+	assert.Zero(t, flags[0]&glyphFlagXShortVector, "x delta of 256 should NOT use short vector")
+	require.Len(t, xCoords, 2, "expected 2 x-coord bytes for long encoding")
 	xVal := int16(binary.BigEndian.Uint16(xCoords))
-	if xVal != 256 {
-		t.Errorf("x long value: got %d, want 256", xVal)
-	}
+	assert.Equal(t, int16(256), xVal, "x long value")
 
-	if flags[0]&glyphFlagYShortVector != 0 {
-		t.Error("y delta of -256 should NOT use short vector")
-	}
-	if len(yCoords) != 2 {
-		t.Fatalf("expected 2 y-coord bytes for long encoding, got %d", len(yCoords))
-	}
+	assert.Zero(t, flags[0]&glyphFlagYShortVector, "y delta of -256 should NOT use short vector")
+	require.Len(t, yCoords, 2, "expected 2 y-coord bytes for long encoding")
 	yVal := int16(binary.BigEndian.Uint16(yCoords))
-	if yVal != -256 {
-		t.Errorf("y long value: got %d, want -256", yVal)
-	}
+	assert.Equal(t, int16(-256), yVal, "y long value")
 }
 
 func TestEncodeSingleAxis_ZeroDelta(t *testing.T) {
@@ -542,12 +418,8 @@ func TestEncodeSingleAxis_ZeroDelta(t *testing.T) {
 
 	coords, flag := encodeSingleAxis(0, 0, glyphFlagXShortVector, glyphFlagXSameOrPositive, nil)
 
-	if flag != glyphFlagXSameOrPositive {
-		t.Errorf("flag: got 0x%02X, want 0x%02X", flag, glyphFlagXSameOrPositive)
-	}
-	if len(coords) != 0 {
-		t.Errorf("expected no coords for zero delta, got %d bytes", len(coords))
-	}
+	assert.Equal(t, glyphFlagXSameOrPositive, flag, "flag")
+	assert.Empty(t, coords, "expected no coords for zero delta")
 }
 
 func TestEncodeSingleAxis_ShortPositive(t *testing.T) {
@@ -556,12 +428,8 @@ func TestEncodeSingleAxis_ShortPositive(t *testing.T) {
 	coords, flag := encodeSingleAxis(42, 0, glyphFlagXShortVector, glyphFlagXSameOrPositive, nil)
 
 	expectedFlag := glyphFlagXShortVector | glyphFlagXSameOrPositive
-	if flag != expectedFlag {
-		t.Errorf("flag: got 0x%02X, want 0x%02X", flag, expectedFlag)
-	}
-	if len(coords) != 1 || coords[0] != 42 {
-		t.Errorf("coords: got %v, want [42]", coords)
-	}
+	assert.Equal(t, expectedFlag, flag, "flag")
+	assert.Equal(t, []byte{42}, coords, "coords: want [42]")
 }
 
 func TestEncodeSingleAxis_ShortNegative(t *testing.T) {
@@ -569,12 +437,8 @@ func TestEncodeSingleAxis_ShortNegative(t *testing.T) {
 
 	coords, flag := encodeSingleAxis(-42, 0, glyphFlagXShortVector, glyphFlagXSameOrPositive, nil)
 
-	if flag != glyphFlagXShortVector {
-		t.Errorf("flag: got 0x%02X, want 0x%02X", flag, glyphFlagXShortVector)
-	}
-	if len(coords) != 1 || coords[0] != 42 {
-		t.Errorf("coords: got %v, want [42] (absolute value)", coords)
-	}
+	assert.Equal(t, glyphFlagXShortVector, flag, "flag")
+	assert.Equal(t, []byte{42}, coords, "coords: want [42] (absolute value)")
 }
 
 func TestEncodeSingleAxis_LongDelta(t *testing.T) {
@@ -582,16 +446,10 @@ func TestEncodeSingleAxis_LongDelta(t *testing.T) {
 
 	coords, flag := encodeSingleAxis(1000, 0, glyphFlagXShortVector, glyphFlagXSameOrPositive, nil)
 
-	if flag != 0 {
-		t.Errorf("flag: got 0x%02X, want 0x00 (no short, no sameOrPos)", flag)
-	}
-	if len(coords) != 2 {
-		t.Fatalf("expected 2 coord bytes for long delta, got %d", len(coords))
-	}
+	assert.Zero(t, flag, "flag: want 0x00 (no short, no sameOrPos)")
+	require.Len(t, coords, 2, "expected 2 coord bytes for long delta")
 	val := int16(binary.BigEndian.Uint16(coords))
-	if val != 1000 {
-		t.Errorf("long delta value: got %d, want 1000", val)
-	}
+	assert.Equal(t, int16(1000), val, "long delta value")
 }
 
 func TestAssembleGlyfData_RoundTrip(t *testing.T) {
@@ -611,42 +469,30 @@ func TestAssembleGlyfData_RoundTrip(t *testing.T) {
 
 	result := assembleGlyfData(endPts, bbox, flags, xCoords, yCoords)
 
-	if len(result) < glyfHeaderMinBytes {
-		t.Fatalf("output too short: %d bytes", len(result))
-	}
+	require.GreaterOrEqual(t, len(result), glyfHeaderMinBytes, "output too short")
 
 	numberOfContours := int16(binary.BigEndian.Uint16(result[0:2]))
-	if numberOfContours != 1 {
-		t.Errorf("numberOfContours: got %d, want 1", numberOfContours)
-	}
+	assert.Equal(t, int16(1), numberOfContours, "numberOfContours")
 
 	parsedXMin := int16(binary.BigEndian.Uint16(result[2:4]))
 	parsedYMin := int16(binary.BigEndian.Uint16(result[4:6]))
 	parsedXMax := int16(binary.BigEndian.Uint16(result[6:8]))
 	parsedYMax := int16(binary.BigEndian.Uint16(result[8:10]))
 
-	if parsedXMin != bbox.xMin || parsedYMin != bbox.yMin ||
-		parsedXMax != bbox.xMax || parsedYMax != bbox.yMax {
-		t.Errorf("bounding box mismatch: got (%d,%d,%d,%d), want (%d,%d,%d,%d)",
-			parsedXMin, parsedYMin, parsedXMax, parsedYMax,
-			bbox.xMin, bbox.yMin, bbox.xMax, bbox.yMax)
-	}
+	assert.Equal(t, bbox.xMin, parsedXMin, "bounding box xMin")
+	assert.Equal(t, bbox.yMin, parsedYMin, "bounding box yMin")
+	assert.Equal(t, bbox.xMax, parsedXMax, "bounding box xMax")
+	assert.Equal(t, bbox.yMax, parsedYMax, "bounding box yMax")
 
 	parsedEndPt := binary.BigEndian.Uint16(result[10:12])
-	if parsedEndPt != endPts[0] {
-		t.Errorf("endPt: got %d, want %d", parsedEndPt, endPts[0])
-	}
+	assert.Equal(t, endPts[0], parsedEndPt, "endPt")
 
 	instrLen := binary.BigEndian.Uint16(result[12:14])
-	if instrLen != 0 {
-		t.Errorf("instructionLength: got %d, want 0", instrLen)
-	}
+	assert.Equal(t, uint16(0), instrLen, "instructionLength")
 
 	expectedSize := glyfHeaderMinBytes + 1*endPtBytesPerEntry + instructionLengthBytes +
 		len(flags) + len(xCoords) + len(yCoords)
-	if len(result) != expectedSize {
-		t.Errorf("total size: got %d, want %d", len(result), expectedSize)
-	}
+	assert.Len(t, result, expectedSize, "total size")
 }
 
 func TestAssembleGlyfData_MultipleContours(t *testing.T) {
@@ -661,15 +507,12 @@ func TestAssembleGlyfData_MultipleContours(t *testing.T) {
 	result := assembleGlyfData(endPts, bbox, flags, xCoords, yCoords)
 
 	numberOfContours := int16(binary.BigEndian.Uint16(result[0:2]))
-	if numberOfContours != 2 {
-		t.Errorf("numberOfContours: got %d, want 2", numberOfContours)
-	}
+	assert.Equal(t, int16(2), numberOfContours, "numberOfContours")
 
 	parsedEndPt0 := binary.BigEndian.Uint16(result[10:12])
 	parsedEndPt1 := binary.BigEndian.Uint16(result[12:14])
-	if parsedEndPt0 != 2 || parsedEndPt1 != 5 {
-		t.Errorf("endPts: got (%d, %d), want (2, 5)", parsedEndPt0, parsedEndPt1)
-	}
+	assert.Equal(t, uint16(2), parsedEndPt0, "endPts[0]")
+	assert.Equal(t, uint16(5), parsedEndPt1, "endPts[1]")
 }
 
 func TestReadNumberOfGlyphs_MissingMaxp(t *testing.T) {
@@ -677,9 +520,7 @@ func TestReadNumberOfGlyphs_MissingMaxp(t *testing.T) {
 
 	tables := map[string][]byte{}
 	_, err := readNumberOfGlyphs(tables)
-	if err == nil {
-		t.Fatal("expected error for missing maxp table")
-	}
+	require.Error(t, err, "expected error for missing maxp table")
 }
 
 func TestReadNumberOfGlyphs_TooShortMaxp(t *testing.T) {
@@ -689,9 +530,7 @@ func TestReadNumberOfGlyphs_TooShortMaxp(t *testing.T) {
 		tableTagMaxp: {0, 0, 0},
 	}
 	_, err := readNumberOfGlyphs(tables)
-	if err == nil {
-		t.Fatal("expected error for too-short maxp table")
-	}
+	require.Error(t, err, "expected error for too-short maxp table")
 }
 
 func TestReadNumberOfGlyphs_Valid(t *testing.T) {
@@ -705,21 +544,15 @@ func TestReadNumberOfGlyphs_Valid(t *testing.T) {
 	}
 
 	numGlyphs, err := readNumberOfGlyphs(tables)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if numGlyphs != 42 {
-		t.Errorf("expected 42 glyphs, got %d", numGlyphs)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 42, numGlyphs, "expected 42 glyphs")
 }
 
 func TestValidateHeadTable_Missing(t *testing.T) {
 	t.Parallel()
 
 	tables := map[string][]byte{}
-	if err := validateHeadTable(tables); err == nil {
-		t.Fatal("expected error for missing head table")
-	}
+	require.Error(t, validateHeadTable(tables), "expected error for missing head table")
 }
 
 func TestValidateHeadTable_TooShort(t *testing.T) {
@@ -728,9 +561,7 @@ func TestValidateHeadTable_TooShort(t *testing.T) {
 	tables := map[string][]byte{
 		tableTagHead: make([]byte, headMinBytes-1),
 	}
-	if err := validateHeadTable(tables); err == nil {
-		t.Fatal("expected error for too-short head table")
-	}
+	require.Error(t, validateHeadTable(tables), "expected error for too-short head table")
 }
 
 func TestValidateHeadTable_Valid(t *testing.T) {
@@ -739,9 +570,7 @@ func TestValidateHeadTable_Valid(t *testing.T) {
 	tables := map[string][]byte{
 		tableTagHead: make([]byte, headMinBytes),
 	}
-	if err := validateHeadTable(tables); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, validateHeadTable(tables))
 }
 
 func TestValidateHheaTable_Missing(t *testing.T) {
@@ -749,9 +578,7 @@ func TestValidateHheaTable_Missing(t *testing.T) {
 
 	tables := map[string][]byte{}
 	_, err := validateHheaTable(tables)
-	if err == nil {
-		t.Fatal("expected error for missing hhea table")
-	}
+	require.Error(t, err, "expected error for missing hhea table")
 }
 
 func TestValidateHheaTable_TooShort(t *testing.T) {
@@ -761,9 +588,7 @@ func TestValidateHheaTable_TooShort(t *testing.T) {
 		"hhea": make([]byte, hheaMinBytes-1),
 	}
 	_, err := validateHheaTable(tables)
-	if err == nil {
-		t.Fatal("expected error for too-short hhea table")
-	}
+	require.Error(t, err, "expected error for too-short hhea table")
 }
 
 func TestValidateHheaTable_Valid(t *testing.T) {
@@ -775,12 +600,8 @@ func TestValidateHheaTable_Valid(t *testing.T) {
 	}
 
 	result, err := validateHheaTable(tables)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(result) != hheaMinBytes {
-		t.Errorf("expected %d bytes, got %d", hheaMinBytes, len(result))
-	}
+	require.NoError(t, err)
+	assert.Len(t, result, hheaMinBytes, "expected %d bytes", hheaMinBytes)
 }
 
 func TestConvertToIntPoints_NegativeCoordinates(t *testing.T) {
@@ -792,20 +613,12 @@ func TestConvertToIntPoints_NegativeCoordinates(t *testing.T) {
 
 	intPts, bbox := convertToIntPoints(points)
 
-	if intPts[0].x != math.MinInt16 {
-		t.Errorf("x: got %d, want %d", intPts[0].x, int16(math.MinInt16))
-	}
-	if intPts[0].y != math.MaxInt16 {
-		t.Errorf("y: got %d, want %d", intPts[0].y, int16(math.MaxInt16))
-	}
-	if bbox.xMin != math.MinInt16 || bbox.xMax != math.MinInt16 {
-		t.Errorf("single-point bbox x: got (%d, %d), want (%d, %d)",
-			bbox.xMin, bbox.xMax, int16(math.MinInt16), int16(math.MinInt16))
-	}
-	if bbox.yMin != math.MaxInt16 || bbox.yMax != math.MaxInt16 {
-		t.Errorf("single-point bbox y: got (%d, %d), want (%d, %d)",
-			bbox.yMin, bbox.yMax, int16(math.MaxInt16), int16(math.MaxInt16))
-	}
+	assert.Equal(t, int16(math.MinInt16), intPts[0].x, "x")
+	assert.Equal(t, int16(math.MaxInt16), intPts[0].y, "y")
+	assert.Equal(t, int16(math.MinInt16), bbox.xMin, "single-point bbox xMin")
+	assert.Equal(t, int16(math.MinInt16), bbox.xMax, "single-point bbox xMax")
+	assert.Equal(t, int16(math.MaxInt16), bbox.yMin, "single-point bbox yMin")
+	assert.Equal(t, int16(math.MaxInt16), bbox.yMax, "single-point bbox yMax")
 }
 
 func TestBuildInstancedTables_EmptyGlyphs(t *testing.T) {
@@ -815,25 +628,18 @@ func TestBuildInstancedTables_EmptyGlyphs(t *testing.T) {
 		return InstancedGlyphData{AdvanceWidth: 500}
 	})
 
-	if len(glyfData) != 0 {
-		t.Errorf("expected empty glyf, got %d bytes", len(glyfData))
-	}
+	assert.Empty(t, glyfData, "expected empty glyf")
 
 	expectedLocaLen := (2 + 1) * locaBytesPerEntry
-	if len(locaData) != expectedLocaLen {
-		t.Errorf("loca length: got %d, want %d", len(locaData), expectedLocaLen)
-	}
+	assert.Len(t, locaData, expectedLocaLen, "loca length")
 
 	expectedHmtxLen := 2 * hmtxBytesPerEntry
-	if len(hmtxData) != expectedHmtxLen {
-		t.Errorf("hmtx length: got %d, want %d", len(hmtxData), expectedHmtxLen)
-	}
+	require.Len(t, hmtxData, expectedHmtxLen, "hmtx length")
 
 	aw0 := binary.BigEndian.Uint16(hmtxData[0:2])
 	aw1 := binary.BigEndian.Uint16(hmtxData[4:6])
-	if aw0 != 500 || aw1 != 500 {
-		t.Errorf("advance widths: got (%d, %d), want (500, 500)", aw0, aw1)
-	}
+	assert.Equal(t, uint16(500), aw0, "advance width[0]")
+	assert.Equal(t, uint16(500), aw1, "advance width[1]")
 }
 
 func TestBuildInstancedTables_WithContours(t *testing.T) {
@@ -857,29 +663,19 @@ func TestBuildInstancedTables_WithContours(t *testing.T) {
 		}
 	})
 
-	if len(glyfData) == 0 {
-		t.Fatal("expected non-empty glyf data")
-	}
+	require.NotEmpty(t, glyfData, "expected non-empty glyf data")
 
 	loca0 := binary.BigEndian.Uint32(locaData[0:4])
-	if loca0 != 0 {
-		t.Errorf("loca[0]: got %d, want 0", loca0)
-	}
+	assert.Equal(t, uint32(0), loca0, "loca[0]")
 
 	loca1 := binary.BigEndian.Uint32(locaData[4:8])
-	if loca1 != 0 {
-		t.Errorf("loca[1]: got %d, want 0 (glyph 0 had no outline)", loca1)
-	}
+	assert.Equal(t, uint32(0), loca1, "loca[1]: want 0 (glyph 0 had no outline)")
 
 	loca2 := binary.BigEndian.Uint32(locaData[8:12])
-	if int(loca2) != len(glyfData) {
-		t.Errorf("loca[2]: got %d, want %d", loca2, len(glyfData))
-	}
+	assert.Equal(t, len(glyfData), int(loca2), "loca[2]")
 
 	aw1 := binary.BigEndian.Uint16(hmtxData[4:6])
-	if aw1 != 600 {
-		t.Errorf("advance width[1]: got %d, want 600", aw1)
-	}
+	assert.Equal(t, uint16(600), aw1, "advance width[1]")
 }
 
 func TestBuildUpdatedHeaders_SetsLocaFormatAndClearsChecksum(t *testing.T) {
@@ -901,23 +697,15 @@ func TestBuildUpdatedHeaders_SetsLocaFormatAndClearsChecksum(t *testing.T) {
 	newHead, newHhea := buildUpdatedHeaders(tables, hheaData, 42)
 
 	locaFormat := binary.BigEndian.Uint16(newHead[headLocaFormatOffset:headLocaFormatEnd])
-	if locaFormat != 1 {
-		t.Errorf("expected loca format 1 (long), got %d", locaFormat)
-	}
+	assert.Equal(t, uint16(1), locaFormat, "expected loca format 1 (long)")
 
 	checksum := binary.BigEndian.Uint32(newHead[headChecksumOffset:headChecksumEnd])
-	if checksum != 0 {
-		t.Errorf("expected zeroed checksum, got 0x%08X", checksum)
-	}
+	assert.Equal(t, uint32(0), checksum, "expected zeroed checksum")
 
 	numHMetrics := binary.BigEndian.Uint16(newHhea[hheaNumHMetricsOffset:hheaNumHMetricsEnd])
-	if numHMetrics != 42 {
-		t.Errorf("expected numberOfHMetrics 42, got %d", numHMetrics)
-	}
+	assert.Equal(t, uint16(42), numHMetrics, "expected numberOfHMetrics 42")
 
-	if &newHead[0] == &headData[0] {
-		t.Error("expected newHead to be a copy, not the same slice")
-	}
+	assert.NotSame(t, &newHead[0], &headData[0], "expected newHead to be a copy, not the same slice")
 }
 
 func TestAssembleInstancedOutput_ExcludesVariationTables(t *testing.T) {
@@ -951,14 +739,10 @@ func TestAssembleInstancedOutput_ExcludesVariationTables(t *testing.T) {
 	)
 
 	for _, tag := range []string{"fvar", "gvar", "avar", "HVAR", "MVAR", "STAT", "cvar"} {
-		if _, exists := output[tag]; exists {
-			t.Errorf("variation table %q should be stripped from output", tag)
-		}
+		assert.NotContains(t, output, tag, "variation table %q should be stripped from output", tag)
 	}
 
 	for _, tag := range []string{tableTagHead, "hhea", tableTagMaxp, "glyf", "loca", "hmtx", "cmap", "name"} {
-		if _, exists := output[tag]; !exists {
-			t.Errorf("expected table %q in output", tag)
-		}
+		assert.Contains(t, output, tag, "expected table %q in output", tag)
 	}
 }

@@ -123,8 +123,10 @@ func WithAttributeRedactor(fn AttributeRedactor) Option {
 }
 
 // WithMaxAttributes caps how many attributes are copied from a single span before further
-// attributes are dropped; a marker attribute records the dropped count so the clip is
-// observable. The default is high (256). Non-positive values are ignored.
+// attributes are dropped.
+//
+// A marker attribute records the dropped count so the clip is observable. The default is
+// high (256). Non-positive values are ignored.
 //
 // Takes n (int) which is the maximum number of span attributes to copy.
 //
@@ -138,8 +140,10 @@ func WithMaxAttributes(n int) Option {
 }
 
 // WithMaxAttributeValueLen bounds a single attribute value, UTF-8 safe, before it streams
-// off-box; a marker attribute records how many values were truncated so the clip is
-// observable. The default is high (2048 bytes). Non-positive values are ignored.
+// off-box.
+//
+// A marker attribute records how many values were truncated so the clip is observable.
+// The default is high (2048 bytes). Non-positive values are ignored.
 //
 // Takes n (int) which is the maximum byte length of a single attribute value.
 //
