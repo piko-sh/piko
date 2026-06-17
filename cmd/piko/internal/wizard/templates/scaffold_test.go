@@ -190,6 +190,8 @@ func TestCreateProject_HappyPath(t *testing.T) {
 		"partials/layout.pk",
 		"partials/code-window.pk",
 		"lib/icons/piko-logo-inline.svg",
+		"lib/icons/book-open.svg",
+		"lib/icons/bolt.svg",
 		"styles/theme.css",
 	}
 

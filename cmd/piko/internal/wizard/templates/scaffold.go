@@ -372,6 +372,8 @@ func createConfigs(factory safedisk.Factory, data ScaffoldData) error {
 func createIcons(factory safedisk.Factory, data ScaffoldData) error {
 	files := map[string]string{
 		"lib/icons/piko-logo-inline.svg": "icons/piko-logo-inline.svg",
+		"lib/icons/book-open.svg":        "icons/book-open.svg",
+		"lib/icons/bolt.svg":             "icons/bolt.svg",
 	}
 	return createStaticFiles(factory, data.DestinationPath, IconsFS, files)
 }

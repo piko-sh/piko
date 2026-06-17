@@ -10,11 +10,13 @@
       <h1 class="hero-title">{{ "{{ state.Title }}" }}</h1>
       <p class="hero-subtitle">{{ "{{ state.Subtitle }}" }}</p>
       <div class="hero-actions">
-        <a href="https://piko.sh/docs/get-started/introduction" target="_blank" rel="noopener" class="button button-primary">
-          Get started
-        </a>
         <a href="https://piko.sh/docs" target="_blank" rel="noopener" class="button button-secondary">
+          <piko:svg src="@/lib/icons/book-open.svg" class="button-icon" aria-hidden="true"></piko:svg>
           Documentation
+        </a>
+        <a href="https://piko.sh/docs/get-started/introduction" target="_blank" rel="noopener" class="button button-primary">
+          <piko:svg src="@/lib/icons/bolt.svg" class="button-icon" aria-hidden="true"></piko:svg>
+          Get started
         </a>
       </div>
     </section>
@@ -152,6 +154,12 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   background-color: var(--colour-background-hover);
   border-color: var(--colour-border-hover);
   color: var(--colour-text-hover);
+}
+
+.button-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
 }
 
 .button-secondary {
