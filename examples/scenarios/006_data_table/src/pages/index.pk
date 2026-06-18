@@ -4,69 +4,69 @@
      See https://piko.sh/docs/guide/template-syntax -->
 <template>
   <div id="app">
-    <h1>Employee Directory</h1>
+    <h1>Employee directory</h1>
     <p id="employee-count">{{ state.EmployeeCount }} employees</p>
 
     <table id="data-table">
       <thead>
         <tr>
           <th p-class:active="state.SortColumn == 'name'">
-            <piko:a p-if="state.SortColumn == 'name' && state.SortDirection == 'asc'" href="/?sort=name&dir=desc">
-              Name ▼
+            <piko:a class="sort-link" p-if="state.SortColumn == 'name' && state.SortDirection == 'asc'" href="/?sort=name&dir=desc">
+              Name ⌄
             </piko:a>
-            <piko:a p-else-if="state.SortColumn == 'name' && state.SortDirection == 'desc'" href="/?sort=name&dir=asc">
-              Name ▲
+            <piko:a class="sort-link" p-else-if="state.SortColumn == 'name' && state.SortDirection == 'desc'" href="/?sort=name&dir=asc">
+              Name ⌃
             </piko:a>
-            <piko:a p-else href="/?sort=name&dir=asc">
+            <piko:a class="sort-link" p-else href="/?sort=name&dir=asc">
               Name
             </piko:a>
           </th>
 
           <th p-class:active="state.SortColumn == 'department'">
-            <piko:a p-if="state.SortColumn == 'department' && state.SortDirection == 'asc'" href="/?sort=department&dir=desc">
-              Department ▼
+            <piko:a class="sort-link" p-if="state.SortColumn == 'department' && state.SortDirection == 'asc'" href="/?sort=department&dir=desc">
+              Department ⌄
             </piko:a>
-            <piko:a p-else-if="state.SortColumn == 'department' && state.SortDirection == 'desc'" href="/?sort=department&dir=asc">
-              Department ▲
+            <piko:a class="sort-link" p-else-if="state.SortColumn == 'department' && state.SortDirection == 'desc'" href="/?sort=department&dir=asc">
+              Department ⌃
             </piko:a>
-            <piko:a p-else href="/?sort=department&dir=asc">
+            <piko:a class="sort-link" p-else href="/?sort=department&dir=asc">
               Department
             </piko:a>
           </th>
 
           <th p-class:active="state.SortColumn == 'role'">
-            <piko:a p-if="state.SortColumn == 'role' && state.SortDirection == 'asc'" href="/?sort=role&dir=desc">
-              Role ▼
+            <piko:a class="sort-link" p-if="state.SortColumn == 'role' && state.SortDirection == 'asc'" href="/?sort=role&dir=desc">
+              Role ⌄
             </piko:a>
-            <piko:a p-else-if="state.SortColumn == 'role' && state.SortDirection == 'desc'" href="/?sort=role&dir=asc">
-              Role ▲
+            <piko:a class="sort-link" p-else-if="state.SortColumn == 'role' && state.SortDirection == 'desc'" href="/?sort=role&dir=asc">
+              Role ⌃
             </piko:a>
-            <piko:a p-else href="/?sort=role&dir=asc">
+            <piko:a class="sort-link" p-else href="/?sort=role&dir=asc">
               Role
             </piko:a>
           </th>
 
           <th p-class:active="state.SortColumn == 'salary'">
-            <piko:a p-if="state.SortColumn == 'salary' && state.SortDirection == 'asc'" href="/?sort=salary&dir=desc">
-              Salary ▼
+            <piko:a class="sort-link" p-if="state.SortColumn == 'salary' && state.SortDirection == 'asc'" href="/?sort=salary&dir=desc">
+              Salary ⌄
             </piko:a>
-            <piko:a p-else-if="state.SortColumn == 'salary' && state.SortDirection == 'desc'" href="/?sort=salary&dir=asc">
-              Salary ▲
+            <piko:a class="sort-link" p-else-if="state.SortColumn == 'salary' && state.SortDirection == 'desc'" href="/?sort=salary&dir=asc">
+              Salary ⌃
             </piko:a>
-            <piko:a p-else href="/?sort=salary&dir=asc">
+            <piko:a class="sort-link" p-else href="/?sort=salary&dir=asc">
               Salary
             </piko:a>
           </th>
 
           <th p-class:active="state.SortColumn == 'startdate'">
-            <piko:a p-if="state.SortColumn == 'startdate' && state.SortDirection == 'asc'" href="/?sort=startdate&dir=desc">
-              Start Date ▼
+            <piko:a class="sort-link" p-if="state.SortColumn == 'startdate' && state.SortDirection == 'asc'" href="/?sort=startdate&dir=desc">
+              Start date ⌄
             </piko:a>
-            <piko:a p-else-if="state.SortColumn == 'startdate' && state.SortDirection == 'desc'" href="/?sort=startdate&dir=asc">
-              Start Date ▲
+            <piko:a class="sort-link" p-else-if="state.SortColumn == 'startdate' && state.SortDirection == 'desc'" href="/?sort=startdate&dir=asc">
+              Start date ⌃
             </piko:a>
-            <piko:a p-else href="/?sort=startdate&dir=asc">
-              Start Date
+            <piko:a class="sort-link" p-else href="/?sort=startdate&dir=asc">
+              Start date
             </piko:a>
           </th>
         </tr>
@@ -180,69 +180,119 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
         SortDirection: sortDirection,
         EmployeeCount: len(employees),
     }, piko.Metadata{
-        Title: "Employee Directory - Piko Example",
+        Title: "Employee directory — Piko example",
         Description: "A sortable data table demonstrating query parameters and server-side sorting.",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
+  :host {
+    display: block;
+    min-height: 100vh;
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
+  }
+
   #app {
     max-width: 900px;
-    margin: 2rem auto;
-    padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    font-family: var(--g-font-family, sans-serif);
+    color: var(--g-colour-grey-800, #364049);
   }
 
   h1 {
-    color: #1f2937;
-    margin-bottom: 0.25rem;
+    font-family: var(--g-font-family-heading);
+    color: var(--g-colour-grey-900, #2B333B);
+    letter-spacing: -0.01em;
+    font-size: 2rem;
+    margin-bottom: .75em;
   }
 
   #employee-count {
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 1.5rem;
   }
 
   #data-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.9375rem;
+    background-color: #fff;
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    border-radius: var(--g-radius-md, 15px);
+    overflow: hidden;
   }
 
   #data-table th,
   #data-table td {
     padding: 0.75rem 1rem;
     text-align: left;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--g-colour-grey-100, #E8EBEE);
+  }
+
+  #data-table tbody tr:last-child td {
+    border-bottom: none;
   }
 
   #data-table thead th {
-    background-color: #f9fafb;
+    background-color: var(--g-colour-grey-25, #fafbfc);
     font-weight: 600;
-    color: #374151;
+    color: var(--g-colour-grey-800);
     white-space: nowrap;
+    padding: .75rem .25rem;
   }
 
   #data-table thead th.active {
-    background-color: #eff6ff;
-    color: #1d4ed8;
+    background-color: var(--g-colour-primary-50, #F1EDFD);
+    color: var(--g-colour-primary-700, #482CA6);
   }
 
-  #data-table thead th a {
-    color: inherit;
+  .sort-link {
+    --colour-background: transparent;
+    --colour-background-hover: var(--g-colour-primary-50);
+    --colour-text: var(--g-colour-grey-700);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: transparent;
+    --colour-border-hover: var(--g-colour-primary-200);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-family: var(--g-font-family, sans-serif);
+    font-weight: 500;
     text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
   }
 
-  #data-table thead th a:hover {
-    text-decoration: underline;
+  .sort-link:hover {
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
+  }
+
+  #data-table thead th.active .sort-link {
+    --colour-text: var(--g-colour-primary-700);
   }
 
   #data-table tbody tr:hover {
-    background-color: #f9fafb;
+    background-color: var(--g-colour-grey-25, #fafbfc);
   }
 
   #data-table tbody td {
-    color: #4b5563;
+    color: var(--g-colour-grey-600, #5B6B7B);
   }
 </style>

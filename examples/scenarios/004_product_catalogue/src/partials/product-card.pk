@@ -3,6 +3,8 @@
      See https://piko.sh/docs/guide/partials -->
 <template>
   <article class="product-card">
+    <span class="product-category" p-class="'category-' + state.Category" p-text="state.Category"></span>
+
     <img class="product-image" :src="state.ImageURL" :alt="state.Name" />
 
     <div class="product-body">
@@ -11,11 +13,9 @@
 
       <div class="product-meta">
         <span class="product-price" p-text="state.Price"></span>
-        <span class="product-category" p-class="'category-' + state.Category" p-text="state.Category"></span>
+        <span p-if="state.InStock" class="badge badge-in-stock">In stock</span>
+        <span p-if="!state.InStock" class="badge badge-out-of-stock">Out of stock</span>
       </div>
-
-      <span p-if="state.InStock" class="badge badge-in-stock">In Stock</span>
-      <span p-if="!state.InStock" class="badge badge-out-of-stock">Out of Stock</span>
     </div>
   </article>
 </template>
@@ -40,40 +40,62 @@ func Render(r *piko.RequestData, props Props) (Props, piko.Metadata, error) {
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   .product-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    position: relative;
+    border: 1px solid var(--g-colour-grey-200);
+    border-radius: var(--g-radius-lg, 20px);
     overflow: hidden;
     background: #ffffff;
     display: flex;
     flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+    box-shadow: 0 4px 0 var(--g-colour-grey-200);
+  }
+
+  .product-card:hover {
+    transform: translateY(2px);
+    border-color: var(--g-colour-primary-200);
+    box-shadow: 0 2px 0 var(--g-colour-primary-200);
+  }
+
+  .product-category {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 0.675rem;
+    font-weight: 500;
+    padding: 0.4em 0.75em;
+    border-radius: var(--g-radius-max, 9999px);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .product-image {
     width: 100%;
     height: 200px;
     object-fit: cover;
-    background-color: #f3f4f6;
+    background-color: var(--g-colour-grey-50, #F6F7F8);
   }
 
   .product-body {
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
     flex: 1;
   }
 
   .product-name {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 600;
-    color: #1f2937;
-    margin: 0;
+    color: var(--g-colour-grey-800, #2B333B);
   }
 
   .product-description {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     line-height: 1.5;
     margin: 0;
   }
@@ -82,37 +104,30 @@ func Render(r *piko.RequestData, props Props) (Props, piko.Metadata, error) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: auto;
+    margin-top: 10px;
   }
 
   .product-price {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .product-category {
-    font-size: 0.75rem;
+    font-size: 1.125rem;
     font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: 9999px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .category-Electronics {
-    background-color: #dbeafe;
-    color: #1d4ed8;
+    background-color: var(--g-colour-primary-50, #F1EDFD);
+    color: var(--g-colour-primary-700, #482CA6);
+    border: 1px solid var(--g-colour-primary-300);
   }
 
   .category-Books {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: var(--g-colour-secondary-100, #ECFAFA);
+    color: var(--g-colour-secondary-800, #2E8B83);
+    border: 1px solid var(--g-colour-secondary-500);
   }
 
   .category-Clothing {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: var(--g-colour-grey-100, #E8EBEE);
+    color: var(--g-colour-grey-700, #485461);
+    border: 1px solid #A8C3E0;
   }
 
   .badge {
@@ -120,13 +135,13 @@ func Render(r *piko.RequestData, props Props) (Props, piko.Metadata, error) {
     font-size: 0.75rem;
     font-weight: 600;
     padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
+    border-radius: var(--g-radius-max, 9999px);
     width: fit-content;
   }
 
   .badge-in-stock {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: var(--g-colour-secondary-100, #ECFAFA);
+    color: var(--g-colour-secondary-800, #2E8B83);
   }
 
   .badge-out-of-stock {

@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Todo App</h1>
+    <h1>Todo app</h1>
     <p>An interactive todo list built with PKC.</p>
     <pp-todo-list></pp-todo-list>
   </div>
@@ -16,27 +16,35 @@ import "piko.sh/piko"
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Todo App - Piko Example",
+        Title: "Todo app — Piko example",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
     padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--g-font-family, sans-serif);
+    background-color: var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
     text-align: center;
+    border-radius: var(--g-radius-xl);
   }
 
   h1 {
-    color: #1f2937;
-    margin-bottom: 0.5rem;
+    font-family: var(--g-font-family-heading);
+    color: var(--g-colour-grey-900, #2B333B);
+    letter-spacing: -0.01em;
+    font-size: 2rem;
+    margin-bottom: .5em;
   }
 
   p {
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 2rem;
   }
 </style>

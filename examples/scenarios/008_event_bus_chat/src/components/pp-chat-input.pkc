@@ -10,15 +10,13 @@
             p-on:keydown="handleKeydown"
             placeholder="Type a message..."
         >
-        <button id="send-btn" p-on:click="sendMessage">Send</button>
-        <span class="counter">Messages sent: {{ state.messageCount }}</span>
+        <button id="send-button" p-on:click="sendMessage">Send</button>
     </div>
 </template>
 
 <script lang="ts">
     const state = {
         message: '' as string,
-        messageCount: 0 as number,
     };
 
     function sendMessage() {
@@ -32,72 +30,85 @@
             timestamp: Date.now()
         });
 
-        state.messageCount++;
         state.message = '';
     }
 
-    function handleKeydown(event: KeyboardEvent) {
-        if (event.key === 'Enter') {
+    function handleKeydown(evt: KeyboardEvent) {
+        if (evt.key === 'Enter') {
             sendMessage();
         }
     }
 </script>
 
 <style>
+    @import "testmodule/styles/theme.css";
+
     .chat-input-bar {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        font-family: system-ui, -apple-system, sans-serif;
+        gap: 0.75rem;
+        padding-top: 0.75rem;
+        margin-top: 1.5rem;
+        background: var(--g-colour-grey-50, #F6F7F8);
+        border-top: 1px solid var(--g-colour-grey-100, #E8EBEE);
+        font-family: var(--g-font-family, sans-serif);
+        color: var(--g-colour-grey-800, #364049);
     }
 
     #message-input {
         flex: 1;
-        padding: 0.5rem 0.75rem;
+        padding: 0.5rem 1rem;
         font-size: 0.9375rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
+        border: 1px solid var(--g-colour-grey-200, #CAD1D8);
+        border-radius: var(--g-radius-max, 9999px);
         outline: none;
-        font-family: inherit;
+        align-self: stretch;
+        font-family: var(--g-font-family, sans-serif);
+        color: var(--g-colour-grey-800, #364049);
     }
 
     #message-input:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        border-color: var(--g-colour-primary-500, #6F47EB);
+        box-shadow: 0 0 0 2px rgba(111, 71, 235, 0.15);
     }
 
     #message-input::placeholder {
-        color: #9ca3af;
+        color: var(--g-colour-grey-400, #92A1AF);
     }
 
-    #send-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.9375rem;
-        font-weight: 600;
-        background-color: #2563eb;
-        color: #ffffff;
-        border: none;
-        border-radius: 0.375rem;
+    #send-button {
+        --colour-background: var(--g-colour-primary-50);
+        --colour-background-hover: var(--g-colour-primary-100);
+        --colour-text: var(--g-colour-primary-600);
+        --colour-text-hover: var(--g-colour-primary-700);
+        --colour-border: var(--g-colour-primary-600);
+        --colour-border-hover: var(--g-colour-primary-700);
+        --button-shadow-depth: 4px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 2rem;
+        border-radius: var(--g-radius-max, 9999px);
+        border: 1px solid var(--colour-border);
+        box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+        margin-bottom: var(--button-shadow-depth);
+        background-color: var(--colour-background);
+        color: var(--colour-text);
+        font-size: 1rem;
+        font-weight: 500;
+        font-family: var(--g-font-family, sans-serif);
+        text-decoration: none;
         cursor: pointer;
-        font-family: inherit;
-        transition: background-color 0.15s ease;
+        transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
     }
 
-    #send-btn:hover {
-        background-color: #1d4ed8;
-    }
-
-    #send-btn:active {
-        background-color: #1e40af;
-    }
-
-    .counter {
-        font-size: 0.75rem;
-        color: #6b7280;
-        white-space: nowrap;
+    #send-button:hover {
+        transform: translateY(calc(var(--button-shadow-depth) / 2));
+        box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+        background-color: var(--colour-background-hover);
+        border-color: var(--colour-border-hover);
+        color: var(--colour-text-hover);
     }
 </style>
