@@ -1,0 +1,60 @@
+/* Design tokens for this example: font families, brand colours, and corner
+   radii, declared as CSS custom properties on :root so every component can use
+   them. Import at the very top of a component's <style> block:
+
+       @import "testmodule/styles/theme.css";
+
+   :root/html/body are never scoped, so the tokens stay global. */
+
+:root {
+  /* Font families */
+  --g-font-family: "Figtree", sans-serif;
+  --g-font-family-heading: "DynaPuff", "Figtree", sans-serif;
+  --g-font-family-mono: "JetBrains Mono", monospace;
+
+  /* Primary palette (purple) */
+  --g-colour-primary-900: #241063;
+  --g-colour-primary-800: #381F8C;
+  --g-colour-primary-700: #482CA6;
+  --g-colour-primary-600: #5A39C7;
+  --g-colour-primary-500: #6F47EB;
+  --g-colour-primary-400: #9071F0;
+  --g-colour-primary-300: #B09AF4;
+  --g-colour-primary-200: #D1C4F9;
+  --g-colour-primary-100: #E1D9FB;
+  --g-colour-primary-50: #F1EDFD;
+  --g-colour-primary-25: #F8F6FE;
+
+  /* Secondary palette (teal) */
+  --g-colour-secondary-900: #236962;
+  --g-colour-secondary-800: #2E8B83;
+  --g-colour-secondary-700: #39ABA1;
+  --g-colour-secondary-600: #6BD5CC;
+  --g-colour-secondary-500: #7DE8DF;
+  --g-colour-secondary-400: #A7F0E9;
+  --g-colour-secondary-300: #C9F5F2;
+  --g-colour-secondary-200: #DBF8F6;
+  --g-colour-secondary-100: #ECFAFA;
+  --g-colour-secondary-50: #F7FDFD;
+
+  /* Neutral palette (grey) */
+  --g-colour-grey-900: #2B333B;
+  --g-colour-grey-800: #364049;
+  --g-colour-grey-700: #485461;
+  --g-colour-grey-600: #5B6B7B;
+  --g-colour-grey-500: #788A9B;
+  --g-colour-grey-400: #92A1AF;
+  --g-colour-grey-300: #ADB8C2;
+  --g-colour-grey-200: #CAD1D8;
+  --g-colour-grey-100: #E8EBEE;
+  --g-colour-grey-50: #F6F7F8;
+  --g-colour-grey-25: #fafbfc;
+
+  /* Corner radii */
+  --g-radius-xs: 6px;
+  --g-radius-sm: 10px;
+  --g-radius-md: 15px;
+  --g-radius-lg: 20px;
+  --g-radius-xl: 30px;
+  --g-radius-max: 9999px;
+}

@@ -11,7 +11,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "Secure Connection"
+      "expected": "Secure connection"
     },
     {
       "action": "checkText",

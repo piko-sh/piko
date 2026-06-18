@@ -21,7 +21,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "Todo App"
+      "expected": "Todo app"
     },
     {
       "action": "checkText",
@@ -30,7 +30,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-todo-list >>> .todo-item:first-child .toggle-btn"
+      "selector": "pp-todo-list >>> .todo-item:first-child .toggle-button"
     },
     {
       "action": "wait",
@@ -48,7 +48,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-todo-list >>> #add-btn"
+      "selector": "pp-todo-list >>> #add-button"
     },
     {
       "action": "wait",

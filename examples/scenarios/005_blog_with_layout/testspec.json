@@ -10,7 +10,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "Welcome to the Piko Blog"
+      "expected": "Welcome to the Piko blog"
     },
     {
       "action": "waitForSelector",
@@ -36,7 +36,7 @@
     {
       "action": "checkText",
       "selector": "aside.layout-sidebar .quick-links h3",
-      "expected": "Quick Links"
+      "expected": "Quick links"
     },
     {
       "action": "navigate",
@@ -49,7 +49,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "Getting Started with Piko"
+      "expected": "Getting started with Piko"
     },
     {
       "action": "checkText",
@@ -72,7 +72,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "About Us"
+      "expected": "About us"
     },
     {
       "action": "waitForSelector",
@@ -90,7 +90,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "Contact Us"
+      "expected": "Contact us"
     },
     {
       "action": "waitForSelector",
