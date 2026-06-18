@@ -21,6 +21,7 @@ package cssinliner
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -328,6 +329,177 @@ func TestCSSInliner_ErrorHandling(t *testing.T) {
 		assert.Equal(t, ast_domain.Error, diagnostics[1].Severity)
 
 		assert.NotEmpty(t, tree.Rules)
+	})
+}
+
+func TestIsExternalImportPath(t *testing.T) {
+	cases := []struct {
+		path     string
+		external bool
+	}{
+		{"https://fonts.googleapis.com/css2?family=Inter", true},
+		{"http://example.com/a.css", true},
+		{"//fonts.example.com/all.css", true},
+		{"data:text/css,body{color:red}", true},
+		{"ftp://example.com/a.css", true},
+		{"@/assets/styles/helpers.css", false},
+		{"./local.css", false},
+		{"../shared/theme.css", false},
+		{"github.com/foo/bar/styles/theme.css", false},
+		{"/test/base.css", false},
+		{"/test//base.css", false},
+		{"", false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			assert.Equal(t, tc.external, isExternalImportPath(tc.path))
+		})
+	}
+}
+
+func TestCSSInliner_ExternalImport(t *testing.T) {
+	ctx := context.Background()
+	const fontURL = "https://fonts.googleapis.com/css2?family=Inter"
+
+	t.Run("keeps a remote @import url() verbatim without diagnostics", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		processor := newTestProcessor(newPassthroughResolver())
+
+		css := fmt.Sprintf("@import url(%q);\nbody { color: red; }", fontURL)
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		assert.Contains(t, out, fontURL, "the external import must survive in the output")
+		assert.NotContains(t, out, "url(", "the printer normalises @import url(x) to the bare string form @import \"x\"")
+	})
+
+	t.Run("string form @import behaves identically to the url() form", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		processor := newTestProcessor(newPassthroughResolver())
+
+		urlForm := fmt.Sprintf("@import url(%q);", fontURL)
+		strForm := fmt.Sprintf("@import %q;", fontURL)
+
+		outURL, diagURL, errURL := processor.Process(ctx, urlForm, "a.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+		outStr, diagStr, errStr := processor.Process(ctx, strForm, "b.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, errURL)
+		require.NoError(t, errStr)
+		assert.Empty(t, diagURL)
+		assert.Empty(t, diagStr)
+		assert.Equal(t, outURL, outStr, "url() and string @import forms must produce identical output")
+	})
+
+	t.Run("keeps protocol-relative and data: imports verbatim", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		processor := newTestProcessor(newPassthroughResolver())
+
+		css := "@import \"//cdn.example.com/a.css\";\n@import \"data:text/css,body{color:red}\";\n.x { color: blue; }"
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		assert.Contains(t, out, "//cdn.example.com/a.css")
+		assert.Contains(t, out, "data:text/css")
+	})
+
+	t.Run("hoists an external @import ahead of inlined local content", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		fsReader.addFile("/test/base.css", `body { margin: 0; }`)
+		processor := newTestProcessor(newPassthroughResolver())
+
+		css := fmt.Sprintf("@import \"/test/base.css\";\n@import url(%q);\n.local { color: red; }", fontURL)
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		require.Contains(t, out, fontURL)
+		require.Contains(t, out, "margin")
+		assert.Less(t, strings.Index(out, fontURL), strings.Index(out, "margin"),
+			"external @import must come before the inlined local rules")
+		assert.Less(t, strings.Index(out, fontURL), strings.Index(out, "red"),
+			"external @import must come before subsequent local rules")
+	})
+
+	t.Run("a local path with an embedded // is still inlined, not treated as remote", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		fsReader.addFile("/test//base.css", `.embedded { color: green; }`)
+		processor := newTestProcessor(newPassthroughResolver())
+
+		css := `@import "/test//base.css";`
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		assert.Contains(t, out, "green", "the local file should have been inlined")
+		assert.NotContains(t, out, "@import", "a local import must not survive as an @import rule")
+	})
+
+	t.Run("external @import nested inside an inlined local stylesheet keeps the correct URL", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		fsReader.addFile("/test/local.css", fmt.Sprintf("@import url(%q);\n.local { color: red; }", fontURL))
+		processor := newTestProcessor(newPassthroughResolver())
+
+		css := `@import "/test/local.css";` + "\n" + `.entry { background: url("/img/x.png"); }`
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		assert.Contains(t, out, fontURL, "the nested external import URL must survive intact, not resolve to a stale record")
+		assert.Contains(t, out, "/img/x.png", "the parent's own url() record must remain correct after merging")
+	})
+
+	t.Run("url() inside an external @import's conditions survives merging from a local stylesheet", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		const condURL = "https://cdn.example.com/cond-bg.png"
+		fsReader.addFile("/test/local.css", fmt.Sprintf("@import url(%q) supports(background: url(%q));\n.local { color: red; }", fontURL, condURL))
+		processor := newTestProcessor(newPassthroughResolver())
+
+		css := `@import "/test/local.css";` + "\n" + `.entry { background: url("/img/x.png"); }`
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		assert.Contains(t, out, fontURL, "the external import URL must survive the merge")
+		assert.Contains(t, out, condURL, "the url() inside supports() must be reindexed to the right record after merge")
+	})
+
+	t.Run("a leading @charset stays ahead of a hoisted external @import", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		fsReader.addFile("/test/base.css", `body { margin: 0; }`)
+		processor := newTestProcessor(newPassthroughResolver())
+
+		css := `@charset "UTF-8";` + "\n" +
+			`@import "/test/base.css";` + "\n" +
+			fmt.Sprintf("@import url(%q);", fontURL) + "\n" +
+			`.x { color: red; }`
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		require.Contains(t, out, "@charset")
+		require.Contains(t, out, fontURL)
+		require.Contains(t, out, "margin")
+		assert.Less(t, strings.Index(out, "@charset"), strings.Index(out, fontURL),
+			"@charset must stay before the hoisted external @import")
+		assert.Less(t, strings.Index(out, fontURL), strings.Index(out, "margin"),
+			"the external @import must still be hoisted ahead of inlined content")
+	})
+
+	t.Run("a remote @import carrying a url() inside its conditions does not panic and survives", func(t *testing.T) {
+		fsReader := newTestFSReader()
+		processor := newTestProcessor(newPassthroughResolver())
+
+		const probeURL = "https://cdn.example.com/probe.png"
+		css := fmt.Sprintf("@import url(%q) supports(background: url(%q));\n.x { color: red; }", fontURL, probeURL)
+		out, diagnostics, err := processor.Process(ctx, css, "main.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0}, fsReader)
+
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+		assert.Contains(t, out, fontURL, "the external import must survive")
+		assert.Contains(t, out, probeURL, "the url() inside the supports() condition must survive intact")
 	})
 }
 

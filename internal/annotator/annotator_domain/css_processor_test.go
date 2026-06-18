@@ -492,6 +492,47 @@ func TestCSSProcessor_ProcessAndScope_WithImports(t *testing.T) {
 	assert.NotContains(t, normalised, "@import")
 }
 
+func TestCSSProcessor_ProcessAndScope_ExternalImport(t *testing.T) {
+	ctx := context.Background()
+	fsReader := newTestFSReader()
+	resolver := newTestResolver()
+	scopeID := "p-ext456"
+	processor := NewCSSProcessor(config.LoaderLocalCSS, &config.Options{
+		MinifyWhitespace:       true,
+		MinifySyntax:           true,
+		UnsupportedCSSFeatures: compat.Nesting,
+	}, resolver)
+
+	fsReader.addFile("/test/base.css", `.base { margin: 0; }`)
+
+	const fontURL = "https://fonts.googleapis.com/css2?family=Inter"
+
+	template := simpleParse(t, `<div class="base local"></div>`)
+	css := `@import "/test/base.css";` + "\n" +
+		`@import url('` + fontURL + `');` + "\n" +
+		`.local { padding: 10px; }`
+
+	diagnostics, err := processor.ProcessAndScope(ctx, &processAndScopeParams{
+		template:      template,
+		cssBlock:      &css,
+		scopeID:       scopeID,
+		sourcePath:    "test.css",
+		startLocation: ast_domain.Location{Line: 1, Column: 1, Offset: 0},
+		fsReader:      fsReader,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, diagnostics)
+
+	normalised := normaliseCSS(css)
+
+	assert.Contains(t, normalised, fontURL, "the remote @import must survive in the output")
+	assert.NotContains(t, normalised, "url(", "the printer normalises @import url(x) to @import \"x\"")
+	assert.Contains(t, normalised, ".base[partial~=p-ext456]", "the local import is still inlined and scoped")
+	assert.Contains(t, normalised, ".local[partial~=p-ext456]")
+	assert.Less(t, strings.Index(normalised, fontURL), strings.Index(normalised, ".base"),
+		"the remote @import must be hoisted ahead of inlined/scoped rules")
+}
+
 func TestCSSProcessor_ProcessAndScope_Errors(t *testing.T) {
 	ctx := context.Background()
 	fsReader := newTestFSReader()
