@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Reactive Counter</h1>
+    <h1>Reactive counter</h1>
     <p>A client-side counter component built with PKC.</p>
     <pp-counter></pp-counter>
   </div>
@@ -15,27 +15,35 @@ import "piko.sh/piko"
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Reactive Counter - Piko Example",
+        Title: "Reactive counter — Piko example",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
-    padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    padding: 1.25rem 1rem;
     text-align: center;
+    font-family: var(--g-font-family, sans-serif);
+    background-color: var(--g-colour-grey-50, #F6F7F8);
+    border-radius: var(--g-radius-xl, 30px);
+    color: var(--g-colour-grey-800, #364049);
   }
 
   h1 {
-    color: #1f2937;
-    margin-bottom: 0.5rem;
+    font-family: var(--g-font-family-heading);
+    color: var(--g-colour-grey-900, #2B333B);
+    font-size: 1.75rem;
+    letter-spacing: -.01em;
+    margin-bottom: .5em;
   }
 
   p {
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 2rem;
   }
 </style>
