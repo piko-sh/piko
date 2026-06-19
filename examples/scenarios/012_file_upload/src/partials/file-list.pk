@@ -6,15 +6,15 @@
 
 <template public>
   <div class="file-list-section">
-    <h2>Uploaded Files</h2>
+    <h2>Uploaded files</h2>
     <table class="file-table" p-if="len(state.Files) > 0">
       <thead>
         <tr>
-          <th>File Name</th>
+          <th>File name</th>
           <th>Size</th>
           <th>Type</th>
           <th>Method</th>
-          <th>S3 Key</th>
+          <th>S3 key</th>
         </tr>
       </thead>
       <tbody>
@@ -92,15 +92,17 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   .file-list-section {
     h2 {
-      color: #1f2937;
-      margin-top: 2rem;
-      margin-bottom: 0.75rem;
+      color: var(--g-colour-grey-900, #2B333B);
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
       font-size: 1.1rem;
+      font-weight: 600;
     }
-
-    .empty { color: #9ca3af; font-style: italic; }
+    .empty { color: var(--g-colour-grey-400, #92A1AF); font-style: italic; }
   }
 
   .file-table {
@@ -111,25 +113,25 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     th {
       text-align: left;
       padding: 0.5rem;
-      border-bottom: 2px solid #e5e7eb;
-      color: #374151;
+      border-bottom: 2px solid var(--g-colour-grey-100, #E8EBEE);
+      color: var(--g-colour-grey-700, #485461);
       font-weight: 600;
     }
 
     td {
       padding: 0.5rem;
-      border-bottom: 1px solid #f3f4f6;
-      color: #4b5563;
+      border-bottom: 1px solid var(--g-colour-grey-100, #E8EBEE);
+      color: var(--g-colour-grey-600, #5B6B7B);
     }
 
     .key {
-      font-family: monospace;
+      font-family: var(--g-font-family-mono, monospace);
       font-size: 0.8rem;
-      color: #6b7280;
+      color: var(--g-colour-grey-500, #788A9B);
       word-break: break-all;
     }
   }
 
-  .method-direct { color: #2563eb; font-weight: 600; }
-  .method-presigned { color: #7c3aed; font-weight: 600; }
+  .method-direct { color: var(--g-colour-primary-600, #5A39C7); font-weight: 600; }
+  .method-presigned { color: var(--g-colour-secondary-700, #39ABA1); font-weight: 600; }
 </style>

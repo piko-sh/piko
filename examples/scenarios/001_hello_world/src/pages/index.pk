@@ -30,7 +30,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
         Description: "This is a minimal Piko page with server-side rendering.",
         Version:     "0.1.0",
     }, piko.Metadata{
-        Title: "Hello world — Piko example",
+        Title: "Hello world | Piko example",
         Description: "A minimal Piko page demonstrating server-side rendering.",
     }, nil
 }

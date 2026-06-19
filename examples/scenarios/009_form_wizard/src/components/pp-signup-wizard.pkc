@@ -3,7 +3,7 @@
      See https://piko.sh/docs/guide/client-components and https://piko.sh/docs/guide/template-syntax -->
 <template name="pp-signup-wizard">
     <div class="wizard">
-        <h2>Create Account</h2>
+        <h2>Create account</h2>
 
         <div class="step-indicator">
             <span class="step-dot" p-class="{ active: state.step == 1, done: state.step > 1 }">1</span>
@@ -12,22 +12,22 @@
         </div>
 
         <div p-if="state.step == 1" class="step step-1">
-            <h3>Personal Information</h3>
+            <h3>Personal information</h3>
 
             <div class="form-group">
                 <label for="name-input">Full name</label>
-                <input id="name-input" type="text" p-model="state.name" placeholder="Full name">
+                <input id="name-input" type="text" p-model="state.name" placeholder="Reginald Penguin">
             </div>
 
             <div class="form-group">
                 <label for="email-input">Email address</label>
-                <input id="email-input" type="email" p-model="state.email" placeholder="Email address">
+                <input id="email-input" type="email" p-model="state.email" placeholder="reginald@southpole.com">
             </div>
 
             <p p-if="state.error != ''" class="error">{{ state.error }}</p>
 
             <div class="nav-buttons">
-                <button id="next-btn" class="btn-primary" p-on:click="nextStep">Next</button>
+                <button id="next-button" class="button button-primary" p-on:click="nextStep">Next</button>
             </div>
         </div>
 
@@ -54,8 +54,8 @@
             <p p-if="state.error != ''" class="error">{{ state.error }}</p>
 
             <div class="nav-buttons">
-                <button id="back-btn" class="btn-secondary" p-on:click="prevStep">Back</button>
-                <button id="next-btn" class="btn-primary" p-on:click="nextStep">Next</button>
+                <button id="next-button" class="button button-primary" p-on:click="nextStep">Next</button>
+                <button id="back-button" class="button button-secondary" p-on:click="prevStep">Back</button>
             </div>
         </div>
 
@@ -80,8 +80,8 @@
                 </dl>
 
                 <div class="nav-buttons">
-                    <button id="back-btn" class="btn-secondary" p-on:click="prevStep">Back</button>
-                    <button id="submit-btn" class="btn-primary" p-on:click="submitForm">Submit</button>
+                    <button id="submit-button" class="button button-primary" p-on:click="submitForm">Submit</button>
+                    <button id="back-button" class="button button-secondary" p-on:click="prevStep">Back</button>
                 </div>
             </div>
 
@@ -140,27 +140,34 @@
 </script>
 
 <style>
+    @import "testmodule/styles/theme.css";
+
     .wizard {
         max-width: 480px;
         margin: 0 auto;
         padding: 2rem;
-        font-family: system-ui, -apple-system, sans-serif;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.75rem;
+        font-family: var(--g-font-family, sans-serif);
+        border: 1px solid var(--g-colour-grey-100, #E8EBEE);
+        border-radius: var(--g-radius-xl, 30px);
         background: #ffffff;
+        color: var(--g-colour-grey-800, #364049);
+    }
+
+    h2, h3 {
+        font-weight: 600;
     }
 
     h2 {
         margin: 0 0 1.5rem;
         font-size: 1.5rem;
-        color: #1f2937;
+        color: var(--g-colour-grey-900, #2B333B);
         text-align: center;
     }
 
     h3 {
         margin: 0 0 1rem;
         font-size: 1.125rem;
-        color: #374151;
+        color: var(--g-colour-grey-900, #2B333B);
     }
 
     .step-indicator {
@@ -176,22 +183,25 @@
         justify-content: center;
         width: 2.25rem;
         height: 2.25rem;
-        border-radius: 50%;
+        border-radius: var(--g-radius-max, 9999px);
+        border: 1px solid var(--g-colour-grey-100);
         font-size: 0.875rem;
         font-weight: 600;
-        background-color: #e5e7eb;
-        color: #6b7280;
+        background-color: var(--g-colour-grey-25);
+        color: var(--g-colour-grey-400);
         transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     .step-dot.active {
-        background-color: #2563eb;
-        color: #ffffff;
+        background-color: var(--g-colour-primary-50);
+        color: var(--g-colour-primary-500);
+        border: 1px solid var(--g-colour-primary-300);
     }
 
     .step-dot.done {
-        background-color: #16a34a;
-        color: #ffffff;
+        background-color: var(--g-colour-primary-25);
+        color: var(--g-colour-primary-400);
+        border: 1px solid var(--g-colour-primary-100);
     }
 
     .form-group {
@@ -200,10 +210,11 @@
 
     .form-group label {
         display: block;
-        margin-bottom: 0.375rem;
+        margin-bottom: 0.25rem;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #374151;
+        text-align: left;
+        color: var(--g-colour-grey-700, #485461);
     }
 
     .form-group input[type="text"],
@@ -212,19 +223,29 @@
         width: 100%;
         padding: 0.625rem 0.75rem;
         font-size: 0.9375rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
+        font-family: var(--g-font-family, sans-serif);
+        border: 1px solid var(--g-colour-grey-200, #CAD1D8);
+        border-radius: var(--g-radius-max, 9999px);
         background: #ffffff;
-        color: #1f2937;
+        color: var(--g-colour-grey-900, #2B333B);
         box-sizing: border-box;
-        transition: border-color 0.15s ease;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-group select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 16px;
+        cursor: pointer;
     }
 
     .form-group input:focus,
     .form-group select:focus {
         outline: none;
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        border-color: var(--g-colour-primary-500, #6F47EB);
+        box-shadow: 0 0 0 3px rgba(111, 71, 235, 0.15);
     }
 
     .checkbox-group label {
@@ -233,13 +254,36 @@
         gap: 0.5rem;
         cursor: pointer;
         font-size: 0.9375rem;
-        color: #374151;
+        color: var(--g-colour-grey-700, #485461);
     }
 
     .checkbox-group input[type="checkbox"] {
-        width: 1.125rem;
-        height: 1.125rem;
-        accent-color: #2563eb;
+          appearance: none;
+          -webkit-appearance: none;
+          width: 20px;
+          height: 20px;
+          border: 1px solid var(--g-colour-grey-500);
+          border-radius: 6px;
+          outline: none;
+          cursor: pointer;
+          position: relative;
+          background-color: #fff;
+          transition: background 0.2s, border-color 0.2s;
+          &:checked {
+            background-color: var(--g-colour-primary-500);
+            border-color: var(--g-colour-primary-500);
+          }
+          &:checked::after {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 3px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+          }
     }
 
     .error {
@@ -249,61 +293,71 @@
         color: #dc2626;
         background-color: #fef2f2;
         border: 1px solid #fecaca;
-        border-radius: 0.375rem;
+        border-radius: var(--g-radius-md, 15px);
     }
 
     .nav-buttons {
         display: flex;
+        justify-content: space-between;
+        flex-direction: row-reverse;
         gap: 0.75rem;
-        margin-top: 1.5rem;
+        margin-top: 2rem;
     }
 
-    .btn-primary,
-    .btn-secondary {
-        padding: 0.625rem 1.25rem;
-        font-size: 0.9375rem;
+    .button {
+        --colour-background: var(--g-colour-primary-50);
+        --colour-background-hover: var(--g-colour-primary-100);
+        --colour-text: var(--g-colour-primary-600);
+        --colour-text-hover: var(--g-colour-primary-700);
+        --colour-border: var(--g-colour-primary-600);
+        --colour-border-hover: var(--g-colour-primary-700);
+        --button-shadow-depth: 4px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.5rem;
+        border-radius: var(--g-radius-max, 9999px);
+        border: 1px solid var(--colour-border);
+        box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+        margin-bottom: var(--button-shadow-depth);
+        background-color: var(--colour-background);
+        color: var(--colour-text);
+        font-size: 1rem;
         font-weight: 500;
-        border: none;
-        border-radius: 0.375rem;
+        font-family: var(--g-font-family, sans-serif);
+        text-decoration: none;
         cursor: pointer;
-        transition: background-color 0.15s ease;
+        transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
     }
 
-    .btn-primary {
-        background-color: #2563eb;
-        color: #ffffff;
+    .button:hover {
+        transform: translateY(calc(var(--button-shadow-depth) / 2));
+        box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+        background-color: var(--colour-background-hover);
+        border-color: var(--colour-border-hover);
+        color: var(--colour-text-hover);
     }
 
-    .btn-primary:hover {
-        background-color: #1d4ed8;
-    }
-
-    .btn-primary:active {
-        background-color: #1e40af;
-    }
-
-    .btn-secondary {
-        background-color: #f3f4f6;
-        color: #374151;
-        border: 1px solid #d1d5db;
-    }
-
-    .btn-secondary:hover {
-        background-color: #e5e7eb;
-    }
-
-    .btn-secondary:active {
-        background-color: #d1d5db;
+    .button-secondary {
+        --colour-background: var(--g-colour-secondary-100);
+        --colour-background-hover: var(--g-colour-secondary-200);
+        --colour-text: var(--g-colour-secondary-800);
+        --colour-text-hover: var(--g-colour-secondary-900);
+        --colour-border: var(--g-colour-secondary-700);
+        --colour-border-hover: var(--g-colour-secondary-800);
     }
 
     .summary p {
         margin: 0 0 1rem;
-        color: #6b7280;
+        color: var(--g-colour-grey-500, #788A9B);
         font-size: 0.9375rem;
     }
 
     .summary-list {
-        margin: 0 0 0.5rem;
+        text-align: left;
+        margin: 2rem 0 1rem;
         padding: 0;
         display: grid;
         grid-template-columns: 8rem 1fr;
@@ -313,7 +367,7 @@
     .summary-list dt {
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #6b7280;
+        color: var(--g-colour-grey-500, #788A9B);
         text-transform: uppercase;
         letter-spacing: 0.025em;
     }
@@ -321,15 +375,15 @@
     .summary-list dd {
         margin: 0;
         font-size: 0.9375rem;
-        color: #1f2937;
+        color: var(--g-colour-grey-900, #2B333B);
     }
 
     .success {
         text-align: center;
         padding: 2rem 1rem;
-        background-color: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-radius: 0.5rem;
+        background-color: var(--g-colour-secondary-50);
+        border: 1px solid var(--g-colour-secondary-500);
+        border-radius: var(--g-radius-lg, 20px);
     }
 
     .success-icon {
@@ -340,21 +394,21 @@
         height: 3.5rem;
         margin-bottom: 1rem;
         font-size: 2rem;
-        color: #16a34a;
-        background-color: #dcfce7;
-        border-radius: 50%;
+        color: #ffffff;
+        background-color: var(--g-colour-secondary-700, #39ABA1);
+        border-radius: var(--g-radius-max, 9999px);
     }
 
     .success-message {
         margin: 0 0 0.5rem;
         font-size: 1.25rem;
         font-weight: 600;
-        color: #15803d;
+        color: var(--g-colour-secondary-900, #236962);
     }
 
     .success-detail {
+        color: var(--g-colour-secondary-800, #5B6B7B);
         margin: 0;
         font-size: 0.9375rem;
-        color: #4b5563;
     }
 </style>

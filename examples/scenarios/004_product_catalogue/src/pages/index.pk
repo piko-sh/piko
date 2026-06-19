@@ -96,7 +96,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
             },
         },
     }, piko.Metadata{
-        Title:       "Product catalogue — Piko example",
+        Title:       "Product catalogue | Piko example",
         Description: "A product catalogue demonstrating p-for, p-if, partials, and dynamic attributes.",
     }, nil
 }

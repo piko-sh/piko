@@ -15,7 +15,7 @@ import "piko.sh/piko"
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Reactive counter — Piko example",
+        Title: "Reactive counter | Piko example",
     }, nil
 }
 </script>

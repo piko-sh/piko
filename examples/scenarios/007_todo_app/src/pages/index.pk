@@ -16,7 +16,7 @@ import "piko.sh/piko"
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Todo app — Piko example",
+        Title: "Todo app | Piko example",
     }, nil
 }
 </script>

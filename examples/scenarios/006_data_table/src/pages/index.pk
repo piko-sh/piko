@@ -180,7 +180,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
         SortDirection: sortDirection,
         EmployeeCount: len(employees),
     }, piko.Metadata{
-        Title: "Employee directory — Piko example",
+        Title: "Employee directory | Piko example",
         Description: "A sortable data table demonstrating query parameters and server-side sorting.",
     }, nil
 }

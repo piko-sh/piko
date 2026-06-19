@@ -34,7 +34,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     return Response{
         Title: "Event bus chat",
     }, piko.Metadata{
-        Title:       "Event bus chat — Piko example",
+        Title:       "Event bus chat | Piko example",
         Description: "Cross-component communication via the Piko event bus.",
     }, nil
 }
