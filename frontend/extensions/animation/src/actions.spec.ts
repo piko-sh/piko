@@ -688,6 +688,80 @@ describe('evaluateAnchors', () => {
         expect(parseFloat(anchored.style.top)).toBeLessThan(560);
     });
 
+    it('should clamp to the bottom edge instead of flipping off-screen for a tall target', () => {
+        const { component, container } = createAnchorComponent();
+
+        const target = document.createElement('div');
+        target.getBoundingClientRect = () => ({
+            x: 50, y: 40, width: 100, height: 520, top: 40, right: 150, bottom: 560, left: 50, toJSON: vi.fn(),
+        });
+        (component as unknown as { refs: Record<string, HTMLElement> }).refs = { target };
+
+        container.getBoundingClientRect = () => ({
+            x: 0, y: 0, width: 800, height: 600, top: 0, right: 800, bottom: 600, left: 0, toJSON: vi.fn(),
+        });
+
+        const anchored = document.createElement('div');
+        anchored.setAttribute('p-timeline-anchor', 'target bottom-left');
+        Object.defineProperty(anchored, 'offsetWidth', { value: 120, configurable: true });
+        Object.defineProperty(anchored, 'offsetHeight', { value: 50, configurable: true });
+        container.appendChild(anchored);
+
+        evaluateAnchors(component);
+
+        expect(parseFloat(anchored.style.top)).toBeGreaterThan(500);
+    });
+
+    it('should position to the right of the target for the "right" placement', () => {
+        const { component, container } = createAnchorComponent();
+
+        const target = document.createElement('div');
+        target.getBoundingClientRect = () => ({
+            x: 50, y: 100, width: 120, height: 20, top: 100, right: 170, bottom: 120, left: 50, toJSON: vi.fn(),
+        });
+        (component as unknown as { refs: Record<string, HTMLElement> }).refs = { target };
+
+        container.getBoundingClientRect = () => ({
+            x: 0, y: 0, width: 800, height: 600, top: 0, right: 800, bottom: 600, left: 0, toJSON: vi.fn(),
+        });
+
+        const anchored = document.createElement('div');
+        anchored.setAttribute('p-timeline-anchor', 'target right');
+        Object.defineProperty(anchored, 'offsetWidth', { value: 120, configurable: true });
+        Object.defineProperty(anchored, 'offsetHeight', { value: 30, configurable: true });
+        container.appendChild(anchored);
+
+        evaluateAnchors(component);
+
+        expect(parseFloat(anchored.style.left)).toBeGreaterThan(170);
+        expect(parseFloat(anchored.style.top)).toBe(100);
+    });
+
+    it('should keep an anchored element clear of the reserved bottom inset', () => {
+        const { component, container } = createAnchorComponent();
+        container.setAttribute('data-anchor-inset-bottom', '60');
+
+        const target = document.createElement('div');
+        target.getBoundingClientRect = () => ({
+            x: 50, y: 580, width: 100, height: 15, top: 580, right: 150, bottom: 595, left: 50, toJSON: vi.fn(),
+        });
+        (component as unknown as { refs: Record<string, HTMLElement> }).refs = { target };
+
+        container.getBoundingClientRect = () => ({
+            x: 0, y: 0, width: 800, height: 600, top: 0, right: 800, bottom: 600, left: 0, toJSON: vi.fn(),
+        });
+
+        const anchored = document.createElement('div');
+        anchored.setAttribute('p-timeline-anchor', 'target bottom-left');
+        Object.defineProperty(anchored, 'offsetWidth', { value: 120, configurable: true });
+        Object.defineProperty(anchored, 'offsetHeight', { value: 30, configurable: true });
+        container.appendChild(anchored);
+
+        evaluateAnchors(component);
+
+        expect(parseFloat(anchored.style.top)).toBeLessThanOrEqual(510);
+    });
+
     it('should flip to bottom when top would overflow', () => {
         const { component, container } = createAnchorComponent();
 
