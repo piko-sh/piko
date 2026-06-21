@@ -29,6 +29,7 @@ import (
 	"io"
 	"mime"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -1105,6 +1106,25 @@ func profilesMatch(existing, incoming []registry_dto.NamedProfile) bool {
 	return true
 }
 
+// webMimeTypes maps the file extensions the registry serves directly to browsers to their
+// canonical MIME types.
+//
+// It is consulted before the standard library's mime.TypeByExtension because that
+// function loads the host operating system's MIME database, which is unreliable for these
+// types and notably broken on Windows (golang/go#32350).
+var webMimeTypes = map[string]string{
+	".js":          "application/javascript",
+	".mjs":         "application/javascript",
+	".css":         "text/css; charset=utf-8",
+	".json":        "application/json; charset=utf-8",
+	".svg":         "image/svg+xml",
+	".wasm":        "application/wasm",
+	".html":        "text/html; charset=utf-8",
+	".webmanifest": "application/manifest+json",
+	".woff":        "font/woff",
+	".woff2":       "font/woff2",
+}
+
 // detectMimeType returns the MIME type for a file path.
 //
 // Takes sourcePath (string) which is the path to the file.
@@ -1112,11 +1132,14 @@ func profilesMatch(existing, incoming []registry_dto.NamedProfile) bool {
 // Returns string which is the MIME type for the file extension, or
 // "application/octet-stream" when the extension is not known.
 func detectMimeType(sourcePath string) string {
-	mimeType := mime.TypeByExtension(filepath.Ext(sourcePath))
-	if mimeType == "" {
-		return "application/octet-stream"
+	ext := strings.ToLower(filepath.Ext(sourcePath))
+	if mimeType, ok := webMimeTypes[ext]; ok {
+		return mimeType
 	}
-	return mimeType
+	if mimeType := mime.TypeByExtension(ext); mimeType != "" {
+		return mimeType
+	}
+	return "application/octet-stream"
 }
 
 // uploadTempBlob uploads source data to a temporary location and computes its hash.

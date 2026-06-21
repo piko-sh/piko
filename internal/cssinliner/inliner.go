@@ -291,8 +291,8 @@ func (i *Inliner) processImports(ctx context.Context, tree css_ast.AST, containi
 }
 
 // hoistImportRules reorders a rule list into the prologue order the CSS specification
-// requires: a leading @charset (if present) first, then every @import rule, then all other
-// rules.
+// requires: a leading @charset (if present) first, then every @import rule, then all
+// other rules.
 //
 // Takes rules ([]css_ast.Rule) which is the rule list to reorder.
 //
@@ -323,8 +323,8 @@ func hoistImportRules(rules []css_ast.Rule) []css_ast.Rule {
 	return ordered
 }
 
-// importRulesMisplaced reports whether a rule list deviates from the CSS prologue order of
-// @charset, then @import, then everything else.
+// importRulesMisplaced reports whether a rule list deviates from the CSS prologue order
+// of @charset, then @import, then everything else.
 //
 // Takes rules ([]css_ast.Rule) which is the rule list to inspect.
 //
@@ -350,8 +350,9 @@ func importRulesMisplaced(rules []css_ast.Rule) bool {
 	return false
 }
 
-// isExternalImportPath reports whether a CSS @import target refers to an external resource
-// that must be fetched by the browser at runtime rather than inlined at build time.
+// isExternalImportPath reports whether a CSS @import target refers to an external
+// resource that must be fetched by the browser at runtime rather than inlined at build
+// time.
 //
 // Takes path (string) which is the raw @import target text.
 //
