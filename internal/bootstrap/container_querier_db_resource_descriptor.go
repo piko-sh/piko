@@ -30,12 +30,17 @@ import (
 const (
 	// formatInt is the fmt verb for integer values.
 	formatInt = "%d"
+
+	// diagnosticStateHealthy is the engine diagnostic state that needs no annotation.
+	diagnosticStateHealthy = "HEALTHY"
 )
 
 var (
 	_ provider_domain.ResourceDescriptor = (*databaseService)(nil)
 
 	_ provider_domain.ResourceTypeDescriptor = (*databaseService)(nil)
+
+	_ provider_domain.ReadinessProbeNamed = (*databaseService)(nil)
 )
 
 // ResourceType returns the CLI resource name for the database service.
@@ -43,6 +48,16 @@ var (
 // Returns string which is "database".
 func (*databaseService) ResourceType() string {
 	return "database"
+}
+
+// ProbeName returns the readiness health-probe name of the database service, bridging the
+// "database" resource type to the "DatabaseService" readiness dependency so a readiness
+// collector can attach this descriptor's provider info to the matching dependency. It
+// returns the same constant the service's health-probe Name method returns.
+//
+// Returns string which is databaseServiceName ("DatabaseService").
+func (*databaseService) ProbeName() string {
+	return databaseServiceName
 }
 
 // ResourceListColumns returns column definitions for the database provider list table.
@@ -131,7 +146,7 @@ func (s *databaseService) ResourceDescribeProvider(ctx context.Context, name str
 			diagEntries := make([]provider_domain.InfoEntry, len(diagnostics))
 			for i, d := range diagnostics {
 				value := d.Value
-				if d.State != "" && d.State != "HEALTHY" {
+				if d.State != "" && d.State != diagnosticStateHealthy {
 					value += " (" + d.State + ")"
 				}
 				diagEntries[i] = provider_domain.InfoEntry{

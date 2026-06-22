@@ -29,6 +29,8 @@ import (
 
 var (
 	_ provider_domain.ResourceDescriptor = (*collectionService)(nil)
+
+	_ provider_domain.ReadinessProbeNamed = (*collectionService)(nil)
 )
 
 // ResourceType returns the CLI resource name for the collection hexagon.
@@ -36,6 +38,17 @@ var (
 // Returns string which is "collection".
 func (*collectionService) ResourceType() string {
 	return "collection"
+}
+
+// ProbeName returns the readiness health-probe name of the collection service, bridging
+// the "collection" resource type to the "CollectionService" readiness dependency so a
+// readiness collector can attach this descriptor's provider info to the matching
+// dependency. It must return the same string the service's health-probe Name method
+// returns.
+//
+// Returns string which is "CollectionService".
+func (*collectionService) ProbeName() string {
+	return "CollectionService"
 }
 
 // ResourceListColumns returns column definitions for the collection provider list table.

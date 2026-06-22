@@ -1056,8 +1056,9 @@ func (c *Container) openDatabaseInstance(
 
 	if reg.EnableOTel {
 		databaseSystem := resolveDBSystem(reg)
-		instance.writer = newOTelDBTX(instance.writer, databaseSystem, name, reg.QueryNameResolver)
-		instance.reader = newOTelDBTX(instance.reader, databaseSystem, name, reg.QueryNameResolver)
+		observer := c.GetQueryObserver()
+		instance.writer = newOTelDBTX(instance.writer, databaseSystem, name, reg.QueryNameResolver, observer)
+		instance.reader = newOTelDBTX(instance.reader, databaseSystem, name, reg.QueryNameResolver, observer)
 	}
 
 	instance.migrator = c.createMigrationServiceForInstance(ctx, database, name, reg)

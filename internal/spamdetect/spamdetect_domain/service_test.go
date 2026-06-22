@@ -837,30 +837,30 @@ func TestSpamDetectService_ResourceListProviders_Empty(t *testing.T) {
 
 func TestFormatRegisteredAge_Zero(t *testing.T) {
 	t.Parallel()
-	assert.Equal(t, "unknown", formatRegisteredAge(time.Time{}))
+	assert.Equal(t, "unknown", provider_domain.FormatRegisteredAge(time.Time{}))
 }
 
 func TestFormatRegisteredAge_Seconds(t *testing.T) {
 	t.Parallel()
-	result := formatRegisteredAge(time.Now().Add(-30 * time.Second))
+	result := provider_domain.FormatRegisteredAge(time.Now().Add(-30 * time.Second))
 	assert.Contains(t, result, "s ago")
 }
 
 func TestFormatRegisteredAge_Minutes(t *testing.T) {
 	t.Parallel()
-	result := formatRegisteredAge(time.Now().Add(-5 * time.Minute))
+	result := provider_domain.FormatRegisteredAge(time.Now().Add(-5 * time.Minute))
 	assert.Contains(t, result, "m ago")
 }
 
 func TestFormatRegisteredAge_Hours(t *testing.T) {
 	t.Parallel()
-	result := formatRegisteredAge(time.Now().Add(-5 * time.Hour))
+	result := provider_domain.FormatRegisteredAge(time.Now().Add(-5 * time.Hour))
 	assert.Contains(t, result, "h ago")
 }
 
 func TestFormatRegisteredAge_Days(t *testing.T) {
 	t.Parallel()
-	result := formatRegisteredAge(time.Now().Add(-48 * time.Hour))
+	result := provider_domain.FormatRegisteredAge(time.Now().Add(-48 * time.Hour))
 	assert.Contains(t, result, "d ago")
 }
 

@@ -1,0 +1,181 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+namespace telemetryfb;
+
+table KV {
+  key:string;
+  value:string;
+}
+
+table AnalyticsEvent {
+  kind:string;
+  timestamp_ms:long;
+  hostname:string;
+  url:string;
+  path:string;
+  matched_pattern:string;
+  method:string;
+  status_code:int;
+  duration_ms:long;
+  referrer:string;
+  user_agent:string;
+  client_ip:string;
+  locale:string;
+  user_id:string;
+  action_name:string;
+  event_name:string;
+  revenue_amount:string;
+  revenue_currency:string;
+  properties:[KV];
+}
+
+table WatchdogEvent {
+  event_type:string;
+  priority:int;
+  message:string;
+  timestamp_ms:long;
+  fields:[KV];
+}
+
+table LogLine {
+  timestamp_ms:long;
+  level:string;
+  logger:string;
+  message:string;
+  trace_id:string;
+  span_id:string;
+  fields:[KV];
+}
+
+table Span {
+  trace_id:string;
+  span_id:string;
+  parent_id:string;
+  service:string;
+  operation:string;
+  kind:string;
+  start_ms:long;
+  duration_us:long;
+  status:string;
+  attributes:[KV];
+}
+
+table MetricPoint {
+  name:string;
+  kind:string;
+  timestamp_ms:long;
+  value:double;
+  unit:string;
+  labels:[KV];
+}
+
+table ErrorEvent {
+  fingerprint:string;
+  type:string;
+  value:string;
+  culprit:string;
+  level:string;
+  timestamp_ms:long;
+  release:string;
+  environment:string;
+  user_id:string;
+  handled:bool;
+  stack_json:string;
+  breadcrumbs_json:string;
+  context:[KV];
+}
+
+table ProfileMeta {
+  profile_type:string;
+  timestamp_ms:long;
+  reason:string;
+  size_bytes:long;
+  content_encoding:string;
+  blob_ref:string;
+  fields:[KV];
+  blob:[ubyte];
+}
+
+table WorkerEvent {
+  event_id:string;
+  run_id:string;
+  parent_id:string;
+  category:string;
+  queue:string;
+  worker:string;
+  status:string;
+  attempt:int;
+  ts_ms:long;
+  duration_ms:long;
+  error:string;
+  attrs:[KV];
+}
+
+table QueryStat {
+  connection:string;
+  statement:string;
+  operation:string;
+  status:string;
+  error:string;
+  ts_ms:long;
+  duration_ms:long;
+  rows:long;
+  calls:long;
+  attrs:[KV];
+}
+
+table EmailEvent {
+  message_id:string;
+  provider:string;
+  template:string;
+  recipient:string;
+  subject:string;
+  event:string;
+  status:string;
+  error:string;
+  ts_ms:long;
+  attrs:[KV];
+}
+
+table TelemetryBatch {
+  site_id:string;
+  api_key:string;
+  source:string;
+  sent_at_ms:long;
+  seq:long;
+  analytics:[AnalyticsEvent];
+  watchdog:[WatchdogEvent];
+  logs:[LogLine];
+  spans:[Span];
+  metrics:[MetricPoint];
+  errors:[ErrorEvent];
+  profiles:[ProfileMeta];
+  workers:[WorkerEvent];
+  query_stats:[QueryStat];
+  email_events:[EmailEvent];
+}
+
+table IngestAck {
+  ok:bool;
+  frames:long;
+  events:long;
+  message:string;
+}
+
+root_type TelemetryBatch;

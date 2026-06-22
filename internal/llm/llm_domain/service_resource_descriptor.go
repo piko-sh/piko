@@ -19,7 +19,6 @@
 package llm_domain
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -39,6 +38,8 @@ var (
 	_ provider_domain.SubResourceDescriptor = (*service)(nil)
 
 	_ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+
+	_ provider_domain.ReadinessProbeNamed = (*service)(nil)
 )
 
 // ResourceType returns the CLI resource name for the LLM service.
@@ -46,6 +47,16 @@ var (
 // Returns string which is "llm".
 func (*service) ResourceType() string {
 	return "llm"
+}
+
+// ProbeName returns the readiness health-probe name of the LLM service, bridging the
+// "llm" resource type to the "LLMService" readiness dependency so a readiness collector
+// can attach this descriptor's provider info to the matching dependency. It must return
+// the same string the service's health-probe Name method returns.
+//
+// Returns string which is "LLMService".
+func (*service) ProbeName() string {
+	return "LLMService"
 }
 
 // ResourceListColumns returns column definitions for the LLM provider list table.
@@ -152,7 +163,9 @@ func (s *service) ResourceDescribeProvider(_ context.Context, name string) (*pro
 		},
 	}
 
-	sections = appendLLMConfigSection(sections, provider)
+	if section, ok := provider_domain.BuildMetadataSection(provider); ok {
+		sections = append(sections, section)
+	}
 
 	return &provider_domain.ProviderDetail{
 		Name:     name,
@@ -254,37 +267,4 @@ func (s *service) ResourceDescribeType(_ context.Context) *provider_domain.Provi
 			},
 		},
 	}
-}
-
-// appendLLMConfigSection appends a Configuration section when the provider exposes
-// metadata.
-//
-// Takes sections ([]provider_domain.InfoSection) which is the current list.
-// Takes provider (LLMProviderPort) which is the provider to inspect.
-//
-// Returns []provider_domain.InfoSection which is the updated section list.
-func appendLLMConfigSection(sections []provider_domain.InfoSection, provider LLMProviderPort) []provider_domain.InfoSection {
-	meta, ok := provider.(provider_domain.ProviderMetadata)
-	if !ok {
-		return sections
-	}
-	metadata := meta.GetProviderMetadata()
-	if len(metadata) == 0 {
-		return sections
-	}
-
-	entries := make([]provider_domain.InfoEntry, 0, len(metadata))
-	for k, v := range metadata {
-		entries = append(entries, provider_domain.InfoEntry{
-			Key:   k,
-			Value: fmt.Sprintf("%v", v),
-		})
-	}
-	slices.SortFunc(entries, func(a, b provider_domain.InfoEntry) int {
-		return cmp.Compare(a.Key, b.Key)
-	})
-	return append(sections, provider_domain.InfoSection{
-		Title:   "Configuration",
-		Entries: entries,
-	})
 }

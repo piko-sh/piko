@@ -429,6 +429,33 @@ func (s *Service) MetricsReader() MetricReader {
 	return s.metricsCollector.Reader()
 }
 
+// HealthProbe returns the configured health probe service, or nil when no probe has been
+// wired via SetInspectors. It surfaces the readiness/liveness tree so an in-process
+// telemetry collector can sample the same health the transport serves.
+//
+// Returns HealthProbeService which runs liveness/readiness checks, or nil.
+//
+// Safe for concurrent use. Protected by a read lock on the service mutex.
+func (s *Service) HealthProbe() HealthProbeService {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.healthProbeService
+}
+
+// ProviderInfoInspector returns the configured provider info inspector, or nil when none
+// has been wired via SetProviderInfoInspector. It surfaces the same provider detail the
+// transport serves so an in-process telemetry collector can enrich readiness samples with
+// provider info, mirroring HealthProbe.
+//
+// Returns ProviderInfoInspector which describes registered providers, or nil.
+//
+// Safe for concurrent use. Protected by a read lock on the service mutex.
+func (s *Service) ProviderInfoInspector() ProviderInfoInspector {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.providerInfoInspector
+}
+
 // Address returns the address the transport server is listening on, or the configured
 // address when no transport is running.
 //
