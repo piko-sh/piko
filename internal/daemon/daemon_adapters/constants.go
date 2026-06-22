@@ -73,6 +73,11 @@ const (
 	// headerVary is the HTTP header name for content negotiation hints.
 	headerVary = "Vary"
 
+	// headerAcceptEncoding is the HTTP header name for the client's accepted content
+	// encodings. It is also the value advertised in Vary, since responses are negotiated on
+	// it.
+	headerAcceptEncoding = "Accept-Encoding"
+
 	// headerLink is the HTTP header name for link relations.
 	headerLink = "Link"
 

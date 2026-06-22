@@ -437,8 +437,14 @@ type variantResolutionContext struct {
 	// variantGenerator creates image variants when they are needed.
 	variantGenerator daemon_domain.OnDemandVariantGenerator
 
-	// cacheControl is the Cache-Control header value for the response.
-	cacheControl string
+	// disableHTTPCache indicates dev mode; it forces no-cache for every response via
+	// cacheControlForMode.
+	disableHTTPCache bool
+
+	// foundByStorageKey reports whether the artefact was resolved by its content-addressed
+	// storage key (true) rather than its stable logical ID (false). It selects the cache
+	// policy: a content-addressed URL is immutable-safe, a stable URL must revalidate.
+	foundByStorageKey bool
 }
 
 // serveArtefact returns an HTTP handler that serves artefact content.
@@ -455,7 +461,6 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 	variantGenerator daemon_domain.OnDemandVariantGenerator,
 	disableHTTPCache bool,
 ) http.HandlerFunc {
-	artefactCacheControl := cacheControlForMode(disableHTTPCache, cacheControlLongLived)
 	builder.metadataCache = newArtefactMetadataCache(builder.artefactCache, registryService)
 	metadataCache := builder.metadataCache
 
@@ -489,12 +494,13 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 		}
 
 		vrc := variantResolutionContext{
-			span:             span,
-			w:                w,
-			r:                r,
-			registryService:  registryService,
-			variantGenerator: variantGenerator,
-			cacheControl:     artefactCacheControl,
+			span:              span,
+			w:                 w,
+			r:                 r,
+			registryService:   registryService,
+			variantGenerator:  variantGenerator,
+			disableHTTPCache:  disableHTTPCache,
+			foundByStorageKey: lookup.foundByStorageKey,
 		}
 
 		variant := builder.resolveVariant(ctx, vrc, lookup, artefactID, variantParam)
@@ -950,21 +956,6 @@ func buildAllowedOrigins(routerConfig *daemon_domain.RouterConfig) []string {
 	return origins
 }
 
-// cacheControlForMode returns the appropriate Cache-Control header value, using no-cache
-// to force ETag revalidation when HTTP caching is disabled (dev mode) and the provided
-// production value when enabled (prod mode).
-//
-// Takes disableHTTPCache (bool) which indicates whether HTTP caching is disabled.
-// Takes prodValue (string) which is the Cache-Control value to use in production mode.
-//
-// Returns string which is the resolved Cache-Control header value.
-func cacheControlForMode(disableHTTPCache bool, prodValue string) string {
-	if disableHTTPCache {
-		return cacheControlNoCache
-	}
-	return prodValue
-}
-
 // fetchStaticArtefact gets an artefact from the registry and handles not-found errors.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
@@ -1233,7 +1224,9 @@ func serveVariantResponse(
 	}
 
 	etag := bestVariant.MetadataTags.Get(registry_dto.TagEtag)
+	cacheControl := cacheControlForArtefact(vrc.disableHTTPCache, vrc.foundByStorageKey, bestVariant)
 	if etag != "" && vrc.r.Header.Get(headerIfNoneMatch) == etag {
+		setVariantCacheHeaders(vrc.w.Header(), etag, cacheControl)
 		vrc.w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -1253,8 +1246,7 @@ func serveVariantResponse(
 
 	h := vrc.w.Header()
 	h[headerContentType] = []string{bestVariant.MimeType}
-	h[headerETag] = []string{etag}
-	h[headerCacheControl] = []string{vrc.cacheControl}
+	setVariantCacheHeaders(h, etag, cacheControl)
 
 	if encoding := bestVariant.MetadataTags.Get(registry_dto.TagContentEncoding); encoding != "" {
 		h[headerContentEncoding] = []string{encoding}
@@ -1282,7 +1274,7 @@ func serveVariantResponse(
 // Returns *registry_dto.Variant which is the best matching compressed variant, or the
 // base variant if no compressed version is available.
 func findBestCompressedVariant(r *http.Request, artefact *registry_dto.ArtefactMeta, baseVariantID string) *registry_dto.Variant {
-	acceptEncoding := r.Header.Get("Accept-Encoding")
+	acceptEncoding := r.Header.Get(headerAcceptEncoding)
 
 	if strings.Contains(acceptEncoding, "br") {
 		if v := findVariantByID(artefact.ActualVariants, baseVariantID+"_br"); v != nil {
@@ -1329,7 +1321,7 @@ func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFu
 
 		basePath := path.Join("built", fileParam)
 
-		finalPath := daemon_frontend.DetermineBestAssetPath(r.Context(), basePath, r.Header.Get("Accept-Encoding"))
+		finalPath := daemon_frontend.DetermineBestAssetPath(r.Context(), basePath, r.Header.Get(headerAcceptEncoding))
 
 		asset, found := daemon_frontend.GetAsset(r.Context(), finalPath)
 		if !found {
@@ -1353,7 +1345,7 @@ func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFu
 		if asset.Encoding != "" {
 			h[headerContentEncoding] = []string{asset.Encoding}
 		}
-		w.Header().Add("Vary", "Accept-Encoding")
+		w.Header().Add("Vary", headerAcceptEncoding)
 
 		http.ServeContent(w, r, filepath.Base(basePath), time.Time{}, bytes.NewReader(asset.Content))
 	}
