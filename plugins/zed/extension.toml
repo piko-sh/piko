@@ -13,4 +13,4 @@ language = "Piko"
 [grammars.piko]
 repository = "file:///home/mhaddon/git/piko-sh/piko"
 path = "plugins/zed/tree-sitter-piko"
-commit = "f7679c49f7b2feec3cef8343f98235a6b9331481"
+commit = "4e250592a49f1cba50f38c7a53b1687f768a2803"
