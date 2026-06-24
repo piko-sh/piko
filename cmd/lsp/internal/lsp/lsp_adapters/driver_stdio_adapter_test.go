@@ -44,14 +44,16 @@ type stdioStubFSReader struct {
 	annotator_domain.FSReaderPort
 }
 
-func validStdioDeps(t *testing.T) (coordinator_domain.CoordinatorService, resolver_domain.ResolverPort, *inspector_domain.TypeBuilder, *lsp_domain.DocumentCache, annotator_domain.FSReaderPort, *config.PathsConfig) {
+func validStdioDeps(t *testing.T) StdioAdapterDeps {
 	t.Helper()
-	return &stdioStubCoordinatorService{},
-		&stdioStubResolverPort{},
-		inspector_domain.NewTypeBuilder(inspector_dto.Config{}),
-		lsp_domain.NewDocumentCache(),
-		&stdioStubFSReader{},
-		&config.PathsConfig{}
+	return StdioAdapterDeps{
+		CoordinatorService:   &stdioStubCoordinatorService{},
+		Resolver:             &stdioStubResolverPort{},
+		TypeInspectorManager: inspector_domain.NewTypeBuilder(inspector_dto.Config{}),
+		DocCache:             lsp_domain.NewDocumentCache(),
+		LSPReader:            &stdioStubFSReader{},
+		PathsConfig:          &config.PathsConfig{},
+	}
 }
 
 func TestNewStdioAdapter(t *testing.T) {
@@ -60,8 +62,7 @@ func TestNewStdioAdapter(t *testing.T) {
 	t.Run("returns adapter when all dependencies are non-nil", func(t *testing.T) {
 		t.Parallel()
 
-		coord, res, types, cache, reader, paths := validStdioDeps(t)
-		adapter, err := NewStdioAdapter(coord, res, types, cache, reader, paths, false)
+		adapter, err := NewStdioAdapter(validStdioDeps(t))
 
 		require.NoError(t, err)
 		require.NotNil(t, adapter)
@@ -70,8 +71,9 @@ func TestNewStdioAdapter(t *testing.T) {
 	t.Run("returns error when coordinatorService is nil", func(t *testing.T) {
 		t.Parallel()
 
-		_, res, types, cache, reader, paths := validStdioDeps(t)
-		adapter, err := NewStdioAdapter(nil, res, types, cache, reader, paths, false)
+		deps := validStdioDeps(t)
+		deps.CoordinatorService = nil
+		adapter, err := NewStdioAdapter(deps)
 
 		require.Error(t, err)
 		assert.Nil(t, adapter)
@@ -81,8 +83,9 @@ func TestNewStdioAdapter(t *testing.T) {
 	t.Run("returns error when resolver is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coord, _, types, cache, reader, paths := validStdioDeps(t)
-		adapter, err := NewStdioAdapter(coord, nil, types, cache, reader, paths, false)
+		deps := validStdioDeps(t)
+		deps.Resolver = nil
+		adapter, err := NewStdioAdapter(deps)
 
 		require.Error(t, err)
 		assert.Nil(t, adapter)
@@ -92,8 +95,9 @@ func TestNewStdioAdapter(t *testing.T) {
 	t.Run("returns error when typeInspectorManager is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coord, res, _, cache, reader, paths := validStdioDeps(t)
-		adapter, err := NewStdioAdapter(coord, res, nil, cache, reader, paths, false)
+		deps := validStdioDeps(t)
+		deps.TypeInspectorManager = nil
+		adapter, err := NewStdioAdapter(deps)
 
 		require.Error(t, err)
 		assert.Nil(t, adapter)
@@ -103,8 +107,9 @@ func TestNewStdioAdapter(t *testing.T) {
 	t.Run("returns error when docCache is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coord, res, types, _, reader, paths := validStdioDeps(t)
-		adapter, err := NewStdioAdapter(coord, res, types, nil, reader, paths, false)
+		deps := validStdioDeps(t)
+		deps.DocCache = nil
+		adapter, err := NewStdioAdapter(deps)
 
 		require.Error(t, err)
 		assert.Nil(t, adapter)
@@ -114,8 +119,9 @@ func TestNewStdioAdapter(t *testing.T) {
 	t.Run("returns error when lspReader is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coord, res, types, cache, _, paths := validStdioDeps(t)
-		adapter, err := NewStdioAdapter(coord, res, types, cache, nil, paths, false)
+		deps := validStdioDeps(t)
+		deps.LSPReader = nil
+		adapter, err := NewStdioAdapter(deps)
 
 		require.Error(t, err)
 		assert.Nil(t, adapter)
@@ -125,8 +131,9 @@ func TestNewStdioAdapter(t *testing.T) {
 	t.Run("returns error when pathsConfig is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coord, res, types, cache, reader, _ := validStdioDeps(t)
-		adapter, err := NewStdioAdapter(coord, res, types, cache, reader, nil, false)
+		deps := validStdioDeps(t)
+		deps.PathsConfig = nil
+		adapter, err := NewStdioAdapter(deps)
 
 		require.Error(t, err)
 		assert.Nil(t, adapter)

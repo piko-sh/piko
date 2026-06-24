@@ -269,8 +269,8 @@ func TestCheckPKCStatePropertyContext(t *testing.T) {
 	tests := []struct {
 		name     string
 		line     string
-		cursor   int
 		expected string
+		cursor   int
 	}{
 		{
 			name:     "state.message in directive",
@@ -641,8 +641,8 @@ func TestPKCCompletion_EmptyPKCFile(t *testing.T) {
 func TestGetPKCTypeString(t *testing.T) {
 	tests := []struct {
 		name     string
-		prop     pkcStateProperty
 		expected string
+		prop     pkcStateProperty
 	}{
 		{
 			name:     "string type",

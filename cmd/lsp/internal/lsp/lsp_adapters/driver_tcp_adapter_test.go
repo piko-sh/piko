@@ -20,6 +20,7 @@ package lsp_adapters
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -375,4 +376,75 @@ func TestLSPTCPAdapter_RejectsOversizedMessage(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("server did not reject oversized message in time")
 	}
+}
+
+type writeRecorderConn struct {
+	net.Conn
+	deadline time.Time
+	written  []byte
+}
+
+func (c *writeRecorderConn) SetWriteDeadline(deadline time.Time) error {
+	c.deadline = deadline
+	return nil
+}
+
+func (c *writeRecorderConn) Write(payload []byte) (int, error) {
+	c.written = append(c.written, payload...)
+	return len(payload), nil
+}
+
+func TestWriteDeadlineConn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sets a write deadline before delegating each write", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := &writeRecorderConn{}
+		conn := &writeDeadlineConn{Conn: recorder, timeout: 5 * time.Second}
+
+		before := time.Now()
+		count, err := conn.Write([]byte("hello"))
+		require.NoError(t, err)
+		assert.Equal(t, 5, count)
+		assert.Equal(t, []byte("hello"), recorder.written)
+		assert.False(t, recorder.deadline.IsZero(), "a write deadline is set")
+		assert.WithinDuration(t, before.Add(5*time.Second), recorder.deadline, time.Second)
+	})
+
+	t.Run("skips the deadline when the timeout is non-positive", func(t *testing.T) {
+		t.Parallel()
+
+		recorder := &writeRecorderConn{}
+		conn := &writeDeadlineConn{Conn: recorder, timeout: 0}
+
+		_, err := conn.Write([]byte("x"))
+		require.NoError(t, err)
+		assert.True(t, recorder.deadline.IsZero(), "no deadline is set when the timeout is non-positive")
+	})
+}
+
+func TestBackoffOnAcceptError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	acceptErr := errors.New("accept failed")
+
+	assert.Equal(t, minAcceptBackoff, backoffOnAcceptError(ctx, acceptErr, 0),
+		"the first error backs off by the minimum")
+	assert.Equal(t, 2*minAcceptBackoff, backoffOnAcceptError(ctx, acceptErr, minAcceptBackoff),
+		"each subsequent error doubles the backoff")
+	assert.Equal(t, maxAcceptBackoff, backoffOnAcceptError(ctx, acceptErr, maxAcceptBackoff),
+		"the backoff is capped at the maximum")
+}
+
+func TestLogConnectionClose(t *testing.T) {
+	t.Parallel()
+
+	assert.NotPanics(t, func() {
+		logConnectionClose(context.Background(), "203.0.113.7:5000", errMessageTooLarge)
+		logConnectionClose(context.Background(), "203.0.113.7:5000", errors.New("connection reset"))
+		logConnectionClose(context.Background(), "203.0.113.7:5000", nil)
+	})
 }

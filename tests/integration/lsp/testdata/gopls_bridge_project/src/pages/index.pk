@@ -1,0 +1,28 @@
+<template>
+	<div class="index">{{ state.Message }}</div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+	"fmt"
+
+	"piko.sh/piko"
+)
+
+type IndexResponse struct {
+	Message string
+}
+
+func Render(_ *piko.RequestData, _ piko.NoProps) (IndexResponse, piko.Metadata, error) {
+	fmt.Println("rendering index page")
+	return IndexResponse{Message: "Welcome to Piko"}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+.index {
+	padding: 20px;
+}
+</style>

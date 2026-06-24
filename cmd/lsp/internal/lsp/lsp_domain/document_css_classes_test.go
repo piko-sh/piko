@@ -177,8 +177,8 @@ func TestCheckCSSClassDefinitionContext_static_class(t *testing.T) {
 	testCases := []struct {
 		name      string
 		line      string
-		cursor    int
 		wantName  string
+		cursor    int
 		wantFound bool
 	}{
 		{
@@ -243,8 +243,8 @@ func TestCheckCSSClassDefinitionContext_p_class_shorthand(t *testing.T) {
 	testCases := []struct {
 		name      string
 		line      string
-		cursor    int
 		wantName  string
+		cursor    int
 		wantFound bool
 	}{
 		{
@@ -296,8 +296,8 @@ func TestCheckCSSClassDefinitionContext_directive_string(t *testing.T) {
 	testCases := []struct {
 		name      string
 		line      string
-		cursor    int
 		wantName  string
+		cursor    int
 		wantFound bool
 	}{
 		{
@@ -349,9 +349,9 @@ func TestTryCSSClassValueContext(t *testing.T) {
 	testCases := []struct {
 		name           string
 		line           string
+		wantPrefix     string
 		cursorPosition int
 		wantMatch      bool
-		wantPrefix     string
 	}{
 		{
 			name:           "inside class attr value - empty",
@@ -424,8 +424,8 @@ func TestFindWordAtOffset(t *testing.T) {
 	testCases := []struct {
 		name     string
 		text     string
-		offset   int
 		expected string
+		offset   int
 	}{
 		{
 			name:     "single word",
@@ -486,8 +486,8 @@ func TestExtractStringLiteralAtCursor(t *testing.T) {
 	testCases := []struct {
 		name     string
 		text     string
-		cursor   int
 		expected string
+		cursor   int
 	}{
 		{
 			name:     "cursor inside string",

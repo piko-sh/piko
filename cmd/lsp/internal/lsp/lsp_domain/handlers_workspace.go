@@ -49,11 +49,11 @@ const (
 // Runs analysis for changed files using a bounded worker pool to prevent resource
 // exhaustion. Uses the server context so analysis stops during shutdown.
 func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.DidChangeWatchedFilesParams) error {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	l.Debug("DidChangeWatchedFiles", logger_domain.Int("changes", len(params.Changes)))
 
-	changedURIs, hasGoFileChange, hasStructuralChange := classifyFileChanges(l, params.Changes)
+	changedURIs, hasGoFileChange, hasStructuralChange := classifyFileChanges(ctx, params.Changes)
 
 	if hasGoFileChange || hasStructuralChange {
 		s.workspace.resetScopedAnalysisCache()
@@ -61,10 +61,8 @@ func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.Did
 
 	if hasGoFileChange {
 		l.Debug("Go file changed, re-analysing all open documents")
-		uris := s.docCache.GetAllURIs()
-		s.goBackground(func(ctx context.Context) {
-			s.runBoundedAnalysis(ctx, uris, "go file change")
-		})
+
+		s.scheduleWatchedAnalysis(s.docCache.GetAllURIs())
 		return nil
 	}
 
@@ -72,9 +70,7 @@ func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.Did
 		return nil
 	}
 
-	s.goBackground(func(ctx context.Context) {
-		s.runBoundedAnalysis(ctx, changedURIs, "watched file change")
-	})
+	s.scheduleWatchedAnalysis(s.openURIs(changedURIs))
 
 	return nil
 }
@@ -82,14 +78,14 @@ func (s *Server) DidChangeWatchedFiles(ctx context.Context, params *protocol.Did
 // classifyFileChanges categorises watched file changes into Go file changes, structural
 // changes (create/delete), and non-Go changed URIs needing re-analysis.
 //
-// Takes l (logger_domain.Logger) which is the logger for debug output.
 // Takes changes ([]*protocol.FileEvent) which contains the file change events to
 // classify.
 //
 // Returns changedURIs ([]protocol.DocumentURI) which holds non-Go changed URIs.
 // Returns hasGoFileChange (bool) which is true when a Go source file changed.
 // Returns hasStructuralChange (bool) which is true when files were created or deleted.
-func classifyFileChanges(l logger_domain.Logger, changes []*protocol.FileEvent) (changedURIs []protocol.DocumentURI, hasGoFileChange, hasStructuralChange bool) {
+func classifyFileChanges(ctx context.Context, changes []*protocol.FileEvent) (changedURIs []protocol.DocumentURI, hasGoFileChange, hasStructuralChange bool) {
+	_, l := logger_domain.From(ctx, log)
 	for _, change := range changes {
 		l.Debug("File change", logger_domain.String(keyURI, change.URI.Filename()), logger_domain.Int("type", int(change.Type)))
 
@@ -189,11 +185,8 @@ func (s *Server) ExecuteCommand(ctx context.Context, params *protocol.ExecuteCom
 
 	switch params.Command {
 	case "piko.refreshDiagnostics":
-		uris := s.docCache.GetAllURIs()
 
-		s.goBackground(func(ctx context.Context) {
-			s.runBoundedAnalysis(ctx, uris, "diagnostics refresh")
-		})
+		s.scheduleWatchedAnalysis(s.docCache.GetAllURIs())
 		return "Diagnostics refresh started", nil
 
 	default:
@@ -287,7 +280,7 @@ func (s *Server) DocumentSymbol(ctx context.Context, params *protocol.DocumentSy
 
 	l.Debug("DocumentSymbol", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), params.TextDocument.URI)
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, params.TextDocument.URI)
 	if err != nil {
 		l.Error("DocumentSymbol: analysis failed", logger_domain.Error(err))
 		return []any{}, nil
@@ -346,16 +339,19 @@ func (s *Server) DidRenameFiles(ctx context.Context, params *protocol.RenameFile
 
 	l.Debug("DidRenameFiles", logger_domain.Int(keyFiles, len(params.Files)))
 
+	oldURIs := make([]protocol.DocumentURI, 0, len(params.Files))
 	for _, file := range params.Files {
 		l.Debug("Renamed file", logger_domain.String("oldURI", string(file.OldURI)), logger_domain.String("newURI", string(file.NewURI)))
 		if content, found := s.docCache.Get(protocol.DocumentURI(file.OldURI)); found {
 			s.docCache.Delete(protocol.DocumentURI(file.OldURI))
 			s.docCache.Set(protocol.DocumentURI(file.NewURI), content)
 		}
+		oldURIs = append(oldURIs, protocol.DocumentURI(file.OldURI))
 	}
 
 	if len(params.Files) > 0 {
 		s.workspace.resetScopedAnalysisCache()
+		s.closeGoplsOverlaysForURIs(oldURIs)
 	}
 
 	return nil
@@ -387,13 +383,16 @@ func (s *Server) DidDeleteFiles(ctx context.Context, params *protocol.DeleteFile
 
 	l.Debug("DidDeleteFiles", logger_domain.Int(keyFiles, len(params.Files)))
 
+	deletedURIs := make([]protocol.DocumentURI, 0, len(params.Files))
 	for _, file := range params.Files {
 		l.Debug("Deleted file", logger_domain.String(keyURI, string(file.URI)))
 		s.docCache.Delete(protocol.DocumentURI(file.URI))
+		deletedURIs = append(deletedURIs, protocol.DocumentURI(file.URI))
 	}
 
 	if len(params.Files) > 0 {
 		s.workspace.resetScopedAnalysisCache()
+		s.closeGoplsOverlaysForURIs(deletedURIs)
 	}
 
 	return nil
@@ -452,10 +451,16 @@ func (s *Server) CodeAction(ctx context.Context, params *protocol.CodeActionPara
 	}
 	actions = append(actions, refreshAction)
 
-	document, err := s.workspace.RunAnalysisForURI(context.WithoutCancel(ctx), params.TextDocument.URI)
+	document, err := s.workspace.RunAnalysisForInteractiveRequest(ctx, params.TextDocument.URI)
 	if err != nil {
 		l.Debug("CodeAction: failed to get document", logger_domain.Error(err))
 		document = nil
+	}
+
+	if document != nil {
+		if goplsActions, handled := s.goplsCodeAction(ctx, document, params.Range); handled {
+			actions = append(actions, goplsActions...)
+		}
 	}
 
 	for i := range params.Context.Diagnostics {

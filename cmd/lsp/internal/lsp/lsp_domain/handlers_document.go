@@ -317,15 +317,8 @@ func (s *Server) DidOpenTextDocument(ctx context.Context, params *protocol.DidOp
 
 	l.Debug("DidOpen", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
 
-	s.workspace.UpdateDocument(params.TextDocument.URI, []byte(params.TextDocument.Text))
-
-	uri := params.TextDocument.URI
-	s.goBackground(func(ctx context.Context) {
-		_, l := logger_domain.From(ctx, log)
-		if _, err := s.workspace.RunAnalysisForURI(ctx, uri); err != nil {
-			l.Error("Failed to run analysis on document open", logger_domain.Error(err))
-		}
-	})
+	gen := s.workspace.UpdateDocument(params.TextDocument.URI, []byte(params.TextDocument.Text), params.TextDocument.Version)
+	s.runDocumentAnalysisBounded(params.TextDocument.URI, "didOpen", gen, s.syncGoplsOverlayForDocument)
 
 	return nil
 }
@@ -342,15 +335,8 @@ func (s *Server) DidChangeTextDocument(ctx context.Context, params *protocol.Did
 	l.Debug("DidChange", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
 
 	if len(params.ContentChanges) > 0 {
-		s.workspace.UpdateDocument(params.TextDocument.URI, []byte(params.ContentChanges[0].Text))
-
-		uri := params.TextDocument.URI
-		s.goBackground(func(ctx context.Context) {
-			_, l := logger_domain.From(ctx, log)
-			if _, err := s.workspace.RunAnalysisForURI(ctx, uri); err != nil {
-				l.Error("Failed to run analysis on document change", logger_domain.Error(err))
-			}
-		})
+		gen := s.workspace.UpdateDocument(params.TextDocument.URI, []byte(params.ContentChanges[0].Text), params.TextDocument.Version)
+		s.runDocumentAnalysisBounded(params.TextDocument.URI, "didChange", gen, s.syncGoplsOverlayForDocument)
 	}
 
 	return nil
@@ -368,16 +354,10 @@ func (s *Server) DidSaveTextDocument(ctx context.Context, params *protocol.DidSa
 	l.Debug("DidSave", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
 
 	if params.Text != "" {
-		s.workspace.UpdateDocument(params.TextDocument.URI, []byte(params.Text))
+		s.workspace.UpdateDocument(params.TextDocument.URI, []byte(params.Text), 0)
 	}
 
-	uri := params.TextDocument.URI
-	s.goBackground(func(ctx context.Context) {
-		_, l := logger_domain.From(ctx, log)
-		if _, err := s.workspace.RunAnalysisForURI(ctx, uri); err != nil {
-			l.Error("Failed to run analysis on document save", logger_domain.Error(err))
-		}
-	})
+	s.runDocumentAnalysisBounded(params.TextDocument.URI, "didSave", s.workspace.currentGeneration(params.TextDocument.URI), s.syncGoplsOverlayForDocument)
 
 	return nil
 }
@@ -393,7 +373,12 @@ func (s *Server) DidCloseTextDocument(ctx context.Context, params *protocol.DidC
 
 	l.Debug("DidClose", logger_domain.String(keyURI, params.TextDocument.URI.Filename()))
 
-	s.workspace.RemoveDocument(ctx, params.TextDocument.URI)
+	uri := params.TextDocument.URI
+	s.workspace.RemoveDocument(ctx, uri)
+
+	s.goBackground(func(ctx context.Context) {
+		s.closeGoplsOverlaysForDocument(ctx, uri)
+	})
 
 	return nil
 }

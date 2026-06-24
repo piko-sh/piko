@@ -1,0 +1,18 @@
+[package]
+name = "zed_piko"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Apache-2.0"
+
+[lib]
+path = "src/piko.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+zed_extension_api = "0.6.0"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+cognitive_complexity = "warn"
+too_many_lines = "warn"

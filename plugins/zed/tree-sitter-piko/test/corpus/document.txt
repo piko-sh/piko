@@ -1,0 +1,74 @@
+================================================================================
+Custom root-wrapper element around blocks
+================================================================================
+
+<wrap-demo>
+<script type="application/x-go">
+package main
+</script>
+<template>
+	<div>{{ title }}</div>
+</template>
+</wrap-demo>
+
+--------------------------------------------------------------------------------
+
+(document
+  (start_tag
+    name: (tag_name))
+  (script_element
+    (start_tag
+      (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (template_element
+    (start_tag
+      (tag_name))
+    (start_tag
+      name: (tag_name))
+    (interpolation
+      (expression))
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      (tag_name)))
+  (end_tag
+    name: (tag_name))
+  (text))
+
+================================================================================
+Doctype and embedded close tag in a Go string
+================================================================================
+
+<template>
+<!DOCTYPE html>
+<script type="application/x-go">
+s := "</div>"
+</script>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (doctype)
+    (script_element
+      (start_tag
+        (tag_name)
+        (attribute
+          name: (attribute_name)
+          value: (quoted_attribute_value
+            (attribute_value))))
+      (raw_text)
+      (end_tag
+        (tag_name)))
+    (end_tag
+      (tag_name)))
+  (text))

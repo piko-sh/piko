@@ -120,7 +120,7 @@ func (d *document) isPositionInClientScript(position protocol.Position) bool {
 // Takes position (protocol.Position) which is the cursor position to test.
 //
 // Returns bool which is true if the position is inside the script content.
-func (*document) isPositionInScriptContent(script *sfcparser.Script, position protocol.Position) bool {
+func (d *document) isPositionInScriptContent(script *sfcparser.Script, position protocol.Position) bool {
 	startLine := safeconv.IntToUint32(script.ContentLocation.Line - 1)
 
 	endLine := startLine + safeconv.IntToUint32(countNewlinesInContent(script.Content))
@@ -129,13 +129,32 @@ func (*document) isPositionInScriptContent(script *sfcparser.Script, position pr
 		return false
 	}
 
+	startCol := safeconv.IntToUint32(firstContentLineUTF16Column(d.Content, script.ContentLocation) - 1)
 	if startLine == endLine {
-		startCol := safeconv.IntToUint32(script.ContentLocation.Column - 1)
-		endCol := startCol + safeconv.IntToUint32(len(script.Content))
+		endCol := startCol + safeconv.IntToUint32(utf16Length(script.Content))
 		return position.Character >= startCol && position.Character <= endCol
 	}
 
+	if position.Line == startLine {
+		return position.Character >= startCol
+	}
+
 	return true
+}
+
+// utf16Length returns the number of UTF-16 code units content occupies, matching how LSP
+// measures positions, so a single-line Go block's extent is compared on the same axis as
+// the incoming cursor position.
+//
+// Takes content (string) which is the text to measure.
+//
+// Returns int which is the count of UTF-16 code units.
+func utf16Length(content string) int {
+	units := 0
+	for _, runeValue := range content {
+		units += utf16UnitsForRune(runeValue)
+	}
+	return units
 }
 
 // countNewlinesInContent counts the number of newline characters in content.

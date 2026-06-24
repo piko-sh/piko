@@ -35,7 +35,8 @@ import (
 )
 
 type analysisCompleteParams struct {
-	URI protocol.DocumentURI `json:"uri"`
+	URI     protocol.DocumentURI `json:"uri"`
+	Version int32                `json:"version"`
 }
 
 type stressClient struct {
@@ -43,13 +44,15 @@ type stressClient struct {
 	t                   *testing.T
 	diagnostics         map[protocol.DocumentURI][]protocol.Diagnostic
 	diagnosticsReceived chan protocol.DocumentURI
-	analysisComplete    map[protocol.DocumentURI]chan struct{}
-	diagnosticsMu       sync.RWMutex
-	analysisCompleteMu  sync.Mutex
-	errors              []error
-	errMu               sync.Mutex
-	notificationCount   atomic.Int64
-	requestCount        atomic.Int64
+	sentVersions       map[protocol.DocumentURI]int32
+	completedVersions  map[protocol.DocumentURI]int32
+	analysisProgress   chan struct{}
+	diagnosticsMu      sync.RWMutex
+	analysisCompleteMu sync.Mutex
+	errors             []error
+	errMu              sync.Mutex
+	notificationCount  atomic.Int64
+	requestCount       atomic.Int64
 }
 
 func newStressClient(t *testing.T, stream jsonrpc2.Stream) *stressClient {
@@ -57,7 +60,9 @@ func newStressClient(t *testing.T, stream jsonrpc2.Stream) *stressClient {
 		t:                   t,
 		diagnostics:         make(map[protocol.DocumentURI][]protocol.Diagnostic),
 		diagnosticsReceived: make(chan protocol.DocumentURI, 10000),
-		analysisComplete:    make(map[protocol.DocumentURI]chan struct{}),
+		sentVersions:        make(map[protocol.DocumentURI]int32),
+		completedVersions:   make(map[protocol.DocumentURI]int32),
+		analysisProgress:    make(chan struct{}),
 	}
 
 	c.conn = jsonrpc2.NewConn(stream)
@@ -97,13 +102,14 @@ func (c *stressClient) handler() jsonrpc2.Handler {
 			}
 
 			c.analysisCompleteMu.Lock()
-			ch, exists := c.analysisComplete[params.URI]
-			if exists {
-
-				c.analysisComplete[params.URI] = make(chan struct{})
-				close(ch)
+			if params.Version > c.completedVersions[params.URI] {
+				c.completedVersions[params.URI] = params.Version
 			}
+
+			previousProgress := c.analysisProgress
+			c.analysisProgress = make(chan struct{})
 			c.analysisCompleteMu.Unlock()
+			close(previousProgress)
 
 			return reply(ctx, nil, nil)
 
@@ -135,6 +141,10 @@ func (c *stressClient) GetErrors() []error {
 }
 
 func (c *stressClient) Initialize(ctx context.Context, rootURI protocol.DocumentURI) (*protocol.InitializeResult, error) {
+	return c.InitializeWithOptions(ctx, rootURI, nil)
+}
+
+func (c *stressClient) InitializeWithOptions(ctx context.Context, rootURI protocol.DocumentURI, initOptions map[string]any) (*protocol.InitializeResult, error) {
 	c.requestCount.Add(1)
 	params := &protocol.InitializeParams{
 		RootURI: rootURI,
@@ -145,6 +155,9 @@ func (c *stressClient) Initialize(ctx context.Context, rootURI protocol.Document
 				},
 			},
 		},
+	}
+	if initOptions != nil {
+		params.InitializationOptions = initOptions
 	}
 
 	var result protocol.InitializeResult
@@ -160,9 +173,7 @@ func (c *stressClient) Initialized(ctx context.Context) error {
 }
 
 func (c *stressClient) DidOpen(ctx context.Context, fileURI protocol.DocumentURI, content string) error {
-	c.analysisCompleteMu.Lock()
-	c.analysisComplete[fileURI] = make(chan struct{})
-	c.analysisCompleteMu.Unlock()
+	c.recordSentVersion(fileURI, 1)
 
 	return c.conn.Notify(ctx, protocol.MethodTextDocumentDidOpen, &protocol.DidOpenTextDocumentParams{
 		TextDocument: protocol.TextDocumentItem{
@@ -174,10 +185,14 @@ func (c *stressClient) DidOpen(ctx context.Context, fileURI protocol.DocumentURI
 	})
 }
 
-func (c *stressClient) DidChange(ctx context.Context, fileURI protocol.DocumentURI, version int32, content string) error {
+func (c *stressClient) recordSentVersion(fileURI protocol.DocumentURI, version int32) {
 	c.analysisCompleteMu.Lock()
-	c.analysisComplete[fileURI] = make(chan struct{})
+	c.sentVersions[fileURI] = version
 	c.analysisCompleteMu.Unlock()
+}
+
+func (c *stressClient) DidChange(ctx context.Context, fileURI protocol.DocumentURI, version int32, content string) error {
+	c.recordSentVersion(fileURI, version)
 
 	return c.conn.Notify(ctx, protocol.MethodTextDocumentDidChange, &protocol.DidChangeTextDocumentParams{
 		TextDocument: protocol.VersionedTextDocumentIdentifier{
@@ -245,20 +260,70 @@ func (c *stressClient) Definition(ctx context.Context, fileURI protocol.Document
 	return result, nil
 }
 
-func (c *stressClient) WaitForAnalysisComplete(uri protocol.DocumentURI, timeout time.Duration) bool {
-	c.analysisCompleteMu.Lock()
-	ch, exists := c.analysisComplete[uri]
-	if !exists {
-		c.analysisCompleteMu.Unlock()
-		return false
-	}
-	c.analysisCompleteMu.Unlock()
+func (c *stressClient) Rename(ctx context.Context, fileURI protocol.DocumentURI, position protocol.Position, newName string) (*protocol.WorkspaceEdit, error) {
+	c.requestCount.Add(1)
 
-	select {
-	case <-ch:
-		return true
-	case <-time.After(timeout):
-		return false
+	var result protocol.WorkspaceEdit
+	_, err := c.conn.Call(ctx, protocol.MethodTextDocumentRename, &protocol.RenameParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+			Position:     position,
+		},
+		NewName: newName,
+	}, &result)
+	if err != nil {
+		return nil, fmt.Errorf("rename request failed: %w", err)
+	}
+	return &result, nil
+}
+
+func (c *stressClient) WaitForAnalysisComplete(uri protocol.DocumentURI, timeout time.Duration) bool {
+	deadline := time.After(timeout)
+	for {
+		c.analysisCompleteMu.Lock()
+		target, opened := c.sentVersions[uri]
+		settled := opened && c.completedVersions[uri] >= target
+		progress := c.analysisProgress
+		c.analysisCompleteMu.Unlock()
+
+		if !opened {
+			return false
+		}
+		if settled {
+			return true
+		}
+
+		select {
+		case <-progress:
+		case <-deadline:
+			c.analysisCompleteMu.Lock()
+			settled := c.completedVersions[uri] >= target
+			c.analysisCompleteMu.Unlock()
+			return settled
+		}
+	}
+}
+
+func (c *stressClient) GetDiagnostics(uri protocol.DocumentURI) []protocol.Diagnostic {
+	c.diagnosticsMu.RLock()
+	defer c.diagnosticsMu.RUnlock()
+	current := c.diagnostics[uri]
+	result := make([]protocol.Diagnostic, len(current))
+	copy(result, current)
+	return result
+}
+
+func (c *stressClient) WaitForDiagnostics(uri protocol.DocumentURI, predicate func([]protocol.Diagnostic) bool, timeout time.Duration) ([]protocol.Diagnostic, bool) {
+	deadline := time.After(timeout)
+	for {
+		if current := c.GetDiagnostics(uri); predicate(current) {
+			return current, true
+		}
+		select {
+		case <-c.diagnosticsReceived:
+		case <-deadline:
+			return c.GetDiagnostics(uri), false
+		}
 	}
 }
 

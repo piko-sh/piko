@@ -766,6 +766,7 @@ func TestDidChangeWatchedFiles_WithChangedFiles_TriggersAnalysis(t *testing.T) {
 	server := &Server{
 		workspace: ws,
 		serverCtx: serverCtx,
+		docCache:  NewDocumentCache(),
 	}
 
 	params := &protocol.DidChangeWatchedFilesParams{
@@ -784,7 +785,7 @@ func TestDidChangeWatchedFiles_WithChangedFiles_TriggersAnalysis(t *testing.T) {
 
 func TestDidChangeWatchedFiles_NoChangedFiles_Returns(t *testing.T) {
 	ws := createTestWorkspace()
-	server := &Server{workspace: ws}
+	server := &Server{workspace: ws, docCache: NewDocumentCache()}
 
 	params := &protocol.DidChangeWatchedFilesParams{
 		Changes: []*protocol.FileEvent{

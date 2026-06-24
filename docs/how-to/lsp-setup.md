@@ -51,19 +51,54 @@ make plugin-idea-install
 
 The plugin injects syntax colouring, registers file types, and wires up the LSP. Restart the IDE after install.
 
+## Zed
+
+The Piko Zed extension lives under [`plugins/zed/`](https://github.com/piko-sh/piko/tree/master/plugins/zed).
+
+Install `piko-lsp` first so it is on `PATH` under that exact name. `make build-lsp` produces `./bin/lsp/piko-lsp`; copy it onto `PATH` (`cp bin/lsp/piko-lsp /usr/local/bin/`). You can also `go install piko.sh/piko/cmd/lsp@latest`, but Go names the binary after the package's last path segment (`lsp`), so rename it: `mv "$(go env GOBIN)/lsp" "$(go env GOBIN)/piko-lsp"` (falling back to `"$(go env GOPATH)/bin"` when `GOBIN` is empty). Then install the extension from the editor:
+
+1. Open Zed.
+2. Command palette → **zed: install dev extension**.
+3. Select the `plugins/zed/` directory.
+
+Zed resolves the language server in order: an explicit `lsp.piko-lsp.binary.path` setting, then `piko-lsp` on `PATH`, then a download of the matching `piko-lsp` asset from [GitHub releases](https://github.com/piko-sh/piko/releases). To point at a custom build, add to your Zed `settings.json`:
+
+```jsonc
+{
+  "lsp": {
+    "piko-lsp": {
+      "binary": { "path": "/absolute/path/to/piko-lsp" }
+    }
+  }
+}
+```
+
+## Go intelligence inside `.pk` script blocks (gopls bridge)
+
+For the embedded `<script type="application/x-go">` block, `piko-lsp` can delegate to **gopls** so you get full Go hover, completion, go-to-definition, signature help, rename, code actions, and diagnostics inside the block, identical to editing a real `.go` file. piko-lsp runs gopls as a managed child process per Go module and maps positions between the `.pk` file and an in-memory virtual Go document, so nothing is written to disk.
+
+This **bridge is opt-in** and requires `gopls` on `PATH` (`go install golang.org/x/tools/gopls@latest`). Enable it per editor:
+
+- **Zed** - enabled automatically; the extension passes `--gopls-bridge=true` and `--gopls-path` (from `gopls` on your worktree PATH).
+- **Neovim / Helix / generic LSP** - launch piko-lsp with `--gopls-bridge=true`, or set `PIKO_LSP_GOPLS_BRIDGE=true` in the environment. Optionally pass `--gopls-path=/path/to/gopls`.
+- **VS Code** - sends `initializationOptions: { "goBridge": true }`.
+- **JetBrains** - leave it **off**; IntelliJ's native Go injection handles the block, so the bridge stays disabled by default.
+
+When `gopls` is not found, the bridge disables itself and all template/state features keep working; the Go block stays tree-sitter highlighted.
+
 ## Neovim (with a generic LSP client)
 
 Configure via `lspconfig` or a bare `vim.lsp.start`:
 
 ```lua
 vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "piko", "pkc" },
+    pattern = { "piko" },
     callback = function(args)
         vim.lsp.start({
             name = "piko-lsp",
             cmd = { "piko-lsp" },
             root_dir = vim.fs.root(args.buf, { "go.mod" }),
-            filetypes = { "piko", "pkc" },
+            filetypes = { "piko" },
         })
     end,
 })
@@ -75,7 +110,7 @@ Associate the extensions with a filetype:
 vim.filetype.add({
     extension = {
         pk  = "piko",
-        pkc = "pkc",
+        pkc = "piko",
     },
 })
 ```

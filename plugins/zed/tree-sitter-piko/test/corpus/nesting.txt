@@ -1,0 +1,64 @@
+================================================================================
+Nested template control-flow tag
+================================================================================
+
+<template>
+	<dl>
+		<template p-for="item in items">
+			<dt>{{ item.term }}</dt>
+		</template>
+	</dl>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (start_tag
+      name: (tag_name))
+    (template_element
+      (start_tag
+        (tag_name)
+        (attribute
+          (directive
+            name: (directive_name)
+            value: (directive_value
+              (expression)))))
+      (start_tag
+        name: (tag_name))
+      (interpolation
+        (expression))
+      (end_tag
+        name: (tag_name))
+      (end_tag
+        (tag_name)))
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+Less-than in template text
+================================================================================
+
+<template>
+	<h2>Less or equal (<=) and 1 < 2</h2>
+</template>
+
+--------------------------------------------------------------------------------
+
+(document
+  (template_element
+    (start_tag
+      (tag_name))
+    (start_tag
+      name: (tag_name))
+    (text)
+    (end_tag
+      name: (tag_name))
+    (end_tag
+      (tag_name)))
+  (text))

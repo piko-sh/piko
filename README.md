@@ -244,6 +244,7 @@ Loose content is automatically wrapped in the required `pml-row`/`pml-col` struc
 Piko includes IDE plugins and a language server for `.pk` templates. Because the generator statically analyses your Go types, the IDE can provide hover documentation, completions, and diagnostics inside your templates, the same way it would in a normal Go file.
 
 - **VS Code** - Syntax colouring, completions, and diagnostics ([plugin](plugins/vscode/))
+- **Zed** - Syntax colouring, completions, and diagnostics ([plugin](plugins/zed/))
 - **JetBrains** - Full support for JetBrains IDEs ([plugin](plugins/idea/))
 - **Language Server** - LSP implementation for any compatible editor
 

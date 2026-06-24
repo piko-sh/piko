@@ -238,8 +238,8 @@ func TestBuildActionName(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		segments []string
 		want     string
+		segments []string
 	}{
 		{
 			name:     "three segments",
@@ -301,10 +301,10 @@ func TestCheckActionHoverContext(t *testing.T) {
 	testCases := []struct {
 		name     string
 		line     string
-		cursor   int
-		wantNil  bool
-		wantKind PKDefinitionKind
 		wantName string
+		cursor   int
+		wantKind PKDefinitionKind
+		wantNil  bool
 	}{
 		{
 			name:     "hover on action keyword",
@@ -374,9 +374,9 @@ func TestCheckActionDefinitionContext(t *testing.T) {
 	testCases := []struct {
 		name     string
 		line     string
+		wantName string
 		cursor   int
 		wantNil  bool
-		wantName string
 	}{
 		{
 			name:     "cursor on action name produces definition",
@@ -436,8 +436,8 @@ func TestBuildActionDisplaySignature(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		action annotator_dto.ActionDefinition
 		want   string
+		action annotator_dto.ActionDefinition
 	}{
 		{
 			name: "with input and output types",
@@ -919,8 +919,8 @@ func TestFindObjectKeyAtCursor(t *testing.T) {
 	testCases := []struct {
 		name      string
 		line      string
-		cursor    int
 		wantKey   string
+		cursor    int
 		wantStart int
 		wantEnd   int
 	}{
@@ -1005,10 +1005,10 @@ func TestCheckActionParamKeyHoverContext(t *testing.T) {
 	testCases := []struct {
 		name     string
 		line     string
-		cursor   int
-		wantNil  bool
-		wantKind PKDefinitionKind
 		wantName string
+		cursor   int
+		wantKind PKDefinitionKind
+		wantNil  bool
 	}{
 		{
 			name: "cursor on key inside action call",

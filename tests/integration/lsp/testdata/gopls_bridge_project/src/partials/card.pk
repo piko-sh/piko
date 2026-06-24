@@ -1,0 +1,21 @@
+<template>
+	<span class="card">card</span>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type CardProps struct {
+	Title string `prop:"title"`
+}
+
+func Greeting() string {
+	return "hello from card"
+}
+
+func Render(_ *piko.RequestData, props CardProps) (piko.NoResponse, piko.Metadata, error) {
+	return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>

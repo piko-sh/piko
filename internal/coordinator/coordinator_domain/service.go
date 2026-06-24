@@ -158,8 +158,11 @@ type coordinatorService struct {
 	// subscribers maps unique IDs to active subscribers.
 	subscribers map[uint64]subscriber
 
-	// rebuildTrigger receives build requests to handle in the build loop.
-	rebuildTrigger chan *coordinator_dto.BuildRequest
+	// rebuildSignal wakes the build loop when one or more builds are queued.
+	rebuildSignal chan struct{}
+
+	// pendingBuilds holds the most recent queued build request per target signature.
+	pendingBuilds map[string]*coordinator_dto.BuildRequest
 
 	// knownStyleDeps maps a component's hashed name to the absolute paths of its CSS @import
 	// stylesheets, recorded by the most recent build that annotated it.
@@ -205,6 +208,9 @@ type coordinatorService struct {
 
 	// debounceMutex guards access to the debounce timer.
 	debounceMutex sync.Mutex
+
+	// pendingMu guards access to the pendingBuilds map.
+	pendingMu sync.Mutex
 
 	// enableStaticHoisting controls whether static nodes are hoisted to package-level
 	// variables in generated code.
@@ -293,7 +299,19 @@ func (s *coordinatorService) Shutdown(ctx context.Context) {
 	}
 	s.debounceMutex.Unlock()
 
-	s.wg.Wait()
+	loopStopped := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		close(loopStopped)
+	}()
+	shutdownTimer := s.clock.NewTimer(coordinatorShutdownTimeout)
+	defer shutdownTimer.Stop()
+	select {
+	case <-loopStopped:
+	case <-shutdownTimer.C():
+		sl.Warn("Coordinator build loop did not stop within the deadline; abandoning the wait",
+			logger_domain.String("timeout", coordinatorShutdownTimeout.String()))
+	}
 
 	if s.fileHashCache != nil {
 		if err := s.fileHashCache.Persist(shutdownCtx); err != nil {
@@ -340,6 +358,8 @@ func (s *coordinatorService) RequestRebuild(
 	requestToBuild := s.lastBuildRequest
 	s.mu.Unlock()
 
+	s.enqueuePendingBuild(ctx, requestToBuild)
+
 	s.debounceMutex.Lock()
 	defer s.debounceMutex.Unlock()
 
@@ -347,7 +367,7 @@ func (s *coordinatorService) RequestRebuild(
 	if s.lastTriggerTime.IsZero() || now.Sub(s.lastTriggerTime) > s.debounceDuration {
 		l.Trace("Debounce cooldown elapsed (or first trigger). Triggering immediate build.")
 		s.lastTriggerTime = now
-		s.triggerBuild(ctx, requestToBuild)
+		s.signalRebuild(ctx)
 		return
 	}
 
@@ -360,7 +380,7 @@ func (s *coordinatorService) RequestRebuild(
 		_, dl := logger_domain.From(ctx, log)
 		dl.Trace("Trailing-edge debounce timer fired.")
 		s.lastTriggerTime = s.clock.Now()
-		s.triggerBuild(ctx, requestToBuild)
+		s.signalRebuild(ctx)
 	})
 }
 
@@ -393,19 +413,6 @@ func (s *coordinatorService) GetLastSuccessfulBuild() (*annotator_dto.ProjectAnn
 
 // Invalidate clears the annotation cache (Tier 2) and in-memory state.
 //
-// This does not clear Tier 1 (introspection cache) because Tier 1 should only be cleared
-// when script blocks or .go files change. The build executor finds these changes by
-// comparing introspection hashes.
-//
-// Clearing Tier 1 on every file change would break the two-tier caching system, which
-// allows fast template-only rebuilds.
-//
-// The hash-based cache checking works as follows:
-//   - Uses Tier 1 fast path when only template, style, or i18n files changed (5-10x
-//     faster).
-//   - Starts full rebuild when script blocks changed (automatic Tier 1 clearing through
-//     hash mismatch).
-//
 // Returns error when the annotation cache cannot be cleared.
 //
 // Safe for concurrent use. Acquires a lock when clearing in-memory state.
@@ -429,7 +436,13 @@ func (s *coordinatorService) Invalidate(ctx context.Context) error {
 	s.status.Result = nil
 	s.mu.Unlock()
 
-	s.drainRebuildTrigger()
+	s.debounceMutex.Lock()
+	if s.debounceTimer != nil {
+		s.debounceTimer.Stop()
+	}
+	s.debounceMutex.Unlock()
+
+	s.drainRebuildTrigger(ctx)
 
 	s.buildInFlight.Wait()
 
@@ -437,12 +450,25 @@ func (s *coordinatorService) Invalidate(ctx context.Context) error {
 	return nil
 }
 
-// drainRebuildTrigger removes any pending rebuild requests from the channel so that stale
-// triggers from a previous daemon do not interfere with the next build cycle.
-func (s *coordinatorService) drainRebuildTrigger() {
+// drainRebuildTrigger discards any queued build requests and the pending wake signal.
+//
+// Concurrency: acquires pendingMu while clearing the pendingBuilds map, then drains the
+// rebuildSignal channel.
+func (s *coordinatorService) drainRebuildTrigger(ctx context.Context) {
+	s.pendingMu.Lock()
+	discarded := make([]string, 0, len(s.pendingBuilds))
+	for signature := range s.pendingBuilds {
+		discarded = append(discarded, signature)
+	}
+	clear(s.pendingBuilds)
+	s.pendingMu.Unlock()
+
+	for _, signature := range discarded {
+		s.notifyWaiters(ctx, signature, nil, errBuildInvalidated)
+	}
 	for {
 		select {
-		case <-s.rebuildTrigger:
+		case <-s.rebuildSignal:
 		default:
 			return
 		}
@@ -776,7 +802,8 @@ func newCoordinatorService(
 		lastBuildRequest:          nil,
 		shutdown:                  make(chan struct{}),
 		subscribers:               make(map[uint64]subscriber),
-		rebuildTrigger:            make(chan *coordinator_dto.BuildRequest, 1),
+		rebuildSignal:             make(chan struct{}, 1),
+		pendingBuilds:             make(map[string]*coordinator_dto.BuildRequest),
 		status:                    buildStatus{State: stateIdle, LastBuildTime: time.Time{}, LastBuildError: nil, Result: nil},
 		waiters:                   sync.Map{},
 		wg:                        sync.WaitGroup{},
@@ -786,6 +813,7 @@ func newCoordinatorService(
 		mu:                        sync.RWMutex{},
 		subMutex:                  sync.RWMutex{},
 		debounceMutex:             sync.Mutex{},
+		pendingMu:                 sync.Mutex{},
 		enableStaticHoisting:      options.enableStaticHoisting,
 		enablePrerendering:        options.enablePrerendering,
 		stripHTMLComments:         options.stripHTMLComments,

@@ -1,0 +1,27 @@
+{
+  "grammars": [
+    {
+      "name": "piko",
+      "camelcase": "Piko",
+      "scope": "source.piko",
+      "file-types": [
+        "pk",
+        "pkc"
+      ],
+      "injection-regex": "^piko$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "Apache-2.0",
+    "description": "Tree-sitter grammar for Piko single-file components (.pk / .pkc)",
+    "authors": [
+      {
+        "name": "PolitePixels Limited"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/piko-sh/piko"
+    }
+  }
+}

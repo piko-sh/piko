@@ -1,0 +1,110 @@
+================================================================================
+Go script block
+================================================================================
+
+<script type="application/x-go">
+package main
+
+func Render(props Props) (data any) {
+	return nil
+}
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+TypeScript script block via lang
+================================================================================
+
+<script lang="ts">
+const state = { count: 0 };
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+Style block
+================================================================================
+
+<style>
+.a { color: red; }
+</style>
+
+--------------------------------------------------------------------------------
+
+(document
+  (style_element
+    (start_tag
+      (tag_name))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+i18n block
+================================================================================
+
+<i18n>
+{ "en": { "title": "Hi" } }
+</i18n>
+
+--------------------------------------------------------------------------------
+
+(document
+  (i18n_element
+    (start_tag
+      (tag_name))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (text))
+
+================================================================================
+Go expression with less-than is kept in raw_text
+================================================================================
+
+<script type="application/x-go">
+x := a < b
+</script>
+
+--------------------------------------------------------------------------------
+
+(document
+  (script_element
+    (start_tag
+      (tag_name)
+      (attribute
+        name: (attribute_name)
+        value: (quoted_attribute_value
+          (attribute_value))))
+    (raw_text)
+    (end_tag
+      (tag_name)))
+  (text))
