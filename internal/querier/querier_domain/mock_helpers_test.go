@@ -335,12 +335,6 @@ func (m *mockMigrationExecutor) ExecuteMigration(ctx context.Context, migration 
 	return nil
 }
 
-func boolPtr(b bool) *bool { return new(b) }
-
-func intPtr(i int) *int { return new(i) }
-
-func stringPtr(s string) *string { return new(s) }
-
 func newTestCatalogue(schema string) *querier_dto.Catalogue {
 	return &querier_dto.Catalogue{
 		DefaultSchema: schema,
@@ -417,11 +411,28 @@ func (m *mockSeedExecutor) ReleaseSeedLock(ctx context.Context) error {
 	return nil
 }
 
+type catalogueResolverMockEngine struct {
+	*mockEngine
+	fromCatalogueFn func(catalogue *querier_dto.Catalogue, functionName string) []querier_dto.ScopedColumn
+}
+
+func (e *catalogueResolverMockEngine) TableValuedFunctionColumnsFromCatalogue(
+	catalogue *querier_dto.Catalogue,
+	functionName string,
+) []querier_dto.ScopedColumn {
+	if e.fromCatalogueFn != nil {
+		return e.fromCatalogueFn(catalogue, functionName)
+	}
+	return nil
+}
+
 var (
-	_ EnginePort            = (*mockEngine)(nil)
-	_ FileReaderPort        = (*mockFileReader)(nil)
-	_ os.DirEntry           = (*mockDirEntry)(nil)
-	_ CodeEmitterPort       = (*mockCodeEmitter)(nil)
-	_ MigrationExecutorPort = (*mockMigrationExecutor)(nil)
-	_ SeedExecutorPort      = (*mockSeedExecutor)(nil)
+	_ EnginePort                    = (*mockEngine)(nil)
+	_ EnginePort                    = (*catalogueResolverMockEngine)(nil)
+	_ CatalogueFunctionResolverPort = (*catalogueResolverMockEngine)(nil)
+	_ FileReaderPort                = (*mockFileReader)(nil)
+	_ os.DirEntry                   = (*mockDirEntry)(nil)
+	_ CodeEmitterPort               = (*mockCodeEmitter)(nil)
+	_ MigrationExecutorPort         = (*mockMigrationExecutor)(nil)
+	_ SeedExecutorPort              = (*mockSeedExecutor)(nil)
 )

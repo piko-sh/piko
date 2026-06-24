@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	pollInterval = 250 * time.Millisecond
+	pollInterval      = 250 * time.Millisecond
 	negativeGoplsWait = 10 * time.Second
 )
 

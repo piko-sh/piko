@@ -43,7 +43,7 @@ const (
 )
 
 const (
-	crashSettleWait = 2 * time.Second
+	crashSettleWait  = 2 * time.Second
 	wedgeHoverBudget = 15 * time.Second
 )
 

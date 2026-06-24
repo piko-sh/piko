@@ -44,15 +44,15 @@ type stressClient struct {
 	t                   *testing.T
 	diagnostics         map[protocol.DocumentURI][]protocol.Diagnostic
 	diagnosticsReceived chan protocol.DocumentURI
-	sentVersions       map[protocol.DocumentURI]int32
-	completedVersions  map[protocol.DocumentURI]int32
-	analysisProgress   chan struct{}
-	diagnosticsMu      sync.RWMutex
-	analysisCompleteMu sync.Mutex
-	errors             []error
-	errMu              sync.Mutex
-	notificationCount  atomic.Int64
-	requestCount       atomic.Int64
+	sentVersions        map[protocol.DocumentURI]int32
+	completedVersions   map[protocol.DocumentURI]int32
+	analysisProgress    chan struct{}
+	diagnosticsMu       sync.RWMutex
+	analysisCompleteMu  sync.Mutex
+	errors              []error
+	errMu               sync.Mutex
+	notificationCount   atomic.Int64
+	requestCount        atomic.Int64
 }
 
 func newStressClient(t *testing.T, stream jsonrpc2.Stream) *stressClient {

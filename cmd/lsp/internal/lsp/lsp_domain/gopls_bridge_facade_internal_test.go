@@ -89,9 +89,9 @@ func TestCallGopls(t *testing.T) {
 }
 
 const (
-	testRealURI    = protocol.DocumentURI("file:///site/pages/cards.pk")
-	testPrimaryURI = protocol.DocumentURI("file:///site/piko-lsp/primary/source.pk.go")
-	testSatelliteU = protocol.DocumentURI("file:///site/piko-lsp/satellite/source.pk.go")
+	testRealURI          = protocol.DocumentURI("file:///site/pages/cards.pk")
+	testPrimaryURI       = protocol.DocumentURI("file:///site/piko-lsp/primary/source.pk.go")
+	testSatelliteU       = protocol.DocumentURI("file:///site/piko-lsp/satellite/source.pk.go")
 	testSatelliteDistURI = protocol.DocumentURI("file:///site/dist/partials/layout_hash/generated.go")
 	testRealDepURI       = protocol.DocumentURI("file:///site/internal/helpers/helper.go")
 )

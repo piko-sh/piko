@@ -487,7 +487,7 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 ) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 	for _, tvf := range tableValuedFunctions {
-		columns, columnDiagnostic := a.resolveColumnDefinitionsOrLookup(tvf)
+		columns, columnDiagnostic := resolveTableValuedFunctionColumns(a.engine, a.catalogue, tvf)
 		if columns == nil {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
 				Message:  fmt.Sprintf("%s: unknown table-valued function %q", querier_dto.CodeUnknownTable, tvf.FunctionName),
@@ -509,13 +509,19 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 	return diagnostics
 }
 
-// resolveColumnDefinitionsOrLookup resolves columns for a table-valued function.
+// resolveTableValuedFunctionColumns resolves the output columns of a table-valued
+// function reference, independent of any analyser receiver so both the top-level query
+// path and the inner-subquery scope builder share one implementation.
 //
-// Explicit definitions are preferred over catalogue lookup. When the call supplies more
-// alias-only column definitions than the looked-up function exposes, the surplus aliases
-// cannot be applied; the aliases that do fit are applied and a warning diagnostic reports
-// the mismatch rather than discarding every rename.
+// Explicit column definitions win; otherwise the engine's built-in table-valued function
+// schema is consulted, then (for engines that implement CatalogueFunctionResolverPort)
+// the catalogue is searched for a user-defined table-valued function. The columns are nil
+// when none of these resolve the function.
 //
+// Takes engine (EnginePort) which supplies the type normaliser and built-in table-valued
+// function schema.
+// Takes catalogue (*querier_dto.Catalogue) which holds user-defined functions for the
+// optional catalogue fallback.
 // Takes tvf (querier_dto.RawTableValuedFunctionReference) which holds the function
 // reference with optional column definitions.
 //
@@ -523,26 +529,27 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 // function cannot be resolved.
 // Returns *querier_dto.SourceError which is non-nil when the alias count exceeds the
 // resolved column count.
-func (a *queryAnalyser) resolveColumnDefinitionsOrLookup(
+func resolveTableValuedFunctionColumns(
+	engine EnginePort,
+	catalogue *querier_dto.Catalogue,
 	tvf querier_dto.RawTableValuedFunctionReference,
 ) ([]querier_dto.ScopedColumn, *querier_dto.SourceError) {
 	if len(tvf.ColumnDefinitions) > 0 && tvf.ColumnDefinitions[0].TypeName != "" {
 		columns := make([]querier_dto.ScopedColumn, len(tvf.ColumnDefinitions))
 		for i, definition := range tvf.ColumnDefinitions {
-			sqlType := a.engine.NormaliseTypeName(definition.TypeName)
 			columns[i] = querier_dto.ScopedColumn{
 				Name:     definition.Name,
-				SQLType:  sqlType,
+				SQLType:  engine.NormaliseTypeName(definition.TypeName),
 				Nullable: true,
 			}
 		}
 		return columns, nil
 	}
 
-	columns := a.engine.TableValuedFunctionColumns(tvf.FunctionName)
+	columns := engine.TableValuedFunctionColumns(tvf.FunctionName)
 	if columns == nil {
-		if resolver, ok := a.engine.(CatalogueFunctionResolverPort); ok {
-			columns = resolver.TableValuedFunctionColumnsFromCatalogue(a.catalogue, tvf.FunctionName)
+		if resolver, ok := engine.(CatalogueFunctionResolverPort); ok {
+			columns = resolver.TableValuedFunctionColumnsFromCatalogue(catalogue, tvf.FunctionName)
 		}
 	}
 	if columns == nil {
