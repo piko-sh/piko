@@ -19,6 +19,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -640,10 +641,12 @@ func (m *agentsUninstallModel) handleGitignoreConfirm() (tea.Model, tea.Cmd) {
 
 // RunAgents dispatches the agents subcommand.
 //
+// Takes version (string) which is the running Piko CLI version, used to fetch a
+// version-matched piko-lsp during install.
 // Takes arguments ([]string) which holds the subcommand and any flags.
 //
 // Returns int which is the exit code: 0 on success, 1 on error.
-func RunAgents(arguments []string) int {
+func RunAgents(version string, arguments []string) int {
 	if len(arguments) == 0 {
 		agentsUsage()
 		return 1
@@ -651,7 +654,7 @@ func RunAgents(arguments []string) int {
 
 	switch arguments[0] {
 	case "install", "update":
-		return runAgentsInstall(arguments[1:])
+		return runAgentsInstall(version, arguments[1:])
 	case "uninstall":
 		return runAgentsUninstall(arguments[1:])
 	case "-h", "--help", "help":
@@ -667,9 +670,11 @@ func RunAgents(arguments []string) int {
 // newAgentsModel creates a fresh agentsModel with the available targets.
 //
 // Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
+// Takes version (string) which is the Piko CLI version, used to fetch a matching piko-lsp
+// when the Claude Code target is installed.
 //
 // Returns *agentsModel which is ready for the select step.
-func newAgentsModel(factory safedisk.Factory) *agentsModel {
+func newAgentsModel(factory safedisk.Factory, version string) *agentsModel {
 	home, _ := os.UserHomeDir()
 	claudeDest := filepath.Join("~", agentsClaudeDir, agentsSkillsDir, agentsPikoDir)
 	claudeFullDest := filepath.Join(home, agentsClaudeDir, agentsSkillsDir, agentsPikoDir)
@@ -678,12 +683,13 @@ func newAgentsModel(factory safedisk.Factory) *agentsModel {
 		{
 			name:     "Claude Code",
 			destDesc: claudeDest,
-			scope:    "global, all Piko projects",
+			scope:    "skill + LSP, all Piko projects",
 			install: func() (string, error) {
-				if err := templates.CopyClaudeCodeSkill(claudeFullDest); err != nil {
+				if err := templates.CopyClaudeCodePlugin(claudeFullDest); err != nil {
 					return "", err
 				}
-				return fmt.Sprintf("Claude Code      %s", claudeFullDest), nil
+				lspStatus := EnsureInstalled(context.Background(), version)
+				return fmt.Sprintf("Claude Code      %s\n  %s", claudeFullDest, lspStatus), nil
 			},
 		},
 		{
@@ -867,10 +873,12 @@ Run 'piko agents install' to get started.
 // configure with Piko framework knowledge, then copies the relevant files to each tool's
 // expected location.
 //
+// Takes version (string) which is the Piko CLI version, forwarded to the install targets so
+// the Claude Code target can fetch a matching piko-lsp.
 // Takes arguments ([]string) which holds any command-line flags (currently unused).
 //
 // Returns int which is the exit code: 0 on success, 1 on error or cancellation.
-func runAgentsInstall(arguments []string) int {
+func runAgentsInstall(version string, arguments []string) int {
 	_ = arguments
 
 	factory, err := safedisk.NewCLIFactory(".")
@@ -879,7 +887,7 @@ func runAgentsInstall(arguments []string) int {
 		return 1
 	}
 
-	p := tea.NewProgram(newAgentsModel(factory))
+	p := tea.NewProgram(newAgentsModel(factory, version))
 
 	m, err := p.Run()
 	if err != nil {
