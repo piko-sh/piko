@@ -3,8 +3,8 @@ module piko.sh/piko/cmd/wasm
 go 1.26.0
 
 require (
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/interp/interp_provider_piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.26
+	piko.sh/piko/wdk/interp/interp_provider_piko v0.0.0-alpha.26
 )
 
 require (

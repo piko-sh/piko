@@ -2,7 +2,7 @@ module piko.sh/piko/cmd/stdlib-generator
 
 go 1.26.0
 
-require piko.sh/piko v0.0.0
+require piko.sh/piko v0.0.0-alpha.26
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
