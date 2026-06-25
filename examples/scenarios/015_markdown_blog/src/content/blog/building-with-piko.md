@@ -7,8 +7,6 @@ tags:
   - server-side rendering
 ---
 
-# Building with Piko
-
 Piko is a server-side rendering framework written in Go. It takes a different approach to modern web development:
 
 - **Single-file components** - templates, styles, and logic live together

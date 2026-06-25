@@ -3,12 +3,12 @@
      See https://piko.sh/docs/guide/pk-templates -->
 <template>
   <nav class="site-nav">
-    <span class="site-name">Piko Blog</span>
-    <div class="nav-links">
-      <piko:a href="/" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'home' }">Home</piko:a>
-      <piko:a href="/blog" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'blog' }">Blog</piko:a>
-      <piko:a href="/about" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'about' }">About</piko:a>
-      <piko:a href="/contact" class="nav-link" p-class="{ 'nav-link--active': props.CurrentPage == 'contact' }">Contact</piko:a>
+    <span class="site-name">Piko blog</span>
+    <div class="nav-items">
+      <piko:a href="/" class="nav-item" p-class="{ 'nav-item--active': props.CurrentPage == 'home' }">Home</piko:a>
+      <piko:a href="/blog" class="nav-item" p-class="{ 'nav-item--active': props.CurrentPage == 'blog' }">Blog</piko:a>
+      <piko:a href="/about" class="nav-item" p-class="{ 'nav-item--active': props.CurrentPage == 'about' }">About</piko:a>
+      <piko:a href="/contact" class="nav-item" p-class="{ 'nav-item--active': props.CurrentPage == 'contact' }">Contact</piko:a>
     </div>
   </nav>
 </template>
@@ -28,41 +28,62 @@ func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, e
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   .site-nav {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 3rem;
     padding: 1rem 2rem;
-    background-color: var(--nav-bg, #1f2937);
+    background-color: var(--nav-bg, #fafbfc);
+    border-bottom: 1px solid var(--g-colour-grey-100, #E8EBEE);
   }
 
   .site-name {
     font-weight: 700;
-    font-size: 1.125rem;
-    color: #ffffff;
+    font-size: 1.25rem;
+    color: var(--g-colour-grey-900, #2B333B);
     letter-spacing: -0.01em;
   }
 
-  .nav-links {
+  .nav-items {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.5rem;
   }
 
-  .nav-link {
-    color: var(--nav-link-color, #d1d5db);
+  .nav-item {
+    color: var(--g-colour-grey-700, #485461);
+    font-family: var(--g-font-family, sans-serif);
     text-decoration: none;
     font-weight: 500;
     font-size: 0.9375rem;
-    transition: color 0.15s ease;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: var(--g-radius-max, 9999px);
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   }
 
-  .nav-link:hover {
-    color: var(--nav-link-hover-color, #ffffff);
+  .nav-item:hover {
+    color: var(--g-colour-primary-500, #6F47EB);
+    background-color: var(--g-colour-primary-25, #F8F6FE);
+    border-color: var(--g-colour-primary-200, #D1C4F9);
   }
 
-  .nav-link--active {
-    color: var(--nav-link-active-color, #60a5fa);
-    border-bottom: 2px solid var(--nav-link-active-color, #60a5fa);
-    padding-bottom: 0.25rem;
+  .nav-item--active {
+    color: var(--g-colour-primary-700, #482CA6);
+    background-color: var(--g-colour-primary-50, #F1EDFD);
+    border-color: var(--g-colour-primary-300, #B09AF4);
+  }
+
+  @media (max-width: 768px) {
+    .site-nav {
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-items {
+      flex-wrap: wrap;
+    }
   }
 </style>

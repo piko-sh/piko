@@ -47,19 +47,21 @@ func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, e
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   .layout {
-    --nav-bg: #1f2937;
-    --nav-link-color: #d1d5db;
-    --nav-link-hover-color: #ffffff;
-    --nav-link-active-color: #60a5fa;
+    --nav-bg: var(--g-colour-grey-25, #fafbfc);
     --content-max-width: 1200px;
     --sidebar-width: 300px;
 
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    font-family: system-ui, -apple-system, sans-serif;
-    color: #1f2937;
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 
   .layout-header {
@@ -82,15 +84,16 @@ func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, e
   }
 
   .layout-main h1 {
-    font-size: 2rem;
-    font-weight: 700;
+    font-family: var(--g-font-family-heading, sans-serif);
+    font-size: 2.75rem;
+    font-weight: 500;
     margin-bottom: 0.5rem;
-    color: #111827;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
   .layout-description {
-    color: #6b7280;
-    font-size: 1.125rem;
+    color: var(--g-colour-grey-500, #788A9B);
+    font-size: 1.25rem;
     margin-bottom: 2rem;
     line-height: 1.6;
   }
@@ -98,26 +101,55 @@ func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, e
   .layout-sidebar {
     flex-shrink: 0;
     width: var(--sidebar-width);
-    border-left: 1px solid #e5e7eb;
+    border-left: 1px solid var(--g-colour-grey-100, #E8EBEE);
     padding-left: 2rem;
   }
 
   .sidebar-fallback {
-    color: #9ca3af;
+    color: var(--g-colour-grey-400, #92A1AF);
     font-style: italic;
   }
 
   .layout-footer {
     flex-shrink: 0;
     padding: 1.5rem 2rem;
-    background-color: #f9fafb;
-    border-top: 1px solid #e5e7eb;
+    background-color: var(--g-colour-grey-50, #F6F7F8);
+    border-top: 1px solid var(--g-colour-grey-100, #E8EBEE);
     text-align: center;
   }
 
   .layout-footer p {
-    color: #9ca3af;
+    color: var(--g-colour-grey-400, #92A1AF);
     font-size: 0.875rem;
     margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .layout-body {
+      flex-direction: column;
+      padding: 1.5rem 1rem;
+      gap: 1.5rem;
+    }
+
+    .layout-main h1 {
+      font-size: 2rem;
+    }
+
+    .layout-description {
+      font-size: 1.0625rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .layout-sidebar {
+      width: 100%;
+      border-left: none;
+      padding-left: 0;
+      border-top: 1px solid var(--g-colour-grey-100, #E8EBEE);
+      padding-top: 1.5rem;
+    }
+
+    .layout-footer {
+      padding: 1.25rem 1rem;
+    }
   }
 </style>

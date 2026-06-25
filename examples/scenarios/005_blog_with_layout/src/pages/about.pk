@@ -14,7 +14,7 @@
       </section>
 
       <section class="team" id="team-section">
-        <h2>Our Team</h2>
+        <h2>Our team</h2>
         <div class="team-grid">
           <div class="team-member" p-for="(i, member) in state.Members" p-key="member.Name">
             <piko:img
@@ -29,7 +29,7 @@
       </section>
 
       <section class="values">
-        <h2>What We Believe</h2>
+        <h2>What we believe</h2>
         <div class="value-list">
           <div class="value-item" p-for="(i, value) in state.Values" p-key="value.Title">
             <piko:svg src="@/lib/icons/arrow-right.svg" class="value-icon"></piko:svg>
@@ -43,9 +43,9 @@
 
       <div p-slot="sidebar" class="sidebar-content">
         <div class="sidebar-card">
-          <h3>Get Involved</h3>
+          <h3>Get involved</h3>
           <p>Piko is open source. Contributions, feedback, and bug reports are always welcome.</p>
-          <piko:a href="/contact" class="sidebar-link">Contact us</piko:a>
+          <piko:a href="/contact" class="button">Contact us</piko:a>
         </div>
       </div>
 
@@ -81,22 +81,22 @@ type Response struct {
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
   return Response{
-    Title:       "About Us",
+    Title:       "About us",
     Description: "Meet the team behind Piko and learn what drives us.",
     Members: []Member{
       {
         Name:      "Alice Williams",
-        Role:      "Lead Developer",
+        Role:      "Lead developer",
         AvatarURL: "https://placehold.co/120x120/dbeafe/1d4ed8?text=AJ",
       },
       {
         Name:      "Bob Chen",
-        Role:      "Core Contributor",
+        Role:      "Core contributor",
         AvatarURL: "https://placehold.co/120x120/d1fae5/065f46?text=BC",
       },
       {
         Name:      "Carol Davies",
-        Role:      "Documentation Lead",
+        Role:      "Documentation lead",
         AvatarURL: "https://placehold.co/120x120/fef3c7/92400e?text=CD",
       },
     },
@@ -106,13 +106,15 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
       {Title: "Go-native", Body: "Built for Go developers who want a productive web framework without leaving the ecosystem."},
     },
   }, piko.Metadata{
-    Title:       "About - Piko Blog",
+    Title:       "About | Piko blog",
     Description: "Meet the team behind the Piko web framework.",
   }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     margin: 0;
     padding: 0;
@@ -122,36 +124,52 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     margin-bottom: 2rem;
     font-size: 1.0625rem;
     line-height: 1.7;
-    color: #374151;
+    color: var(--g-colour-grey-700, #485461);
   }
 
   .team h2,
   .values h2 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 600;
     margin-bottom: 1.25rem;
-    color: #111827;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
   .team-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
-    margin-bottom: 2.5rem;
+    margin-bottom: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .team-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .value-list {
+      margin: 1.5rem 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .team-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .team-member {
     text-align: center;
     padding: 1.5rem 1rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    border-radius: var(--g-radius-xl, 30px);
     background: #ffffff;
   }
 
   .member-avatar {
     width: 80px;
     height: 80px;
-    border-radius: 50%;
+    border-radius: var(--g-radius-max, 9999px);
     margin-bottom: 0.75rem;
     display: block;
     margin-left: auto;
@@ -161,16 +179,17 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   .member-name {
     font-size: 1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--g-colour-grey-900, #2B333B);
     margin-bottom: 0.25rem;
   }
 
   .member-role {
     font-size: 0.8125rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
   }
 
   .value-list {
+    margin: 30px 20px;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -185,7 +204,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   .value-icon {
     width: 1.25rem;
     height: 1.25rem;
-    color: #2563eb;
+    color: var(--g-colour-primary-500, #6F47EB);
     flex-shrink: 0;
     margin-top: 0.125rem;
   }
@@ -193,13 +212,13 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   .value-item h3 {
     font-size: 1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--g-colour-grey-900, #2B333B);
     margin-bottom: 0.25rem;
   }
 
   .value-item p {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     line-height: 1.5;
   }
 
@@ -210,34 +229,59 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   }
 
   .sidebar-card {
-    background-color: #f9fafb;
+    background-color: white;
     padding: 1.5rem;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
+    border-radius: var(--g-radius-xl, 30px);
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
   }
 
   .sidebar-card h3 {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: #111827;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
   .sidebar-card p {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     line-height: 1.5;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
   }
 
-  .sidebar-link {
-    color: #2563eb;
-    text-decoration: none;
-    font-size: 0.875rem;
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    margin-bottom: var(--button-shadow-depth);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-size: 1rem;
     font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
+    text-decoration: none;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
   }
 
-  .sidebar-link:hover {
-    text-decoration: underline;
+  .button:hover {
+    transform: translateY(calc(var(--button-shadow-depth) / 2));
+    box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
   }
 </style>

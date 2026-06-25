@@ -7,8 +7,6 @@ tags:
   - welcome
 ---
 
-# Hello, world
-
 Welcome to our blog! This is the very first post, and we are glad you found your way here.
 
 ## What to expect

@@ -44,7 +44,7 @@ type Response struct{}
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     return Response{}, piko.Metadata{
-        Title: "Contact form — Piko example",
+        Title: "Contact form | Piko example",
     }, nil
 }
 </script>

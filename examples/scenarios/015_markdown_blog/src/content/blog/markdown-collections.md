@@ -8,8 +8,6 @@ tags:
   - content
 ---
 
-# Markdown collections
-
 One of Piko's most useful features is its collection system. Drop markdown files into a `content/` directory, add a collection page template, and the framework does the rest.
 
 ## How it works

@@ -2,16 +2,14 @@
      and renders them as a list of cards with title, description, and date. -->
 <template>
   <piko:partial is="layout">
-    <h1>Posts</h1>
+    <h1 class="page-title">Posts</h1>
 
     <div class="post-list">
-      <article class="post-card" p-for="post in state.Posts" p-key="post.Slug">
-        <piko:a :href="post.URL" class="post-link">
-          <h2 class="post-title" p-text="post.Title"></h2>
-        </piko:a>
+      <piko:a p-for="post in state.Posts" p-key="post.Slug" :href="post.URL" class="post-card">
+        <h2 class="post-title" p-text="post.Title"></h2>
         <p class="post-description" p-text="post.Description"></p>
         <time class="post-date" p-text="post.Date"></time>
-      </article>
+      </piko:a>
     </div>
   </piko:partial>
 </template>
@@ -54,7 +52,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     }
 
     return Response{Posts: posts}, piko.Metadata{
-        Title:       "Piko Blog",
+        Title:       "Piko blog",
         Description: "A simple blog built with Piko and markdown collections.",
     }, nil
 }
@@ -70,10 +68,15 @@ func stringField(item map[string]any, key string) string {
 </script>
 
 <style>
-  h1 {
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin-bottom: 2rem;
+  @import "testmodule/styles/theme.css";
+
+  .page-title {
+    font-family: var(--g-font-family-heading);
+    color: var(--g-colour-grey-900, #2B333B);
+    font-size: 2.5rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 20px;
   }
 
   .post-list {
@@ -83,35 +86,43 @@ func stringField(item map[string]any, key string) string {
   }
 
   .post-card {
+    display: block;
+    text-decoration: none;
     padding: 1.5rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border: 1px solid var(--g-colour-grey-200, #CAD1D8);
+    border-radius: var(--g-radius-lg, 20px);
     background: #ffffff;
+    box-shadow: 0 4px 0 var(--g-colour-grey-200, #CAD1D8);
+    margin-bottom: 4px;
+    transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
   }
 
-  .post-link {
-    text-decoration: none;
+  .post-card:hover {
+    transform: translateY(2px);
+    border-color: var(--g-colour-primary-200, #D1C4F9);
+    box-shadow: 0 2px 0 var(--g-colour-primary-200, #D1C4F9);
   }
 
   .post-title {
     font-size: 1.25rem;
-    font-weight: 600;
-    color: #111827;
+    font-weight: 500;
+    color: var(--g-colour-grey-900, #2B333B);
     margin: 0 0 0.5rem;
+    transition: color 0.2s;
   }
 
-  .post-link:hover .post-title {
-    color: #2563eb;
+  .post-card:hover .post-title {
+    color: var(--g-colour-primary-600, #5A39C7);
   }
 
   .post-description {
     font-size: 0.9375rem;
-    color: #4b5563;
+    color: var(--g-colour-grey-600, #5B6B7B);
     margin: 0 0 0.75rem;
   }
 
   .post-date {
     font-size: 0.8125rem;
-    color: #9ca3af;
+    color: var(--g-colour-grey-400, #92A1AF);
   }
 </style>

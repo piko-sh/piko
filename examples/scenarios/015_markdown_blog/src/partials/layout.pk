@@ -2,7 +2,7 @@
   <div class="site">
     <header class="site-header">
       <div class="container">
-        <piko:a href="/" class="site-title">Piko Blog</piko:a>
+        <piko:a href="/" class="site-title">Piko blog</piko:a>
       </div>
     </header>
 
@@ -14,7 +14,7 @@
 
     <footer class="site-footer">
       <div class="container">
-        <p>&copy; 2026 Piko Blog. Built with Piko.</p>
+        <p class="site-copyright">&copy; 2026 Piko blog. Built with Piko.</p>
       </div>
     </footer>
   </div>
@@ -33,12 +33,21 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
+  body {
+    margin: 0;
+  }
+
   .site {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #1f2937;
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
     line-height: 1.6;
   }
 
@@ -50,19 +59,22 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   }
 
   .site-header {
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--g-colour-grey-100, #E8EBEE);
     padding: 1rem 0;
   }
 
   .site-title {
     font-size: 1.25rem;
-    font-weight: 700;
-    color: #111827;
+    font-family: var(--g-font-family-heading), sans-serif;
+    font-weight: 400;
+    color: var(--g-colour-grey-600);
     text-decoration: none;
+    letter-spacing: -0.01em;
+    transition: color .2s;
   }
 
   .site-title:hover {
-    color: #2563eb;
+    color: var(--g-colour-primary-600, #5A39C7);
   }
 
   .site-main {
@@ -71,14 +83,14 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   }
 
   .site-footer {
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--g-colour-grey-100, #E8EBEE);
     padding: 1.5rem 0;
     margin-top: auto;
   }
 
-  .site-footer p {
+  .site-copyright {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin: 0;
   }
 </style>
