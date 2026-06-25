@@ -1,5 +1,5 @@
 <!--
-  021: Live Playground - PKC Component
+  021: Live playground - PKC component
 
   This component implements the entire browser-based Piko IDE: a Monaco
   Editor on the left with Piko syntax highlighting, a file tree for
@@ -11,7 +11,7 @@
 <template name="pp-playground">
   <div class="playground">
     <div class="toolbar">
-      <span class="logo">Piko Playground</span>
+      <span class="logo">Piko playground</span>
       <span class="status" p-ref="status">Loading...</span>
     </div>
     <div class="main">
@@ -34,7 +34,7 @@
       <div class="output-panel">
         <div class="tab-bar">
           <button class="tab active" p-ref="tab_preview">Preview</button>
-          <button class="tab" p-ref="tab_code">Generated Code</button>
+          <button class="tab" p-ref="tab_code">Generated code</button>
         </div>
         <div class="diagnostics" p-ref="diagnostics"></div>
         <div class="tab-content">
@@ -57,6 +57,17 @@ import * as monaco from 'https://esm.sh/monaco-editor@0.55.1';
 
 const WASM_BASE = 'http://localhost:3001';
 const DEBOUNCE_MS = 500;
+
+const PREVIEW_HEAD = [
+  '<link rel="preconnect" href="https://fonts.googleapis.com">',
+  '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+  '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap">',
+  '<style>:root{',
+  '--g-font-family:"Figtree",sans-serif;',
+  '--g-font-family-heading:"DynaPuff","Figtree",sans-serif;',
+  '--g-font-family-mono:"JetBrains Mono",monospace;',
+  '}</style>',
+].join('');
 
 const DEFAULT_PAGE = [
   '<template>',
@@ -94,7 +105,7 @@ const DEFAULT_PAGE = [
   'func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {',
   '    _ = info_card.Render',
   '    return Response{',
-  '        Greeting:    "Hello, Playground!",',
+  '        Greeting:    "Hello, playground!",',
   '        Description: "Edit this template and see live changes.",',
   '        CardTitle:   "Welcome",',
   '        CardMessage: "This card is rendered from a partial.",',
@@ -110,16 +121,18 @@ const DEFAULT_PAGE = [
   '    max-width: 600px;',
   '    margin: 2rem auto;',
   '    padding: 1rem;',
-  '    font-family: system-ui, -apple-system, sans-serif;',
+  '    font-family: var(--g-font-family, sans-serif);',
+  '    color: var(--g-colour-grey-800, #364049);',
   '  }',
   '',
   '  h1 {',
-  '    color: #2563eb;',
+  '    font-family: var(--g-font-family-heading, sans-serif);',
+  '    color: var(--g-colour-grey-900, #2B333B);',
   '    margin-bottom: 0.5rem;',
   '  }',
   '',
   '  p {',
-  '    color: #374151;',
+  '    color: var(--g-colour-grey-700, #485461);',
   '    line-height: 1.6;',
   '  }',
   '',
@@ -129,7 +142,7 @@ const DEFAULT_PAGE = [
   '  }',
   '',
   '  li {',
-  '    color: #374151;',
+  '    color: var(--g-colour-grey-700, #485461);',
   '    padding: 0.25rem 0;',
   '  }',
   '</style>',
@@ -160,21 +173,22 @@ const DEFAULT_PARTIAL = [
   '',
   '<style>',
   '  .info-card {',
-  '    background: #f0f9ff;',
-  '    border: 1px solid #bae6fd;',
-  '    border-radius: 8px;',
+  '    background: var(--g-colour-secondary-100, #ECFAFA);',
+  '    border: 1px solid var(--g-colour-secondary-300, #C9F5F2);',
+  '    border-radius: var(--g-radius-sm, 10px);',
   '    padding: 1rem;',
   '    margin-top: 1rem;',
   '  }',
   '',
   '  .info-card h2 {',
-  '    color: #0369a1;',
+  '    font-family: var(--g-font-family-heading, sans-serif);',
+  '    color: var(--g-colour-secondary-800, #2E8B83);',
   '    margin: 0 0 0.5rem 0;',
   '    font-size: 1.1rem;',
   '  }',
   '',
   '  .info-card p {',
-  '    color: #475569;',
+  '    color: var(--g-colour-grey-600, #5B6B7B);',
   '    margin: 0;',
   '  }',
   '</style>',
@@ -461,9 +475,10 @@ pkc.onConnected(() => {
       moduleName: 'playground',
     });
     if (result.success) {
-      const html = '<!DOCTYPE html><html><head><style>'
-        + (result.css || '')
-        + '</style></head><body>'
+      const html = '<!DOCTYPE html><html><head>'
+        + PREVIEW_HEAD
+        + '<style>' + (result.css || '') + '</style>'
+        + '</head><body>'
         + result.html
         + '</body></html>';
       (pkc.refs.preview_frame as HTMLIFrameElement).srcdoc = html;
@@ -539,8 +554,7 @@ pkc.onConnected(() => {
 
   async function boot() {
     try {
-      // Inject Monaco CSS into shadow root - Monaco injects its styles into
-      // document.head which doesn't reach Shadow DOM, causing layout glitches.
+      // Inject Monaco CSS into shadow root. Monaco injects its styles into document.head which doesn't reach Shadow DOM, causing layout glitches.
       const shadowRoot = pkc.refs.editor_mount.getRootNode() as ShadowRoot;
       const monacoCSS = document.createElement('link');
       monacoCSS.rel = 'stylesheet';
@@ -613,6 +627,8 @@ pkc.onConnected(() => {
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   :host {
     display: block;
     height: 100vh;
@@ -622,55 +638,57 @@ pkc.onConnected(() => {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #1e1e1e;
-    color: #d4d4d4;
-    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--g-colour-grey-900, #2B333B);
+    color: var(--g-colour-grey-200, #CAD1D8);
+    font-family: var(--g-font-family, sans-serif);
   }
 
   .toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 40px;
-    padding: 0 16px;
-    background: #2d2d2d;
-    border-bottom: 1px solid #404040;
+    height: 45px;
+    padding: 0 12px;
+    background: var(--g-colour-grey-800, #364049);
+    border-bottom: 1px solid var(--g-colour-grey-700, #485461);
     flex-shrink: 0;
   }
 
   .logo {
-    font-weight: 600;
-    font-size: 14px;
-    color: #569cd6;
-    letter-spacing: 0.5px;
+    font-family: var(--g-font-family-heading), sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    color: var(--g-colour-secondary-600);
   }
 
   .status {
     font-size: 12px;
     padding: 3px 10px;
-    border-radius: 10px;
-    background: #404040;
+    border-radius: var(--g-radius-max, 9999px);
+    background: var(--g-colour-grey-700, #485461);
+    font-family: var(--g-font-family-mono, monospace);
     transition: background 0.2s, color 0.2s;
   }
 
   .main {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
     flex: 1;
     min-height: 0;
   }
 
   .editor-panel {
     display: flex;
-    border-right: 2px solid #404040;
+    flex: 1;
+    min-width: 0;
+    border-right: 2px solid var(--g-colour-grey-700, #485461);
     min-height: 0;
   }
 
   .sidebar {
     width: 160px;
     flex-shrink: 0;
-    background: #252526;
-    border-right: 1px solid #404040;
+    background: var(--g-colour-grey-800, #364049);
+    border-right: 1px solid var(--g-colour-grey-700, #485461);
     overflow-y: auto;
   }
 
@@ -684,13 +702,16 @@ pkc.onConnected(() => {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #808080;
+    color: var(--g-colour-grey-400, #92A1AF);
   }
 
   .file-item {
-    padding: 4px 12px 4px 20px;
+    margin: 0 6px;
+    padding: 4px 10px 4px 14px;
+    border-radius: var(--g-radius-sm, 10px);
     font-size: 12px;
-    color: #cccccc;
+    font-family: var(--g-font-family-mono, monospace);
+    color: var(--g-colour-grey-200, #CAD1D8);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -698,11 +719,11 @@ pkc.onConnected(() => {
   }
 
   .file-item:hover {
-    background: #2a2d2e;
+    background: var(--g-colour-grey-700, #485461);
   }
 
   .file-item.active {
-    background: #37373d;
+    background: var(--g-colour-secondary-900, #2E8B83);
     color: #ffffff;
   }
 
@@ -719,10 +740,11 @@ pkc.onConnected(() => {
     display: flex;
     align-items: center;
     padding: 0 12px;
-    background: #252526;
-    border-bottom: 1px solid #404040;
+    background: var(--g-colour-grey-800, #364049);
+    border-bottom: 1px solid var(--g-colour-grey-700, #485461);
     font-size: 12px;
-    color: #808080;
+    font-family: var(--g-font-family-mono, monospace);
+    color: var(--g-colour-grey-400, #92A1AF);
     flex-shrink: 0;
   }
 
@@ -733,6 +755,8 @@ pkc.onConnected(() => {
 
   .output-panel {
     display: flex;
+    flex: 1;
+    min-width: 0;
     flex-direction: column;
     min-height: 0;
   }
@@ -740,8 +764,8 @@ pkc.onConnected(() => {
   .tab-bar {
     display: flex;
     height: 32px;
-    background: #252526;
-    border-bottom: 1px solid #404040;
+    background: var(--g-colour-grey-800, #364049);
+    border-bottom: 1px solid var(--g-colour-grey-700, #485461);
     flex-shrink: 0;
   }
 
@@ -750,27 +774,30 @@ pkc.onConnected(() => {
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
-    color: #808080;
+    border-radius: var(--g-radius-sm, 10px) var(--g-radius-sm, 10px) 0 0;
+    color: var(--g-colour-grey-400, #92A1AF);
     font-size: 12px;
     cursor: pointer;
-    font-family: inherit;
-    transition: color 0.15s, border-color 0.15s;
+    font-family: var(--g-font-family, sans-serif);
+    transition: color 0.15s, border-color 0.15s, background-color 0.15s;
   }
 
-  .tab:hover { color: #d4d4d4; }
+  .tab:hover { color: var(--g-colour-grey-200, #CAD1D8); }
 
   .tab.active {
-    color: #d4d4d4;
-    border-bottom-color: #569cd6;
+    color: var(--g-colour-grey-200, #CAD1D8);
+    border-bottom-color: var(--g-colour-secondary-600);
   }
 
   .diagnostics {
     display: none;
+    margin: 8px;
     padding: 8px 12px;
     background: #332222;
-    border-bottom: 1px solid #5a1d1d;
+    border: 1px solid #5a1d1d;
+    border-radius: var(--g-radius-md, 15px);
     font-size: 12px;
-    font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    font-family: var(--g-font-family-mono, monospace);
     color: #f48771;
     max-height: 80px;
     overflow-y: auto;
@@ -809,7 +836,7 @@ pkc.onConnected(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #1e1e1eee;
+    background: rgba(43, 51, 59, 0.93);
     z-index: 100;
     flex-direction: column;
     gap: 12px;
@@ -818,9 +845,9 @@ pkc.onConnected(() => {
   .spinner {
     width: 32px;
     height: 32px;
-    border: 3px solid #404040;
-    border-top-color: #569cd6;
-    border-radius: 50%;
+    border: 3px solid var(--g-colour-grey-700);
+    border-top-color: var(--g-colour-secondary-600);
+    border-radius: var(--g-radius-max, 9999px);
     animation: spin 0.8s linear infinite;
   }
 
@@ -828,6 +855,26 @@ pkc.onConnected(() => {
 
   .loading-text {
     font-size: 13px;
-    color: #808080;
+    text-align: center;
+    padding: 20px;
+    font-family: var(--g-font-family-mono, monospace);
+    color: var(--g-colour-grey-400, #92A1AF);
+  }
+
+  @media (max-width: 768px) {
+    .main {
+      flex-direction: column;
+    }
+    .editor-panel {
+      flex: 2;
+      border-right: none;
+      border-bottom: 2px solid var(--g-colour-grey-700, #485461);
+    }
+    .output-panel {
+      flex: 1;
+    }
+    .sidebar {
+      width: 110px;
+    }
   }
 </style>
