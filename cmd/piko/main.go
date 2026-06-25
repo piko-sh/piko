@@ -44,7 +44,7 @@ func main() {
 		case "fmt":
 			os.Exit(cli.RunFmt(os.Args[2:]))
 		case "agents":
-			os.Exit(cli.RunAgents(os.Args[2:]))
+			os.Exit(cli.RunAgents(Version, os.Args[2:]))
 		case "extract":
 			os.Exit(cli.RunExtract(os.Args[2:]))
 		case "inspect":

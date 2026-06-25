@@ -1,10 +1,12 @@
 {
   "piko": {
     "command": "piko-lsp",
-    "args": ["--formatting"],
     "extensionToLanguage": {
       ".pk": "piko",
       ".pkc": "piko-component"
+    },
+    "initializationOptions": {
+      "goBridge": true
     }
   }
 }
