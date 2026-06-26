@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Signature help for template functions
 
 #### Configuration
-- `piko.lspPath` - Custom path to piko-lsp binary
+- `piko.lspPath` - Custom path to pikopls binary
 - `piko.trace.server` - LSP communication tracing
 - `piko.enableTemplateSupport` - Enable/disable template support
 

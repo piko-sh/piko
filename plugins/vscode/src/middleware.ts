@@ -327,7 +327,7 @@ export function createPikoLspMiddleware(outputChannel?: vscode.OutputChannel): M
 }
 
 // isInTemplateOrGoBlock reports whether a position is in the template or the Go
-// (application/x-go) block, both of which are served by piko-lsp.
+// (application/x-go) block, both of which are served by pikopls.
 function isInTemplateOrGoBlock(document: vscode.TextDocument, position: vscode.Position): boolean {
     const type = detectBlockAtPosition(document, position).type;
     return type === BlockType.Template || type === BlockType.Script;

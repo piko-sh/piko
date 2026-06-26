@@ -48,9 +48,9 @@ piko::lsp::build() {
     local goarch="$2"
     local output_dir="$3"
 
-    local binary_name="piko-lsp"
+    local binary_name="pikopls"
     if [[ "$goos" == "windows" ]]; then
-        binary_name="piko-lsp.exe"
+        binary_name="pikopls.exe"
     fi
 
     local output_path="${output_dir}/${goos}-${goarch}/${binary_name}"
@@ -61,7 +61,7 @@ piko::lsp::build() {
     CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
         go build -trimpath -ldflags="-s -w" \
         -o "$output_path" \
-        "${PIKO_ROOT}/cmd/lsp"
+        "${PIKO_ROOT}/cmd/pikopls"
 
     local size
     size=$(du -h "$output_path" | cut -f1)
@@ -103,13 +103,13 @@ piko::lsp::build_current() {
     goos="$(piko::util::host_os)"
     goarch="$(piko::util::host_arch)"
 
-    local binary_name="piko-lsp"
+    local binary_name="pikopls"
     if [[ "$goos" == "windows" ]]; then
-        binary_name="piko-lsp.exe"
+        binary_name="pikopls.exe"
     fi
 
     local output_path="${output_dir}/${binary_name}"
 
     piko::util::ensure_dir "$output_dir"
-    piko::go::build "$output_path" "${PIKO_ROOT}/cmd/lsp" "$goos" "$goarch"
+    piko::go::build "$output_path" "${PIKO_ROOT}/cmd/pikopls" "$goos" "$goarch"
 }

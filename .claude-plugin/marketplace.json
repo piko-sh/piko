@@ -9,7 +9,7 @@
     {
       "name": "piko",
       "source": "./plugins/agents",
-      "description": "Piko language intelligence for .pk and .pkc files - diagnostics, hover, completions, navigation, and project analysis, backed by the piko-lsp language server. Requires the piko-lsp binary on PATH (install the Piko CLI, or download from the GitHub releases)."
+      "description": "Piko language intelligence for .pk and .pkc files - diagnostics, hover, completions, navigation, and project analysis, backed by the pikopls language server. Requires the pikopls binary on PATH (install the Piko CLI, or download from the GitHub releases)."
     }
   ]
 }

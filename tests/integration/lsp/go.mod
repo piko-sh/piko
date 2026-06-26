@@ -4,7 +4,7 @@ go 1.26.0
 
 replace piko.sh/piko v0.0.0 => ../../..
 
-replace piko.sh/piko/cmd/lsp v0.0.0 => ../../../cmd/lsp
+replace piko.sh/piko/cmd/pikopls v0.0.0 => ../../../cmd/pikopls
 
 require (
 	github.com/politepixels/golang-language-server v0.12.1

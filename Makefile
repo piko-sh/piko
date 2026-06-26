@@ -381,6 +381,6 @@ clean: ## Clean build artefacts
 	rm -rf $(BIN_DIR)
 	rm -f COVERAGE_REPORT.md
 	rm -f /tmp/piko-coverage-total.out /tmp/piko-coverage-total.deduped.out /tmp/coverage.out
-	rm -f /tmp/piko-lsp-debug
-	rm -f /tmp/piko-lsp-*.log /tmp/piko-lsp-*.log.gz
+	rm -f /tmp/pikopls-debug
+	rm -f /tmp/pikopls-*.log /tmp/pikopls-*.log.gz
 	rm -rf /tmp/chromedp-runner*

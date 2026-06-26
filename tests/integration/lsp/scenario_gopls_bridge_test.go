@@ -198,7 +198,7 @@ func testBridgeRewriteNoiseSuppressed(t *testing.T) {
 	require.True(t, ok, "gopls never published a diagnostic for broken.pk to inspect for noise")
 
 	diagnostics := client.GetDiagnostics(brokenURI)
-	for _, marker := range []string{"/piko-lsp/", "/.piko/", "source.pk.go"} {
+	for _, marker := range []string{"/pikopls/", "/.piko/", "source.pk.go"} {
 		require.False(t, anyDiagnosticMessageContains(diagnostics, marker),
 			"a diagnostic leaked the internal overlay marker %q: %+v", marker, diagnostics)
 	}

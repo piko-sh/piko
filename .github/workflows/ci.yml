@@ -201,7 +201,7 @@ jobs:
           CGO_ENABLED: "0"
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-        run: go build -ldflags="-s -w" -o /dev/null ./cmd/lsp
+        run: go build -ldflags="-s -w" -o /dev/null ./cmd/pikopls
 
   ci-ok:
     name: CI

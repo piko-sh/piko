@@ -166,7 +166,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
         if (lspPath != null) return lspPath
 
         lspNotFound = true
-        log.warn("piko-lsp binary not found")
+        log.warn("pikopls binary not found")
         if (settings.showLspNotFoundNotification) {
             showLspNotFoundNotification()
         }
@@ -398,7 +398,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
     )
 
     /**
-     * Searches for the piko-lsp binary in standard locations.
+     * Searches for the pikopls binary in standard locations.
      *
      * Checks custom path, bundled binary, file system paths, and system PATH.
      *
@@ -439,7 +439,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
             arch.contains("aarch64") || arch.contains("arm64") -> "arm64"
             else -> "amd64"
         }
-        val binaryName = if (platform == "windows") "piko-lsp.exe" else "piko-lsp"
+        val binaryName = if (platform == "windows") "pikopls.exe" else "pikopls"
 
         return PlatformInfo(
             platform = platform,
@@ -509,7 +509,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
     }
 
     /**
-     * Looks up piko-lsp in the system PATH.
+     * Looks up pikopls in the system PATH.
      *
      * @param platform The current platform for command selection.
      * @return The command name if found in PATH, or null otherwise.
@@ -517,24 +517,24 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
     private fun lookupInSystemPath(platform: String): String? {
         val whichCmd = if (platform == "windows") "where" else "which"
         return try {
-            val proc = ProcessBuilder(whichCmd, "piko-lsp")
+            val proc = ProcessBuilder(whichCmd, "pikopls")
                 .redirectErrorStream(true)
                 .start()
             if (proc.waitFor() == 0) {
-                log.info("Found piko-lsp in PATH")
-                "piko-lsp"
+                log.info("Found pikopls in PATH")
+                "pikopls"
             } else {
                 null
             }
         } catch (e: IOException) {
-            log.debug("Failed to check PATH for piko-lsp: I/O error", e)
+            log.debug("Failed to check PATH for pikopls: I/O error", e)
             null
         } catch (e: InterruptedException) {
-            log.debug("PATH check for piko-lsp interrupted", e)
+            log.debug("PATH check for pikopls interrupted", e)
             Thread.currentThread().interrupt()
             null
         } catch (e: SecurityException) {
-            log.debug("Failed to check PATH for piko-lsp: permission denied", e)
+            log.debug("Failed to check PATH for pikopls: permission denied", e)
             null
         }
     }
@@ -550,7 +550,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
      * @return The path to the extracted binary, or null if not bundled.
      */
     private fun extractBundledLsp(platformDir: String, binaryName: String): String? {
-        val dataDir = Path.of(PathManager.getPluginsPath(), "piko-lsp-bin")
+        val dataDir = Path.of(PathManager.getPluginsPath(), "pikopls-bin")
         val binaryFile = dataDir.resolve(platformDir).resolve(binaryName)
         val versionFile = dataDir.resolve(".version")
         val currentVersion = getPluginVersion()
@@ -692,21 +692,21 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
                 .createNotification(
                     "Piko LSP Not Found",
                     """
-                    The piko-lsp binary could not be found.
+                    The pikopls binary could not be found.
 
                     Template intelligence features will be unavailable.
                     Go/CSS/TypeScript support via language injection will still work.
 
                     To fix this:
-                    1. Install piko-lsp: go install piko.sh/piko/cmd/lsp@latest
+                    1. Install pikopls: go install piko.sh/piko/cmd/pikopls@latest
                     2. Or set a custom path in Settings > Languages & Frameworks > Piko
                     """.trimIndent(),
                     NotificationType.WARNING
                 )
                 .notify(project)
         } catch (e: IllegalStateException) {
-            log.warn("piko-lsp binary not found (notification failed: ${e.message}). " +
-                "Install with: go install piko.sh/piko/cmd/lsp@latest")
+            log.warn("pikopls binary not found (notification failed: ${e.message}). " +
+                "Install with: go install piko.sh/piko/cmd/pikopls@latest")
         }
     }
 

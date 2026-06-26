@@ -125,7 +125,7 @@
         "piko.lspPath": {
           "type": "string",
           "default": "",
-          "description": "Custom path to the piko-lsp binary. Leave empty to use the bundled binary.",
+          "description": "Custom path to the pikopls binary. Leave empty to use the bundled binary.",
           "scope": "machine-overridable"
         },
         "piko.trace.server": {
@@ -184,7 +184,7 @@
         "piko.enableFileLogging": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Enable file logging to `/tmp/piko-lsp-<pid>.log`. Useful for debugging LSP issues.",
+          "markdownDescription": "Enable file logging to `/tmp/pikopls-<pid>.log`. Useful for debugging LSP issues.",
           "scope": "machine-overridable"
         },
         "piko.goBinPath": {

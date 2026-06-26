@@ -58,7 +58,7 @@ func buildLSPBinary(t *testing.T) string {
 
 	lspBinaryOnce.Do(func() {
 		tmpDir := os.TempDir()
-		lspBinaryPath = filepath.Join(tmpDir, "piko-lsp-stress-test")
+		lspBinaryPath = filepath.Join(tmpDir, "pikopls-stress-test")
 
 		repoRoot, err := filepath.Abs(filepath.Join("..", "..", ".."))
 		if err != nil {
@@ -78,7 +78,7 @@ func buildLSPBinary(t *testing.T) string {
 		}
 	})
 
-	require.NoError(t, lspBuildErr, "building piko-lsp binary")
+	require.NoError(t, lspBuildErr, "building pikopls binary")
 	t.Cleanup(func() {
 
 	})

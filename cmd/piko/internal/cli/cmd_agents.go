@@ -642,7 +642,7 @@ func (m *agentsUninstallModel) handleGitignoreConfirm() (tea.Model, tea.Cmd) {
 // RunAgents dispatches the agents subcommand.
 //
 // Takes version (string) which is the running Piko CLI version, used to fetch a
-// version-matched piko-lsp during install.
+// version-matched pikopls during install.
 // Takes arguments ([]string) which holds the subcommand and any flags.
 //
 // Returns int which is the exit code: 0 on success, 1 on error.
@@ -670,7 +670,7 @@ func RunAgents(version string, arguments []string) int {
 // newAgentsModel creates a fresh agentsModel with the available targets.
 //
 // Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
-// Takes version (string) which is the Piko CLI version, used to fetch a matching piko-lsp
+// Takes version (string) which is the Piko CLI version, used to fetch a matching pikopls
 // when the Claude Code target is installed.
 //
 // Returns *agentsModel which is ready for the select step.
@@ -874,7 +874,7 @@ Run 'piko agents install' to get started.
 // expected location.
 //
 // Takes version (string) which is the Piko CLI version, forwarded to the install targets so
-// the Claude Code target can fetch a matching piko-lsp.
+// the Claude Code target can fetch a matching pikopls.
 // Takes arguments ([]string) which holds any command-line flags (currently unused).
 //
 // Returns int which is the exit code: 0 on success, 1 on error or cancellation.

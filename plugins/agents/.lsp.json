@@ -1,6 +1,6 @@
 {
   "piko": {
-    "command": "piko-lsp",
+    "command": "pikopls",
     "extensionToLanguage": {
       ".pk": "piko",
       ".pkc": "piko-component"

@@ -22,7 +22,7 @@ use zed_extension_api::{
     self as zed, settings::LspSettings, Architecture, Os, Result,
 };
 
-const LANGUAGE_SERVER_BINARY: &str = "piko-lsp";
+const LANGUAGE_SERVER_BINARY: &str = "pikopls";
 const GITHUB_REPOSITORY: &str = "piko-sh/piko";
 
 struct PikoExtension {
@@ -173,7 +173,7 @@ fn arch_token(arch: Architecture) -> Result<&'static str> {
     match arch {
         Architecture::Aarch64 => Ok("arm64"),
         Architecture::X8664 => Ok("amd64"),
-        Architecture::X86 => Err("piko-lsp is not built for 32-bit x86".into()),
+        Architecture::X86 => Err("pikopls is not built for 32-bit x86".into()),
     }
 }
 

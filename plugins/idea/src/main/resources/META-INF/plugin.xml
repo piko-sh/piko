@@ -21,7 +21,7 @@
     <depends optional="true" config-file="piko-go.xml">org.jetbrains.plugins.go</depends>
     <depends optional="true" config-file="piko-css.xml">com.intellij.css</depends>
     <depends optional="true" config-file="piko-javascript.xml">JavaScript</depends>
-    <depends optional="true" config-file="piko-lsp4ij.xml">com.redhat.devtools.lsp4ij</depends>
+    <depends optional="true" config-file="pikopls4ij.xml">com.redhat.devtools.lsp4ij</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <fileType

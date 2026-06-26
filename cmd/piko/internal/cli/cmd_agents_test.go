@@ -54,8 +54,8 @@ func TestCopyClaudeCodePlugin_WritesCorrectFiles(t *testing.T) {
 	lspConfig, err := os.ReadFile(filepath.Join(directory, ".lsp.json"))
 	if err != nil {
 		t.Errorf(".lsp.json not created: %v", err)
-	} else if !strings.Contains(string(lspConfig), "piko-lsp") {
-		t.Error(".lsp.json should configure the piko-lsp command")
+	} else if !strings.Contains(string(lspConfig), "pikopls") {
+		t.Error(".lsp.json should configure the pikopls command")
 	}
 
 	if _, err := os.Stat(filepath.Join(directory, "AGENTS.md")); err == nil {

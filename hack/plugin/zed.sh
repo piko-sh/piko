@@ -239,9 +239,9 @@ print_install_instructions() {
     piko::log::detail "2. Command palette -> 'zed: install dev extension'"
     piko::log::detail "3. Select: ${ZED_DIR}"
     piko::log::blank
-    piko::log::info "Ensure piko-lsp is on PATH (the binary must be named piko-lsp):"
-    piko::log::detail "make build-lsp && cp ${PIKO_ROOT}/bin/lsp/piko-lsp /usr/local/bin/"
-    piko::log::detail "# go install names the binary 'lsp'; rename it to piko-lsp if you use that route"
+    piko::log::info "Ensure pikopls is on PATH (the binary must be named pikopls):"
+    piko::log::detail "make build-lsp && cp ${PIKO_ROOT}/bin/lsp/pikopls /usr/local/bin/"
+    piko::log::detail "# go install names the binary 'lsp'; rename it to pikopls if you use that route"
 }
 
 # clean_build removes build artefacts.

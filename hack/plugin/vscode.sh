@@ -40,9 +40,9 @@ PLUGIN_BIN_DIR="${VSCODE_DIR}/bin"
 kill_lsp_processes() {
     piko::log::header "Killing Running LSP Processes"
 
-    if pgrep -f "piko-lsp" >/dev/null 2>&1; then
+    if pgrep -f "pikopls" >/dev/null 2>&1; then
         piko::log::info "Found running LSP processes, killing them..."
-        pkill -f "piko-lsp" || true
+        pkill -f "pikopls" || true
         sleep 1
         piko::log::success "LSP processes killed"
     else

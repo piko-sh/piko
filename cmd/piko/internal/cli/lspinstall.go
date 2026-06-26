@@ -40,9 +40,9 @@ import (
 
 const (
 	// binaryName is the language-server executable, both on PATH and inside release
-	// archives (Go names the binary after the cmd/lsp package's last path segment, then the
-	// release pipeline renames it to piko-lsp).
-	binaryName = "piko-lsp"
+	// archives. Go names the binary after the cmd/pikopls package's last path segment,
+	// so `go install piko.sh/piko/cmd/pikopls@latest` produces a `pikopls` binary directly.
+	binaryName = "pikopls"
 
 	// downloadTimeout bounds the archive download. Release binaries are tens of megabytes,
 	// so this is generous compared with the API lookup.
@@ -65,35 +65,35 @@ var (
 	lookPath = exec.LookPath
 )
 
-// EnsureInstalled guarantees piko-lsp is available for editors and agents to launch.
+// EnsureInstalled guarantees pikopls is available for editors and agents to launch.
 //
 // Returns string which is a human-readable, single-line status describing what happened.
 // It never reports a hard failure: the plugin still works once the user installs the
 // binary by hand, so a failed download is surfaced as guidance rather than an error.
 func EnsureInstalled(ctx context.Context, version string) string {
 	if path, err := lookPath(binaryName); err == nil {
-		return fmt.Sprintf("piko-lsp already on PATH (%s)", path)
+		return fmt.Sprintf("pikopls already on PATH (%s)", path)
 	}
 
 	plat, err := currentPlatform()
 	if err != nil {
-		return fmt.Sprintf("piko-lsp not installed: %v - build it with 'make build-lsp' and copy it onto PATH", err)
+		return fmt.Sprintf("pikopls not installed: %v - build it with 'make build-lsp' and copy it onto PATH", err)
 	}
 
 	binary, resolvedVersion, err := fetchBinary(ctx, version, plat)
 	if err != nil {
-		return fmt.Sprintf("could not download piko-lsp (%v) - install it manually from https://github.com/piko-sh/piko/releases", err)
+		return fmt.Sprintf("could not download pikopls (%v) - install it manually from https://github.com/piko-sh/piko/releases", err)
 	}
 
 	installed, onPath, err := install(binary, plat)
 	if err != nil {
-		return fmt.Sprintf("downloaded piko-lsp %s but could not install it: %v", resolvedVersion, err)
+		return fmt.Sprintf("downloaded pikopls %s but could not install it: %v", resolvedVersion, err)
 	}
 
 	if !onPath {
-		return fmt.Sprintf("installed piko-lsp %s to %s - add that directory to your PATH", resolvedVersion, installed)
+		return fmt.Sprintf("installed pikopls %s to %s - add that directory to your PATH", resolvedVersion, installed)
 	}
-	return fmt.Sprintf("installed piko-lsp %s to %s", resolvedVersion, installed)
+	return fmt.Sprintf("installed pikopls %s to %s", resolvedVersion, installed)
 }
 
 // platform holds the release-asset tokens for the host operating system and architecture.
@@ -107,7 +107,7 @@ type platform struct {
 	// archiveExt is the archive extension for the platform (tar.gz or zip).
 	archiveExt string
 
-	// binaryFile is the executable name inside the archive (piko-lsp or piko-lsp.exe).
+	// binaryFile is the executable name inside the archive (pikopls or pikopls.exe).
 	binaryFile string
 }
 
@@ -137,7 +137,7 @@ func currentPlatform() (platform, error) {
 }
 
 // assetName builds the release-asset filename for a version on a platform. The version is
-// embedded without a leading "v" (e.g. piko-lsp-0.0.0-alpha.26-linux-amd64.tar.gz).
+// embedded without a leading "v" (e.g. pikopls-0.0.0-alpha.26-linux-amd64.tar.gz).
 //
 // Takes version (string) which is the release version without a leading "v".
 // Takes plat (platform) which holds the host asset tokens.
@@ -147,7 +147,7 @@ func assetName(version string, plat platform) string {
 	return fmt.Sprintf("%s-%s-%s-%s.%s", binaryName, version, plat.os, plat.arch, plat.archiveExt)
 }
 
-// fetchBinary downloads and extracts the piko-lsp executable, trying the exact CLI version
+// fetchBinary downloads and extracts the pikopls executable, trying the exact CLI version
 // first and falling back to the latest published release (covering development builds whose
 // version was never released).
 //

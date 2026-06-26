@@ -36,9 +36,9 @@ import (
 func TestAssetName(t *testing.T) {
 	t.Parallel()
 
-	plat := platform{os: "linux", arch: "amd64", archiveExt: "tar.gz", binaryFile: "piko-lsp"}
+	plat := platform{os: "linux", arch: "amd64", archiveExt: "tar.gz", binaryFile: "pikopls"}
 	got := assetName("0.0.0-alpha.26", plat)
-	want := "piko-lsp-0.0.0-alpha.26-linux-amd64.tar.gz"
+	want := "pikopls-0.0.0-alpha.26-linux-amd64.tar.gz"
 	if got != want {
 		t.Errorf("assetName() = %q, want %q", got, want)
 	}
@@ -59,10 +59,10 @@ func TestCurrentPlatform(t *testing.T) {
 func TestExtractFromTarGz(t *testing.T) {
 	t.Parallel()
 
-	content := []byte("#!/bin/sh\necho piko-lsp\n")
-	archive := makeTarGz(t, "piko-lsp", content)
+	content := []byte("#!/bin/sh\necho pikopls\n")
+	archive := makeTarGz(t, "pikopls", content)
 
-	got, err := extractFromTarGz(archive, "piko-lsp")
+	got, err := extractFromTarGz(archive, "pikopls")
 	if err != nil {
 		t.Fatalf("extractFromTarGz() = %v", err)
 	}
@@ -75,7 +75,7 @@ func TestExtractFromTarGz_MissingBinary(t *testing.T) {
 	t.Parallel()
 
 	archive := makeTarGz(t, "something-else", []byte("x"))
-	if _, err := extractFromTarGz(archive, "piko-lsp"); err == nil {
+	if _, err := extractFromTarGz(archive, "pikopls"); err == nil {
 		t.Error("expected an error when the binary is absent")
 	}
 }
@@ -83,7 +83,7 @@ func TestExtractFromTarGz_MissingBinary(t *testing.T) {
 func TestEnsureInstalled_AlreadyOnPath(t *testing.T) {
 	original := lookPath
 	t.Cleanup(func() { lookPath = original })
-	lookPath = func(string) (string, error) { return "/usr/local/bin/piko-lsp", nil }
+	lookPath = func(string) (string, error) { return "/usr/local/bin/pikopls", nil }
 
 	status := EnsureInstalled(context.Background(), "1.2.3")
 	if !strings.Contains(status, "already on PATH") {
@@ -98,7 +98,7 @@ func TestEnsureInstalled_DownloadsAndInstalls(t *testing.T) {
 	}
 
 	const version = "9.9.9"
-	content := []byte("fake piko-lsp executable")
+	content := []byte("fake pikopls executable")
 
 	var archive []byte
 	if plat.archiveExt == "zip" {
@@ -136,7 +136,7 @@ func TestEnsureInstalled_DownloadsAndInstalls(t *testing.T) {
 	if !bytes.Equal(got, content) {
 		t.Error("installed binary content does not match the archived binary")
 	}
-	if !strings.Contains(status, "installed piko-lsp "+version) {
+	if !strings.Contains(status, "installed pikopls "+version) {
 		t.Errorf("status = %q, want it to confirm install of %s", status, version)
 	}
 }

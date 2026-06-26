@@ -10,7 +10,7 @@ nav:
 
 # How to set up the Piko LSP in your editor
 
-Piko ships a Language Server Protocol (LSP) implementation that provides completion, hover, go-to-definition, diagnostics, and formatting for `.pk` and `.pkc` files. This guide covers installation and editor configuration. The LSP is a standalone binary called `piko-lsp`. Its source lives at [`cmd/lsp/`](https://github.com/piko-sh/piko/tree/master/cmd/lsp), it builds with `make build-lsp`, and it is **not** a subcommand of the `piko` CLI. Configure your editor to launch the `piko-lsp` executable directly. The integration tests under [`tests/integration/lsp/`](https://github.com/piko-sh/piko/tree/master/tests/integration/lsp) exercise its capabilities.
+Piko ships a Language Server Protocol (LSP) implementation that provides completion, hover, go-to-definition, and diagnostics for `.pk` and `.pkc` files. This guide covers installation and editor configuration. The LSP is a standalone binary called `pikopls`. Its source lives at [`cmd/pikopls/`](https://github.com/piko-sh/piko/tree/master/cmd/pikopls), it builds with `make build-lsp`, and it is **not** a subcommand of the `piko` CLI. Configure your editor to launch the `pikopls` executable directly. The integration tests under [`tests/integration/lsp/`](https://github.com/piko-sh/piko/tree/master/tests/integration/lsp) exercise its capabilities.
 
 ## Install the LSP binary
 
@@ -20,15 +20,15 @@ Build from source:
 git clone https://github.com/piko-sh/piko
 cd piko
 make build-lsp
-# Produces ./bin/lsp/piko-lsp for the current platform.
+# Produces ./bin/lsp/pikopls for the current platform.
 # (Run `make build-lsp-all` to cross-compile every supported target into
-# ./bin/lsp/<goos>-<goarch>/piko-lsp.)
+# ./bin/lsp/<goos>-<goarch>/pikopls.)
 ```
 
 Copy or symlink the resulting binary somewhere on `PATH`:
 
 ```bash
-sudo cp bin/lsp/piko-lsp /usr/local/bin/piko-lsp
+sudo cp bin/lsp/pikopls /usr/local/bin/pikopls
 ```
 
 ## VS Code
@@ -55,19 +55,19 @@ The plugin injects syntax colouring, registers file types, and wires up the LSP.
 
 The Piko Zed extension lives under [`plugins/zed/`](https://github.com/piko-sh/piko/tree/master/plugins/zed).
 
-Install `piko-lsp` first so it is on `PATH` under that exact name. `make build-lsp` produces `./bin/lsp/piko-lsp`; copy it onto `PATH` (`cp bin/lsp/piko-lsp /usr/local/bin/`). You can also `go install piko.sh/piko/cmd/lsp@latest`, but Go names the binary after the package's last path segment (`lsp`), so rename it: `mv "$(go env GOBIN)/lsp" "$(go env GOBIN)/piko-lsp"` (falling back to `"$(go env GOPATH)/bin"` when `GOBIN` is empty). Then install the extension from the editor:
+Install `pikopls` first so it is on `PATH` under that exact name. `make build-lsp` produces `./bin/lsp/pikopls`; copy it onto `PATH` (`cp bin/lsp/pikopls /usr/local/bin/`). You can also `go install piko.sh/piko/cmd/pikopls@latest`, but Go names the binary after the package's last path segment (`lsp`), so rename it: `mv "$(go env GOBIN)/lsp" "$(go env GOBIN)/pikopls"` (falling back to `"$(go env GOPATH)/bin"` when `GOBIN` is empty). Then install the extension from the editor:
 
 1. Open Zed.
 2. Command palette → **zed: install dev extension**.
 3. Select the `plugins/zed/` directory.
 
-Zed resolves the language server in order: an explicit `lsp.piko-lsp.binary.path` setting, then `piko-lsp` on `PATH`, then a download of the matching `piko-lsp` asset from [GitHub releases](https://github.com/piko-sh/piko/releases). To point at a custom build, add to your Zed `settings.json`:
+Zed resolves the language server in order: an explicit `lsp.pikopls.binary.path` setting, then `pikopls` on `PATH`, then a download of the matching `pikopls` asset from [GitHub releases](https://github.com/piko-sh/piko/releases). To point at a custom build, add to your Zed `settings.json`:
 
 ```jsonc
 {
   "lsp": {
-    "piko-lsp": {
-      "binary": { "path": "/absolute/path/to/piko-lsp" }
+    "pikopls": {
+      "binary": { "path": "/absolute/path/to/pikopls" }
     }
   }
 }
@@ -75,12 +75,12 @@ Zed resolves the language server in order: an explicit `lsp.piko-lsp.binary.path
 
 ## Go intelligence inside `.pk` script blocks (gopls bridge)
 
-For the embedded `<script type="application/x-go">` block, `piko-lsp` can delegate to **gopls** so you get full Go hover, completion, go-to-definition, signature help, rename, code actions, and diagnostics inside the block, identical to editing a real `.go` file. piko-lsp runs gopls as a managed child process per Go module and maps positions between the `.pk` file and an in-memory virtual Go document, so nothing is written to disk.
+For the embedded `<script type="application/x-go">` block, `pikopls` can delegate to **gopls** so you get full Go hover, completion, go-to-definition, signature help, rename, code actions, and diagnostics inside the block, identical to editing a real `.go` file. pikopls runs gopls as a managed child process per Go module and maps positions between the `.pk` file and an in-memory virtual Go document, so nothing is written to disk.
 
 This **bridge is opt-in** and requires `gopls` on `PATH` (`go install golang.org/x/tools/gopls@latest`). Enable it per editor:
 
 - **Zed** - enabled automatically; the extension passes `--gopls-bridge=true` and `--gopls-path` (from `gopls` on your worktree PATH).
-- **Neovim / Helix / generic LSP** - launch piko-lsp with `--gopls-bridge=true`, or set `PIKO_LSP_GOPLS_BRIDGE=true` in the environment. Optionally pass `--gopls-path=/path/to/gopls`.
+- **Neovim / Helix / generic LSP** - launch pikopls with `--gopls-bridge=true`, or set `PIKO_LSP_GOPLS_BRIDGE=true` in the environment. Optionally pass `--gopls-path=/path/to/gopls`.
 - **VS Code** - sends `initializationOptions: { "goBridge": true }`.
 - **JetBrains** - leave it **off**; IntelliJ's native Go injection handles the block, so the bridge stays disabled by default.
 
@@ -95,8 +95,8 @@ vim.api.nvim_create_autocmd("FileType", {
     pattern = { "piko" },
     callback = function(args)
         vim.lsp.start({
-            name = "piko-lsp",
-            cmd = { "piko-lsp" },
+            name = "pikopls",
+            cmd = { "pikopls" },
             root_dir = vim.fs.root(args.buf, { "go.mod" }),
             filetypes = { "piko" },
         })
@@ -119,7 +119,7 @@ Piko does not currently ship a Vim or Neovim syntax-colouring plugin. The LSP su
 
 ## Vim / other editors with generic LSP
 
-Any editor supporting the LSP 3.16+ protocol can talk to `piko-lsp` over stdio. Configure the editor to launch `piko-lsp` for files with extensions `.pk` and `.pkc`. The server announces its capabilities during initialisation, and you do not need to pass extra flags.
+Any editor supporting the LSP 3.16+ protocol can talk to `pikopls` over stdio. Configure the editor to launch `pikopls` for files with extensions `.pk` and `.pkc`. The server announces its capabilities during initialisation, and you do not need to pass extra flags.
 
 ## Capabilities
 
@@ -131,12 +131,11 @@ The LSP currently provides:
 | Hover | Type information for expressions inside `{{ ... }}`, doc comments from the `Response` struct, partial-prop docs. |
 | Go-to-definition | Jumps to the `Response` or `Props` struct field, to the imported partial, to actions referenced by `$form` or `action.*`. |
 | Diagnostics | Template-expression type errors, missing imports, unknown directive attributes. |
-| Formatting | `piko fmt`-equivalent formatting of the template block. |
 | Rename | Rename a field across struct declaration, template usage, and TS/JS script blocks. |
 
 ## Troubleshooting
 
-**LSP does not start.** Check that `piko-lsp` is on `PATH` and executable. Run `which piko-lsp` and confirm the binary file is executable. Alternatively launch `piko-lsp --tcp` in a terminal (the default port is `4389`, override it with `--port 9999`) to verify it starts and listens before pointing the editor at stdio mode.
+**LSP does not start.** Check that `pikopls` is on `PATH` and executable. Run `which pikopls` and confirm the binary file is executable. Alternatively launch `pikopls --tcp` in a terminal (the default port is `4389`, override it with `--port 9999`) to verify it starts and listens before pointing the editor at stdio mode.
 
 **Diagnostics are missing.** The LSP needs to know the project root, which is the nearest directory containing `go.mod`. If the editor picks the wrong root, set it explicitly in the editor's LSP config.
 

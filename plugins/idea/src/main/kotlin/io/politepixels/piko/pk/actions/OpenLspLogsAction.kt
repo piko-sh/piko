@@ -38,10 +38,10 @@ class OpenLspLogsAction : AnAction("Open Piko LSP Logs"), DumbAware {
 
     companion object {
         /** Standard log file path on Unix-like systems. */
-        private const val UNIX_LOG_PATH = "/tmp/piko-lsp-main.log"
+        private const val UNIX_LOG_PATH = "/tmp/pikopls-main.log"
 
         /** Log file name for Windows, located in user's temp directory. */
-        private const val WINDOWS_LOG_NAME = "piko-lsp-main.log"
+        private const val WINDOWS_LOG_NAME = "pikopls-main.log"
     }
 
     /**

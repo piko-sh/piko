@@ -621,7 +621,7 @@ function resolveLspBinaryPath(context: vscode.ExtensionContext): string {
         const command = customPath.trim();
         outputChannel.appendLine(`Using custom LSP binary: ${command}`);
         if (!fs.existsSync(command)) {
-            throw new Error(`Custom piko-lsp binary not found at: ${command}\nPlease check your "piko.lspPath" setting.`);
+            throw new Error(`Custom pikopls binary not found at: ${command}\nPlease check your "piko.lspPath" setting.`);
         }
         return command;
     }
@@ -635,7 +635,7 @@ function resolveLspBinaryPath(context: vscode.ExtensionContext): string {
 
     if (!fs.existsSync(binaryPath)) {
         throw new Error(
-            `Bundled piko-lsp binary not found at: ${binaryPath}\n` +
+            `Bundled pikopls binary not found at: ${binaryPath}\n` +
             `Expected path: ${relativeBinaryPath} (Node.js reports: ${platform}-${arch})\n` +
             `The extension may not be installed correctly.`
         );
@@ -906,7 +906,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 
     const openLogsCommand = vscode.commands.registerCommand('piko.openLogs', async () => {
-        const logPath = '/tmp/piko-lsp-main.log';
+        const logPath = '/tmp/pikopls-main.log';
         if (fs.existsSync(logPath)) {
             await vscode.window.showTextDocument(vscode.Uri.file(logPath));
         } else {

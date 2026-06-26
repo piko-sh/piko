@@ -31,7 +31,7 @@ import (
 
 func isGoplsDiagnostic(diagnostic protocol.Diagnostic) bool {
 	switch diagnostic.Source {
-	case "", "piko", "piko-lsp":
+	case "", "piko", "pikopls":
 		return false
 	default:
 		return true

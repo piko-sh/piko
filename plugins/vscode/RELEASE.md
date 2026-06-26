@@ -31,7 +31,7 @@ make plugin-vscode-clean
 ### What the Build Does
 
 1. **Kills running LSP processes**
-   - Finds and terminates any `piko-lsp` processes
+   - Finds and terminates any `pikopls` processes
    - Prevents VSCode from using cached old binaries
 
 2. **Builds LSP binaries** for all platforms:
@@ -63,8 +63,8 @@ If you need to build manually:
 cd ../../  # Go to piko root
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
   -ldflags="-s -w" \
-  -o plugins/vscode/bin/linux-amd64/piko-lsp \
-  ./cmd/lsp
+  -o plugins/vscode/bin/linux-amd64/pikopls \
+  ./cmd/pikopls
 ```
 
 ### 2. Compile TypeScript
@@ -87,7 +87,7 @@ This creates `piko-<version>.vsix`
 
 ```bash
 # Kill old LSP processes
-pkill -f piko-lsp
+pkill -f pikopls
 
 # Uninstall old version
 code --uninstall-extension politepixels.piko
@@ -107,18 +107,18 @@ Press `Ctrl+Shift+P` and select "Developer: Reload Window"
 ```bash
 # macOS Intel
 CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
-  -o plugins/vscode/bin/darwin-amd64/piko-lsp ./cmd/lsp
+  -o plugins/vscode/bin/darwin-amd64/pikopls ./cmd/pikopls
 
 # macOS Apple Silicon
 CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
-  -o plugins/vscode/bin/darwin-arm64/piko-lsp ./cmd/lsp
+  -o plugins/vscode/bin/darwin-arm64/pikopls ./cmd/pikopls
 ```
 
 ### Building for Windows (from Linux)
 
 ```bash
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
-  -o plugins/vscode/bin/windows-amd64/piko-lsp.exe ./cmd/lsp
+  -o plugins/vscode/bin/windows-amd64/pikopls.exe ./cmd/pikopls
 ```
 
 ## Troubleshooting
@@ -143,7 +143,7 @@ This happens when VSCode still has the old extension loaded. Solutions:
 
 1. Kill all LSP processes:
    ```bash
-   pkill -f piko-lsp
+   pkill -f pikopls
    ```
 
 2. Reload VSCode window:
@@ -151,7 +151,7 @@ This happens when VSCode still has the old extension loaded. Solutions:
 
 3. Check the binary timestamp:
    ```bash
-   ls -lh ~/.vscode/extensions/politepixels.piko-*/bin/linux-amd64/piko-lsp
+   ls -lh ~/.vscode/extensions/politepixels.piko-*/bin/linux-amd64/pikopls
    ```
 
 ### Verify LSP is working
@@ -159,10 +159,10 @@ This happens when VSCode still has the old extension loaded. Solutions:
 Check the logs:
 ```bash
 # Main LSP log
-tail -f /tmp/piko-lsp-main.log
+tail -f /tmp/pikopls-main.log
 
 # LSP communication log
-tail -f /tmp/piko-lsp.log
+tail -f /tmp/pikopls.log
 ```
 
 Look for:
@@ -221,13 +221,13 @@ The Makefile targets work in CI/CD pipelines:
 plugins/vscode/
 ├── bin/                    # LSP binaries (gitignored)
 │   ├── linux-amd64/
-│   │   └── piko-lsp
+│   │   └── pikopls
 │   ├── darwin-amd64/
-│   │   └── piko-lsp
+│   │   └── pikopls
 │   ├── darwin-arm64/
-│   │   └── piko-lsp
+│   │   └── pikopls
 │   └── windows-amd64/
-│       └── piko-lsp.exe
+│       └── pikopls.exe
 ├── out/                    # Compiled TypeScript (gitignored)
 ├── src/                    # TypeScript source
 ├── package.json
@@ -238,7 +238,7 @@ plugins/vscode/
 
 ### During LSP Development
 
-1. Make changes to LSP code in `cmd/lsp/` or `internal/lsp/`
+1. Make changes to LSP code in `cmd/pikopls/` or `internal/lsp/`
 2. Run `make plugin-vscode-install` to rebuild and install
 3. Reload VSCode window
 4. Test changes

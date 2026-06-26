@@ -1,13 +1,13 @@
 id = "piko"
 name = "Piko"
-description = "Piko single-file component (.pk / .pkc) language support: syntax highlighting and the piko-lsp language server."
+description = "Piko single-file component (.pk / .pkc) language support: syntax highlighting and the pikopls language server."
 version = "0.1.0"
 schema_version = 1
 authors = ["PolitePixels Limited"]
 repository = "https://github.com/piko-sh/piko"
 
-[language_servers.piko-lsp]
-name = "piko-lsp"
+[language_servers.pikopls]
+name = "pikopls"
 language = "Piko"
 
 [grammars.piko]
