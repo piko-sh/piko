@@ -23,6 +23,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/seo/seo_dto"
 )
@@ -187,12 +190,10 @@ func TestSitemapBuilder_Build_ImageDiscovery(t *testing.T) {
 				RoutePattern: "/",
 				IsPage:       true,
 				IsPublic:     true,
+				SEO: seo_dto.PageSEOMetadata{
+					ImageURLs: []string{"/_piko/assets/diagram.svg", "/_piko/assets/hero.png"},
+				},
 			},
-		},
-		FinalAssetManifest: []seo_dto.AssetDependency{
-			{SourcePath: "/images/hero.jpg", AssetType: "img"},
-			{SourcePath: "/images/logo.png", AssetType: "img"},
-			{SourcePath: "/styles/main.css", AssetType: "css"},
 		},
 	}
 
@@ -208,7 +209,15 @@ func TestSitemapBuilder_Build_ImageDiscovery(t *testing.T) {
 
 	url := sitemap.URLs[0]
 	if len(url.Images) != 2 {
-		t.Errorf("Expected 2 images, got %d", len(url.Images))
+		t.Fatalf("Expected 2 opted-in images, got %d", len(url.Images))
+	}
+
+	got := []string{url.Images[0].Location, url.Images[1].Location}
+	want := []string{"https://example.com/_piko/assets/diagram.svg", "https://example.com/_piko/assets/hero.png"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("image %d: expected %q, got %q", i, want[i], got[i])
+		}
 	}
 }
 
@@ -249,6 +258,198 @@ func TestSitemapBuilder_Build_DynamicURLSources(t *testing.T) {
 	if len(sitemap.URLs) != 3 {
 		t.Errorf("Expected 3 URLs (1 discovered + 2 dynamic), got %d", len(sitemap.URLs))
 	}
+}
+
+func TestSitemapBuilder_Build_BuildTimeURLProvider(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		return []seo_dto.SitemapURLInput{
+			{Location: "/benchmarks/interp", Priority: 0.5},
+			{Location: "/examples/sandbox/play", Priority: 0.5},
+		}, nil
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "hash1", RoutePattern: "/", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	if err != nil {
+		t.Fatalf("Build() returned unexpected error: %v", err)
+	}
+
+	sitemap := result.Sitemaps[0]
+	if len(sitemap.URLs) != 3 {
+		t.Fatalf("Expected 3 URLs (1 discovered + 2 provided), got %d", len(sitemap.URLs))
+	}
+
+	locations := make(map[string]bool, len(sitemap.URLs))
+	for i := range sitemap.URLs {
+		locations[sitemap.URLs[i].Location] = true
+	}
+	for _, want := range []string{
+		"https://example.com/",
+		"https://example.com/benchmarks/interp",
+		"https://example.com/examples/sandbox/play",
+	} {
+		if !locations[want] {
+			t.Errorf("expected sitemap to contain %q; got %v", want, locations)
+		}
+	}
+}
+
+func TestSitemapBuilder_Build_URLProviderPanicIsolated(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		panic("provider boom")
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "hash1", RoutePattern: "/", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+	require.Len(t, result.Sitemaps, 1)
+	assert.Len(t, result.Sitemaps[0].URLs, 1, "the discovered page survives; the panicking provider contributes nothing")
+	assert.Equal(t, "https://example.com/", result.Sitemaps[0].URLs[0].Location)
+}
+
+func TestSitemapBuilder_Build_FiltersNonIndexableRoutes(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{})
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{RoutePattern: "/", IsPage: true, IsPublic: true},
+			{RoutePattern: "/blog", IsPage: true, IsPublic: true},
+			{RoutePattern: "/blog/{slug}", IsPage: true, IsPublic: true},
+			{RoutePattern: "/!404", IsPage: true, IsPublic: true},
+			{RoutePattern: "/!error", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	if err != nil {
+		t.Fatalf("Build() returned unexpected error: %v", err)
+	}
+
+	sitemap := result.Sitemaps[0]
+	if len(sitemap.URLs) != 2 {
+		t.Fatalf("Expected 2 indexable URLs (/ and /blog), got %d: %+v", len(sitemap.URLs), sitemap.URLs)
+	}
+
+	locations := make(map[string]bool, len(sitemap.URLs))
+	for i := range sitemap.URLs {
+		locations[sitemap.URLs[i].Location] = true
+	}
+	for _, bad := range []string{
+		"https://example.com/blog/{slug}",
+		"https://example.com/!404",
+		"https://example.com/!error",
+	} {
+		if locations[bad] {
+			t.Errorf("non-indexable route leaked into sitemap: %q", bad)
+		}
+	}
+}
+
+func TestIsAbsoluteURL(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{name: "https scheme", in: "https://example.com/x", want: true},
+		{name: "http scheme", in: "http://example.com/x", want: true},
+		{name: "relative slug beginning with http", in: "http-headers-guide", want: false},
+		{name: "absolute path", in: "/blog/post", want: false},
+		{name: "bare relative slug", in: "benchmarks/interp", want: false},
+		{name: "empty", in: "", want: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, isAbsoluteURL(testCase.in))
+		})
+	}
+}
+
+func TestSitemapBuilder_Build_RelativeHTTPSlugIsResolved(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		return []seo_dto.SitemapURLInput{{Location: "http-headers-guide", Priority: 0.5}}, nil
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "hash1", RoutePattern: "/", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	locations := make(map[string]bool, len(result.Sitemaps[0].URLs))
+	for i := range result.Sitemaps[0].URLs {
+		locations[result.Sitemaps[0].URLs[i].Location] = true
+	}
+	assert.True(t, locations["https://example.com/http-headers-guide"],
+		"relative http* slug must be resolved against the hostname; got %v", locations)
+}
+
+func TestSitemapBuilder_fetchProvidedURLs_CapsRunawayProvider(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com"}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		inputs := make([]seo_dto.SitemapURLInput, maxProviderSitemapURLs+10)
+		for i := range inputs {
+			inputs[i] = seo_dto.SitemapURLInput{Location: fmt.Sprintf("/p/%d", i)}
+		}
+		return inputs, nil
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	urls := builder.fetchProvidedURLs(context.Background())
+	assert.Len(t, urls, maxProviderSitemapURLs, "a runaway provider is capped at maxProviderSitemapURLs")
 }
 
 func TestSitemapBuilder_Build_EmptyView(t *testing.T) {

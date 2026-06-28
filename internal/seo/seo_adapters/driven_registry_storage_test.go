@@ -124,6 +124,7 @@ func TestRegistryStorageAdapter_StoreSitemap_Success(t *testing.T) {
 	t.Parallel()
 
 	var capturedArtefactID string
+	var capturedSourcePath string
 	var capturedContent []byte
 	var capturedProfiles []registry_dto.NamedProfile
 	var capturedStorageBackendID string
@@ -132,12 +133,13 @@ func TestRegistryStorageAdapter_StoreSitemap_Success(t *testing.T) {
 		UpsertArtefactFunc: func(
 			_ context.Context,
 			artefactID string,
-			_ string,
+			sourcePath string,
 			sourceData io.Reader,
 			storageBackendID string,
 			desiredProfiles []registry_dto.NamedProfile,
 		) (*registry_dto.ArtefactMeta, error) {
 			capturedArtefactID = artefactID
+			capturedSourcePath = sourcePath
 			capturedStorageBackendID = storageBackendID
 			capturedProfiles = desiredProfiles
 
@@ -161,8 +163,9 @@ func TestRegistryStorageAdapter_StoreSitemap_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "sitemap.xml", capturedArtefactID)
+	assert.Equal(t, "sitemap.xml", capturedSourcePath, "sourcePath must be non-empty (registry rejects empty); reuse the artefactID")
 	assert.Equal(t, sitemapContent, capturedContent)
-	assert.Equal(t, "default", capturedStorageBackendID)
+	assert.Equal(t, "local_disk_cache", capturedStorageBackendID)
 	assert.Len(t, capturedProfiles, 2)
 }
 

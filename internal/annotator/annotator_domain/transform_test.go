@@ -1399,6 +1399,94 @@ func TestBuildDependency(t *testing.T) {
 		assert.Equal(t, "svg", dependency.AssetType)
 		assert.Empty(t, dependency.TransformationParams)
 	})
+
+	t.Run("captures sitemap marker and keeps it out of params", func(t *testing.T) {
+		t.Parallel()
+
+		ac := &assetCollectionContext{originComponentPath: "pages/index.pk"}
+		node := &ast_domain.TemplateNode{
+			NodeType: ast_domain.NodeElement,
+			TagName:  "piko:img",
+			Attributes: []ast_domain.HTMLAttribute{
+				{Name: "src", Value: "/images/diagram.svg"},
+				{Name: "sitemap"},
+				{Name: "alt", Value: "Diagram"},
+			},
+		}
+
+		dependency := ac.buildDependency(node, "/images/diagram.svg")
+
+		assert.True(t, dependency.IncludeInSitemap, "sitemap marker should set IncludeInSitemap")
+		_, hasMarker := dependency.TransformationParams["sitemap"]
+		assert.False(t, hasMarker, "sitemap marker must not pollute TransformationParams")
+		assert.Equal(t, "Diagram", dependency.TransformationParams["alt"])
+	})
+
+	t.Run("plain image is not opted into the sitemap", func(t *testing.T) {
+		t.Parallel()
+
+		ac := &assetCollectionContext{originComponentPath: "pages/index.pk"}
+		node := &ast_domain.TemplateNode{
+			NodeType:   ast_domain.NodeElement,
+			TagName:    "piko:img",
+			Attributes: []ast_domain.HTMLAttribute{{Name: "src", Value: "/images/logo.png"}},
+		}
+
+		dependency := ac.buildDependency(node, "/images/logo.png")
+
+		assert.False(t, dependency.IncludeInSitemap)
+	})
+}
+
+func TestCollectSitemapImageURLs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("collects only marked img and picture deps, deduped, with serve path", func(t *testing.T) {
+		t.Parallel()
+
+		deps := []*annotator_dto.StaticAssetDependency{
+			{SourcePath: "assets/diagram.svg", AssetType: "img", IncludeInSitemap: true},
+
+			{SourcePath: "assets/hero.png", AssetType: "img", IncludeInSitemap: true},
+			{SourcePath: "assets/hero.png", AssetType: "img", IncludeInSitemap: true},
+
+			{SourcePath: "assets/banner.webp", AssetType: "picture", IncludeInSitemap: true},
+
+			{SourcePath: "assets/icon.svg", AssetType: "svg", IncludeInSitemap: true},
+
+			{SourcePath: "assets/logo.png", AssetType: "img", IncludeInSitemap: false},
+		}
+
+		urls := collectSitemapImageURLs(deps, AnnotatorPathsConfig{})
+
+		assert.Equal(t, []string{
+			"/_piko/assets/assets/diagram.svg",
+			"/_piko/assets/assets/hero.png",
+			"/_piko/assets/assets/banner.webp",
+		}, urls)
+	})
+
+	t.Run("respects ArtefactServePath override", func(t *testing.T) {
+		t.Parallel()
+
+		deps := []*annotator_dto.StaticAssetDependency{
+			{SourcePath: "img/a.svg", AssetType: "img", IncludeInSitemap: true},
+		}
+
+		urls := collectSitemapImageURLs(deps, AnnotatorPathsConfig{ArtefactServePath: "/cdn"})
+
+		assert.Equal(t, []string{"/cdn/img/a.svg"}, urls)
+	})
+
+	t.Run("no marked images yields nil", func(t *testing.T) {
+		t.Parallel()
+
+		deps := []*annotator_dto.StaticAssetDependency{
+			{SourcePath: "img/a.png", AssetType: "img"},
+		}
+
+		assert.Nil(t, collectSitemapImageURLs(deps, AnnotatorPathsConfig{}))
+	})
 }
 
 func TestBuildPosterDependency(t *testing.T) {
@@ -1993,6 +2081,75 @@ func TestCollectStaticAssetDependencies(t *testing.T) {
 		assert.Empty(t, deps)
 		assert.Empty(t, diagnostics)
 	})
+
+	t.Run("captures and strips the sitemap marker on a static image", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &transformTestResolver{
+			baseDir:    "/project",
+			assetPaths: map[string]string{"/images/hero.jpg": "/project/lib/images/hero.jpg"},
+		}
+		fsReader := &transformTestFSReader{
+			files: map[string][]byte{"/project/lib/images/hero.jpg": []byte("fake-image-data")},
+		}
+		pathsConfig := AnnotatorPathsConfig{AssetsSourceDir: "lib"}
+		imgNode := &ast_domain.TemplateNode{
+			NodeType: ast_domain.NodeElement,
+			TagName:  "piko:img",
+			Attributes: []ast_domain.HTMLAttribute{
+				{Name: "src", Value: "/images/hero.jpg"},
+				{Name: "sitemap"},
+			},
+		}
+		templateAST := &ast_domain.TemplateAST{
+			SourcePath: new("pages/index.pk"),
+			RootNodes:  []*ast_domain.TemplateNode{imgNode},
+		}
+
+		deps, diagnostics := collectStaticAssetDependencies(
+			context.Background(), templateAST, resolver, pathsConfig, &config.AssetsConfig{}, fsReader,
+		)
+
+		assert.Empty(t, diagnostics, "a marked image tag is collectable, so no diagnostic")
+		require.Len(t, deps, 1)
+		assert.True(t, deps[0].IncludeInSitemap, "the sitemap marker opts the image in")
+		_, hasMarker := imgNode.GetAttribute(attributeSitemap)
+		assert.False(t, hasMarker, "the build-only marker must be stripped from the rendered node")
+	})
+
+	t.Run("warns and strips the marker when sitemap is used on a non-image tag", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := &transformTestResolver{
+			baseDir:    "/project",
+			assetPaths: map[string]string{"/media/clip.mp4": "/project/lib/media/clip.mp4"},
+		}
+		fsReader := &transformTestFSReader{
+			files: map[string][]byte{"/project/lib/media/clip.mp4": []byte("fake-video-data")},
+		}
+		pathsConfig := AnnotatorPathsConfig{AssetsSourceDir: "lib"}
+		videoNode := &ast_domain.TemplateNode{
+			NodeType: ast_domain.NodeElement,
+			TagName:  "piko:video",
+			Attributes: []ast_domain.HTMLAttribute{
+				{Name: "src", Value: "/media/clip.mp4"},
+				{Name: "sitemap"},
+			},
+		}
+		templateAST := &ast_domain.TemplateAST{
+			SourcePath: new("pages/index.pk"),
+			RootNodes:  []*ast_domain.TemplateNode{videoNode},
+		}
+
+		_, diagnostics := collectStaticAssetDependencies(
+			context.Background(), templateAST, resolver, pathsConfig, &config.AssetsConfig{}, fsReader,
+		)
+
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, annotator_dto.CodeSitemapMarkerIgnored, diagnostics[0].Code)
+		_, hasMarker := videoNode.GetAttribute(attributeSitemap)
+		assert.False(t, hasMarker, "the marker is stripped even though it was ignored")
+	})
 }
 
 func TestProcessAssetNode(t *testing.T) {
@@ -2085,6 +2242,34 @@ func TestProcessAssetNode(t *testing.T) {
 
 		assert.True(t, result)
 		assert.Empty(t, ac.dependencies)
+	})
+
+	t.Run("strips the build-only sitemap marker on the dynamic-src early return", func(t *testing.T) {
+		t.Parallel()
+
+		ac := &assetCollectionContext{
+			assetsConfig: &config.AssetsConfig{},
+		}
+		node := &ast_domain.TemplateNode{
+			NodeType: ast_domain.NodeElement,
+			TagName:  "piko:img",
+			Attributes: []ast_domain.HTMLAttribute{
+				{Name: "sitemap"},
+				{Name: "alt", Value: "Hero"},
+			},
+			DynamicAttributes: []ast_domain.DynamicAttribute{
+				{Name: "src", Expression: &ast_domain.Identifier{Name: "imgPath"}},
+			},
+		}
+
+		result := ac.processAssetNode(context.Background(), node)
+
+		assert.True(t, result)
+		assert.Empty(t, ac.dependencies, "a dynamic-src image yields no static dependency")
+		_, hasMarker := node.GetAttribute(attributeSitemap)
+		assert.False(t, hasMarker, "the build-only sitemap marker must never survive to render")
+		_, hasAlt := node.GetAttribute("alt")
+		assert.True(t, hasAlt, "non-marker attributes are preserved")
 	})
 }
 

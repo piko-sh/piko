@@ -588,6 +588,10 @@ type Container struct {
 	// seoConfigOverride holds a custom SEO config; nil skips SEO service creation.
 	seoConfigOverride *config.SEOConfig
 
+	// seoURLProvider supplies additional sitemap URLs at build time, in-process; nil means
+	// no extra build-time URLs.
+	seoURLProvider seo_domain.SitemapURLProvider
+
 	// assetsConfigOverride holds asset profiles and responsive image settings; nil uses an
 	// empty config (no profiles).
 	assetsConfigOverride *config.AssetsConfig

@@ -49,7 +49,8 @@ var (
 	sqlDollarStringLit = regexp.MustCompile(`\$[A-Za-z0-9_]*\$.*?\$[A-Za-z0-9_]*\$`)
 
 	// sqlEStringLit matches Postgres escape-string literals (E'...'), whose bodies may
-	// contain backslash escapes (\') as well as doubled single-quote escapes (”).
+	// contain backslash escapes (\') as well as doubled single-quote escapes (two single
+	// quotes).
 	sqlEStringLit = regexp.MustCompile(`[eE]'(?:[^'\\]|''|\\.)*'`)
 	// sqlStringLit matches single-quoted SQL string literals, handling doubled single-quote
 	// escapes. Redacting these to '?' keeps PII in non-parameterized SQL or DB error strings

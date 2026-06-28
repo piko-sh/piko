@@ -19,6 +19,7 @@
 package bootstrap
 
 import (
+	"context"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -47,6 +48,8 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko/internal/seo/seo_domain"
+	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -1608,6 +1611,21 @@ func WithE2EMode(enabled bool) Option {
 func WithSEO(seoConfig config.SEOConfig) Option {
 	return func(c *Container) {
 		c.SetSEOConfig(seoConfig)
+	}
+}
+
+// WithSitemapURLProvider registers a build-time provider of additional sitemap URLs.
+//
+// Takes provider (func(context.Context) ([]seo_dto.SitemapURLInput, error)) which
+// enumerates the extra URLs during generation.
+//
+// Returns Option which registers the provider on the container.
+func WithSitemapURLProvider(provider func(ctx context.Context) ([]seo_dto.SitemapURLInput, error)) Option {
+	return func(c *Container) {
+		if provider == nil {
+			return
+		}
+		c.SetSitemapURLProvider(seo_domain.SitemapURLProviderFunc(provider))
 	}
 }
 

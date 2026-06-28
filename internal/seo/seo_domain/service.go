@@ -25,12 +25,29 @@ import (
 	"fmt"
 	"time"
 
+	"piko.sh/piko/internal/capabilities/capabilities_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/wdk/safedisk"
+)
+
+const (
+	// sourceVariant is the registry variant ID of the original uploaded artefact; the
+	// sitemap compression profiles consume it as their input.
+	sourceVariant = "source"
+
+	// sitemapAssetType labels the resulting compressed sitemap variants.
+	sitemapAssetType = "sitemap"
+
+	// sitemapStorageBackendID is the blob backend SEO artefacts are written to; it must
+	// match the backend used by RegistryStorageAdapter ("local_disk_cache").
+	sitemapStorageBackendID = "local_disk_cache"
+
+	// sitemapMimeType is the content type served for sitemap variants.
+	sitemapMimeType = "application/xml"
 )
 
 // seoService generates SEO files such as sitemaps and robots.txt. It implements
@@ -310,29 +327,31 @@ func (*seoService) recordMetrics(
 // Returns []registry_dto.NamedProfile which contains profiles for gzip and brotli
 // compression.
 func (*seoService) buildCompressionProfiles() []registry_dto.NamedProfile {
-	gzipTags := registry_dto.Tags{}
-	gzipTags.SetByName("encoding", "gzip")
+	makeCompressProfile := func(name, capability, encoding, ext string) registry_dto.NamedProfile {
+		var tags registry_dto.Tags
+		tags.SetByName("type", sitemapAssetType)
+		tags.SetByName("contentEncoding", encoding)
+		tags.SetByName("storageBackendId", sitemapStorageBackendID)
+		tags.SetByName("mimeType", sitemapMimeType)
+		tags.SetByName("fileExtension", ext)
 
-	brTags := registry_dto.Tags{}
-	brTags.SetByName("encoding", "br")
+		var deps registry_dto.Dependencies
+		deps.Add(sourceVariant)
+
+		return registry_dto.NamedProfile{
+			Name: name,
+			Profile: registry_dto.DesiredProfile{
+				Priority:       registry_dto.PriorityWant,
+				CapabilityName: capability,
+				DependsOn:      deps,
+				ResultingTags:  tags,
+			},
+		}
+	}
 
 	return []registry_dto.NamedProfile{
-		{
-			Name: "gzip",
-			Profile: registry_dto.DesiredProfile{
-				Priority:       registry_dto.PriorityWant,
-				CapabilityName: "gzip",
-				ResultingTags:  gzipTags,
-			},
-		},
-		{
-			Name: "brotli",
-			Profile: registry_dto.DesiredProfile{
-				Priority:       registry_dto.PriorityWant,
-				CapabilityName: "brotli",
-				ResultingTags:  brTags,
-			},
-		},
+		makeCompressProfile("gzip", capabilities_dto.CapabilityCompressGzip.String(), "gzip", ".xml.gz"),
+		makeCompressProfile("br", capabilities_dto.CapabilityCompressBrotli.String(), "br", ".xml.br"),
 	}
 }
 
@@ -344,6 +363,9 @@ type seoServiceOptions struct {
 	// sandboxFactory holds the sandbox factory for file operations such as checking sitemap
 	// file modification times.
 	sandboxFactory safedisk.Factory
+
+	// urlProvider supplies additional sitemap URLs at build time, in-process. Optional.
+	urlProvider SitemapURLProvider
 }
 
 // WithSEOSandboxFactory sets a sandbox factory for file operations such as checking
@@ -355,6 +377,19 @@ type seoServiceOptions struct {
 func WithSEOSandboxFactory(factory safedisk.Factory) SEOServiceOption {
 	return func(o *seoServiceOptions) {
 		o.sandboxFactory = factory
+	}
+}
+
+// WithSEOURLProvider sets a build-time, in-process provider of additional sitemap URLs.
+// Use it for dynamic routes whose URLs come from application data rather than content
+// collections (auto-expanded) or runtime HTTP Sources.
+//
+// Takes provider (SitemapURLProvider) which enumerates the extra URLs during generation.
+//
+// Returns SEOServiceOption which configures the URL provider on the service.
+func WithSEOURLProvider(provider SitemapURLProvider) SEOServiceOption {
+	return func(o *seoServiceOptions) {
+		o.urlProvider = provider
 	}
 }
 
@@ -393,6 +428,9 @@ func NewSEOService(
 	var sitemapOpts []sitemapBuilderOption
 	if options.sandboxFactory != nil {
 		sitemapOpts = append(sitemapOpts, withSitemapSandboxFactory(options.sandboxFactory))
+	}
+	if options.urlProvider != nil {
+		sitemapOpts = append(sitemapOpts, withSitemapURLProvider(options.urlProvider))
 	}
 
 	sitemapBuilder := newSitemapBuilder(

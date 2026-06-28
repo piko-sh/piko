@@ -201,6 +201,7 @@ func (p *componentAnnotationPipeline) runFinalTransformations(ctx context.Contex
 	assetDeps, customTags, usesCaptcha, diagnostics := performFinalTransformations(
 		ctx, analysisResult.AnnotatedAST, resolver, p.service.pathsConfig, &p.service.assetsConfig, p.service.fsReader, p.componentRegistry)
 	analysisResult.AssetDependencies = assetDeps
+	analysisResult.SitemapImageURLs = collectSitemapImageURLs(assetDeps, p.service.pathsConfig)
 	analysisResult.CustomTags = customTags
 	analysisResult.UsesCaptcha = usesCaptcha
 	p.diagnostics = append(p.diagnostics, diagnostics...)

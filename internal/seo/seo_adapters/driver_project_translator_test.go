@@ -21,11 +21,13 @@ package seo_adapters
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 )
 
@@ -103,7 +105,6 @@ func TestTranslate_NilResult(t *testing.T) {
 
 	require.NotNil(t, view)
 	assert.Empty(t, view.Components)
-	assert.Empty(t, view.FinalAssetManifest)
 }
 
 func TestTranslate_NilVirtualModule(t *testing.T) {
@@ -114,7 +115,6 @@ func TestTranslate_NilVirtualModule(t *testing.T) {
 
 	require.NotNil(t, view)
 	assert.Empty(t, view.Components)
-	assert.Empty(t, view.FinalAssetManifest)
 }
 
 func TestTranslate_PagesOnly(t *testing.T) {
@@ -145,28 +145,6 @@ func TestTranslate_PagesOnly(t *testing.T) {
 	assert.Len(t, view.Components, 1)
 	assert.Equal(t, "/about", view.Components[0].RoutePattern)
 	assert.True(t, view.Components[0].IsPage)
-}
-
-func TestTranslate_AssetManifest(t *testing.T) {
-	t.Parallel()
-
-	translator := NewProjectViewTranslator()
-	result := &annotator_dto.ProjectAnnotationResult{
-		VirtualModule: &annotator_dto.VirtualModule{
-			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{},
-		},
-		FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
-			{SourcePath: "assets/style.css", AssetType: "css"},
-			{SourcePath: "assets/logo.png", AssetType: "img"},
-		},
-	}
-
-	view := translator.Translate(result)
-
-	require.NotNil(t, view)
-	assert.Len(t, view.FinalAssetManifest, 2)
-	assert.Equal(t, "assets/style.css", view.FinalAssetManifest[0].SourcePath)
-	assert.Equal(t, "css", view.FinalAssetManifest[0].AssetType)
 }
 
 func TestTranslate_WithLocales(t *testing.T) {
@@ -206,6 +184,168 @@ func TestNewProjectViewTranslator(t *testing.T) {
 
 	translator := NewProjectViewTranslator()
 	require.NotNil(t, translator)
+}
+
+func TestTranslate_CollectionExpansion(t *testing.T) {
+	t.Parallel()
+
+	translator := NewProjectViewTranslator()
+	result := &annotator_dto.ProjectAnnotationResult{
+		VirtualModule: &annotator_dto.VirtualModule{
+			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+				"page_blog": {
+					IsPage:   true,
+					IsPublic: true,
+					Source: &annotator_dto.ParsedComponent{
+						SourcePath:     "pages/blog/{slug}.pk",
+						HasCollection:  true,
+						CollectionName: "blog",
+					},
+					VirtualInstances: []annotator_dto.VirtualPageInstance{
+						{Slug: "first-post"},
+						{Slug: "second-post"},
+						{Slug: ""},
+					},
+				},
+			},
+		},
+	}
+
+	view := translator.Translate(result)
+
+	require.NotNil(t, view)
+	require.Len(t, view.Components, 2)
+
+	routes := []string{view.Components[0].RoutePattern, view.Components[1].RoutePattern}
+	sort.Strings(routes)
+	assert.Equal(t, []string{"/blog/first-post", "/blog/second-post"}, routes)
+	for _, component := range view.Components {
+		assert.NotContains(t, component.RoutePattern, "{", "the literal template must never survive expansion")
+	}
+}
+
+func TestTranslate_CollectionSlugIsURLEscaped(t *testing.T) {
+	t.Parallel()
+
+	translator := NewProjectViewTranslator()
+	result := &annotator_dto.ProjectAnnotationResult{
+		VirtualModule: &annotator_dto.VirtualModule{
+			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+				"page_docs": {
+					IsPage:   true,
+					IsPublic: true,
+					Source: &annotator_dto.ParsedComponent{
+						SourcePath:     "pages/docs/{slug}.pk",
+						HasCollection:  true,
+						CollectionName: "docs",
+					},
+					VirtualInstances: []annotator_dto.VirtualPageInstance{
+						{Slug: "a b"},
+						{Slug: "café"},
+						{Slug: "nested/child"},
+					},
+				},
+			},
+		},
+	}
+
+	view := translator.Translate(result)
+
+	require.Len(t, view.Components, 3)
+	routes := make(map[string]bool, len(view.Components))
+	for _, component := range view.Components {
+		routes[component.RoutePattern] = true
+	}
+	assert.True(t, routes["/docs/a%20b"], "spaces must be percent-encoded")
+	assert.True(t, routes["/docs/caf%C3%A9"], "non-ASCII must be percent-encoded")
+	assert.True(t, routes["/docs/nested/child"], "slash separators within a slug must be preserved")
+}
+
+func TestTranslate_SitemapImageURLs(t *testing.T) {
+	t.Parallel()
+
+	translator := NewProjectViewTranslator()
+	result := &annotator_dto.ProjectAnnotationResult{
+		VirtualModule: &annotator_dto.VirtualModule{
+			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+				"page_home": {
+					IsPage:   true,
+					IsPublic: true,
+					Source:   &annotator_dto.ParsedComponent{SourcePath: "pages/index.pk"},
+				},
+			},
+		},
+		ComponentResults: map[string]*annotator_dto.AnnotationResult{
+			"page_home": {SitemapImageURLs: []string{"/_piko/assets/hero.png"}},
+		},
+	}
+
+	view := translator.Translate(result)
+
+	require.Len(t, view.Components, 1)
+	assert.Equal(t, []string{"/_piko/assets/hero.png"}, view.Components[0].SEO.ImageURLs)
+}
+
+func TestExtractInstanceLastModified(t *testing.T) {
+	t.Parallel()
+
+	fixed := time.Date(2026, time.May, 3, 0, 0, 0, 0, time.UTC)
+	older := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	testCases := []struct {
+		props map[string]any
+		want  *time.Time
+		name  string
+	}{
+		{name: "nil props", props: nil, want: nil},
+		{name: "no page key", props: map[string]any{"other": 1}, want: nil},
+		{name: "page not a map", props: map[string]any{"page": "oops"}, want: nil},
+		{name: "updated as time.Time", props: map[string]any{"page": map[string]any{collection_dto.MetaKeyUpdatedAt: fixed}}, want: &fixed},
+		{name: "updated as time.Time pointer", props: map[string]any{"page": map[string]any{collection_dto.MetaKeyUpdatedAt: &fixed}}, want: &fixed},
+		{name: "updated as RFC3339 string", props: map[string]any{"page": map[string]any{collection_dto.MetaKeyUpdatedAt: fixed.Format(time.RFC3339)}}, want: &fixed},
+		{name: "falls back to published", props: map[string]any{"page": map[string]any{collection_dto.MetaKeyPublishedAt: fixed}}, want: &fixed},
+		{name: "prefers updated over published", props: map[string]any{"page": map[string]any{collection_dto.MetaKeyUpdatedAt: fixed, collection_dto.MetaKeyPublishedAt: older}}, want: &fixed},
+		{name: "zero time ignored", props: map[string]any{"page": map[string]any{collection_dto.MetaKeyUpdatedAt: time.Time{}}}, want: nil},
+		{name: "unparseable string ignored", props: map[string]any{"page": map[string]any{collection_dto.MetaKeyUpdatedAt: "not-a-date"}}, want: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := extractInstanceLastModified(testCase.props)
+			if testCase.want == nil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			assert.True(t, got.Equal(*testCase.want), "expected %v, got %v", testCase.want, got)
+		})
+	}
+}
+
+func TestEscapePathSegments(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "empty", in: "", want: ""},
+		{name: "plain ASCII", in: "first-post", want: "first-post"},
+		{name: "space", in: "a b", want: "a%20b"},
+		{name: "non-ASCII", in: "café", want: "caf%C3%A9"},
+		{name: "slash separators preserved", in: "a/b c", want: "a/b%20c"},
+		{name: "leading slash preserved", in: "/docs/x y", want: "/docs/x%20y"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, escapePathSegments(testCase.in))
+		})
+	}
 }
 
 func TestDeriveRouteFromPath_EdgeCases(t *testing.T) {
@@ -291,7 +431,6 @@ func TestTranslate_EmptyComponentsByHash(t *testing.T) {
 	view := translator.Translate(result)
 	require.NotNil(t, view)
 	assert.Empty(t, view.Components)
-	assert.Empty(t, view.FinalAssetManifest)
 }
 
 func TestTranslate_OnlyNonPageComponents(t *testing.T) {
@@ -407,47 +546,6 @@ func TestTranslate_MixedPagesAndPartials(t *testing.T) {
 	for _, comp := range view.Components {
 		assert.True(t, comp.IsPage)
 	}
-}
-
-func TestTranslate_EmptyAssetManifest(t *testing.T) {
-	t.Parallel()
-
-	translator := NewProjectViewTranslator()
-	result := &annotator_dto.ProjectAnnotationResult{
-		VirtualModule: &annotator_dto.VirtualModule{
-			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{},
-		},
-		FinalAssetManifest: []*annotator_dto.FinalAssetDependency{},
-	}
-
-	view := translator.Translate(result)
-	require.NotNil(t, view)
-	assert.Empty(t, view.FinalAssetManifest)
-}
-
-func TestTranslate_MultipleAssetTypes(t *testing.T) {
-	t.Parallel()
-
-	translator := NewProjectViewTranslator()
-	result := &annotator_dto.ProjectAnnotationResult{
-		VirtualModule: &annotator_dto.VirtualModule{
-			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{},
-		},
-		FinalAssetManifest: []*annotator_dto.FinalAssetDependency{
-			{SourcePath: "assets/main.css", AssetType: "css"},
-			{SourcePath: "assets/app.js", AssetType: "js"},
-			{SourcePath: "assets/logo.svg", AssetType: "svg"},
-			{SourcePath: "assets/bg.webp", AssetType: "img"},
-		},
-	}
-
-	view := translator.Translate(result)
-	require.NotNil(t, view)
-	assert.Len(t, view.FinalAssetManifest, 4)
-	assert.Equal(t, "assets/main.css", view.FinalAssetManifest[0].SourcePath)
-	assert.Equal(t, "css", view.FinalAssetManifest[0].AssetType)
-	assert.Equal(t, "assets/app.js", view.FinalAssetManifest[1].SourcePath)
-	assert.Equal(t, "js", view.FinalAssetManifest[1].AssetType)
 }
 
 func TestTranslate_ComponentPreservesHashedName(t *testing.T) {

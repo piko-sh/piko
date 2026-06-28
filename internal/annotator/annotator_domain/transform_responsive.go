@@ -130,6 +130,7 @@ func createVariantDependency(baseDep *annotator_dto.StaticAssetDependency, varia
 		TransformationParams: make(map[string]string, len(baseDep.TransformationParams)),
 		OriginComponentPath:  baseDep.OriginComponentPath,
 		Location:             baseDep.Location,
+		IncludeInSitemap:     baseDep.IncludeInSitemap,
 	}
 
 	maps.Copy(variantDep.TransformationParams, baseDep.TransformationParams)

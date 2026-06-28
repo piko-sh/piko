@@ -71,6 +71,10 @@ type AnnotationResult struct {
 	// AssetDependencies lists the static assets that this component needs.
 	AssetDependencies []*StaticAssetDependency
 
+	// SitemapImageURLs lists the root-relative serve URLs of images this component opted
+	// into its image sitemap via the `sitemap` marker attribute.
+	SitemapImageURLs []string
+
 	// ImportedStylePaths lists the absolute paths of external stylesheet files this
 	// component pulled in via CSS @import during expansion. The interpreted-mode build
 	// watches these files and folds their contents into the build input hash, so editing an

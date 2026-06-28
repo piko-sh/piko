@@ -42,6 +42,10 @@ type StaticAssetDependency struct {
 
 	// Location specifies where the tag appears in the source file, used for error messages.
 	Location ast_domain.Location
+
+	// IncludeInSitemap is true when the author opted this image into the page's image
+	// sitemap by adding the bare `sitemap` marker attribute to the tag.
+	IncludeInSitemap bool
 }
 
 // FinalAssetDependency holds the details of an asset that has been processed and is ready

@@ -30,6 +30,7 @@ import (
 	"strings"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/assetpath"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -134,6 +135,10 @@ func (ac *assetCollectionContext) processAssetNode(ctx context.Context, node *as
 		return true
 	}
 
+	if _, optedIntoSitemap := node.GetAttribute(attributeSitemap); optedIntoSitemap {
+		defer stripMarkerAttribute(node, attributeSitemap)
+	}
+
 	ac.expandProfileIfPresent(ctx, node)
 
 	if ac.hasDynamicSrc(node) {
@@ -155,6 +160,13 @@ func (ac *assetCollectionContext) processAssetNode(ctx context.Context, node *as
 	}
 
 	dependency := ac.buildDependency(node, expandedPath)
+	if dependency.IncludeInSitemap && !isSitemapCollectableAssetType(dependency.AssetType) {
+		ac.addDiagnostic(node, fmt.Sprintf(
+			"The 'sitemap' marker is only honoured on <piko:img> and <piko:picture> tags; "+
+				"it has no effect on <%s> and was ignored.",
+			node.TagName,
+		), annotator_dto.CodeSitemapMarkerIgnored)
+	}
 	ac.validateAndEnrichResponsiveImage(ctx, node, dependency, staticSrc)
 	ac.dependencies = append(ac.dependencies, dependency)
 
@@ -459,12 +471,70 @@ func (ac *assetCollectionContext) buildDependency(
 
 	for i := range node.Attributes {
 		attr := &node.Attributes[i]
-		if attr.Name != attributeSrc {
+		switch attr.Name {
+		case attributeSrc:
+
+		case attributeSitemap:
+
+			dependency.IncludeInSitemap = true
+		default:
 			dependency.TransformationParams[attr.Name] = attr.Value
 		}
 	}
 
 	return dependency
+}
+
+// stripMarkerAttribute removes the named attribute (case-insensitively) from the node so
+// a build-only marker such as `sitemap` never leaks into the rendered HTML.
+//
+// Takes node (*ast_domain.TemplateNode) which is the element to remove the attribute
+// from.
+// Takes name (string) which is the attribute name to remove.
+func stripMarkerAttribute(node *ast_domain.TemplateNode, name string) {
+	node.Attributes = slices.DeleteFunc(node.Attributes, func(a ast_domain.HTMLAttribute) bool {
+		return strings.EqualFold(a.Name, name)
+	})
+}
+
+// isSitemapCollectableAssetType reports whether an asset type yields a crawlable image
+// URL eligible for the image sitemap.
+//
+// Only the web raster image tags qualify; inline SVG, video, and email (pml-img) assets
+// are excluded.
+//
+// Takes assetType (string) which is the dependency's asset type (the tag name without its
+// "piko:" prefix).
+//
+// Returns bool which is true when the asset type can appear in the image sitemap.
+func isSitemapCollectableAssetType(assetType string) bool {
+	return assetType == "img" || assetType == "picture"
+}
+
+// collectSitemapImageURLs returns the de-duplicated, root-relative serve URLs of images
+// the author opted into the image sitemap via the `sitemap` marker.
+//
+// Takes deps ([]*annotator_dto.StaticAssetDependency) which are the collected asset
+// dependencies to filter.
+// Takes pathsConfig (AnnotatorPathsConfig) which provides the asset serve path prefix.
+//
+// Returns []string which are the de-duplicated sitemap image serve URLs.
+func collectSitemapImageURLs(deps []*annotator_dto.StaticAssetDependency, pathsConfig AnnotatorPathsConfig) []string {
+	servePath := cmp.Or(pathsConfig.ArtefactServePath, assetpath.DefaultServePath)
+
+	var urls []string
+	seen := make(map[string]struct{})
+	for _, dep := range deps {
+		if dep == nil || !dep.IncludeInSitemap || !isSitemapCollectableAssetType(dep.AssetType) {
+			continue
+		}
+		if _, ok := seen[dep.SourcePath]; ok {
+			continue
+		}
+		seen[dep.SourcePath] = struct{}{}
+		urls = append(urls, servePath+"/"+dep.SourcePath)
+	}
+	return urls
 }
 
 // validateAndEnrichResponsiveImage checks responsive image attributes and sets default

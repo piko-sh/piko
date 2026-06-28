@@ -78,3 +78,27 @@ type DynamicURLSourcePort interface {
 	// Returns error when the request fails or the response is not valid JSON.
 	FetchURLs(ctx context.Context, sourceURL string) ([]seo_dto.SitemapURLInput, error)
 }
+
+// SitemapURLProvider is a driven port for supplying additional sitemap URLs at BUILD
+// time, in-process and without any network round-trip.
+type SitemapURLProvider interface {
+	// SitemapURLs returns the URLs to add to the sitemap.
+	//
+	// Returns []seo_dto.SitemapURLInput which contains the URLs to include.
+	// Returns error when the URLs cannot be produced; the build logs it and continues
+	// without the provided URLs.
+	SitemapURLs(ctx context.Context) ([]seo_dto.SitemapURLInput, error)
+}
+
+// SitemapURLProviderFunc adapts a plain function to the SitemapURLProvider interface so
+// hosts can supply a closure instead of a named type.
+type SitemapURLProviderFunc func(ctx context.Context) ([]seo_dto.SitemapURLInput, error)
+
+// SitemapURLs implements SitemapURLProvider by invoking the wrapped function.
+//
+// Returns []seo_dto.SitemapURLInput which contains the URLs the wrapped function
+// produced.
+// Returns error which is whatever the wrapped function returned.
+func (f SitemapURLProviderFunc) SitemapURLs(ctx context.Context) ([]seo_dto.SitemapURLInput, error) {
+	return f(ctx)
+}

@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/wdk/safedisk"
@@ -37,6 +38,12 @@ import (
 const (
 	// defaultMaxURLsPerSitemap is the default limit for URLs in a single sitemap file.
 	defaultMaxURLsPerSitemap = 5000
+
+	// maxProviderSitemapURLs bounds how many URLs a build-time SitemapURLProvider may
+	// contribute in a single build. It is a safety valve against a runaway or buggy
+	// provider, set far above realistic use; any truncation beyond it is logged, never
+	// silent.
+	maxProviderSitemapURLs = 100_000
 
 	// dateFormatISO is the ISO 8601 date format (YYYY-MM-DD) used in sitemaps.
 	dateFormatISO = "2006-01-02"
@@ -65,6 +72,10 @@ const (
 type sitemapBuilder struct {
 	// dynamicURLSource fetches URLs that are created at runtime.
 	dynamicURLSource DynamicURLSourcePort
+
+	// urlProvider supplies additional URLs at build time, in-process. Optional; nil means no
+	// extra build-time URLs.
+	urlProvider SitemapURLProvider
 
 	// sandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil
 	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
@@ -124,12 +135,17 @@ func (b *sitemapBuilder) Build(ctx context.Context, view *seo_dto.ProjectView) (
 			continue
 		}
 
+		if isNonIndexableRoute(page.routePattern) {
+			l.Trace("Skipping non-indexable route", logger_domain.String("route", page.routePattern))
+			continue
+		}
+
 		if strings.Contains(strings.ToLower(page.metadata.RobotsRule), "noindex") {
 			l.Trace("Skipping noindex page", logger_domain.String("route", page.routePattern))
 			continue
 		}
 
-		url := b.buildSitemapURL(*page, view)
+		url := b.buildSitemapURL(*page)
 		discoveredURLs = append(discoveredURLs, url)
 	}
 
@@ -139,7 +155,9 @@ func (b *sitemapBuilder) Build(ctx context.Context, view *seo_dto.ProjectView) (
 		dynamicURLs = []seo_dto.SitemapURL{}
 	}
 
-	allURLs := b.mergeAndDeduplicate(discoveredURLs, dynamicURLs)
+	providedURLs := b.fetchProvidedURLs(ctx)
+
+	allURLs := b.mergeAndDeduplicate(discoveredURLs, append(providedURLs, dynamicURLs...))
 
 	result := b.buildSitemapResult(ctx, allURLs)
 
@@ -180,6 +198,29 @@ func (*sitemapBuilder) discoverPages(view *seo_dto.ProjectView) []pageDiscovery 
 	return pages
 }
 
+// isNonIndexableRoute reports whether a route pattern must be kept out of the sitemap.
+//
+// It rejects any pattern still containing an unexpanded brace placeholder (e.g.
+// "/blog/{slug}"), a dynamic template that was never resolved to a concrete slug, and any
+// pattern whose slash-delimited segment begins with "!" (the convention-based special
+// pages such as "/!404" and "/!error"). The root "/" is not flagged: its segments are
+// empty and contain neither a brace nor a bang.
+//
+// Takes routePattern (string) which is the route pattern to classify.
+//
+// Returns bool which is true when the route must be excluded from the sitemap.
+func isNonIndexableRoute(routePattern string) bool {
+	if strings.Contains(routePattern, "{") {
+		return true
+	}
+	for segment := range strings.SplitSeq(routePattern, urlPathSeparator) {
+		if strings.HasPrefix(segment, "!") {
+			return true
+		}
+	}
+	return false
+}
+
 // shouldExclude checks if a route pattern matches any exclusion pattern.
 //
 // Takes routePattern (string) which is the route to check.
@@ -211,14 +252,10 @@ func (b *sitemapBuilder) shouldExclude(ctx context.Context, routePattern string)
 //
 // Takes page (pageDiscovery) which provides the found page details including route and
 // metadata.
-// Takes view (*seo_dto.ProjectView) which supplies project data for finding images.
 //
 // Returns seo_dto.SitemapURL which is a complete sitemap URL with location, timestamps,
 // priority, alternate language links, and linked images.
-func (b *sitemapBuilder) buildSitemapURL(
-	page pageDiscovery,
-	view *seo_dto.ProjectView,
-) seo_dto.SitemapURL {
+func (b *sitemapBuilder) buildSitemapURL(page pageDiscovery) seo_dto.SitemapURL {
 	absoluteURL := b.buildAbsoluteURL(page.routePattern)
 
 	lastMod := b.determineLastMod(page.metadata.LastModified, page.sourcePath)
@@ -228,7 +265,7 @@ func (b *sitemapBuilder) buildSitemapURL(
 
 	alternates := b.buildAlternateLinks(page.routePattern, page.metadata.SupportedLocales)
 
-	images := b.discoverImages(view, page.metadata.ImageURLs)
+	images := b.discoverImages(page.metadata.ImageURLs)
 
 	return seo_dto.SitemapURL{
 		Location:   absoluteURL,
@@ -369,35 +406,25 @@ func (b *sitemapBuilder) buildLocalisedURL(routePattern string, locale string) s
 	return hostname + "/" + locale + routePattern
 }
 
-// discoverImages finds images associated with a page from the asset manifest.
+// discoverImages converts a page's opted-in image URLs into sitemap image entries.
 //
-// Takes view (*seo_dto.ProjectView) which provides the project data containing the asset
-// manifest.
-// Takes explicitImages ([]string) which lists image URLs to include directly.
+// The URLs come from the page's PageSEOMetadata.ImageURLs: images the author explicitly
+// marked for the sitemap (e.g. via the <piko:img sitemap> attribute), collected per page
+// during annotation. They are root-relative serve paths, so each is made absolute against
+// the configured hostname (Google requires absolute <image:loc>).
 //
-// Returns []seo_dto.ImageEntry for all discovered images, or nil when image discovery is
+// Takes explicitImages ([]string) which lists the page's opted-in image URLs.
+//
+// Returns []seo_dto.ImageEntry for the page's images, or nil when image discovery is
 // disabled.
-func (b *sitemapBuilder) discoverImages(
-	view *seo_dto.ProjectView,
-	explicitImages []string,
-) []seo_dto.ImageEntry {
+func (b *sitemapBuilder) discoverImages(explicitImages []string) []seo_dto.ImageEntry {
 	if !b.config.DiscoverImages {
 		return nil
 	}
 
-	imageURLs := make([]string, 0)
-	imageURLs = append(imageURLs, explicitImages...)
-
-	for _, asset := range view.FinalAssetManifest {
-		if asset.AssetType == "img" {
-			imageURL := b.buildAbsoluteURL("/_piko/assets/" + filepath.Base(asset.SourcePath))
-			imageURLs = append(imageURLs, imageURL)
-		}
-	}
-
-	images := make([]seo_dto.ImageEntry, 0, len(imageURLs))
-	for _, url := range imageURLs {
-		images = append(images, seo_dto.ImageEntry{Location: url})
+	images := make([]seo_dto.ImageEntry, 0, len(explicitImages))
+	for _, img := range explicitImages {
+		images = append(images, seo_dto.ImageEntry{Location: b.buildAbsoluteURL(img)})
 	}
 
 	return images
@@ -437,6 +464,46 @@ func (b *sitemapBuilder) fetchDynamicURLs(ctx context.Context) ([]seo_dto.Sitema
 	return allDynamicURLs, nil
 }
 
+// fetchProvidedURLs collects URLs from the optional build-time SitemapURLProvider.
+//
+// Unlike fetchDynamicURLs (which fetches over HTTP and therefore yields nothing during
+// the offline generator build), this runs in-process. A nil provider, a provider error,
+// or a provider panic yields no URLs; the error is logged rather than failing the build.
+// The provider is invoked synchronously, so it must honour ctx: there is no watchdog
+// beyond the context it is handed. Its contribution is capped at maxProviderSitemapURLs.
+//
+// Returns []seo_dto.SitemapURL which contains the converted provider URLs.
+func (b *sitemapBuilder) fetchProvidedURLs(ctx context.Context) []seo_dto.SitemapURL {
+	if b.urlProvider == nil {
+		return nil
+	}
+
+	ctx, l := logger_domain.From(ctx, log)
+
+	inputs, err := goroutine.SafeCall1(ctx, "seo.sitemap.url_provider", func() ([]seo_dto.SitemapURLInput, error) {
+		return b.urlProvider.SitemapURLs(ctx)
+	})
+	if err != nil {
+		l.Warn("Failed to get URLs from sitemap URL provider", logger_domain.Error(err))
+		return nil
+	}
+
+	if len(inputs) > maxProviderSitemapURLs {
+		l.Warn("Sitemap URL provider returned more URLs than the allowed maximum; truncating",
+			logger_domain.Int("returned", len(inputs)),
+			logger_domain.Int("max", maxProviderSitemapURLs))
+		inputs = inputs[:maxProviderSitemapURLs]
+	}
+
+	urls := make([]seo_dto.SitemapURL, 0, len(inputs))
+	for i := range inputs {
+		urls = append(urls, b.convertInputToURL(inputs[i]))
+	}
+
+	l.Trace("Collected build-time provider URLs", logger_domain.Int("count", len(urls)))
+	return urls
+}
+
 // convertInputToURL converts a SitemapURLInput into a SitemapURL.
 //
 // Takes input (seo_dto.SitemapURLInput) which contains the source URL data.
@@ -445,7 +512,7 @@ func (b *sitemapBuilder) fetchDynamicURLs(ctx context.Context) ([]seo_dto.Sitema
 // video, and news entries.
 func (b *sitemapBuilder) convertInputToURL(input seo_dto.SitemapURLInput) seo_dto.SitemapURL {
 	location := input.Location
-	if !strings.HasPrefix(location, "http") {
+	if !isAbsoluteURL(location) {
 		location = b.buildAbsoluteURL(location)
 	}
 
@@ -463,6 +530,20 @@ func (b *sitemapBuilder) convertInputToURL(input seo_dto.SitemapURLInput) seo_dt
 		Videos:     videos,
 		News:       news,
 	}
+}
+
+// isAbsoluteURL reports whether a sitemap location already carries an explicit http or
+// https scheme and so must not be resolved against the configured hostname.
+//
+// A relative path is not absolute even when its first segment begins with "http" (e.g.
+// the route slug "http-headers-guide"), which a bare "http" prefix check would
+// misclassify.
+//
+// Takes location (string) which is the sitemap location to classify.
+//
+// Returns bool which is true when the location is an absolute http(s) URL.
+func isAbsoluteURL(location string) bool {
+	return strings.HasPrefix(location, "http://") || strings.HasPrefix(location, "https://")
 }
 
 // convertInputImages builds image entries from a SitemapURLInput. Rich ImageEntries take
@@ -622,6 +703,18 @@ func withSitemapSandbox(sandbox safedisk.Sandbox) sitemapBuilderOption {
 func withSitemapSandboxFactory(factory safedisk.Factory) sitemapBuilderOption {
 	return func(b *sitemapBuilder) {
 		b.sandboxFactory = factory
+	}
+}
+
+// withSitemapURLProvider sets a build-time, in-process provider of additional sitemap
+// URLs.
+//
+// Takes provider (SitemapURLProvider) which enumerates the extra URLs during generation.
+//
+// Returns sitemapBuilderOption which sets the provider on the builder.
+func withSitemapURLProvider(provider SitemapURLProvider) sitemapBuilderOption {
+	return func(b *sitemapBuilder) {
+		b.urlProvider = provider
 	}
 }
 

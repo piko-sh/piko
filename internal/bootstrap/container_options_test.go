@@ -28,6 +28,7 @@ import (
 
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
+	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -39,6 +40,35 @@ func TestWithCSRFTokenMaxAge(t *testing.T) {
 	opt(c)
 
 	assert.Equal(t, 24*time.Hour, c.csrfTokenMaxAge)
+}
+
+func TestWithSitemapURLProvider(t *testing.T) {
+	t.Parallel()
+	c := NewContainer()
+
+	called := false
+	opt := WithSitemapURLProvider(func(context.Context) ([]seo_dto.SitemapURLInput, error) {
+		called = true
+		return []seo_dto.SitemapURLInput{{Location: "/benchmarks/interp"}}, nil
+	})
+	opt(c)
+
+	require.NotNil(t, c.seoURLProvider)
+	urls, err := c.seoURLProvider.SitemapURLs(context.Background())
+	require.NoError(t, err)
+	assert.True(t, called)
+	require.Len(t, urls, 1)
+	assert.Equal(t, "/benchmarks/interp", urls[0].Location)
+}
+
+func TestWithSitemapURLProvider_Nil(t *testing.T) {
+	t.Parallel()
+	c := NewContainer()
+
+	opt := WithSitemapURLProvider(nil)
+	opt(c)
+
+	assert.Nil(t, c.seoURLProvider)
 }
 
 func TestWithCSRFTokenMaxAge_ZeroValue(t *testing.T) {

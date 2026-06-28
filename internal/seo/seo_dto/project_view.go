@@ -24,9 +24,6 @@ package seo_dto
 type ProjectView struct {
 	// Components holds the component views within this project.
 	Components []ComponentView
-
-	// FinalAssetManifest contains all asset dependencies discovered across the project.
-	FinalAssetManifest []AssetDependency
 }
 
 // ComponentView represents a single component within the project from the SEO
@@ -54,13 +51,4 @@ type ComponentView struct {
 
 	// IsPublic indicates whether the page can be viewed by anyone.
 	IsPublic bool
-}
-
-// AssetDependency represents a single static asset that a file depends on.
-type AssetDependency struct {
-	// SourcePath is the path to the asset file relative to the project root.
-	SourcePath string
-
-	// AssetType specifies the kind of asset (e.g. "img", "css", "js").
-	AssetType string
 }
