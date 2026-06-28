@@ -160,7 +160,7 @@ func TestMeasureIntrinsicWidth_Block(t *testing.T) {
 	}
 
 	result := measureIntrinsicWidth(box, SizingModeMaxContent, font_metrics)
-	assert.InDelta(t, 104.0, result, standaloneEpsilon)
+	assert.InDelta(t, 134.0, result, standaloneEpsilon)
 }
 
 func TestMeasureIntrinsicWidth_BlockWithExplicitWidth(t *testing.T) {
@@ -234,7 +234,7 @@ func TestMeasureBlockIntrinsicWidth_AutoWidthMultipleChildren(t *testing.T) {
 	}
 
 	result := measureBlockIntrinsicWidth(box, SizingModeMaxContent, font_metrics)
-	assert.InDelta(t, 38.0, result, standaloneEpsilon)
+	assert.InDelta(t, 53.0, result, standaloneEpsilon)
 }
 
 func TestMeasureBlockIntrinsicWidth_ExplicitWidthContentBox(t *testing.T) {

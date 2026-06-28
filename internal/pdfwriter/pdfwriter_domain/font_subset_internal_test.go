@@ -23,6 +23,9 @@ package pdfwriter_domain
 import (
 	"encoding/binary"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseLocaTable_ShortFormat(t *testing.T) {
@@ -36,25 +39,13 @@ func TestParseLocaTable_ShortFormat(t *testing.T) {
 	binary.BigEndian.PutUint16(data[6:], 150)
 
 	offsets, err := parseLocaTable(data, 0, numberOfGlyphs)
-	if err != nil {
-		t.Fatalf("parseLocaTable failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	if len(offsets) != numberOfGlyphs+1 {
-		t.Fatalf("expected %d offsets, got %d", numberOfGlyphs+1, len(offsets))
-	}
-	if offsets[0] != 0 {
-		t.Errorf("expected offset[0]=0, got %d", offsets[0])
-	}
-	if offsets[1] != 100 {
-		t.Errorf("expected offset[1]=100, got %d", offsets[1])
-	}
-	if offsets[2] != 200 {
-		t.Errorf("expected offset[2]=200, got %d", offsets[2])
-	}
-	if offsets[3] != 300 {
-		t.Errorf("expected offset[3]=300, got %d", offsets[3])
-	}
+	require.Len(t, offsets, numberOfGlyphs+1)
+	assert.Equal(t, uint32(0), offsets[0])
+	assert.Equal(t, uint32(100), offsets[1])
+	assert.Equal(t, uint32(200), offsets[2])
+	assert.Equal(t, uint32(300), offsets[3])
 }
 
 func TestParseLocaTable_ShortFormat_TooShort(t *testing.T) {
@@ -62,9 +53,7 @@ func TestParseLocaTable_ShortFormat_TooShort(t *testing.T) {
 
 	data := make([]byte, 4)
 	_, err := parseLocaTable(data, 0, 3)
-	if err == nil {
-		t.Fatal("expected error for too-short loca table in short format")
-	}
+	require.Error(t, err)
 }
 
 func TestParseLocaTable_LongFormat_TooShort(t *testing.T) {
@@ -72,9 +61,7 @@ func TestParseLocaTable_LongFormat_TooShort(t *testing.T) {
 
 	data := make([]byte, 8)
 	_, err := parseLocaTable(data, 1, 3)
-	if err == nil {
-		t.Fatal("expected error for too-short loca table in long format")
-	}
+	require.Error(t, err)
 }
 
 func TestExtractCompositeComponents_WithComponents(t *testing.T) {
@@ -92,15 +79,9 @@ func TestExtractCompositeComponents_WithComponents(t *testing.T) {
 	binary.BigEndian.PutUint16(data[20:], 99)
 
 	components := extractCompositeComponents(data)
-	if len(components) != 2 {
-		t.Fatalf("expected 2 components, got %d", len(components))
-	}
-	if components[0] != 42 {
-		t.Errorf("expected first component GID 42, got %d", components[0])
-	}
-	if components[1] != 99 {
-		t.Errorf("expected second component GID 99, got %d", components[1])
-	}
+	require.Len(t, components, 2)
+	assert.Equal(t, uint16(42), components[0])
+	assert.Equal(t, uint16(99), components[1])
 }
 
 func TestExtractCompositeComponents_TooShort(t *testing.T) {
@@ -108,9 +89,7 @@ func TestExtractCompositeComponents_TooShort(t *testing.T) {
 
 	data := make([]byte, 5)
 	components := extractCompositeComponents(data)
-	if components != nil {
-		t.Errorf("expected nil for too-short data, got %v", components)
-	}
+	assert.Nil(t, components)
 }
 
 func TestExtractCompositeComponents_WithScaleTransform(t *testing.T) {
@@ -129,48 +108,36 @@ func TestExtractCompositeComponents_WithScaleTransform(t *testing.T) {
 	binary.BigEndian.PutUint16(data[offset+2:], 20)
 
 	components := extractCompositeComponents(data)
-	if len(components) != 2 {
-		t.Fatalf("expected 2 components, got %d", len(components))
-	}
-	if components[0] != 10 || components[1] != 20 {
-		t.Errorf("expected components [10, 20], got %v", components)
-	}
+	require.Len(t, components, 2)
+	assert.Equal(t, []uint16{10, 20}, components)
 }
 
 func TestAdvancePastCompositeTransform_NoTransform(t *testing.T) {
 	t.Parallel()
 
 	result := advancePastCompositeTransform(0, 10)
-	if result != 10 {
-		t.Errorf("expected position 10 with no transform flags, got %d", result)
-	}
+	assert.Equal(t, 10, result)
 }
 
 func TestAdvancePastCompositeTransform_Scale(t *testing.T) {
 	t.Parallel()
 
 	result := advancePastCompositeTransform(compositeFlagWeHaveAScale, 10)
-	if result != 10+compositeScaleBytes {
-		t.Errorf("expected position %d with scale flag, got %d", 10+compositeScaleBytes, result)
-	}
+	assert.Equal(t, 10+compositeScaleBytes, result)
 }
 
 func TestAdvancePastCompositeTransform_XYScale(t *testing.T) {
 	t.Parallel()
 
 	result := advancePastCompositeTransform(compositeFlagWeHaveAnXAndYScale, 10)
-	if result != 10+compositeXYScaleBytes {
-		t.Errorf("expected position %d with XY scale flag, got %d", 10+compositeXYScaleBytes, result)
-	}
+	assert.Equal(t, 10+compositeXYScaleBytes, result)
 }
 
 func TestAdvancePastCompositeTransform_TwoByTwo(t *testing.T) {
 	t.Parallel()
 
 	result := advancePastCompositeTransform(compositeFlagWeHaveATwoByTwo, 10)
-	if result != 10+compositeTwoByTwoBytes {
-		t.Errorf("expected position %d with 2x2 flag, got %d", 10+compositeTwoByTwoBytes, result)
-	}
+	assert.Equal(t, 10+compositeTwoByTwoBytes, result)
 }
 
 func TestResolveCompositeGlyphs_AddsComponents(t *testing.T) {
@@ -192,9 +159,7 @@ func TestResolveCompositeGlyphs_AddsComponents(t *testing.T) {
 
 	resolveCompositeGlyphs(glyfData, offsets, glyphSet, 3)
 
-	if !glyphSet[2] {
-		t.Error("expected glyph 2 to be added as a composite component dependency")
-	}
+	assert.True(t, glyphSet[2], "expected glyph 2 to be added as a composite component dependency")
 }
 
 func TestCompositeComponentsForGlyph_SimpleGlyph(t *testing.T) {
@@ -205,9 +170,7 @@ func TestCompositeComponentsForGlyph_SimpleGlyph(t *testing.T) {
 
 	offsets := []uint32{0, 20, 20}
 	result := compositeComponentsForGlyph(glyfData, offsets, 0)
-	if result != nil {
-		t.Errorf("expected nil for simple glyph, got %v", result)
-	}
+	assert.Nil(t, result)
 }
 
 func TestCompositeComponentsForGlyph_EmptyGlyph(t *testing.T) {
@@ -215,7 +178,5 @@ func TestCompositeComponentsForGlyph_EmptyGlyph(t *testing.T) {
 
 	offsets := []uint32{0, 0, 0}
 	result := compositeComponentsForGlyph(nil, offsets, 0)
-	if result != nil {
-		t.Errorf("expected nil for empty glyph, got %v", result)
-	}
+	assert.Nil(t, result)
 }

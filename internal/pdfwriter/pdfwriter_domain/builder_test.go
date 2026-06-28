@@ -20,12 +20,12 @@ package pdfwriter_domain
 
 import (
 	"context"
-	"math"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/go-text/typesetting/font"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/layouter/layouter_domain"
@@ -52,9 +52,7 @@ func TestRenderBuilder_FluentChaining(t *testing.T) {
 		FontSize(14.0).
 		LineHeight(1.5)
 
-	if result != builder {
-		t.Error("fluent methods should return the same builder")
-	}
+	assert.Same(t, builder, result, "fluent methods should return the same builder")
 }
 
 func TestRenderBuilder_Do_MissingTemplate(t *testing.T) {
@@ -62,9 +60,7 @@ func TestRenderBuilder_Do_MissingTemplate(t *testing.T) {
 	builder := service.NewRender()
 
 	_, err := builder.Do(context.Background())
-	if err == nil {
-		t.Fatal("expected error when template path is not set")
-	}
+	require.Error(t, err, "expected error when template path is not set")
 }
 
 func TestRenderBuilder_WatermarkConfig(t *testing.T) {
@@ -74,12 +70,9 @@ func TestRenderBuilder_WatermarkConfig(t *testing.T) {
 	wm := WatermarkConfig{Text: "CONFIDENTIAL", FontSize: 48, Angle: 30}
 	result := builder.WatermarkConfig(wm)
 
-	if result != builder {
-		t.Error("WatermarkConfig should return the same builder")
-	}
-	if builder.watermark == nil || builder.watermark.Text != "CONFIDENTIAL" {
-		t.Error("WatermarkConfig should set watermark")
-	}
+	assert.Same(t, builder, result, "WatermarkConfig should return the same builder")
+	require.NotNil(t, builder.watermark, "WatermarkConfig should set watermark")
+	assert.Equal(t, "CONFIDENTIAL", builder.watermark.Text, "WatermarkConfig should set watermark")
 }
 
 func TestRenderBuilder_PdfA_A2A_EnablesTagged(t *testing.T) {
@@ -88,20 +81,32 @@ func TestRenderBuilder_PdfA_A2A_EnablesTagged(t *testing.T) {
 
 	builder.PdfA(PdfA2A)
 
-	if !builder.tagged {
-		t.Error("PdfA(PdfA2A) should automatically enable tagged PDF")
-	}
+	assert.True(t, builder.tagged, "PdfA(PdfA2A) should automatically enable tagged PDF")
 }
 
-func TestRenderBuilder_PdfA_A2B_DoesNotEnableTagged(t *testing.T) {
+func TestRenderBuilder_DefaultIsTagged(t *testing.T) {
 	service := &pdfWriterService{}
 	builder := service.NewRender()
 
-	builder.PdfA(PdfA2B)
+	assert.True(t, builder.tagged, "NewRender should produce a tagged builder by default")
+}
 
-	if builder.tagged {
-		t.Error("PdfA(PdfA2B) should not automatically enable tagged PDF")
-	}
+func TestRenderBuilder_UntaggedDisablesTagging(t *testing.T) {
+	service := &pdfWriterService{}
+	builder := service.NewRender()
+
+	builder.Untagged()
+
+	assert.False(t, builder.tagged, "Untagged() should disable tagging")
+}
+
+func TestRenderBuilder_PdfA_A2B_DoesNotForceTagged(t *testing.T) {
+	service := &pdfWriterService{}
+	builder := service.NewRender()
+
+	builder.Untagged().PdfA(PdfA2B)
+
+	assert.False(t, builder.tagged, "PdfA(PdfA2B) must not re-enable tagging after Untagged()")
 }
 
 func TestRenderBuilder_MultipleStylesheets(t *testing.T) {
@@ -110,9 +115,7 @@ func TestRenderBuilder_MultipleStylesheets(t *testing.T) {
 
 	builder.Stylesheet("css1").Stylesheet("css2").Stylesheet("css3")
 
-	if len(builder.stylesheets) != 3 {
-		t.Errorf("expected 3 stylesheets, got %d", len(builder.stylesheets))
-	}
+	assert.Len(t, builder.stylesheets, 3, "expected 3 stylesheets")
 }
 
 func TestBuildLayoutConfig_Defaults(t *testing.T) {
@@ -123,15 +126,9 @@ func TestBuildLayoutConfig_Defaults(t *testing.T) {
 
 	config := builder.buildLayoutConfig()
 
-	if config.Page != layouter_dto.PageA4 {
-		t.Error("default page should be A4")
-	}
-	if config.DefaultFontSize != builderDefaultFontSize {
-		t.Errorf("default font size: got %v, want %v", config.DefaultFontSize, builderDefaultFontSize)
-	}
-	if config.DefaultLineHeight != 0 {
-		t.Errorf("default line height: got %v, want 0", config.DefaultLineHeight)
-	}
+	assert.Equal(t, layouter_dto.PageA4, config.Page, "default page should be A4")
+	assert.Equal(t, builderDefaultFontSize, config.DefaultFontSize, "default font size")
+	assert.Equal(t, 0.0, config.DefaultLineHeight, "default line height")
 }
 
 func TestBuildLayoutConfig_CustomPage(t *testing.T) {
@@ -143,9 +140,8 @@ func TestBuildLayoutConfig_CustomPage(t *testing.T) {
 
 	config := builder.buildLayoutConfig()
 
-	if config.Page.Width != 800 || config.Page.Height != 600 {
-		t.Errorf("page: got (%v, %v), want (800, 600)", config.Page.Width, config.Page.Height)
-	}
+	assert.Equal(t, 800.0, config.Page.Width, "page width")
+	assert.Equal(t, 600.0, config.Page.Height, "page height")
 }
 
 func TestBuildLayoutConfig_CustomFontSize(t *testing.T) {
@@ -157,9 +153,7 @@ func TestBuildLayoutConfig_CustomFontSize(t *testing.T) {
 
 	config := builder.buildLayoutConfig()
 
-	if config.DefaultFontSize != 16.0 {
-		t.Errorf("font size: got %v, want 16.0", config.DefaultFontSize)
-	}
+	assert.Equal(t, 16.0, config.DefaultFontSize, "font size")
 }
 
 func TestBuildLayoutConfig_CustomLineHeight(t *testing.T) {
@@ -171,9 +165,7 @@ func TestBuildLayoutConfig_CustomLineHeight(t *testing.T) {
 
 	config := builder.buildLayoutConfig()
 
-	if config.DefaultLineHeight != 1.5 {
-		t.Errorf("line height: got %v, want 1.5", config.DefaultLineHeight)
-	}
+	assert.Equal(t, 1.5, config.DefaultLineHeight, "line height")
 }
 
 func TestBuildLayoutConfig_Stylesheets(t *testing.T) {
@@ -186,9 +178,7 @@ func TestBuildLayoutConfig_Stylesheets(t *testing.T) {
 
 	config := builder.buildLayoutConfig()
 
-	if len(config.Stylesheets) != 2 {
-		t.Errorf("expected 2 stylesheets, got %d", len(config.Stylesheets))
-	}
+	assert.Len(t, config.Stylesheets, 2, "expected 2 stylesheets")
 }
 
 func TestSegmentsToContours_MoveToLineTo_SingleContour(t *testing.T) {
@@ -202,17 +192,11 @@ func TestSegmentsToContours_MoveToLineTo_SingleContour(t *testing.T) {
 
 	contours := segmentsToContours(segments)
 
-	if len(contours) != 1 {
-		t.Fatalf("expected 1 contour, got %d", len(contours))
-	}
-	if len(contours[0]) != 3 {
-		t.Errorf("expected 3 points, got %d", len(contours[0]))
-	}
+	require.Len(t, contours, 1, "expected 1 contour")
+	assert.Len(t, contours[0], 3, "expected 3 points")
 
 	for i, pt := range contours[0] {
-		if !pt.OnCurve {
-			t.Errorf("point %d should be on-curve", i)
-		}
+		assert.True(t, pt.OnCurve, "point %d should be on-curve", i)
 	}
 }
 
@@ -228,15 +212,9 @@ func TestSegmentsToContours_MultipleMoveToCreatesMultipleContours(t *testing.T) 
 
 	contours := segmentsToContours(segments)
 
-	if len(contours) != 2 {
-		t.Fatalf("expected 2 contours, got %d", len(contours))
-	}
-	if len(contours[0]) != 2 {
-		t.Errorf("contour 0: expected 2 points, got %d", len(contours[0]))
-	}
-	if len(contours[1]) != 2 {
-		t.Errorf("contour 1: expected 2 points, got %d", len(contours[1]))
-	}
+	require.Len(t, contours, 2, "expected 2 contours")
+	assert.Len(t, contours[0], 2, "contour 0: expected 2 points")
+	assert.Len(t, contours[1], 2, "contour 1: expected 2 points")
 }
 
 func TestSegmentsToContours_QuadToAddsOffCurveAndOnCurve(t *testing.T) {
@@ -249,31 +227,19 @@ func TestSegmentsToContours_QuadToAddsOffCurveAndOnCurve(t *testing.T) {
 
 	contours := segmentsToContours(segments)
 
-	if len(contours) != 1 {
-		t.Fatalf("expected 1 contour, got %d", len(contours))
-	}
+	require.Len(t, contours, 1, "expected 1 contour")
 
-	if len(contours[0]) != 3 {
-		t.Fatalf("expected 3 points, got %d", len(contours[0]))
-	}
+	require.Len(t, contours[0], 3, "expected 3 points")
 
-	if !contours[0][0].OnCurve {
-		t.Error("point 0 (MoveTo) should be on-curve")
-	}
+	assert.True(t, contours[0][0].OnCurve, "point 0 (MoveTo) should be on-curve")
 
-	if contours[0][1].OnCurve {
-		t.Error("point 1 (QuadTo control) should be off-curve")
-	}
-	if contours[0][1].X != 50 || contours[0][1].Y != 100 {
-		t.Errorf("point 1: got (%v, %v), want (50, 100)", contours[0][1].X, contours[0][1].Y)
-	}
+	assert.False(t, contours[0][1].OnCurve, "point 1 (QuadTo control) should be off-curve")
+	assert.Equal(t, float32(50), contours[0][1].X, "point 1 X")
+	assert.Equal(t, float32(100), contours[0][1].Y, "point 1 Y")
 
-	if !contours[0][2].OnCurve {
-		t.Error("point 2 (QuadTo end) should be on-curve")
-	}
-	if contours[0][2].X != 100 || contours[0][2].Y != 0 {
-		t.Errorf("point 2: got (%v, %v), want (100, 0)", contours[0][2].X, contours[0][2].Y)
-	}
+	assert.True(t, contours[0][2].OnCurve, "point 2 (QuadTo end) should be on-curve")
+	assert.Equal(t, float32(100), contours[0][2].X, "point 2 X")
+	assert.Equal(t, float32(0), contours[0][2].Y, "point 2 Y")
 }
 
 func TestSegmentsToContours_CubeToApproximation(t *testing.T) {
@@ -286,38 +252,26 @@ func TestSegmentsToContours_CubeToApproximation(t *testing.T) {
 
 	contours := segmentsToContours(segments)
 
-	if len(contours) != 1 {
-		t.Fatalf("expected 1 contour, got %d", len(contours))
-	}
+	require.Len(t, contours, 1, "expected 1 contour")
 
-	if len(contours[0]) != 3 {
-		t.Fatalf("expected 3 points, got %d", len(contours[0]))
-	}
+	require.Len(t, contours[0], 3, "expected 3 points")
 
 	offCurve := contours[0][1]
-	if offCurve.OnCurve {
-		t.Error("CubeTo midpoint should be off-curve")
-	}
-	if offCurve.X != 50 || offCurve.Y != 100 {
-		t.Errorf("CubeTo midpoint: got (%v, %v), want (50, 100)", offCurve.X, offCurve.Y)
-	}
+	assert.False(t, offCurve.OnCurve, "CubeTo midpoint should be off-curve")
+	assert.Equal(t, float32(50), offCurve.X, "CubeTo midpoint X")
+	assert.Equal(t, float32(100), offCurve.Y, "CubeTo midpoint Y")
 
 	onCurve := contours[0][2]
-	if !onCurve.OnCurve {
-		t.Error("CubeTo end should be on-curve")
-	}
-	if onCurve.X != 100 || onCurve.Y != 0 {
-		t.Errorf("CubeTo end: got (%v, %v), want (100, 0)", onCurve.X, onCurve.Y)
-	}
+	assert.True(t, onCurve.OnCurve, "CubeTo end should be on-curve")
+	assert.Equal(t, float32(100), onCurve.X, "CubeTo end X")
+	assert.Equal(t, float32(0), onCurve.Y, "CubeTo end Y")
 }
 
 func TestSegmentsToContours_EmptySegments(t *testing.T) {
 	t.Parallel()
 
 	contours := segmentsToContours(nil)
-	if len(contours) != 0 {
-		t.Errorf("expected 0 contours for nil segments, got %d", len(contours))
-	}
+	assert.Empty(t, contours, "expected 0 contours for nil segments")
 }
 
 func TestRemoveClosingPoint_DuplicateRemoved(t *testing.T) {
@@ -331,9 +285,7 @@ func TestRemoveClosingPoint_DuplicateRemoved(t *testing.T) {
 
 	result := removeClosingPoint(contour)
 
-	if len(result) != 2 {
-		t.Errorf("expected 2 points after removing closing duplicate, got %d", len(result))
-	}
+	assert.Len(t, result, 2, "expected 2 points after removing closing duplicate")
 }
 
 func TestRemoveClosingPoint_DuplicateWithinTolerance(t *testing.T) {
@@ -347,9 +299,7 @@ func TestRemoveClosingPoint_DuplicateWithinTolerance(t *testing.T) {
 
 	result := removeClosingPoint(contour)
 
-	if len(result) != 2 {
-		t.Errorf("expected 2 points (within tolerance), got %d", len(result))
-	}
+	assert.Len(t, result, 2, "expected 2 points (within tolerance)")
 }
 
 func TestRemoveClosingPoint_DifferentPointKept(t *testing.T) {
@@ -363,9 +313,7 @@ func TestRemoveClosingPoint_DifferentPointKept(t *testing.T) {
 
 	result := removeClosingPoint(contour)
 
-	if len(result) != 3 {
-		t.Errorf("expected 3 points (different closing point), got %d", len(result))
-	}
+	assert.Len(t, result, 3, "expected 3 points (different closing point)")
 }
 
 func TestRemoveClosingPoint_SinglePointUnchanged(t *testing.T) {
@@ -377,9 +325,7 @@ func TestRemoveClosingPoint_SinglePointUnchanged(t *testing.T) {
 
 	result := removeClosingPoint(contour)
 
-	if len(result) != 1 {
-		t.Errorf("expected 1 point unchanged, got %d", len(result))
-	}
+	assert.Len(t, result, 1, "expected 1 point unchanged")
 }
 
 func TestRemoveClosingPoint_OffCurveLastNotRemoved(t *testing.T) {
@@ -393,9 +339,7 @@ func TestRemoveClosingPoint_OffCurveLastNotRemoved(t *testing.T) {
 
 	result := removeClosingPoint(contour)
 
-	if len(result) != 3 {
-		t.Errorf("expected 3 points (off-curve last not removed), got %d", len(result))
-	}
+	assert.Len(t, result, 3, "expected 3 points (off-curve last not removed)")
 }
 
 func TestRemoveClosingPoint_OffCurveFirstNotRemoved(t *testing.T) {
@@ -409,9 +353,7 @@ func TestRemoveClosingPoint_OffCurveFirstNotRemoved(t *testing.T) {
 
 	result := removeClosingPoint(contour)
 
-	if len(result) != 3 {
-		t.Errorf("expected 3 points (off-curve first not removed), got %d", len(result))
-	}
+	assert.Len(t, result, 3, "expected 3 points (off-curve first not removed)")
 }
 
 func TestRemoveClosingPoint_BeyondTolerance(t *testing.T) {
@@ -425,9 +367,7 @@ func TestRemoveClosingPoint_BeyondTolerance(t *testing.T) {
 
 	result := removeClosingPoint(contour)
 
-	if len(result) != 3 {
-		t.Errorf("expected 3 points (beyond tolerance), got %d", len(result))
-	}
+	assert.Len(t, result, 3, "expected 3 points (beyond tolerance)")
 }
 
 func TestRenderBuilder_Request_SetsFieldAndReturnsBuilder(t *testing.T) {
@@ -439,12 +379,8 @@ func TestRenderBuilder_Request_SetsFieldAndReturnsBuilder(t *testing.T) {
 
 	result := builder.Request(req)
 
-	if result != builder {
-		t.Error("Request should return the same builder")
-	}
-	if builder.request != req {
-		t.Error("Request should set the request field")
-	}
+	assert.Same(t, builder, result, "Request should return the same builder")
+	assert.Same(t, req, builder.request, "Request should set the request field")
 }
 
 func TestRenderBuilder_Transformations_SetsFieldsAndReturnsBuilder(t *testing.T) {
@@ -457,15 +393,9 @@ func TestRenderBuilder_Transformations_SetsFieldsAndReturnsBuilder(t *testing.T)
 
 	result := builder.Transformations(registry, config)
 
-	if result != builder {
-		t.Error("Transformations should return the same builder")
-	}
-	if builder.transformRegistry != registry {
-		t.Error("Transformations should set the registry field")
-	}
-	if builder.transformConfig == nil {
-		t.Error("Transformations should set the config field")
-	}
+	assert.Same(t, builder, result, "Transformations should return the same builder")
+	assert.Same(t, registry, builder.transformRegistry, "Transformations should set the registry field")
+	assert.NotNil(t, builder.transformConfig, "Transformations should set the config field")
 }
 
 func TestRenderBuilder_SVGWriter_SetsFieldsAndReturnsBuilder(t *testing.T) {
@@ -476,9 +406,7 @@ func TestRenderBuilder_SVGWriter_SetsFieldsAndReturnsBuilder(t *testing.T) {
 
 	result := builder.SVGWriter(nil, nil)
 
-	if result != builder {
-		t.Error("SVGWriter should return the same builder")
-	}
+	assert.Same(t, builder, result, "SVGWriter should return the same builder")
 }
 
 func TestApplyTransforms_NilRegistryPassthrough(t *testing.T) {
@@ -490,12 +418,8 @@ func TestApplyTransforms_NilRegistryPassthrough(t *testing.T) {
 	input := []byte("fake PDF content")
 	output, err := builder.applyTransforms(context.Background(), input)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if string(output) != string(input) {
-		t.Error("nil registry should pass through unchanged")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, string(input), string(output), "nil registry should pass through unchanged")
 }
 
 func TestApplyTransforms_EmptyChainPassthrough(t *testing.T) {
@@ -509,12 +433,8 @@ func TestApplyTransforms_EmptyChainPassthrough(t *testing.T) {
 	input := []byte("fake PDF content")
 	output, err := builder.applyTransforms(context.Background(), input)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if string(output) != string(input) {
-		t.Error("empty chain should pass through unchanged")
-	}
+	require.NoError(t, err)
+	assert.Equal(t, string(input), string(output), "empty chain should pass through unchanged")
 }
 
 func TestSegmentsToContours_ClosingPointRemoved(t *testing.T) {
@@ -529,13 +449,9 @@ func TestSegmentsToContours_ClosingPointRemoved(t *testing.T) {
 
 	contours := segmentsToContours(segments)
 
-	if len(contours) != 1 {
-		t.Fatalf("expected 1 contour, got %d", len(contours))
-	}
+	require.Len(t, contours, 1, "expected 1 contour")
 
-	if len(contours[0]) != 3 {
-		t.Errorf("expected 3 points (closing removed), got %d", len(contours[0]))
-	}
+	assert.Len(t, contours[0], 3, "expected 3 points (closing removed)")
 }
 
 func TestBuildLayoutConfig_AllOverrides(t *testing.T) {
@@ -550,18 +466,11 @@ func TestBuildLayoutConfig_AllOverrides(t *testing.T) {
 
 	config := builder.buildLayoutConfig()
 
-	if config.Page.Width != 400 || config.Page.Height != 300 {
-		t.Errorf("page: got (%v, %v), want (400, 300)", config.Page.Width, config.Page.Height)
-	}
-	if config.DefaultFontSize != 20.0 {
-		t.Errorf("font size: got %v, want 20.0", config.DefaultFontSize)
-	}
-	if math.Abs(config.DefaultLineHeight-1.8) > 1e-9 {
-		t.Errorf("line height: got %v, want 1.8", config.DefaultLineHeight)
-	}
-	if len(config.Stylesheets) != 1 {
-		t.Errorf("stylesheets: got %d, want 1", len(config.Stylesheets))
-	}
+	assert.Equal(t, 400.0, config.Page.Width, "page width")
+	assert.Equal(t, 300.0, config.Page.Height, "page height")
+	assert.Equal(t, 20.0, config.DefaultFontSize, "font size")
+	assert.InDelta(t, 1.8, config.DefaultLineHeight, 1e-9, "line height")
+	assert.Len(t, config.Stylesheets, 1, "stylesheets")
 }
 
 func TestSubstitutePageNumbers_ReturnsCorrectPageCount(t *testing.T) {
@@ -584,9 +493,7 @@ func TestSubstitutePageNumbers_ReturnsCorrectPageCount(t *testing.T) {
 	}
 
 	pageCount := builder.substitutePageNumbers(layoutResult)
-	if pageCount != 3 {
-		t.Errorf("expected page count 3, got %d", pageCount)
-	}
+	assert.Equal(t, 3, pageCount, "expected page count 3")
 }
 
 func TestSubstitutePageNumbers_ZeroPages_ReturnsOne(t *testing.T) {
@@ -602,9 +509,7 @@ func TestSubstitutePageNumbers_ZeroPages_ReturnsOne(t *testing.T) {
 	}
 
 	pageCount := builder.substitutePageNumbers(layoutResult)
-	if pageCount != 1 {
-		t.Errorf("expected page count 1 for zero pages, got %d", pageCount)
-	}
+	assert.Equal(t, 1, pageCount, "expected page count 1 for zero pages")
 }
 
 func TestInstanceVariableFonts_StaticFontsPassThrough(t *testing.T) {
@@ -616,15 +521,9 @@ func TestInstanceVariableFonts_StaticFontsPassThrough(t *testing.T) {
 	}
 
 	result, err := instanceVariableFonts(entries, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(result) != 2 {
-		t.Errorf("expected 2 static font entries to pass through, got %d", len(result))
-	}
-	if string(result[0].Data) != "static-data" {
-		t.Errorf("expected first entry data to be 'static-data', got %q", string(result[0].Data))
-	}
+	require.NoError(t, err)
+	require.Len(t, result, 2, "expected 2 static font entries to pass through")
+	assert.Equal(t, "static-data", string(result[0].Data), "expected first entry data to be 'static-data'")
 }
 
 func TestInstanceVariableFonts_VariableSkippedWithNilFontMetrics(t *testing.T) {
@@ -643,12 +542,8 @@ func TestInstanceVariableFonts_VariableSkippedWithNilFontMetrics(t *testing.T) {
 	}
 
 	result, err := instanceVariableFonts(entries, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(result) != 0 {
-		t.Errorf("expected 0 entries when fontMetrics is nil for variable fonts, got %d", len(result))
-	}
+	require.NoError(t, err)
+	assert.Empty(t, result, "expected 0 entries when fontMetrics is nil for variable fonts")
 }
 
 func TestGetFontFace_NilFontMetrics_ReturnsNil(t *testing.T) {
@@ -658,15 +553,13 @@ func TestGetFontFace_NilFontMetrics_ReturnsNil(t *testing.T) {
 		Family: "NotoSans",
 		Weight: 400,
 	})
-	if face != nil {
-		t.Error("expected nil face for nil fontMetrics")
-	}
+	assert.Nil(t, face, "expected nil face for nil fontMetrics")
 }
 
 type stubTemplateRunner struct {
+	err     error
 	ast     *ast_domain.TemplateAST
 	styling string
-	err     error
 }
 
 func (s *stubTemplateRunner) RunPdfWithProps(
@@ -691,21 +584,15 @@ func TestBuilderDo_NilAST(t *testing.T) {
 	builder.Template("test.pk")
 
 	_, err := builder.Do(context.Background())
-	if err == nil {
-		t.Fatal("expected error for nil AST")
-	}
-	if !strings.Contains(err.Error(), "nil AST") {
-		t.Errorf("expected 'nil AST' in error, got %q", err.Error())
-	}
+	require.Error(t, err, "expected error for nil AST")
+	assert.Contains(t, err.Error(), "nil AST", "expected 'nil AST' in error")
 }
 
 func TestNewPdfWriterService_ReturnsService(t *testing.T) {
 	t.Parallel()
 
 	service := NewPdfWriterService(nil, nil, nil, nil, nil)
-	if service == nil {
-		t.Fatal("expected non-nil service")
-	}
+	require.NotNil(t, service, "expected non-nil service")
 }
 
 func TestNewPdfWriterService_NewRender_ReturnsBuilder(t *testing.T) {
@@ -713,7 +600,28 @@ func TestNewPdfWriterService_NewRender_ReturnsBuilder(t *testing.T) {
 
 	service := NewPdfWriterService(nil, nil, nil, nil, nil)
 	builder := service.NewRender()
-	if builder == nil {
-		t.Fatal("expected non-nil builder")
-	}
+	require.NotNil(t, builder, "expected non-nil builder")
+}
+
+func TestRenderBuilder_LangSetsMetadata(t *testing.T) {
+	service := &pdfWriterService{}
+	builder := service.NewRender()
+	builder.Lang("en-GB")
+	require.NotNil(t, builder.metadata, "expected metadata to be set")
+	assert.Equal(t, "en-GB", builder.metadata.Lang, "expected Lang en-GB")
+}
+
+func TestRenderBuilder_EmbedDataAppends(t *testing.T) {
+	service := &pdfWriterService{}
+	builder := service.NewRender()
+	builder.EmbedData(EmbeddedFile{Name: "a.json"}).EmbedData(EmbeddedFile{Name: "b.json"})
+	assert.Len(t, builder.embeddedFiles, 2, "expected 2 embedded files")
+}
+
+func TestRenderBuilder_WithEmbeddedDataLimits(t *testing.T) {
+	service := &pdfWriterService{}
+	builder := service.NewRender()
+	builder.WithEmbeddedDataLimits(EmbeddedDataLimits{MaxFiles: 3})
+	require.NotNil(t, builder.embeddedLimits, "expected embedded limits to be set")
+	assert.Equal(t, 3, builder.embeddedLimits.MaxFiles, "expected MaxFiles 3")
 }

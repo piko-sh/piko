@@ -40,6 +40,8 @@ const (
 
 // IsValid reports whether s is one of the three recognised health states, letting
 // producers normalise unknown values before populating a Snapshot.
+//
+// Returns bool which is true when s is StateHealthy, StateDegraded, or StateUnhealthy.
 func (s State) IsValid() bool {
 	switch s {
 	case StateHealthy, StateDegraded, StateUnhealthy:

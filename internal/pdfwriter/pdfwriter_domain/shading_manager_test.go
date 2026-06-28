@@ -19,9 +19,10 @@
 package pdfwriter_domain
 
 import (
-	"math"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
@@ -32,15 +33,9 @@ func TestNormaliseGradientStops_TwoStops(t *testing.T) {
 		{Colour: layouter_domain.Colour{Blue: 1}, Position: -1},
 	}
 	result := NormaliseGradientStops(stops)
-	if len(result) != 2 {
-		t.Fatalf("expected 2 stops, got %d", len(result))
-	}
-	if result[0].Position != 0 {
-		t.Errorf("first stop position = %f, want 0", result[0].Position)
-	}
-	if result[1].Position != 1 {
-		t.Errorf("last stop position = %f, want 1", result[1].Position)
-	}
+	require.Len(t, result, 2)
+	assert.Equal(t, 0.0, result[0].Position, "first stop position")
+	assert.Equal(t, 1.0, result[1].Position, "last stop position")
 }
 
 func TestNormaliseGradientStops_ThreeAutoPlaced(t *testing.T) {
@@ -50,18 +45,10 @@ func TestNormaliseGradientStops_ThreeAutoPlaced(t *testing.T) {
 		{Colour: layouter_domain.Colour{Blue: 1}, Position: -1},
 	}
 	result := NormaliseGradientStops(stops)
-	if len(result) != 3 {
-		t.Fatalf("expected 3 stops, got %d", len(result))
-	}
-	if result[0].Position != 0 {
-		t.Errorf("first stop position = %f, want 0", result[0].Position)
-	}
-	if math.Abs(result[1].Position-0.5) > 1e-9 {
-		t.Errorf("middle stop position = %f, want 0.5", result[1].Position)
-	}
-	if result[2].Position != 1 {
-		t.Errorf("last stop position = %f, want 1", result[2].Position)
-	}
+	require.Len(t, result, 3)
+	assert.Equal(t, 0.0, result[0].Position, "first stop position")
+	assert.InDelta(t, 0.5, result[1].Position, 1e-9, "middle stop position")
+	assert.Equal(t, 1.0, result[2].Position, "last stop position")
 }
 
 func TestNormaliseGradientStops_ExplicitPositions(t *testing.T) {
@@ -71,9 +58,7 @@ func TestNormaliseGradientStops_ExplicitPositions(t *testing.T) {
 		{Colour: layouter_domain.Colour{Blue: 1}, Position: 1},
 	}
 	result := NormaliseGradientStops(stops)
-	if result[1].Position != 0.3 {
-		t.Errorf("middle stop position = %f, want 0.3", result[1].Position)
-	}
+	assert.Equal(t, 0.3, result[1].Position, "middle stop position")
 }
 
 func TestNormaliseGradientStops_PreservesColours(t *testing.T) {
@@ -82,34 +67,26 @@ func TestNormaliseGradientStops_PreservesColours(t *testing.T) {
 		{Colour: layouter_domain.Colour{Red: 0.8, Green: 0.1, Blue: 0.3}, Position: 1},
 	}
 	result := NormaliseGradientStops(stops)
-	if result[0].Red != 0.2 || result[0].Green != 0.4 || result[0].Blue != 0.6 {
-		t.Errorf("first stop colour mismatch")
-	}
-	if result[1].Red != 0.8 || result[1].Green != 0.1 || result[1].Blue != 0.3 {
-		t.Errorf("second stop colour mismatch")
-	}
+	assert.Equal(t, 0.2, result[0].Red, "first stop colour mismatch")
+	assert.Equal(t, 0.4, result[0].Green, "first stop colour mismatch")
+	assert.Equal(t, 0.6, result[0].Blue, "first stop colour mismatch")
+	assert.Equal(t, 0.8, result[1].Red, "second stop colour mismatch")
+	assert.Equal(t, 0.1, result[1].Green, "second stop colour mismatch")
+	assert.Equal(t, 0.3, result[1].Blue, "second stop colour mismatch")
 }
 
 func TestComputeLinearGradientAxis_ToRight(t *testing.T) {
 
 	x0, y0, x1, y1 := ComputeLinearGradientAxis(90, 0, 0, 100, 50)
-	if math.Abs(y0-y1) > 1e-9 {
-		t.Errorf("expected horizontal axis, got y0=%f y1=%f", y0, y1)
-	}
-	if x1 <= x0 {
-		t.Errorf("expected x1 > x0 for to-right, got x0=%f x1=%f", x0, x1)
-	}
+	assert.InDelta(t, y0, y1, 1e-9, "expected horizontal axis")
+	assert.Greater(t, x1, x0, "expected x1 > x0 for to-right")
 }
 
 func TestComputeLinearGradientAxis_ToBottom(t *testing.T) {
 
 	x0, y0, x1, y1 := ComputeLinearGradientAxis(180, 0, 0, 100, 50)
-	if math.Abs(x0-x1) > 1e-9 {
-		t.Errorf("expected vertical axis, got x0=%f x1=%f", x0, x1)
-	}
-	if y1 >= y0 {
-		t.Errorf("expected y1 < y0 for to-bottom in PDF coords, got y0=%f y1=%f", y0, y1)
-	}
+	assert.InDelta(t, x0, x1, 1e-9, "expected vertical axis")
+	assert.Less(t, y1, y0, "expected y1 < y0 for to-bottom in PDF coords")
 }
 
 func TestShadingManager_WriteObjects_TwoStops(t *testing.T) {
@@ -119,27 +96,17 @@ func TestShadingManager_WriteObjects_TwoStops(t *testing.T) {
 		{Position: 1, Red: 0, Green: 0, Blue: 1},
 	}
 	name := manager.RegisterLinearGradient(0, 0, 100, 0, stops)
-	if name != "Sh1" {
-		t.Errorf("expected name Sh1, got %s", name)
-	}
-	if !manager.HasShadings() {
-		t.Error("expected HasShadings() to be true")
-	}
+	assert.Equal(t, "Sh1", name)
+	assert.True(t, manager.HasShadings(), "expected HasShadings() to be true")
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries := manager.WriteObjects(writer)
-	if !strings.Contains(entries, "/Sh1") {
-		t.Errorf("expected entries to contain /Sh1, got %q", entries)
-	}
+	assert.Contains(t, entries, "/Sh1")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/FunctionType 2") {
-		t.Error("expected Type 2 function in output")
-	}
-	if !strings.Contains(output, "/ShadingType 2") {
-		t.Error("expected ShadingType 2 in output")
-	}
+	assert.Contains(t, output, "/FunctionType 2", "expected Type 2 function in output")
+	assert.Contains(t, output, "/ShadingType 2", "expected ShadingType 2 in output")
 }
 
 func TestShadingManager_WriteObjects_ThreeStops(t *testing.T) {
@@ -156,9 +123,7 @@ func TestShadingManager_WriteObjects_ThreeStops(t *testing.T) {
 	manager.WriteObjects(writer)
 	output := string(writer.Bytes())
 
-	if !strings.Contains(output, "/FunctionType 3") {
-		t.Error("expected Type 3 stitching function in output")
-	}
+	assert.Contains(t, output, "/FunctionType 3", "expected Type 3 stitching function in output")
 }
 
 func TestShadingManager_RadialGradient(t *testing.T) {
@@ -168,17 +133,13 @@ func TestShadingManager_RadialGradient(t *testing.T) {
 		{Position: 1, Red: 0, Green: 0, Blue: 1},
 	}
 	name := manager.RegisterRadialGradient(50, 50, 100, stops)
-	if name != "Sh1" {
-		t.Errorf("expected name Sh1, got %s", name)
-	}
+	assert.Equal(t, "Sh1", name)
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	manager.WriteObjects(writer)
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/ShadingType 3") {
-		t.Error("expected ShadingType 3 for radial gradient")
-	}
+	assert.Contains(t, output, "/ShadingType 3", "expected ShadingType 3 for radial gradient")
 }
 
 func TestExpandRepeatingStops_FullRange(t *testing.T) {
@@ -189,9 +150,7 @@ func TestExpandRepeatingStops_FullRange(t *testing.T) {
 
 	expanded := ExpandRepeatingStops(stops)
 
-	if len(expanded) != 2 {
-		t.Errorf("expected 2 stops (no expansion needed), got %d", len(expanded))
-	}
+	assert.Len(t, expanded, 2, "expected 2 stops (no expansion needed)")
 }
 
 func TestExpandRepeatingStops_HalfRange(t *testing.T) {
@@ -202,12 +161,8 @@ func TestExpandRepeatingStops_HalfRange(t *testing.T) {
 
 	expanded := ExpandRepeatingStops(stops)
 
-	if len(expanded) < 4 {
-		t.Errorf("expected at least 4 stops for 0.25 pattern, got %d", len(expanded))
-	}
-	if expanded[len(expanded)-1].Position < 1.0 {
-		t.Error("expected last stop to reach 1.0")
-	}
+	assert.GreaterOrEqual(t, len(expanded), 4, "expected at least 4 stops for 0.25 pattern")
+	assert.GreaterOrEqual(t, expanded[len(expanded)-1].Position, 1.0, "expected last stop to reach 1.0")
 }
 
 func TestExpandRepeatingStops_PreservesColours(t *testing.T) {
@@ -218,18 +173,12 @@ func TestExpandRepeatingStops_PreservesColours(t *testing.T) {
 
 	expanded := ExpandRepeatingStops(stops)
 
-	if expanded[0].Red != 1 {
-		t.Error("expected first stop to be red")
-	}
+	assert.Equal(t, 1.0, expanded[0].Red, "expected first stop to be red")
 
-	if len(expanded) < 2 {
-		t.Errorf("expected at least 2 expanded stops, got %d", len(expanded))
-	}
+	assert.GreaterOrEqual(t, len(expanded), 2, "expected at least 2 expanded stops")
 
 	last := expanded[len(expanded)-1]
-	if math.Abs(last.Position-1.0) > 0.001 {
-		t.Errorf("expected last position to be 1.0, got %v", last.Position)
-	}
+	assert.InDelta(t, 1.0, last.Position, 0.001, "expected last position to be 1.0")
 }
 
 func TestExpandRepeatingStops_ZeroLength(t *testing.T) {
@@ -240,9 +189,7 @@ func TestExpandRepeatingStops_ZeroLength(t *testing.T) {
 
 	expanded := ExpandRepeatingStops(stops)
 
-	if len(expanded) != 2 {
-		t.Errorf("expected 2 stops for zero-length pattern, got %d", len(expanded))
-	}
+	assert.Len(t, expanded, 2, "expected 2 stops for zero-length pattern")
 }
 
 func TestStopsHaveAlpha(t *testing.T) {
@@ -294,9 +241,7 @@ func TestStopsHaveAlpha(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := StopsHaveAlpha(test.stops)
-			if got != test.want {
-				t.Errorf("StopsHaveAlpha() = %v, want %v", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -311,36 +256,24 @@ func TestAlphaStops(t *testing.T) {
 			{Position: 1, Red: 0, Green: 1, Blue: 0.5, Alpha: 0.3},
 		}
 		result := AlphaStops(stops)
-		if len(result) != 2 {
-			t.Fatalf("expected 2 stops, got %d", len(result))
-		}
+		require.Len(t, result, 2)
 
-		if result[0].Red != 0.8 || result[0].Green != 0.8 || result[0].Blue != 0.8 {
-			t.Errorf("first stop channels should all be 0.8, got R=%f G=%f B=%f",
-				result[0].Red, result[0].Green, result[0].Blue)
-		}
-		if result[0].Alpha != 1.0 {
-			t.Errorf("first stop alpha should be 1.0, got %f", result[0].Alpha)
-		}
-		if result[0].Position != 0 {
-			t.Errorf("first stop position should be 0, got %f", result[0].Position)
-		}
+		assert.Equal(t, 0.8, result[0].Red, "first stop channels should all be 0.8")
+		assert.Equal(t, 0.8, result[0].Green, "first stop channels should all be 0.8")
+		assert.Equal(t, 0.8, result[0].Blue, "first stop channels should all be 0.8")
+		assert.Equal(t, 1.0, result[0].Alpha, "first stop alpha should be 1.0")
+		assert.Equal(t, 0.0, result[0].Position, "first stop position should be 0")
 
-		if result[1].Red != 0.3 || result[1].Green != 0.3 || result[1].Blue != 0.3 {
-			t.Errorf("second stop channels should all be 0.3, got R=%f G=%f B=%f",
-				result[1].Red, result[1].Green, result[1].Blue)
-		}
-		if result[1].Alpha != 1.0 {
-			t.Errorf("second stop alpha should be 1.0, got %f", result[1].Alpha)
-		}
+		assert.Equal(t, 0.3, result[1].Red, "second stop channels should all be 0.3")
+		assert.Equal(t, 0.3, result[1].Green, "second stop channels should all be 0.3")
+		assert.Equal(t, 0.3, result[1].Blue, "second stop channels should all be 0.3")
+		assert.Equal(t, 1.0, result[1].Alpha, "second stop alpha should be 1.0")
 	})
 
 	t.Run("empty input returns empty", func(t *testing.T) {
 		t.Parallel()
 		result := AlphaStops(nil)
-		if len(result) != 0 {
-			t.Errorf("expected 0 stops, got %d", len(result))
-		}
+		assert.Empty(t, result, "expected 0 stops")
 	})
 }
 
@@ -356,9 +289,7 @@ func TestShadingRef(t *testing.T) {
 		}
 		name := manager.RegisterLinearGradient(0, 0, 100, 0, stops)
 		ref := manager.ShadingRef(name)
-		if ref != "" {
-			t.Errorf("expected empty ref before WriteObjects, got %q", ref)
-		}
+		assert.Equal(t, "", ref, "expected empty ref before WriteObjects")
 	})
 
 	t.Run("returns reference after WriteObjects", func(t *testing.T) {
@@ -375,13 +306,9 @@ func TestShadingRef(t *testing.T) {
 		manager.WriteObjects(writer)
 
 		ref := manager.ShadingRef(name)
-		if ref == "" {
-			t.Error("expected non-empty ref after WriteObjects")
-		}
+		assert.NotEqual(t, "", ref, "expected non-empty ref after WriteObjects")
 
-		if len(ref) < 5 {
-			t.Errorf("expected valid PDF reference, got %q", ref)
-		}
+		assert.GreaterOrEqual(t, len(ref), 5, "expected valid PDF reference, got %q", ref)
 	})
 
 	t.Run("unknown name returns empty", func(t *testing.T) {
@@ -398,9 +325,7 @@ func TestShadingRef(t *testing.T) {
 		manager.WriteObjects(writer)
 
 		ref := manager.ShadingRef("NonExistent")
-		if ref != "" {
-			t.Errorf("expected empty ref for unknown name, got %q", ref)
-		}
+		assert.Equal(t, "", ref, "expected empty ref for unknown name")
 	})
 }
 
@@ -413,25 +338,17 @@ func TestRegisterLinearGradientGray(t *testing.T) {
 		{Position: 1, Red: 0},
 	}
 	name := manager.RegisterLinearGradientGray(0, 0, 100, 0, stops)
-	if name != "Sh1" {
-		t.Errorf("expected name Sh1, got %s", name)
-	}
+	assert.Equal(t, "Sh1", name)
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/Sh1") {
-		t.Errorf("expected entries to contain /Sh1, got %q", entries)
-	}
+	assert.Contains(t, entries, "/Sh1")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/DeviceGray") {
-		t.Error("expected DeviceGray colour space for grayscale gradient")
-	}
-	if !strings.Contains(output, "/ShadingType 2") {
-		t.Error("expected ShadingType 2 for linear gradient")
-	}
+	assert.Contains(t, output, "/DeviceGray", "expected DeviceGray colour space for grayscale gradient")
+	assert.Contains(t, output, "/ShadingType 2", "expected ShadingType 2 for linear gradient")
 }
 
 func TestRegisterRadialGradientGray(t *testing.T) {
@@ -443,34 +360,24 @@ func TestRegisterRadialGradientGray(t *testing.T) {
 		{Position: 1, Red: 0},
 	}
 	name := manager.RegisterRadialGradientGray(50, 50, 100, stops)
-	if name != "Sh1" {
-		t.Errorf("expected name Sh1, got %s", name)
-	}
+	assert.Equal(t, "Sh1", name)
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/Sh1") {
-		t.Errorf("expected entries to contain /Sh1, got %q", entries)
-	}
+	assert.Contains(t, entries, "/Sh1")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/DeviceGray") {
-		t.Error("expected DeviceGray colour space for grayscale gradient")
-	}
-	if !strings.Contains(output, "/ShadingType 3") {
-		t.Error("expected ShadingType 3 for radial gradient")
-	}
+	assert.Contains(t, output, "/DeviceGray", "expected DeviceGray colour space for grayscale gradient")
+	assert.Contains(t, output, "/ShadingType 3", "expected ShadingType 3 for radial gradient")
 }
 
 func TestShadingManager_HasShadings_Empty(t *testing.T) {
 	t.Parallel()
 
 	manager := NewShadingManager()
-	if manager.HasShadings() {
-		t.Error("expected HasShadings() to be false for empty manager")
-	}
+	assert.False(t, manager.HasShadings(), "expected HasShadings() to be false for empty manager")
 }
 
 func TestShadingManager_MultipleShadings(t *testing.T) {
@@ -485,15 +392,15 @@ func TestShadingManager_MultipleShadings(t *testing.T) {
 	name2 := manager.RegisterRadialGradient(50, 50, 100, stops)
 	name3 := manager.RegisterLinearGradientGray(0, 0, 200, 0, stops)
 
-	if name1 != "Sh1" || name2 != "Sh2" || name3 != "Sh3" {
-		t.Errorf("expected Sh1, Sh2, Sh3, got %s, %s, %s", name1, name2, name3)
-	}
+	assert.Equal(t, "Sh1", name1)
+	assert.Equal(t, "Sh2", name2)
+	assert.Equal(t, "Sh3", name3)
 
 	writer := &PdfDocumentWriter{}
 	writer.WriteHeader()
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/Sh1") || !strings.Contains(entries, "/Sh2") || !strings.Contains(entries, "/Sh3") {
-		t.Errorf("expected all three shadings in entries, got %q", entries)
-	}
+	assert.Contains(t, entries, "/Sh1", "expected all three shadings in entries")
+	assert.Contains(t, entries, "/Sh2", "expected all three shadings in entries")
+	assert.Contains(t, entries, "/Sh3", "expected all three shadings in entries")
 }

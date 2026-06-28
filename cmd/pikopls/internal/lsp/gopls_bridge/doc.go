@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package gopls_bridge spawns and drives gopls as a child language server so that
-// pikopls can offer full Go intelligence inside the embedded <script
-// type="application/x-go"> blocks of .pk files.
+// Package gopls_bridge spawns and drives gopls as a child language server so that pikopls
+// can offer full Go intelligence inside the embedded <script type="application/x-go">
+// blocks of .pk files.
 //
 // pikopls stays the single language server an editor talks to. For requests whose cursor
 // lands in a Go block, pikopls acts as gopls's LSP client: it presents each block to

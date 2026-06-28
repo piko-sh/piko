@@ -19,8 +19,16 @@
 package pdfwriter_domain
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"piko.sh/piko/internal/logger/logger_domain"
+)
+
+const (
+	// maxStructTreeDepth bounds the recursion depth when serialising the structure tree.
+	maxStructTreeDepth = 512
 )
 
 // StructTag is a standard PDF structure type (ISO 32000, clause 14.8.4).
@@ -57,6 +65,18 @@ const (
 	// TagDiv represents a generic block-level division structure element.
 	TagDiv StructTag = "Div"
 
+	// TagSect represents a logical section structure element.
+	TagSect StructTag = "Sect"
+
+	// TagArt represents an article structure element.
+	TagArt StructTag = "Art"
+
+	// TagBlockQuote represents a block quotation structure element.
+	TagBlockQuote StructTag = "BlockQuote"
+
+	// TagCaption represents a caption structure element for a table or figure.
+	TagCaption StructTag = "Caption"
+
 	// TagTable represents a table structure element.
 	TagTable StructTag = "Table"
 
@@ -74,6 +94,9 @@ const (
 
 	// TagTBody represents a table body group structure element.
 	TagTBody StructTag = "TBody"
+
+	// TagTFoot represents a table footer group structure element.
+	TagTFoot StructTag = "TFoot"
 
 	// TagFigure represents a figure or image structure element.
 	TagFigure StructTag = "Figure"
@@ -108,49 +131,53 @@ const (
 var (
 	// htmlToStructTagMap maps HTML tag names to PDF structure tags.
 	htmlToStructTagMap = map[string]StructTag{
-		"h1":       TagH1,
-		"h2":       TagH2,
-		"h3":       TagH3,
-		"h4":       TagH4,
-		"h5":       TagH5,
-		"h6":       TagH6,
-		"p":        TagP,
-		"div":      TagDiv,
-		"section":  TagDiv,
-		"article":  TagDiv,
-		"main":     TagDiv,
-		"nav":      TagDiv,
-		"aside":    TagDiv,
-		"header":   TagDiv,
-		"footer":   TagDiv,
-		"span":     TagSpan,
-		"em":       TagSpan,
-		"strong":   TagSpan,
-		"b":        TagSpan,
-		"i":        TagSpan,
-		"u":        TagSpan,
-		"s":        TagSpan,
-		"small":    TagSpan,
-		"sub":      TagSpan,
-		"sup":      TagSpan,
-		"code":     TagSpan,
-		"label":    TagSpan,
-		"table":    TagTable,
-		"tr":       TagTR,
-		"th":       TagTH,
-		"td":       TagTD,
-		"thead":    TagTHead,
-		"tbody":    TagTBody,
-		"img":      TagFigure,
-		"a":        TagLink,
-		"ul":       TagL,
-		"ol":       TagL,
-		"li":       TagLI,
-		"form":     TagForm,
-		"input":    TagForm,
-		"textarea": TagForm,
-		"select":   TagForm,
-		"button":   TagForm,
+		"h1":         TagH1,
+		"h2":         TagH2,
+		"h3":         TagH3,
+		"h4":         TagH4,
+		"h5":         TagH5,
+		"h6":         TagH6,
+		"p":          TagP,
+		"div":        TagDiv,
+		"section":    TagSect,
+		"article":    TagArt,
+		"main":       TagSect,
+		"nav":        TagSect,
+		"aside":      TagSect,
+		"header":     TagSect,
+		"footer":     TagSect,
+		"blockquote": TagBlockQuote,
+		"figcaption": TagCaption,
+		"caption":    TagCaption,
+		"span":       TagSpan,
+		"em":         TagSpan,
+		"strong":     TagSpan,
+		"b":          TagSpan,
+		"i":          TagSpan,
+		"u":          TagSpan,
+		"s":          TagSpan,
+		"small":      TagSpan,
+		"sub":        TagSpan,
+		"sup":        TagSpan,
+		"code":       TagSpan,
+		"label":      TagSpan,
+		"table":      TagTable,
+		"tr":         TagTR,
+		"th":         TagTH,
+		"td":         TagTD,
+		"thead":      TagTHead,
+		"tbody":      TagTBody,
+		"tfoot":      TagTFoot,
+		"img":        TagFigure,
+		"a":          TagLink,
+		"ul":         TagL,
+		"ol":         TagL,
+		"li":         TagLI,
+		"form":       TagForm,
+		"input":      TagForm,
+		"textarea":   TagForm,
+		"select":     TagForm,
+		"button":     TagForm,
 	}
 )
 
@@ -260,12 +287,13 @@ func (st *StructTree) IsEmpty() bool {
 
 // WriteObjects serialises the structure tree into PDF objects.
 //
+// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
 // to.
 // Takes pageObjNumbers ([]int) which specifies the PDF object numbers for each page.
 //
 // Returns int which holds the StructTreeRoot object number, or 0 if the tree is empty.
-func (st *StructTree) WriteObjects(writer *PdfDocumentWriter, pageObjNumbers []int) int {
+func (st *StructTree) WriteObjects(ctx context.Context, writer *PdfDocumentWriter, pageObjNumbers []int) int {
 	if st.IsEmpty() {
 		return 0
 	}
@@ -274,7 +302,7 @@ func (st *StructTree) WriteObjects(writer *PdfDocumentWriter, pageObjNumbers []i
 	docElemNumber := writer.AllocateObject()
 
 	var parentEntries []parentTreeEntry
-	kidsStr := st.writeChildren(writer, st.root, docElemNumber, pageObjNumbers, &parentEntries)
+	kidsStr := st.writeChildren(ctx, writer, st.root, docElemNumber, pageObjNumbers, &parentEntries, 0)
 
 	docElemDict := fmt.Sprintf(
 		"<< /Type /StructElem /S /Document /P %s /K %s >>",
@@ -308,6 +336,7 @@ type parentTreeEntry struct {
 
 // writeChildren recursively writes StructElem objects for a node's children.
 //
+// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
 // to.
 // Takes node (*StructNode) which specifies the parent node whose children are written.
@@ -316,61 +345,33 @@ type parentTreeEntry struct {
 // Takes parentEntries (*[]parentTreeEntry) which specifies the accumulator for parent
 // tree entries.
 //
+// Takes depth (int) which is the current recursion depth, used to cap nesting.
+//
 // Returns string which holds the /K value (single reference or array) for the parent
 // dictionary.
 func (st *StructTree) writeChildren(
+	ctx context.Context,
 	writer *PdfDocumentWriter,
 	node *StructNode,
 	parentNumber int,
 	pageObjNumbers []int,
 	parentEntries *[]parentTreeEntry,
+	depth int,
 ) string {
 	if len(node.children) == 0 {
+		return pdfNull
+	}
+	if depth >= maxStructTreeDepth {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Structure tree nesting exceeds maximum depth; dropping deeper children",
+			logger_domain.Int("max_depth", maxStructTreeDepth))
 		return pdfNull
 	}
 
 	var kidRefs []string
 
 	for _, child := range node.children {
-		elemNumber := writer.AllocateObject()
-
-		var elemKids []string
-
-		for _, mcr := range child.mcids {
-			if mcr.pageIndex < len(pageObjNumbers) {
-				mcrStr := fmt.Sprintf("<< /Type /MCR /Pg %s /MCID %d >>",
-					FormatReference(pageObjNumbers[mcr.pageIndex]), mcr.mcid)
-				elemKids = append(elemKids, mcrStr)
-
-				*parentEntries = append(*parentEntries, parentTreeEntry{
-					pageIndex: mcr.pageIndex,
-					mcid:      mcr.mcid,
-					elemRef:   elemNumber,
-				})
-			}
-		}
-
-		childKidsStr := st.writeChildren(writer, child, elemNumber, pageObjNumbers, parentEntries)
-		if childKidsStr != pdfNull {
-			elemKids = append(elemKids, childKidsStr)
-		}
-
-		kValue := pdfNull
-		if len(elemKids) == 1 {
-			kValue = elemKids[0]
-		} else if len(elemKids) > 1 {
-			kValue = fmt.Sprintf("[%s]", strings.Join(elemKids, pdfSeparator))
-		}
-
-		altStr := ""
-		if child.altText != "" {
-			altStr = fmt.Sprintf(" /Alt (%s)", pdfEscapeString(child.altText))
-		}
-
-		writer.WriteObject(elemNumber, fmt.Sprintf(
-			"<< /Type /StructElem /S /%s /P %s /K %s%s >>",
-			string(child.tag), FormatReference(parentNumber), kValue, altStr))
-
+		elemNumber := st.writeChildElement(ctx, writer, child, parentNumber, pageObjNumbers, parentEntries, depth)
 		kidRefs = append(kidRefs, FormatReference(elemNumber))
 	}
 
@@ -378,6 +379,74 @@ func (st *StructTree) writeChildren(
 		return kidRefs[0]
 	}
 	return fmt.Sprintf("[%s]", strings.Join(kidRefs, pdfSeparator))
+}
+
+// writeChildElement allocates and writes a single StructElem object for one child node,
+// including its marked-content references (MCR kids), its recursively written
+// descendants, and any /Alt text. Each MCR encountered is also recorded in the parent
+// tree accumulator.
+//
+// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
+// Takes child (*StructNode) which is the node to write as a structure element.
+// Takes parentNumber (int) which specifies the PDF object number of the parent element.
+// Takes pageObjNumbers ([]int) which specifies the PDF object numbers for each page.
+// Takes parentEntries (*[]parentTreeEntry) which specifies the accumulator for parent
+// tree entries.
+// Takes depth (int) which is the current recursion depth of the parent, used to cap
+// nesting.
+//
+// Returns int which is the allocated PDF object number of the written element.
+func (st *StructTree) writeChildElement(
+	ctx context.Context,
+	writer *PdfDocumentWriter,
+	child *StructNode,
+	parentNumber int,
+	pageObjNumbers []int,
+	parentEntries *[]parentTreeEntry,
+	depth int,
+) int {
+	elemNumber := writer.AllocateObject()
+
+	var elemKids []string
+
+	for _, mcr := range child.mcids {
+		if mcr.pageIndex < len(pageObjNumbers) {
+			mcrStr := fmt.Sprintf("<< /Type /MCR /Pg %s /MCID %d >>",
+				FormatReference(pageObjNumbers[mcr.pageIndex]), mcr.mcid)
+			elemKids = append(elemKids, mcrStr)
+
+			*parentEntries = append(*parentEntries, parentTreeEntry{
+				pageIndex: mcr.pageIndex,
+				mcid:      mcr.mcid,
+				elemRef:   elemNumber,
+			})
+		}
+	}
+
+	childKidsStr := st.writeChildren(ctx, writer, child, elemNumber, pageObjNumbers, parentEntries, depth+1)
+	if childKidsStr != pdfNull {
+		elemKids = append(elemKids, childKidsStr)
+	}
+
+	kValue := pdfNull
+	if len(elemKids) == 1 {
+		kValue = elemKids[0]
+	} else if len(elemKids) > 1 {
+		kValue = fmt.Sprintf("[%s]", strings.Join(elemKids, pdfSeparator))
+	}
+
+	altStr := ""
+	if child.altText != "" {
+		altStr = fmt.Sprintf(" /Alt %s", encodePdfTextString(child.altText))
+	}
+
+	writer.WriteObject(elemNumber, fmt.Sprintf(
+		"<< /Type /StructElem /S /%s /P %s /K %s%s >>",
+		string(child.tag), FormatReference(parentNumber), kValue, altStr))
+
+	return elemNumber
 }
 
 // writeParentTree constructs the /ParentTree number tree mapping page indices to struct

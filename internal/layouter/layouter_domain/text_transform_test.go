@@ -20,6 +20,8 @@ package layouter_domain
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestApplyTextTransform(t *testing.T) {
@@ -70,10 +72,7 @@ func TestApplyTextTransform(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := applyTextTransform(tt.text, tt.transform)
-			if result != tt.expected {
-				t.Errorf("applyTextTransform(%q, %d) = %q, want %q",
-					tt.text, tt.transform, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }

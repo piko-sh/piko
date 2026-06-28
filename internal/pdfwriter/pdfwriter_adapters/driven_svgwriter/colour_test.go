@@ -21,125 +21,86 @@ package driven_svgwriter
 import (
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseColour_HSL_Red(t *testing.T) {
 	c, ok := ParseColour("hsl(0, 100%, 50%)")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if math.Abs(c.R-1.0) > 0.01 || c.G > 0.01 || c.B > 0.01 {
-		t.Errorf("hsl(0,100%%,50%%) = (%v,%v,%v), want ~(1,0,0)", c.R, c.G, c.B)
-	}
-	if c.A != 1 {
-		t.Errorf("alpha = %v, want 1", c.A)
-	}
+	require.True(t, ok)
+	assert.True(t, math.Abs(c.R-1.0) <= 0.01 && c.G <= 0.01 && c.B <= 0.01, "want ~(1,0,0)")
+	assert.Equal(t, 1.0, c.A)
 }
 
 func TestParseColour_HSL_Green(t *testing.T) {
 	c, ok := ParseColour("hsl(120, 100%, 50%)")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if c.R > 0.01 || math.Abs(c.G-1.0) > 0.01 || c.B > 0.01 {
-		t.Errorf("hsl(120,100%%,50%%) = (%v,%v,%v), want ~(0,1,0)", c.R, c.G, c.B)
-	}
+	require.True(t, ok)
+	assert.True(t, c.R <= 0.01 && math.Abs(c.G-1.0) <= 0.01 && c.B <= 0.01, "want ~(0,1,0)")
 }
 
 func TestParseColour_HSL_Blue(t *testing.T) {
 	c, ok := ParseColour("hsl(240, 100%, 50%)")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if c.R > 0.01 || c.G > 0.01 || math.Abs(c.B-1.0) > 0.01 {
-		t.Errorf("hsl(240,100%%,50%%) = (%v,%v,%v), want ~(0,0,1)", c.R, c.G, c.B)
-	}
+	require.True(t, ok)
+	assert.True(t, c.R <= 0.01 && c.G <= 0.01 && math.Abs(c.B-1.0) <= 0.01, "want ~(0,0,1)")
 }
 
 func TestParseColour_HSL_Grey(t *testing.T) {
 	c, ok := ParseColour("hsl(0, 0%, 50%)")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if math.Abs(c.R-0.5) > 0.01 || math.Abs(c.G-0.5) > 0.01 || math.Abs(c.B-0.5) > 0.01 {
-		t.Errorf("hsl(0,0%%,50%%) = (%v,%v,%v), want ~(0.5,0.5,0.5)", c.R, c.G, c.B)
-	}
+	require.True(t, ok)
+	assert.True(t, math.Abs(c.R-0.5) <= 0.01 && math.Abs(c.G-0.5) <= 0.01 && math.Abs(c.B-0.5) <= 0.01, "want ~(0.5,0.5,0.5)")
 }
 
 func TestParseColour_HSLA_WithAlpha(t *testing.T) {
 	c, ok := ParseColour("hsla(0, 100%, 50%, 0.5)")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if math.Abs(c.R-1.0) > 0.01 {
-		t.Errorf("R = %v, want ~1.0", c.R)
-	}
-	if math.Abs(c.A-0.5) > 0.01 {
-		t.Errorf("A = %v, want ~0.5", c.A)
-	}
+	require.True(t, ok)
+	assert.InDelta(t, 1.0, c.R, 0.01)
+	assert.InDelta(t, 0.5, c.A, 0.01)
 }
 
 func TestParseColour_HSL_NegativeHue(t *testing.T) {
 
 	c, ok := ParseColour("hsl(-120, 100%, 50%)")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if c.R > 0.01 || c.G > 0.01 || math.Abs(c.B-1.0) > 0.01 {
-		t.Errorf("hsl(-120,100%%,50%%) = (%v,%v,%v), want ~(0,0,1)", c.R, c.G, c.B)
-	}
+	require.True(t, ok)
+	assert.True(t, c.R <= 0.01 && c.G <= 0.01 && math.Abs(c.B-1.0) <= 0.01, "want ~(0,0,1)")
 }
 
 func TestParseColour_HSL_DegSuffix(t *testing.T) {
 	c, ok := ParseColour("hsl(120deg, 100%, 50%)")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if c.R > 0.01 || math.Abs(c.G-1.0) > 0.01 || c.B > 0.01 {
-		t.Errorf("hsl(120deg,100%%,50%%) = (%v,%v,%v), want ~(0,1,0)", c.R, c.G, c.B)
-	}
+	require.True(t, ok)
+	assert.True(t, c.R <= 0.01 && math.Abs(c.G-1.0) <= 0.01 && c.B <= 0.01, "want ~(0,1,0)")
 }
 
 func TestParseColour_HSL_Invalid(t *testing.T) {
 	_, ok := ParseColour("hsl(abc, 100%, 50%)")
-	if ok {
-		t.Error("expected ok=false for invalid hue")
-	}
+	assert.False(t, ok, "expected ok=false for invalid hue")
 	_, ok = ParseColour("hsl(0, 100%)")
-	if ok {
-		t.Error("expected ok=false for too few args")
-	}
+	assert.False(t, ok, "expected ok=false for too few args")
 }
 
 func TestParseColour_Existing_Named(t *testing.T) {
 	c, ok := ParseColour("red")
-	if !ok || c.R != 1.0 {
-		t.Errorf("expected red=(1,0,0), got ok=%v, R=%v", ok, c.R)
-	}
+	assert.True(t, ok)
+	assert.Equal(t, 1.0, c.R)
 }
 
 func TestParseColour_Existing_Hex(t *testing.T) {
 	c, ok := ParseColour("#ff0000")
-	if !ok || c.R != 1.0 || c.G != 0 || c.B != 0 {
-		t.Errorf("expected #ff0000=(1,0,0), got ok=%v, (%v,%v,%v)", ok, c.R, c.G, c.B)
-	}
+	assert.True(t, ok)
+	assert.Equal(t, 1.0, c.R)
+	assert.Equal(t, 0.0, c.G)
+	assert.Equal(t, 0.0, c.B)
 }
 
 func TestParseColour_Existing_None(t *testing.T) {
 	_, ok := ParseColour("none")
-	if ok {
-		t.Error("expected ok=false for 'none'")
-	}
+	assert.False(t, ok, "expected ok=false for 'none'")
 }
 
 func TestParseColour_CurrentColour(t *testing.T) {
 	c, ok := ParseColour("currentColor")
-	if !ok {
-		t.Fatal("expected ok=true")
-	}
-	if !c.IsCurrentColour() {
-		t.Error("expected currentColor sentinel")
-	}
+	require.True(t, ok)
+	assert.True(t, c.IsCurrentColour(), "expected currentColor sentinel")
 }
 
 func TestParseColour_RGB(t *testing.T) {
@@ -206,24 +167,14 @@ func TestParseColour_RGB(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			c, ok := ParseColour(tt.input)
-			if ok != tt.wantOK {
-				t.Fatalf("ParseColour(%q) ok = %v, want %v", tt.input, ok, tt.wantOK)
-			}
+			require.Equal(t, tt.wantOK, ok)
 			if !ok {
 				return
 			}
-			if math.Abs(c.R-tt.wantR) > 0.01 {
-				t.Errorf("R = %v, want ~%v", c.R, tt.wantR)
-			}
-			if math.Abs(c.G-tt.wantG) > 0.01 {
-				t.Errorf("G = %v, want ~%v", c.G, tt.wantG)
-			}
-			if math.Abs(c.B-tt.wantB) > 0.01 {
-				t.Errorf("B = %v, want ~%v", c.B, tt.wantB)
-			}
-			if c.A != 1 {
-				t.Errorf("A = %v, want 1", c.A)
-			}
+			assert.InDelta(t, tt.wantR, c.R, 0.01)
+			assert.InDelta(t, tt.wantG, c.G, 0.01)
+			assert.InDelta(t, tt.wantB, c.B, 0.01)
+			assert.Equal(t, 1.0, c.A)
 		})
 	}
 }
@@ -293,24 +244,14 @@ func TestParseColour_RGBA(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			c, ok := ParseColour(tt.input)
-			if ok != tt.wantOK {
-				t.Fatalf("ParseColour(%q) ok = %v, want %v", tt.input, ok, tt.wantOK)
-			}
+			require.Equal(t, tt.wantOK, ok)
 			if !ok {
 				return
 			}
-			if math.Abs(c.R-tt.wantR) > 0.01 {
-				t.Errorf("R = %v, want ~%v", c.R, tt.wantR)
-			}
-			if math.Abs(c.G-tt.wantG) > 0.01 {
-				t.Errorf("G = %v, want ~%v", c.G, tt.wantG)
-			}
-			if math.Abs(c.B-tt.wantB) > 0.01 {
-				t.Errorf("B = %v, want ~%v", c.B, tt.wantB)
-			}
-			if math.Abs(c.A-tt.wantA) > 0.01 {
-				t.Errorf("A = %v, want ~%v", c.A, tt.wantA)
-			}
+			assert.InDelta(t, tt.wantR, c.R, 0.01)
+			assert.InDelta(t, tt.wantG, c.G, 0.01)
+			assert.InDelta(t, tt.wantB, c.B, 0.01)
+			assert.InDelta(t, tt.wantA, c.A, 0.01)
 		})
 	}
 }
@@ -335,21 +276,11 @@ func TestParseColour_ShortHex(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			c, ok := ParseColour(tt.input)
-			if !ok {
-				t.Fatalf("ParseColour(%q) ok = false, want true", tt.input)
-			}
-			if math.Abs(c.R-tt.wantR) > 0.01 {
-				t.Errorf("R = %v, want ~%v", c.R, tt.wantR)
-			}
-			if math.Abs(c.G-tt.wantG) > 0.01 {
-				t.Errorf("G = %v, want ~%v", c.G, tt.wantG)
-			}
-			if math.Abs(c.B-tt.wantB) > 0.01 {
-				t.Errorf("B = %v, want ~%v", c.B, tt.wantB)
-			}
-			if c.A != 1 {
-				t.Errorf("A = %v, want 1", c.A)
-			}
+			require.True(t, ok)
+			assert.InDelta(t, tt.wantR, c.R, 0.01)
+			assert.InDelta(t, tt.wantG, c.G, 0.01)
+			assert.InDelta(t, tt.wantB, c.B, 0.01)
+			assert.Equal(t, 1.0, c.A)
 		})
 	}
 }
@@ -372,9 +303,7 @@ func TestParseColour_InvalidHex(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			_, ok := ParseColour(tt.input)
-			if ok {
-				t.Errorf("ParseColour(%q) ok = true, want false", tt.input)
-			}
+			assert.False(t, ok)
 		})
 	}
 }
@@ -382,25 +311,19 @@ func TestParseColour_InvalidHex(t *testing.T) {
 func TestParseColour_EmptyString(t *testing.T) {
 	t.Parallel()
 	_, ok := ParseColour("")
-	if ok {
-		t.Error("ParseColour(\"\") ok = true, want false")
-	}
+	assert.False(t, ok)
 }
 
 func TestParseColour_UnknownString(t *testing.T) {
 	t.Parallel()
 	_, ok := ParseColour("notacolour")
-	if ok {
-		t.Error("ParseColour(\"notacolour\") ok = true, want false")
-	}
+	assert.False(t, ok)
 }
 
 func TestParseColour_WhitespaceOnly(t *testing.T) {
 	t.Parallel()
 	_, ok := ParseColour("   ")
-	if ok {
-		t.Error("ParseColour(\"   \") ok = true, want false")
-	}
+	assert.False(t, ok)
 }
 
 func TestClamp01(t *testing.T) {
@@ -424,9 +347,7 @@ func TestClamp01(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := clamp01(tt.in)
-			if math.Abs(got-tt.want) > 1e-9 {
-				t.Errorf("clamp01(%v) = %v, want %v", tt.in, got, tt.want)
-			}
+			assert.InDelta(t, tt.want, got, 1e-9)
 		})
 	}
 }

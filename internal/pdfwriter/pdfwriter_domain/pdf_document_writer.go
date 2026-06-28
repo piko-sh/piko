@@ -41,6 +41,10 @@ type PdfDocumentWriter struct {
 
 	// buffer holds the accumulated PDF file bytes.
 	buffer bytes.Buffer
+
+	// compressionFallbacks counts streams written uncompressed because zlib compression
+	// failed. A non-zero count signals an unexpected writer condition worth surfacing.
+	compressionFallbacks int
 }
 
 // AllocateObject reserves an object number and returns it. Object numbers start at 1
@@ -94,6 +98,7 @@ func (writer *PdfDocumentWriter) WriteStreamObject(number int, dictionary string
 
 	fmt.Fprintf(&writer.buffer, "%d 0 obj\n", number)
 	if zlibError != nil {
+		writer.compressionFallbacks++
 		fmt.Fprintf(&writer.buffer, "<< %s /Length %d >>\n", dictionary, len(streamContent))
 		_, _ = writer.buffer.WriteString("stream\n")
 		_, _ = writer.buffer.Write(streamContent)
@@ -104,6 +109,15 @@ func (writer *PdfDocumentWriter) WriteStreamObject(number int, dictionary string
 		_, _ = writer.buffer.Write(compressedBytes)
 	}
 	_, _ = writer.buffer.WriteString("\nendstream\nendobj\n")
+}
+
+// CompressionFallbackCount returns the number of stream objects written uncompressed
+// because zlib compression failed. A non-zero value indicates an unexpected writer
+// condition.
+//
+// Returns int which is the fallback count.
+func (writer *PdfDocumentWriter) CompressionFallbackCount() int {
+	return writer.compressionFallbacks
 }
 
 // WriteRawStreamObject writes an indirect object whose body is a pre-formatted dictionary

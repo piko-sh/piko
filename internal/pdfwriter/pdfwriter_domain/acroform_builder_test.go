@@ -19,26 +19,20 @@
 package pdfwriter_domain
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAcroFormBuilder_Empty(t *testing.T) {
 	b := NewAcroFormBuilder()
-	if b.HasFields() {
-		t.Fatal("expected HasFields to be false for empty builder")
-	}
+	require.False(t, b.HasFields(), "expected HasFields to be false for empty builder")
 
 	num, refs, err := b.WriteObjects(&PdfDocumentWriter{}, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if num != 0 {
-		t.Fatalf("expected 0 object number, got %d", num)
-	}
-	if refs != nil {
-		t.Fatal("expected nil page widget refs")
-	}
+	require.NoError(t, err)
+	require.Equal(t, 0, num, "expected 0 object number")
+	require.Nil(t, refs, "expected nil page widget refs")
 }
 
 func TestAcroFormBuilder_TextField(t *testing.T) {
@@ -52,46 +46,26 @@ func TestAcroFormBuilder_TextField(t *testing.T) {
 		FontSize:  12,
 	})
 
-	if !b.HasFields() {
-		t.Fatal("expected HasFields to be true")
-	}
+	require.True(t, b.HasFields(), "expected HasFields to be true")
 
 	writer := &PdfDocumentWriter{}
 	pageObjNumbers := []int{3}
 	num, refs, err := b.WriteObjects(writer, pageObjNumbers)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if num == 0 {
-		t.Fatal("expected non-zero AcroForm object number")
-	}
+	require.NotZero(t, num, "expected non-zero AcroForm object number")
 
 	pdf := writer.Bytes()
 	content := string(pdf)
 
-	if !strings.Contains(content, "/FT /Tx") {
-		t.Error("expected /FT /Tx in output")
-	}
-	if !strings.Contains(content, "/T (username)") {
-		t.Error("expected /T (username) in output")
-	}
-	if !strings.Contains(content, "/V (hello)") {
-		t.Error("expected /V (hello) in output")
-	}
-	if strings.Contains(content, "/NeedAppearances true") {
-		t.Error("should not use /NeedAppearances when explicit /AP streams are provided")
-	}
-	if !strings.Contains(content, "/Tx BMC") {
-		t.Error("expected /Tx BMC text appearance stream for text field")
-	}
-	if !strings.Contains(content, "/BaseFont /Helvetica") {
-		t.Error("expected Helvetica font in default resources")
-	}
+	assert.Contains(t, content, "/FT /Tx", "expected /FT /Tx in output")
+	assert.Contains(t, content, "/T (username)", "expected /T (username) in output")
+	assert.Contains(t, content, "/V (hello)", "expected /V (hello) in output")
+	assert.NotContains(t, content, "/NeedAppearances true", "should not use /NeedAppearances when explicit /AP streams are provided")
+	assert.Contains(t, content, "/Tx BMC", "expected /Tx BMC text appearance stream for text field")
+	assert.Contains(t, content, "/BaseFont /Helvetica", "expected Helvetica font in default resources")
 
-	if len(refs[0]) != 1 {
-		t.Fatalf("expected 1 widget ref on page 0, got %d", len(refs[0]))
-	}
+	require.Len(t, refs[0], 1, "expected 1 widget ref on page 0")
 }
 
 func TestAcroFormBuilder_Checkbox(t *testing.T) {
@@ -107,26 +81,15 @@ func TestAcroFormBuilder_Checkbox(t *testing.T) {
 		})
 
 		writer := &PdfDocumentWriter{}
-		if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		_, _, err := b.WriteObjects(writer, []int{3})
+		require.NoError(t, err)
 
 		content := string(writer.Bytes())
-		if !strings.Contains(content, "/FT /Btn") {
-			t.Error("expected /FT /Btn for checkbox")
-		}
-		if !strings.Contains(content, "/V /Yes") {
-			t.Error("expected /V /Yes for checked checkbox")
-		}
-		if !strings.Contains(content, "/AS /Yes") {
-			t.Error("expected /AS /Yes for checked checkbox")
-		}
-		if !strings.Contains(content, "/AP <<") {
-			t.Error("expected /AP appearance dictionary")
-		}
-		if !strings.Contains(content, "/BaseFont /ZapfDingbats") {
-			t.Error("expected ZapfDingbats font for checkbox appearance")
-		}
+		assert.Contains(t, content, "/FT /Btn", "expected /FT /Btn for checkbox")
+		assert.Contains(t, content, "/V /Yes", "expected /V /Yes for checked checkbox")
+		assert.Contains(t, content, "/AS /Yes", "expected /AS /Yes for checked checkbox")
+		assert.Contains(t, content, "/AP <<", "expected /AP appearance dictionary")
+		assert.Contains(t, content, "/BaseFont /ZapfDingbats", "expected ZapfDingbats font for checkbox appearance")
 	})
 
 	t.Run("unchecked", func(t *testing.T) {
@@ -141,17 +104,12 @@ func TestAcroFormBuilder_Checkbox(t *testing.T) {
 		})
 
 		writer := &PdfDocumentWriter{}
-		if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		_, _, err := b.WriteObjects(writer, []int{3})
+		require.NoError(t, err)
 
 		content := string(writer.Bytes())
-		if !strings.Contains(content, "/V /Off") {
-			t.Error("expected /V /Off for unchecked checkbox")
-		}
-		if !strings.Contains(content, "/AS /Off") {
-			t.Error("expected /AS /Off for unchecked checkbox")
-		}
+		assert.Contains(t, content, "/V /Off", "expected /V /Off for unchecked checkbox")
+		assert.Contains(t, content, "/AS /Off", "expected /AS /Off for unchecked checkbox")
 	})
 }
 
@@ -185,34 +143,20 @@ func TestAcroFormBuilder_RadioGroup(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	num, refs, err := b.WriteObjects(writer, []int{5})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if num == 0 {
-		t.Fatal("expected non-zero AcroForm object number")
-	}
+	require.NotZero(t, num, "expected non-zero AcroForm object number")
 
 	content := string(writer.Bytes())
 
-	if !strings.Contains(content, "/Kids [") {
-		t.Error("expected /Kids array in radio group parent")
-	}
+	assert.Contains(t, content, "/Kids [", "expected /Kids array in radio group parent")
 
-	if !strings.Contains(content, "/FT /Btn") {
-		t.Error("expected /FT /Btn for radio group")
-	}
-	if !strings.Contains(content, "/T (colour)") {
-		t.Error("expected /T (colour) for radio group")
-	}
+	assert.Contains(t, content, "/FT /Btn", "expected /FT /Btn for radio group")
+	assert.Contains(t, content, "/T (colour)", "expected /T (colour) for radio group")
 
-	if !strings.Contains(content, "/V /red") {
-		t.Error("expected /V /red for selected radio")
-	}
+	assert.Contains(t, content, "/V /red", "expected /V /red for selected radio")
 
-	if len(refs[0]) != 3 {
-		t.Fatalf("expected 3 widget refs on page 0, got %d", len(refs[0]))
-	}
+	require.Len(t, refs[0], 3, "expected 3 widget refs on page 0")
 }
 
 func TestAcroFormBuilder_Dropdown(t *testing.T) {
@@ -229,20 +173,13 @@ func TestAcroFormBuilder_Dropdown(t *testing.T) {
 	})
 
 	writer := &PdfDocumentWriter{}
-	if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, _, err := b.WriteObjects(writer, []int{3})
+	require.NoError(t, err)
 
 	content := string(writer.Bytes())
-	if !strings.Contains(content, "/FT /Ch") {
-		t.Error("expected /FT /Ch for dropdown")
-	}
-	if !strings.Contains(content, "/Opt [(UK) (US) (CA)]") {
-		t.Error("expected /Opt array with options")
-	}
-	if !strings.Contains(content, "/V (UK)") {
-		t.Error("expected /V (UK) for selected option")
-	}
+	assert.Contains(t, content, "/FT /Ch", "expected /FT /Ch for dropdown")
+	assert.Contains(t, content, "/Opt [(UK) (US) (CA)]", "expected /Opt array with options")
+	assert.Contains(t, content, "/V (UK)", "expected /V (UK) for selected option")
 }
 
 func TestAcroFormBuilder_Flags(t *testing.T) {
@@ -269,14 +206,11 @@ func TestAcroFormBuilder_Flags(t *testing.T) {
 			})
 
 			writer := &PdfDocumentWriter{}
-			if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			_, _, err := b.WriteObjects(writer, []int{3})
+			require.NoError(t, err)
 
 			content := string(writer.Bytes())
-			if !strings.Contains(content, tt.expected) {
-				t.Errorf("expected %q in output", tt.expected)
-			}
+			assert.Contains(t, content, tt.expected, "expected %q in output", tt.expected)
 		})
 	}
 }
@@ -297,33 +231,17 @@ func TestWriteObjects_PushButtonEmitsAppearance(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	num, refs, err := b.WriteObjects(writer, []int{3})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if num == 0 {
-		t.Fatal("expected non-zero AcroForm object number")
-	}
-	if len(refs[0]) != 1 {
-		t.Fatalf("expected 1 widget ref on page 0, got %d", len(refs[0]))
-	}
+	require.NoError(t, err)
+	require.NotZero(t, num, "expected non-zero AcroForm object number")
+	require.Len(t, refs[0], 1, "expected 1 widget ref on page 0")
 
 	content := string(writer.Bytes())
 
-	if !strings.Contains(content, "/FT /Btn") {
-		t.Error("expected /FT /Btn for push button")
-	}
-	if !strings.Contains(content, "/AP << /N ") {
-		t.Error("expected /AP << /N appearance reference for push button")
-	}
-	if !strings.Contains(content, "/MK << /CA (Submit) >>") {
-		t.Errorf("expected /MK << /CA (Submit) >> for push button, got: %s", content)
-	}
-	if !strings.Contains(content, "/BaseFont /Helvetica") {
-		t.Error("expected Helvetica font in default resources for push button caption")
-	}
-	if strings.Contains(content, "/AS /") {
-		t.Error("push button must not carry an /AS appearance state entry")
-	}
+	assert.Contains(t, content, "/FT /Btn", "expected /FT /Btn for push button")
+	assert.Contains(t, content, "/AP << /N ", "expected /AP << /N appearance reference for push button")
+	assert.Contains(t, content, "/MK << /CA (Submit) >>", "expected /MK << /CA (Submit) >> for push button")
+	assert.Contains(t, content, "/BaseFont /Helvetica", "expected Helvetica font in default resources for push button caption")
+	assert.NotContains(t, content, "/AS /", "push button must not carry an /AS appearance state entry")
 }
 
 func TestWriteObjects_PushButtonCaptionFallsBackToName(t *testing.T) {
@@ -339,14 +257,11 @@ func TestWriteObjects_PushButtonCaptionFallsBackToName(t *testing.T) {
 	})
 
 	writer := &PdfDocumentWriter{}
-	if _, _, err := b.WriteObjects(writer, []int{3}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	_, _, err := b.WriteObjects(writer, []int{3})
+	require.NoError(t, err)
 
 	content := string(writer.Bytes())
-	if !strings.Contains(content, "/MK << /CA (noLabel) >>") {
-		t.Errorf("expected caption to fall back to field name, got: %s", content)
-	}
+	assert.Contains(t, content, "/MK << /CA (noLabel) >>", "expected caption to fall back to field name")
 }
 
 func TestWriteField_UnhandledFieldTypeReturnsError(t *testing.T) {
@@ -362,12 +277,8 @@ func TestWriteField_UnhandledFieldTypeReturnsError(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	_, _, err := b.WriteObjects(writer, []int{3})
-	if err == nil {
-		t.Fatal("expected error for unhandled FormFieldType")
-	}
-	if !strings.Contains(err.Error(), "unhandled FormFieldType") {
-		t.Errorf("expected error to mention 'unhandled FormFieldType', got: %v", err)
-	}
+	require.Error(t, err, "expected error for unhandled FormFieldType")
+	assert.Contains(t, err.Error(), "unhandled FormFieldType", "expected error to mention 'unhandled FormFieldType'")
 }
 
 func TestAcroFormBuilder_MultipleFieldsMultiPage(t *testing.T) {
@@ -395,25 +306,13 @@ func TestAcroFormBuilder_MultipleFieldsMultiPage(t *testing.T) {
 
 	writer := &PdfDocumentWriter{}
 	_, refs, multiErr := b.WriteObjects(writer, []int{5, 6})
-	if multiErr != nil {
-		t.Fatalf("unexpected error: %v", multiErr)
-	}
+	require.NoError(t, multiErr)
 
-	if len(refs[0]) != 1 {
-		t.Errorf("expected 1 widget on page 0, got %d", len(refs[0]))
-	}
-	if len(refs[1]) != 2 {
-		t.Errorf("expected 2 widgets on page 1, got %d", len(refs[1]))
-	}
+	assert.Len(t, refs[0], 1, "expected 1 widget on page 0")
+	assert.Len(t, refs[1], 2, "expected 2 widgets on page 1")
 
 	content := string(writer.Bytes())
-	if !strings.Contains(content, "/T (field_page0)") {
-		t.Error("expected field_page0 in output")
-	}
-	if !strings.Contains(content, "/T (field_page1)") {
-		t.Error("expected field_page1 in output")
-	}
-	if !strings.Contains(content, "/T (check_page1)") {
-		t.Error("expected check_page1 in output")
-	}
+	assert.Contains(t, content, "/T (field_page0)", "expected field_page0 in output")
+	assert.Contains(t, content, "/T (field_page1)", "expected field_page1 in output")
+	assert.Contains(t, content, "/T (check_page1)", "expected check_page1 in output")
 }

@@ -202,18 +202,7 @@ func (b *boxTreeBuilder) processElementNode(
 
 	box.Style.Language = inheritLanguage(node, parent)
 
-	if boxType == BoxReplaced {
-		if isFormElement(node) {
-			resolveFormIntrinsicDimensions(box, node)
-		} else {
-			b.resolveIntrinsicDimensions(ctx, box, node)
-		}
-	}
-
-	if boxType == BoxTableCell {
-		box.Colspan = parseIntAttributeOrDefault(node, "colspan", 1)
-		box.Rowspan = parseIntAttributeOrDefault(node, "rowspan", 1)
-	}
+	b.applyBoxTypeSpecificSetup(ctx, box, node, boxType)
 
 	parent.Children = append(parent.Children, box)
 
@@ -239,8 +228,10 @@ func (b *boxTreeBuilder) processElementNode(
 
 	b.insertPseudoElement(node, box, containingBlock, PseudoBefore)
 
-	for _, child := range node.Children {
-		b.buildSubtree(ctx, child, box, childContainingBlock, childTransformAncestor)
+	if boxType != BoxReplaced {
+		for _, child := range node.Children {
+			b.buildSubtree(ctx, child, box, childContainingBlock, childTransformAncestor)
+		}
 	}
 
 	b.insertPseudoElement(node, box, containingBlock, PseudoAfter)
@@ -248,6 +239,35 @@ func (b *boxTreeBuilder) processElementNode(
 	b.popCounterResets(style, resetCount)
 
 	fixAnonymousBoxes(box)
+}
+
+// applyBoxTypeSpecificSetup populates box fields that depend on the box type: intrinsic
+// dimensions for replaced elements (forms and other replaced content resolve differently)
+// and colspan/rowspan for table cells. Box types without type-specific setup are left
+// untouched.
+//
+// Takes ctx (context.Context) which carries the cancellation signal.
+// Takes box (*LayoutBox) which is the box to populate.
+// Takes node (*ast_domain.TemplateNode) which is the source element node.
+// Takes boxType (BoxType) which selects the type-specific setup to apply.
+func (b *boxTreeBuilder) applyBoxTypeSpecificSetup(
+	ctx context.Context,
+	box *LayoutBox,
+	node *ast_domain.TemplateNode,
+	boxType BoxType,
+) {
+	if boxType == BoxReplaced {
+		if isFormElement(node) {
+			resolveFormIntrinsicDimensions(box, node)
+		} else {
+			b.resolveIntrinsicDimensions(ctx, box, node)
+		}
+	}
+
+	if boxType == BoxTableCell {
+		box.Colspan = parseIntAttributeOrDefault(node, "colspan", 1)
+		box.Rowspan = parseIntAttributeOrDefault(node, "rowspan", 1)
+	}
 }
 
 // insertPseudoElement creates a synthetic text run box for a ::before or ::after
@@ -558,6 +578,15 @@ func (b *boxTreeBuilder) resolveNodeStyle(node *ast_domain.TemplateNode) *Comput
 // attribute.
 func (b *boxTreeBuilder) resolveIntrinsicDimensions(ctx context.Context, box *LayoutBox, node *ast_domain.TemplateNode) {
 	_, l := logger_domain.From(ctx, nil)
+
+	if node.TagName == "svg" {
+		if width, height, ok := parseInlineSVGDimensions(node); ok {
+			box.IntrinsicWidth = width
+			box.IntrinsicHeight = height
+		}
+		return
+	}
+
 	if b.imageResolver == nil {
 		return
 	}

@@ -23,6 +23,9 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/fonts"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 
@@ -40,18 +43,12 @@ func TestSubsetTrueTypeFont_ProducesValidTTF(t *testing.T) {
 	}
 
 	subset, err := pdfwriter_domain.SubsetTrueTypeFont(fonts.NotoSansRegularTTF, usedGlyphs)
-	if err != nil {
-		t.Fatalf("SubsetTrueTypeFont failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	if len(subset) < 12 {
-		t.Fatalf("subset too short: %d bytes", len(subset))
-	}
+	require.GreaterOrEqual(t, len(subset), 12, "subset too short")
 
 	version := binary.BigEndian.Uint32(subset[0:4])
-	if version != 0x00010000 {
-		t.Errorf("unexpected TTF version: 0x%08X", version)
-	}
+	assert.Equal(t, uint32(0x00010000), version)
 }
 
 func TestSubsetTrueTypeFont_IsSmallerThanOriginal(t *testing.T) {
@@ -61,14 +58,9 @@ func TestSubsetTrueTypeFont_IsSmallerThanOriginal(t *testing.T) {
 	}
 
 	subset, err := pdfwriter_domain.SubsetTrueTypeFont(fonts.NotoSansRegularTTF, usedGlyphs)
-	if err != nil {
-		t.Fatalf("SubsetTrueTypeFont failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	if len(subset) >= len(fonts.NotoSansRegularTTF) {
-		t.Errorf("subset (%d bytes) is not smaller than original (%d bytes)",
-			len(subset), len(fonts.NotoSansRegularTTF))
-	}
+	assert.Less(t, len(subset), len(fonts.NotoSansRegularTTF), "subset is not smaller than original")
 }
 
 func TestSubsetTrueTypeFont_RoundTripWithGoText(t *testing.T) {
@@ -80,27 +72,17 @@ func TestSubsetTrueTypeFont_RoundTripWithGoText(t *testing.T) {
 	}
 
 	subset, err := pdfwriter_domain.SubsetTrueTypeFont(fonts.NotoSansRegularTTF, usedGlyphs)
-	if err != nil {
-		t.Fatalf("SubsetTrueTypeFont failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	face, parseError := goTextFont.ParseTTF(bytes.NewReader(subset))
-	if parseError != nil {
-		t.Fatalf("go-text/typesetting failed to parse subset: %v", parseError)
-	}
+	require.NoError(t, parseError, "go-text/typesetting failed to parse subset")
 
 	glyphID, hasGlyph := face.NominalGlyph('A')
-	if !hasGlyph {
-		t.Error("subset font does not contain glyph for 'A'")
-	}
-	if glyphID != 36 {
-		t.Errorf("expected glyph ID 36 for 'A', got %d", glyphID)
-	}
+	assert.True(t, hasGlyph, "subset font does not contain glyph for 'A'")
+	assert.EqualValues(t, 36, glyphID)
 
 	advance := face.HorizontalAdvance(glyphID)
-	if advance <= 0 {
-		t.Errorf("expected positive advance for 'A', got %f", advance)
-	}
+	assert.Positive(t, advance, "expected positive advance for 'A'")
 }
 
 func TestSubsetTrueTypeFont_IncludesNotdef(t *testing.T) {
@@ -109,14 +91,10 @@ func TestSubsetTrueTypeFont_IncludesNotdef(t *testing.T) {
 	}
 
 	subset, err := pdfwriter_domain.SubsetTrueTypeFont(fonts.NotoSansRegularTTF, usedGlyphs)
-	if err != nil {
-		t.Fatalf("SubsetTrueTypeFont failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	face, parseError := goTextFont.ParseTTF(bytes.NewReader(subset))
-	if parseError != nil {
-		t.Fatalf("go-text/typesetting failed to parse subset: %v", parseError)
-	}
+	require.NoError(t, parseError, "go-text/typesetting failed to parse subset")
 
 	_ = face.Upem()
 }
@@ -125,37 +103,23 @@ func TestSubsetTrueTypeFont_EmptyGlyphSet(t *testing.T) {
 	usedGlyphs := map[uint16]rune{}
 
 	subset, err := pdfwriter_domain.SubsetTrueTypeFont(fonts.NotoSansRegularTTF, usedGlyphs)
-	if err != nil {
-		t.Fatalf("SubsetTrueTypeFont failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	if len(subset) >= len(fonts.NotoSansRegularTTF) {
-		t.Errorf("empty subset (%d bytes) should be smaller than original (%d bytes)",
-			len(subset), len(fonts.NotoSansRegularTTF))
-	}
+	assert.Less(t, len(subset), len(fonts.NotoSansRegularTTF), "empty subset should be smaller than original")
 }
 
 func TestExtractFontDescriptor(t *testing.T) {
 	info, err := pdfwriter_domain.ExtractFontDescriptor(fonts.NotoSansRegularTTF)
-	if err != nil {
-		t.Fatalf("ExtractFontDescriptor failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	if info.UnitsPerEm != 1000 {
-		t.Errorf("expected UnitsPerEm=1000, got %d", info.UnitsPerEm)
-	}
+	assert.EqualValues(t, 1000, info.UnitsPerEm)
 
-	if info.Ascent <= 0 {
-		t.Errorf("expected positive Ascent, got %d", info.Ascent)
-	}
+	assert.Positive(t, info.Ascent, "expected positive Ascent")
 
-	if info.Descent >= 0 {
-		t.Errorf("expected negative Descent, got %d", info.Descent)
-	}
+	assert.Negative(t, info.Descent, "expected negative Descent")
 
-	if info.PostScriptName == "" || info.PostScriptName == "Unknown" {
-		t.Errorf("expected a PostScript name, got %q", info.PostScriptName)
-	}
+	assert.NotEqual(t, "", info.PostScriptName)
+	assert.NotEqual(t, "Unknown", info.PostScriptName)
 }
 
 func TestBuildToUnicodeCMap(t *testing.T) {
@@ -167,15 +131,9 @@ func TestBuildToUnicodeCMap(t *testing.T) {
 
 	cmap := pdfwriter_domain.BuildToUnicodeCMap(usedGlyphs)
 
-	if !bytes.Contains([]byte(cmap), []byte("beginbfchar")) {
-		t.Error("CMap does not contain beginbfchar")
-	}
-	if !bytes.Contains([]byte(cmap), []byte("endcmap")) {
-		t.Error("CMap does not contain endcmap")
-	}
-	if !bytes.Contains([]byte(cmap), []byte("<0024> <0041>")) {
-		t.Error("CMap does not contain mapping for glyph 36 -> 'A'")
-	}
+	assert.Contains(t, cmap, "beginbfchar")
+	assert.Contains(t, cmap, "endcmap")
+	assert.Contains(t, cmap, "<0024> <0041>", "CMap does not contain mapping for glyph 36 -> 'A'")
 }
 
 func TestBuildToUnicodeCMap_Ligature(t *testing.T) {
@@ -186,14 +144,10 @@ func TestBuildToUnicodeCMap_Ligature(t *testing.T) {
 
 	cmap := pdfwriter_domain.BuildToUnicodeCMap(usedGlyphs)
 
-	if !bytes.Contains([]byte(cmap), []byte("<0676> <00660069>")) {
-		t.Errorf("CMap does not contain multi-char mapping for fi ligature.\nCMap:\n%s", cmap)
-	}
+	assert.Contains(t, cmap, "<0676> <00660069>", "CMap does not contain multi-char mapping for fi ligature")
 }
 
 func TestGlyphAdvanceWidth(t *testing.T) {
 	width := pdfwriter_domain.GlyphAdvanceWidth(fonts.NotoSansRegularTTF, 36)
-	if width <= 0 {
-		t.Errorf("expected positive advance width for glyph 36, got %d", width)
-	}
+	assert.Positive(t, width, "expected positive advance width for glyph 36")
 }

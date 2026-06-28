@@ -21,15 +21,16 @@ package pdfwriter_domain
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildNamedDestsDict_Empty(t *testing.T) {
 	painter := &PdfPainter{}
 	writer := &PdfDocumentWriter{}
 	result := painter.buildNamedDestsDict(writer, []int{3})
-	if result != "" {
-		t.Errorf("expected empty string for no dests, got %q", result)
-	}
+	assert.Empty(t, result, "expected empty string for no dests")
 }
 
 func TestBuildNamedDestsDict_SingleDest(t *testing.T) {
@@ -42,20 +43,12 @@ func TestBuildNamedDestsDict_SingleDest(t *testing.T) {
 	writer.WriteHeader()
 	result := painter.buildNamedDestsDict(writer, []int{3})
 
-	if !strings.Contains(result, "/Dests") {
-		t.Fatalf("expected /Dests reference, got %q", result)
-	}
+	require.Contains(t, result, "/Dests", "expected /Dests reference")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "(intro)") {
-		t.Errorf("expected destination name (intro), got %q", output)
-	}
-	if !strings.Contains(output, "3 0 R") {
-		t.Errorf("expected page reference 3 0 R, got %q", output)
-	}
-	if !strings.Contains(output, "/XYZ 0 500 null") {
-		t.Errorf("expected /XYZ destination, got %q", output)
-	}
+	assert.Contains(t, output, "(intro)", "expected destination name (intro)")
+	assert.Contains(t, output, "3 0 R", "expected page reference 3 0 R")
+	assert.Contains(t, output, "/XYZ 0 500 null", "expected /XYZ destination")
 }
 
 func TestBuildNamedDestsDict_MultipleDests(t *testing.T) {
@@ -69,20 +62,15 @@ func TestBuildNamedDestsDict_MultipleDests(t *testing.T) {
 	writer.WriteHeader()
 	result := painter.buildNamedDestsDict(writer, []int{3, 5})
 
-	if !strings.Contains(result, "/Dests") {
-		t.Fatalf("expected /Dests reference, got %q", result)
-	}
+	require.Contains(t, result, "/Dests", "expected /Dests reference")
 
 	output := string(writer.Bytes())
 
 	idx1 := strings.Index(output, "(chapter-1)")
 	idx2 := strings.Index(output, "(chapter-2)")
-	if idx1 < 0 || idx2 < 0 {
-		t.Fatalf("expected both destinations in output, got %q", output)
-	}
-	if idx1 > idx2 {
-		t.Errorf("expected chapter-1 before chapter-2 (sorted), got %q", output)
-	}
+	require.GreaterOrEqual(t, idx1, 0, "expected chapter-1 in output")
+	require.GreaterOrEqual(t, idx2, 0, "expected chapter-2 in output")
+	assert.LessOrEqual(t, idx1, idx2, "expected chapter-1 before chapter-2 (sorted)")
 }
 
 func TestBuildNamedDestsDict_Deduplicates(t *testing.T) {
@@ -98,7 +86,5 @@ func TestBuildNamedDestsDict_Deduplicates(t *testing.T) {
 
 	output := string(writer.Bytes())
 	count := strings.Count(output, "(same)")
-	if count != 1 {
-		t.Errorf("expected 1 occurrence of (same), got %d in %q", count, output)
-	}
+	assert.Equal(t, 1, count, "expected 1 occurrence of (same)")
 }

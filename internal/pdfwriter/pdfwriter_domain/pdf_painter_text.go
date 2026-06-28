@@ -36,6 +36,14 @@ func (painter *PdfPainter) paintImage(ctx context.Context, stream *ContentStream
 		return
 	}
 
+	if painter.svgWriter != nil && box.SourceNode.TagName == "svg" {
+		if markup := serialiseInlineSVG(ctx, box.SourceNode); markup != "" {
+			if painter.paintSVGVector(ctx, stream, box, markup) == nil {
+				return
+			}
+		}
+	}
+
 	source := extractSrcAttribute(box)
 	if source == "" {
 		return
@@ -45,6 +53,21 @@ func (painter *PdfPainter) paintImage(ctx context.Context, stream *ContentStream
 		return
 	}
 
+	painter.paintRasterImage(ctx, stream, box, source)
+}
+
+// paintRasterImage fetches a source's raster data, registers it as an XObject and emits
+// it into the stream.
+//
+// It is the raster fallback used when vector (SVG) rendering is unavailable or did not
+// apply. Missing image data, fetch errors and zero-dimension images are silently ignored,
+// leaving the stream unchanged.
+//
+// Takes ctx (context.Context) which controls cancellation.
+// Takes stream (*ContentStream) which receives PDF operators.
+// Takes box (*layouter_domain.LayoutBox) which is the replaced element box.
+// Takes source (string) which is the resolved image source reference.
+func (painter *PdfPainter) paintRasterImage(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, source string) {
 	if painter.imageData == nil {
 		return
 	}
@@ -169,6 +192,12 @@ func (painter *PdfPainter) paintSVGVector(ctx context.Context, stream *ContentSt
 			key := fontInstanceKey(resolved.key)
 			return painter.fontEmbedder.RegisterFont(resolved.data, key)
 		},
+
+		CurrentColourSet: true,
+		CurrentColourR:   box.Style.Colour.Red,
+		CurrentColourG:   box.Style.Colour.Green,
+		CurrentColourB:   box.Style.Colour.Blue,
+		CurrentColourA:   box.Style.Colour.Alpha,
 	}
 
 	return painter.svgWriter.RenderSVG(ctx, svgXML, renderCtx, pdfX, pdfY, contentW, contentH)

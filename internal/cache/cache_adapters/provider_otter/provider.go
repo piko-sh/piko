@@ -20,6 +20,7 @@ package provider_otter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"sync"
@@ -29,6 +30,11 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
+)
+
+const (
+	// logKeyNamespace is the structured-log field name for an Otter cache namespace.
+	logKeyNamespace = "namespace"
 )
 
 // OtterProvider implements the cache.Provider interface for Otter in-memory caches.
@@ -107,7 +113,7 @@ func (p *OtterProvider) CreateNamespaceTyped(namespace string, options any) (any
 	if existing, exists := p.namespaces[namespace]; exists {
 		_, l := logger_domain.From(context.Background(), log)
 		l.Internal("Reusing existing Otter namespace",
-			logger_domain.String("namespace", namespace))
+			logger_domain.String(logKeyNamespace, namespace))
 		return existing, nil
 	}
 
@@ -137,28 +143,47 @@ func (p *OtterProvider) ListNamespaces() map[string]any {
 	return result
 }
 
-// Close releases all resources managed by this provider. For Otter, this closes all cache
-// instances.
+// Close releases all resources managed by this provider. For Otter, this closes every
+// cache instance, which stops their background maintenance goroutines.
 //
-// Returns error when closing fails, though currently always returns nil.
+// Returns error which is the joined set of failures from closing individual namespace
+// caches, or nil when all close cleanly.
 //
 // Safe for concurrent use; holds the provider's mutex during cleanup.
 func (p *OtterProvider) Close() error {
-	_, l := logger_domain.From(context.Background(), log)
+	ctx, l := logger_domain.From(context.Background(), log)
 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	var errs []error
 	for namespace, cacheAny := range p.namespaces {
-		if closer, ok := cacheAny.(interface{ Close() }); ok {
-			closer.Close()
-			l.Internal("Closed Otter namespace", logger_domain.String("namespace", namespace))
+		closer, ok := cacheAny.(interface {
+			Close(context.Context) error
+		})
+		if !ok {
+			l.Warn("Otter namespace instance does not implement Close(ctx); its goroutines cannot be stopped",
+				logger_domain.String(logKeyNamespace, namespace))
+			continue
 		}
+
+		if err := closer.Close(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("closing otter namespace %q: %w", namespace, err))
+			l.Error("Failed to close Otter namespace",
+				logger_domain.String(logKeyNamespace, namespace), logger_domain.Error(err))
+			continue
+		}
+
+		l.Internal("Closed Otter namespace", logger_domain.String(logKeyNamespace, namespace))
 	}
 
 	p.namespaces = make(map[string]any)
 
 	l.Internal("Closed Otter provider")
+
+	if len(errs) > 0 {
+		return fmt.Errorf("closing otter provider namespaces: %w", errors.Join(errs...))
+	}
 	return nil
 }
 

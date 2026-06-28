@@ -144,12 +144,13 @@ func CopyProjectAgents(destRoot string) error {
 	})
 }
 
-// CopyClaudeCodePlugin writes the Claude Code skills-directory plugin to the given
-// directory: SKILL.md, references/, the .claude-plugin/plugin.json manifest, and the
-// .lsp.json language-server config. Used by `piko agents install` to install it at
-// ~/.claude/skills/piko/, where Claude Code auto-loads it as the piko@skills-dir plugin -
-// giving Claude both the framework skill and live pikopls intelligence for .pk and .pkc
-// files.
+// CopyClaudeCodePlugin writes the Claude Code skills-directory plugin to a directory.
+//
+// The plugin comprises SKILL.md, references/, the .claude-plugin/plugin.json manifest,
+// and the .lsp.json language-server config. Used by `piko agents install` to install it
+// at ~/.claude/skills/piko/, where Claude Code auto-loads it as the piko@skills-dir
+// plugin, giving Claude both the framework skill and live pikopls intelligence for .pk
+// and .pkc files.
 //
 // The entire destination directory is removed before copying so that renamed or deleted
 // files do not linger across Piko upgrades.

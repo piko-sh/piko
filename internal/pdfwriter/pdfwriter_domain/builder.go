@@ -90,6 +90,9 @@ type RenderBuilder struct {
 	// metadata holds the PDF document metadata fields, or nil.
 	metadata *PdfMetadata
 
+	// embeddedLimits overrides the embedded-data size and count limits, or nil for defaults.
+	embeddedLimits *EmbeddedDataLimits
+
 	// request holds the HTTP request context for template rendering, or nil.
 	request *http.Request
 
@@ -101,6 +104,9 @@ type RenderBuilder struct {
 
 	// pageLabels holds the page label ranges for the document.
 	pageLabels []PageLabelRange
+
+	// embeddedFiles holds machine-readable payloads attached as PDF associated files.
+	embeddedFiles []EmbeddedFile
 
 	// fontSize is the root font size in points (0 means use default).
 	fontSize float64
@@ -151,6 +157,48 @@ func (b *RenderBuilder) Props(props any) *RenderBuilder {
 // Returns *RenderBuilder for method chaining.
 func (b *RenderBuilder) Metadata(m PdfMetadata) *RenderBuilder {
 	b.metadata = &m
+	return b
+}
+
+// Lang sets the document language as a BCP-47 tag (for example "en-GB"). The language is
+// written to the catalog /Lang entry and the XMP dc:language element so assistive
+// technology and extractors can determine the document's natural language.
+//
+// Takes language (string) which holds the BCP-47 language tag.
+//
+// Returns *RenderBuilder for method chaining.
+func (b *RenderBuilder) Lang(language string) *RenderBuilder {
+	if b.metadata == nil {
+		b.metadata = &PdfMetadata{}
+	}
+	b.metadata.Lang = language
+	return b
+}
+
+// EmbedData attaches one or more machine-readable payloads to the document as PDF
+// associated files (per ISO 32000-2 /AF). The payloads ride alongside the visible page so
+// parsers can read exact structured data (for example a JSON Resume or schema.org Person)
+// rather than reconstructing it from the rendered glyphs.
+//
+// Takes files (...EmbeddedFile) which hold the payloads to embed.
+//
+// Returns *RenderBuilder for method chaining.
+func (b *RenderBuilder) EmbedData(files ...EmbeddedFile) *RenderBuilder {
+	b.embeddedFiles = append(b.embeddedFiles, files...)
+	return b
+}
+
+// WithEmbeddedDataLimits overrides the size and count limits applied to embedded data.
+//
+// Unset (non-positive) fields keep their high built-in defaults. Do returns a wrapped
+// sentinel (ErrTooManyEmbeddedFiles, ErrEmbeddedFileTooLarge or
+// ErrStructuredMetadataTooLarge) when a payload exceeds its limit.
+//
+// Takes limits (EmbeddedDataLimits) which holds the overrides.
+//
+// Returns *RenderBuilder for method chaining.
+func (b *RenderBuilder) WithEmbeddedDataLimits(limits EmbeddedDataLimits) *RenderBuilder {
+	b.embeddedLimits = &limits
 	return b
 }
 
@@ -205,13 +253,26 @@ func (b *RenderBuilder) WatermarkConfig(wm WatermarkConfig) *RenderBuilder {
 	return b
 }
 
-// TaggedPDF enables PDF structure tagging for accessibility (PDF/UA). When enabled, the
-// painter wraps painted elements in marked content sequences and builds a StructTreeRoot
-// with semantic structure tags derived from HTML elements.
+// TaggedPDF enables PDF structure tagging for accessibility (PDF/UA).
+//
+// The painter wraps painted elements in marked content sequences and builds a
+// StructTreeRoot with semantic structure tags derived from HTML elements. Tagging is
+// enabled by default; TaggedPDF is retained for explicitness and backward compatibility,
+// and Untagged disables it.
 //
 // Returns *RenderBuilder for method chaining.
 func (b *RenderBuilder) TaggedPDF() *RenderBuilder {
 	b.tagged = true
+	return b
+}
+
+// Untagged disables PDF structure tagging, producing a smaller, visual-only PDF without a
+// structure tree. Tagging is on by default because a tagged document is far more
+// parseable by assistive technology and content extractors.
+//
+// Returns *RenderBuilder for method chaining.
+func (b *RenderBuilder) Untagged() *RenderBuilder {
+	b.tagged = false
 	return b
 }
 
@@ -320,6 +381,11 @@ func (b *RenderBuilder) Do(ctx context.Context) (*pdfwriter_dto.PdfResult, error
 		return nil, ErrTemplatePath
 	}
 
+	if limitErr := b.checkEmbeddedDataLimits(); limitErr != nil {
+		l.ReportError(span, limitErr, "Embedded data exceeds configured limits")
+		return nil, limitErr
+	}
+
 	templateAST, styling, err := b.service.templateRunner.RunPdfWithProps(ctx, b.templatePath, b.request, b.props)
 	if err != nil {
 		l.ReportError(span, err, "Failed to run PDF template")
@@ -330,6 +396,8 @@ func (b *RenderBuilder) Do(ctx context.Context) (*pdfwriter_dto.PdfResult, error
 	}
 
 	layoutConfig := b.buildLayoutConfig()
+
+	layoutConfig.Page = applyPageCSS(styling, layoutConfig.Page)
 	layoutResult, err := b.service.layouter.Layout(ctx, templateAST, styling, layoutConfig)
 	if err != nil {
 		l.ReportError(span, err, "Layout failed for PDF template")
@@ -349,10 +417,7 @@ func (b *RenderBuilder) Do(ctx context.Context) (*pdfwriter_dto.PdfResult, error
 		return nil, fmt.Errorf("PDF post-processing failed for template '%s': %w", b.templatePath, err)
 	}
 
-	var layoutDump string
-	if rootBox, ok := layoutResult.RootBox.(*layouter_domain.LayoutBox); ok && rootBox != nil {
-		layoutDump = layouter_domain.SerialiseLayoutBoxToGoFileContent(rootBox, "test")
-	}
+	layoutDump := layoutDumpFor(layoutResult)
 
 	l.Trace("Successfully rendered PDF template via builder",
 		logger_domain.String("templatePath", b.templatePath),
@@ -365,6 +430,33 @@ func (b *RenderBuilder) Do(ctx context.Context) (*pdfwriter_dto.PdfResult, error
 		PageCount:  pageCount,
 		LayoutDump: layoutDump,
 	}, nil
+}
+
+// checkEmbeddedDataLimits validates the embedded files and structured metadata against
+// the configured limits, returning a wrapped sentinel when a payload is too large or
+// numerous.
+//
+// Returns error which wraps a sentinel when a limit is exceeded.
+func (b *RenderBuilder) checkEmbeddedDataLimits() error {
+	var structuredMetadata *StructuredMetadata
+	if b.metadata != nil {
+		structuredMetadata = b.metadata.StructuredData
+	}
+	return validateEmbeddedData(b.embeddedFiles, structuredMetadata, b.embeddedLimits)
+}
+
+// layoutDumpFor serialises the layout box tree to Go source for golden comparison, or an
+// empty string when the root box is unavailable.
+//
+// Takes layoutResult (*layouter_dto.LayoutResult) which holds the layout tree.
+//
+// Returns string which is the serialised layout, or empty.
+func layoutDumpFor(layoutResult *layouter_dto.LayoutResult) string {
+	rootBox, ok := layoutResult.RootBox.(*layouter_domain.LayoutBox)
+	if !ok || rootBox == nil {
+		return ""
+	}
+	return layouter_domain.SerialiseLayoutBoxToGoFileContent(rootBox, "test")
 }
 
 // substitutePageNumbers replaces page number placeholders in the layout tree and returns
@@ -437,15 +529,23 @@ func (b *RenderBuilder) paintPDF(
 	painter := NewPdfPainter(painterWidth, painterHeight, painterFontEntries, b.service.imageData)
 
 	ConfigurePainter(painter, PainterConfig{
-		Metadata:    b.metadata,
-		ViewerPrefs: b.viewerPrefs,
-		PageLabels:  b.pageLabels,
-		Watermark:   b.watermark,
-		PdfAConfig:  b.pdfaConfig,
-		SVGWriter:   b.svgWriter,
-		SVGData:     b.svgData,
-		Tagged:      b.tagged,
+		Metadata:      b.metadata,
+		ViewerPrefs:   b.viewerPrefs,
+		PageLabels:    b.pageLabels,
+		Watermark:     b.watermark,
+		PdfAConfig:    b.pdfaConfig,
+		SVGWriter:     b.svgWriter,
+		SVGData:       b.svgData,
+		Tagged:        b.tagged,
+		EmitXMP:       true,
+		EmbeddedFiles: b.embeddedFiles,
 	})
+
+	painter.setPageMargins(
+		pageConfig.MarginLeft,
+		pageConfig.MarginTop,
+		painterHeight-pageConfig.MarginTop-pageConfig.MarginBottom,
+	)
 
 	for _, entry := range painterFontEntries {
 		if entry.IsVariable {

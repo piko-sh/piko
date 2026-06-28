@@ -21,9 +21,30 @@
 package pdfwriter_domain
 
 import (
+	"math"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestFormatFloat_CoercesNonFiniteToZero(t *testing.T) {
+	tests := []struct {
+		name  string
+		value float64
+	}{
+		{name: "NaN", value: math.NaN()},
+		{name: "positive infinity", value: math.Inf(1)},
+		{name: "negative infinity", value: math.Inf(-1)},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := formatFloat(test.value)
+			assert.Equal(t, "0", got, "formatFloat(%v)", test.value)
+		})
+	}
+}
 
 func TestCurveTo(t *testing.T) {
 	t.Run("integer values omit decimal points", func(t *testing.T) {
@@ -31,9 +52,7 @@ func TestCurveTo(t *testing.T) {
 		stream.CurveTo(10, 20, 30, 40, 50, 60)
 		got := stream.String()
 		want := "10 20 30 40 50 60 c\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("non-integer values use two decimal places", func(t *testing.T) {
@@ -41,9 +60,7 @@ func TestCurveTo(t *testing.T) {
 		stream.CurveTo(1.5, 2.75, 3.1, 4.99, 5.123, 6.009)
 		got := stream.String()
 		want := "1.50 2.75 3.10 4.99 5.12 6.01 c\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("zero values", func(t *testing.T) {
@@ -51,9 +68,7 @@ func TestCurveTo(t *testing.T) {
 		stream.CurveTo(0, 0, 0, 0, 0, 0)
 		got := stream.String()
 		want := "0 0 0 0 0 0 c\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 }
 
@@ -62,9 +77,7 @@ func TestClosePath(t *testing.T) {
 	stream.ClosePath()
 	got := stream.String()
 	want := "h\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestClipNonZero(t *testing.T) {
@@ -72,9 +85,7 @@ func TestClipNonZero(t *testing.T) {
 	stream.ClipNonZero()
 	got := stream.String()
 	want := "W n\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestSetDashPattern(t *testing.T) {
@@ -83,9 +94,7 @@ func TestSetDashPattern(t *testing.T) {
 		stream.SetDashPattern([]float64{3, 5}, 0)
 		got := stream.String()
 		want := "[3 5] 0 d\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("non-integer dash values use two decimal places", func(t *testing.T) {
@@ -93,9 +102,7 @@ func TestSetDashPattern(t *testing.T) {
 		stream.SetDashPattern([]float64{2.5, 1.75}, 0.5)
 		got := stream.String()
 		want := "[2.50 1.75] 0.50 d\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("empty array produces a solid line", func(t *testing.T) {
@@ -103,9 +110,7 @@ func TestSetDashPattern(t *testing.T) {
 		stream.SetDashPattern([]float64{}, 0)
 		got := stream.String()
 		want := "[] 0 d\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("single-element array", func(t *testing.T) {
@@ -113,9 +118,7 @@ func TestSetDashPattern(t *testing.T) {
 		stream.SetDashPattern([]float64{4}, 0)
 		got := stream.String()
 		want := "[4] 0 d\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("non-zero phase offset", func(t *testing.T) {
@@ -123,9 +126,7 @@ func TestSetDashPattern(t *testing.T) {
 		stream.SetDashPattern([]float64{6, 2}, 3)
 		got := stream.String()
 		want := "[6 2] 3 d\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 }
 
@@ -145,9 +146,7 @@ func TestSetLineCap(t *testing.T) {
 			var stream ContentStream
 			stream.SetLineCap(test.cap)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -168,9 +167,7 @@ func TestSetLineJoin(t *testing.T) {
 			var stream ContentStream
 			stream.SetLineJoin(test.join)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -180,9 +177,7 @@ func TestSetExtGState(t *testing.T) {
 	stream.SetExtGState("GS0")
 	got := stream.String()
 	want := "/GS0 gs\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestConcatMatrix(t *testing.T) {
@@ -191,9 +186,7 @@ func TestConcatMatrix(t *testing.T) {
 		stream.ConcatMatrix(1, 0, 0, 1, 0, 0)
 		got := stream.String()
 		want := "1 0 0 1 0 0 cm\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("translation matrix", func(t *testing.T) {
@@ -201,9 +194,7 @@ func TestConcatMatrix(t *testing.T) {
 		stream.ConcatMatrix(1, 0, 0, 1, 100, 200)
 		got := stream.String()
 		want := "1 0 0 1 100 200 cm\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("scaling matrix with non-integer values", func(t *testing.T) {
@@ -211,9 +202,7 @@ func TestConcatMatrix(t *testing.T) {
 		stream.ConcatMatrix(0.5, 0, 0, 0.75, 0, 0)
 		got := stream.String()
 		want := "0.50 0 0 0.75 0 0 cm\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 }
 
@@ -222,9 +211,7 @@ func TestPaintXObject(t *testing.T) {
 	stream.PaintXObject("Im0")
 	got := stream.String()
 	want := "/Im0 Do\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestPaintShading(t *testing.T) {
@@ -232,9 +219,7 @@ func TestPaintShading(t *testing.T) {
 	stream.PaintShading("Sh1")
 	got := stream.String()
 	want := "/Sh1 sh\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestFormatFloat_IntegerValues(t *testing.T) {
@@ -250,9 +235,7 @@ func TestFormatFloat_IntegerValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		got := formatFloat(test.value)
-		if got != test.want {
-			t.Errorf("formatFloat(%v) = %q, want %q", test.value, got, test.want)
-		}
+		assert.Equal(t, test.want, got, "formatFloat(%v)", test.value)
 	}
 }
 
@@ -269,9 +252,7 @@ func TestFormatFloat_NonIntegerValues(t *testing.T) {
 	}
 	for _, test := range tests {
 		got := formatFloat(test.value)
-		if got != test.want {
-			t.Errorf("formatFloat(%v) = %q, want %q", test.value, got, test.want)
-		}
+		assert.Equal(t, test.want, got, "formatFloat(%v)", test.value)
 	}
 }
 
@@ -290,9 +271,7 @@ func TestSetFillColourGrey(t *testing.T) {
 			var stream ContentStream
 			stream.SetFillColourGrey(test.grey)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -312,9 +291,7 @@ func TestSetStrokeColourGrey(t *testing.T) {
 			var stream ContentStream
 			stream.SetStrokeColourGrey(test.grey)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -337,9 +314,7 @@ func TestSetFillColourCMYK(t *testing.T) {
 			var stream ContentStream
 			stream.SetFillColourCMYK(test.cyan, test.magenta, test.yellow, test.key)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -362,9 +337,7 @@ func TestSetStrokeColourCMYK(t *testing.T) {
 			var stream ContentStream
 			stream.SetStrokeColourCMYK(test.cyan, test.magenta, test.yellow, test.key)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -385,9 +358,7 @@ func TestSetTextRenderingMode(t *testing.T) {
 			var stream ContentStream
 			stream.SetTextRenderingMode(test.mode)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -408,9 +379,7 @@ func TestSetCharSpacing(t *testing.T) {
 			var stream ContentStream
 			stream.SetCharSpacing(test.spacing)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -430,9 +399,7 @@ func TestSetWordSpacing(t *testing.T) {
 			var stream ContentStream
 			stream.SetWordSpacing(test.spacing)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -446,9 +413,7 @@ func TestOperatorSequence(t *testing.T) {
 
 	got := stream.String()
 	want := "10 20 m\n15 25 30 35 50 60 c\nh\nW n\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestSetStrokeColourRGB(t *testing.T) {
@@ -472,9 +437,7 @@ func TestSetStrokeColourRGB(t *testing.T) {
 			var stream ContentStream
 			stream.SetStrokeColourRGB(test.r, test.g, test.b)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -496,9 +459,7 @@ func TestSetFillColourRGB(t *testing.T) {
 			var stream ContentStream
 			stream.SetFillColourRGB(test.r, test.g, test.b)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -522,9 +483,7 @@ func TestSetLineWidth(t *testing.T) {
 			var stream ContentStream
 			stream.SetLineWidth(test.width)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -547,9 +506,7 @@ func TestRectangle(t *testing.T) {
 			var stream ContentStream
 			stream.Rectangle(test.x, test.y, test.w, test.h)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -561,9 +518,7 @@ func TestFill(t *testing.T) {
 	stream.Fill()
 	got := stream.String()
 	want := "f\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestFillEvenOdd(t *testing.T) {
@@ -573,9 +528,7 @@ func TestFillEvenOdd(t *testing.T) {
 	stream.FillEvenOdd()
 	got := stream.String()
 	want := "f*\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestStroke(t *testing.T) {
@@ -585,9 +538,7 @@ func TestStroke(t *testing.T) {
 	stream.Stroke()
 	got := stream.String()
 	want := "S\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestFillAndStroke(t *testing.T) {
@@ -597,9 +548,7 @@ func TestFillAndStroke(t *testing.T) {
 	stream.FillAndStroke()
 	got := stream.String()
 	want := "B\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestCircle(t *testing.T) {
@@ -617,17 +566,11 @@ func TestCircle(t *testing.T) {
 				lines++
 			}
 		}
-		if lines != 6 {
-			t.Errorf("expected 6 operator lines, got %d", lines)
-		}
+		assert.Equal(t, 6, lines, "expected 6 operator lines")
 
-		if got[:2] != "75" {
-			t.Errorf("expected to start with 75, got %q", got[:10])
-		}
+		assert.Equal(t, "75", got[:2], "expected to start with 75")
 
-		if got[len(got)-2:] != "h\n" {
-			t.Errorf("expected to end with close path, got %q", got[len(got)-10:])
-		}
+		assert.Equal(t, "h\n", got[len(got)-2:], "expected to end with close path")
 	})
 
 	t.Run("zero radius produces degenerate circle", func(t *testing.T) {
@@ -636,9 +579,7 @@ func TestCircle(t *testing.T) {
 		stream.Circle(10, 20, 0)
 		got := stream.String()
 
-		if got == "" {
-			t.Error("expected non-empty output for zero radius circle")
-		}
+		assert.NotEmpty(t, got, "expected non-empty output for zero radius circle")
 	})
 }
 
@@ -649,9 +590,7 @@ func TestClipEvenOdd(t *testing.T) {
 	stream.ClipEvenOdd()
 	got := stream.String()
 	want := "W* n\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestFillEvenOddAndStroke(t *testing.T) {
@@ -661,9 +600,7 @@ func TestFillEvenOddAndStroke(t *testing.T) {
 	stream.FillEvenOddAndStroke()
 	got := stream.String()
 	want := "B*\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestEndPath(t *testing.T) {
@@ -673,9 +610,7 @@ func TestEndPath(t *testing.T) {
 	stream.EndPath()
 	got := stream.String()
 	want := "n\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestSetMiterLimit(t *testing.T) {
@@ -696,9 +631,7 @@ func TestSetMiterLimit(t *testing.T) {
 			var stream ContentStream
 			stream.SetMiterLimit(test.limit)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -723,9 +656,7 @@ func TestMoveText(t *testing.T) {
 			var stream ContentStream
 			stream.MoveText(test.x, test.y)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -748,9 +679,7 @@ func TestSetTextMatrix(t *testing.T) {
 			var stream ContentStream
 			stream.SetTextMatrix(test.a, test.b, test.c, test.d, test.e, test.f)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -763,9 +692,7 @@ func TestShowGlyphs(t *testing.T) {
 		var stream ContentStream
 		stream.ShowGlyphs(nil, nil, nil, 12)
 		got := stream.String()
-		if got != "" {
-			t.Errorf("expected empty output, got %q", got)
-		}
+		assert.Empty(t, got, "expected empty output")
 	})
 
 	t.Run("single glyph no adjustment", func(t *testing.T) {
@@ -779,9 +706,7 @@ func TestShowGlyphs(t *testing.T) {
 		)
 		got := stream.String()
 		want := "[<0041>] TJ\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 
 	t.Run("two glyphs with adjustment", func(t *testing.T) {
@@ -796,15 +721,9 @@ func TestShowGlyphs(t *testing.T) {
 		)
 		got := stream.String()
 
-		if len(got) == 0 {
-			t.Error("expected non-empty output")
-		}
-		if got[0] != '[' {
-			t.Errorf("expected output to start with [, got %q", got[:1])
-		}
-		if !strings.HasSuffix(got, "TJ\n") {
-			t.Errorf("expected output to end with TJ, got %q", got)
-		}
+		require.NotEmpty(t, got, "expected non-empty output")
+		assert.Equal(t, byte('['), got[0], "expected output to start with [")
+		assert.True(t, strings.HasSuffix(got, "TJ\n"), "expected output to end with TJ, got %q", got)
 	})
 
 	t.Run("zero font size skips adjustment", func(t *testing.T) {
@@ -818,9 +737,7 @@ func TestShowGlyphs(t *testing.T) {
 		)
 		got := stream.String()
 		want := "[<0041><0042>] TJ\n"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assert.Equal(t, want, got)
 	})
 }
 
@@ -843,9 +760,7 @@ func TestContentStream_BeginMarkedContent(t *testing.T) {
 			var stream ContentStream
 			stream.BeginMarkedContent(test.tag, test.mcid)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -857,9 +772,7 @@ func TestContentStream_EndMarkedContent(t *testing.T) {
 	stream.EndMarkedContent()
 	got := stream.String()
 	want := "EMC\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestSaveAndRestoreState(t *testing.T) {
@@ -870,9 +783,7 @@ func TestSaveAndRestoreState(t *testing.T) {
 	stream.RestoreState()
 	got := stream.String()
 	want := "q\nQ\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestBeginEndText(t *testing.T) {
@@ -883,9 +794,7 @@ func TestBeginEndText(t *testing.T) {
 	stream.EndText()
 	got := stream.String()
 	want := "BT\nET\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestSetFont(t *testing.T) {
@@ -907,9 +816,7 @@ func TestSetFont(t *testing.T) {
 			var stream ContentStream
 			stream.SetFont(test.fontName, test.size)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -933,9 +840,7 @@ func TestShowText(t *testing.T) {
 			var stream ContentStream
 			stream.ShowText(test.text)
 			got := stream.String()
-			if got != test.want {
-				t.Errorf("got %q, want %q", got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -947,9 +852,7 @@ func TestMoveTo(t *testing.T) {
 	stream.MoveTo(10, 20)
 	got := stream.String()
 	want := "10 20 m\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestLineTo(t *testing.T) {
@@ -959,7 +862,5 @@ func TestLineTo(t *testing.T) {
 	stream.LineTo(30, 40)
 	got := stream.String()
 	want := "30 40 l\n"
-	if got != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got)
 }

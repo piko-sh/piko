@@ -21,35 +21,24 @@
 package pdfwriter_domain
 
 import (
-	"math"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
 	epsilon = 1e-6
 )
 
-func floatsEqual(a, b float64) bool {
-	return math.Abs(a-b) < epsilon
-}
-
 func TestClampRadii_NoClamping(t *testing.T) {
 
 	tlr, trr, brr, blr := clampRadii(100, 80, 10, 15, 5, 8)
 
-	if !floatsEqual(tlr, 10) {
-		t.Errorf("expected tlr=10, got %f", tlr)
-	}
-	if !floatsEqual(trr, 15) {
-		t.Errorf("expected trr=15, got %f", trr)
-	}
-	if !floatsEqual(brr, 5) {
-		t.Errorf("expected brr=5, got %f", brr)
-	}
-	if !floatsEqual(blr, 8) {
-		t.Errorf("expected blr=8, got %f", blr)
-	}
+	assert.InDelta(t, 10.0, tlr, epsilon, "tlr")
+	assert.InDelta(t, 15.0, trr, epsilon, "trr")
+	assert.InDelta(t, 5.0, brr, epsilon, "brr")
+	assert.InDelta(t, 8.0, blr, epsilon, "blr")
 }
 
 func TestClampRadii_ProportionalScaling(t *testing.T) {
@@ -57,35 +46,19 @@ func TestClampRadii_ProportionalScaling(t *testing.T) {
 	tlr, trr, brr, blr := clampRadii(100, 80, 60, 60, 60, 60)
 
 	expected := 60.0 * (80.0 / 120.0)
-	if !floatsEqual(tlr, expected) {
-		t.Errorf("expected tlr=%f, got %f", expected, tlr)
-	}
-	if !floatsEqual(trr, expected) {
-		t.Errorf("expected trr=%f, got %f", expected, trr)
-	}
-	if !floatsEqual(brr, expected) {
-		t.Errorf("expected brr=%f, got %f", expected, brr)
-	}
-	if !floatsEqual(blr, expected) {
-		t.Errorf("expected blr=%f, got %f", expected, blr)
-	}
+	assert.InDelta(t, expected, tlr, epsilon, "tlr")
+	assert.InDelta(t, expected, trr, epsilon, "trr")
+	assert.InDelta(t, expected, brr, epsilon, "brr")
+	assert.InDelta(t, expected, blr, epsilon, "blr")
 }
 
 func TestClampRadii_ZeroRadiiPassThrough(t *testing.T) {
 	tlr, trr, brr, blr := clampRadii(100, 80, 0, 0, 0, 0)
 
-	if !floatsEqual(tlr, 0) {
-		t.Errorf("expected tlr=0, got %f", tlr)
-	}
-	if !floatsEqual(trr, 0) {
-		t.Errorf("expected trr=0, got %f", trr)
-	}
-	if !floatsEqual(brr, 0) {
-		t.Errorf("expected brr=0, got %f", brr)
-	}
-	if !floatsEqual(blr, 0) {
-		t.Errorf("expected blr=0, got %f", blr)
-	}
+	assert.InDelta(t, 0.0, tlr, epsilon, "tlr")
+	assert.InDelta(t, 0.0, trr, epsilon, "trr")
+	assert.InDelta(t, 0.0, brr, epsilon, "brr")
+	assert.InDelta(t, 0.0, blr, epsilon, "blr")
 }
 
 func TestClampRadii_SingleLargeRadius(t *testing.T) {
@@ -93,19 +66,11 @@ func TestClampRadii_SingleLargeRadius(t *testing.T) {
 	tlr, trr, brr, blr := clampRadii(100, 80, 90, 0, 0, 0)
 
 	expected_tlr := 90.0 * (80.0 / 90.0)
-	if !floatsEqual(tlr, expected_tlr) {
-		t.Errorf("expected tlr=%f, got %f", expected_tlr, tlr)
-	}
+	assert.InDelta(t, expected_tlr, tlr, epsilon, "tlr")
 
-	if !floatsEqual(trr, 0) {
-		t.Errorf("expected trr=0, got %f", trr)
-	}
-	if !floatsEqual(brr, 0) {
-		t.Errorf("expected brr=0, got %f", brr)
-	}
-	if !floatsEqual(blr, 0) {
-		t.Errorf("expected blr=0, got %f", blr)
-	}
+	assert.InDelta(t, 0.0, trr, epsilon, "trr")
+	assert.InDelta(t, 0.0, brr, epsilon, "brr")
+	assert.InDelta(t, 0.0, blr, epsilon, "blr")
 }
 
 func TestClampRadii_AsymmetricRadiiOnSameEdge(t *testing.T) {
@@ -116,18 +81,10 @@ func TestClampRadii_AsymmetricRadiiOnSameEdge(t *testing.T) {
 	expected_tlr := 70.0 * factor
 	expected_trr := 50.0 * factor
 
-	if !floatsEqual(tlr, expected_tlr) {
-		t.Errorf("expected tlr=%f, got %f", expected_tlr, tlr)
-	}
-	if !floatsEqual(trr, expected_trr) {
-		t.Errorf("expected trr=%f, got %f", expected_trr, trr)
-	}
-	if !floatsEqual(brr, 0) {
-		t.Errorf("expected brr=0, got %f", brr)
-	}
-	if !floatsEqual(blr, 0) {
-		t.Errorf("expected blr=0, got %f", blr)
-	}
+	assert.InDelta(t, expected_tlr, tlr, epsilon, "tlr")
+	assert.InDelta(t, expected_trr, trr, epsilon, "trr")
+	assert.InDelta(t, 0.0, brr, epsilon, "brr")
+	assert.InDelta(t, 0.0, blr, epsilon, "blr")
 }
 
 func TestEmitRoundedRectPath_AllRadiiZero(t *testing.T) {
@@ -136,19 +93,11 @@ func TestEmitRoundedRectPath_AllRadiiZero(t *testing.T) {
 	emitRoundedRectPath(&stream, 10, 20, 100, 80, 0, 0, 0, 0)
 	output := stream.String()
 
-	if strings.Contains(output, " c\n") {
-		t.Error("expected no CurveTo operators when all radii are zero")
-	}
+	assert.NotContains(t, output, " c\n", "expected no CurveTo operators when all radii are zero")
 
-	if !strings.Contains(output, " m\n") {
-		t.Error("expected at least one MoveTo operator")
-	}
-	if !strings.Contains(output, " l\n") {
-		t.Error("expected at least one LineTo operator")
-	}
-	if !strings.HasSuffix(output, "h\n") {
-		t.Error("expected path to end with ClosePath (h)")
-	}
+	assert.Contains(t, output, " m\n", "expected at least one MoveTo operator")
+	assert.Contains(t, output, " l\n", "expected at least one LineTo operator")
+	assert.True(t, strings.HasSuffix(output, "h\n"), "expected path to end with ClosePath (h)")
 }
 
 func TestEmitRoundedRectPath_UniformRadii(t *testing.T) {
@@ -158,9 +107,7 @@ func TestEmitRoundedRectPath_UniformRadii(t *testing.T) {
 	output := stream.String()
 
 	curve_count := strings.Count(output, " c\n")
-	if curve_count != 4 {
-		t.Errorf("expected 4 CurveTo operators for 4 rounded corners, got %d", curve_count)
-	}
+	assert.Equal(t, 4, curve_count, "expected 4 CurveTo operators for 4 rounded corners")
 }
 
 func TestEmitRoundedRectPath_MixedRadii(t *testing.T) {
@@ -170,9 +117,7 @@ func TestEmitRoundedRectPath_MixedRadii(t *testing.T) {
 	output := stream.String()
 
 	curve_count := strings.Count(output, " c\n")
-	if curve_count != 2 {
-		t.Errorf("expected 2 CurveTo operators for 2 rounded corners, got %d", curve_count)
-	}
+	assert.Equal(t, 2, curve_count, "expected 2 CurveTo operators for 2 rounded corners")
 }
 
 func TestEmitRoundedRectPath_ClosedPath(t *testing.T) {
@@ -181,7 +126,5 @@ func TestEmitRoundedRectPath_ClosedPath(t *testing.T) {
 	emitRoundedRectPath(&stream, 5, 10, 200, 150, 20, 15, 10, 5)
 	output := stream.String()
 
-	if !strings.HasSuffix(output, "h\n") {
-		t.Error("expected path to be closed with 'h' operator")
-	}
+	assert.True(t, strings.HasSuffix(output, "h\n"), "expected path to be closed with 'h' operator")
 }

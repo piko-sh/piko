@@ -21,8 +21,10 @@ package driven_svgwriter
 import (
 	"context"
 	"encoding/base64"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDataURISVGDataAdapter_Base64(t *testing.T) {
@@ -32,12 +34,8 @@ func TestDataURISVGDataAdapter_Base64(t *testing.T) {
 	source := "data:image/svg+xml;base64," + encoded
 
 	data, ok := adapter.GetSVGData(context.Background(), source)
-	if !ok {
-		t.Fatal("expected ok=true for SVG data URI")
-	}
-	if !strings.Contains(data, "<svg") {
-		t.Errorf("expected SVG markup, got %q", data[:50])
-	}
+	require.True(t, ok, "expected ok=true for SVG data URI")
+	assert.Contains(t, data, "<svg", "expected SVG markup")
 }
 
 func TestDataURISVGDataAdapter_PlainText(t *testing.T) {
@@ -46,24 +44,16 @@ func TestDataURISVGDataAdapter_PlainText(t *testing.T) {
 	source := "data:image/svg+xml," + svgContent
 
 	data, ok := adapter.GetSVGData(context.Background(), source)
-	if !ok {
-		t.Fatal("expected ok=true for plain text SVG data URI")
-	}
-	if data != svgContent {
-		t.Errorf("expected %q, got %q", svgContent, data)
-	}
+	require.True(t, ok, "expected ok=true for plain text SVG data URI")
+	assert.Equal(t, svgContent, data)
 }
 
 func TestDataURISVGDataAdapter_NonSVG(t *testing.T) {
 	adapter := NewDataURISVGDataAdapter()
 
 	_, ok := adapter.GetSVGData(context.Background(), "data:image/png;base64,abc")
-	if ok {
-		t.Error("expected ok=false for non-SVG data URI")
-	}
+	assert.False(t, ok, "expected ok=false for non-SVG data URI")
 
 	_, ok = adapter.GetSVGData(context.Background(), "/images/photo.jpg")
-	if ok {
-		t.Error("expected ok=false for non-data-URI source")
-	}
+	assert.False(t, ok, "expected ok=false for non-data-URI source")
 }

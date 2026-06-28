@@ -22,6 +22,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
@@ -36,14 +38,10 @@ func TestPaginate_SinglePage(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
-	if maxPage != 0 {
-		t.Errorf("expected maxPage 0, got %d", maxPage)
-	}
+	assert.Equal(t, 0, maxPage)
 
 	for _, child := range root.Children {
-		if child.PageIndex != 0 {
-			t.Errorf("expected PageIndex 0 for child at Y=%v, got %d", child.ContentY, child.PageIndex)
-		}
+		assert.Equal(t, 0, child.PageIndex)
 	}
 }
 
@@ -58,19 +56,11 @@ func TestPaginate_TwoPages(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
-	if root.Children[0].PageIndex != 0 {
-		t.Errorf("expected child 0 on page 0, got %d", root.Children[0].PageIndex)
-	}
-	if root.Children[1].PageIndex != 0 {
-		t.Errorf("expected child 1 on page 0, got %d", root.Children[1].PageIndex)
-	}
-	if root.Children[2].PageIndex != 1 {
-		t.Errorf("expected child 2 on page 1, got %d", root.Children[2].PageIndex)
-	}
+	assert.Equal(t, 0, root.Children[0].PageIndex)
+	assert.Equal(t, 0, root.Children[1].PageIndex)
+	assert.Equal(t, 1, root.Children[2].PageIndex)
 }
 
 func TestPaginate_ManyPages(t *testing.T) {
@@ -85,15 +75,11 @@ func TestPaginate_ManyPages(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
-	if maxPage != 3 {
-		t.Errorf("expected maxPage 3, got %d", maxPage)
-	}
+	assert.Equal(t, 3, maxPage)
 
 	expected := []int{0, 1, 2, 3}
 	for i, child := range root.Children {
-		if child.PageIndex != expected[i] {
-			t.Errorf("child %d: expected page %d, got %d", i, expected[i], child.PageIndex)
-		}
+		assert.Equal(t, expected[i], child.PageIndex, "child %d", i)
 	}
 }
 
@@ -112,102 +98,62 @@ func TestPaginate_NestedChildren(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(841.89))
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
-	if root.Children[0].PageIndex != 0 {
-		t.Errorf("expected parent on page 0, got %d", root.Children[0].PageIndex)
-	}
-	if root.Children[0].Children[0].PageIndex != 0 {
-		t.Errorf("expected nested child 0 on page 0, got %d", root.Children[0].Children[0].PageIndex)
-	}
-	if root.Children[0].Children[1].PageIndex != 1 {
-		t.Errorf("expected nested child 1 on page 1, got %d", root.Children[0].Children[1].PageIndex)
+	assert.Equal(t, 0, root.Children[0].PageIndex)
+	assert.Equal(t, 0, root.Children[0].Children[0].PageIndex)
+	assert.Equal(t, 1, root.Children[0].Children[1].PageIndex)
+}
+
+func TestPageForY_ExactBoundaryFloatingPoint(t *testing.T) {
+
+	for _, h := range []float64{768.2, 841.89, 595.28, 1000.0 / 3.0} {
+		g := UniformPageGeometry(h)
+		for page := 0; page <= 8; page++ {
+			y := float64(page) * h
+			assert.Equal(t, page, g.pageForY(y),
+				"pageForY(%.6f) with height %.4f", y, h)
+		}
 	}
 }
 
 func TestPaginate_ZeroPageHeight(t *testing.T) {
 	root := &LayoutBox{ContentY: 100}
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(0))
-	if maxPage != 0 {
-		t.Errorf("expected maxPage 0 for zero page height, got %d", maxPage)
-	}
+	assert.Equal(t, 0, maxPage, "expected maxPage 0 for zero page height")
 }
 
 func TestPaginate_NegativePageHeight(t *testing.T) {
 	root := &LayoutBox{ContentY: 100}
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(-100))
-	if maxPage != 0 {
-		t.Errorf("expected maxPage 0 for negative page height, got %d", maxPage)
-	}
+	assert.Equal(t, 0, maxPage, "expected maxPage 0 for negative page height")
 }
 
 func TestPageGeometry_Methods(t *testing.T) {
 
 	g := UniformPageGeometry(200)
-	if g.heightForPage(0) != 200 {
-		t.Errorf("uniform heightForPage(0) = %v, want 200", g.heightForPage(0))
-	}
-	if g.PageStart(0) != 0 {
-		t.Errorf("PageStart(0) = %v, want 0", g.PageStart(0))
-	}
-	if g.PageStart(1) != 200 {
-		t.Errorf("PageStart(1) = %v, want 200", g.PageStart(1))
-	}
-	if g.PageStart(3) != 600 {
-		t.Errorf("PageStart(3) = %v, want 600", g.PageStart(3))
-	}
-	if g.pageEnd(0) != 200 {
-		t.Errorf("pageEnd(0) = %v, want 200", g.pageEnd(0))
-	}
-	if g.pageForY(0) != 0 {
-		t.Errorf("pageForY(0) = %v, want 0", g.pageForY(0))
-	}
-	if g.pageForY(199) != 0 {
-		t.Errorf("pageForY(199) = %v, want 0", g.pageForY(199))
-	}
-	if g.pageForY(200) != 1 {
-		t.Errorf("pageForY(200) = %v, want 1", g.pageForY(200))
-	}
-	if g.pageForY(500) != 2 {
-		t.Errorf("pageForY(500) = %v, want 2", g.pageForY(500))
-	}
+	assert.Equal(t, 200.0, g.heightForPage(0))
+	assert.Equal(t, 0.0, g.PageStart(0))
+	assert.Equal(t, 200.0, g.PageStart(1))
+	assert.Equal(t, 600.0, g.PageStart(3))
+	assert.Equal(t, 200.0, g.pageEnd(0))
+	assert.Equal(t, 0, g.pageForY(0))
+	assert.Equal(t, 0, g.pageForY(199))
+	assert.Equal(t, 1, g.pageForY(200))
+	assert.Equal(t, 2, g.pageForY(500))
 
 	g2 := PageGeometry{DefaultHeight: 200, FirstPageHeight: 100}
-	if g2.heightForPage(0) != 100 {
-		t.Errorf("heightForPage(0) = %v, want 100", g2.heightForPage(0))
-	}
-	if g2.heightForPage(1) != 200 {
-		t.Errorf("heightForPage(1) = %v, want 200", g2.heightForPage(1))
-	}
-	if g2.PageStart(0) != 0 {
-		t.Errorf("PageStart(0) = %v, want 0", g2.PageStart(0))
-	}
-	if g2.PageStart(1) != 100 {
-		t.Errorf("PageStart(1) = %v, want 100", g2.PageStart(1))
-	}
-	if g2.PageStart(2) != 300 {
-		t.Errorf("PageStart(2) = %v, want 300", g2.PageStart(2))
-	}
-	if g2.pageEnd(0) != 100 {
-		t.Errorf("pageEnd(0) = %v, want 100", g2.pageEnd(0))
-	}
-	if g2.pageEnd(1) != 300 {
-		t.Errorf("pageEnd(1) = %v, want 300", g2.pageEnd(1))
-	}
-	if g2.pageForY(50) != 0 {
-		t.Errorf("pageForY(50) = %v, want 0", g2.pageForY(50))
-	}
-	if g2.pageForY(100) != 1 {
-		t.Errorf("pageForY(100) = %v, want 1", g2.pageForY(100))
-	}
-	if g2.pageForY(299) != 1 {
-		t.Errorf("pageForY(299) = %v, want 1", g2.pageForY(299))
-	}
-	if g2.pageForY(300) != 2 {
-		t.Errorf("pageForY(300) = %v, want 2", g2.pageForY(300))
-	}
+	assert.Equal(t, 100.0, g2.heightForPage(0))
+	assert.Equal(t, 200.0, g2.heightForPage(1))
+	assert.Equal(t, 0.0, g2.PageStart(0))
+	assert.Equal(t, 100.0, g2.PageStart(1))
+	assert.Equal(t, 300.0, g2.PageStart(2))
+	assert.Equal(t, 100.0, g2.pageEnd(0))
+	assert.Equal(t, 300.0, g2.pageEnd(1))
+	assert.Equal(t, 0, g2.pageForY(50))
+	assert.Equal(t, 1, g2.pageForY(100))
+	assert.Equal(t, 1, g2.pageForY(299))
+	assert.Equal(t, 2, g2.pageForY(300))
 }
 
 func TestPaginate_FirstPageDifferentHeight(t *testing.T) {
@@ -225,15 +171,11 @@ func TestPaginate_FirstPageDifferentHeight(t *testing.T) {
 	geo := PageGeometry{DefaultHeight: 200, FirstPageHeight: 100}
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 2 {
-		t.Errorf("expected maxPage 2, got %d", maxPage)
-	}
+	assert.Equal(t, 2, maxPage)
 
 	expectedPages := []int{0, 0, 1, 2}
 	for i, child := range root.Children {
-		if child.PageIndex != expectedPages[i] {
-			t.Errorf("child %d: expected page %d, got %d", i, expectedPages[i], child.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], child.PageIndex, "child %d", i)
 	}
 }
 
@@ -252,12 +194,8 @@ func TestPaginate_BreakInsideAvoid_FitsOnPage(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
-	if root.Children[1].PageIndex != 1 {
-		t.Errorf("expected box on page 1 (moved), got %d", root.Children[1].PageIndex)
-	}
+	assert.Equal(t, 1, maxPage)
+	assert.Equal(t, 1, root.Children[1].PageIndex)
 }
 
 func TestPaginate_BreakInsideAvoid_TallerThanPage(t *testing.T) {
@@ -280,20 +218,14 @@ func TestPaginate_BreakInsideAvoid_TallerThanPage(t *testing.T) {
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(150))
 
-	if container.PageIndex != 0 {
-		t.Errorf("expected container on page 0, got %d", container.PageIndex)
-	}
+	assert.Equal(t, 0, container.PageIndex)
 
 	expectedPages := []int{0, 1, 2, 3}
 	for i, child := range container.Children {
-		if child.PageIndex != expectedPages[i] {
-			t.Errorf("child %d: expected page %d, got %d", i, expectedPages[i], child.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], child.PageIndex, "child %d", i)
 	}
 
-	if maxPage != 3 {
-		t.Errorf("expected maxPage 3, got %d", maxPage)
-	}
+	assert.Equal(t, 3, maxPage)
 }
 
 func TestPaginate_BreakBeforeRight_OnLeftPage(t *testing.T) {
@@ -313,15 +245,9 @@ func TestPaginate_BreakBeforeRight_OnLeftPage(t *testing.T) {
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
 
 	box := root.Children[1]
-	if box.PageIndex != 2 {
-		t.Errorf("expected box on page 2 (right), got %d", box.PageIndex)
-	}
-	if box.PageIndex%2 != 0 {
-		t.Error("expected box on an even (right) page")
-	}
-	if maxPage != 2 {
-		t.Errorf("expected maxPage 2, got %d", maxPage)
-	}
+	assert.Equal(t, 2, box.PageIndex)
+	assert.Equal(t, 0, box.PageIndex%2, "expected box on an even (right) page")
+	assert.Equal(t, 2, maxPage)
 }
 
 func TestPaginate_BreakBeforeLeft_OnRightPage(t *testing.T) {
@@ -341,12 +267,8 @@ func TestPaginate_BreakBeforeLeft_OnRightPage(t *testing.T) {
 	Paginate(context.Background(), root, UniformPageGeometry(200))
 
 	box := root.Children[1]
-	if box.PageIndex != 1 {
-		t.Errorf("expected box on page 1 (left), got %d", box.PageIndex)
-	}
-	if box.PageIndex%2 != 1 {
-		t.Error("expected box on an odd (left) page")
-	}
+	assert.Equal(t, 1, box.PageIndex)
+	assert.Equal(t, 1, box.PageIndex%2, "expected box on an odd (left) page")
 }
 
 func TestPaginate_BreakBeforeRight_AlreadyOnRight(t *testing.T) {
@@ -367,9 +289,7 @@ func TestPaginate_BreakBeforeRight_AlreadyOnRight(t *testing.T) {
 
 	box := root.Children[1]
 
-	if box.PageIndex != 2 {
-		t.Errorf("expected box on page 2 (next right), got %d", box.PageIndex)
-	}
+	assert.Equal(t, 2, box.PageIndex)
 }
 
 func TestPaginate_BreakAfterLeft(t *testing.T) {
@@ -389,9 +309,7 @@ func TestPaginate_BreakAfterLeft(t *testing.T) {
 	Paginate(context.Background(), root, UniformPageGeometry(200))
 
 	next := root.Children[1]
-	if next.PageIndex%2 != 1 {
-		t.Errorf("expected next sibling on odd (left) page, got page %d", next.PageIndex)
-	}
+	assert.Equal(t, 1, next.PageIndex%2)
 }
 
 func TestPaginate_OrphansWidows_FitsOnPage(t *testing.T) {
@@ -412,9 +330,7 @@ func TestPaginate_OrphansWidows_FitsOnPage(t *testing.T) {
 	Paginate(context.Background(), root, UniformPageGeometry(200))
 
 	for i, line := range para.Children {
-		if line.PageIndex != 0 {
-			t.Errorf("line %d: expected page 0, got %d", i, line.PageIndex)
-		}
+		assert.Equal(t, 0, line.PageIndex, "line %d", i)
 	}
 }
 
@@ -438,15 +354,11 @@ func TestPaginate_OrphansWidows_DefaultSatisfied(t *testing.T) {
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(130))
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	expectedPages := []int{0, 0, 0, 0, 1, 1}
 	for i, line := range para.Children {
-		if line.PageIndex != expectedPages[i] {
-			t.Errorf("line %d: expected page %d, got %d", i, expectedPages[i], line.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], line.PageIndex, "line %d", i)
 	}
 }
 
@@ -469,15 +381,11 @@ func TestPaginate_OrphansWidows_WidowsViolated(t *testing.T) {
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(130))
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	expectedPages := []int{0, 0, 0, 1, 1}
 	for i, line := range para.Children {
-		if line.PageIndex != expectedPages[i] {
-			t.Errorf("line %d: expected page %d, got %d", i, expectedPages[i], line.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], line.PageIndex, "line %d", i)
 	}
 }
 
@@ -499,14 +407,10 @@ func TestPaginate_OrphansWidows_OrphansViolated(t *testing.T) {
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	for i, line := range para.Children {
-		if line.PageIndex != 1 {
-			t.Errorf("line %d: expected page 1, got %d", i, line.PageIndex)
-		}
+		assert.Equal(t, 1, line.PageIndex, "line %d", i)
 	}
 }
 
@@ -527,14 +431,10 @@ func TestPaginate_OrphansWidows_BothUnsatisfiable(t *testing.T) {
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	for i, line := range para.Children {
-		if line.PageIndex != 1 {
-			t.Errorf("line %d: expected page 1, got %d", i, line.PageIndex)
-		}
+		assert.Equal(t, 1, line.PageIndex, "line %d", i)
 	}
 }
 
@@ -559,15 +459,11 @@ func TestPaginate_OrphansWidows_CustomValues(t *testing.T) {
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(100))
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	expectedPages := []int{0, 0, 0, 0, 1, 1, 1}
 	for i, line := range para.Children {
-		if line.PageIndex != expectedPages[i] {
-			t.Errorf("line %d: expected page %d, got %d", i, expectedPages[i], line.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], line.PageIndex, "line %d", i)
 	}
 }
 
@@ -595,9 +491,7 @@ func TestPaginate_TableHeader_NoThead(t *testing.T) {
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 }
 
 func TestPaginate_TableHeader_TwoPages_RealisticRowGroup(t *testing.T) {
@@ -641,14 +535,10 @@ func TestPaginate_TableHeader_TwoPages_RealisticRowGroup(t *testing.T) {
 	expectedPages := []int{0, 0, 1, 1}
 	expectedRelYPx := []float64{40, 100, 40, 100}
 	for i, row := range rows {
-		if row.PageIndex != expectedPages[i] {
-			t.Errorf("row %d: expected page %d, got %d", i, expectedPages[i], row.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], row.PageIndex, "row %d", i)
 		relYPt := row.ContentY + row.PageYOffset - geo.PageStart(row.PageIndex)
 		relYPx := relYPt / ppp
-		if relYPx != expectedRelYPx[i] {
-			t.Errorf("row %d: expected page-relative Y=%.0fpx, got %.1fpx", i, expectedRelYPx[i], relYPx)
-		}
+		assert.Equal(t, expectedRelYPx[i], relYPx)
 	}
 }
 
@@ -687,42 +577,28 @@ func TestPaginate_TableHeader_TwoPages(t *testing.T) {
 	geo := UniformPageGeometry(pageHeight)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
-	if thead.PageIndex != 0 {
-		t.Errorf("expected thead on page 0, got %d", thead.PageIndex)
-	}
+	assert.Equal(t, 0, thead.PageIndex)
 
 	rows := tbody.Children
 	expectedPages := []int{0, 0, 1, 1}
 	expectedRelativeY := []float64{40, 100, 40, 100}
 
 	for i, row := range rows {
-		if row.PageIndex != expectedPages[i] {
-			t.Errorf("row %d: expected page %d, got %d", i, expectedPages[i], row.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], row.PageIndex, "row %d", i)
 		relY := row.ContentY + row.PageYOffset - geo.PageStart(row.PageIndex)
-		if relY != expectedRelativeY[i] {
-			t.Errorf("row %d: expected page-relative Y=%.0f, got %.0f", i, expectedRelativeY[i], relY)
-		}
+		assert.Equal(t, expectedRelativeY[i], relY)
 	}
 
 	originalChildCount := 2
 	clonedCount := len(table.Children) - originalChildCount
-	if clonedCount != 1 {
-		t.Errorf("expected 1 cloned header, got %d", clonedCount)
-	}
+	assert.Equal(t, 1, clonedCount)
 
 	if clonedCount > 0 {
 		cloned := table.Children[originalChildCount]
-		if cloned.SourceNode != nil {
-			t.Error("cloned header should have nil SourceNode")
-		}
-		if cloned.PageIndex != 1 {
-			t.Errorf("cloned header expected on page 1, got %d", cloned.PageIndex)
-		}
+		assert.Nil(t, cloned.SourceNode, "cloned header should have nil SourceNode")
+		assert.Equal(t, 1, cloned.PageIndex)
 	}
 }
 
@@ -763,29 +639,21 @@ func TestPaginate_TableHeader_ThreePages(t *testing.T) {
 	geo := UniformPageGeometry(pageHeight)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 2 {
-		t.Errorf("expected maxPage 2, got %d", maxPage)
-	}
+	assert.Equal(t, 2, maxPage)
 
 	rows := tbody.Children
 	expectedPages := []int{0, 0, 1, 1, 2, 2}
 	expectedRelativeY := []float64{40, 100, 40, 100, 40, 100}
 
 	for i, row := range rows {
-		if row.PageIndex != expectedPages[i] {
-			t.Errorf("row %d: expected page %d, got %d", i, expectedPages[i], row.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], row.PageIndex, "row %d", i)
 		relY := row.ContentY + row.PageYOffset - geo.PageStart(row.PageIndex)
-		if relY != expectedRelativeY[i] {
-			t.Errorf("row %d: expected page-relative Y=%.0f, got %.0f", i, expectedRelativeY[i], relY)
-		}
+		assert.Equal(t, expectedRelativeY[i], relY)
 	}
 
 	originalChildCount := 2
 	clonedCount := len(table.Children) - originalChildCount
-	if clonedCount != 2 {
-		t.Errorf("expected 2 cloned headers, got %d", clonedCount)
-	}
+	assert.Equal(t, 2, clonedCount)
 }
 
 func TestPaginate_TableFooter_TwoPages(t *testing.T) {
@@ -831,31 +699,21 @@ func TestPaginate_TableFooter_TwoPages(t *testing.T) {
 	geo := UniformPageGeometry(200)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	rows := tbody.Children
 	expectedPages := []int{0, 0, 1, 1}
 	for i, row := range rows {
-		if row.PageIndex != expectedPages[i] {
-			t.Errorf("row %d: expected page %d, got %d", i, expectedPages[i], row.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], row.PageIndex, "row %d", i)
 	}
 
-	if tfoot.PageIndex != 1 {
-		t.Errorf("expected original tfoot on page 1, got %d", tfoot.PageIndex)
-	}
+	assert.Equal(t, 1, tfoot.PageIndex)
 
 	tfootRelY := tfoot.ContentY + tfoot.PageYOffset - geo.PageStart(tfoot.PageIndex)
-	if tfootRelY != 160 {
-		t.Errorf("expected tfoot page-relative Y=160, got %.0f", tfootRelY)
-	}
+	assert.Equal(t, 160.0, tfootRelY)
 
 	extraCount := len(table.Children) - 3
-	if extraCount != 2 {
-		t.Errorf("expected 2 cloned elements (1 header + 1 footer), got %d", extraCount)
-	}
+	assert.Equal(t, 2, extraCount)
 }
 
 func TestPaginate_TableFooter_NoThead(t *testing.T) {
@@ -891,17 +749,13 @@ func TestPaginate_TableFooter_NoThead(t *testing.T) {
 	geo := UniformPageGeometry(200)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	rows := tbody.Children
 
 	expectedPages := []int{0, 0, 1}
 	for i, row := range rows {
-		if row.PageIndex != expectedPages[i] {
-			t.Errorf("row %d: expected page %d, got %d", i, expectedPages[i], row.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], row.PageIndex, "row %d", i)
 	}
 }
 
@@ -949,27 +803,19 @@ func TestPaginate_TableFooter_ThreePages(t *testing.T) {
 	geo := UniformPageGeometry(200)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 2 {
-		t.Errorf("expected maxPage 2, got %d", maxPage)
-	}
+	assert.Equal(t, 2, maxPage)
 
 	rows := tbody.Children
 
 	expectedPages := []int{0, 0, 1, 1, 2}
 	for i, row := range rows {
-		if row.PageIndex != expectedPages[i] {
-			t.Errorf("row %d: expected page %d, got %d", i, expectedPages[i], row.PageIndex)
-		}
+		assert.Equal(t, expectedPages[i], row.PageIndex, "row %d", i)
 	}
 
-	if tfoot.PageIndex != 2 {
-		t.Errorf("expected original tfoot on page 2, got %d", tfoot.PageIndex)
-	}
+	assert.Equal(t, 2, tfoot.PageIndex)
 
 	extraCount := len(table.Children) - 3
-	if extraCount != 4 {
-		t.Errorf("expected 4 cloned elements (2 headers + 2 footers), got %d", extraCount)
-	}
+	assert.Equal(t, 4, extraCount)
 }
 
 func TestPaginate_FixedPosition_ClonedToAllPages(t *testing.T) {
@@ -992,13 +838,9 @@ func TestPaginate_FixedPosition_ClonedToAllPages(t *testing.T) {
 	geo := UniformPageGeometry(200)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 2 {
-		t.Errorf("expected maxPage 2, got %d", maxPage)
-	}
+	assert.Equal(t, 2, maxPage)
 
-	if fixed.PageIndex != 0 {
-		t.Errorf("expected original fixed on page 0, got %d", fixed.PageIndex)
-	}
+	assert.Equal(t, 0, fixed.PageIndex)
 
 	cloneCount := 0
 	for _, child := range root.Children {
@@ -1007,14 +849,10 @@ func TestPaginate_FixedPosition_ClonedToAllPages(t *testing.T) {
 
 			origRelY := fixed.ContentY + fixed.PageYOffset - geo.PageStart(fixed.PageIndex)
 			cloneRelY := child.ContentY + child.PageYOffset - geo.PageStart(child.PageIndex)
-			if origRelY != cloneRelY {
-				t.Errorf("clone on page %d: expected relY=%.0f, got %.0f", child.PageIndex, origRelY, cloneRelY)
-			}
+			assert.Equal(t, cloneRelY, origRelY)
 		}
 	}
-	if cloneCount != 2 {
-		t.Errorf("expected 2 fixed clones, got %d", cloneCount)
-	}
+	assert.Equal(t, 2, cloneCount)
 }
 
 func TestPaginate_FixedPosition_WithTransformAncestor(t *testing.T) {
@@ -1038,9 +876,7 @@ func TestPaginate_FixedPosition_WithTransformAncestor(t *testing.T) {
 	initialChildCount := len(root.Children)
 	Paginate(context.Background(), root, UniformPageGeometry(200))
 
-	if len(root.Children) != initialChildCount {
-		t.Errorf("expected no clones (TransformAncestor), got %d extra children", len(root.Children)-initialChildCount)
-	}
+	assert.Equal(t, initialChildCount, len(root.Children))
 }
 
 func TestPaginate_FixedPosition_MultipleFixedElements(t *testing.T) {
@@ -1068,9 +904,7 @@ func TestPaginate_FixedPosition_MultipleFixedElements(t *testing.T) {
 	Paginate(context.Background(), root, UniformPageGeometry(200))
 
 	cloneCount := len(root.Children) - initialChildCount
-	if cloneCount != 2 {
-		t.Errorf("expected 2 fixed clones (1 per element), got %d", cloneCount)
-	}
+	assert.Equal(t, 2, cloneCount)
 }
 
 func makeSourceNode(role string) *ast_domain.TemplateNode {
@@ -1101,13 +935,9 @@ func TestPaginate_LayoutRoleHeader_TwoPages(t *testing.T) {
 	geo := UniformPageGeometry(200)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
-	if header.PageIndex != 0 {
-		t.Errorf("expected header on page 0, got %d", header.PageIndex)
-	}
+	assert.Equal(t, 0, header.PageIndex)
 
 	contentBoxes := root.Children[:3]
 
@@ -1118,9 +948,7 @@ func TestPaginate_LayoutRoleHeader_TwoPages(t *testing.T) {
 		}
 	}
 	_ = contentBoxes
-	if cloneCount < 1 {
-		t.Errorf("expected at least 1 cloned header for page 1, got %d", cloneCount)
-	}
+	assert.GreaterOrEqual(t, cloneCount, 1, "expected at least 1 cloned header for page 1")
 }
 
 func TestPaginate_LayoutRoleFooter_TwoPages(t *testing.T) {
@@ -1143,14 +971,10 @@ func TestPaginate_LayoutRoleFooter_TwoPages(t *testing.T) {
 	geo := UniformPageGeometry(200)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	footerRelY := footer.ContentY + footer.PageYOffset - geo.PageStart(footer.PageIndex)
-	if footerRelY != 170 {
-		t.Errorf("expected footer page-relative Y=170, got %.0f", footerRelY)
-	}
+	assert.Equal(t, 170.0, footerRelY)
 
 }
 
@@ -1182,18 +1006,12 @@ func TestPaginate_LayoutRoleHeaderAndFooter(t *testing.T) {
 	geo := UniformPageGeometry(200)
 	maxPage := Paginate(context.Background(), root, geo)
 
-	if maxPage < 1 {
-		t.Errorf("expected maxPage >= 1, got %d", maxPage)
-	}
+	assert.GreaterOrEqual(t, maxPage, 1)
 
-	if header.PageIndex != 0 {
-		t.Errorf("expected header on page 0, got %d", header.PageIndex)
-	}
+	assert.Equal(t, 0, header.PageIndex)
 
 	footerRelY := footer.ContentY + footer.PageYOffset - geo.PageStart(footer.PageIndex)
-	if footerRelY != 170 {
-		t.Errorf("expected footer page-relative Y=170, got %.0f", footerRelY)
-	}
+	assert.Equal(t, 170.0, footerRelY)
 }
 
 func TestPaginate_LayoutRole_NoAttribute(t *testing.T) {
@@ -1210,9 +1028,7 @@ func TestPaginate_LayoutRole_NoAttribute(t *testing.T) {
 	initialCount := len(root.Children)
 	Paginate(context.Background(), root, UniformPageGeometry(200))
 
-	if len(root.Children) != initialCount {
-		t.Errorf("expected no extra children, got %d (was %d)", len(root.Children), initialCount)
-	}
+	assert.Equal(t, initialCount, len(root.Children))
 }
 
 func TestPaginate_ChildOverflow_PushToNextPage(t *testing.T) {
@@ -1227,19 +1043,11 @@ func TestPaginate_ChildOverflow_PushToNextPage(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
-	if root.Children[0].PageIndex != 0 {
-		t.Errorf("expected child 0 on page 0, got %d", root.Children[0].PageIndex)
-	}
-	if root.Children[1].PageIndex != 0 {
-		t.Errorf("expected child 1 on page 0, got %d", root.Children[1].PageIndex)
-	}
-	if root.Children[2].PageIndex != 1 {
-		t.Errorf("expected child 2 on page 1, got %d", root.Children[2].PageIndex)
-	}
+	assert.Equal(t, 0, root.Children[0].PageIndex)
+	assert.Equal(t, 0, root.Children[1].PageIndex)
+	assert.Equal(t, 1, root.Children[2].PageIndex)
 }
 
 func TestPaginate_ChildOverflow_TallerThanPage(t *testing.T) {
@@ -1252,12 +1060,8 @@ func TestPaginate_ChildOverflow_TallerThanPage(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(200))
-	if maxPage != 0 {
-		t.Errorf("expected maxPage 0, got %d", maxPage)
-	}
-	if root.Children[0].PageIndex != 0 {
-		t.Errorf("expected child on page 0, got %d", root.Children[0].PageIndex)
-	}
+	assert.Equal(t, 0, maxPage)
+	assert.Equal(t, 0, root.Children[0].PageIndex)
 }
 
 func TestPaginate_ChildOverflow_FitsExactly(t *testing.T) {
@@ -1271,12 +1075,8 @@ func TestPaginate_ChildOverflow_FitsExactly(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
-	if maxPage != 0 {
-		t.Errorf("expected maxPage 0, got %d", maxPage)
-	}
-	if root.Children[1].PageIndex != 0 {
-		t.Errorf("expected child 1 on page 0, got %d", root.Children[1].PageIndex)
-	}
+	assert.Equal(t, 0, maxPage)
+	assert.Equal(t, 0, root.Children[1].PageIndex)
 }
 
 func TestPaginate_ChildOverflow_ChainedPush(t *testing.T) {
@@ -1292,15 +1092,11 @@ func TestPaginate_ChildOverflow_ChainedPush(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
+	assert.Equal(t, 1, maxPage)
 
 	expected := []int{0, 0, 0, 1}
 	for i, child := range root.Children {
-		if child.PageIndex != expected[i] {
-			t.Errorf("child %d: expected page %d, got %d", i, expected[i], child.PageIndex)
-		}
+		assert.Equal(t, expected[i], child.PageIndex, "child %d", i)
 	}
 }
 
@@ -1321,10 +1117,6 @@ func TestPaginate_ChildOverflow_WithBreakAfter(t *testing.T) {
 	}
 
 	maxPage := Paginate(context.Background(), root, UniformPageGeometry(250))
-	if maxPage != 1 {
-		t.Errorf("expected maxPage 1, got %d", maxPage)
-	}
-	if root.Children[1].PageIndex != 1 {
-		t.Errorf("expected child 1 on page 1, got %d", root.Children[1].PageIndex)
-	}
+	assert.Equal(t, 1, maxPage)
+	assert.Equal(t, 1, root.Children[1].PageIndex)
 }

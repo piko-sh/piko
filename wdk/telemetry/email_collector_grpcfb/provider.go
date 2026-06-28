@@ -189,7 +189,8 @@ func (p *Provider) emitEvent(ctx context.Context, params *email.SendParams, even
 }
 
 // maskRecipient redacts the local part of an email address, keeping the first character
-// and the full domain, so recipient PII is not streamed verbatim to the sink:
+// and the full domain, so recipient PII is not streamed verbatim to the sink.
+//
 // "alice@example.com" becomes "a***@example.com". A local part of two runes or fewer is
 // fully masked ("ab@example.com" becomes "***@example.com") so a short local part is not
 // effectively revealed. A value with no "@" is fully masked.

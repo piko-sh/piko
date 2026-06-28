@@ -1,0 +1,5 @@
+{
+    "description": "A PDF that renders a shared partial exercising p-for, <template p-for> and p-html in every combination. Isolates which looping / unescaped-HTML template directives the PDF layouter expands versus drops. The HTML page (comparisonURL) renders the same partial and shows the intended output.",
+    "pdfPath": "pdfs/main.pk",
+    "comparisonURL": "/"
+}

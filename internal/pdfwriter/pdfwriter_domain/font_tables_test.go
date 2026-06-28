@@ -21,12 +21,17 @@
 package pdfwriter_domain
 
 import (
-	"strings"
+	"encoding/binary"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/fonts"
+)
+
+const (
+	os2FSTypeEmbedding uint16 = 0x0008
 )
 
 func TestFontUnitsPerEm(t *testing.T) {
@@ -36,25 +41,19 @@ func TestFontUnitsPerEm(t *testing.T) {
 		t.Parallel()
 		got := FontUnitsPerEm(fonts.NotoSansRegularTTF)
 
-		if got != 1000 {
-			t.Errorf("FontUnitsPerEm(NotoSans) = %d, want 1000", got)
-		}
+		assert.EqualValues(t, 1000, got)
 	})
 
 	t.Run("empty data returns fallback", func(t *testing.T) {
 		t.Parallel()
 		got := FontUnitsPerEm(nil)
-		if got != 1000 {
-			t.Errorf("FontUnitsPerEm(nil) = %d, want 1000 (fallback)", got)
-		}
+		assert.EqualValues(t, 1000, got, "expected fallback")
 	})
 
 	t.Run("truncated data returns fallback", func(t *testing.T) {
 		t.Parallel()
 		got := FontUnitsPerEm([]byte{0, 1, 0, 0})
-		if got != 1000 {
-			t.Errorf("FontUnitsPerEm(truncated) = %d, want 1000 (fallback)", got)
-		}
+		assert.EqualValues(t, 1000, got, "expected fallback")
 	})
 }
 
@@ -63,23 +62,17 @@ func TestHasFvarTable(t *testing.T) {
 
 	t.Run("NotoSans regular is not variable", func(t *testing.T) {
 		t.Parallel()
-		if HasFvarTable(fonts.NotoSansRegularTTF) {
-			t.Error("expected NotoSans regular to NOT have fvar table")
-		}
+		assert.False(t, HasFvarTable(fonts.NotoSansRegularTTF), "expected NotoSans regular to NOT have fvar table")
 	})
 
 	t.Run("empty data returns false", func(t *testing.T) {
 		t.Parallel()
-		if HasFvarTable(nil) {
-			t.Error("expected nil data to return false")
-		}
+		assert.False(t, HasFvarTable(nil), "expected nil data to return false")
 	})
 
 	t.Run("truncated data returns false", func(t *testing.T) {
 		t.Parallel()
-		if HasFvarTable([]byte{0, 1, 0, 0, 0, 1}) {
-			t.Error("expected truncated data to return false")
-		}
+		assert.False(t, HasFvarTable([]byte{0, 1, 0, 0, 0, 1}), "expected truncated data to return false")
 	})
 }
 
@@ -107,9 +100,7 @@ func TestSanitisePostScriptName(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := SanitisePostScriptName(test.input)
-			if got != test.want {
-				t.Errorf("SanitisePostScriptName(%q) = %q, want %q", test.input, got, test.want)
-			}
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -125,12 +116,10 @@ func TestGenerateSubsetTag(t *testing.T) {
 			68: 'e',
 		}
 		tag := GenerateSubsetTag(glyphs)
-		if len(tag) != 6 {
-			t.Errorf("expected 6-character tag, got %d characters: %q", len(tag), tag)
-		}
+		assert.Len(t, tag, 6, "expected 6-character tag")
 		for _, c := range tag {
 			if c < 'A' || c > 'Z' {
-				t.Errorf("expected uppercase letters only, got %c in %q", c, tag)
+				assert.Failf(t, "non-uppercase character", "expected uppercase letters only, got %c in %q", c, tag)
 				break
 			}
 		}
@@ -141,26 +130,20 @@ func TestGenerateSubsetTag(t *testing.T) {
 		glyphs := map[uint16]rune{0: 0, 42: 'X'}
 		tag1 := GenerateSubsetTag(glyphs)
 		tag2 := GenerateSubsetTag(glyphs)
-		if tag1 != tag2 {
-			t.Errorf("expected deterministic tags, got %q and %q", tag1, tag2)
-		}
+		assert.Equal(t, tag1, tag2, "expected deterministic tags")
 	})
 
 	t.Run("different glyphs produce different tags", func(t *testing.T) {
 		t.Parallel()
 		tag1 := GenerateSubsetTag(map[uint16]rune{0: 0, 1: 'A'})
 		tag2 := GenerateSubsetTag(map[uint16]rune{0: 0, 999: 'Z'})
-		if tag1 == tag2 {
-			t.Errorf("expected different tags for different glyph sets, both got %q", tag1)
-		}
+		assert.NotEqual(t, tag1, tag2, "expected different tags for different glyph sets")
 	})
 
 	t.Run("empty glyph map", func(t *testing.T) {
 		t.Parallel()
 		tag := GenerateSubsetTag(map[uint16]rune{})
-		if len(tag) != 6 {
-			t.Errorf("expected 6-character tag even for empty map, got %q", tag)
-		}
+		assert.Len(t, tag, 6, "expected 6-character tag even for empty map")
 	})
 }
 
@@ -170,38 +153,25 @@ func TestExtractFontDescriptor(t *testing.T) {
 	t.Run("NotoSans regular succeeds", func(t *testing.T) {
 		t.Parallel()
 		info, err := ExtractFontDescriptor(fonts.NotoSansRegularTTF)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 		require.NotNil(t, info, "expected non-nil descriptor")
-		if info.UnitsPerEm != 1000 {
-			t.Errorf("UnitsPerEm = %d, want 1000", info.UnitsPerEm)
-		}
-		if info.Ascent == 0 {
-			t.Error("expected non-zero Ascent")
-		}
-		if info.Descent == 0 {
-			t.Error("expected non-zero Descent")
-		}
-		if info.PostScriptName == "" || info.PostScriptName == "Unknown" {
-			t.Errorf("expected a PostScript name, got %q", info.PostScriptName)
-		}
+		assert.EqualValues(t, 1000, info.UnitsPerEm)
+		assert.NotZero(t, info.Ascent, "expected non-zero Ascent")
+		assert.NotZero(t, info.Descent, "expected non-zero Descent")
+		assert.NotEqual(t, "", info.PostScriptName)
+		assert.NotEqual(t, "Unknown", info.PostScriptName)
 	})
 
 	t.Run("nil data returns error", func(t *testing.T) {
 		t.Parallel()
 		_, err := ExtractFontDescriptor(nil)
-		if err == nil {
-			t.Error("expected error for nil data")
-		}
+		assert.Error(t, err, "expected error for nil data")
 	})
 
 	t.Run("truncated data returns error", func(t *testing.T) {
 		t.Parallel()
 		_, err := ExtractFontDescriptor([]byte{0, 1, 0, 0})
-		if err == nil {
-			t.Error("expected error for truncated data")
-		}
+		assert.Error(t, err, "expected error for truncated data")
 	})
 }
 
@@ -212,17 +182,13 @@ func TestGlyphAdvanceWidth(t *testing.T) {
 		t.Parallel()
 
 		width := GlyphAdvanceWidth(fonts.NotoSansRegularTTF, 0)
-		if width == 0 {
-			t.Error("expected non-zero width for glyph 0")
-		}
+		assert.NotZero(t, width, "expected non-zero width for glyph 0")
 	})
 
 	t.Run("nil data returns zero", func(t *testing.T) {
 		t.Parallel()
 		width := GlyphAdvanceWidth(nil, 0)
-		if width != 0 {
-			t.Errorf("expected 0 for nil data, got %d", width)
-		}
+		assert.Zero(t, width, "expected 0 for nil data")
 	})
 }
 
@@ -237,24 +203,12 @@ func TestBuildToUnicodeCMap(t *testing.T) {
 		}
 		cmap := BuildToUnicodeCMap(glyphs)
 
-		if !strings.Contains(cmap, "beginbfchar") {
-			t.Error("expected beginbfchar in CMap")
-		}
-		if !strings.Contains(cmap, "endbfchar") {
-			t.Error("expected endbfchar in CMap")
-		}
-		if !strings.Contains(cmap, "begincmap") {
-			t.Error("expected begincmap in CMap")
-		}
-		if !strings.Contains(cmap, "endcmap") {
-			t.Error("expected endcmap in CMap")
-		}
-		if !strings.Contains(cmap, "<0024>") {
-			t.Error("expected glyph 36 (0x0024) in CMap")
-		}
-		if !strings.Contains(cmap, "<0044>") {
-			t.Error("expected glyph 68 (0x0044) in CMap")
-		}
+		assert.Contains(t, cmap, "beginbfchar")
+		assert.Contains(t, cmap, "endbfchar")
+		assert.Contains(t, cmap, "begincmap")
+		assert.Contains(t, cmap, "endcmap")
+		assert.Contains(t, cmap, "<0024>", "expected glyph 36 (0x0024) in CMap")
+		assert.Contains(t, cmap, "<0044>", "expected glyph 68 (0x0044) in CMap")
 	})
 
 	t.Run("skips glyph 0 in bfchar entries", func(t *testing.T) {
@@ -265,21 +219,15 @@ func TestBuildToUnicodeCMap(t *testing.T) {
 		}
 		cmap := BuildToUnicodeCMap(glyphs)
 
-		if !strings.Contains(cmap, "1 beginbfchar") {
-			t.Error("expected exactly 1 bfchar entry (glyph 0 should be excluded)")
-		}
+		assert.Contains(t, cmap, "1 beginbfchar", "expected exactly 1 bfchar entry (glyph 0 should be excluded)")
 	})
 
 	t.Run("empty glyph map", func(t *testing.T) {
 		t.Parallel()
 		cmap := BuildToUnicodeCMap(map[uint16]string{})
-		if !strings.Contains(cmap, "begincmap") {
-			t.Error("expected begincmap even for empty map")
-		}
+		assert.Contains(t, cmap, "begincmap", "expected begincmap even for empty map")
 
-		if strings.Contains(cmap, "beginbfchar") {
-			t.Error("expected no bfchar entries for empty map")
-		}
+		assert.NotContains(t, cmap, "beginbfchar", "expected no bfchar entries for empty map")
 	})
 
 	t.Run("ligature mapping", func(t *testing.T) {
@@ -288,8 +236,77 @@ func TestBuildToUnicodeCMap(t *testing.T) {
 			100: "fi",
 		}
 		cmap := BuildToUnicodeCMap(glyphs)
-		if !strings.Contains(cmap, "<0064>") {
-			t.Error("expected glyph 100 (0x0064) in CMap")
-		}
+		assert.Contains(t, cmap, "<0064>", "expected glyph 100 (0x0064) in CMap")
+		assert.Contains(t, cmap, "<00660069>", "expected ligature decomposed to f+i (<00660069>) in CMap value")
 	})
+
+	t.Run("astral codepoint as surrogate pair", func(t *testing.T) {
+		t.Parallel()
+		glyphs := map[uint16]string{
+			200: "\U0001F600",
+		}
+		cmap := BuildToUnicodeCMap(glyphs)
+		assert.Contains(t, cmap, "<D83DDE00>", "expected emoji encoded as UTF-16 surrogate pair")
+	})
+
+	t.Run("mixed bmp and astral preserved", func(t *testing.T) {
+		t.Parallel()
+		glyphs := map[uint16]string{
+			201: "x\U0001D400",
+		}
+		cmap := BuildToUnicodeCMap(glyphs)
+		assert.Contains(t, cmap, "<0078D835DC00>", "expected x + astral preserved (<0078D835DC00>)")
+	})
+}
+
+func TestMissingToUnicodeGlyphs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("full coverage reports none", func(t *testing.T) {
+		t.Parallel()
+		glyphs := map[uint16]string{0: "", 36: "A", 68: "e", 100: "fi"}
+		assert.Empty(t, missingToUnicodeGlyphs(glyphs), "expected no missing glyphs")
+	})
+
+	t.Run("reports drawn glyphs with no text", func(t *testing.T) {
+		t.Parallel()
+		glyphs := map[uint16]string{36: "A", 70: "", 50: ""}
+		missing := missingToUnicodeGlyphs(glyphs)
+		assert.Equal(t, []uint16{50, 70}, missing, "expected sorted [50 70]")
+	})
+}
+
+func TestDecodeUTF16BE_CombinesSurrogatePairs(t *testing.T) {
+	data := []byte{0xD8, 0x3D, 0xDE, 0x00}
+	assert.Equal(t, "\U0001F600", decodeUTF16BE(data), "decodeUTF16BE surrogate pair")
+	assert.Equal(t, "AB", decodeUTF16BE([]byte{0x00, 0x41, 0x00, 0x42}), "decodeUTF16BE BMP")
+}
+
+func TestDeriveFlags_EmbeddingBitDoesNotSetItalic(t *testing.T) {
+
+	os2Data := make([]byte, 96)
+	binary.BigEndian.PutUint16(os2Data[os2FSTypeOffset:os2FSTypeEnd], os2FSTypeEmbedding)
+
+	flags := deriveFlags(os2Data)
+
+	require.Zero(t, flags&pdfFlagItalic, "embedding fsType bit must not set the italic flag")
+	require.NotZero(t, flags&pdfFlagNonSymbolic, "non-symbolic flag should always be set")
+}
+
+func TestDeriveFlags_FSSelectionItalicBitSetsItalic(t *testing.T) {
+
+	os2Data := make([]byte, 96)
+	os2Data[os2FSSelectionFieldLen-1] |= os2FSSelectionItalicBit
+
+	flags := deriveFlags(os2Data)
+
+	require.NotZero(t, flags&pdfFlagItalic, "fsSelection italic bit should set the italic flag")
+}
+
+func TestFontEmbedder_UnmappedGlyphCount(t *testing.T) {
+	embedder := &FontEmbedder{fonts: map[string]*embeddedFontState{
+		"F1": {usedGlyphs: map[uint16]string{1: "A", 2: ""}},
+		"F2": {usedGlyphs: map[uint16]string{3: "", 0: ""}},
+	}}
+	assert.Equal(t, 2, embedder.UnmappedGlyphCount())
 }

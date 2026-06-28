@@ -32,6 +32,8 @@ import (
 
 	"piko.sh/piko/internal/layouter/layouter_domain"
 	"piko.sh/piko/internal/layouter/layouter_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/clock"
 )
 
 const (
@@ -121,6 +123,12 @@ const (
 
 	// formFieldAttrValue is the HTML attribute name "value".
 	formFieldAttrValue = "value"
+
+	// minContentPageHeight is the floor applied to the usable per-page content height when
+	// top and bottom margins exceed the page height. Without it the height (and hence the
+	// per-page vertical stride) would go negative, causing pages to overlap and coordinates
+	// to be computed incorrectly.
+	minContentPageHeight = 1.0
 )
 
 // resolveBaselineOffset returns the distance from the top of the text content box to the
@@ -176,6 +184,13 @@ type namedDestination struct {
 
 // PdfMetadata holds optional metadata fields for the PDF info dictionary.
 type PdfMetadata struct {
+	// CreatedAt holds the document creation time written to the info dictionary and XMP. The
+	// zero value means the current time is used when the document is written.
+	CreatedAt time.Time
+
+	// StructuredData holds optional machine-readable structured metadata embedded in XMP.
+	StructuredData *StructuredMetadata
+
 	// Title holds the document title for the PDF info dictionary.
 	Title string
 
@@ -190,6 +205,10 @@ type PdfMetadata struct {
 
 	// Creator holds the creating application name for the PDF info dictionary.
 	Creator string
+
+	// Lang holds the BCP-47 document language (for example "en-GB"), written to the catalog
+	// /Lang entry and the XMP dc:language element. Empty declares no language.
+	Lang string
 }
 
 // pdfFontKey identifies a font by family, weight, and style.
@@ -213,6 +232,10 @@ type PdfPainter struct {
 	// imageData holds the port that provides image bytes for embedding.
 	imageData ImageDataPort
 
+	// clock provides the current time for document timestamps, injectable for deterministic
+	// tests. Defaults to the real clock.
+	clock clock.Clock
+
 	// svgData is an optional port that provides raw SVG markup for sources. Required
 	// alongside svgWriter for vector rendering.
 	svgData SVGDataPort
@@ -231,6 +254,9 @@ type PdfPainter struct {
 
 	// pdfaConfig holds the optional PDF/A conformance configuration.
 	pdfaConfig *PdfAConfig
+
+	// embeddedFiles holds machine-readable payloads attached as PDF associated files.
+	embeddedFiles []EmbeddedFile
 
 	// glyphWidthFunc computes variation-aware glyph advance width in font design units, set
 	// by the caller for variable font support.
@@ -294,6 +320,27 @@ type PdfPainter struct {
 
 	// basePageYOffset holds the base vertical offset for the current page.
 	basePageYOffset float64
+
+	// marginLeft is the page content-box left margin in points.
+	//
+	// Painted content is translated by (marginLeft, -marginTop) so it sits inside the
+	// margins. Zero when no margins are configured.
+	marginLeft float64
+
+	// marginTop is the page content-box top margin in points, zero when no margins are
+	// configured.
+	marginTop float64
+
+	// contentPageHeight is the usable content height per page (page height minus top and
+	// bottom margins).
+	//
+	// It drives the per-page vertical stride. Zero means "use the full page height" (no
+	// vertical margins).
+	contentPageHeight float64
+
+	// emitXMP enables an always-on XMP metadata stream, catalog /Lang, document dates, and a
+	// default DisplayDocTitle even when PDF/A conformance is not requested.
+	emitXMP bool
 }
 
 // pageObj holds the allocated object numbers for a single PDF page.
@@ -358,6 +405,7 @@ func NewPdfPainter(pageWidth, pageHeight float64, fontEntries []layouter_dto.Fon
 		shadingManager:   NewShadingManager(),
 		outlineBuilder:   NewOutlineBuilder(),
 		acroformBuilder:  NewAcroFormBuilder(),
+		clock:            clock.RealClock(),
 	}
 }
 
@@ -384,6 +432,10 @@ type PainterConfig struct {
 	// PdfAConfig holds optional PDF/A conformance configuration.
 	PdfAConfig *PdfAConfig
 
+	// Clock provides the current time for document timestamps, injectable for deterministic
+	// tests. When nil, the painter's default real clock is used.
+	Clock clock.Clock
+
 	// GlyphWidthFunc computes variation-aware glyph advance widths in font design units for
 	// variable font support.
 	//
@@ -393,8 +445,16 @@ type PainterConfig struct {
 	// PageLabels holds optional page label ranges for custom page numbering.
 	PageLabels []PageLabelRange
 
+	// EmbeddedFiles holds machine-readable payloads to attach as PDF associated files.
+	EmbeddedFiles []EmbeddedFile
+
 	// Tagged enables PDF structure tagging for accessibility (PDF/UA).
 	Tagged bool
+
+	// EmitXMP writes an XMP metadata stream, catalog /Lang, document dates, and a default
+	// DisplayDocTitle even when PDF/A conformance is not requested. The builder enables this
+	// by default; the low-level painter leaves it off so its output stays minimal.
+	EmitXMP bool
 }
 
 // ConfigurePainter applies all settings from config to the painter. Call this after
@@ -417,6 +477,13 @@ func ConfigurePainter(painter *PdfPainter, config PainterConfig) {
 	}
 	if config.Tagged {
 		painter.enableTaggedPDF()
+	}
+	painter.emitXMP = config.EmitXMP
+	if config.Clock != nil {
+		painter.clock = config.Clock
+	}
+	if len(config.EmbeddedFiles) > 0 {
+		painter.embeddedFiles = config.EmbeddedFiles
 	}
 	if config.PdfAConfig != nil {
 		painter.setPdfA(config.PdfAConfig)
@@ -486,7 +553,7 @@ func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.Layou
 		writer.WriteStreamObject(pageObjs[i].contentNumber, "", []byte(s.String()))
 	}
 
-	fontResourceEntries := painter.writeFontResources(writer)
+	fontResourceEntries := painter.writeFontResources(ctx, writer)
 	resources, resourcesError := painter.buildResourcesDict(writer, fontResourceEntries, watermarkFontResource)
 	if resourcesError != nil {
 		return resourcesError
@@ -502,10 +569,55 @@ func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.Layou
 
 	painter.writePageObjects(writer, pageObjs, pagesNumber, resources, pageAnnotRefs, pageCount)
 
-	painter.writeCatalogueAndTrailer(writer, catalogueNumber, pagesNumber, acroformNumber, pageObjNumbers)
+	if catalogueErr := painter.writeCatalogueAndTrailer(ctx, writer, catalogueNumber, pagesNumber, acroformNumber, pageObjNumbers); catalogueErr != nil {
+		return catalogueErr
+	}
 
 	_, writeError := output.Write(writer.Bytes())
 	return writeError
+}
+
+// logCompressionFallbacks emits a single batched warning when any stream was written
+// uncompressed because zlib compression failed.
+//
+// Takes writer (*PdfDocumentWriter) which holds the completed document.
+func logCompressionFallbacks(ctx context.Context, writer *PdfDocumentWriter) {
+	fallbacks := writer.CompressionFallbackCount()
+	if fallbacks == 0 {
+		return
+	}
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("Some PDF streams could not be compressed and were written uncompressed",
+		logger_domain.Int("uncompressed_stream_count", fallbacks))
+}
+
+// setPageMargins configures the page content-box margins and usable content height used
+// when painting pages.
+//
+// Takes left (float64) which is the content-box left margin in points.
+// Takes top (float64) which is the content-box top margin in points.
+// Takes usableHeight (float64) which is the page height minus the top and bottom margins.
+func (painter *PdfPainter) setPageMargins(left, top, usableHeight float64) {
+	painter.marginLeft = left
+	painter.marginTop = top
+	if usableHeight != 0 && usableHeight < minContentPageHeight {
+		usableHeight = minContentPageHeight
+	}
+	painter.contentPageHeight = usableHeight
+}
+
+// pageStride returns the vertical content stride per page: the usable content height when
+// margins are configured, otherwise the full page height.
+//
+// Returns float64 which holds the per-page vertical stride in points.
+func (painter *PdfPainter) pageStride() float64 {
+	if painter.contentPageHeight > 0 {
+		return painter.contentPageHeight
+	}
+	if painter.pageHeight > 0 {
+		return painter.pageHeight
+	}
+	return minContentPageHeight
 }
 
 // writeCatalogueAndTrailer writes the catalogue object, info dictionary, and
@@ -516,17 +628,43 @@ func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.Layou
 // Takes pagesNumber (int) which specifies the pages tree root object number.
 // Takes acroformNumber (int) which specifies the AcroForm object number, or zero if none.
 // Takes pageObjNumbers ([]int) which holds the per-page object numbers.
+//
+// Returns error when building the catalogue dictionary or writing embedded files fails.
 func (painter *PdfPainter) writeCatalogueAndTrailer(
-	writer *PdfDocumentWriter, catalogueNumber int, pagesNumber int, acroformNumber int, pageObjNumbers []int,
-) {
-	outlineRootNumber := painter.outlineBuilder.WriteObjects(writer, pageObjNumbers)
-	structTreeRootNumber := painter.writeStructTree(writer, pageObjNumbers)
-	catalogueDict := painter.buildCatalogueDict(pagesNumber, outlineRootNumber, structTreeRootNumber, acroformNumber, pageObjNumbers, writer)
+	ctx context.Context, writer *PdfDocumentWriter, catalogueNumber int, pagesNumber int, acroformNumber int, pageObjNumbers []int,
+) error {
+	created := painter.resolveCreationTime()
+	refs := catalogueObjectRefs{
+		pages:      pagesNumber,
+		outline:    painter.outlineBuilder.WriteObjects(ctx, writer, pageObjNumbers),
+		structTree: painter.writeStructTree(ctx, writer, pageObjNumbers),
+		acroform:   acroformNumber,
+	}
+	catalogueDict, err := painter.buildCatalogueDict(ctx, refs, pageObjNumbers, writer, created)
+	if err != nil {
+		return err
+	}
 	writer.WriteObject(catalogueNumber, catalogueDict)
 
 	infoNumber := writer.AllocateObject()
-	writer.WriteObject(infoNumber, painter.buildInfoDictionary())
+	writer.WriteObject(infoNumber, painter.buildInfoDictionary(created))
 	writer.WriteTrailer(catalogueNumber, infoNumber)
+	logCompressionFallbacks(ctx, writer)
+	return nil
+}
+
+// resolveCreationTime returns the document creation timestamp in UTC, defaulting to the
+// current time when the metadata does not specify one.
+//
+// Returns time.Time which is the resolved creation timestamp.
+func (painter *PdfPainter) resolveCreationTime() time.Time {
+	if painter.metadata != nil && !painter.metadata.CreatedAt.IsZero() {
+		return painter.metadata.CreatedAt.UTC()
+	}
+	if painter.clock != nil {
+		return painter.clock.Now().UTC()
+	}
+	return time.Now().UTC()
 }
 
 // setMetadata sets optional metadata fields for the PDF info dictionary.
@@ -678,9 +816,19 @@ func (painter *PdfPainter) renderPageStreams(ctx context.Context, rootBox *layou
 		if watermarkPrefix != "" {
 			streams[i].builder.WriteString(watermarkPrefix)
 		}
-		painter.basePageYOffset = float64(i) * painter.pageHeight
+		painter.basePageYOffset = float64(i) * painter.pageStride()
 		painter.pageYOffset = painter.basePageYOffset
+
+		hasMargins := painter.marginLeft != 0 || painter.marginTop != 0
+		if hasMargins {
+			streams[i].builder.WriteString("q\n")
+			fmt.Fprintf(&streams[i].builder, "1 0 0 1 %s %s cm\n",
+				FormatNumber(painter.marginLeft), FormatNumber(-painter.marginTop))
+		}
 		painter.paintPageBoxes(ctx, streams[i], rootBox, i)
+		if hasMargins {
+			streams[i].builder.WriteString("Q\n")
+		}
 	}
 	painter.pageYOffset = 0
 	return streams
@@ -691,9 +839,14 @@ func (painter *PdfPainter) renderPageStreams(ctx context.Context, rootBox *layou
 // Takes writer (*PdfDocumentWriter) which specifies the document writer.
 //
 // Returns string which holds the font resource dictionary entries.
-func (painter *PdfPainter) writeFontResources(writer *PdfDocumentWriter) string {
+func (painter *PdfPainter) writeFontResources(ctx context.Context, writer *PdfDocumentWriter) string {
 	if painter.fontEmbedder.HasFonts() {
 		entries := painter.fontEmbedder.WriteObjects(writer)
+		if unmappedGlyphs := painter.fontEmbedder.UnmappedGlyphCount(); unmappedGlyphs > 0 {
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("Some drawn glyphs have no Unicode mapping and will not be extractable",
+				logger_domain.Int("unmapped_glyph_count", unmappedGlyphs))
+		}
 		if entries != "" {
 			return entries
 		}
@@ -767,15 +920,15 @@ func (painter *PdfPainter) writeAnnotations(writer *PdfDocumentWriter, pageCount
 
 		var annotDict string
 		if annot.dest != "" {
-			escapedDest := pdfEscapeString(annot.dest)
+			encodedDest := encodePdfTextString(annot.dest)
 			annotDict = fmt.Sprintf(
-				"<< /Type /Annot /Subtype /Link /Rect %s /Border [0 0 0] /A << /Type /Action /S /GoTo /D (%s) >> >>",
-				rect, escapedDest)
+				"<< /Type /Annot /Subtype /Link /Rect %s /Border [0 0 0] /A << /Type /Action /S /GoTo /D %s >> >>",
+				rect, encodedDest)
 		} else {
-			escapedURI := pdfEscapeString(annot.uri)
+			encodedURI := encodePdfTextString(annot.uri)
 			annotDict = fmt.Sprintf(
-				"<< /Type /Annot /Subtype /Link /Rect %s /Border [0 0 0] /A << /Type /Action /S /URI /URI (%s) >> >>",
-				rect, escapedURI)
+				"<< /Type /Annot /Subtype /Link /Rect %s /Border [0 0 0] /A << /Type /Action /S /URI /URI %s >> >>",
+				rect, encodedURI)
 		}
 		writer.WriteObject(annotNumber, annotDict)
 		pageAnnotRefs[annot.pageIndex] = append(pageAnnotRefs[annot.pageIndex], FormatReference(annotNumber))
@@ -813,49 +966,91 @@ func (painter *PdfPainter) writePageObjects(writer *PdfDocumentWriter, pageObjs 
 
 // writeStructTree writes the structure tree for tagged PDF if present.
 //
+// Takes ctx (context.Context) which carries the logger used to warn on excessive nesting.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer.
 // Takes pageObjNumbers ([]int) which holds the per-page object numbers.
 //
 // Returns int which holds the structure tree root object number, or zero if none.
-func (painter *PdfPainter) writeStructTree(writer *PdfDocumentWriter, pageObjNumbers []int) int {
+func (painter *PdfPainter) writeStructTree(ctx context.Context, writer *PdfDocumentWriter, pageObjNumbers []int) int {
 	if painter.structTree != nil && !painter.structTree.IsEmpty() {
-		return painter.structTree.WriteObjects(writer, pageObjNumbers)
+		return painter.structTree.WriteObjects(ctx, writer, pageObjNumbers)
 	}
 	return 0
 }
 
+// catalogueObjectRefs holds the object numbers referenced from the document catalogue,
+// with zero meaning the entry is omitted.
+type catalogueObjectRefs struct {
+	// pages holds the pages tree root object number.
+	pages int
+
+	// outline holds the outline (bookmarks) root object number.
+	outline int
+
+	// structTree holds the structure tree root object number.
+	structTree int
+
+	// acroform holds the AcroForm object number.
+	acroform int
+}
+
 // buildCatalogueDict assembles the PDF catalogue dictionary string.
 //
-// Takes pagesNumber (int) which specifies the pages tree root object number.
-// Takes outlineRootNumber (int) which specifies the outline root object number, or zero
-// if none.
-// Takes structTreeRootNumber (int) which specifies the structure tree root object number,
-// or zero if none.
-// Takes acroformNumber (int) which specifies the AcroForm object number, or zero if none.
+// Takes refs (catalogueObjectRefs) which holds the catalogue object numbers.
 // Takes pageObjNumbers ([]int) which holds the per-page object numbers.
 // Takes writer (*PdfDocumentWriter) which specifies the document writer.
+// Takes created (time.Time) which is the document creation timestamp.
 //
 // Returns string which holds the assembled catalogue dictionary.
-func (painter *PdfPainter) buildCatalogueDict(pagesNumber, outlineRootNumber, structTreeRootNumber, acroformNumber int, pageObjNumbers []int, writer *PdfDocumentWriter) string {
-	catalogueDict := fmt.Sprintf("<< /Type /Catalog /Pages %s", FormatReference(pagesNumber))
-	if outlineRootNumber > 0 {
-		catalogueDict += fmt.Sprintf(" /Outlines %s", FormatReference(outlineRootNumber))
+// Returns error when writing the embedded associated files is cancelled.
+func (painter *PdfPainter) buildCatalogueDict(ctx context.Context, refs catalogueObjectRefs, pageObjNumbers []int, writer *PdfDocumentWriter, created time.Time) (string, error) {
+	catalogueDict := fmt.Sprintf("<< /Type /Catalog /Pages %s", FormatReference(refs.pages))
+	if refs.outline > 0 {
+		catalogueDict += fmt.Sprintf(" /Outlines %s", FormatReference(refs.outline))
 	}
-	if structTreeRootNumber > 0 {
+	if refs.structTree > 0 {
 		catalogueDict += fmt.Sprintf(" /StructTreeRoot %s /MarkInfo << /Marked true >>",
-			FormatReference(structTreeRootNumber))
+			FormatReference(refs.structTree))
 	}
-	if acroformNumber > 0 {
-		catalogueDict += fmt.Sprintf(" /AcroForm %s", FormatReference(acroformNumber))
+	if refs.acroform > 0 {
+		catalogueDict += fmt.Sprintf(" /AcroForm %s", FormatReference(refs.acroform))
 	}
-	catalogueDict += buildViewerPreferencesDict(painter.viewerPrefs, writer)
+	if painter.metadata != nil && painter.metadata.Lang != "" {
+		catalogueDict += fmt.Sprintf(" /Lang %s", encodePdfTextString(painter.metadata.Lang))
+	}
+	catalogueDict += buildViewerPreferencesDict(painter.effectiveViewerPrefs(), writer)
 	catalogueDict += buildPageLabelsDict(painter.pageLabels, writer)
 	catalogueDict += painter.buildNamedDestsDict(writer, pageObjNumbers)
 	if painter.pdfaConfig != nil {
-		catalogueDict += writePdfAObjects(writer, painter.pdfaConfig, painter.metadata, time.Now())
+		catalogueDict += writePdfAObjects(writer, painter.pdfaConfig, painter.metadata, created)
+	} else if painter.emitXMP {
+		catalogueDict += writeMetadataObject(writer, painter.metadata, created)
 	}
+	embeddedEntries, err := painter.writeEmbeddedFiles(ctx, writer, created)
+	if err != nil {
+		return "", err
+	}
+	catalogueDict += embeddedEntries
 	catalogueDict += pdfDictCloseSuffix
-	return catalogueDict
+	return catalogueDict, nil
+}
+
+// effectiveViewerPrefs returns the viewer preferences to write.
+//
+// An explicitly configured preferences struct is returned unchanged, so a caller retains
+// full control. When none is configured but XMP metadata is emitted, DisplayDocTitle
+// defaults on so viewers show the document title rather than the filename.
+//
+// Returns *ViewerPreferences which is the preferences to serialise, or nil when none
+// apply.
+func (painter *PdfPainter) effectiveViewerPrefs() *ViewerPreferences {
+	if painter.viewerPrefs != nil {
+		return painter.viewerPrefs
+	}
+	if painter.emitXMP {
+		return &ViewerPreferences{DisplayDocTitle: true}
+	}
+	return nil
 }
 
 // isVariableFont reports whether the given font key is a variable font instance.
@@ -1029,7 +1224,7 @@ func (painter *PdfPainter) paintPageBoxes(ctx context.Context, stream *ContentSt
 		return
 	}
 	if box.PageIndex == pageIndex {
-		painter.paintBoxToStream(ctx, stream, box)
+		painter.paintBoxToStream(ctx, stream, box, pageIndex)
 		return
 	}
 	for _, child := range box.Children {
@@ -1037,11 +1232,20 @@ func (painter *PdfPainter) paintPageBoxes(ctx context.Context, stream *ContentSt
 	}
 }
 
-// paintBoxToStream renders a single layout box and its children.
+// paintBoxToStream renders a single layout box and its descendants that belong to the
+// given page.
+//
+// Pagination assigns each box (and, for split paragraphs/tables, each line or row clone)
+// its own PageIndex, and a parent on one page may have children on another (e.g. a
+// break-inside: avoid block moved across the boundary, or a paragraph split mid-way).
+// Descendants are therefore re-dispatched through paintPageBoxes so each is painted only
+// on its own page; painting the whole subtree unconditionally would draw boxes that
+// belong to a later page a second time at the bottom of the current page.
 //
 // Takes stream (*ContentStream) which holds the page content stream.
 // Takes box (*layouter_domain.LayoutBox) which holds the box to render.
-func (painter *PdfPainter) paintBoxToStream(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox) {
+// Takes pageIndex (int) which specifies the zero-based page being painted.
+func (painter *PdfPainter) paintBoxToStream(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, pageIndex int) {
 	if box.Type == layouter_domain.BoxNone {
 		return
 	}
@@ -1051,7 +1255,7 @@ func (painter *PdfPainter) paintBoxToStream(ctx context.Context, stream *Content
 	defer func() { painter.pageYOffset = savedOffset }()
 
 	states := painter.applyBoxStates(stream, box)
-	painter.paintBoxContent(ctx, stream, box, states)
+	painter.paintBoxContent(ctx, stream, box, states, pageIndex)
 	painter.restoreBoxStates(stream, states)
 }
 
@@ -1212,7 +1416,9 @@ func (painter *PdfPainter) applyStructTag(stream *ContentStream, box *layouter_d
 // Takes stream (*ContentStream) which holds the page content stream.
 // Takes box (*layouter_domain.LayoutBox) which holds the box to paint.
 // Takes states (boxRenderStates) which tracks the applied graphical states.
-func (painter *PdfPainter) paintBoxContent(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, states boxRenderStates) {
+// Takes pageIndex (int) which specifies the zero-based page being painted, so children
+// belonging to other pages are skipped rather than drawn on this page.
+func (painter *PdfPainter) paintBoxContent(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, states boxRenderStates, pageIndex int) {
 	isVisible := box.Style.Visibility == layouter_domain.VisibilityVisible
 
 	if isVisible {
@@ -1242,7 +1448,7 @@ func (painter *PdfPainter) paintBoxContent(ctx context.Context, stream *ContentS
 	skipChildren := box.SourceNode != nil && isEditableFormElement(box.SourceNode.TagName)
 	if !skipChildren {
 		for _, child := range box.Children {
-			painter.paintBoxToStream(ctx, stream, child)
+			painter.paintPageBoxes(ctx, stream, child, pageIndex)
 		}
 	}
 

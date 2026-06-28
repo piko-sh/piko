@@ -327,4 +327,9 @@ func (c *Container) createDefaultRenderRegistry() {
 			return nil
 		})
 	}
+
+	shutdown.Register(c.GetAppContext(), "SpriteSheetCache", func(_ context.Context) error {
+		render_domain.ShutdownSpriteSheetCache()
+		return nil
+	})
 }

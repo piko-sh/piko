@@ -87,7 +87,7 @@ func buildPageLabelsDict(ranges []PageLabelRange, writer *PdfDocumentWriter) str
 			fmt.Fprintf(&nums, "/S /%s ", string(r.Style))
 		}
 		if r.Prefix != "" {
-			fmt.Fprintf(&nums, "/P (%s) ", pdfEscapeString(r.Prefix))
+			fmt.Fprintf(&nums, "/P %s ", encodePdfTextString(r.Prefix))
 		}
 		if r.Start > 1 {
 			fmt.Fprintf(&nums, "/St %d ", r.Start)

@@ -24,6 +24,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 )
 
@@ -45,19 +47,11 @@ func TestRenderSVG_BasicRect(t *testing.T) {
 		`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="20" width="80" height="60" fill="red"/></svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "re") {
-		t.Error("expected rectangle operator 're' in output")
-	}
-	if !strings.Contains(output, "rg") {
-		t.Error("expected fill colour 'rg' in output")
-	}
-	if !strings.Contains(output, "f") {
-		t.Error("expected fill operator 'f' in output")
-	}
+	assert.Contains(t, output, "re", "expected rectangle operator 're' in output")
+	assert.Contains(t, output, "rg", "expected fill colour 'rg' in output")
+	assert.Contains(t, output, "f", "expected fill operator 'f' in output")
 }
 
 func TestRenderSVG_Circle(t *testing.T) {
@@ -68,14 +62,10 @@ func TestRenderSVG_Circle(t *testing.T) {
 		`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="blue"/></svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if strings.Count(output, " c\n") < 4 {
-		t.Errorf("expected at least 4 cubic curves for circle, got %d", strings.Count(output, " c\n"))
-	}
+	assert.GreaterOrEqual(t, strings.Count(output, " c\n"), 4, "expected at least 4 cubic curves for circle")
 }
 
 func TestRenderSVG_StrokedPath(t *testing.T) {
@@ -88,19 +78,11 @@ func TestRenderSVG_StrokedPath(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "m\n") {
-		t.Error("expected moveto 'm' in output")
-	}
-	if !strings.Contains(output, "l\n") {
-		t.Error("expected lineto 'l' in output")
-	}
-	if !strings.Contains(output, "S\n") {
-		t.Error("expected stroke 'S' in output")
-	}
+	assert.Contains(t, output, "m\n", "expected moveto 'm' in output")
+	assert.Contains(t, output, "l\n", "expected lineto 'l' in output")
+	assert.Contains(t, output, "S\n", "expected stroke 'S' in output")
 }
 
 func TestRenderSVG_FillAndStroke(t *testing.T) {
@@ -113,13 +95,9 @@ func TestRenderSVG_FillAndStroke(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "B\n") {
-		t.Error("expected fill-and-stroke 'B' in output")
-	}
+	assert.Contains(t, output, "B\n", "expected fill-and-stroke 'B' in output")
 }
 
 func TestRenderSVG_UseElement(t *testing.T) {
@@ -133,13 +111,9 @@ func TestRenderSVG_UseElement(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "re") {
-		t.Error("expected rectangle from <use> reference")
-	}
+	assert.Contains(t, output, "re", "expected rectangle from <use> reference")
 }
 
 func TestRenderSVG_DisplayNone(t *testing.T) {
@@ -152,13 +126,9 @@ func TestRenderSVG_DisplayNone(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if strings.Contains(output, "re") {
-		t.Error("display:none element should not emit rectangle")
-	}
+	assert.NotContains(t, output, "re", "display:none element should not emit rectangle")
 }
 
 func TestRenderSVG_PathCommands(t *testing.T) {
@@ -171,19 +141,11 @@ func TestRenderSVG_PathCommands(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "m\n") {
-		t.Error("expected moveto in path output")
-	}
-	if !strings.Contains(output, "l\n") {
-		t.Error("expected lineto in path output")
-	}
-	if !strings.Contains(output, "h\n") {
-		t.Error("expected closepath in path output")
-	}
+	assert.Contains(t, output, "m\n", "expected moveto in path output")
+	assert.Contains(t, output, "l\n", "expected lineto in path output")
+	assert.Contains(t, output, "h\n", "expected closepath in path output")
 }
 
 func TestRenderSVG_InvalidSVG_ReturnsError(t *testing.T) {
@@ -191,9 +153,7 @@ func TestRenderSVG_InvalidSVG_ReturnsError(t *testing.T) {
 	w := New()
 	ctx := newTestContext()
 	err := w.RenderSVG(context.Background(), "not xml at all <<<", ctx, 0, 0, 100, 100)
-	if err == nil {
-		t.Error("expected error for invalid SVG")
-	}
+	assert.Error(t, err, "expected error for invalid SVG")
 }
 
 func TestRenderSVG_Polygon(t *testing.T) {
@@ -206,13 +166,9 @@ func TestRenderSVG_Polygon(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "h\n") {
-		t.Error("expected closepath for polygon")
-	}
+	assert.Contains(t, output, "h\n", "expected closepath for polygon")
 }
 
 func newTestContextWithImage() pdfwriter_domain.SVGRenderContext {
@@ -252,16 +208,10 @@ func TestRenderSVG_ImageElement(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "Do") {
-		t.Error("expected PaintXObject 'Do' operator for <image> element")
-	}
-	if !strings.Contains(output, "cm") {
-		t.Error("expected ConcatMatrix 'cm' for image positioning")
-	}
+	assert.Contains(t, output, "Do", "expected PaintXObject 'Do' operator for <image> element")
+	assert.Contains(t, output, "cm", "expected ConcatMatrix 'cm' for image positioning")
 }
 
 func TestRenderSVG_ImageElement_XlinkHref(t *testing.T) {
@@ -274,13 +224,9 @@ func TestRenderSVG_ImageElement_XlinkHref(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "Do") {
-		t.Error("expected PaintXObject 'Do' for xlink:href image")
-	}
+	assert.Contains(t, output, "Do", "expected PaintXObject 'Do' for xlink:href image")
 }
 
 func TestRenderSVG_ImageElement_SkippedWithoutImageData(t *testing.T) {
@@ -293,13 +239,9 @@ func TestRenderSVG_ImageElement_SkippedWithoutImageData(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if strings.Contains(output, "Do") {
-		t.Error("image should be skipped when GetImageData is nil")
-	}
+	assert.NotContains(t, output, "Do", "image should be skipped when GetImageData is nil")
 }
 
 func TestRenderSVG_ImageElement_ZeroDimensions(t *testing.T) {
@@ -312,13 +254,9 @@ func TestRenderSVG_ImageElement_ZeroDimensions(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if strings.Contains(output, "Do") {
-		t.Error("image with zero width should not be rendered")
-	}
+	assert.NotContains(t, output, "Do", "image with zero width should not be rendered")
 }
 
 func TestRenderSVG_EllipseEmits4Curves(t *testing.T) {
@@ -331,13 +269,9 @@ func TestRenderSVG_EllipseEmits4Curves(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if strings.Count(output, " c\n") < 4 {
-		t.Errorf("expected at least 4 curves for ellipse, got %d", strings.Count(output, " c\n"))
-	}
+	assert.GreaterOrEqual(t, strings.Count(output, " c\n"), 4, "expected at least 4 curves for ellipse")
 }
 
 func TestRenderSVG_RoundedRect(t *testing.T) {
@@ -350,22 +284,12 @@ func TestRenderSVG_RoundedRect(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, " c\n") {
-		t.Error("expected Bezier curves for rounded rect corners")
-	}
-
-	if !strings.Contains(output, "l\n") {
-		t.Error("expected line segments for rounded rect edges")
-	}
-
-	if !strings.Contains(output, "h\n") {
-		t.Error("expected closepath for rounded rect")
-	}
+	assert.Contains(t, output, " c\n", "expected Bezier curves for rounded rect corners")
+	assert.Contains(t, output, "l\n", "expected line segments for rounded rect edges")
+	assert.Contains(t, output, "h\n", "expected closepath for rounded rect")
 }
 
 func TestRenderSVG_RoundedRectRxOnly(t *testing.T) {
@@ -379,14 +303,10 @@ func TestRenderSVG_RoundedRectRxOnly(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, " c\n") {
-		t.Error("expected Bezier curves when only rx is specified (ry defaults to rx)")
-	}
+	assert.Contains(t, output, " c\n", "expected Bezier curves when only rx is specified (ry defaults to rx)")
 }
 
 func TestRenderSVG_GroupOpacity(t *testing.T) {
@@ -401,17 +321,11 @@ func TestRenderSVG_GroupOpacity(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "gs\n") {
-		t.Error("expected ExtGState 'gs' operator for group opacity")
-	}
-	if !ctx.ExtGStateManager.HasStates() {
-		t.Error("expected ExtGStateManager to have registered opacity state")
-	}
+	assert.Contains(t, output, "gs\n", "expected ExtGState 'gs' operator for group opacity")
+	assert.True(t, ctx.ExtGStateManager.HasStates(), "expected ExtGStateManager to have registered opacity state")
 }
 
 func TestRenderSVG_GroupTransform(t *testing.T) {
@@ -426,16 +340,12 @@ func TestRenderSVG_GroupTransform(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
 	cmCount := strings.Count(output, "cm\n")
 
-	if cmCount < 3 {
-		t.Errorf("expected at least 3 cm operators (viewport + group transform), got %d", cmCount)
-	}
+	assert.GreaterOrEqual(t, cmCount, 3, "expected at least 3 cm operators (viewport + group transform)")
 }
 
 func TestRenderSVG_StrokeLineCap(t *testing.T) {
@@ -459,13 +369,9 @@ func TestRenderSVG_StrokeLineCap(t *testing.T) {
 				</svg>`,
 				ctx, 0, 0, 100, 100,
 			)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 			output := ctx.Stream.String()
-			if !strings.Contains(output, tt.wantOp) {
-				t.Errorf("expected line cap operator %q in output", tt.wantOp)
-			}
+			assert.Contains(t, output, tt.wantOp, "expected line cap operator %q in output", tt.wantOp)
 		})
 	}
 }
@@ -491,13 +397,9 @@ func TestRenderSVG_StrokeLineJoin(t *testing.T) {
 				</svg>`,
 				ctx, 0, 0, 100, 100,
 			)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 			output := ctx.Stream.String()
-			if !strings.Contains(output, tt.wantOp) {
-				t.Errorf("expected line join operator %q in output", tt.wantOp)
-			}
+			assert.Contains(t, output, tt.wantOp, "expected line join operator %q in output", tt.wantOp)
 		})
 	}
 }
@@ -512,14 +414,10 @@ func TestRenderSVG_StrokeDashArray(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "] ") || !strings.Contains(output, " d\n") {
-		t.Error("expected dash pattern 'd' operator in output")
-	}
+	assert.True(t, strings.Contains(output, "] ") && strings.Contains(output, " d\n"), "expected dash pattern 'd' operator in output")
 }
 
 func TestRenderSVG_FillRuleEvenOdd(t *testing.T) {
@@ -532,14 +430,10 @@ func TestRenderSVG_FillRuleEvenOdd(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "f*\n") {
-		t.Error("expected even-odd fill 'f*' operator in output")
-	}
+	assert.Contains(t, output, "f*\n", "expected even-odd fill 'f*' operator in output")
 }
 
 func TestRenderSVG_FillRuleEvenOddWithStroke(t *testing.T) {
@@ -552,14 +446,10 @@ func TestRenderSVG_FillRuleEvenOddWithStroke(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "B*\n") {
-		t.Error("expected even-odd fill+stroke 'B*' operator in output")
-	}
+	assert.Contains(t, output, "B*\n", "expected even-odd fill+stroke 'B*' operator in output")
 }
 
 func TestRenderSVG_StrokeOnly(t *testing.T) {
@@ -572,18 +462,11 @@ func TestRenderSVG_StrokeOnly(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "S\n") {
-		t.Error("expected stroke 'S' operator for fill=none")
-	}
-
-	if strings.Contains(output, "f\n") {
-		t.Error("fill=none should not emit fill 'f' operator")
-	}
+	assert.Contains(t, output, "S\n", "expected stroke 'S' operator for fill=none")
+	assert.NotContains(t, output, "f\n", "fill=none should not emit fill 'f' operator")
 }
 
 func TestRenderSVG_NoFillNoStroke(t *testing.T) {
@@ -596,14 +479,10 @@ func TestRenderSVG_NoFillNoStroke(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "n\n") {
-		t.Error("expected end-path 'n' operator for no fill, no stroke")
-	}
+	assert.Contains(t, output, "n\n", "expected end-path 'n' operator for no fill, no stroke")
 }
 
 func TestRenderSVG_FillOpacity(t *testing.T) {
@@ -616,17 +495,11 @@ func TestRenderSVG_FillOpacity(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "gs\n") {
-		t.Error("expected ExtGState 'gs' for fill-opacity < 1")
-	}
-	if !ctx.ExtGStateManager.HasStates() {
-		t.Error("expected ExtGStateManager to have registered opacity state")
-	}
+	assert.Contains(t, output, "gs\n", "expected ExtGState 'gs' for fill-opacity < 1")
+	assert.True(t, ctx.ExtGStateManager.HasStates(), "expected ExtGStateManager to have registered opacity state")
 }
 
 func TestRenderSVG_StrokeOpacity(t *testing.T) {
@@ -639,14 +512,10 @@ func TestRenderSVG_StrokeOpacity(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 100, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "gs\n") {
-		t.Error("expected ExtGState 'gs' for stroke-opacity < 1")
-	}
+	assert.Contains(t, output, "gs\n", "expected ExtGState 'gs' for stroke-opacity < 1")
 }
 
 func TestRenderSVG_PreserveAspectRatio_xMinYMax_Meet(t *testing.T) {
@@ -659,17 +528,11 @@ func TestRenderSVG_PreserveAspectRatio_xMinYMax_Meet(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "cm\n") {
-		t.Error("expected cm operator for viewport transform")
-	}
-	if !strings.Contains(output, "re") {
-		t.Error("expected rectangle in output")
-	}
+	assert.Contains(t, output, "cm\n", "expected cm operator for viewport transform")
+	assert.Contains(t, output, "re", "expected rectangle in output")
 }
 
 func TestRenderSVG_PreserveAspectRatio_xMaxYMin_Slice(t *testing.T) {
@@ -683,9 +546,7 @@ func TestRenderSVG_PreserveAspectRatio_xMaxYMin_Slice(t *testing.T) {
 		</svg>`,
 		ctxMeet, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	ctxSlice := newTestContext()
 	err = w.RenderSVG(context.Background(),
@@ -694,16 +555,12 @@ func TestRenderSVG_PreserveAspectRatio_xMaxYMin_Slice(t *testing.T) {
 		</svg>`,
 		ctxSlice, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	outputMeet := ctxMeet.Stream.String()
 	outputSlice := ctxSlice.Stream.String()
 
-	if outputMeet == outputSlice {
-		t.Error("preserveAspectRatio 'slice' should produce different transform than 'meet'")
-	}
+	assert.NotEqual(t, outputMeet, outputSlice, "preserveAspectRatio 'slice' should produce different transform than 'meet'")
 }
 
 func TestRenderSVG_Polyline(t *testing.T) {
@@ -716,22 +573,80 @@ func TestRenderSVG_Polyline(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 200,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "m\n") {
-		t.Error("expected moveto for polyline")
-	}
-	if !strings.Contains(output, "l\n") {
-		t.Error("expected lineto for polyline")
-	}
+	assert.Contains(t, output, "m\n", "expected moveto for polyline")
+	assert.Contains(t, output, "l\n", "expected lineto for polyline")
+	assert.NotContains(t, output, "h\n", "polyline should not emit closepath 'h'")
+	assert.Contains(t, output, "S\n", "expected stroke 'S' for polyline")
+}
 
-	if strings.Contains(output, "h\n") {
-		t.Error("polyline should not emit closepath 'h'")
+func TestRenderSVGCyclicUseTerminatesWithoutCrash(t *testing.T) {
+	t.Parallel()
+
+	w := New()
+	ctx := newTestContext()
+	err := w.RenderSVG(context.Background(),
+		`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">`+
+			`<g id="a"><use href="#b"/></g>`+
+			`<g id="b"><use href="#a"/></g>`+
+			`</svg>`,
+		ctx, 0, 0, 100, 100,
+	)
+	require.NoError(t, err)
+}
+
+func TestRenderSVGSelfReferentialUseTerminates(t *testing.T) {
+	t.Parallel()
+
+	w := New()
+	ctx := newTestContext()
+	err := w.RenderSVG(context.Background(),
+		`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">`+
+			`<g id="a"><use href="#a"/></g>`+
+			`</svg>`,
+		ctx, 0, 0, 100, 100,
+	)
+	require.NoError(t, err)
+}
+
+func TestRenderSVGDeeplyNestedGroupsAreBounded(t *testing.T) {
+	t.Parallel()
+
+	var builder strings.Builder
+	builder.WriteString(`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">`)
+	const depth = maxSVGRenderDepth + 50
+	for range depth {
+		builder.WriteString("<g>")
 	}
-	if !strings.Contains(output, "S\n") {
-		t.Error("expected stroke 'S' for polyline")
+	builder.WriteString(`<rect width="10" height="10" fill="red"/>`)
+	for range depth {
+		builder.WriteString("</g>")
 	}
+	builder.WriteString("</svg>")
+
+	w := New()
+	ctx := newTestContext()
+	err := w.RenderSVG(context.Background(), builder.String(), ctx, 0, 0, 100, 100)
+	require.NoError(t, err)
+}
+
+func TestRenderSVGRepeatedSiblingUseIsNotTreatedAsCycle(t *testing.T) {
+	t.Parallel()
+
+	w := New()
+	ctx := newTestContext()
+	err := w.RenderSVG(context.Background(),
+		`<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">`+
+			`<defs><rect id="r" width="10" height="10" fill="green"/></defs>`+
+			`<use href="#r" x="0" y="0"/>`+
+			`<use href="#r" x="20" y="0"/>`+
+			`</svg>`,
+		ctx, 0, 0, 100, 100,
+	)
+	require.NoError(t, err)
+	output := ctx.Stream.String()
+	assert.GreaterOrEqual(t, strings.Count(output, "re\n"), 2,
+		"both <use> references should emit a rectangle")
 }

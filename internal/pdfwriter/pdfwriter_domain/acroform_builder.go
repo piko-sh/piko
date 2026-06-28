@@ -300,7 +300,7 @@ func (b *AcroFormBuilder) writeField(
 	var dict strings.Builder
 
 	dict.WriteString("<< /Type /Annot /Subtype /Widget")
-	fmt.Fprintf(&dict, " /T (%s)", pdfEscapeString(field.Name))
+	fmt.Fprintf(&dict, " /T %s", encodePdfTextString(field.Name))
 	fmt.Fprintf(&dict, " /FT /%s", formFieldTypeName(field.FieldType))
 
 	writeFieldFlags(&dict, field)
@@ -332,7 +332,7 @@ func (b *AcroFormBuilder) writeField(
 		apRef := b.writePushButtonAppearance(writer, field, helveticaNum)
 		fmt.Fprintf(&dict, " /AP << /N %s >>", apRef)
 		caption := pushButtonCaption(field)
-		fmt.Fprintf(&dict, " /MK << /CA (%s) >>", pdfEscapeString(caption))
+		fmt.Fprintf(&dict, " /MK << /CA %s >>", encodePdfTextString(caption))
 	case FormFieldRadio:
 		return "", fmt.Errorf("acroform_builder: radio field %q reached writeField; radios must be dispatched via writeRadioGroup", field.Name)
 	default:
@@ -384,11 +384,11 @@ func writeFieldValue(dict *strings.Builder, field *FormField) {
 		if field.FieldType == FormFieldCheckbox {
 			fmt.Fprintf(dict, " /V /%s", field.Value)
 		} else {
-			fmt.Fprintf(dict, " /V (%s)", pdfEscapeString(field.Value))
+			fmt.Fprintf(dict, " /V %s", encodePdfTextString(field.Value))
 		}
 	}
 	if field.DefaultVal != "" {
-		fmt.Fprintf(dict, " /DV (%s)", pdfEscapeString(field.DefaultVal))
+		fmt.Fprintf(dict, " /DV %s", encodePdfTextString(field.DefaultVal))
 	}
 	if field.MaxLen > 0 {
 		fmt.Fprintf(dict, " /MaxLen %d", field.MaxLen)
@@ -427,7 +427,7 @@ func writeFieldOptions(dict *strings.Builder, field *FormField) {
 			if i > 0 {
 				dict.WriteByte(' ')
 			}
-			fmt.Fprintf(dict, "(%s)", pdfEscapeString(opt))
+			dict.WriteString(encodePdfTextString(opt))
 		}
 		dict.WriteByte(']')
 	}
@@ -466,7 +466,7 @@ func (b *AcroFormBuilder) writeRadioGroup(
 	}
 
 	var pDict strings.Builder
-	fmt.Fprintf(&pDict, "<< /T (%s)", pdfEscapeString(name))
+	fmt.Fprintf(&pDict, "<< /T %s", encodePdfTextString(name))
 	pDict.WriteString(" /FT /Btn")
 	fmt.Fprintf(&pDict, " /Ff %d", FormFlagRadio|FormFlagNoToggleOff)
 

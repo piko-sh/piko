@@ -19,109 +19,70 @@
 package pdfwriter_domain
 
 import (
-	"math"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseClipPath_None(t *testing.T) {
 	shape := ParseClipPath("none", 100, 100)
-	if shape.Type != ClipShapeNone {
-		t.Errorf("expected ClipShapeNone, got %d", shape.Type)
-	}
+	assert.Equal(t, ClipShapeNone, shape.Type)
 }
 
 func TestParseClipPath_Empty(t *testing.T) {
 	shape := ParseClipPath("", 100, 100)
-	if shape.Type != ClipShapeNone {
-		t.Errorf("expected ClipShapeNone for empty string, got %d", shape.Type)
-	}
+	assert.Equal(t, ClipShapeNone, shape.Type, "expected ClipShapeNone for empty string")
 }
 
 func TestParseClipPath_Circle(t *testing.T) {
 	shape := ParseClipPath("circle(50%)", 200, 200)
-	if shape.Type != ClipShapeCircle {
-		t.Fatalf("expected ClipShapeCircle, got %d", shape.Type)
-	}
-	if math.Abs(shape.RadiusX-0.5) > 0.01 {
-		t.Errorf("expected radius 0.5, got %v", shape.RadiusX)
-	}
-	if shape.CenterX != 0.5 || shape.CenterY != 0.5 {
-		t.Errorf("expected center (0.5, 0.5), got (%v, %v)", shape.CenterX, shape.CenterY)
-	}
+	require.Equal(t, ClipShapeCircle, shape.Type)
+	assert.InDelta(t, 0.5, shape.RadiusX, 0.01)
+	assert.Equal(t, 0.5, shape.CenterX)
+	assert.Equal(t, 0.5, shape.CenterY)
 }
 
 func TestParseClipPath_CircleWithPosition(t *testing.T) {
 	shape := ParseClipPath("circle(30% at 25% 75%)", 200, 200)
-	if shape.Type != ClipShapeCircle {
-		t.Fatalf("expected ClipShapeCircle, got %d", shape.Type)
-	}
-	if math.Abs(shape.CenterX-0.25) > 0.01 {
-		t.Errorf("expected centerX 0.25, got %v", shape.CenterX)
-	}
-	if math.Abs(shape.CenterY-0.75) > 0.01 {
-		t.Errorf("expected centerY 0.75, got %v", shape.CenterY)
-	}
+	require.Equal(t, ClipShapeCircle, shape.Type)
+	assert.InDelta(t, 0.25, shape.CenterX, 0.01)
+	assert.InDelta(t, 0.75, shape.CenterY, 0.01)
 }
 
 func TestParseClipPath_Ellipse(t *testing.T) {
 	shape := ParseClipPath("ellipse(40% 60%)", 200, 100)
-	if shape.Type != ClipShapeEllipse {
-		t.Fatalf("expected ClipShapeEllipse, got %d", shape.Type)
-	}
-	if math.Abs(shape.RadiusX-0.4) > 0.01 {
-		t.Errorf("expected radiusX 0.4, got %v", shape.RadiusX)
-	}
-	if math.Abs(shape.RadiusY-0.6) > 0.01 {
-		t.Errorf("expected radiusY 0.6, got %v", shape.RadiusY)
-	}
+	require.Equal(t, ClipShapeEllipse, shape.Type)
+	assert.InDelta(t, 0.4, shape.RadiusX, 0.01)
+	assert.InDelta(t, 0.6, shape.RadiusY, 0.01)
 }
 
 func TestParseClipPath_Inset(t *testing.T) {
 	shape := ParseClipPath("inset(10px 20px 30px 40px)", 200, 200)
-	if shape.Type != ClipShapeInset {
-		t.Fatalf("expected ClipShapeInset, got %d", shape.Type)
-	}
+	require.Equal(t, ClipShapeInset, shape.Type)
 
-	if math.Abs(shape.InsetTop-7.5) > 0.1 {
-		t.Errorf("expected insetTop 7.5, got %v", shape.InsetTop)
-	}
-	if math.Abs(shape.InsetRight-15) > 0.1 {
-		t.Errorf("expected insetRight 15, got %v", shape.InsetRight)
-	}
+	assert.InDelta(t, 7.5, shape.InsetTop, 0.1)
+	assert.InDelta(t, 15, shape.InsetRight, 0.1)
 }
 
 func TestParseClipPath_InsetWithRound(t *testing.T) {
 	shape := ParseClipPath("inset(10% round 5px)", 200, 200)
-	if shape.Type != ClipShapeInset {
-		t.Fatalf("expected ClipShapeInset, got %d", shape.Type)
-	}
-	if shape.InsetRadius <= 0 {
-		t.Error("expected non-zero inset radius")
-	}
+	require.Equal(t, ClipShapeInset, shape.Type)
+	assert.Greater(t, shape.InsetRadius, 0.0, "expected non-zero inset radius")
 }
 
 func TestParseClipPath_Polygon(t *testing.T) {
 	shape := ParseClipPath("polygon(50% 0%, 100% 100%, 0% 100%)", 200, 200)
-	if shape.Type != ClipShapePolygon {
-		t.Fatalf("expected ClipShapePolygon, got %d", shape.Type)
-	}
-	if len(shape.Points) != 3 {
-		t.Fatalf("expected 3 vertices, got %d", len(shape.Points))
-	}
-	if math.Abs(shape.Points[0][0]-0.5) > 0.01 {
-		t.Errorf("expected first vertex x=0.5, got %v", shape.Points[0][0])
-	}
-	if math.Abs(shape.Points[0][1]-0.0) > 0.01 {
-		t.Errorf("expected first vertex y=0.0, got %v", shape.Points[0][1])
-	}
+	require.Equal(t, ClipShapePolygon, shape.Type)
+	require.Len(t, shape.Points, 3)
+	assert.InDelta(t, 0.5, shape.Points[0][0], 0.01)
+	assert.InDelta(t, 0.0, shape.Points[0][1], 0.01)
 }
 
 func TestParseClipPath_Unknown(t *testing.T) {
 	shape := ParseClipPath("url(#myClip)", 100, 100)
-	if shape.Type != ClipShapeNone {
-		t.Errorf("expected ClipShapeNone for url(), got %d", shape.Type)
-	}
+	assert.Equal(t, ClipShapeNone, shape.Type, "expected ClipShapeNone for url()")
 }
 
 func TestEmitClipPath_Circle(t *testing.T) {
@@ -131,13 +92,9 @@ func TestEmitClipPath_Circle(t *testing.T) {
 	EmitClipPath(stream, shape, 0, 0, 100, 100)
 
 	output := stream.String()
-	if output == "" {
-		t.Error("expected non-empty output for circle clip")
-	}
+	assert.NotEmpty(t, output, "expected non-empty output for circle clip")
 
-	if len(output) < 10 {
-		t.Error("expected substantial output for circle clip path")
-	}
+	assert.GreaterOrEqual(t, len(output), 10, "expected substantial output for circle clip path")
 }
 
 func TestEmitClipPath_Polygon(t *testing.T) {
@@ -150,9 +107,7 @@ func TestEmitClipPath_Polygon(t *testing.T) {
 	EmitClipPath(stream, shape, 0, 0, 100, 100)
 
 	output := stream.String()
-	if output == "" {
-		t.Error("expected non-empty output for polygon clip")
-	}
+	assert.NotEmpty(t, output, "expected non-empty output for polygon clip")
 }
 
 func TestEmitClipPath_Ellipse_ProducesBeziersOutput(t *testing.T) {
@@ -170,21 +125,13 @@ func TestEmitClipPath_Ellipse_ProducesBeziersOutput(t *testing.T) {
 	EmitClipPath(stream, shape, 0, 0, 200, 100)
 
 	output := stream.String()
-	if output == "" {
-		t.Error("expected non-empty output for ellipse clip")
-	}
+	assert.NotEmpty(t, output, "expected non-empty output for ellipse clip")
 
-	if !strings.Contains(output, " c\n") && !strings.Contains(output, " c ") {
-		t.Error("expected Bezier curve operators in ellipse path")
-	}
+	assert.True(t, strings.Contains(output, " c\n") || strings.Contains(output, " c "), "expected Bezier curve operators in ellipse path")
 
-	if !strings.Contains(output, " m\n") && !strings.Contains(output, " m ") {
-		t.Error("expected MoveTo operator in ellipse path")
-	}
+	assert.True(t, strings.Contains(output, " m\n") || strings.Contains(output, " m "), "expected MoveTo operator in ellipse path")
 
-	if !strings.Contains(output, "h") {
-		t.Error("expected ClosePath (h) operator in ellipse path")
-	}
+	assert.Contains(t, output, "h", "expected ClosePath (h) operator in ellipse path")
 }
 
 func TestEmitClipPath_Inset_WithoutRadius(t *testing.T) {
@@ -203,9 +150,7 @@ func TestEmitClipPath_Inset_WithoutRadius(t *testing.T) {
 	EmitClipPath(stream, shape, 0, 0, 200, 100)
 
 	output := stream.String()
-	if !strings.Contains(output, "re") {
-		t.Error("expected rectangle (re) operator for inset without radius")
-	}
+	assert.Contains(t, output, "re", "expected rectangle (re) operator for inset without radius")
 }
 
 func TestEmitClipPath_Inset_WithRadius(t *testing.T) {
@@ -225,9 +170,7 @@ func TestEmitClipPath_Inset_WithRadius(t *testing.T) {
 
 	output := stream.String()
 
-	if !strings.Contains(output, " c\n") && !strings.Contains(output, " c ") {
-		t.Error("expected Bezier curve operators for rounded inset")
-	}
+	assert.True(t, strings.Contains(output, " c\n") || strings.Contains(output, " c "), "expected Bezier curve operators for rounded inset")
 }
 
 func TestEmitClipPath_Polygon_TooFewVertices_Noop(t *testing.T) {
@@ -242,9 +185,7 @@ func TestEmitClipPath_Polygon_TooFewVertices_Noop(t *testing.T) {
 	EmitClipPath(stream, shape, 0, 0, 200, 100)
 
 	output := stream.String()
-	if output != "" {
-		t.Errorf("expected empty output for polygon with fewer than 3 vertices, got %q", output)
-	}
+	assert.Empty(t, output, "expected empty output for polygon with fewer than 3 vertices")
 }
 
 func TestEmitClipPath_None_Noop(t *testing.T) {
@@ -256,18 +197,14 @@ func TestEmitClipPath_None_Noop(t *testing.T) {
 	EmitClipPath(stream, shape, 0, 0, 200, 100)
 
 	output := stream.String()
-	if output != "" {
-		t.Errorf("expected empty output for ClipShapeNone, got %q", output)
-	}
+	assert.Empty(t, output, "expected empty output for ClipShapeNone")
 }
 
 func TestResolveClipLength_Percent(t *testing.T) {
 	t.Parallel()
 
 	result := resolveClipLength("50%", 200)
-	if math.Abs(result-100) > 0.01 {
-		t.Errorf("expected 100 for 50%% of 200, got %v", result)
-	}
+	assert.InDelta(t, 100, result, 0.01, "expected 100 for 50%% of 200")
 }
 
 func TestResolveClipLength_Px(t *testing.T) {
@@ -275,18 +212,14 @@ func TestResolveClipLength_Px(t *testing.T) {
 
 	result := resolveClipLength("100px", 200)
 	expected := 100 * 0.75
-	if math.Abs(result-expected) > 0.01 {
-		t.Errorf("expected %v for 100px, got %v", expected, result)
-	}
+	assert.InDelta(t, expected, result, 0.01, "expected %v for 100px", expected)
 }
 
 func TestResolveClipLength_Pt(t *testing.T) {
 	t.Parallel()
 
 	result := resolveClipLength("72pt", 200)
-	if math.Abs(result-72) > 0.01 {
-		t.Errorf("expected 72 for 72pt, got %v", result)
-	}
+	assert.InDelta(t, 72, result, 0.01, "expected 72 for 72pt")
 }
 
 func TestResolveClipLength_BareNumber(t *testing.T) {
@@ -294,215 +227,150 @@ func TestResolveClipLength_BareNumber(t *testing.T) {
 
 	result := resolveClipLength("100", 200)
 	expected := 100 * 0.75
-	if math.Abs(result-expected) > 0.01 {
-		t.Errorf("expected %v for bare number 100, got %v", expected, result)
-	}
+	assert.InDelta(t, expected, result, 0.01, "expected %v for bare number 100", expected)
 }
 
 func TestResolveClipLength_InvalidPercent(t *testing.T) {
 	t.Parallel()
 
 	result := resolveClipLength("abc%", 200)
-	if result != 0 {
-		t.Errorf("expected 0 for invalid percent, got %v", result)
-	}
+	assert.Equal(t, 0.0, result, "expected 0 for invalid percent")
 }
 
 func TestResolveClipLength_InvalidPx(t *testing.T) {
 	t.Parallel()
 
 	result := resolveClipLength("abcpx", 200)
-	if result != 0 {
-		t.Errorf("expected 0 for invalid px, got %v", result)
-	}
+	assert.Equal(t, 0.0, result, "expected 0 for invalid px")
 }
 
 func TestResolveClipLength_InvalidPt(t *testing.T) {
 	t.Parallel()
 
 	result := resolveClipLength("abcpt", 200)
-	if result != 0 {
-		t.Errorf("expected 0 for invalid pt, got %v", result)
-	}
+	assert.Equal(t, 0.0, result, "expected 0 for invalid pt")
 }
 
 func TestResolveClipLength_InvalidBareNumber(t *testing.T) {
 	t.Parallel()
 
 	result := resolveClipLength("notanumber", 200)
-	if result != 0 {
-		t.Errorf("expected 0 for invalid bare number, got %v", result)
-	}
+	assert.Equal(t, 0.0, result, "expected 0 for invalid bare number")
 }
 
 func TestParsePercentOrKeyword_Left(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("left")
-	if result != 0 {
-		t.Errorf("expected 0 for 'left', got %v", result)
-	}
+	assert.Equal(t, 0.0, result, "expected 0 for 'left'")
 }
 
 func TestParsePercentOrKeyword_Right(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("right")
-	if result != 1 {
-		t.Errorf("expected 1 for 'right', got %v", result)
-	}
+	assert.Equal(t, 1.0, result, "expected 1 for 'right'")
 }
 
 func TestParsePercentOrKeyword_Top(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("top")
-	if result != 0 {
-		t.Errorf("expected 0 for 'top', got %v", result)
-	}
+	assert.Equal(t, 0.0, result, "expected 0 for 'top'")
 }
 
 func TestParsePercentOrKeyword_Bottom(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("bottom")
-	if result != 1 {
-		t.Errorf("expected 1 for 'bottom', got %v", result)
-	}
+	assert.Equal(t, 1.0, result, "expected 1 for 'bottom'")
 }
 
 func TestParsePercentOrKeyword_Center(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("center")
-	if result != 0.5 {
-		t.Errorf("expected 0.5 for 'center', got %v", result)
-	}
+	assert.Equal(t, 0.5, result, "expected 0.5 for 'center'")
 }
 
 func TestParsePercentOrKeyword_Percent(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("75%")
-	if math.Abs(result-0.75) > 0.01 {
-		t.Errorf("expected 0.75 for 75%%, got %v", result)
-	}
+	assert.InDelta(t, 0.75, result, 0.01, "expected 0.75 for 75%%")
 }
 
 func TestParsePercentOrKeyword_InvalidPercent(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("abc%")
-	if result != 0.5 {
-		t.Errorf("expected 0.5 fallback for invalid percent, got %v", result)
-	}
+	assert.Equal(t, 0.5, result, "expected 0.5 fallback for invalid percent")
 }
 
 func TestParsePercentOrKeyword_Unknown(t *testing.T) {
 	t.Parallel()
 
 	result := parsePercentOrKeyword("unknown")
-	if result != 0.5 {
-		t.Errorf("expected 0.5 fallback for unknown keyword, got %v", result)
-	}
+	assert.Equal(t, 0.5, result, "expected 0.5 fallback for unknown keyword")
 }
 
 func TestParseClipInset_OneValue(t *testing.T) {
 	t.Parallel()
 
 	shape := ParseClipPath("inset(10%)", 200, 200)
-	if shape.Type != ClipShapeInset {
-		t.Fatalf("expected ClipShapeInset, got %d", shape.Type)
-	}
+	require.Equal(t, ClipShapeInset, shape.Type)
 
 	expected := 20.0
-	if math.Abs(shape.InsetTop-expected) > 0.1 {
-		t.Errorf("expected insetTop %v, got %v", expected, shape.InsetTop)
-	}
-	if math.Abs(shape.InsetBottom-expected) > 0.1 {
-		t.Errorf("expected insetBottom %v, got %v", expected, shape.InsetBottom)
-	}
-	if math.Abs(shape.InsetRight-expected) > 0.1 {
-		t.Errorf("expected insetRight %v, got %v", expected, shape.InsetRight)
-	}
-	if math.Abs(shape.InsetLeft-expected) > 0.1 {
-		t.Errorf("expected insetLeft %v, got %v", expected, shape.InsetLeft)
-	}
+	assert.InDelta(t, expected, shape.InsetTop, 0.1, "expected insetTop %v", expected)
+	assert.InDelta(t, expected, shape.InsetBottom, 0.1, "expected insetBottom %v", expected)
+	assert.InDelta(t, expected, shape.InsetRight, 0.1, "expected insetRight %v", expected)
+	assert.InDelta(t, expected, shape.InsetLeft, 0.1, "expected insetLeft %v", expected)
 }
 
 func TestParseClipInset_TwoValues(t *testing.T) {
 	t.Parallel()
 
 	shape := ParseClipPath("inset(5% 10%)", 200, 200)
-	if shape.Type != ClipShapeInset {
-		t.Fatalf("expected ClipShapeInset, got %d", shape.Type)
-	}
+	require.Equal(t, ClipShapeInset, shape.Type)
 
-	if math.Abs(shape.InsetTop-10) > 0.1 {
-		t.Errorf("expected insetTop 10, got %v", shape.InsetTop)
-	}
-	if math.Abs(shape.InsetBottom-10) > 0.1 {
-		t.Errorf("expected insetBottom 10, got %v", shape.InsetBottom)
-	}
-	if math.Abs(shape.InsetRight-20) > 0.1 {
-		t.Errorf("expected insetRight 20, got %v", shape.InsetRight)
-	}
-	if math.Abs(shape.InsetLeft-20) > 0.1 {
-		t.Errorf("expected insetLeft 20, got %v", shape.InsetLeft)
-	}
+	assert.InDelta(t, 10, shape.InsetTop, 0.1, "expected insetTop 10")
+	assert.InDelta(t, 10, shape.InsetBottom, 0.1, "expected insetBottom 10")
+	assert.InDelta(t, 20, shape.InsetRight, 0.1, "expected insetRight 20")
+	assert.InDelta(t, 20, shape.InsetLeft, 0.1, "expected insetLeft 20")
 }
 
 func TestParseClipInset_ThreeValues(t *testing.T) {
 	t.Parallel()
 
 	shape := ParseClipPath("inset(5% 10% 15%)", 200, 200)
-	if shape.Type != ClipShapeInset {
-		t.Fatalf("expected ClipShapeInset, got %d", shape.Type)
-	}
-	if math.Abs(shape.InsetTop-10) > 0.1 {
-		t.Errorf("expected insetTop 10 (5%% of 200), got %v", shape.InsetTop)
-	}
-	if math.Abs(shape.InsetBottom-30) > 0.1 {
-		t.Errorf("expected insetBottom 30 (15%% of 200), got %v", shape.InsetBottom)
-	}
+	require.Equal(t, ClipShapeInset, shape.Type)
+	assert.InDelta(t, 10, shape.InsetTop, 0.1, "expected insetTop 10 (5%% of 200)")
+	assert.InDelta(t, 30, shape.InsetBottom, 0.1, "expected insetBottom 30 (15%% of 200)")
 
-	if math.Abs(shape.InsetLeft-shape.InsetRight) > 0.1 {
-		t.Errorf("expected insetLeft == insetRight, got left=%v right=%v", shape.InsetLeft, shape.InsetRight)
-	}
+	assert.InDelta(t, shape.InsetLeft, shape.InsetRight, 0.1, "expected insetLeft == insetRight")
 }
 
 func TestParseClipEllipse_WithPosition(t *testing.T) {
 	t.Parallel()
 
 	shape := ParseClipPath("ellipse(30% 40% at 20% 80%)", 200, 100)
-	if shape.Type != ClipShapeEllipse {
-		t.Fatalf("expected ClipShapeEllipse, got %d", shape.Type)
-	}
-	if math.Abs(shape.CenterX-0.2) > 0.01 {
-		t.Errorf("expected centerX 0.2, got %v", shape.CenterX)
-	}
-	if math.Abs(shape.CenterY-0.8) > 0.01 {
-		t.Errorf("expected centerY 0.8, got %v", shape.CenterY)
-	}
+	require.Equal(t, ClipShapeEllipse, shape.Type)
+	assert.InDelta(t, 0.2, shape.CenterX, 0.01, "expected centerX 0.2")
+	assert.InDelta(t, 0.8, shape.CenterY, 0.01, "expected centerY 0.8")
 }
 
 func TestParsePosition_Empty(t *testing.T) {
 	t.Parallel()
 
 	x, y := parsePosition("")
-	if x != 0.5 || y != 0.5 {
-		t.Errorf("expected (0.5, 0.5) for empty position, got (%v, %v)", x, y)
-	}
+	assert.Equal(t, 0.5, x, "expected x=0.5 for empty position")
+	assert.Equal(t, 0.5, y, "expected y=0.5 for empty position")
 }
 
 func TestParsePosition_SingleValue(t *testing.T) {
 	t.Parallel()
 
 	x, y := parsePosition("25%")
-	if math.Abs(x-0.25) > 0.01 {
-		t.Errorf("expected x=0.25, got %v", x)
-	}
-	if y != 0.5 {
-		t.Errorf("expected y=0.5 for single value, got %v", y)
-	}
+	assert.InDelta(t, 0.25, x, 0.01, "expected x=0.25")
+	assert.Equal(t, 0.5, y, "expected y=0.5 for single value")
 }

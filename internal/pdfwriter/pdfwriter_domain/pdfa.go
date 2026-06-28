@@ -126,6 +126,33 @@ const (
 	iccTagIndexBTRC = 7
 )
 
+const (
+	// xmlCharTab is the tab control character, one of three XML 1.0 permits.
+	xmlCharTab = 0x09
+
+	// xmlCharLF is the line feed control character, one of three XML 1.0 permits.
+	xmlCharLF = 0x0a
+
+	// xmlCharCR is the carriage return control character, one of three XML 1.0 permits.
+	xmlCharCR = 0x0d
+
+	// xmlCharSpace is the lowest non-control character permitted in XML 1.0 text.
+	xmlCharSpace = 0x20
+
+	// xmlCharBeforeSurrogates is the highest codepoint below the UTF-16 surrogate block.
+	xmlCharBeforeSurrogates = 0xd7ff
+
+	// xmlCharAfterSurrogates is the lowest codepoint above the UTF-16 surrogate block.
+	xmlCharAfterSurrogates = 0xe000
+
+	// xmlCharBMPMax is the highest Basic Multilingual Plane codepoint XML 1.0 permits,
+	// excluding the noncharacters U+FFFE and U+FFFF.
+	xmlCharBMPMax = 0xfffd
+
+	// xmlCharSupplementaryMax is the highest valid Unicode codepoint.
+	xmlCharSupplementaryMax = 0x10ffff
+)
+
 // PdfALevel specifies which PDF/A conformance level to target.
 type PdfALevel int
 
@@ -141,6 +168,17 @@ const (
 	// PdfA2A targets PDF/A-2a (accessible conformance) which requires a tagged PDF structure
 	// tree.
 	PdfA2A
+
+	// PdfA3B targets PDF/A-3b (basic conformance) which, unlike PDF/A-2, permits embedding
+	// arbitrary associated files such as a machine-readable JSON or XML payload.
+	PdfA3B
+
+	// PdfA3U targets PDF/A-3u (Unicode conformance) with embedded associated files.
+	PdfA3U
+
+	// PdfA3A targets PDF/A-3a (accessible conformance) with embedded associated files and a
+	// tagged PDF structure tree.
+	PdfA3A
 )
 
 // PdfAConfig configures PDF/A conformance output.
@@ -154,12 +192,25 @@ type PdfAConfig struct {
 // Returns string which holds the single-letter conformance identifier.
 func (c *PdfAConfig) conformanceLetter() string {
 	switch c.Level {
-	case PdfA2U:
+	case PdfA2U, PdfA3U:
 		return "U"
-	case PdfA2A:
+	case PdfA2A, PdfA3A:
 		return "A"
 	default:
 		return "B"
+	}
+}
+
+// part returns the PDF/A part number ("2" or "3") for the configured level. PDF/A-3 is
+// required to embed arbitrary associated files.
+//
+// Returns string which holds the part number.
+func (c *PdfAConfig) part() string {
+	switch c.Level {
+	case PdfA3B, PdfA3U, PdfA3A:
+		return "3"
+	default:
+		return "2"
 	}
 }
 
@@ -197,9 +248,31 @@ func writePdfAObjects(
 		FormatReference(xmpNumber), FormatReference(intentNumber))
 }
 
-// buildXMPMetadata generates the XMP metadata XML packet for PDF/A-2.
+// writeMetadataObject writes a standalone XMP metadata stream (Dublin Core, document
+// dates, language, and any structured metadata) without the PDF/A ICC profile or output
+// intent. It is used to attach machine-readable metadata to every document, not only
+// PDF/A output.
 //
-// Takes config (*PdfAConfig) which specifies the target conformance level.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer to emit objects
+// to.
+// Takes metadata (*PdfMetadata) which specifies the document metadata for XMP.
+// Takes now (time.Time) which specifies the creation/modification timestamp.
+//
+// Returns string which holds the catalog-level /Metadata entry to append.
+func writeMetadataObject(writer *PdfDocumentWriter, metadata *PdfMetadata, now time.Time) string {
+	xmpNumber := writer.AllocateObject()
+	xmpBytes := buildXMPMetadata(nil, metadata, now)
+	xmpDict := fmt.Sprintf("<< /Type /Metadata /Subtype /XML /Length %d >>", len(xmpBytes))
+	writer.WriteRawStreamObject(xmpNumber, xmpDict, xmpBytes)
+	return fmt.Sprintf(" /Metadata %s", FormatReference(xmpNumber))
+}
+
+// buildXMPMetadata generates the XMP metadata XML packet. When config is non-nil the
+// PDF/A identification block is included; otherwise a general (non-PDF/A) metadata packet
+// is produced.
+//
+// Takes config (*PdfAConfig) which specifies the target conformance level, or nil for a
+// general metadata packet.
 // Takes metadata (*PdfMetadata) which specifies the document metadata fields.
 // Takes now (time.Time) which specifies the creation and modification timestamp.
 //
@@ -209,12 +282,17 @@ func buildXMPMetadata(config *PdfAConfig, metadata *PdfMetadata, now time.Time) 
 	isoDate := now.UTC().Format("2006-01-02T15:04:05Z")
 
 	title, author, subject, keywords := resolveXMPMetadata(metadata)
-	conformance := config.conformanceLetter()
 
 	var b strings.Builder
 	writeXMPHeader(&b)
 	writeXMPDublinCore(&b, title, author, subject, keywords)
-	writeXMPBasicAndPdfAID(&b, isoDate, conformance)
+	writeXMPLanguage(&b, metadata)
+	writeXMPBasic(&b, isoDate)
+	if config != nil {
+		writeXMPPdfAID(&b, config.part(), config.conformanceLetter())
+	}
+	writeXMPStructured(&b, metadata)
+	writeXMPFooter(&b)
 
 	padding := iccXmpPaddingBytes - b.Len()
 	if padding > 0 {
@@ -238,7 +316,8 @@ func buildXMPMetadata(config *PdfAConfig, metadata *PdfMetadata, now time.Time) 
 // Returns author (string) which holds the XML-escaped document author.
 // Returns subject (string) which holds the XML-escaped document subject, or empty if
 // unset.
-// Returns keywords (string) which holds the XML-escaped keywords, or empty if unset.
+// Returns keywords (string) which holds the raw, comma-separated keywords (escaped per
+// token by writeXMPDublinCore), or empty if unset.
 func resolveXMPMetadata(metadata *PdfMetadata) (title, author, subject, keywords string) {
 	title = "Untitled"
 	if metadata != nil && metadata.Title != "" {
@@ -254,8 +333,8 @@ func resolveXMPMetadata(metadata *PdfMetadata) (title, author, subject, keywords
 		subject = xmlEscape(metadata.Subject)
 	}
 
-	if metadata != nil && metadata.Keywords != "" {
-		keywords = xmlEscape(metadata.Keywords)
+	if metadata != nil {
+		keywords = metadata.Keywords
 	}
 
 	return title, author, subject, keywords
@@ -301,35 +380,113 @@ func writeXMPDublinCore(b *strings.Builder, title, author, subject, keywords str
 	}
 }
 
-// writeXMPBasicAndPdfAID writes the XMP basic, PDF, and PDF/A identification elements.
+// writeXMPLanguage writes the Dublin Core language element when a language is set.
+//
+// Takes b (*strings.Builder) which specifies the buffer to write to.
+// Takes metadata (*PdfMetadata) which may carry a BCP-47 language tag.
+func writeXMPLanguage(b *strings.Builder, metadata *PdfMetadata) {
+	if metadata == nil || metadata.Lang == "" {
+		return
+	}
+	fmt.Fprintf(b, "  <dc:language><rdf:Bag><rdf:li>%s</rdf:li></rdf:Bag></dc:language>\n", xmlEscape(metadata.Lang))
+}
+
+// writeXMPBasic writes the XMP basic and PDF producer elements.
 //
 // Takes b (*strings.Builder) which specifies the buffer to write to.
 // Takes isoDate (string) which specifies the ISO 8601 formatted creation date.
-// Takes conformance (string) which specifies the PDF/A conformance letter.
-func writeXMPBasicAndPdfAID(b *strings.Builder, isoDate, conformance string) {
+func writeXMPBasic(b *strings.Builder, isoDate string) {
 	b.WriteString("  <xmp:CreatorTool>Piko</xmp:CreatorTool>\n")
 	fmt.Fprintf(b, "  <xmp:CreateDate>%s</xmp:CreateDate>\n", isoDate)
 	fmt.Fprintf(b, "  <xmp:ModifyDate>%s</xmp:ModifyDate>\n", isoDate)
 	b.WriteString("  <pdf:Producer>Piko</pdf:Producer>\n")
-	b.WriteString("  <pdfaid:part>2</pdfaid:part>\n")
+}
+
+// writeXMPPdfAID writes the PDF/A identification elements.
+//
+// Takes b (*strings.Builder) which specifies the buffer to write to.
+// Takes part (string) which specifies the PDF/A part number.
+// Takes conformance (string) which specifies the PDF/A conformance letter.
+func writeXMPPdfAID(b *strings.Builder, part, conformance string) {
+	fmt.Fprintf(b, "  <pdfaid:part>%s</pdfaid:part>\n", part)
 	fmt.Fprintf(b, "  <pdfaid:conformance>%s</pdfaid:conformance>\n", conformance)
+}
+
+// writeXMPStructured writes a schema.org JSON-LD block under a Piko namespace when a
+// structured metadata value is set, giving extractors a typed description of the
+// document.
+//
+// Takes b (*strings.Builder) which specifies the buffer to write to.
+// Takes metadata (*PdfMetadata) which may carry structured metadata.
+func writeXMPStructured(b *strings.Builder, metadata *PdfMetadata) {
+	if metadata == nil || metadata.StructuredData == nil || metadata.StructuredData.SchemaOrgJSONLD == "" {
+		return
+	}
+	fmt.Fprintf(b, "  <piko:schemaOrg xmlns:piko=\"https://piko.sh/ns/xmp/1.0/\">%s</piko:schemaOrg>\n",
+		xmlEscape(metadata.StructuredData.SchemaOrgJSONLD))
+}
+
+// writeXMPFooter writes the XMP packet closing elements.
+//
+// Takes b (*strings.Builder) which specifies the buffer to write to.
+func writeXMPFooter(b *strings.Builder) {
 	b.WriteString("</rdf:Description>\n")
 	b.WriteString("</rdf:RDF>\n")
 	b.WriteString("</x:xmpmeta>\n")
 }
 
-// xmlEscape escapes the five XML special characters.
+// xmlEscape coerces invalid UTF-8 to the replacement character, removes characters that
+// XML 1.0 forbids even when escaped, then escapes the five XML special characters. This
+// keeps arbitrary metadata (titles, keywords, embedded JSON-LD) from producing a
+// malformed XMP packet.
 //
 // Takes s (string) which specifies the raw string to escape.
 //
 // Returns string which holds the escaped string safe for XML content.
 func xmlEscape(s string) string {
-	s = strings.ReplaceAll(s, "&", "&amp;")
-	s = strings.ReplaceAll(s, "<", "&lt;")
-	s = strings.ReplaceAll(s, ">", "&gt;")
-	s = strings.ReplaceAll(s, "\"", "&quot;")
-	s = strings.ReplaceAll(s, "'", "&apos;")
-	return s
+	s = strings.ToValidUTF8(s, "�")
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, character := range s {
+		if !isXMLChar(character) {
+			continue
+		}
+		switch character {
+		case '&':
+			b.WriteString("&amp;")
+		case '<':
+			b.WriteString("&lt;")
+		case '>':
+			b.WriteString("&gt;")
+		case '"':
+			b.WriteString("&quot;")
+		case '\'':
+			b.WriteString("&apos;")
+		default:
+			_, _ = b.WriteRune(character)
+		}
+	}
+	return b.String()
+}
+
+// isXMLChar reports whether a rune is a legal XML 1.0 character (the Char production).
+//
+// Takes character (rune) which is the codepoint to test.
+//
+// Returns bool which is true when the character may appear in XML 1.0 text.
+func isXMLChar(character rune) bool {
+	switch {
+	case character == xmlCharTab || character == xmlCharLF || character == xmlCharCR:
+		return true
+	case character >= xmlCharSpace && character <= xmlCharBeforeSurrogates:
+		return true
+	case character >= xmlCharAfterSurrogates && character <= xmlCharBMPMax:
+		return true
+	case character >= utf16SupplementaryBase && character <= xmlCharSupplementaryMax:
+		return true
+	default:
+		return false
+	}
 }
 
 // iccXYZ holds D50-adapted colourant XYZ values in s15Fixed16Number format.

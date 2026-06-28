@@ -19,10 +19,12 @@
 package pdfwriter_domain
 
 import (
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"slices"
+	"unicode/utf16"
 
 	"piko.sh/piko/wdk/safeconv"
 )
@@ -288,17 +290,18 @@ func extractPostScriptName(tables map[string][]byte) string {
 	return ""
 }
 
-// decodeUTF16BE decodes a big-endian UTF-16 byte slice into a Go string.
+// decodeUTF16BE decodes a big-endian UTF-16 byte slice into a Go string, combining
+// surrogate pairs into supplementary-plane runes. A trailing odd byte is ignored.
 //
 // Takes data ([]byte) which holds the UTF-16 BE encoded bytes.
 //
 // Returns string which holds the decoded text.
 func decodeUTF16BE(data []byte) string {
-	runes := make([]rune, 0, len(data)/fieldSize16)
-	for i := 0; i+1 < len(data); i += fieldSize16 {
-		runes = append(runes, rune(binary.BigEndian.Uint16(data[i:])))
+	units := make([]uint16, 0, len(data)/fieldSize16)
+	for index := 0; index+1 < len(data); index += fieldSize16 {
+		units = append(units, binary.BigEndian.Uint16(data[index:]))
 	}
-	return string(runes)
+	return string(utf16.Decode(units))
 }
 
 // deriveFlags computes PDF font descriptor flags from the OS/2 table data.
@@ -308,11 +311,6 @@ func decodeUTF16BE(data []byte) string {
 // Returns int which holds the PDF font descriptor flags bitmask.
 func deriveFlags(os2Data []byte) int {
 	flags := 0
-
-	fsType := binary.BigEndian.Uint16(os2Data[os2FSTypeOffset:os2FSTypeEnd])
-	if fsType&os2FSTypeEmbedding != 0 {
-		flags |= pdfFlagItalic
-	}
 
 	panoseFamily := os2Data[os2PanoseFamilyOffset]
 	if panoseFamily == os2PanoseFamilySerif {
@@ -400,7 +398,7 @@ func GenerateSubsetTag(glyphs map[uint16]rune) string {
 //
 // Returns string which holds the complete CMap stream content.
 func BuildToUnicodeCMap(usedGlyphs map[uint16]string) string {
-	mappings := collectBMPMappings(usedGlyphs)
+	mappings := collectGlyphMappings(usedGlyphs)
 
 	var builder lineBuilder
 	writeCMapHeader(&builder)
@@ -419,38 +417,51 @@ type glyphTextMapping struct {
 	glyphID uint16
 }
 
-// hasBMPCodepoint reports whether at least one rune falls within the BMP.
+// collectGlyphMappings returns the mappable glyph-to-text pairs from usedGlyphs, sorted
+// by glyph ID.
 //
-// Takes text (string) which holds the text to check.
-//
-// Returns bool indicating whether any rune is within the Basic Multilingual Plane.
-func hasBMPCodepoint(text string) bool {
-	for _, r := range text {
-		if r <= bmpMaxCodepoint {
-			return true
-		}
-	}
-	return false
-}
-
-// collectBMPMappings filters usedGlyphs to those with at least one BMP codepoint and
-// returns the result sorted by glyph ID.
+// Glyphs are kept regardless of plane: supplementary-plane (astral) text such as emoji is
+// encoded as UTF-16 surrogate pairs by the CMap writer, so only the notdef glyph and
+// glyphs with no recorded text are dropped.
 //
 // Takes usedGlyphs (map[uint16]string) which maps glyph IDs to their display text.
 //
 // Returns []glyphTextMapping sorted by glyph ID.
-func collectBMPMappings(usedGlyphs map[uint16]string) []glyphTextMapping {
+func collectGlyphMappings(usedGlyphs map[uint16]string) []glyphTextMapping {
 	var mappings []glyphTextMapping
 	for glyphID, text := range usedGlyphs {
-		if glyphID == 0 || text == "" || !hasBMPCodepoint(text) {
+		if glyphID == 0 || text == "" {
 			continue
 		}
 		mappings = append(mappings, glyphTextMapping{glyphID: glyphID, text: text})
 	}
 	slices.SortFunc(mappings, func(a, b glyphTextMapping) int {
-		return int(a.glyphID) - int(b.glyphID)
+		return cmp.Compare(a.glyphID, b.glyphID)
 	})
 	return mappings
+}
+
+// missingToUnicodeGlyphs returns the IDs of glyphs that are drawn but carry no recorded
+// Unicode text and so would extract as nothing.
+//
+// The notdef glyph (0) is excluded. A well-formed render leaves this empty; a non-empty
+// result means some on-page text is not machine-readable.
+//
+// Takes usedGlyphs (map[uint16]string) which maps glyph IDs to their display text.
+//
+// Returns []uint16 sorted ascending.
+func missingToUnicodeGlyphs(usedGlyphs map[uint16]string) []uint16 {
+	var missing []uint16
+	for glyphID, text := range usedGlyphs {
+		if glyphID == 0 {
+			continue
+		}
+		if text == "" {
+			missing = append(missing, glyphID)
+		}
+	}
+	slices.Sort(missing)
+	return missing
 }
 
 // writeCMapHeader writes the CMap preamble.
@@ -483,9 +494,7 @@ func writeCMapMappings(builder *lineBuilder, mappings []glyphTextMapping) {
 			builder.writeFormatted("<%04X> ", entry.glyphID)
 			builder.writeString("<")
 			for _, r := range entry.text {
-				if r <= bmpMaxCodepoint {
-					builder.writeFormatted("%04X", r)
-				}
+				builder.writeString(utf16BEUnitsHex(r))
 			}
 			builder.writeString(">\n")
 		}

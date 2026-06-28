@@ -44,7 +44,9 @@ type serviceConfig struct {
 	// excludeDefaultBold prevents registration of the default NotoSans-Bold font.
 	excludeDefaultBold bool
 
-	// svgVectorRendering enables native SVG-to-PDF vector rendering.
+	// svgVectorRendering enables SVG sizing for replaced elements (the SVG image resolver).
+	// Inline <svg> painting is always enabled via the SVG renderer and is not gated by this
+	// flag.
 	svgVectorRendering bool
 }
 
@@ -156,9 +158,10 @@ func NewServiceFromManifest(ctx context.Context, manifestPath string, opts ...Se
 		return nil, fmt.Errorf("pdf: creating font metrics: %w", err)
 	}
 
+	svgData := driven_svgwriter.NewDataURISVGDataAdapter()
+
 	var imageResolver layouter_domain.ImageResolverPort = &layouter_adapters.MockImageResolver{}
 	if config.svgVectorRendering {
-		svgData := driven_svgwriter.NewDataURISVGDataAdapter()
 		imageResolver = driven_svgwriter.NewSVGImageResolver(imageResolver, svgData)
 	}
 
@@ -180,6 +183,10 @@ func NewServiceFromManifest(ctx context.Context, manifestPath string, opts ...Se
 		fontEntries,
 		imageData,
 		fontMetrics,
+		pdfwriter_domain.WithSVGRenderer(
+			driven_svgwriter.New(),
+			svgData,
+		),
 	), nil
 }
 

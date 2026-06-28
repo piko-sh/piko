@@ -68,8 +68,8 @@ var (
 // layer can window, reverse-map and merge them into the .pk stream.
 type DiagnosticsHandler func(ctx context.Context, params *protocol.PublishDiagnosticsParams)
 
-// Child is one gopls process serving a single Go module root. pikopls drives it as an
-// LSP client over the process's stdio.
+// Child is one gopls process serving a single Go module root. pikopls drives it as an LSP
+// client over the process's stdio.
 type Child struct {
 	// capabilities holds the server capabilities gopls reported at initialise.
 	capabilities protocol.ServerCapabilities
@@ -474,9 +474,9 @@ func handshakeGopls(ctx context.Context, server protocol.Server, moduleRoot stri
 	return result.Capabilities, nil
 }
 
-// buildGoplsInitializeParams constructs the initialise request pikopls sends to its
-// gopls child, rooting it at the module directory and enabling the features the bridge
-// relies on.
+// buildGoplsInitializeParams constructs the initialise request pikopls sends to its gopls
+// child, rooting it at the module directory and enabling the features the bridge relies
+// on.
 //
 // Takes moduleRoot (string) which is the Go module directory used as the workspace root.
 //

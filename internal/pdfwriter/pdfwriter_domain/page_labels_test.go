@@ -19,24 +19,22 @@
 package pdfwriter_domain
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildPageLabelsDict_Nil(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	result := buildPageLabelsDict(nil, writer)
-	if result != "" {
-		t.Errorf("expected empty string for nil ranges, got %q", result)
-	}
+	assert.Empty(t, result, "expected empty string for nil ranges")
 }
 
 func TestBuildPageLabelsDict_Empty(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	result := buildPageLabelsDict([]PageLabelRange{}, writer)
-	if result != "" {
-		t.Errorf("expected empty string for empty ranges, got %q", result)
-	}
+	assert.Empty(t, result, "expected empty string for empty ranges")
 }
 
 func TestBuildPageLabelsDict_SingleRange(t *testing.T) {
@@ -46,14 +44,10 @@ func TestBuildPageLabelsDict_SingleRange(t *testing.T) {
 		{PageIndex: 0, Style: LabelDecimal},
 	}
 	result := buildPageLabelsDict(ranges, writer)
-	if !strings.Contains(result, "/PageLabels") {
-		t.Fatalf("expected /PageLabels reference, got %q", result)
-	}
+	require.Contains(t, result, "/PageLabels", "expected /PageLabels reference")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/S /D") {
-		t.Errorf("expected /S /D in output, got %q", output)
-	}
+	assert.Contains(t, output, "/S /D")
 }
 
 func TestBuildPageLabelsDict_MultipleRanges(t *testing.T) {
@@ -64,17 +58,11 @@ func TestBuildPageLabelsDict_MultipleRanges(t *testing.T) {
 		{PageIndex: 4, Style: LabelDecimal, Start: 1},
 	}
 	result := buildPageLabelsDict(ranges, writer)
-	if !strings.Contains(result, "/PageLabels") {
-		t.Fatalf("expected /PageLabels reference, got %q", result)
-	}
+	require.Contains(t, result, "/PageLabels", "expected /PageLabels reference")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/S /r") {
-		t.Errorf("expected /S /r for roman lower, got %q", output)
-	}
-	if !strings.Contains(output, "/S /D") {
-		t.Errorf("expected /S /D for decimal, got %q", output)
-	}
+	assert.Contains(t, output, "/S /r", "expected /S /r for roman lower")
+	assert.Contains(t, output, "/S /D", "expected /S /D for decimal")
 }
 
 func TestBuildPageLabelsDict_WithPrefix(t *testing.T) {
@@ -84,14 +72,10 @@ func TestBuildPageLabelsDict_WithPrefix(t *testing.T) {
 		{PageIndex: 0, Style: LabelNone, Prefix: "Cover"},
 	}
 	result := buildPageLabelsDict(ranges, writer)
-	if !strings.Contains(result, "/PageLabels") {
-		t.Fatalf("expected /PageLabels reference, got %q", result)
-	}
+	require.Contains(t, result, "/PageLabels", "expected /PageLabels reference")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/P (Cover)") {
-		t.Errorf("expected /P (Cover) in output, got %q", output)
-	}
+	assert.Contains(t, output, "/P (Cover)")
 }
 
 func TestBuildPageLabelsDict_StartGreaterThanOne(t *testing.T) {
@@ -103,7 +87,5 @@ func TestBuildPageLabelsDict_StartGreaterThanOne(t *testing.T) {
 	buildPageLabelsDict(ranges, writer)
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/St 5") {
-		t.Errorf("expected /St 5 in output, got %q", output)
-	}
+	assert.Contains(t, output, "/St 5")
 }

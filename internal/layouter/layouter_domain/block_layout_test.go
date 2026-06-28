@@ -627,6 +627,35 @@ func TestHasOnlyInlineChildren(t *testing.T) {
 	}
 }
 
+func TestLayoutOutsideListMarker_BaselineAlignsWithText(t *testing.T) {
+	fm := &mockFontMetrics{}
+
+	marker := &LayoutBox{Type: BoxListMarker, Style: DefaultComputedStyle(), Text: "• "}
+	marker.Style.FontSize = 12
+	listItem := &LayoutBox{
+		Type:     BoxListItem,
+		Style:    DefaultComputedStyle(),
+		Children: []*LayoutBox{marker},
+	}
+	listItem.ContentX = 20
+	listItem.ContentY = 100
+
+	layoutOutsideListMarker(listItem, fm)
+
+	metrics := fm.GetMetrics(FontDescriptor{}, marker.Style.FontSize)
+	fontLineHeight := metrics.Ascent + metrics.Descent + metrics.LineGap
+	markerHeight := marker.Style.LineHeight
+	if markerHeight < fontLineHeight {
+		markerHeight = fontLineHeight
+	}
+	want := (markerHeight-fontLineHeight)/2 + metrics.Ascent
+
+	assert.Greater(t, marker.BaselineOffset, 0.0,
+		"marker must get a non-zero baseline so it aligns with the text, not the line top")
+	assert.InDelta(t, want, marker.BaselineOffset, 0.001,
+		"marker baseline should equal halfLeading + ascent (the text-run baseline formula)")
+}
+
 func TestResolveContentHeight(t *testing.T) {
 	tests := []struct {
 		name               string
