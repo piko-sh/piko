@@ -45,6 +45,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
 	"piko.sh/piko/internal/profiler"
+	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/email/email_provider_mock"
@@ -137,6 +138,11 @@ var (
 	// only active when this option is provided with an enabled configuration and a non-empty
 	// sitemap hostname.
 	WithSEO = bootstrap.WithSEO
+
+	// WithSitemapURLProvider registers a build-time, in-process provider of additional
+	// sitemap URLs for dynamic routes whose slugs come from application data rather than
+	// content collections (which are expanded automatically). Requires WithSEO.
+	WithSitemapURLProvider = bootstrap.WithSitemapURLProvider
 
 	// WithAssets provides the asset configuration including image/video profiles, screen
 	// breakpoints, and default densities for responsive images. These settings are used at
@@ -868,6 +874,9 @@ type SitemapEntryDefaults = config.SitemapEntryDefaults
 
 // SitemapChunkConfig defines a named sitemap chunk with its own sources.
 type SitemapChunkConfig = config.SitemapChunkConfig
+
+// SitemapURLInput is one URL entry supplied to a sitemap URL provider.
+type SitemapURLInput = seo_dto.SitemapURLInput
 
 // RobotsConfig holds settings for robots.txt generation.
 type RobotsConfig = config.RobotsConfig

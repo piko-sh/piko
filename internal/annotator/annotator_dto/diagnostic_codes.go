@@ -221,4 +221,8 @@ const (
 	// CodeCollectionProviderNotFound indicates a p-collection directive references a
 	// provider that is not registered.
 	CodeCollectionProviderNotFound = "T153"
+
+	// CodeSitemapMarkerIgnored indicates the build-only `sitemap` marker was placed on a tag
+	// that cannot contribute a crawlable image URL, so the opt-in had no effect.
+	CodeSitemapMarkerIgnored = "T154"
 )

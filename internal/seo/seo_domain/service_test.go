@@ -95,7 +95,6 @@ func TestSEOService_GenerateArtefacts_Success(t *testing.T) {
 				SEO:                seo_dto.PageSEOMetadata{},
 			},
 		},
-		FinalAssetManifest: []seo_dto.AssetDependency{},
 	}
 
 	err = service.GenerateArtefacts(context.Background(), view)
@@ -268,8 +267,7 @@ func TestSEOService_GenerateArtefacts_EmptyResult(t *testing.T) {
 	service, _ := NewSEOService(seoConfig, "en", storage, dynamicSource)
 
 	view := &seo_dto.ProjectView{
-		Components:         []seo_dto.ComponentView{},
-		FinalAssetManifest: []seo_dto.AssetDependency{},
+		Components: []seo_dto.ComponentView{},
 	}
 
 	err := service.GenerateArtefacts(context.Background(), view)

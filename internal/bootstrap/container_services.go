@@ -627,6 +627,9 @@ func (c *Container) createDefaultSEOService() {
 	if factory, factoryErr := c.GetSandboxFactory(); factoryErr == nil {
 		seoOpts = append(seoOpts, seo_domain.WithSEOSandboxFactory(factory))
 	}
+	if c.seoURLProvider != nil {
+		seoOpts = append(seoOpts, seo_domain.WithSEOURLProvider(c.seoURLProvider))
+	}
 
 	seoService, err := seo_domain.NewSEOService(
 		seoConfig,
@@ -655,6 +658,14 @@ func (c *Container) SetSEOConfig(seoConfig config.SEOConfig) {
 	l.Internal("SEO config set via programmatic API",
 		logger_domain.String("hostname", seoConfig.Sitemap.Hostname),
 		logger_domain.Bool("enabled", seoConfig.Enabled))
+}
+
+// SetSitemapURLProvider stores a build-time provider of additional sitemap URLs for use
+// when creating the default SEO service. Must be called before GetSEOService.
+//
+// Takes provider (seo_domain.SitemapURLProvider) which enumerates the extra URLs.
+func (c *Container) SetSitemapURLProvider(provider seo_domain.SitemapURLProvider) {
+	c.seoURLProvider = provider
 }
 
 // SetAssetsConfig stores the assets configuration for use when creating the annotator

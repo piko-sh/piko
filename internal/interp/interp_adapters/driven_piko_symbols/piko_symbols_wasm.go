@@ -244,8 +244,8 @@ func init() {
 		"CSPSandboxAllowTopNavigationByUserActivation":  reflect.ValueOf(security_domain.SandboxAllowTopNavigationByUserActivation),
 		"CSPSandboxAllowTopNavigationToCustomProtocols": reflect.ValueOf(security_domain.SandboxAllowTopNavigationToCustomProtocols),
 
-		"Translation":        reflect.ValueOf((*i18n_domain.Translation)(nil)),
-		
+		"Translation": reflect.ValueOf((*i18n_domain.Translation)(nil)),
+
 		"LevelDebug": reflect.ValueOf(slog.LevelDebug),
 		"LevelInfo":  reflect.ValueOf(slog.LevelInfo),
 		"LevelWarn":  reflect.ValueOf(slog.LevelWarn),
