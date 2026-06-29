@@ -776,22 +776,44 @@ function updateChildren(parentElement, oldChildren, newChildren, refs, overallIn
     addRemainingNewChildren(newChildren, newStartIdx, newEndIdx, parentElement, refs, overallInsertBeforeNode);
   }
 }
+function eventHandlersEqual(a, b) {
+  if (a === b) {
+    return true;
+  }
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+function removeStaleEventListener(htmlElement, propName, oldProps, newProps) {
+  if (propName in newProps && eventHandlersEqual(oldProps[propName], newProps[propName])) {
+    return;
+  }
+  const prefixLen = propName.startsWith("pe:") ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH;
+  const parsed = parseEventPropKey(propName, prefixLen);
+  toggleListener(htmlElement, parsed.eventName, oldProps[propName], false, parsed.listenerOptions);
+}
 function removeStaleProps(htmlElement, oldProps, newProps, refs) {
   for (const propName in oldProps) {
-    if (!(propName in newProps) || oldProps[propName] !== newProps[propName]) {
-      if (propName.startsWith("?")) {
-        htmlElement.removeAttribute(propName.slice(1));
-      } else if (propName.startsWith("on")) {
-        const parsed = parseEventPropKey(propName, PREFIX_ON_LENGTH);
-        toggleListener(htmlElement, parsed.eventName, oldProps[propName], false, parsed.listenerOptions);
-      } else if (propName.startsWith("pe:")) {
-        const parsed = parseEventPropKey(propName, PREFIX_PE_LENGTH);
-        toggleListener(htmlElement, parsed.eventName, oldProps[propName], false, parsed.listenerOptions);
-      } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName]] === htmlElement) {
-        delete refs[oldProps[propName]];
-      } else if (!["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
-        htmlElement.removeAttribute(propName);
-      }
+    if (propName in newProps && oldProps[propName] === newProps[propName]) {
+      continue;
+    }
+    if (propName.startsWith("?")) {
+      htmlElement.removeAttribute(propName.slice(1));
+    } else if (propName.startsWith("on") || propName.startsWith("pe:")) {
+      removeStaleEventListener(htmlElement, propName, oldProps, newProps);
+    } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName]] === htmlElement) {
+      delete refs[oldProps[propName]];
+    } else if (!["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
+      htmlElement.removeAttribute(propName);
     }
   }
 }
@@ -833,7 +855,7 @@ function applyPropValue(htmlElement, propName, oldValue, newValue, refs) {
   }
   if (propName.startsWith("on")) {
     const parsed = parseEventPropKey(propName, PREFIX_ON_LENGTH);
-    if (oldValue !== newValue) {
+    if (!eventHandlersEqual(oldValue, newValue)) {
       toggleListener(htmlElement, parsed.eventName, oldValue, false, parsed.listenerOptions);
       toggleListener(htmlElement, parsed.eventName, newValue, true, parsed.listenerOptions);
     }
@@ -841,7 +863,7 @@ function applyPropValue(htmlElement, propName, oldValue, newValue, refs) {
   }
   if (propName.startsWith("pe:")) {
     const parsed = parseEventPropKey(propName, PREFIX_PE_LENGTH);
-    if (oldValue !== newValue) {
+    if (!eventHandlersEqual(oldValue, newValue)) {
       toggleListener(htmlElement, parsed.eventName, oldValue, false, parsed.listenerOptions);
       toggleListener(htmlElement, parsed.eventName, newValue, true, parsed.listenerOptions);
     }
