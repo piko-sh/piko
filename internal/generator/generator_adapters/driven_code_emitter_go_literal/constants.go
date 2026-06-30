@@ -242,6 +242,10 @@ const (
 	// pkgJSON is the import name for the standard library JSON package.
 	pkgJSON = "json"
 
+	// jsonPackagePath is the canonical import path for the standard library JSON package,
+	// registered on demand whenever the emitter generates a json.Marshal call.
+	jsonPackagePath = "encoding/json"
+
 	// pkgMaths is the import alias for the Piko maths package.
 	pkgMaths = "maths"
 

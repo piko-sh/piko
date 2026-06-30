@@ -13,6 +13,7 @@ import (
 	partials_card_bfc4a3cf "testcase_26_partials/dist/partials/partials_card_bfc4a3cf"
 	partials_footer_c534b615 "testcase_26_partials/dist/partials/partials_footer_c534b615"
 	partials_header_fc5f4ceb "testcase_26_partials/dist/partials/partials_header_fc5f4ceb"
+	partials_pager_66521b00 "testcase_26_partials/dist/partials/partials_pager_66521b00"
 
 	piko "piko.sh/piko"
 	pikoruntime "piko.sh/piko/wdk/runtime"
@@ -30,18 +31,20 @@ var _ = piko.Metadata{}
 var _ = partials_header_fc5f4ceb.Render
 var _ = partials_card_bfc4a3cf.Render
 var _ = partials_footer_c534b615.Render
+var _ = partials_pager_66521b00.Render
 
-// line pages/dashboard.pk:31
+// line pages/dashboard.pk:32
 type Response struct {
 	Username    string
 	TotalUsers  string
 	TotalOrders string
 	Revenue     string
+	PageCount   int
 }
 
-// line pages/dashboard.pk:38
+// line pages/dashboard.pk:40
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
-	return Response{Username: "Admin", TotalUsers: "1,250", TotalOrders: "847", Revenue: "$45,230"}, piko.Metadata{Title: "Dashboard"}, nil
+	return Response{Username: "Admin", TotalUsers: "1,250", TotalOrders: "847", Revenue: "$45,230", PageCount: 5}, piko.Metadata{Title: "Dashboard"}, nil
 }
 func CachePolicy() piko.CachePolicy {
 	return piko.CachePolicy{}
@@ -74,14 +77,14 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	rootAST := arena.GetTemplateAST()
 	rootAST.SetArena(arena)
 	rootAST.RootNodes = arena.GetRootNodesSlice(1)
-	// line pages/dashboard.pk:50
+	// line pages/dashboard.pk:53
 	tempVar1 := arena.GetNode()
 	tempVar1.NodeType = pikoruntime.NodeElement
 	tempVar1.TagName = "div"
 	tempVar1.Attributes = staticAttrs_1
-	_, tempVar2Slice := arena.GetChildSlice(3)
+	_, tempVar2Slice := arena.GetChildSlice(4)
 	tempVar1.Children = tempVar2Slice
-	// line pages/dashboard.pk:51
+	// line pages/dashboard.pk:54
 	tempVar3 := arena.GetNode()
 	tempVar3.NodeType = pikoruntime.NodeElement
 	tempVar3.TagName = "div"
@@ -98,7 +101,7 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar6.AppendEscapeString(pageData.Username)
 	tempVar3.AttributeWriters = append(tempVar3.AttributeWriters, tempVar6)
 	tempVar1.Children = append(tempVar1.Children, tempVar3)
-	// line pages/dashboard.pk:53
+	// line pages/dashboard.pk:56
 	tempVar7 := arena.GetNode()
 	tempVar7.NodeType = pikoruntime.NodeElement
 	tempVar7.TagName = "main"
@@ -106,14 +109,14 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	_, tempVar8Slice := arena.GetChildSlice(3)
 	tempVar7.Children = tempVar8Slice
 	tempVar7.Children = append(tempVar7.Children, staticNode_1)
-	// line pages/dashboard.pk:55
+	// line pages/dashboard.pk:58
 	tempVar9 := arena.GetNode()
 	tempVar9.NodeType = pikoruntime.NodeElement
 	tempVar9.TagName = "div"
 	tempVar9.Attributes = staticAttrs_4
 	_, tempVar10Slice := arena.GetChildSlice(3)
 	tempVar9.Children = tempVar10Slice
-	// line pages/dashboard.pk:56
+	// line pages/dashboard.pk:59
 	tempVar11 := arena.GetNode()
 	tempVar11.NodeType = pikoruntime.NodeElement
 	tempVar11.TagName = "div"
@@ -136,7 +139,7 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar11.AttributeWriters = append(tempVar11.AttributeWriters, tempVar16)
 	tempVar11.Children = append(tempVar11.Children, staticNode_2)
 	tempVar9.Children = append(tempVar9.Children, tempVar11)
-	// line pages/dashboard.pk:59
+	// line pages/dashboard.pk:62
 	tempVar17 := arena.GetNode()
 	tempVar17.NodeType = pikoruntime.NodeElement
 	tempVar17.TagName = "div"
@@ -159,7 +162,7 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar17.AttributeWriters = append(tempVar17.AttributeWriters, tempVar22)
 	tempVar17.Children = append(tempVar17.Children, staticNode_3)
 	tempVar9.Children = append(tempVar9.Children, tempVar17)
-	// line pages/dashboard.pk:62
+	// line pages/dashboard.pk:65
 	tempVar23 := arena.GetNode()
 	tempVar23.NodeType = pikoruntime.NodeElement
 	tempVar23.TagName = "div"
@@ -185,22 +188,68 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar7.Children = append(tempVar7.Children, tempVar9)
 	tempVar7.Children = append(tempVar7.Children, staticNode_5)
 	tempVar1.Children = append(tempVar1.Children, tempVar7)
-	// line pages/dashboard.pk:77
-	tempVar29 := arena.GetNode()
-	tempVar29.NodeType = pikoruntime.NodeElement
-	tempVar29.TagName = "div"
-	tempVar29.Attributes = staticAttrs_8
-	_, tempVar30Slice := arena.GetAttrWriterSlice(2)
-	tempVar29.AttributeWriters = tempVar30Slice
-	tempVar31 := arena.GetDirectWriter()
-	tempVar31.SetName("year")
-	tempVar31.AppendInt(2024)
-	tempVar29.AttributeWriters = append(tempVar29.AttributeWriters, tempVar31)
-	tempVar32 := arena.GetDirectWriter()
-	tempVar32.SetName("company")
-	tempVar32.AppendString("Acme Corp")
-	tempVar29.AttributeWriters = append(tempVar29.AttributeWriters, tempVar32)
-	tempVar1.Children = append(tempVar1.Children, tempVar29)
+	// line pages/dashboard.pk:80:8
+	if int64(pageData.PageCount) > 1 {
+		// line pages/dashboard.pk:80
+		tempVar29 := arena.GetNode()
+		tempVar29.NodeType = pikoruntime.NodeElement
+		tempVar29.TagName = "div"
+		tempVar29.Attributes = staticAttrs_8
+		_, tempVar30Slice := arena.GetChildSlice(1)
+		tempVar29.Children = tempVar30Slice
+		props_pager_total_pages_state_pagecount_6ebf48a9 := partials_pager_66521b00.Props{TotalPages: pageData.PageCount}
+		partials_pager_66521b00Data_pager_total_pages_state_pagecount_6ebf48a9, partials_pager_66521b00Meta_pager_total_pages_state_pagecount_6ebf48a9, partials_pager_66521b00Err_pager_total_pages_state_pagecount_6ebf48a9 := partials_pager_66521b00.Render(r, props_pager_total_pages_state_pagecount_6ebf48a9)
+		if partials_pager_66521b00Err_pager_total_pages_state_pagecount_6ebf48a9 != nil {
+			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Error, partials_pager_66521b00Err_pager_total_pages_state_pagecount_6ebf48a9.Error(), "R002", "", "Partial Render() error for partials_pager_66521b00", 0, 0)
+			return nil, pikoruntime.InternalMetadata{}, diagnostics
+		}
+		_ = partials_pager_66521b00Data_pager_total_pages_state_pagecount_6ebf48a9
+		_ = partials_pager_66521b00Meta_pager_total_pages_state_pagecount_6ebf48a9
+		_ = partials_pager_66521b00Err_pager_total_pages_state_pagecount_6ebf48a9
+		// line partials/pager.pk:39:7
+		if int64(partials_pager_66521b00Data_pager_total_pages_state_pagecount_6ebf48a9.TotalPages) > 1 {
+			// line partials/pager.pk:39
+			tempVar31 := arena.GetNode()
+			tempVar31.NodeType = pikoruntime.NodeElement
+			tempVar31.TagName = "nav"
+			tempVar31.Attributes = staticAttrs_9
+			_, tempVar32Slice := arena.GetAttrWriterSlice(1)
+			tempVar31.AttributeWriters = tempVar32Slice
+			_, tempVar33Slice := arena.GetChildSlice(1)
+			tempVar31.Children = tempVar33Slice
+			tempVar34 := arena.GetDirectWriter()
+			tempVar34.SetName("total_pages")
+			tempVar34.AppendInt(int64(pageData.PageCount))
+			tempVar31.AttributeWriters = append(tempVar31.AttributeWriters, tempVar34)
+			// line partials/pager.pk:40
+			tempVar35 := arena.GetNode()
+			tempVar35.NodeType = pikoruntime.NodeElement
+			tempVar35.TagName = "span"
+			tempVar35.Attributes = staticAttrs_10
+			tempVar36 := arena.GetDirectWriter()
+			tempVar36.AppendString(strconv.FormatInt(int64(partials_pager_66521b00Data_pager_total_pages_state_pagecount_6ebf48a9.TotalPages), 10))
+			tempVar35.TextContentWriter = tempVar36
+			tempVar31.Children = append(tempVar31.Children, tempVar35)
+			tempVar29.Children = append(tempVar29.Children, tempVar31)
+		}
+		tempVar1.Children = append(tempVar1.Children, tempVar29)
+	}
+	// line pages/dashboard.pk:84
+	tempVar37 := arena.GetNode()
+	tempVar37.NodeType = pikoruntime.NodeElement
+	tempVar37.TagName = "div"
+	tempVar37.Attributes = staticAttrs_11
+	_, tempVar38Slice := arena.GetAttrWriterSlice(2)
+	tempVar37.AttributeWriters = tempVar38Slice
+	tempVar39 := arena.GetDirectWriter()
+	tempVar39.SetName("year")
+	tempVar39.AppendInt(2024)
+	tempVar37.AttributeWriters = append(tempVar37.AttributeWriters, tempVar39)
+	tempVar40 := arena.GetDirectWriter()
+	tempVar40.SetName("company")
+	tempVar40.AppendString("Acme Corp")
+	tempVar37.AttributeWriters = append(tempVar37.AttributeWriters, tempVar40)
+	tempVar1.Children = append(tempVar1.Children, tempVar37)
 	rootAST.RootNodes = append(rootAST.RootNodes, tempVar1)
 	_ = pageData
 	_ = pageMeta
@@ -210,32 +259,35 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 }
 
 var (
-	staticAttrs_1                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 50
-	staticAttrs_2                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 51
-	staticAttrs_3                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 53
-	staticAttrs_4                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 55
-	staticAttrs_5                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 56
-	staticAttrs_6                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 59
-	staticAttrs_7                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 62
-	staticAttrs_8                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 77
-	staticNode_1                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 54
-	staticNode_1_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 54
-	staticNode_2                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 57
-	staticNode_2_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 57
-	staticNode_3                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 60
-	staticNode_3_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 60
-	staticNode_4                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 63
-	staticNode_4_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 63
-	staticNode_5                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 67
-	staticNode_5_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 68
-	staticNode_5_child_0_child_0         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 68
-	staticNode_5_child_1                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 69
-	staticNode_5_child_1_child_0         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 70
-	staticNode_5_child_1_child_0_child_0 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 70
-	staticNode_5_child_1_child_1         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 71
-	staticNode_5_child_1_child_1_child_0 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 71
-	staticNode_5_child_1_child_2         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 72
-	staticNode_5_child_1_child_2_child_0 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 72
+	staticAttrs_1                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 53
+	staticAttrs_10                       []pikoruntime.HTMLAttribute // SOURCE: partials/pager.pk, LINE: 40
+	staticAttrs_11                       []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 84
+	staticAttrs_2                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 54
+	staticAttrs_3                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 56
+	staticAttrs_4                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 58
+	staticAttrs_5                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 59
+	staticAttrs_6                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 62
+	staticAttrs_7                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 65
+	staticAttrs_8                        []pikoruntime.HTMLAttribute // SOURCE: pages/dashboard.pk, LINE: 80
+	staticAttrs_9                        []pikoruntime.HTMLAttribute // SOURCE: partials/pager.pk, LINE: 39
+	staticNode_1                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 57
+	staticNode_1_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 57
+	staticNode_2                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 60
+	staticNode_2_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 60
+	staticNode_3                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 63
+	staticNode_3_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 63
+	staticNode_4                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 66
+	staticNode_4_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 66
+	staticNode_5                         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 70
+	staticNode_5_child_0                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 71
+	staticNode_5_child_0_child_0         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 71
+	staticNode_5_child_1                 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 72
+	staticNode_5_child_1_child_0         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 73
+	staticNode_5_child_1_child_0_child_0 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 73
+	staticNode_5_child_1_child_1         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 74
+	staticNode_5_child_1_child_1_child_0 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 74
+	staticNode_5_child_1_child_2         *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 75
+	staticNode_5_child_1_child_2_child_0 *pikoruntime.TemplateNode   // SOURCE: pages/dashboard.pk, LINE: 75
 )
 
 func init() {
@@ -363,7 +415,10 @@ func init() {
 	staticNode_5_child_1_child_2.Children = append(staticNode_5_child_1_child_2.Children, staticNode_5_child_1_child_2_child_0)
 	staticNode_5_child_1.Children = append(staticNode_5_child_1.Children, staticNode_5_child_1_child_2)
 	staticNode_5.Children = append(staticNode_5.Children, staticNode_5_child_1)
-	staticAttrs_8 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_dashboard_f17c0b60"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2"}, pikoruntime.HTMLAttribute{Name: "is", Value: "footer"}}
+	staticAttrs_8 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_dashboard_f17c0b60"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2"}, pikoruntime.HTMLAttribute{Name: "class", Value: "pager-container"}}
+	staticAttrs_9 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_pager_66521b00"}, pikoruntime.HTMLAttribute{Name: "partial_name", Value: "pager"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2:0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "pager"}}
+	staticAttrs_10 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_pager_66521b00"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2:0:0"}, pikoruntime.HTMLAttribute{Name: "class", Value: "pager-count"}}
+	staticAttrs_11 = []pikoruntime.HTMLAttribute{pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_dashboard_f17c0b60"}, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:3"}, pikoruntime.HTMLAttribute{Name: "is", Value: "footer"}}
 }
 func init() {
 	pikoruntime.RegisterASTFunc("testcase_26_partials/dist/pages/pages_dashboard_f17c0b60", BuildAST)

@@ -226,8 +226,14 @@ func (ie *ifEmitter) buildConditionalIfStatement(
 ) (*goast.IfStmt, []goast.Stmt, int, []*ast_domain.Diagnostic) {
 	condGoExpr, prereqStmts, condDiags := ie.expressionEmitter.emit(condExpr)
 	condGoExpr = wrapInTruthinessCallIfNeeded(condGoExpr, condExpr)
-	bodyStmts, bodyDiags := ie.buildConditionalBody(ctx, node, parentSliceExpr, clearDirective)
+	partialStmts, bodyStmts, bodyDiags := ie.buildConditionalBody(ctx, node, parentSliceExpr, clearDirective)
 	condDiags = append(condDiags, bodyDiags...)
+
+	if conditionalIsPartialOwnRoot(node) {
+		prereqStmts = append(partialStmts, prereqStmts...)
+	} else {
+		bodyStmts = append(partialStmts, bodyStmts...)
+	}
 
 	ifStmt := &goast.IfStmt{
 		Cond: condGoExpr,
@@ -254,8 +260,8 @@ func (ie *ifEmitter) buildElseBlock(
 		return nil, nil, 0, nil
 	}
 
-	bodyStmts, bodyDiags := ie.buildConditionalBody(ctx, node, parentSliceExpr, func(n *ast_domain.TemplateNode) { n.DirElse = nil })
-	return &goast.BlockStmt{List: bodyStmts}, nil, 1, bodyDiags
+	partialStmts, bodyStmts, bodyDiags := ie.buildConditionalBody(ctx, node, parentSliceExpr, func(n *ast_domain.TemplateNode) { n.DirElse = nil })
+	return &goast.BlockStmt{List: append(partialStmts, bodyStmts...)}, nil, 1, bodyDiags
 }
 
 // buildConditionalBody creates the body statements for a conditional block. It uses the
@@ -265,17 +271,18 @@ func (ie *ifEmitter) buildElseBlock(
 // Takes parentSliceExpr (goast.Expr) which is the slice to append results to.
 // Takes clearDirective (func(...)) which clears the directive from the node.
 //
-// Returns []goast.Stmt which contains the generated statements.
+// Returns []goast.Stmt which contains the render-call statements for the partials governed
+// by this branch (the caller decides whether these are hoisted above the if or placed at
+// the top of the body).
+// Returns []goast.Stmt which contains the branch body statements.
 // Returns []*ast_domain.Diagnostic which contains any problems found.
 func (ie *ifEmitter) buildConditionalBody(
 	ctx context.Context,
 	originalNode *ast_domain.TemplateNode,
 	parentSliceExpr goast.Expr,
 	clearDirective func(*ast_domain.TemplateNode),
-) ([]goast.Stmt, []*ast_domain.Diagnostic) {
-	partialStmts, bodyDiags := ie.generateConditionalPartialCalls(originalNode)
-
-	var bodyStmts []goast.Stmt
+) (partialStmts []goast.Stmt, bodyStmts []goast.Stmt, bodyDiags []*ast_domain.Diagnostic) {
+	partialStmts, bodyDiags = ie.generateConditionalPartialCalls(originalNode)
 
 	canBeStatic := originalNode.GoAnnotations != nil &&
 		originalNode.GoAnnotations.IsStructurallyStatic &&
@@ -310,7 +317,7 @@ func (ie *ifEmitter) buildConditionalBody(
 		bodyDiags = append(bodyDiags, emitDiags...)
 	}
 
-	return append(partialStmts, bodyStmts...), bodyDiags
+	return partialStmts, bodyStmts, bodyDiags
 }
 
 // generateConditionalPartialCalls renders the partials governed by a conditional branch.

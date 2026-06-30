@@ -1,0 +1,5 @@
+{
+  "description": "A partial binds a map-typed value to an attribute (:data-config=\"state.Config\"), forcing the emitter to serialise it with json.Marshal. Regression test: the go-literal emitter must register the encoding/json import on demand wherever it emits a json.Marshal call. Partials do not receive the page-level encoding/json keep-alive boilerplate, so without on-demand registration the partial's generated code fails to compile with 'undefined: json'.",
+  "packageName": "json_attribute_test",
+  "isPage": true
+}

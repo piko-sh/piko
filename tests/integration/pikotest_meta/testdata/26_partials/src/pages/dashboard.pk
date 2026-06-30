@@ -26,6 +26,7 @@ import (
 	header "testcase_26_partials/partials/header.pk"
 	card "testcase_26_partials/partials/card.pk"
 	footer "testcase_26_partials/partials/footer.pk"
+	pager "testcase_26_partials/partials/pager.pk"
 )
 
 type Response struct {
@@ -33,6 +34,7 @@ type Response struct {
 	TotalUsers  string
 	TotalOrders string
 	Revenue     string
+	PageCount   int
 }
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
@@ -41,6 +43,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 		TotalUsers:  "1,250",
 		TotalOrders: "847",
 		Revenue:     "$45,230",
+		PageCount:   5,
 	}, piko.Metadata{
 		Title: "Dashboard",
 	}, nil
@@ -73,6 +76,10 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 				</ul>
 			</section>
 		</main>
+
+		<div p-if="state.PageCount > 1" class="pager-container">
+			<piko:partial is="pager" :total_pages="state.PageCount"></piko:partial>
+		</div>
 
 		<div is="footer" :year="2024" :company="'Acme Corp'"></div>
 	</div>
