@@ -312,8 +312,9 @@ func (ee *expressionEmitter) valueToString(goExpr goast.Expr, ann *ast_domain.Go
 // containsJSONMarshalCall reports whether expr contains the generated json.Marshal call.
 //
 // It matches a selector `json.Marshal` whose qualifier is the JSON package alias. Walking
-// the produced expression keeps this decoupled from the stringConverter's dispatch logic and
-// also catches the case where json.Marshal is nested inside the pointer-to-stringable IIFE.
+// the produced expression keeps this decoupled from the stringConverter's dispatch logic
+// and also catches the case where json.Marshal is nested inside the pointer-to-stringable
+// IIFE.
 //
 // Takes expr (goast.Expr) which is the conversion expression to inspect.
 //

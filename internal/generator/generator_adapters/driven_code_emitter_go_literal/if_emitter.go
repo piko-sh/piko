@@ -271,9 +271,9 @@ func (ie *ifEmitter) buildElseBlock(
 // Takes parentSliceExpr (goast.Expr) which is the slice to append results to.
 // Takes clearDirective (func(...)) which clears the directive from the node.
 //
-// Returns []goast.Stmt which contains the render-call statements for the partials governed
-// by this branch (the caller decides whether these are hoisted above the if or placed at
-// the top of the body).
+// Returns []goast.Stmt which contains the render-call statements for the partials
+// governed by this branch (the caller decides whether these are hoisted above the if or
+// placed at the top of the body).
 // Returns []goast.Stmt which contains the branch body statements.
 // Returns []*ast_domain.Diagnostic which contains any problems found.
 func (ie *ifEmitter) buildConditionalBody(
