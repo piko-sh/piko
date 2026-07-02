@@ -1265,6 +1265,168 @@ describe('ActionExecutor', () => {
 
             expect(fetchSpy).toHaveBeenCalledTimes(1);
         });
+
+        it('should reconnect on a transient 5xx status', async () => {
+            fetchSpy
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({message: 'Service unavailable'}), {status: 503})
+                )
+                .mockResolvedValueOnce(createSSEResponse('event: complete\ndata: "ok"\n\n'));
+
+            const onProgress = vi.fn();
+
+            const result = await callServerActionDirect('testSSE', [], 'POST', {
+                onProgress,
+                retryStream: {maxReconnects: 3, baseDelay: 1}
+            });
+
+            expect(result.data).toBe('ok');
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('should reconnect on CSRF expiry (403 csrf_expired)', async () => {
+            fetchSpy
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({error: 'csrf_expired', message: 'CSRF token expired'}), {status: 403})
+                )
+                .mockResolvedValueOnce(createSSEResponse('event: complete\ndata: "ok"\n\n'));
+
+            const onProgress = vi.fn();
+
+            const result = await callServerActionDirect('testSSE', [], 'POST', {
+                onProgress,
+                retryStream: {maxReconnects: 3, baseDelay: 1}
+            });
+
+            expect(result.data).toBe('ok');
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('should call onError with willReconnect=true then recover', async () => {
+            fetchSpy
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({message: 'Bad gateway'}), {status: 502})
+                )
+                .mockResolvedValueOnce(createSSEResponse('event: complete\ndata: "ok"\n\n'));
+
+            const onError = vi.fn();
+            const onProgress = vi.fn();
+
+            await callServerActionDirect('testSSE', [], 'POST', {
+                onProgress,
+                retryStream: {maxReconnects: 3, baseDelay: 1, onError}
+            });
+
+            expect(onError).toHaveBeenCalledTimes(1);
+            expect(onError).toHaveBeenCalledWith(expect.objectContaining({status: 502}), true);
+        });
+
+        it('should call onError with willReconnect=false on a terminal error', async () => {
+            fetchSpy.mockResolvedValueOnce(
+                new Response(JSON.stringify({message: 'Bad request'}), {status: 400})
+            );
+
+            const onError = vi.fn();
+            const onProgress = vi.fn();
+
+            await expect(
+                callServerActionDirect('testSSE', [], 'POST', {
+                    onProgress,
+                    retryStream: {maxReconnects: 3, baseDelay: 1, onError}
+                })
+            ).rejects.toMatchObject({status: 400});
+
+            expect(onError).toHaveBeenCalledWith(expect.objectContaining({status: 400}), false);
+        });
+
+        it('should reconnect on a transient 5xx whose body carries an error code', async () => {
+            fetchSpy
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({error: 'overloaded', message: 'try later'}), {status: 503})
+                )
+                .mockResolvedValueOnce(createSSEResponse('event: complete\ndata: "ok"\n\n'));
+
+            const onProgress = vi.fn();
+
+            const result = await callServerActionDirect('testSSE', [], 'POST', {
+                onProgress,
+                retryStream: {maxReconnects: 3, baseDelay: 1}
+            });
+
+            expect(result.data).toBe('ok');
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('should reconnect on a transport-level fetch failure', async () => {
+            fetchSpy
+                .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+                .mockResolvedValueOnce(createSSEResponse('event: complete\ndata: "ok"\n\n'));
+
+            const onProgress = vi.fn();
+
+            const result = await callServerActionDirect('testSSE', [], 'POST', {
+                onProgress,
+                retryStream: {maxReconnects: 3, baseDelay: 1}
+            });
+
+            expect(result.data).toBe('ok');
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('should preserve the last failure status when the reconnect budget is exhausted', async () => {
+            fetchSpy.mockResolvedValue(
+                new Response(JSON.stringify({message: 'Service unavailable'}), {status: 503})
+            );
+
+            const onProgress = vi.fn();
+
+            await expect(
+                callServerActionDirect('testSSE', [], 'POST', {
+                    onProgress,
+                    retryStream: {maxReconnects: 2, baseDelay: 1}
+                })
+            ).rejects.toMatchObject({
+                status: 503,
+                message: expect.stringContaining('after 2 reconnection attempts')
+            });
+
+            expect(fetchSpy).toHaveBeenCalledTimes(3);
+        });
+
+        it('should honour a custom retryableStatuses list', async () => {
+            fetchSpy
+                .mockResolvedValueOnce(
+                    new Response(JSON.stringify({message: "I'm a teapot"}), {status: 418})
+                )
+                .mockResolvedValueOnce(createSSEResponse('event: complete\ndata: "ok"\n\n'));
+
+            const onProgress = vi.fn();
+
+            const result = await callServerActionDirect('testSSE', [], 'POST', {
+                onProgress,
+                retryStream: {maxReconnects: 3, baseDelay: 1, retryableStatuses: [418]}
+            });
+
+            expect(result.data).toBe('ok');
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('should not reconnect on a status outside a custom retryableStatuses list', async () => {
+            fetchSpy.mockResolvedValueOnce(
+                new Response(JSON.stringify({message: 'Service unavailable'}), {status: 503})
+            );
+
+            const onProgress = vi.fn();
+
+            await expect(
+                callServerActionDirect('testSSE', [], 'POST', {
+                    onProgress,
+                    retryStream: {maxReconnects: 3, baseDelay: 1, retryableStatuses: [418]}
+                })
+            ).rejects.toMatchObject({status: 503});
+
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('CSRF recovery paths', () => {

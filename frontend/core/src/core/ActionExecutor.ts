@@ -94,11 +94,41 @@ const MAX_SSE_RECONNECT_DELAY = 30000;
 /** HTTP status code for request timeout. */
 const HTTP_STATUS_TIMEOUT = 408;
 
+/** HTTP status code for "too early" (RFC 8470). */
+const HTTP_STATUS_TOO_EARLY = 425;
+
+/** HTTP status code for rate limiting. */
+const HTTP_STATUS_TOO_MANY_REQUESTS = 429;
+
 /** Minimum HTTP status code for server errors. */
 const HTTP_STATUS_SERVER_ERROR = 500;
 
+/** HTTP status code for bad gateway. */
+const HTTP_STATUS_BAD_GATEWAY = 502;
+
+/** HTTP status code for service unavailable. */
+const HTTP_STATUS_SERVICE_UNAVAILABLE = 503;
+
+/** HTTP status code for gateway timeout. */
+const HTTP_STATUS_GATEWAY_TIMEOUT = 504;
+
 /** HTTP status code for success (default). */
 const HTTP_STATUS_OK = 200;
+
+/**
+ * HTTP statuses treated as transient for an SSE stream: request timeout,
+ * too-early, rate limiting, and the common 5xx server/proxy errors. A long-lived
+ * stream reconnects on these rather than dying on a momentary blip.
+ */
+const DEFAULT_SSE_RETRYABLE_STATUSES: readonly number[] = [
+    HTTP_STATUS_TIMEOUT,
+    HTTP_STATUS_TOO_EARLY,
+    HTTP_STATUS_TOO_MANY_REQUESTS,
+    HTTP_STATUS_SERVER_ERROR,
+    HTTP_STATUS_BAD_GATEWAY,
+    HTTP_STATUS_SERVICE_UNAVAILABLE,
+    HTTP_STATUS_GATEWAY_TIMEOUT
+];
 
 /** Radix for random string generation (base 36 = 0-9 + a-z). */
 const RANDOM_STRING_RADIX = 36;
@@ -136,6 +166,14 @@ export function setActionExecutorDependencies(deps: {
     if (deps.formStateManager) { formStateManager = deps.formStateManager; }
 }
 
+/** A pair of CSRF tokens for an action request; either may be absent. */
+interface CSRFTokens {
+    /** CSRF action token, or null when unavailable. */
+    actionToken: string | null;
+    /** CSRF ephemeral token, or null when unavailable. */
+    ephemeralToken: string | null;
+}
+
 /**
  * Resolves CSRF tokens, checking element data attributes first, then meta tags.
  *
@@ -145,7 +183,7 @@ export function setActionExecutorDependencies(deps: {
  * @param element - Optional element to check for data-attribute tokens.
  * @returns The action token and ephemeral token.
  */
-function getCSRFTokens(element?: HTMLElement): { actionToken: string | null; ephemeralToken: string | null } {
+function getCSRFTokens(element?: HTMLElement): CSRFTokens {
     const actionToken = element?.getAttribute('data-csrf-action-token')
         ?? getCSRFTokenFromMeta();
     const ephemeralToken = element?.getAttribute('data-csrf-ephemeral-token')
@@ -763,7 +801,8 @@ async function executeServerRequest(
                 ephemeralToken,
                 onProgress: descriptor.onProgress,
                 retryConfig: descriptor.retryStream,
-                options: sseOptions
+                options: sseOptions,
+                refreshTokens: () => getCSRFTokens(element)
             });
         } else {
             data = await executeServerActionSSE({
@@ -1218,6 +1257,9 @@ function rethrowAsActionError(error: unknown, options?: ExecuteOptions): never {
             isTimeout ? 'Request timeout' : 'Request cancelled'
         );
     }
+    if (error instanceof TypeError) {
+        throw createActionError(0, error.message);
+    }
     throw error;
 }
 
@@ -1302,14 +1344,123 @@ interface SSERetryParams {
     retryConfig: RetryStreamConfig;
     /** Optional timeout and abort signal. */
     options?: ExecuteOptions;
+    /**
+     * Re-reads fresh CSRF tokens before each reconnect. When omitted, the tokens
+     * captured at first connect are reused for every reconnect.
+     */
+    refreshTokens?: () => CSRFTokens;
+}
+
+/**
+ * Detects a CSRF expiry/invalid error surfaced through the SSE transport. The
+ * server's error code is carried in the ActionError `data` field (set by
+ * {@link throwSSEErrorResponse}), not the top-level response body.
+ *
+ * @param error - The action error to inspect.
+ * @returns True when the error is a recoverable CSRF failure.
+ */
+function isSSECSRFError(error: ActionError): boolean {
+    return error.status === HTTP_STATUS_FORBIDDEN &&
+        (error.data === CSRF_ERROR_EXPIRED || error.data === CSRF_ERROR_INVALID);
+}
+
+/**
+ * Decides whether an SSE stream error should trigger a reconnect.
+ *
+ * @param error - The action error to classify.
+ * @param retryableStatuses - HTTP statuses treated as transient.
+ * @returns True when a reconnect should be attempted.
+ */
+function isReconnectableSSEError(error: ActionError, retryableStatuses: readonly number[]): boolean {
+    if (error.message === 'Request cancelled') {
+        return false;
+    }
+    if (isSSECSRFError(error)) {
+        return true;
+    }
+    if (retryableStatuses.includes(error.status)) {
+        return true;
+    }
+    if (error.data !== undefined) {
+        return false;
+    }
+    return error.status === 0;
+}
+
+/**
+ * Resolves the CSRF tokens for the next reconnect attempt. Re-reads the DOM when
+ * refresh is enabled, keeping the previous token for any field that comes back
+ * null so a transient empty read can't drop a working token.
+ *
+ * @param tokens - The tokens used for the failed attempt.
+ * @param params - The SSE retry parameters.
+ * @returns The tokens to use for the next attempt.
+ */
+function nextReconnectTokens(tokens: CSRFTokens, params: SSERetryParams): CSRFTokens {
+    const {retryConfig, refreshTokens} = params;
+    if (retryConfig.refreshTokensOnReconnect === false || !refreshTokens) {
+        return tokens;
+    }
+    const refreshed = refreshTokens();
+    return {
+        actionToken: refreshed.actionToken ?? tokens.actionToken,
+        ephemeralToken: refreshed.ephemeralToken ?? tokens.ephemeralToken
+    };
+}
+
+/**
+ * Handles a failed SSE attempt for {@link executeServerActionSSEWithRetry}:
+ * either throws to terminate the stream, or fires the retry callbacks, waits the
+ * backoff and returns the tokens for the next attempt. Budget exhaustion throws
+ * a summary error that keeps the last failure's status. When token refresh is
+ * enabled the CSRF pair is re-read from the DOM, but a null read never overwrites
+ * a working token.
+ *
+ * @param error - The error thrown by the failed attempt.
+ * @param reconnectCount - Reconnect attempts already made.
+ * @param tokens - The CSRF tokens used for the failed attempt.
+ * @param params - The SSE retry parameters.
+ * @returns The CSRF tokens to use for the next attempt.
+ */
+async function handleSSEStreamError(
+    error: unknown,
+    reconnectCount: number,
+    tokens: CSRFTokens,
+    params: SSERetryParams
+): Promise<CSRFTokens> {
+    const {retryConfig, options} = params;
+    const retryableStatuses = retryConfig.retryableStatuses ?? DEFAULT_SSE_RETRYABLE_STATUSES;
+
+    if (!isReconnectableSSEError(error as ActionError, retryableStatuses)) {
+        retryConfig.onError?.(error, false);
+        throw error;
+    }
+
+    if (reconnectCount >= retryConfig.maxReconnects) {
+        retryConfig.onError?.(error, false);
+        throw createActionError((error as ActionError).status,
+            `SSE stream failed after ${reconnectCount} reconnection attempts`);
+    }
+
+    retryConfig.onError?.(error, true);
+    retryConfig.onDisconnect?.();
+
+    await delay(calculateSSEReconnectDelay(reconnectCount, retryConfig));
+
+    if (options?.signal?.aborted) {
+        throw createActionError(0, 'Request cancelled');
+    }
+
+    return nextReconnectTokens(tokens, params);
 }
 
 /**
  * Executes a server action via SSE transport with auto-reconnection.
  *
- * Wraps the internal SSE implementation in a reconnection loop. On transient
- * connection drops, waits with configurable backoff and retries. On application
- * errors or cancellation, throws immediately.
+ * Wraps the internal SSE implementation in a reconnection loop. Reconnects on
+ * transport-level drops, transient HTTP statuses, and recoverable CSRF errors
+ * (refreshing tokens between attempts). Throws immediately on explicit
+ * cancellation or deliberate application error events.
  *
  * Tracks the last received event ID and sends it as Last-Event-ID on reconnect,
  * allowing the server action to skip already-sent events.
@@ -1318,10 +1469,10 @@ interface SSERetryParams {
  * @returns The completion data from the SSE stream.
  */
 async function executeServerActionSSEWithRetry(params: SSERetryParams): Promise<unknown> {
-    const {actionName, args, method, actionToken, ephemeralToken, onProgress, retryConfig, options} = params;
+    const {actionName, args, method, onProgress, retryConfig, options} = params;
+    let tokens = {actionToken: params.actionToken, ephemeralToken: params.ephemeralToken};
     let reconnectCount = 0;
     let lastEventId: string | undefined;
-    const maxReconnects = retryConfig.maxReconnects;
 
     for (;;) {
         try {
@@ -1334,45 +1485,17 @@ async function executeServerActionSSEWithRetry(params: SSERetryParams): Promise<
                 onProgress(data, eventType);
             };
 
-            const result = await executeServerActionSSEInternal({
+            return await executeServerActionSSEInternal({
                 actionName, args, method,
-                actionToken, ephemeralToken,
+                actionToken: tokens.actionToken,
+                ephemeralToken: tokens.ephemeralToken,
                 onProgress: wrappedOnProgress,
                 options,
                 lastEventId,
                 onEventId: (id: string) => { lastEventId = id; }
             });
-
-            return result;
         } catch (error) {
-            const actionError = error as ActionError;
-
-            if (actionError.message === 'Request cancelled') {
-                throw error;
-            }
-
-            if (actionError.data !== undefined) {
-                throw error;
-            }
-
-            if (actionError.status !== 0) {
-                throw error;
-            }
-
-            if (reconnectCount >= maxReconnects) {
-                throw createActionError(0,
-                    `SSE stream failed after ${reconnectCount} reconnection attempts`);
-            }
-
-            retryConfig.onDisconnect?.();
-
-            const reconnectDelay = calculateSSEReconnectDelay(reconnectCount, retryConfig);
-            await delay(reconnectDelay);
-
-            if (options?.signal?.aborted) {
-                throw createActionError(0, 'Request cancelled');
-            }
-
+            tokens = await handleSSEStreamError(error, reconnectCount, tokens, params);
             reconnectCount++;
             retryConfig.onReconnect?.(reconnectCount);
         }
@@ -1409,7 +1532,8 @@ export async function callServerActionDirect<T = unknown>(
                 actionToken, ephemeralToken,
                 onProgress: options.onProgress,
                 retryConfig: options.retryStream,
-                options: sseOptions
+                options: sseOptions,
+                refreshTokens: () => getCSRFTokens()
             });
         } else {
             data = await executeServerActionSSE({

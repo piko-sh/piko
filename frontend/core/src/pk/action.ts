@@ -58,10 +58,27 @@ export interface RetryStreamConfig {
     baseDelay?: number;
     /** Maximum delay cap in ms (default: 30000). */
     maxDelay?: number;
+    /**
+     * HTTP status codes that trigger a reconnect in addition to transport-level
+     * failures (status 0). Default: [408, 425, 429, 500, 502, 503, 504].
+     */
+    retryableStatuses?: number[];
+    /**
+     * Re-read the CSRF tokens before each reconnect instead of reusing the pair
+     * captured at first connect, so a long-lived stream can pick up a token
+     * rotated into the DOM by an independent refresh or navigation. It does not
+     * itself trigger a refresh. Default: true.
+     */
+    refreshTokensOnReconnect?: boolean;
     /** Called when SSE connection drops (before reconnect attempt). */
     onDisconnect?: () => void;
     /** Called when reconnection succeeds. */
     onReconnect?: (attemptNumber: number) => void;
+    /**
+     * Called for every stream failure with the error and whether a reconnect
+     * will follow. Useful for diagnostics/observability on long-lived streams.
+     */
+    onError?: (error: unknown, willReconnect: boolean) => void;
 }
 
 /** Error returned when an action fails. */
