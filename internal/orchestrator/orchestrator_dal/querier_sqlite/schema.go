@@ -16,13 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package db_schema_orchestrator_sqlite
+// Package querier_sqlite holds the SQLite migrations for the orchestrator database and
+// embeds them for runtime use.
+package querier_sqlite
 
 import (
-	"piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_sqlite"
+	"embed"
 )
 
 var (
 	// Migrations contains the SQLite migration files for the orchestrator database.
-	Migrations = querier_sqlite.Migrations
+	//
+	//go:embed migrations/*.sql
+	Migrations embed.FS
 )
