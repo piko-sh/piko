@@ -43,7 +43,7 @@ import (
 func TestToErrorLiftsFields(t *testing.T) {
 	r := slog.NewRecord(time.Unix(0, 0), slog.LevelError, "boom", 0)
 	line := telemetry_grpcfb.LogLine{Message: "boom", Logger: "svc"}
-	ev := toError(&r, line, nil, extractedFields{culprit: "doThing", stack: "frame1\nframe2", errSuffix: "disk full"})
+	ev := toError(&r, line, nil, extractedFields{culprit: "doThing", stack: "frame1\nframe2", errSuffix: "disk full"}, "")
 	assert.Equal(t, "doThing", ev.Culprit)
 	assert.Equal(t, "boom: disk full", ev.Value)
 	assert.NotEmpty(t, ev.StackJSON, "StackJSON should be a JSON array of frames")
@@ -54,7 +54,7 @@ func TestToErrorLiftsFields(t *testing.T) {
 func TestToErrorBoundsStackAndValue(t *testing.T) {
 	r := slog.NewRecord(time.Unix(0, 0), slog.LevelError, strings.Repeat("a", maxErrorValueLen*2), 0)
 	line := telemetry_grpcfb.LogLine{Message: r.Message}
-	ev := toError(&r, line, nil, extractedFields{stack: strings.Repeat("x\n", maxStackLen)})
+	ev := toError(&r, line, nil, extractedFields{stack: strings.Repeat("x\n", maxStackLen)}, "")
 	assert.LessOrEqual(t, len(ev.Value), maxErrorValueLen)
 
 	assert.Less(t, len(ev.StackJSON), 4*maxStackLen, "stack is bounded before JSON wrapping")

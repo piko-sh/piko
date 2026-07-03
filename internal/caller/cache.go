@@ -38,7 +38,7 @@ type frameInfo struct {
 	// file is the source file path where the frame is located.
 	file string
 
-	// frame is the cached "\tfile:line" formatted string.
+	// frame is the cached "\t<name> <file>:<line>" formatted string.
 	frame string
 
 	// line is the line number in the source file.
@@ -82,7 +82,7 @@ func (pc PC) NameFileLine() (name, file string, line int) {
 
 	frame := ""
 	if file != "" {
-		frame = formatFrame(file, line)
+		frame = formatFrame(name, file, line)
 	}
 
 	frameCache.Store(pc, frameInfo{
@@ -95,8 +95,8 @@ func (pc PC) NameFileLine() (name, file string, line int) {
 	return name, file, line
 }
 
-// FormattedFrame returns a pre-formatted stack frame string in the format "\tfile:line".
-// This is optimised for stack trace output.
+// FormattedFrame returns a pre-formatted stack frame string in the format "\t<name>
+// <file>:<line>". This is optimised for stack trace output.
 //
 // Returns string which is the formatted frame, or empty if the PC is 0 or the file cannot
 // be resolved. Results are cached, so after warmup this returns zero allocations.
@@ -130,17 +130,22 @@ func ResetFrameCache() {
 	})
 }
 
-// formatFrame builds a stack frame string in the format "\tfile:line". Uses a
+// formatFrame builds a stack frame string in the format "\t<name> <file>:<line>". Uses a
 // stack-allocated buffer to avoid fmt.Sprintf allocation overhead.
 //
+// Takes name (string) which is the fully qualified function name.
 // Takes file (string) which is the source file path.
 // Takes line (int) which is the line number in the file.
 //
 // Returns string which is the formatted stack frame.
-func formatFrame(file string, line int) string {
-	var buffer [280]byte
+func formatFrame(name, file string, line int) string {
+	var buffer [512]byte
 	b := buffer[:0]
 	b = append(b, '\t')
+	if name != "" {
+		b = append(b, name...)
+		b = append(b, ' ')
+	}
 	b = append(b, file...)
 	b = append(b, ':')
 	b = strconv.AppendInt(b, int64(line), decimalBase)

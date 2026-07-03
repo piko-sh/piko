@@ -72,6 +72,10 @@ type Handler struct {
 	// limiter is the shared token bucket gating non-error forwards; nil allows everything.
 	limiter *rateLimiter
 
+	// breadcrumbs is the shared ring of recent forwarded lines, attached as the trail
+	// leading up to each emitted error.
+	breadcrumbs *breadcrumbRing
+
 	// group is the dotted attribute namespace applied by WithGroup, empty for the root.
 	group string
 
@@ -206,10 +210,23 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	}
 	fields, extracted := h.collectFields(&r, &line)
 	line.Fields = fields
+
+	var crumbs string
+	if h.emitErrors && r.Level >= slog.LevelError {
+		crumbs = breadcrumbsJSON(h.breadcrumbs.recent(maxBreadcrumbs, line.TraceID))
+	}
+	h.breadcrumbs.add(breadcrumb{
+		tsMs:    line.TimestampMs,
+		level:   line.Level,
+		logger:  line.Logger,
+		message: line.Message,
+		traceID: line.TraceID,
+	})
+
 	h.client.AddLog(ctx, line)
 
 	if h.emitErrors && r.Level >= slog.LevelError {
-		h.client.AddError(ctx, toError(&r, line, fields, extracted))
+		h.client.AddError(ctx, toError(&r, line, fields, extracted, crumbs))
 	}
 	return nil
 }
@@ -239,7 +256,7 @@ func capField(v string) string {
 // value.
 //
 // Returns telemetry_grpcfb.ErrorEvent which is the projected, length-bounded event.
-func toError(r *slog.Record, line telemetry_grpcfb.LogLine, fields []telemetry_grpcfb.KV, extracted extractedFields) telemetry_grpcfb.ErrorEvent {
+func toError(r *slog.Record, line telemetry_grpcfb.LogLine, fields []telemetry_grpcfb.KV, extracted extractedFields, breadcrumbs string) telemetry_grpcfb.ErrorEvent {
 	value := line.Message
 	if extracted.errSuffix != "" {
 		value = line.Message + ": " + extracted.errSuffix
@@ -251,15 +268,16 @@ func toError(r *slog.Record, line telemetry_grpcfb.LogLine, fields []telemetry_g
 		typ = "error"
 	}
 	return telemetry_grpcfb.ErrorEvent{
-		Fingerprint: fingerprint(line.Logger, extracted.culprit, line.Message),
-		Type:        typ,
-		Value:       value,
-		Culprit:     culprit,
-		Level:       r.Level.String(),
-		StackJSON:   stackJSON(extracted.stack),
-		Context:     fields,
-		TimestampMs: r.Time.UnixMilli(),
-		Handled:     true,
+		Fingerprint:     fingerprint(line.Logger, extracted.culprit, line.Message),
+		Type:            typ,
+		Value:           value,
+		Culprit:         culprit,
+		Level:           r.Level.String(),
+		StackJSON:       stackJSON(extracted.stack),
+		BreadcrumbsJSON: breadcrumbs,
+		Context:         fields,
+		TimestampMs:     r.Time.UnixMilli(),
+		Handled:         true,
 	}
 }
 
@@ -312,6 +330,29 @@ func stackJSON(stack string) string {
 	return string(b)
 }
 
+// resolveStack resolves a stack_trace attribute to a newline-separated frame string.
+//
+// Takes v (slog.Value) which is the raw stack_trace attribute value.
+// Takes fallback (string) which is returned when v is not a resolvable frame slice.
+//
+// Returns string which is the newline-joined frames, or fallback.
+func resolveStack(v slog.Value, fallback string) string {
+	rv := v.Resolve()
+	if rv.Kind() == slog.KindAny {
+		switch frames := rv.Any().(type) {
+		case []string:
+			return strings.Join(frames, "\n")
+		case []any:
+			parts := make([]string, 0, len(frames))
+			for _, f := range frames {
+				parts = append(parts, fmt.Sprint(f))
+			}
+			return strings.Join(parts, "\n")
+		}
+	}
+	return fallback
+}
+
 // WithAttrs returns a handler that prepends attrs to every record it forwards.
 //
 // Takes attrs ([]slog.Attr) which are the attributes to preset on the derived handler.
@@ -349,10 +390,11 @@ func (h *Handler) WithGroup(name string) slog.Handler {
 // Returns *Handler which forwards records onto the shared client without owning it.
 func New(client *telemetry_grpcfb.Client) *Handler {
 	return &Handler{
-		client:     client,
-		minLevel:   slog.LevelInfo,
-		emitErrors: true,
-		limiter:    newRateLimiter(defaultLogRate, defaultLogBurst, clock.RealClock()),
+		client:      client,
+		minLevel:    slog.LevelInfo,
+		emitErrors:  true,
+		limiter:     newRateLimiter(defaultLogRate, defaultLogBurst, clock.RealClock()),
+		breadcrumbs: newBreadcrumbRing(breadcrumbRingCap),
 	}
 }
 
@@ -447,6 +489,8 @@ func (h *Handler) addAttr(a slog.Attr, line *telemetry_grpcfb.LogLine, fields *[
 			extracted.errSuffix = val
 		}
 	case "stack_trace", "stack", "stackTrace", "panic_info":
+
+		val = resolveStack(a.Value, val)
 		if extracted.stack == "" {
 			extracted.stack = val
 		}
@@ -468,10 +512,11 @@ func Dial(target string, config telemetry_grpcfb.Config, dialOpts ...grpc.DialOp
 		return nil, fmt.Errorf("log_collector_grpcfb: dial %q: %w", target, err)
 	}
 	return &Handler{
-		client:     client,
-		minLevel:   slog.LevelInfo,
-		owns:       true,
-		emitErrors: true,
-		limiter:    newRateLimiter(defaultLogRate, defaultLogBurst, clock.RealClock()),
+		client:      client,
+		minLevel:    slog.LevelInfo,
+		owns:        true,
+		emitErrors:  true,
+		limiter:     newRateLimiter(defaultLogRate, defaultLogBurst, clock.RealClock()),
+		breadcrumbs: newBreadcrumbRing(breadcrumbRingCap),
 	}, nil
 }
