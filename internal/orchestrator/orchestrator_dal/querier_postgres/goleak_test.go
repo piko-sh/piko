@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package querier_adapter_postgres
+package querier_postgres
 
 import (
 	"testing"

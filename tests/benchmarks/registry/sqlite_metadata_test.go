@@ -30,7 +30,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	_ "modernc.org/sqlite"
-	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
+	registry_querier_sqlite "piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 	registry_db "piko.sh/piko/internal/registry/registry_dal/querier_sqlite/db"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -78,7 +78,7 @@ func setupSQLiteBenchmark(t testing.TB, numVariants, numTagsPerVariant, numProfi
 	dbConn := newTestDB(t, sqlitePath)
 	querier := registry_db.New(dbConn)
 
-	store := registry_querier_adapter.NewDAL(dbConn)
+	store := registry_querier_sqlite.New(dbConn)
 
 	artefactID := seedBenchmarkData(t, dbConn, querier, numVariants, numTagsPerVariant, numProfiles)
 
@@ -109,7 +109,7 @@ func setupSQLiteBatchBenchmark(b *testing.B, numArtefacts, variantsPer, tagsPer,
 		artefactIDs[i] = artefactID
 	}
 
-	store := registry_querier_adapter.NewDAL(dbConn)
+	store := registry_querier_sqlite.New(dbConn)
 
 	cleanup := func() {
 		_ = dbConn.Close()

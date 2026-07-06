@@ -12,11 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This project stands against fascism, authoritarianism, and all
-// forms of oppression. We built this to empower people, not to
-// enable those who would strip others of their rights and dignity.
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
 
-// Package querier_adapter_postgres wraps the PostgreSQL querier-generated Queries struct
-// to satisfy the RegistryDALWithTx interface. It bridges between the generated SQL query
-// layer and the domain-level DAL ports.
-package querier_adapter_postgres
+package dalcore
+
+import (
+	"testing"
+
+	"piko.sh/piko/internal/testutil/leakcheck"
+)
+
+func TestMain(m *testing.M) {
+	leakcheck.VerifyTestMain(m)
+}

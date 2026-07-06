@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package querier_adapter
+package dalcore
 
 import (
 	"context"
@@ -27,12 +27,12 @@ import (
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_dal"
-	registry_db "piko.sh/piko/internal/registry/registry_dal/querier_sqlite/db"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/registry/registry_schema"
-	"piko.sh/piko/wdk/logger"
+	"piko.sh/piko/wdk/clock"
 )
 
 const (
@@ -43,6 +43,10 @@ const (
 	// defaultGCHintLimit is the default number of GC hints to fetch at once.
 	defaultGCHintLimit = 100
 
+	// maxGCHintLimit bounds a single PopGCHints call so the paired DeleteGCHints delete
+	// stays within the tightest dialect bind-variable cap.
+	maxGCHintLimit = 999
+
 	// logKeyDurationMs is the log field key for operation duration in milliseconds.
 	logKeyDurationMs = "durationMs"
 
@@ -51,74 +55,67 @@ const (
 )
 
 var (
-	// log is the package-level logger for the querier_adapter package.
-	log = logger.GetLogger("piko/internal/registry/registry_dal/querier_adapter")
+	// log is the package-level logger for the dalcore package.
+	log = logger_domain.GetLogger("piko/internal/registry/registry_dal/dalcore")
 
-	// errDALNotInitialised is returned when a transaction is attempted but the DAL has not
+	// errDALNotInitialised is returned when a transaction is attempted but the core has not
 	// been initialised with a sql.DB connection.
 	errDALNotInitialised = errors.New("cannot create transaction: DAL not initialised with a sql.DB connection")
 
 	// errSearchQueryEmpty is returned when a search operation is attempted with an empty
 	// query string.
 	errSearchQueryEmpty = errors.New("search query is empty")
+
+	_ registry_dal.RegistryDALWithTx = (*core)(nil)
+
+	_ registry_domain.MetadataStore = (*core)(nil)
+
+	_ registry_domain.RegistryInspector = (*core)(nil)
 )
 
-// DAL wraps the querier-generated Queries struct to satisfy the RegistryDALWithTx
-// interface. It delegates simple queries directly to the generated code and handles
-// IN-clause expansion, FlatBuffer serialisation, and transaction management.
-type DAL struct {
-	// db is the underlying database connection for health checks and transaction creation.
-	db *sql.DB
+// core is the dialect-agnostic registry DAL. It satisfies RegistryDALWithTx,
+// MetadataStore, and RegistryInspector, delegating every generated query to a per-dialect
+// Driver while owning FlatBuffer serialisation, transaction lifecycle, and domain
+// mapping.
+type core struct {
+	// sqlDB is the underlying database connection for health checks and transaction
+	// creation.
+	sqlDB *sql.DB
 
-	// dbtx is the active database or transaction handle used for dynamic queries that
-	// require IN-clause expansion. The generated Queries struct does not expose its internal
-	// reader/writer, so we keep a parallel reference.
-	dbtx registry_db.DBTX
+	// driver performs the dialect-specific generated-query calls.
+	driver Driver
 
-	// queries provides access to the generated query methods.
-	queries *registry_db.Queries
+	// clock supplies the wall-clock time used for domain timestamps such as blob reference
+	// and GC hint creation times. It defaults to the real clock and can be replaced with a
+	// mock for deterministic tests.
+	clock clock.Clock
 
-	// inTransaction is true when this DAL is a transaction-scoped clone created by
+	// inTransaction is true when this core is a transaction-scoped clone created by
 	// withTransaction. It prevents nested transactions.
 	inTransaction bool
 }
 
-// NewDAL creates a new DAL backed by the given database connection.
+// New creates a registry DAL backed by the given database connection and dialect driver.
 //
-// Takes database (*sql.DB) which provides the database connection.
+// Takes database (*sql.DB) which provides the database connection for transactions and
+// health checks.
+// Takes driver (Driver) which performs the dialect-specific generated-query calls.
 //
-// Returns *DAL which is ready for use.
-func NewDAL(database *sql.DB) *DAL {
-	return &DAL{
-		db:      database,
-		dbtx:    database,
-		queries: registry_db.New(database),
-	}
-}
-
-// NewDALWithTx creates a transaction-scoped DAL clone. The clone uses the provided
-// transaction for all queries but retains the parent database connection for health
-// checks.
-//
-// Takes tx (*sql.Tx) which provides the transactional database connection.
-// Takes parentDB (*sql.DB) which is retained for health checks.
-//
-// Returns *DAL which is scoped to the transaction.
-func NewDALWithTx(tx *sql.Tx, parentDB *sql.DB) *DAL {
-	return &DAL{
-		db:            parentDB,
-		dbtx:          tx,
-		queries:       registry_db.New(tx),
-		inTransaction: true,
+// Returns registry_dal.RegistryDALWithTx which is the configured DAL ready for use.
+func New(database *sql.DB, driver Driver) registry_dal.RegistryDALWithTx {
+	return &core{
+		sqlDB:  database,
+		driver: driver,
+		clock:  clock.RealClock(),
 	}
 }
 
 // HealthCheck performs a health check on the database connection.
 //
 // Returns error when the database ping fails.
-func (d *DAL) HealthCheck(ctx context.Context) error {
-	if d.db != nil {
-		return d.db.PingContext(ctx)
+func (c *core) HealthCheck(ctx context.Context) error {
+	if c.sqlDB != nil {
+		return c.sqlDB.PingContext(ctx)
 	}
 	return nil
 }
@@ -126,7 +123,7 @@ func (d *DAL) HealthCheck(ctx context.Context) error {
 // Close is a no-op because the caller owns the database connection.
 //
 // Returns error which is always nil.
-func (*DAL) Close() error {
+func (*core) Close() error {
 	return nil
 }
 
@@ -136,12 +133,12 @@ func (*DAL) Close() error {
 // through it are atomic. If fn returns an error (or panics), all mutations are rolled
 // back.
 //
-// Takes fn (func(ctx context.Context, transactionStore MetadataStore) error) which
-// receives a transactional MetadataStore.
+// Takes fn (func(ctx context.Context, transactionStore registry_domain.MetadataStore)
+// error) which receives a transactional MetadataStore.
 //
 // Returns error when fn returns an error or the transaction fails to commit.
-func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
-	if d.inTransaction {
+func (c *core) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
+	if c.inTransaction {
 		return cache_domain.ErrNestedTransactionUnsupported
 	}
 
@@ -149,7 +146,7 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 		fmt.Errorf("transaction exceeded maximum duration of %s", maxTransactionTimeout))
 	defer cancel()
 
-	return d.withTransaction(ctx, func(ctx context.Context, transactionDAL registry_dal.RegistryDAL) error {
+	return c.withTransaction(ctx, func(ctx context.Context, transactionDAL registry_dal.RegistryDAL) error {
 		store, ok := transactionDAL.(registry_domain.MetadataStore)
 		if !ok {
 			return errors.New("transaction DAL does not implement MetadataStore")
@@ -167,72 +164,68 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 // Returns *registry_dto.ArtefactMeta which contains the artefact with its variants and
 // profiles.
 // Returns error when the artefact is not found or the database query fails.
-func (d *DAL) GetArtefact(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
-	ctx, l := logger.From(ctx, log)
+func (c *core) GetArtefact(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.GetArtefact",
-		logger.String("artefactID", artefactID),
+		logger_domain.String("artefactID", artefactID),
 	)
 	defer span.End()
 
 	startTime := time.Now()
 
-	dbRow, err := d.queries.GetArtefact(ctx, artefactID)
+	dataFbs, err := c.driver.GetArtefactData(ctx, artefactID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			l.Trace("Artefact not found", logger.String("artefactID", artefactID))
+			l.Trace("Artefact not found", logger_domain.String("artefactID", artefactID))
 			return nil, registry_domain.ErrArtefactNotFound
 		}
 		l.ReportError(span, err, "Failed to get artefact")
 		return nil, fmt.Errorf("failed to get artefact '%s': %w", artefactID, err)
 	}
 
-	art := registry_schema.ParseArtefactMeta(dbRow.DataFbs)
-	if art == nil {
+	artefact := registry_schema.ParseArtefactMeta(dataFbs)
+	if artefact == nil {
 		return nil, fmt.Errorf("failed to parse artefact '%s': corrupted or empty data", artefactID)
 	}
 
 	duration := time.Since(startTime)
 	l.Trace("GetArtefact completed",
-		logger.Int64(logKeyDurationMs, duration.Milliseconds()),
-		logger.Int("variantCount", len(art.ActualVariants)),
-		logger.Int("profileCount", len(art.DesiredProfiles)))
+		logger_domain.Int64(logKeyDurationMs, duration.Milliseconds()),
+		logger_domain.Int("variantCount", len(artefact.ActualVariants)),
+		logger_domain.Int("profileCount", len(artefact.DesiredProfiles)))
 
-	return art, nil
+	return artefact, nil
 }
 
-// GetMultipleArtefacts retrieves multiple artefacts by their IDs. Uses dynamic IN-clause
-// expansion because the generated query does not handle slices correctly.
+// GetMultipleArtefacts retrieves multiple artefacts by their IDs.
 //
 // Takes artefactIDs ([]string) which specifies the artefact IDs to retrieve.
 //
 // Returns []*registry_dto.ArtefactMeta which contains the matching artefacts in the same
 // order as the input IDs.
 // Returns error when the database query fails.
-func (d *DAL) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error) {
+func (c *core) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error) {
 	if len(artefactIDs) == 0 {
 		return []*registry_dto.ArtefactMeta{}, nil
 	}
 
-	dbRows, err := d.queries.GetMultipleArtefacts(ctx, registry_db.GetMultipleArtefactsParams{
-		IDs: artefactIDs,
-	})
+	blobs, err := c.driver.GetMultipleArtefactsData(ctx, artefactIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get multiple artefacts: %w", err)
 	}
 
-	artefactMap := make(map[string]*registry_dto.ArtefactMeta, len(dbRows))
-	for i := range dbRows {
-		row := &dbRows[i]
-		art := registry_schema.ParseArtefactMeta(row.DataFbs)
-		if art != nil {
-			artefactMap[art.ID] = art
+	artefactMap := make(map[string]*registry_dto.ArtefactMeta, len(blobs))
+	for i := range blobs {
+		artefact := registry_schema.ParseArtefactMeta(blobs[i])
+		if artefact != nil {
+			artefactMap[artefact.ID] = artefact
 		}
 	}
 
 	results := make([]*registry_dto.ArtefactMeta, 0, len(artefactIDs))
 	for _, id := range artefactIDs {
-		if art, ok := artefactMap[id]; ok {
-			results = append(results, art)
+		if artefact, ok := artefactMap[id]; ok {
+			results = append(results, artefact)
 		}
 	}
 
@@ -243,17 +236,8 @@ func (d *DAL) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([
 //
 // Returns []string which contains all artefact IDs currently stored.
 // Returns error when the database query fails.
-func (d *DAL) ListAllArtefactIDs(ctx context.Context) ([]string, error) {
-	rows, err := d.queries.ListAllArtefactIDs(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	ids := make([]string, len(rows))
-	for i, row := range rows {
-		ids[i] = row.ID
-	}
-	return ids, nil
+func (c *core) ListAllArtefactIDs(ctx context.Context) ([]string, error) {
+	return c.driver.ListAllArtefactIDs(ctx)
 }
 
 // SearchArtefacts searches for artefacts matching the given tag query.
@@ -264,11 +248,11 @@ func (d *DAL) ListAllArtefactIDs(ctx context.Context) ([]string, error) {
 // Returns []*registry_dto.ArtefactMeta which contains the matching artefacts.
 // Returns error when the query is empty, uses unsupported RediSearch syntax, or when
 // retrieval fails.
-func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
-	ctx, l := logger.From(ctx, log)
+func (c *core) SearchArtefacts(ctx context.Context, query registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.SearchArtefacts",
-		logger.Int("tagQueryCount", len(query.SimpleTagQuery)),
-		logger.Bool("hasRediSearch", query.RawRediSearchQuery != ""),
+		logger_domain.Int("tagQueryCount", len(query.SimpleTagQuery)),
+		logger_domain.Bool("hasRediSearch", query.RawRediSearchQuery != ""),
 	)
 	defer span.End()
 
@@ -284,7 +268,7 @@ func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQ
 		return nil, fmt.Errorf("searching artefacts: %w", err)
 	}
 
-	finalIDs, err := d.processTagQueries(ctx, query.SimpleTagQuery)
+	finalIDs, err := c.processTagQueries(ctx, query.SimpleTagQuery)
 	if err != nil {
 		l.ReportError(span, err, "Failed to process tag queries")
 		return nil, fmt.Errorf("processing tag queries: %w", err)
@@ -295,8 +279,8 @@ func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQ
 		return []*registry_dto.ArtefactMeta{}, nil
 	}
 
-	l.Trace("Found matching artefacts", logger.Int("matchCount", len(finalIDs)))
-	artefacts, err := d.GetMultipleArtefacts(ctx, finalIDs)
+	l.Trace("Found matching artefacts", logger_domain.Int("matchCount", len(finalIDs)))
+	artefacts, err := c.GetMultipleArtefacts(ctx, finalIDs)
 
 	duration := time.Since(startTime)
 	if err != nil {
@@ -305,25 +289,25 @@ func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQ
 	}
 
 	l.Trace("SearchArtefacts completed",
-		logger.Int64(logKeyDurationMs, duration.Milliseconds()),
-		logger.Int("resultCount", len(artefacts)))
+		logger_domain.Int64(logKeyDurationMs, duration.Milliseconds()),
+		logger_domain.Int("resultCount", len(artefacts)))
 
 	return artefacts, nil
 }
 
 // SearchArtefactsByTagValues searches for artefacts that have a specific tag key with any
-// of the given values. Uses dynamic IN-clause expansion for the tag values.
+// of the given values.
 //
 // Takes tagKey (string) which specifies the tag key to search for.
 // Takes tagValues ([]string) which contains the tag values to match against.
 //
 // Returns []*registry_dto.ArtefactMeta which contains the matching artefacts.
 // Returns error when the database query fails.
-func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error) {
-	ctx, l := logger.From(ctx, log)
+func (c *core) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.SearchArtefactsByTagValues",
-		logger.String("tagKey", tagKey),
-		logger.Int("valueCount", len(tagValues)),
+		logger_domain.String("tagKey", tagKey),
+		logger_domain.Int("valueCount", len(tagValues)),
 	)
 	defer span.End()
 
@@ -331,17 +315,10 @@ func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tag
 		return []*registry_dto.ArtefactMeta{}, nil
 	}
 
-	dbTagRows, err := d.queries.FindArtefactIDsByTagValues(ctx, registry_db.FindArtefactIDsByTagValuesParams{
-		TagKey:    tagKey,
-		TagValues: tagValues,
-	})
+	artefactIDs, err := c.driver.FindArtefactIDsByTagValues(ctx, tagKey, tagValues)
 	if err != nil {
 		l.ReportError(span, err, "Failed to find artefact IDs by tag values")
 		return nil, fmt.Errorf("failed to find artefact IDs for tag %s: %w", tagKey, err)
-	}
-	artefactIDs := make([]string, len(dbTagRows))
-	for i, row := range dbTagRows {
-		artefactIDs[i] = row.ArtefactID
 	}
 
 	if len(artefactIDs) == 0 {
@@ -349,9 +326,9 @@ func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tag
 		return []*registry_dto.ArtefactMeta{}, nil
 	}
 
-	l.Trace("Found matching artefact IDs, fetching full data", logger.Int("idCount", len(artefactIDs)))
+	l.Trace("Found matching artefact IDs, fetching full data", logger_domain.Int("idCount", len(artefactIDs)))
 
-	return d.GetMultipleArtefacts(ctx, artefactIDs)
+	return c.GetMultipleArtefacts(ctx, artefactIDs)
 }
 
 // FindArtefactByVariantStorageKey finds an artefact by the storage key of one of its
@@ -361,15 +338,15 @@ func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tag
 //
 // Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
 // Returns error when the artefact is not found or the query fails.
-func (d *DAL) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (*registry_dto.ArtefactMeta, error) {
-	row, err := d.queries.FindArtefactByVariantStorageKey(ctx, storageKey)
+func (c *core) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (*registry_dto.ArtefactMeta, error) {
+	artefactID, err := c.driver.FindArtefactIDByVariantStorageKey(ctx, storageKey)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, registry_domain.ErrArtefactNotFound
 		}
 		return nil, fmt.Errorf("failed to find artefact by storage key '%s': %w", storageKey, err)
 	}
-	return d.GetArtefact(ctx, row.ArtefactID)
+	return c.GetArtefact(ctx, artefactID)
 }
 
 // PopGCHints retrieves and removes garbage collection hints from the store.
@@ -379,23 +356,27 @@ func (d *DAL) FindArtefactByVariantStorageKey(ctx context.Context, storageKey st
 //
 // Returns []registry_dto.GCHint which contains the retrieved hints.
 // Returns error when the database transaction fails.
-func (d *DAL) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint, error) {
-	ctx, l := logger.From(ctx, log)
+func (c *core) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.PopGCHints",
-		logger.Int("limit", limit),
+		logger_domain.Int("limit", limit),
 	)
 	defer span.End()
 
 	startTime := time.Now()
 	if limit <= 0 {
 		limit = defaultGCHintLimit
-		l.Trace("Using default limit", logger.Int("defaultLimit", limit))
+		l.Trace("Using default limit", logger_domain.Int("defaultLimit", limit))
+	}
+	if limit > maxGCHintLimit {
+		limit = maxGCHintLimit
+		l.Trace("Clamping limit to maximum", logger_domain.Int("maxLimit", limit))
 	}
 
 	var hints []registry_dto.GCHint
-	err := l.RunInSpan(ctx, "PopGCHintsTransaction", func(ctx context.Context, _ logger.Logger) error {
-		return d.runInTransaction(ctx, func(ctx context.Context, _ registry_db.DBTX, qtx *registry_db.Queries) error {
-			dbHints, err := qtx.PopGCHints(ctx, limit)
+	err := l.RunInSpan(ctx, "PopGCHintsTransaction", func(ctx context.Context, _ logger_domain.Logger) error {
+		return c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
+			dbHints, err := driver.PopGCHints(ctx, limit)
 			if err != nil {
 				return fmt.Errorf("failed to pop GC hints from DB: %w", err)
 			}
@@ -406,10 +387,10 @@ func (d *DAL) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint,
 				return nil
 			}
 
-			l.Trace("Processing GC hints", logger.Int("hintCount", len(dbHints)))
+			l.Trace("Processing GC hints", logger_domain.Int("hintCount", len(dbHints)))
 			var idsToDelete []int64
-			hints, idsToDelete = convertDBHintsToDTO(dbHints)
-			if err := qtx.DeleteGCHints(ctx, registry_db.DeleteGCHintsParams{IDs: idsToDelete}); err != nil {
+			hints, idsToDelete = convertHintsToDTO(dbHints)
+			if err := driver.DeleteGCHints(ctx, idsToDelete); err != nil {
 				return fmt.Errorf("failed to delete popped GC hints: %w", err)
 			}
 			return nil
@@ -423,8 +404,8 @@ func (d *DAL) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint,
 	}
 
 	l.Trace("PopGCHints completed",
-		logger.Int64(logKeyDurationMs, duration.Milliseconds()),
-		logger.Int("hintCount", len(hints)))
+		logger_domain.Int64(logKeyDurationMs, duration.Milliseconds()),
+		logger_domain.Int("hintCount", len(hints)))
 
 	return hints, nil
 }
@@ -436,23 +417,24 @@ func (d *DAL) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint,
 //
 // Returns error when the transaction fails to begin, an action fails, or the commit
 // fails.
-func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
-	ctx, l := logger.From(ctx, log)
+func (c *core) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.AtomicUpdate",
-		logger.Int("actionCount", len(actions)),
+		logger_domain.Int("actionCount", len(actions)),
 	)
 	defer span.End()
 
 	startTime := time.Now()
+	now := c.clock.Now().UTC()
 
-	err := l.RunInSpan(ctx, "AtomicUpdateTransaction", func(ctx context.Context, _ logger.Logger) error {
-		return d.runInTransaction(ctx, func(ctx context.Context, _ registry_db.DBTX, qtx *registry_db.Queries) error {
+	err := l.RunInSpan(ctx, "AtomicUpdateTransaction", func(ctx context.Context, _ logger_domain.Logger) error {
+		return c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
 			for i, action := range actions {
 				l.Trace("Processing atomic action",
-					logger.Int("actionIndex", i),
-					logger.String("actionType", string(action.Type)))
+					logger_domain.Int("actionIndex", i),
+					logger_domain.String("actionType", string(action.Type)))
 
-				if err := d.processAtomicAction(ctx, qtx, action); err != nil {
+				if err := processAtomicAction(ctx, driver, action, now); err != nil {
 					l.ReportError(span, err, "Atomic action failed")
 					return err
 				}
@@ -467,8 +449,8 @@ func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAct
 	}
 
 	l.Trace("AtomicUpdate completed",
-		logger.Int64(logKeyDurationMs, duration.Milliseconds()),
-		logger.Int("actionCount", len(actions)))
+		logger_domain.Int64(logKeyDurationMs, duration.Milliseconds()),
+		logger_domain.Int("actionCount", len(actions)))
 
 	return nil
 }
@@ -480,15 +462,15 @@ func (d *DAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAct
 //
 // Returns int which is the new reference count after the increment.
 // Returns error when the database operation fails.
-func (d *DAL) IncrementBlobRefCount(ctx context.Context, blob registry_domain.BlobReference) (int, error) {
-	ctx, l := logger.From(ctx, log)
+func (c *core) IncrementBlobRefCount(ctx context.Context, blob registry_domain.BlobReference) (int, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.IncrementBlobRefCount",
-		logger.String(logKeyStorageKey, blob.StorageKey),
+		logger_domain.String(logKeyStorageKey, blob.StorageKey),
 	)
 	defer span.End()
 
-	now := time.Now().UTC()
-	row, err := d.queries.IncrementBlobRefCount(ctx, registry_db.IncrementBlobRefCountParams{
+	now := c.clock.Now().UTC()
+	newRefCount, err := c.driver.IncrementBlobRefCount(ctx, IncrementBlobRefCountParams{
 		StorageKey:       blob.StorageKey,
 		StorageBackendID: blob.StorageBackendID,
 		ContentHash:      blob.ContentHash,
@@ -503,10 +485,10 @@ func (d *DAL) IncrementBlobRefCount(ctx context.Context, blob registry_domain.Bl
 	}
 
 	l.Trace("Incremented blob ref count",
-		logger.Int("newRefCount", int(row.RefCount)),
-		logger.String(logKeyStorageKey, blob.StorageKey))
+		logger_domain.Int("newRefCount", newRefCount),
+		logger_domain.String(logKeyStorageKey, blob.StorageKey))
 
-	return int(row.RefCount), nil
+	return newRefCount, nil
 }
 
 // DecrementBlobRefCount atomically decrements the reference count for a blob and
@@ -517,43 +499,40 @@ func (d *DAL) IncrementBlobRefCount(ctx context.Context, blob registry_domain.Bl
 // Returns int which is the new reference count after decrementing.
 // Returns bool which is true when the blob should be deleted (ref count is 0).
 // Returns error when the blob does not exist.
-func (d *DAL) DecrementBlobRefCount(ctx context.Context, storageKey string) (int, bool, error) {
-	ctx, l := logger.From(ctx, log)
+func (c *core) DecrementBlobRefCount(ctx context.Context, storageKey string) (int, bool, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.DecrementBlobRefCount",
-		logger.String(logKeyStorageKey, storageKey),
+		logger_domain.String(logKeyStorageKey, storageKey),
 	)
 	defer span.End()
 
-	now := time.Now().UTC()
-	row, err := d.queries.DecrementBlobRefCount(ctx, registry_db.DecrementBlobRefCountParams{
-		LastReferencedAt: now.Unix(),
-		StorageKey:       storageKey,
-	})
+	now := c.clock.Now().UTC()
+	newRefCount, err := c.driver.DecrementBlobRefCount(ctx, storageKey, now.Unix())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			l.Warn("Attempted to decrement ref count for non-existent blob",
-				logger.String(logKeyStorageKey, storageKey))
+				logger_domain.String(logKeyStorageKey, storageKey))
 			return 0, false, registry_domain.ErrBlobReferenceNotFound
 		}
 		l.ReportError(span, err, "Failed to decrement blob ref count")
 		return 0, false, fmt.Errorf("failed to decrement blob ref count for %s: %w", storageKey, err)
 	}
 
-	shouldDelete := row.RefCount == 0
+	shouldDelete := newRefCount == 0
 	l.Trace("Decremented blob ref count",
-		logger.Int("newRefCount", int(row.RefCount)),
-		logger.Bool("shouldDelete", shouldDelete),
-		logger.String(logKeyStorageKey, storageKey))
+		logger_domain.Int("newRefCount", newRefCount),
+		logger_domain.Bool("shouldDelete", shouldDelete),
+		logger_domain.String(logKeyStorageKey, storageKey))
 
 	if shouldDelete {
-		if err := d.queries.DeleteBlobReferenceIfZero(ctx, storageKey); err != nil {
+		if err := c.driver.DeleteBlobReferenceIfZero(ctx, storageKey); err != nil {
 			l.Warn("Failed to delete blob reference record with zero ref count",
-				logger.Error(err),
-				logger.String(logKeyStorageKey, storageKey))
+				logger_domain.Error(err),
+				logger_domain.String(logKeyStorageKey, storageKey))
 		}
 	}
 
-	return int(row.RefCount), shouldDelete, nil
+	return newRefCount, shouldDelete, nil
 }
 
 // GetBlobRefCount returns the current reference count for a blob.
@@ -563,18 +542,18 @@ func (d *DAL) DecrementBlobRefCount(ctx context.Context, storageKey string) (int
 //
 // Returns int which is the reference count for the blob.
 // Returns error when the database query fails.
-func (d *DAL) GetBlobRefCount(ctx context.Context, storageKey string) (int, error) {
-	ctx, l := logger.From(ctx, log)
+func (c *core) GetBlobRefCount(ctx context.Context, storageKey string) (int, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.GetBlobRefCount",
-		logger.String(logKeyStorageKey, storageKey),
+		logger_domain.String(logKeyStorageKey, storageKey),
 	)
 	defer span.End()
 
-	row, err := d.queries.GetBlobRefCount(ctx, storageKey)
+	refCount, err := c.driver.GetBlobRefCount(ctx, storageKey)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			l.Trace("Blob reference not found, returning 0",
-				logger.String(logKeyStorageKey, storageKey))
+				logger_domain.String(logKeyStorageKey, storageKey))
 			return 0, nil
 		}
 		l.ReportError(span, err, "Failed to get blob ref count")
@@ -582,10 +561,10 @@ func (d *DAL) GetBlobRefCount(ctx context.Context, storageKey string) (int, erro
 	}
 
 	l.Trace("Retrieved blob ref count",
-		logger.Int("refCount", int(row.RefCount)),
-		logger.String(logKeyStorageKey, storageKey))
+		logger_domain.Int("refCount", refCount),
+		logger_domain.String(logKeyStorageKey, storageKey))
 
-	return int(row.RefCount), nil
+	return refCount, nil
 }
 
 // ListArtefactSummary returns artefact counts grouped by status. Status is stored inside
@@ -594,15 +573,15 @@ func (d *DAL) GetBlobRefCount(ctx context.Context, storageKey string) (int, erro
 // Returns []registry_domain.ArtefactSummary which contains one entry per status with its
 // count.
 // Returns error when the database query fails or a FlatBuffer is corrupt.
-func (d *DAL) ListArtefactSummary(ctx context.Context) ([]registry_domain.ArtefactSummary, error) {
-	rows, err := d.queries.ListAllArtefactsWithData(ctx)
+func (c *core) ListArtefactSummary(ctx context.Context) ([]registry_domain.ArtefactSummary, error) {
+	blobs, err := c.driver.ListAllArtefactsData(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("listing artefacts for summary: %w", err)
 	}
 
 	statusCounts := make(map[string]int64)
-	for i := range rows {
-		artefact := registry_schema.ParseArtefactMeta(rows[i].DataFbs)
+	for i := range blobs {
+		artefact := registry_schema.ParseArtefactMeta(blobs[i])
 		if artefact == nil {
 			continue
 		}
@@ -625,8 +604,8 @@ func (d *DAL) ListArtefactSummary(ctx context.Context) ([]registry_domain.Artefa
 // Returns []registry_domain.VariantSummary which contains one entry per variant status
 // with its count.
 // Returns error when the database query fails.
-func (d *DAL) ListVariantSummary(ctx context.Context) ([]registry_domain.VariantSummary, error) {
-	rows, err := d.queries.ListVariantStatusCounts(ctx)
+func (c *core) ListVariantSummary(ctx context.Context) ([]registry_domain.VariantSummary, error) {
+	rows, err := c.driver.ListVariantStatusCounts(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("listing variant status counts: %w", err)
 	}
@@ -635,7 +614,7 @@ func (d *DAL) ListVariantSummary(ctx context.Context) ([]registry_domain.Variant
 	for i, row := range rows {
 		results[i] = registry_domain.VariantSummary{
 			Status: row.Status,
-			Count:  int64(row.VariantCount),
+			Count:  row.Count,
 		}
 	}
 
@@ -650,22 +629,22 @@ func (d *DAL) ListVariantSummary(ctx context.Context) ([]registry_domain.Variant
 // Returns []registry_domain.ArtefactListItem which contains artefacts ordered by update
 // time descending.
 // Returns error when the database query fails or a FlatBuffer is corrupt.
-func (d *DAL) ListRecentArtefacts(ctx context.Context, limit int) ([]registry_domain.ArtefactListItem, error) {
-	rows, err := d.queries.ListRecentArtefactsWithData(ctx, limit)
+func (c *core) ListRecentArtefacts(ctx context.Context, limit int) ([]registry_domain.ArtefactListItem, error) {
+	blobs, err := c.driver.ListRecentArtefactsData(ctx, limit)
 	if err != nil {
 		return nil, fmt.Errorf("listing recent artefacts: %w", err)
 	}
 
-	results := make([]registry_domain.ArtefactListItem, 0, len(rows))
-	for i := range rows {
-		artefact := registry_schema.ParseArtefactMeta(rows[i].DataFbs)
+	results := make([]registry_domain.ArtefactListItem, 0, len(blobs))
+	for i := range blobs {
+		artefact := registry_schema.ParseArtefactMeta(blobs[i])
 		if artefact == nil {
 			continue
 		}
 
 		var totalSize int64
-		for vi := range artefact.ActualVariants {
-			totalSize += artefact.ActualVariants[vi].SizeBytes
+		for variantIndex := range artefact.ActualVariants {
+			totalSize += artefact.ActualVariants[variantIndex].SizeBytes
 		}
 
 		results = append(results, registry_domain.ArtefactListItem{
@@ -684,65 +663,81 @@ func (d *DAL) ListRecentArtefacts(ctx context.Context, limit int) ([]registry_do
 
 // runInTransaction executes fn within a transaction.
 //
-// If the DAL is already inside a transaction (inTransaction == true), it reuses the
-// existing queries and DBTX to avoid deadlocking on SQLite's single-writer lock.
+// If the core is already inside a transaction (inTransaction == true), it reuses the
+// existing driver to avoid deadlocking on SQLite's single-writer lock.
 //
-// Takes fn (func(ctx context.Context, dbtx DBTX, qtx *Queries) error) which is the
-// function to execute within the transaction scope.
+// Takes fn (func(ctx context.Context, driver Driver) error) which is the function to
+// execute within the transaction scope.
 //
 // Returns error when the transaction cannot be started, fn returns an error, or the
 // commit fails.
-func (d *DAL) runInTransaction(ctx context.Context, fn func(ctx context.Context, dbtx registry_db.DBTX, qtx *registry_db.Queries) error) error {
-	if d.inTransaction {
-		return fn(ctx, d.dbtx, d.queries)
+func (c *core) runInTransaction(ctx context.Context, fn func(ctx context.Context, driver Driver) error) error {
+	if c.inTransaction {
+		return fn(ctx, c.driver)
 	}
 
-	tx, err := d.db.BeginTx(ctx, nil)
+	if c.sqlDB == nil {
+		return errDALNotInitialised
+	}
+
+	tx, err := c.sqlDB.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("transaction rollback failed", logger_domain.Error(rollbackErr))
+		}
+	}()
 
-	if err := fn(ctx, tx, d.queries.WithTx(tx)); err != nil {
+	if err := fn(ctx, c.driver.WithTx(tx)); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
 // withTransaction is an internal helper that executes an operation within a database
-// transaction, creating a transaction-scoped DAL clone.
+// transaction, creating a transaction-scoped core clone.
 //
-// Takes operation (func(ctx context.Context, dal RegistryDAL) error) which is the
-// callback to execute within the transaction scope.
+// Takes operation (func(ctx context.Context, dal registry_dal.RegistryDAL) error) which
+// is the callback to execute within the transaction scope.
 //
-// Returns error when the DAL is not initialised, the transaction cannot be started, the
+// Returns error when the core is not initialised, the transaction cannot be started, the
 // callback returns an error, or the commit fails.
 //
 // Panics if operation panics. The transaction is rolled back before re-panicking.
-func (d *DAL) withTransaction(ctx context.Context, operation func(ctx context.Context, dal registry_dal.RegistryDAL) error) error {
-	ctx, l := logger.From(ctx, log)
+func (c *core) withTransaction(ctx context.Context, operation func(ctx context.Context, dal registry_dal.RegistryDAL) error) error {
+	ctx, l := logger_domain.From(ctx, log)
 
-	if d.db == nil {
+	if c.sqlDB == nil {
 		return errDALNotInitialised
 	}
 
-	tx, err := d.db.BeginTx(ctx, nil)
+	tx, err := c.sqlDB.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
 	defer func() {
 		if p := recover(); p != nil {
-			_ = tx.Rollback()
+			if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
+				l.Warn("Failed to rollback transaction", logger_domain.Error(rollbackErr))
+			}
 			panic(p)
 		}
 	}()
 
-	txDAL := NewDALWithTx(tx, d.db)
+	txCore := &core{
+		sqlDB:         c.sqlDB,
+		driver:        c.driver.WithTx(tx),
+		clock:         c.clock,
+		inTransaction: true,
+	}
 
-	if err := operation(ctx, txDAL); err != nil {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			l.Warn("Failed to rollback transaction", logger.Error(rbErr))
+	if err := operation(ctx, txCore); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			l.Warn("Failed to rollback transaction", logger_domain.Error(rollbackErr))
 		}
 		return err
 	}
@@ -757,35 +752,27 @@ func (d *DAL) withTransaction(ctx context.Context, operation func(ctx context.Co
 // Returns []string which contains artefact IDs matching all tag criteria, or nil if no
 // matches exist.
 // Returns error when the database query fails.
-func (d *DAL) processTagQueries(
+func (c *core) processTagQueries(
 	ctx context.Context,
 	tagQuery map[string]string,
 ) ([]string, error) {
-	ctx, l := logger.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	var intersection *map[string]struct{}
 
 	for key, value := range tagQuery {
 		l.Trace("Processing tag query",
-			logger.String("tagKey", key),
-			logger.String("tagValue", value))
+			logger_domain.String("tagKey", key),
+			logger_domain.String("tagValue", value))
 
-		rows, err := d.queries.FindArtefactIDsByTag(ctx, registry_db.FindArtefactIDsByTagParams{
-			TagKey:   key,
-			TagValue: value,
-		})
+		ids, err := c.driver.FindArtefactIDsByTag(ctx, key, value)
 		if err != nil {
 			return nil, fmt.Errorf("tag search failed for %s=%s: %w", key, value, err)
 		}
 
-		ids := make([]string, len(rows))
-		for i, row := range rows {
-			ids[i] = row.ArtefactID
-		}
-
 		l.Trace("Found artefacts with tag",
-			logger.String("tagKey", key),
-			logger.String("tagValue", value),
-			logger.Int("resultCount", len(ids)))
+			logger_domain.String("tagKey", key),
+			logger_domain.String("tagValue", value),
+			logger_domain.Int("resultCount", len(ids)))
 
 		intersection = intersectIDSets(intersection, ids)
 		if len(*intersection) == 0 {
@@ -807,26 +794,28 @@ func (d *DAL) processTagQueries(
 
 // processAtomicAction executes a single atomic action within a transaction.
 //
-// Takes qtx (*registry_db.Queries) which provides transactional database access.
+// Takes driver (Driver) which provides transactional database access.
 // Takes action (registry_dto.AtomicAction) which specifies the operation to perform.
+// Takes now (time.Time) which is the timestamp recorded on any GC hints the action adds.
 //
 // Returns error when the action fails or the action type is unrecognised.
-func (*DAL) processAtomicAction(
+func processAtomicAction(
 	ctx context.Context,
-	qtx *registry_db.Queries,
+	driver Driver,
 	action registry_dto.AtomicAction,
+	now time.Time,
 ) error {
 	switch action.Type {
 	case registry_dto.ActionTypeUpsertArtefact:
-		if err := upsertArtefact(ctx, qtx, action.Artefact); err != nil {
+		if err := upsertArtefact(ctx, driver, action.Artefact); err != nil {
 			return fmt.Errorf("atomic upsert for artefact '%s' failed: %w", action.Artefact.ID, err)
 		}
 	case registry_dto.ActionTypeDeleteArtefact:
-		if err := qtx.DeleteArtefact(ctx, action.ArtefactID); err != nil {
+		if err := driver.DeleteArtefact(ctx, action.ArtefactID); err != nil {
 			return fmt.Errorf("atomic delete for artefact '%s' failed: %w", action.ArtefactID, err)
 		}
 	case registry_dto.ActionTypeAddGCHints:
-		if err := addGCHints(ctx, qtx, action.GCHints); err != nil {
+		if err := addGCHints(ctx, driver, action.GCHints, now); err != nil {
 			return fmt.Errorf("atomic add GC hints failed: %w", err)
 		}
 	default:
@@ -837,49 +826,47 @@ func (*DAL) processAtomicAction(
 
 // upsertArtefact inserts or updates an artefact and its related data.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
-// Takes art (*registry_dto.ArtefactMeta) which contains the artefact metadata to store.
+// Takes driver (Driver) which provides database access.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact metadata to
+// store.
 //
 // Returns error when the database operation fails.
-func upsertArtefact(ctx context.Context, qtx *registry_db.Queries, art *registry_dto.ArtefactMeta) error {
-	fbsData := registry_schema.BuildArtefactMeta(art)
+func upsertArtefact(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) error {
+	fbsData := registry_schema.BuildArtefactMeta(artefact)
 
-	if err := qtx.UpsertArtefact(ctx, registry_db.UpsertArtefactParams{
-		ID:         art.ID,
-		SourcePath: art.SourcePath,
-		CreatedAt:  art.CreatedAt.Unix(),
-		UpdatedAt:  art.UpdatedAt.Unix(),
+	if err := driver.UpsertArtefact(ctx, UpsertArtefactParams{
+		ID:         artefact.ID,
+		SourcePath: artefact.SourcePath,
+		CreatedAt:  artefact.CreatedAt.Unix(),
+		UpdatedAt:  artefact.UpdatedAt.Unix(),
 		DataFbs:    fbsData,
 	}); err != nil {
 		return fmt.Errorf("failed to upsert artefact: %w", err)
 	}
 
-	if err := deleteExistingArtefactData(ctx, qtx, art); err != nil {
-		return fmt.Errorf("deleting existing artefact data for '%s': %w", art.ID, err)
+	if err := deleteExistingArtefactData(ctx, driver, artefact); err != nil {
+		return fmt.Errorf("deleting existing artefact data for '%s': %w", artefact.ID, err)
 	}
 
-	if err := insertVariantsWithData(ctx, qtx, art); err != nil {
-		return fmt.Errorf("inserting variants for artefact '%s': %w", art.ID, err)
+	if err := insertVariantsWithData(ctx, driver, artefact); err != nil {
+		return fmt.Errorf("inserting variants for artefact '%s': %w", artefact.ID, err)
 	}
 
-	return insertDesiredProfiles(ctx, qtx, art)
+	return insertDesiredProfiles(ctx, driver, artefact)
 }
 
 // addGCHints stores garbage collection hints for the given storage keys.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
+// Takes driver (Driver) which provides database access.
 // Takes hints ([]registry_dto.GCHint) which contains the storage keys to mark for
 // cleanup.
+// Takes now (time.Time) which is the timestamp recorded on each stored hint.
 //
 // Returns error when a hint cannot be added to the database.
-func addGCHints(ctx context.Context, qtx *registry_db.Queries, hints []registry_dto.GCHint) error {
-	nowSeconds := time.Now().Unix()
+func addGCHints(ctx context.Context, driver Driver, hints []registry_dto.GCHint, now time.Time) error {
+	nowSeconds := now.Unix()
 	for _, hint := range hints {
-		err := qtx.AddGCHint(ctx, registry_db.AddGCHintParams{
-			BackendID:  hint.BackendID,
-			StorageKey: hint.StorageKey,
-			CreatedAt:  nowSeconds,
-		})
+		err := driver.AddGCHint(ctx, hint.BackendID, hint.StorageKey, nowSeconds)
 		if err != nil {
 			return fmt.Errorf("failed to add GC hint for key '%s': %w", hint.StorageKey, err)
 		}
@@ -890,30 +877,27 @@ func addGCHints(ctx context.Context, qtx *registry_db.Queries, hints []registry_
 // deleteExistingArtefactData removes all existing data for an artefact before
 // re-importing it.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
-// Takes art (*registry_dto.ArtefactMeta) which identifies the artefact to clear.
+// Takes driver (Driver) which provides database access.
+// Takes artefact (*registry_dto.ArtefactMeta) which identifies the artefact to clear.
 //
 // Returns error when any database deletion fails.
-func deleteExistingArtefactData(ctx context.Context, qtx *registry_db.Queries, art *registry_dto.ArtefactMeta) error {
-	if err := qtx.DeleteVariantTagsForArtefact(ctx, art.ID); err != nil {
+func deleteExistingArtefactData(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) error {
+	if err := driver.DeleteVariantTagsForArtefact(ctx, artefact.ID); err != nil {
 		return fmt.Errorf("failed to delete old variant tags: %w", err)
 	}
 
-	for i := range art.ActualVariants {
-		v := &art.ActualVariants[i]
-		if err := qtx.DeleteChunksForVariant(ctx, registry_db.DeleteChunksForVariantParams{
-			ArtefactID: art.ID,
-			VariantID:  v.VariantID,
-		}); err != nil {
-			return fmt.Errorf("failed to delete old chunks for variant '%s': %w", v.VariantID, err)
+	for i := range artefact.ActualVariants {
+		variant := &artefact.ActualVariants[i]
+		if err := driver.DeleteChunksForVariant(ctx, artefact.ID, variant.VariantID); err != nil {
+			return fmt.Errorf("failed to delete old chunks for variant '%s': %w", variant.VariantID, err)
 		}
 	}
 
-	if err := qtx.DeleteVariantsForArtefact(ctx, art.ID); err != nil {
+	if err := driver.DeleteVariantsForArtefact(ctx, artefact.ID); err != nil {
 		return fmt.Errorf("failed to delete old variants: %w", err)
 	}
 
-	if err := qtx.DeleteDesiredProfilesForArtefact(ctx, art.ID); err != nil {
+	if err := driver.DeleteDesiredProfilesForArtefact(ctx, artefact.ID); err != nil {
 		return fmt.Errorf("failed to delete old desired profiles: %w", err)
 	}
 
@@ -923,21 +907,21 @@ func deleteExistingArtefactData(ctx context.Context, qtx *registry_db.Queries, a
 // insertVariantsWithData inserts all variants for an artefact along with their tags and
 // chunks.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
-// Takes art (*registry_dto.ArtefactMeta) which holds the variants to insert.
+// Takes driver (Driver) which provides database access.
+// Takes artefact (*registry_dto.ArtefactMeta) which holds the variants to insert.
 //
 // Returns error when inserting a variant, its tags, or its chunks fails.
-func insertVariantsWithData(ctx context.Context, qtx *registry_db.Queries, art *registry_dto.ArtefactMeta) error {
-	for i := range art.ActualVariants {
-		v := &art.ActualVariants[i]
-		if err := insertVariant(ctx, qtx, art.ID, v); err != nil {
-			return fmt.Errorf("inserting variant '%s': %w", v.VariantID, err)
+func insertVariantsWithData(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) error {
+	for i := range artefact.ActualVariants {
+		variant := &artefact.ActualVariants[i]
+		if err := insertVariant(ctx, driver, artefact.ID, variant); err != nil {
+			return fmt.Errorf("inserting variant '%s': %w", variant.VariantID, err)
 		}
-		if err := insertVariantTags(ctx, qtx, art.ID, v); err != nil {
-			return fmt.Errorf("inserting tags for variant '%s': %w", v.VariantID, err)
+		if err := insertVariantTags(ctx, driver, artefact.ID, variant); err != nil {
+			return fmt.Errorf("inserting tags for variant '%s': %w", variant.VariantID, err)
 		}
-		if err := insertVariantChunks(ctx, qtx, art.ID, v); err != nil {
-			return fmt.Errorf("inserting chunks for variant '%s': %w", v.VariantID, err)
+		if err := insertVariantChunks(ctx, driver, artefact.ID, variant); err != nil {
+			return fmt.Errorf("inserting chunks for variant '%s': %w", variant.VariantID, err)
 		}
 	}
 	return nil
@@ -945,41 +929,36 @@ func insertVariantsWithData(ctx context.Context, qtx *registry_db.Queries, art *
 
 // insertVariant stores a variant record in the database for the given artefact.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
+// Takes driver (Driver) which provides database access.
 // Takes artefactID (string) which identifies the parent artefact.
-// Takes v (*registry_dto.Variant) which contains the variant data to store.
+// Takes variant (*registry_dto.Variant) which contains the variant data to store.
 //
 // Returns error when the database insert fails.
-func insertVariant(ctx context.Context, qtx *registry_db.Queries, artefactID string, v *registry_dto.Variant) error {
-	return qtx.InsertVariant(ctx, registry_db.InsertVariantParams{
+func insertVariant(ctx context.Context, driver Driver, artefactID string, variant *registry_dto.Variant) error {
+	return driver.InsertVariant(ctx, InsertVariantParams{
 		ArtefactID:       artefactID,
-		VariantID:        v.VariantID,
-		StorageKey:       v.StorageKey,
-		StorageBackendID: v.StorageBackendID,
-		MimeType:         v.MimeType,
-		SizeBytes:        v.SizeBytes,
-		Status:           string(v.Status),
-		CreatedAt:        v.CreatedAt.Unix(),
+		VariantID:        variant.VariantID,
+		StorageKey:       variant.StorageKey,
+		StorageBackendID: variant.StorageBackendID,
+		MimeType:         variant.MimeType,
+		SizeBytes:        variant.SizeBytes,
+		Status:           string(variant.Status),
+		CreatedAt:        variant.CreatedAt.Unix(),
 	})
 }
 
 // insertVariantTags stores all metadata tags for a variant in the database.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
+// Takes driver (Driver) which provides database access.
 // Takes artefactID (string) which identifies the parent artefact.
-// Takes v (*registry_dto.Variant) which contains the tags to insert.
+// Takes variant (*registry_dto.Variant) which contains the tags to insert.
 //
 // Returns error when a tag cannot be inserted.
-func insertVariantTags(ctx context.Context, qtx *registry_db.Queries, artefactID string, v *registry_dto.Variant) error {
-	for key, value := range v.MetadataTags.All() {
-		err := qtx.InsertVariantTag(ctx, registry_db.InsertVariantTagParams{
-			ArtefactID: artefactID,
-			VariantID:  v.VariantID,
-			TagKey:     key,
-			TagValue:   value,
-		})
+func insertVariantTags(ctx context.Context, driver Driver, artefactID string, variant *registry_dto.Variant) error {
+	for key, value := range variant.MetadataTags.All() {
+		err := driver.InsertVariantTag(ctx, artefactID, variant.VariantID, key, value)
 		if err != nil {
-			return fmt.Errorf("failed to insert tag for variant '%s': %w", v.VariantID, err)
+			return fmt.Errorf("failed to insert tag for variant '%s': %w", variant.VariantID, err)
 		}
 	}
 	return nil
@@ -987,17 +966,17 @@ func insertVariantTags(ctx context.Context, qtx *registry_db.Queries, artefactID
 
 // insertVariantChunks stores all chunks for a variant in the database.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
+// Takes driver (Driver) which provides database access.
 // Takes artefactID (string) which identifies the parent artefact.
-// Takes v (*registry_dto.Variant) which contains the chunks to insert.
+// Takes variant (*registry_dto.Variant) which contains the chunks to insert.
 //
 // Returns error when a chunk cannot be inserted.
-func insertVariantChunks(ctx context.Context, qtx *registry_db.Queries, artefactID string, v *registry_dto.Variant) error {
-	for i := range v.Chunks {
-		chunk := &v.Chunks[i]
-		err := qtx.InsertVariantChunk(ctx, registry_db.InsertVariantChunkParams{
+func insertVariantChunks(ctx context.Context, driver Driver, artefactID string, variant *registry_dto.Variant) error {
+	for i := range variant.Chunks {
+		chunk := &variant.Chunks[i]
+		err := driver.InsertVariantChunk(ctx, InsertVariantChunkParams{
 			ArtefactID:       artefactID,
-			VariantID:        v.VariantID,
+			VariantID:        variant.VariantID,
 			ChunkID:          chunk.ChunkID,
 			StorageKey:       chunk.StorageKey,
 			StorageBackendID: chunk.StorageBackendID,
@@ -1009,7 +988,7 @@ func insertVariantChunks(ctx context.Context, qtx *registry_db.Queries, artefact
 			DurationSeconds:  chunk.DurationSeconds,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to insert chunk '%s' for variant '%s': %w", chunk.ChunkID, v.VariantID, err)
+			return fmt.Errorf("failed to insert chunk '%s' for variant '%s': %w", chunk.ChunkID, variant.VariantID, err)
 		}
 	}
 	return nil
@@ -1017,35 +996,35 @@ func insertVariantChunks(ctx context.Context, qtx *registry_db.Queries, artefact
 
 // insertDesiredProfiles stores the desired profiles from an artefact into the database.
 //
-// Takes qtx (*registry_db.Queries) which provides database access.
-// Takes art (*registry_dto.ArtefactMeta) which contains the profiles to store.
+// Takes driver (Driver) which provides database access.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the profiles to store.
 //
 // Returns error when a profile cannot be inserted into the database.
-func insertDesiredProfiles(ctx context.Context, qtx *registry_db.Queries, art *registry_dto.ArtefactMeta) error {
-	for i := range art.DesiredProfiles {
-		np := &art.DesiredProfiles[i]
-		paramsJSON, err := json.Marshal(np.Profile.Params)
+func insertDesiredProfiles(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) error {
+	for i := range artefact.DesiredProfiles {
+		desiredProfile := &artefact.DesiredProfiles[i]
+		paramsJSON, err := json.Marshal(desiredProfile.Profile.Params)
 		if err != nil {
-			return fmt.Errorf("marshalling params for desired profile '%s': %w", np.Name, err)
+			return fmt.Errorf("marshalling params for desired profile '%s': %w", desiredProfile.Name, err)
 		}
-		tagsJSON, err := json.Marshal(np.Profile.ResultingTags)
+		tagsJSON, err := json.Marshal(desiredProfile.Profile.ResultingTags)
 		if err != nil {
-			return fmt.Errorf("marshalling tags for desired profile '%s': %w", np.Name, err)
+			return fmt.Errorf("marshalling tags for desired profile '%s': %w", desiredProfile.Name, err)
 		}
-		dependsOnJSON, err := json.Marshal(np.Profile.DependsOn)
+		dependsOnJSON, err := json.Marshal(desiredProfile.Profile.DependsOn)
 		if err != nil {
-			return fmt.Errorf("marshalling depends-on for desired profile '%s': %w", np.Name, err)
+			return fmt.Errorf("marshalling depends-on for desired profile '%s': %w", desiredProfile.Name, err)
 		}
-		if err := qtx.InsertDesiredProfile(ctx, registry_db.InsertDesiredProfileParams{
-			ArtefactID:     art.ID,
-			Name:           np.Name,
-			CapabilityName: np.Profile.CapabilityName,
-			Priority:       string(np.Profile.Priority),
+		if err := driver.InsertDesiredProfile(ctx, InsertDesiredProfileParams{
+			ArtefactID:     artefact.ID,
+			Name:           desiredProfile.Name,
+			CapabilityName: desiredProfile.Profile.CapabilityName,
+			Priority:       string(desiredProfile.Profile.Priority),
 			ParamsJSON:     string(paramsJSON),
 			TagsJSON:       string(tagsJSON),
 			DependsOnJSON:  string(dependsOnJSON),
 		}); err != nil {
-			return fmt.Errorf("failed to insert desired profile '%s': %w", np.Name, err)
+			return fmt.Errorf("failed to insert desired profile '%s': %w", desiredProfile.Name, err)
 		}
 	}
 	return nil
@@ -1078,28 +1057,18 @@ func intersectIDSets(current *map[string]struct{}, ids []string) *map[string]str
 	return &newSet
 }
 
-// convertDBHintsToDTO converts database GC hint rows to DTOs and returns IDs for
-// deletion.
+// convertHintsToDTO converts driver GC hint rows to DTOs and returns IDs for deletion.
 //
-// Takes dbHints ([]registry_db.PopGCHintsRow) which contains the database rows to
-// convert.
+// Takes dbHints ([]GCHintRow) which contains the rows to convert.
 //
 // Returns []registry_dto.GCHint which contains the converted hint DTOs.
 // Returns []int64 which contains the row IDs to delete from the database.
-func convertDBHintsToDTO(dbHints []registry_db.PopGCHintsRow) ([]registry_dto.GCHint, []int64) {
+func convertHintsToDTO(dbHints []GCHintRow) ([]registry_dto.GCHint, []int64) {
 	hints := make([]registry_dto.GCHint, len(dbHints))
 	idsToDelete := make([]int64, len(dbHints))
-	for i, h := range dbHints {
-		hints[i] = registry_dto.GCHint{BackendID: h.BackendID, StorageKey: h.StorageKey}
-		idsToDelete[i] = h.ID
+	for i, hint := range dbHints {
+		hints[i] = registry_dto.GCHint{BackendID: hint.BackendID, StorageKey: hint.StorageKey}
+		idsToDelete[i] = hint.ID
 	}
 	return hints, idsToDelete
 }
-
-var (
-	_ registry_dal.RegistryDALWithTx = (*DAL)(nil)
-
-	_ registry_domain.MetadataStore = (*DAL)(nil)
-
-	_ registry_domain.RegistryInspector = (*DAL)(nil)
-)

@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_adapter"
+	orchestrator_sqlite "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_sqlite"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 )
 
@@ -64,7 +64,7 @@ func TestOrchestratorCreateAndGetTask(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	task := makeTask("task-create-001", "test-executor")
@@ -89,7 +89,7 @@ func TestOrchestratorUpdateTask(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	task := makeTask("task-update-001", "test-executor")
@@ -117,7 +117,7 @@ func TestOrchestratorFetchAndMarkDueTasks(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	tasks := make([]*orchestrator_domain.Task, 3)
@@ -143,7 +143,7 @@ func TestOrchestratorPromoteScheduledTasks(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	task := makeTask("task-promote-001", "test-executor")
@@ -171,7 +171,7 @@ func TestOrchestratorPendingTaskCount(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	count, err := adapter.PendingTaskCount(ctx)
@@ -196,7 +196,7 @@ func TestOrchestratorCreateTaskWithDedup(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	now_seconds := time.Now().UTC().Unix()
@@ -222,7 +222,7 @@ func TestOrchestratorWorkflowReceipts(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	workflow_id := "wf-receipt-001"
@@ -252,7 +252,7 @@ func TestOrchestratorRunAtomic(t *testing.T) {
 	}
 
 	database := setupOrchestratorDB(t)
-	adapter := querier_adapter.New(database)
+	adapter := orchestrator_sqlite.New(database)
 	ctx := context.Background()
 
 	deliberate_error := errors.New("deliberate rollback")

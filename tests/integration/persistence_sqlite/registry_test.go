@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"piko.sh/piko/internal/registry/registry_dal/querier_adapter"
+	registry_sqlite "piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 )
@@ -69,7 +69,7 @@ func TestRegistryGetArtefactNotFound(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	_, err := dal.GetArtefact(ctx, "nonexistent-id")
@@ -82,7 +82,7 @@ func TestRegistryAtomicUpdateUpsertAndGet(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	artefact := makeArtefact("art-upsert-001")
@@ -121,7 +121,7 @@ func TestRegistryAtomicUpdateDelete(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	artefact := makeArtefact("art-delete-001")
@@ -155,7 +155,7 @@ func TestRegistryListAllArtefactIDs(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	expected_ids := []string{"art-list-001", "art-list-002", "art-list-003"}
@@ -182,7 +182,7 @@ func TestRegistryBlobRefCountIncrement(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	blob := registry_domain.BlobReference{
@@ -213,7 +213,7 @@ func TestRegistryBlobRefCountDecrement(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	blob := registry_domain.BlobReference{
@@ -251,7 +251,7 @@ func TestRegistryGCHints(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	gc_hints := []registry_dto.GCHint{
@@ -289,7 +289,7 @@ func TestRegistryRunAtomic(t *testing.T) {
 	}
 
 	database := setupRegistryDB(t)
-	dal := querier_adapter.NewDAL(database)
+	dal := registry_sqlite.New(database)
 	ctx := context.Background()
 
 	deliberate_error := errors.New("deliberate rollback")
