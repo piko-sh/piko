@@ -4,4 +4,7 @@ INSERT INTO orchestrator_tasks (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 )
-ON CONFLICT DO NOTHING;
+ON CONFLICT (deduplication_key)
+    WHERE deduplication_key IS NOT NULL
+    AND status IN ('SCHEDULED', 'PENDING', 'PROCESSING', 'RETRYING')
+DO NOTHING;

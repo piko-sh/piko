@@ -32,7 +32,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/registry/registry_adapters"
-	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
+	registry_querier_sqlite "piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 	registry_db "piko.sh/piko/internal/registry/registry_dal/querier_sqlite/db"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -220,7 +220,7 @@ func setupServiceSQLiteBatchBenchmark(b *testing.B, numArtefacts, variantsPer, t
 		artefactIDs[i] = artefactID
 	}
 
-	store := registry_querier_adapter.NewDAL(dbConn)
+	store := registry_querier_sqlite.New(dbConn)
 
 	cleanup := func() {
 		_ = dbConn.Close()

@@ -12,11 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This project stands against fascism, authoritarianism, and all
-// forms of oppression. We built this to empower people, not to
-// enable those who would strip others of their rights and dignity.
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
 
-// Package querier_adapter wraps the querier-generated Queries struct to satisfy the
-// RegistryDALWithTx interface. It bridges between the generated SQL query layer and the
-// domain-level DAL ports.
-package querier_adapter
+// Package querier_postgres holds the PostgreSQL migrations for the orchestrator database
+// and embeds them for runtime use.
+package querier_postgres
+
+import (
+	"embed"
+)
+
+var (
+	// Migrations contains the PostgreSQL migration files for the orchestrator database.
+	//
+	//go:embed migrations/*.sql
+	Migrations embed.FS
+)

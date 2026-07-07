@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/orchestrator"
-	orchestrator_querier_adapter "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_adapter"
+	orchestrator_querier_sqlite "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_sqlite"
 	orchestrator_db "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_sqlite/db"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/tests/testutil"
@@ -104,7 +104,7 @@ func setupServiceWithDSN(b *testing.B, dsn string) (orchestrator.Service, *noopE
 		b.Fatalf("failed to run migrations: %v", err)
 	}
 
-	taskStore := orchestrator_querier_adapter.New(dbConn)
+	taskStore := orchestrator_querier_sqlite.New(dbConn)
 
 	orchestratorConfig := orchestrator.Config{
 		TaskStore:          taskStore,
@@ -215,7 +215,7 @@ func setupTaskStoreOnly_OnDisk(b *testing.B) (orchestrator_domain.TaskStore, *sq
 		b.Fatalf("failed to run migrations: %v", err)
 	}
 
-	taskStore := orchestrator_querier_adapter.New(dbConn)
+	taskStore := orchestrator_querier_sqlite.New(dbConn)
 	return taskStore, dbConn
 }
 

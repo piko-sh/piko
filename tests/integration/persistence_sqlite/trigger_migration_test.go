@@ -28,7 +28,6 @@ import (
 )
 
 var (
-	//go:embed testdata/trigger_migrations
 	triggerMigrations embed.FS
 )
 

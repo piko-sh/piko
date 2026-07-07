@@ -33,7 +33,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/registry/registry_adapters"
-	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
+	registry_querier_sqlite "piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_disk"
@@ -196,7 +196,7 @@ func setupIntegrationTest(t *testing.T, withCache bool, fixtureFile string) test
 		loadFixture(t, dbConn, fixtureFile)
 	}
 
-	realStore := registry_querier_adapter.NewDAL(dbConn)
+	realStore := registry_querier_sqlite.New(dbConn)
 	spyStore := newSpyMetadataStore(realStore)
 
 	var cache registry_domain.MetadataCache
