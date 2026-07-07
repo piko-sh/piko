@@ -37,6 +37,10 @@ type SitemapConfig struct {
 	// chunk can have its own sources and will be listed in a sitemap index file.
 	Sitemaps map[string]SitemapChunkConfig `json:"sitemaps" yaml:"sitemaps" usage:"Named sitemap chunks for large sites." summary:"hide"`
 
+	// CacheMaxAgeSeconds is the Cache-Control max-age (in seconds) for the served
+	// sitemap.xml, its chunks, and robots.txt.
+	CacheMaxAgeSeconds *int `json:"cacheMaxAgeSeconds" yaml:"cacheMaxAgeSeconds" default:"600" env:"PIKO_SEO_SITEMAP_CACHE_MAX_AGE" flag:"sitemapCacheMaxAge" usage:"Cache-Control max-age for sitemap.xml/robots.txt in seconds; 0 disables caching (default 600)."`
+
 	// Hostname is the base URL for the site (e.g., "https://www.example.com"). Required to
 	// build full URLs in the sitemap.
 	Hostname string `json:"hostname" yaml:"hostname" env:"PIKO_SEO_SITEMAP_HOSTNAME" flag:"sitemapHostname" usage:"Canonical base URL (e.g., https://example.com)."`
@@ -52,9 +56,9 @@ type SitemapConfig struct {
 	// Defaults provides default values for sitemap entry fields when not explicitly set.
 	Defaults SitemapEntryDefaults `json:"defaults" yaml:"defaults"`
 
-	// CacheMaxAgeSeconds is the cache duration in seconds for the generated sitemap.xml,
-	// where 0 disables caching and lower values suit sites with frequent content updates.
-	CacheMaxAgeSeconds int `json:"cacheMaxAgeSeconds" yaml:"cacheMaxAgeSeconds" default:"600" env:"PIKO_SEO_SITEMAP_CACHE_MAX_AGE" flag:"sitemapCacheMaxAge" usage:"Cache duration for sitemap.xml in seconds (0 to disable)."`
+	// RouteRules assigns per-route SEO metadata by matching route-pattern globs, without
+	// editing pages.
+	RouteRules []SitemapRouteRule `json:"routeRules" yaml:"routeRules" validate:"omitempty,dive" usage:"Per-route SEO metadata by glob pattern." summary:"hide"`
 
 	// MaxURLsPerSitemap controls automatic sitemap splitting.
 	//
@@ -65,6 +69,14 @@ type SitemapConfig struct {
 	// DiscoverImages controls whether the generator finds images on pages and adds them to
 	// the sitemap; true improves image SEO.
 	DiscoverImages bool `json:"discoverImages" yaml:"discoverImages" default:"true" env:"PIKO_SEO_SITEMAP_DISCOVER_IMAGES" flag:"sitemapDiscoverImages" usage:"Automatically discover and include images in sitemap."`
+
+	// IncludeAuthGatedPages controls whether pages that declare an AuthPolicy (login-gated
+	// content) appear in the sitemap.
+	IncludeAuthGatedPages bool `json:"includeAuthGatedPages" yaml:"includeAuthGatedPages" default:"false" env:"PIKO_SEO_SITEMAP_INCLUDE_AUTH_GATED" flag:"sitemapIncludeAuthGated" usage:"Include AuthPolicy-gated pages in the sitemap (default excludes them)."`
+
+	// GitLastMod derives a static page's <lastmod> from its last git commit date instead of
+	// file mtime.
+	GitLastMod bool `json:"gitLastMod" yaml:"gitLastMod" default:"false" env:"PIKO_SEO_SITEMAP_GIT_LASTMOD" flag:"sitemapGitLastMod" usage:"Derive static-page lastmod from git last-commit date instead of file mtime."`
 }
 
 // SitemapEntryDefaults provides default values for sitemap entries.
@@ -76,6 +88,30 @@ type SitemapEntryDefaults struct {
 	// Priority is the default priority value (0.0 to 1.0) indicating the relative importance
 	// of URLs within your site. 0.5 is neutral; higher values indicate higher priority.
 	Priority float32 `json:"priority" yaml:"priority" default:"0.5" env:"PIKO_SEO_SITEMAP_DEFAULT_PRIORITY" flag:"sitemapDefaultPriority" usage:"Default priority for sitemap entries (0.0-1.0)." validate:"min=0,max=1"`
+}
+
+// SitemapRouteRule assigns SEO metadata to every route whose pattern matches Pattern. It
+// lets a site tune priority/changefreq or exclude whole sections centrally, without
+// per-page edits.
+type SitemapRouteRule struct {
+	// Pattern is a glob matched against the route pattern.
+	//
+	// Examples are "/", "/blog/**", and "/*/search/*". It uses the same matcher as
+	// Sitemap.Exclude.
+	Pattern string `json:"pattern" yaml:"pattern"`
+
+	// Priority overrides the sitemap priority (0.0-1.0) for matching routes; nil inherits.
+	Priority *float32 `json:"priority,omitempty" yaml:"priority,omitempty" validate:"omitempty,min=0,max=1"`
+
+	// ChangeFreq overrides the changefreq for matching routes; empty inherits.
+	ChangeFreq string `json:"changefreq,omitempty" yaml:"changefreq,omitempty" validate:"omitempty,oneof=always hourly daily weekly monthly yearly never"`
+
+	// Robots sets the robots rule for matching routes; when it contains "noindex" the routes
+	// are dropped from the sitemap (and a robots meta tag can be rendered on the page).
+	Robots string `json:"robots,omitempty" yaml:"robots,omitempty"`
+
+	// Exclude, when true, removes matching routes from the sitemap entirely.
+	Exclude bool `json:"exclude,omitempty" yaml:"exclude,omitempty"`
 }
 
 // SitemapChunkConfig defines a named sitemap chunk with its own list of sources.
@@ -101,6 +137,9 @@ type RobotsConfig struct {
 	// Go-http-client, Node/simplecrawler, CazoodleBot, dotbot/1.0, Gigabot, Barkrowler,
 	// BLEXBot, and magpie-crawler.
 	BlockNonSeoBots bool `json:"blockNonSeoBots" yaml:"blockNonSeoBots" default:"false" env:"PIKO_SEO_ROBOTS_BLOCK_NON_SEO_BOTS" flag:"robotsBlockNonSeoBots" usage:"Block non-SEO web scrapers."`
+
+	// AllowNonProductionIndexing opts out of blocking crawlers in non-production builds.
+	AllowNonProductionIndexing bool `json:"allowNonProductionIndexing" yaml:"allowNonProductionIndexing" default:"false" env:"PIKO_SEO_ROBOTS_ALLOW_NONPROD_INDEXING" flag:"robotsAllowNonProdIndexing" usage:"Allow crawler indexing in non-production builds (default blocks all)."`
 }
 
 // RobotsRuleGroup holds a set of rules for one or more user agents.

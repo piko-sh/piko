@@ -187,6 +187,10 @@ type RouterConfig struct {
 	// revalidation on every request. This is derived from WatchMode by default but expressed
 	// as a separate flag to clarify intent.
 	DisableHTTPCache bool
+
+	// SitemapCacheMaxAgeSeconds is the max-age (in seconds) applied to the Cache-Control
+	// header of /sitemap.xml, its chunks, and /robots.txt.
+	SitemapCacheMaxAgeSeconds int
 }
 
 // DevAPIHandlerPort defines the interface for mounting dev API routes.

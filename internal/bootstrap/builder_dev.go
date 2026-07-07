@@ -333,6 +333,7 @@ func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher l
 		FinalRouter:         b.finalRouter,
 		CoordinatorService:  b.coordinatorService,
 		SEOService:          seoService,
+		I18nLocales:         b.c.GetWebsiteConfig().I18n.Locales,
 		HealthServer:        healthServer,
 		HealthRouter:        healthRouter,
 		DrainSignaller:      drainSignaller,

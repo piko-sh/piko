@@ -39,11 +39,20 @@ type ComponentView struct {
 	// RoutePattern is the URL path pattern for this component if it is a page.
 	RoutePattern string
 
+	// RouteSourceName is the name of the build-time RouteSource bound to this page via the
+	// p-route-source directive, empty when the page is not route-source-backed.
+	RouteSourceName string
+
+	// RouteSourceParamName is the dynamic route segment the RouteSource enumerates (from the
+	// p-param directive), e.g. "locationslug".
+	RouteSourceParamName string
+
 	// SEO holds the SEO metadata for the component.
 	SEO PageSEOMetadata
 
-	// SupportedLocales lists the locales available for this component, taken from
-	// LocalTranslations.
+	// SupportedLocales lists the locales available for this component, derived from a
+	// declared SupportedLocales() function (the same signal the manifest builder uses to fan
+	// out per-locale routes).
 	SupportedLocales []string
 
 	// IsPage indicates whether this component is a page that users can visit directly.
@@ -51,4 +60,7 @@ type ComponentView struct {
 
 	// IsPublic indicates whether the page can be viewed by anyone.
 	IsPublic bool
+
+	// IsAuthGated indicates whether the page declares an AuthPolicy.
+	IsAuthGated bool
 }

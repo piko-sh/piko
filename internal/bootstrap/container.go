@@ -588,9 +588,20 @@ type Container struct {
 	// seoConfigOverride holds a custom SEO config; nil skips SEO service creation.
 	seoConfigOverride *config.SEOConfig
 
+	// seoProductionMode reports whether SEO artefacts are generated for a production run.
+	//
+	// Nil means unknown, which the SEO service treats as production so a missing wiring path
+	// fails open (a live site keeps indexing) rather than de-indexing it. Bootstrap sets it
+	// from the daemon run mode.
+	seoProductionMode *bool
+
 	// seoURLProvider supplies additional sitemap URLs at build time, in-process; nil means
 	// no extra build-time URLs.
 	seoURLProvider seo_domain.SitemapURLProvider
+
+	// routeSources enumerate the concrete URLs for pages bound to a p-route-source
+	// directive; registered via WithRouteSource and composable across calls.
+	routeSources []seo_domain.RouteSource
 
 	// assetsConfigOverride holds asset profiles and responsive image settings; nil uses an
 	// empty config (no profiles).
@@ -979,6 +990,22 @@ func (c *Container) GetServerConfig() *ServerConfig {
 // Empty when WithWebsiteConfig was not called.
 func (c *Container) GetWebsiteConfig() *config.WebsiteConfig {
 	return &c.websiteConfig
+}
+
+// SetSEOProductionMode records whether SEO artefacts are being generated for a production
+// run.
+//
+// Takes isProduction (bool) which is true for a production run.
+func (c *Container) SetSEOProductionMode(isProduction bool) {
+	c.seoProductionMode = &isProduction
+}
+
+// AddRouteSource registers a build-time route source that enumerates the concrete URLs
+// for a page bound to a p-route-source directive.
+//
+// Takes source (seo_domain.RouteSource) which enumerates the URLs.
+func (c *Container) AddRouteSource(source seo_domain.RouteSource) {
+	c.routeSources = append(c.routeSources, source)
 }
 
 // GetSandboxFactory returns the cached safedisk.Factory built from the server

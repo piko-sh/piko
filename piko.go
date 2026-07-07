@@ -45,6 +45,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
 	"piko.sh/piko/internal/profiler"
+	"piko.sh/piko/internal/seo/seo_domain"
 	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_domain"
@@ -143,6 +144,15 @@ var (
 	// sitemap URLs for dynamic routes whose slugs come from application data rather than
 	// content collections (which are expanded automatically). Requires WithSEO.
 	WithSitemapURLProvider = bootstrap.WithSitemapURLProvider
+
+	// WithRouteSource registers a composable build-time RouteSource for a bound page.
+	//
+	// The RouteSource enumerates the concrete URLs for a page bound to it with the
+	// p-route-source directive, expanding param values against the page's real route pattern
+	// so localised paths and hreflang are correct. Prefer it over WithSitemapURLProvider for
+	// dynamic pages templated over a Go registry (e.g. location-specific service pages).
+	// Requires WithSEO.
+	WithRouteSource = bootstrap.WithRouteSource
 
 	// WithAssets provides the asset configuration including image/video profiles, screen
 	// breakpoints, and default densities for responsive images. These settings are used at
@@ -543,6 +553,8 @@ func (s *SSRServer) ensureContainer(ctx context.Context, deps *bootstrap.Depende
 	}
 	s.Container = container
 
+	container.SetSEOProductionMode(runMode == RunModeProd)
+
 	isDevMode := runMode == RunModeDev || runMode == RunModeDevInterpreted
 	if isDevMode {
 		if container.IsDevHotreloadEnabled() {
@@ -872,11 +884,33 @@ type SitemapConfig = config.SitemapConfig
 // SitemapEntryDefaults provides default values for sitemap entries.
 type SitemapEntryDefaults = config.SitemapEntryDefaults
 
+// SitemapRouteRule assigns per-route SEO metadata (priority, changefreq, robots,
+// exclusion) by matching a route-pattern glob, without editing pages.
+type SitemapRouteRule = config.SitemapRouteRule
+
 // SitemapChunkConfig defines a named sitemap chunk with its own sources.
 type SitemapChunkConfig = config.SitemapChunkConfig
 
 // SitemapURLInput is one URL entry supplied to a sitemap URL provider.
 type SitemapURLInput = seo_dto.SitemapURLInput
+
+// RouteSource is a build-time, in-process enumerator of the concrete URLs for a page
+// whose dynamic route segment is not a content collection. Register one with
+// WithRouteSource and bind a page to it with the p-route-source directive.
+type RouteSource = seo_domain.RouteSource
+
+// RouteSourceFunc adapts a bare closure to the RouteSource interface.
+type RouteSourceFunc = seo_domain.RouteSourceFunc
+
+// RouteContext carries a page's real route pattern and i18n configuration to a
+// RouteSource so it can build localised URLs that match the served routes.
+type RouteContext = seo_domain.RouteContext
+
+// RouteURL is one concrete URL (with its per-URL SEO) enumerated by a RouteSource.
+type RouteURL = seo_domain.RouteURL
+
+// AlternateLink is one hreflang alternate link for a sitemap URL.
+type AlternateLink = seo_dto.AlternateLink
 
 // RobotsConfig holds settings for robots.txt generation.
 type RobotsConfig = config.RobotsConfig

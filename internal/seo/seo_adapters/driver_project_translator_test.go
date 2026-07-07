@@ -19,6 +19,7 @@
 package seo_adapters
 
 import (
+	"math"
 	"sort"
 	"testing"
 	"time"
@@ -29,12 +30,13 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/i18n/i18n_domain"
+	"piko.sh/piko/internal/seo/seo_dto"
 )
 
 func TestDeriveRouteFromPath(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 
 	tests := []struct {
 		name     string
@@ -46,7 +48,7 @@ func TestDeriveRouteFromPath(t *testing.T) {
 		{name: "pages/index.pk", input: "pages/index.pk", expected: "/"},
 		{name: "/pages/about.pk", input: "/pages/about.pk", expected: "/about"},
 		{name: "/pages/index.pk", input: "/pages/index.pk", expected: "/"},
-		{name: "pages/docs/api/index.pk", input: "pages/docs/api/index.pk", expected: "/docs/api"},
+		{name: "pages/docs/api/index.pk", input: "pages/docs/api/index.pk", expected: "/docs/api/"},
 		{name: "index.pk", input: "index.pk", expected: "/"},
 		{name: "about.pk", input: "about.pk", expected: "/about"},
 		{name: "pages/contact.pk", input: "pages/contact.pk", expected: "/contact"},
@@ -63,44 +65,10 @@ func TestDeriveRouteFromPath(t *testing.T) {
 	}
 }
 
-func TestExtractSupportedLocales(t *testing.T) {
-	t.Parallel()
-
-	t.Run("empty map", func(t *testing.T) {
-		t.Parallel()
-
-		result := extractSupportedLocales(i18n_domain.Translations{})
-		assert.Empty(t, result)
-	})
-
-	t.Run("single locale", func(t *testing.T) {
-		t.Parallel()
-
-		translations := i18n_domain.Translations{
-			"en": {"greeting": "Hello"},
-		}
-		result := extractSupportedLocales(translations)
-		assert.Equal(t, []string{"en"}, result)
-	})
-
-	t.Run("multiple locales", func(t *testing.T) {
-		t.Parallel()
-
-		translations := i18n_domain.Translations{
-			"en": {"greeting": "Hello"},
-			"fr": {"greeting": "Bonjour"},
-			"de": {"greeting": "Hallo"},
-		}
-		result := extractSupportedLocales(translations)
-		sort.Strings(result)
-		assert.Equal(t, []string{"de", "en", "fr"}, result)
-	})
-}
-
 func TestTranslate_NilResult(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	view := translator.Translate(nil)
 
 	require.NotNil(t, view)
@@ -110,7 +78,7 @@ func TestTranslate_NilResult(t *testing.T) {
 func TestTranslate_NilVirtualModule(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	view := translator.Translate(&annotator_dto.ProjectAnnotationResult{})
 
 	require.NotNil(t, view)
@@ -120,7 +88,7 @@ func TestTranslate_NilVirtualModule(t *testing.T) {
 func TestTranslate_PagesOnly(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -150,7 +118,7 @@ func TestTranslate_PagesOnly(t *testing.T) {
 func TestTranslate_WithLocales(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator([]string{"en", "fr"})
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -158,10 +126,7 @@ func TestTranslate_WithLocales(t *testing.T) {
 					IsPage: true,
 					Source: &annotator_dto.ParsedComponent{
 						SourcePath: "pages/index.pk",
-						LocalTranslations: i18n_domain.Translations{
-							"en": {"title": "Home"},
-							"fr": {"title": "Accueil"},
-						},
+						Script:     &annotator_dto.ParsedScript{HasSupportedLocales: true},
 					},
 				},
 			},
@@ -179,17 +144,43 @@ func TestTranslate_WithLocales(t *testing.T) {
 	assert.Equal(t, "/", view.Components[0].RoutePattern)
 }
 
+func TestTranslate_InlineI18nBlockDoesNotFanOutLocales(t *testing.T) {
+	t.Parallel()
+
+	translator := NewProjectViewTranslator([]string{"en", "fr"})
+	result := &annotator_dto.ProjectAnnotationResult{
+		VirtualModule: &annotator_dto.VirtualModule{
+			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+				"page_index": {
+					IsPage: true,
+					Source: &annotator_dto.ParsedComponent{
+						SourcePath: "pages/about.pk",
+						LocalTranslations: i18n_domain.Translations{
+							"en": {"title": "About"},
+							"fr": {"title": "À propos"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	view := translator.Translate(result)
+	require.Len(t, view.Components, 1)
+	assert.Empty(t, view.Components[0].SupportedLocales)
+}
+
 func TestNewProjectViewTranslator(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	require.NotNil(t, translator)
 }
 
 func TestTranslate_CollectionExpansion(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -227,7 +218,7 @@ func TestTranslate_CollectionExpansion(t *testing.T) {
 func TestTranslate_CollectionSlugIsURLEscaped(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -264,7 +255,7 @@ func TestTranslate_CollectionSlugIsURLEscaped(t *testing.T) {
 func TestTranslate_SitemapImageURLs(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -324,34 +315,10 @@ func TestExtractInstanceLastModified(t *testing.T) {
 	}
 }
 
-func TestEscapePathSegments(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name string
-		in   string
-		want string
-	}{
-		{name: "empty", in: "", want: ""},
-		{name: "plain ASCII", in: "first-post", want: "first-post"},
-		{name: "space", in: "a b", want: "a%20b"},
-		{name: "non-ASCII", in: "café", want: "caf%C3%A9"},
-		{name: "slash separators preserved", in: "a/b c", want: "a/b%20c"},
-		{name: "leading slash preserved", in: "/docs/x y", want: "/docs/x%20y"},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-			assert.Equal(t, testCase.want, escapePathSegments(testCase.in))
-		})
-	}
-}
-
 func TestDeriveRouteFromPath_EdgeCases(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 
 	tests := []struct {
 		name     string
@@ -363,9 +330,9 @@ func TestDeriveRouteFromPath_EdgeCases(t *testing.T) {
 		{name: "no extension, no pages prefix", input: "about", expected: "/about"},
 		{name: "nested without pages", input: "blog/post", expected: "/blog/post"},
 		{name: "deeply nested", input: "pages/a/b/c/d.pk", expected: "/a/b/c/d"},
-		{name: "trailing index in nested", input: "pages/blog/category/index.pk", expected: "/blog/category"},
+		{name: "trailing index in nested", input: "pages/blog/category/index.pk", expected: "/blog/category/"},
 		{name: "double pages prefix", input: "pages/pages/about.pk", expected: "/pages/about"},
-		{name: "path with leading slash and index", input: "/pages/section/index.pk", expected: "/section"},
+		{name: "path with leading slash and index", input: "/pages/section/index.pk", expected: "/section/"},
 		{name: "just index without .pk", input: "index", expected: "/"},
 		{name: "pages root index", input: "pages/index.pk", expected: "/"},
 		{name: "single character page name", input: "pages/a.pk", expected: "/a"},
@@ -384,44 +351,10 @@ func TestDeriveRouteFromPath_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestExtractSupportedLocales_NilMap(t *testing.T) {
-	t.Parallel()
-
-	result := extractSupportedLocales(nil)
-	assert.Empty(t, result)
-}
-
-func TestExtractSupportedLocales_ManyLocales(t *testing.T) {
-	t.Parallel()
-
-	translations := i18n_domain.Translations{
-		"en-GB": {"greeting": "Hello"},
-		"fr-FR": {"greeting": "Bonjour"},
-		"de-DE": {"greeting": "Hallo"},
-		"es-ES": {"greeting": "Hola"},
-		"ja-JP": {"greeting": "Konnichiwa"},
-	}
-
-	result := extractSupportedLocales(translations)
-	sort.Strings(result)
-	assert.Equal(t, []string{"de-DE", "en-GB", "es-ES", "fr-FR", "ja-JP"}, result)
-}
-
-func TestExtractSupportedLocales_EmptyTranslations(t *testing.T) {
-	t.Parallel()
-
-	translations := i18n_domain.Translations{
-		"en": {},
-	}
-
-	result := extractSupportedLocales(translations)
-	assert.Equal(t, []string{"en"}, result)
-}
-
 func TestTranslate_EmptyComponentsByHash(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{},
@@ -436,7 +369,7 @@ func TestTranslate_EmptyComponentsByHash(t *testing.T) {
 func TestTranslate_OnlyNonPageComponents(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -460,7 +393,7 @@ func TestTranslate_OnlyNonPageComponents(t *testing.T) {
 func TestTranslate_PageWithNilSource(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -486,7 +419,7 @@ func TestTranslate_PageWithNilSource(t *testing.T) {
 func TestTranslate_PageWithEmptyTranslations(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -510,7 +443,7 @@ func TestTranslate_PageWithEmptyTranslations(t *testing.T) {
 func TestTranslate_MixedPagesAndPartials(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -551,7 +484,7 @@ func TestTranslate_MixedPagesAndPartials(t *testing.T) {
 func TestTranslate_ComponentPreservesHashedName(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator(nil)
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -575,7 +508,7 @@ func TestTranslate_ComponentPreservesHashedName(t *testing.T) {
 func TestTranslate_ComponentSEOLocalesMatchSupported(t *testing.T) {
 	t.Parallel()
 
-	translator := NewProjectViewTranslator()
+	translator := NewProjectViewTranslator([]string{"en", "fr", "de"})
 	result := &annotator_dto.ProjectAnnotationResult{
 		VirtualModule: &annotator_dto.VirtualModule{
 			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
@@ -583,11 +516,7 @@ func TestTranslate_ComponentSEOLocalesMatchSupported(t *testing.T) {
 					IsPage: true,
 					Source: &annotator_dto.ParsedComponent{
 						SourcePath: "pages/multi.pk",
-						LocalTranslations: i18n_domain.Translations{
-							"en": {"title": "Title"},
-							"fr": {"title": "Titre"},
-							"de": {"title": "Titel"},
-						},
+						Script:     &annotator_dto.ParsedScript{HasSupportedLocales: true},
 					},
 				},
 			},
@@ -601,6 +530,7 @@ func TestTranslate_ComponentSEOLocalesMatchSupported(t *testing.T) {
 	sort.Strings(comp.SupportedLocales)
 	sort.Strings(comp.SEO.SupportedLocales)
 	assert.Equal(t, comp.SupportedLocales, comp.SEO.SupportedLocales)
+	assert.Equal(t, []string{"de", "en", "fr"}, comp.SEO.SupportedLocales)
 }
 
 func TestNewHTTPSourceAdapter(t *testing.T) {
@@ -656,4 +586,485 @@ func TestHTTPSourceAdapter_Defaults(t *testing.T) {
 	assert.Equal(t, 30_000_000_000, int(circuitBreakerTimeout.Nanoseconds()))
 	assert.Equal(t, 10_000_000_000, int(circuitBreakerBucketPeriod.Nanoseconds()))
 	assert.Equal(t, 5, int(circuitBreakerConsecutiveFailures))
+}
+
+func TestSitemapPriorityValue_CoercesAndRejectsInvalid(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		value any
+		name  string
+		want  float32
+		ok    bool
+	}{
+		{name: "float64 within range", value: float64(0.8), want: 0.8, ok: true},
+		{name: "float32 within range", value: float32(0.5), want: 0.5, ok: true},
+		{name: "int coerces to float", value: 1, want: 1, ok: true},
+		{name: "numeric string coerces", value: "0.8", want: 0.8, ok: true},
+		{name: "invalid string rejected", value: "abc", want: 0, ok: false},
+		{name: "float64 NaN rejected", value: math.NaN(), want: 0, ok: false},
+		{name: "float64 positive infinity rejected", value: math.Inf(1), want: 0, ok: false},
+		{name: "float64 negative infinity rejected", value: math.Inf(-1), want: 0, ok: false},
+		{name: "NaN string rejected", value: "NaN", want: 0, ok: false},
+		{name: "unsupported type rejected", value: []string{"0.8"}, want: 0, ok: false},
+		{name: "nil rejected", value: nil, want: 0, ok: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok := sitemapPriorityValue(testCase.value)
+			assert.Equal(t, testCase.ok, ok)
+			assert.InDelta(t, testCase.want, got, 0.0001)
+		})
+	}
+}
+
+func TestApplyInstanceSitemapOverrides_HonoursTypedPageMetadata(t *testing.T) {
+	t.Parallel()
+
+	priority := float32(0.3)
+
+	testCases := []struct {
+		props  map[string]any
+		name   string
+		assert func(t *testing.T, seo seo_dto.PageSEOMetadata)
+	}{
+		{
+			name:  "missing page key is a no-op",
+			props: map[string]any{"other": 1},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Equal(t, seo_dto.PageSEOMetadata{}, seo)
+			},
+		},
+		{
+			name:  "page not a map is a no-op",
+			props: map[string]any{"page": "oops"},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Equal(t, seo_dto.PageSEOMetadata{}, seo)
+			},
+		},
+		{
+			name:  "noindex true sets robots rule",
+			props: map[string]any{"page": map[string]any{"noindex": true}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Equal(t, "noindex", seo.RobotsRule)
+			},
+		},
+		{
+			name:  "noindex false leaves robots rule empty",
+			props: map[string]any{"page": map[string]any{"noindex": false}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Empty(t, seo.RobotsRule)
+			},
+		},
+		{
+			name:  "noindex as non-bool is ignored",
+			props: map[string]any{"page": map[string]any{"noindex": "yes"}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Empty(t, seo.RobotsRule)
+			},
+		},
+		{
+			name:  "changefreq and canonical are set",
+			props: map[string]any{"page": map[string]any{"changefreq": "daily", "canonical": "/c"}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Equal(t, "daily", seo.ChangeFrequency)
+				assert.Equal(t, "/c", seo.Canonical)
+			},
+		},
+		{
+			name:  "priority float64 sets a pointer to the value",
+			props: map[string]any{"page": map[string]any{"priority": float64(0.3)}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.NotNil(t, seo.Priority)
+				assert.InDelta(t, priority, *seo.Priority, 0.0001)
+			},
+		},
+		{
+			name:  "wrong-type values are ignored",
+			props: map[string]any{"page": map[string]any{"changefreq": 5, "canonical": true, "priority": []string{"x"}}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Empty(t, seo.ChangeFrequency)
+				assert.Empty(t, seo.Canonical)
+				assert.Nil(t, seo.Priority)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			var seo seo_dto.PageSEOMetadata
+			applyInstanceSitemapOverrides(&seo, testCase.props)
+			testCase.assert(t, seo)
+		})
+	}
+}
+
+func TestApplyInstanceRichMedia_ExtractsMediaFromPageMetadata(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		props  map[string]any
+		name   string
+		assert func(t *testing.T, seo seo_dto.PageSEOMetadata)
+	}{
+		{
+			name:  "missing page key is a no-op",
+			props: map[string]any{"other": 1},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Empty(t, seo.ImageURLs)
+				assert.Empty(t, seo.Videos)
+				assert.Nil(t, seo.News)
+			},
+		},
+		{
+			name:  "comma-separated images are split and trimmed",
+			props: map[string]any{"page": map[string]any{"sitemapImage": "a.png, b.png"}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Equal(t, []string{"a.png", "b.png"}, seo.ImageURLs)
+			},
+		},
+		{
+			name: "complete video with int duration is coerced and kept",
+			props: map[string]any{"page": map[string]any{
+				"sitemapVideoTitle":     "Intro",
+				"sitemapVideoThumbnail": "thumb.png",
+				"sitemapVideoDuration":  120,
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.Len(t, seo.Videos, 1)
+				assert.Equal(t, "Intro", seo.Videos[0].Title)
+				assert.Equal(t, "thumb.png", seo.Videos[0].ThumbnailLocation)
+				assert.Equal(t, 120, seo.Videos[0].Duration)
+			},
+		},
+		{
+			name: "complete video with int64 duration is coerced",
+			props: map[string]any{"page": map[string]any{
+				"sitemapVideoTitle":     "Intro",
+				"sitemapVideoThumbnail": "thumb.png",
+				"sitemapVideoDuration":  int64(90),
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.Len(t, seo.Videos, 1)
+				assert.Equal(t, 90, seo.Videos[0].Duration)
+			},
+		},
+		{
+			name: "complete video with float64 duration is rounded",
+			props: map[string]any{"page": map[string]any{
+				"sitemapVideoTitle":     "Intro",
+				"sitemapVideoThumbnail": "thumb.png",
+				"sitemapVideoDuration":  float64(59.6),
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.Len(t, seo.Videos, 1)
+				assert.Equal(t, 60, seo.Videos[0].Duration)
+			},
+		},
+		{
+			name: "oversized video duration clamps to the maximum",
+			props: map[string]any{"page": map[string]any{
+				"sitemapVideoTitle":     "Intro",
+				"sitemapVideoThumbnail": "thumb.png",
+				"sitemapVideoDuration":  30000,
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.Len(t, seo.Videos, 1)
+				assert.Equal(t, 28800, seo.Videos[0].Duration)
+			},
+		},
+		{
+			name: "negative video duration clamps to zero",
+			props: map[string]any{"page": map[string]any{
+				"sitemapVideoTitle":     "Intro",
+				"sitemapVideoThumbnail": "thumb.png",
+				"sitemapVideoDuration":  -5,
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.Len(t, seo.Videos, 1)
+				assert.Equal(t, 0, seo.Videos[0].Duration)
+			},
+		},
+		{
+			name: "video with a title but no thumbnail is dropped",
+			props: map[string]any{"page": map[string]any{
+				"sitemapVideoTitle": "Intro",
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Empty(t, seo.Videos)
+			},
+		},
+		{
+			name: "complete news block populates the news entry",
+			props: map[string]any{"page": map[string]any{
+				"sitemapNewsPublication": "The Times",
+				"sitemapNewsDate":        "2026-07-07",
+				"sitemapNewsLanguage":    "en",
+				"sitemapNewsTitle":       "Headline",
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.NotNil(t, seo.News)
+				assert.Equal(t, "The Times", seo.News.PublicationName)
+				assert.Equal(t, "2026-07-07", seo.News.PublicationDate)
+				assert.Equal(t, "en", seo.News.PublicationLanguage)
+				assert.Equal(t, "Headline", seo.News.Title)
+			},
+		},
+		{
+			name: "incomplete news block leaves news nil",
+			props: map[string]any{"page": map[string]any{
+				"sitemapNewsPublication": "The Times",
+			}},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Nil(t, seo.News)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			var seo seo_dto.PageSEOMetadata
+			applyInstanceRichMedia(&seo, testCase.props)
+			testCase.assert(t, seo)
+		})
+	}
+}
+
+func TestPropInt_CoercesGuardsAndRounds(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		value any
+		name  string
+		want  int
+	}{
+		{name: "int is returned as-is", value: 5, want: 5},
+		{name: "int64 narrows to int", value: int64(5), want: 5},
+		{name: "float64 rounds up", value: float64(5.7), want: 6},
+		{name: "negative int clamps to zero", value: -3, want: 0},
+		{name: "negative float clamps to zero", value: float64(-1.2), want: 0},
+		{name: "float64 NaN yields zero", value: math.NaN(), want: 0},
+		{name: "float64 infinity yields zero", value: math.Inf(1), want: 0},
+		{name: "huge float64 caps at MaxInt32 without overflow", value: float64(1e30), want: math.MaxInt32},
+		{name: "absent key yields zero", value: nil, want: 0},
+		{name: "non-numeric type yields zero", value: "5", want: 0},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			pageData := map[string]any{"value": testCase.value}
+			assert.Equal(t, testCase.want, propInt(pageData, "value"))
+		})
+	}
+}
+
+func TestPropInt_MissingKeyIsZero(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, 0, propInt(map[string]any{}, "absent"))
+}
+
+func TestSplitCSV_TrimsAndDropsEmpties(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input string
+		want  []string
+	}{
+		{name: "empty string yields nil", input: "", want: nil},
+		{name: "trims and drops empty segments", input: "a, b ,,c", want: []string{"a", "b", "c"}},
+		{name: "single value", input: "solo", want: []string{"solo"}},
+		{name: "only separators yields no entries", input: ",, ,", want: []string{}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := splitCSV(testCase.input)
+			if testCase.want == nil {
+				assert.Nil(t, got)
+				return
+			}
+			assert.Equal(t, testCase.want, got)
+		})
+	}
+}
+
+func TestClampVideoDuration_BoundsToAcceptedRange(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		seconds int
+		want    int
+	}{
+		{name: "zero stays zero", seconds: 0, want: 0},
+		{name: "negative clamps to zero", seconds: -5, want: 0},
+		{name: "in-range is unchanged", seconds: 100, want: 100},
+		{name: "at maximum is unchanged", seconds: 28800, want: 28800},
+		{name: "above maximum clamps down", seconds: 30000, want: 28800},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.want, clampVideoDuration(testCase.seconds))
+		})
+	}
+}
+
+func TestApplySitemapOverrides_CopiesPageAttributes(t *testing.T) {
+	t.Parallel()
+
+	priority := float32(0.4)
+
+	testCases := []struct {
+		source *annotator_dto.ParsedComponent
+		name   string
+		assert func(t *testing.T, seo seo_dto.PageSEOMetadata)
+	}{
+		{
+			name:   "noindex sets robots rule",
+			source: &annotator_dto.ParsedComponent{SitemapNoindex: true},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Equal(t, "noindex", seo.RobotsRule)
+			},
+		},
+		{
+			name:   "changefreq and canonical are copied",
+			source: &annotator_dto.ParsedComponent{SitemapChangeFrequency: "weekly", SitemapCanonical: "/x"},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Equal(t, "weekly", seo.ChangeFrequency)
+				assert.Equal(t, "/x", seo.Canonical)
+			},
+		},
+		{
+			name:   "valid priority string is parsed",
+			source: &annotator_dto.ParsedComponent{SitemapPriority: "0.4"},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				require.NotNil(t, seo.Priority)
+				assert.InDelta(t, priority, *seo.Priority, 0.0001)
+			},
+		},
+		{
+			name:   "non-finite priority string is ignored",
+			source: &annotator_dto.ParsedComponent{SitemapPriority: "NaN"},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Nil(t, seo.Priority)
+			},
+		},
+		{
+			name:   "unparseable priority string is ignored",
+			source: &annotator_dto.ParsedComponent{SitemapPriority: "abc"},
+			assert: func(t *testing.T, seo seo_dto.PageSEOMetadata) {
+				assert.Nil(t, seo.Priority)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			var seo seo_dto.PageSEOMetadata
+			applySitemapOverrides(&seo, testCase.source)
+			testCase.assert(t, seo)
+		})
+	}
+}
+
+func TestTranslate_AuthGatedPageIsMarked(t *testing.T) {
+	t.Parallel()
+
+	translator := NewProjectViewTranslator(nil)
+	result := &annotator_dto.ProjectAnnotationResult{
+		VirtualModule: &annotator_dto.VirtualModule{
+			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+				"page_account": {
+					IsPage:   true,
+					IsPublic: false,
+					Source: &annotator_dto.ParsedComponent{
+						SourcePath: "pages/account.pk",
+						Script:     &annotator_dto.ParsedScript{HasAuthPolicy: true},
+					},
+				},
+			},
+		},
+	}
+
+	view := translator.Translate(result)
+
+	require.Len(t, view.Components, 1)
+	assert.True(t, view.Components[0].IsAuthGated)
+}
+
+func TestTranslate_RouteSourceBoundPagePopulatesSourceFields(t *testing.T) {
+	t.Parallel()
+
+	translator := NewProjectViewTranslator(nil)
+	result := &annotator_dto.ProjectAnnotationResult{
+		VirtualModule: &annotator_dto.VirtualModule{
+			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+				"page_location": {
+					IsPage:   true,
+					IsPublic: true,
+					Source: &annotator_dto.ParsedComponent{
+						SourcePath:           "pages/locations/{locationslug}.pk",
+						RouteSourceName:      "locations",
+						RouteSourceParamName: "locationslug",
+					},
+				},
+			},
+		},
+	}
+
+	view := translator.Translate(result)
+
+	require.Len(t, view.Components, 1)
+	assert.Equal(t, "locations", view.Components[0].RouteSourceName)
+	assert.Equal(t, "locationslug", view.Components[0].RouteSourceParamName)
+}
+
+func TestTranslate_CollectionPageIgnoresRouteSourceBinding(t *testing.T) {
+	t.Parallel()
+
+	translator := NewProjectViewTranslator(nil)
+	result := &annotator_dto.ProjectAnnotationResult{
+		VirtualModule: &annotator_dto.VirtualModule{
+			ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
+				"page_blog": {
+					IsPage:   true,
+					IsPublic: true,
+					Source: &annotator_dto.ParsedComponent{
+						SourcePath:           "pages/blog/{slug}.pk",
+						HasCollection:        true,
+						CollectionName:       "blog",
+						RouteSourceName:      "ignored",
+						RouteSourceParamName: "ignored",
+					},
+					VirtualInstances: []annotator_dto.VirtualPageInstance{
+						{Slug: "first-post"},
+					},
+				},
+			},
+		},
+	}
+
+	view := translator.Translate(result)
+
+	require.Len(t, view.Components, 1)
+	assert.Empty(t, view.Components[0].RouteSourceName)
+	assert.Empty(t, view.Components[0].RouteSourceParamName)
 }
