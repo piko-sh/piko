@@ -141,6 +141,10 @@ type generatorService struct {
 	// baseDir is the absolute path to the project root directory.
 	baseDir string
 
+	// i18nLocales is the full configured locale set, forwarded to the SEO translator so
+	// pages that declare a SupportedLocales() function receive hreflang alternates.
+	i18nLocales []string
+
 	// enablePrerendering controls whether static HTML is prerendered.
 	enablePrerendering bool
 
@@ -219,6 +223,10 @@ type generatorServiceOptions struct {
 	// distSandbox is an optional sandbox for dist folder operations. If nil, a sandbox will
 	// be created from the base folder.
 	distSandbox safedisk.Sandbox
+
+	// i18nLocales is the full configured locale set, forwarded to the SEO translator for
+	// hreflang generation.
+	i18nLocales []string
 
 	// inMemoryMode skips filesystem operations such as creating the dist folder. Use this
 	// for WASM or testing where file access is not available.
@@ -1094,7 +1102,7 @@ func (s *generatorService) generateSEOArtefacts(
 	}
 
 	l.Internal("Generating SEO artefacts (sitemap.xml, robots.txt)...")
-	translator := seo_adapters.NewProjectViewTranslator()
+	translator := seo_adapters.NewProjectViewTranslator(s.i18nLocales)
 	projectView := translator.Translate(projectResult)
 	if err := s.seoService.GenerateArtefacts(ctx, projectView); err != nil {
 		l.Warn("Failed to generate SEO artefacts", logger_domain.Error(err))
@@ -1260,6 +1268,18 @@ func WithInMemoryMode() GeneratorServiceOption {
 	}
 }
 
+// WithI18nLocales sets the full configured locale set, forwarded to the SEO translator so
+// pages declaring a SupportedLocales() function get hreflang alternates in the sitemap.
+//
+// Takes locales ([]string) which is the configured locale set.
+//
+// Returns GeneratorServiceOption which configures the locale set on the service.
+func WithI18nLocales(locales []string) GeneratorServiceOption {
+	return func(o *generatorServiceOptions) {
+		o.i18nLocales = locales
+	}
+}
+
 // WithDistSandbox sets a custom sandbox for dist directory operations. This allows mock
 // sandboxes to be used for testing filesystem operations.
 //
@@ -1404,6 +1424,7 @@ func NewGeneratorService(ctx context.Context, pathsConfig GeneratorPathsConfig, 
 		enableDwarfLineDirectives: options.enableDwarfLineDirectives,
 		formatGeneratedCode:       options.formatGeneratedCode,
 		verifyGeneratedCode:       options.verifyGeneratedCode,
+		i18nLocales:               options.i18nLocales,
 	}, nil
 }
 

@@ -448,6 +448,20 @@ type Container struct {
 	// metricsExporter holds the metrics exporter (e.g., Prometheus). Nil when disabled.
 	metricsExporter monitoring_domain.MetricsExporter
 
+	// extraSpanProcessors holds additional OTEL span processors registered via
+	// WithSpanProcessor, appended to the tracer provider during OTEL setup alongside the
+	// monitoring service's own processor.
+	extraSpanProcessors []monitoring_domain.SpanProcessor
+
+	// queryObserver receives a QueryObservation after each instrumented database statement
+	// (registered via WithQueryObserver). Nil when no observer was registered.
+	queryObserver monitoring_domain.QueryObserver
+
+	// readinessInfoKeyFilter reports whether a provider info key is sensitive and must be
+	// dropped before readiness info egresses off-box (registered via
+	// WithReadinessInfoKeyFilter). Nil when the built-in default filter applies.
+	readinessInfoKeyFilter func(string) bool
+
 	// orchestratorInspector holds the orchestrator inspector for monitoring; nil when not
 	// available.
 	orchestratorInspector orchestrator_domain.OrchestratorInspector
@@ -573,6 +587,21 @@ type Container struct {
 
 	// seoConfigOverride holds a custom SEO config; nil skips SEO service creation.
 	seoConfigOverride *config.SEOConfig
+
+	// seoProductionMode reports whether SEO artefacts are generated for a production run.
+	//
+	// Nil means unknown, which the SEO service treats as production so a missing wiring path
+	// fails open (a live site keeps indexing) rather than de-indexing it. Bootstrap sets it
+	// from the daemon run mode.
+	seoProductionMode *bool
+
+	// seoURLProvider supplies additional sitemap URLs at build time, in-process; nil means
+	// no extra build-time URLs.
+	seoURLProvider seo_domain.SitemapURLProvider
+
+	// routeSources enumerate the concrete URLs for pages bound to a p-route-source
+	// directive; registered via WithRouteSource and composable across calls.
+	routeSources []seo_domain.RouteSource
 
 	// assetsConfigOverride holds asset profiles and responsive image settings; nil uses an
 	// empty config (no profiles).
@@ -963,6 +992,22 @@ func (c *Container) GetWebsiteConfig() *config.WebsiteConfig {
 	return &c.websiteConfig
 }
 
+// SetSEOProductionMode records whether SEO artefacts are being generated for a production
+// run.
+//
+// Takes isProduction (bool) which is true for a production run.
+func (c *Container) SetSEOProductionMode(isProduction bool) {
+	c.seoProductionMode = &isProduction
+}
+
+// AddRouteSource registers a build-time route source that enumerates the concrete URLs
+// for a page bound to a p-route-source directive.
+//
+// Takes source (seo_domain.RouteSource) which enumerates the URLs.
+func (c *Container) AddRouteSource(source seo_domain.RouteSource) {
+	c.routeSources = append(c.routeSources, source)
+}
+
 // GetSandboxFactory returns the cached safedisk.Factory built from the server
 // configuration. The factory is created lazily on first call and reused for all
 // subsequent calls, ensuring consistent path validation and sandbox mode across the
@@ -1161,6 +1206,58 @@ func (c *Container) GetMetricsExporter() monitoring_domain.MetricsExporter {
 // Takes exporter (monitoring_domain.MetricsExporter) which is the exporter to use.
 func (c *Container) SetMetricsExporter(exporter monitoring_domain.MetricsExporter) {
 	c.metricsExporter = exporter
+}
+
+// AddSpanProcessor appends an additional OTEL span processor for registration on the
+// tracer provider during OTEL setup (called by WithSpanProcessor); nil processors are
+// ignored.
+//
+// Takes p (monitoring_domain.SpanProcessor) which receives every finished span.
+func (c *Container) AddSpanProcessor(p monitoring_domain.SpanProcessor) {
+	if p == nil {
+		return
+	}
+	c.extraSpanProcessors = append(c.extraSpanProcessors, p)
+}
+
+// GetSpanProcessors returns the additional span processors registered via
+// WithSpanProcessor. Returns nil when none were registered.
+//
+// Returns []monitoring_domain.SpanProcessor for tracer provider registration.
+func (c *Container) GetSpanProcessors() []monitoring_domain.SpanProcessor {
+	return c.extraSpanProcessors
+}
+
+// SetQueryObserver sets the query observer the instrumented DBTX wrapper notifies after
+// each database statement. Called by WithQueryObserver.
+//
+// Takes o (monitoring_domain.QueryObserver) which receives each observed database call.
+func (c *Container) SetQueryObserver(o monitoring_domain.QueryObserver) {
+	c.queryObserver = o
+}
+
+// GetQueryObserver returns the registered query observer, or nil when none was set.
+//
+// Returns monitoring_domain.QueryObserver passed to the instrumented DBTX wrappers.
+func (c *Container) GetQueryObserver() monitoring_domain.QueryObserver {
+	return c.queryObserver
+}
+
+// SetReadinessInfoKeyFilter sets the predicate that decides which provider info keys are
+// too sensitive to egress off-box via readiness telemetry. Called by
+// WithReadinessInfoKeyFilter; a nil filter restores the built-in default.
+//
+// Takes fn (func(string) bool) which reports true for a key that must be dropped.
+func (c *Container) SetReadinessInfoKeyFilter(fn func(string) bool) {
+	c.readinessInfoKeyFilter = fn
+}
+
+// GetReadinessInfoKeyFilter returns the registered readiness info key filter, or nil when
+// none was set and the built-in default applies.
+//
+// Returns func(string) bool reporting true for a key that must be dropped off-box.
+func (c *Container) GetReadinessInfoKeyFilter() func(string) bool {
+	return c.readinessInfoKeyFilter
 }
 
 // GetMonitoringService returns the full monitoring service, if configured.

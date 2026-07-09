@@ -895,6 +895,68 @@ function updateChildren(
 }
 
 /**
+ * Compares two event-handler prop values (a single handler, or an array of
+ * handlers) for equality. Arrays are compared element-wise by reference.
+ *
+ * Event-prop values are emitted as fresh array literals on every render (e.g.
+ * `onInput: [modelUpdater, userHandler]`), so a plain `!==` reference check
+ * treats them as changed every time and removes+re-adds all listeners. When a
+ * render is triggered synchronously from within one of those handlers (e.g. a
+ * p-model updater that mutates state), the still-pending sibling handler is
+ * detached from the live listener list mid-dispatch and never fires. Comparing
+ * element-wise lets the renderer leave unchanged listeners attached.
+ *
+ * @param a - The previous handler value.
+ * @param b - The incoming handler value.
+ * @returns True when both represent the same listener set.
+ */
+function eventHandlersEqual(a: unknown, b: unknown): boolean {
+    if (a === b) {
+        return true;
+    }
+    if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Removes the listener for a stale event prop ("on*" or "pe:*"), unless the
+ * handler set is unchanged element-wise.
+ *
+ * Handler arrays are emitted as fresh literals each render, so the set can be
+ * identical while the array reference differs. Leaving an unchanged listener
+ * attached lets a synchronous re-render triggered mid-dispatch keep a
+ * still-pending sibling handler attached instead of detaching it before it fires.
+ *
+ * @param htmlElement - The target HTML element.
+ * @param propName - The event prop name being removed.
+ * @param oldProps - The previous props record.
+ * @param newProps - The incoming props record.
+ */
+function removeStaleEventListener(
+    htmlElement: HTMLElement,
+    propName: string,
+    oldProps: PropsRecord,
+    newProps: PropsRecord
+): void {
+    if ((propName in newProps) && eventHandlersEqual(oldProps[propName], newProps[propName])) {
+        return;
+    }
+    const prefixLen = propName.startsWith("pe:") ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH;
+    const parsed = parseEventPropKey(propName, prefixLen);
+    toggleListener(htmlElement, parsed.eventName, oldProps[propName] as EventHandler | EventHandler[], false, parsed.listenerOptions);
+}
+
+/**
  * Remove old props that are absent or changed in the new props.
  *
  * @param htmlElement - The target HTML element.
@@ -909,20 +971,17 @@ function removeStaleProps(
     refs: Record<string, Node> | null
 ): void {
     for (const propName in oldProps) {
-        if (!(propName in newProps) || oldProps[propName] !== newProps[propName]) {
-            if (propName.startsWith("?")) {
-                htmlElement.removeAttribute(propName.slice(1));
-            } else if (propName.startsWith("on")) {
-                const parsed = parseEventPropKey(propName, PREFIX_ON_LENGTH);
-                toggleListener(htmlElement, parsed.eventName, oldProps[propName] as EventHandler | EventHandler[], false, parsed.listenerOptions);
-            } else if (propName.startsWith("pe:")) {
-                const parsed = parseEventPropKey(propName, PREFIX_PE_LENGTH);
-                toggleListener(htmlElement, parsed.eventName, oldProps[propName] as EventHandler | EventHandler[], false, parsed.listenerOptions);
-            } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName] as string] === htmlElement) {
-                delete refs[oldProps[propName] as string];
-            } else if (!["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
-                htmlElement.removeAttribute(propName);
-            }
+        if ((propName in newProps) && oldProps[propName] === newProps[propName]) {
+            continue;
+        }
+        if (propName.startsWith("?")) {
+            htmlElement.removeAttribute(propName.slice(1));
+        } else if (propName.startsWith("on") || propName.startsWith("pe:")) {
+            removeStaleEventListener(htmlElement, propName, oldProps, newProps);
+        } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName] as string] === htmlElement) {
+            delete refs[oldProps[propName] as string];
+        } else if (!["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
+            htmlElement.removeAttribute(propName);
         }
     }
 }
@@ -995,7 +1054,7 @@ function applyPropValue(
 
     if (propName.startsWith("on")) {
         const parsed = parseEventPropKey(propName, PREFIX_ON_LENGTH);
-        if (oldValue !== newValue) {
+        if (!eventHandlersEqual(oldValue, newValue)) {
             toggleListener(htmlElement, parsed.eventName, oldValue as EventHandler | EventHandler[], false, parsed.listenerOptions);
             toggleListener(htmlElement, parsed.eventName, newValue as EventHandler | EventHandler[], true, parsed.listenerOptions);
         }
@@ -1004,7 +1063,7 @@ function applyPropValue(
 
     if (propName.startsWith("pe:")) {
         const parsed = parseEventPropKey(propName, PREFIX_PE_LENGTH);
-        if (oldValue !== newValue) {
+        if (!eventHandlersEqual(oldValue, newValue)) {
             toggleListener(htmlElement, parsed.eventName, oldValue as EventHandler | EventHandler[], false, parsed.listenerOptions);
             toggleListener(htmlElement, parsed.eventName, newValue as EventHandler | EventHandler[], true, parsed.listenerOptions);
         }

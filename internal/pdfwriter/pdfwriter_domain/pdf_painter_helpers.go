@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
@@ -200,31 +201,47 @@ func pdfEscapeString(s string) string {
 }
 
 // buildInfoDictionary builds the PDF info dictionary string, including metadata fields
-// when set.
+// when set. Creation and modification dates are written only when rich metadata is
+// enabled, so the minimal painter output stays timestamp-free and reproducible.
+//
+// Takes created (time.Time) which is the document creation timestamp.
 //
 // Returns string which is the serialised PDF info dictionary.
-func (painter *PdfPainter) buildInfoDictionary() string {
+func (painter *PdfPainter) buildInfoDictionary(created time.Time) string {
 	var b strings.Builder
 	b.WriteString("<< /Producer (Piko)")
 	if painter.metadata != nil {
 		if painter.metadata.Title != "" {
-			fmt.Fprintf(&b, " /Title (%s)", pdfEscapeString(painter.metadata.Title))
+			fmt.Fprintf(&b, " /Title %s", encodePdfTextString(painter.metadata.Title))
 		}
 		if painter.metadata.Author != "" {
-			fmt.Fprintf(&b, " /Author (%s)", pdfEscapeString(painter.metadata.Author))
+			fmt.Fprintf(&b, " /Author %s", encodePdfTextString(painter.metadata.Author))
 		}
 		if painter.metadata.Subject != "" {
-			fmt.Fprintf(&b, " /Subject (%s)", pdfEscapeString(painter.metadata.Subject))
+			fmt.Fprintf(&b, " /Subject %s", encodePdfTextString(painter.metadata.Subject))
 		}
 		if painter.metadata.Keywords != "" {
-			fmt.Fprintf(&b, " /Keywords (%s)", pdfEscapeString(painter.metadata.Keywords))
+			fmt.Fprintf(&b, " /Keywords %s", encodePdfTextString(painter.metadata.Keywords))
 		}
 		if painter.metadata.Creator != "" {
-			fmt.Fprintf(&b, " /Creator (%s)", pdfEscapeString(painter.metadata.Creator))
+			fmt.Fprintf(&b, " /Creator %s", encodePdfTextString(painter.metadata.Creator))
 		}
+	}
+	if painter.emitXMP {
+		dateString := formatPdfDate(created)
+		fmt.Fprintf(&b, " /CreationDate %s /ModDate %s", dateString, dateString)
 	}
 	b.WriteString(pdfDictCloseSuffix)
 	return b.String()
+}
+
+// formatPdfDate formats a time as a PDF date string such as (D:20260626170000+00'00').
+//
+// Takes timestamp (time.Time) which is the time to format.
+//
+// Returns string which is the parenthesised PDF date token.
+func formatPdfDate(timestamp time.Time) string {
+	return fmt.Sprintf("(D:%s+00'00')", timestamp.UTC().Format("20060102150405"))
 }
 
 // collectLinkAnnotation checks whether the box originates from an <a> element with an

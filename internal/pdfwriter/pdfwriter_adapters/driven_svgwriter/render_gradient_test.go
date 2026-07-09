@@ -20,10 +20,10 @@ package driven_svgwriter
 
 import (
 	"context"
-	"math"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 )
 
@@ -47,19 +47,12 @@ func TestRenderSVG_LinearGradientFill(t *testing.T) {
 		<rect width="200" height="200" fill="url(#grad1)"/>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "sh\n") {
-		t.Error("expected shading paint operator 'sh' in output")
-	}
-
-	if !ctx.ShadingManager.HasShadings() {
-		t.Error("expected ShadingManager to have registered a shading")
-	}
+	assert.Contains(t, output, "sh\n", "expected shading paint operator 'sh' in output")
+	assert.True(t, ctx.ShadingManager.HasShadings(), "expected ShadingManager to have registered a shading")
 }
 
 func TestRenderSVG_RadialGradientFill(t *testing.T) {
@@ -82,17 +75,11 @@ func TestRenderSVG_RadialGradientFill(t *testing.T) {
 		<circle cx="100" cy="100" r="100" fill="url(#rgrad)"/>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "sh\n") {
-		t.Error("expected shading paint operator 'sh' in output")
-	}
-	if !ctx.ShadingManager.HasShadings() {
-		t.Error("expected ShadingManager to have registered a shading")
-	}
+	assert.Contains(t, output, "sh\n", "expected shading paint operator 'sh' in output")
+	assert.True(t, ctx.ShadingManager.HasShadings(), "expected ShadingManager to have registered a shading")
 }
 
 func TestParseGradientStops(t *testing.T) {
@@ -106,22 +93,12 @@ func TestParseGradientStops(t *testing.T) {
 		},
 	}
 	stops := parseGradientStops(node)
-	if len(stops) != 3 {
-		t.Fatalf("expected 3 stops, got %d", len(stops))
-	}
-	if stops[0].Position != 0 {
-		t.Errorf("first stop position = %v, want 0", stops[0].Position)
-	}
-	if stops[1].Position != 0.5 {
-		t.Errorf("middle stop position = %v, want 0.5", stops[1].Position)
-	}
-	if stops[2].Position != 1.0 {
-		t.Errorf("last stop position = %v, want 1.0", stops[2].Position)
-	}
+	require.Len(t, stops, 3)
+	assert.Equal(t, 0.0, stops[0].Position, "first stop position")
+	assert.Equal(t, 0.5, stops[1].Position, "middle stop position")
+	assert.Equal(t, 1.0, stops[2].Position, "last stop position")
 
-	if stops[0].Red != 1 || stops[0].Green != 0 || stops[0].Blue != 0 {
-		t.Errorf("first stop colour = (%v,%v,%v), want (1,0,0)", stops[0].Red, stops[0].Green, stops[0].Blue)
-	}
+	assert.True(t, stops[0].Red == 1 && stops[0].Green == 0 && stops[0].Blue == 0, "first stop colour want (1,0,0)")
 }
 
 func TestParseStopOffset(t *testing.T) {
@@ -141,9 +118,7 @@ func TestParseStopOffset(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			t.Parallel()
 			got := parseStopOffset(tt.input)
-			if got != tt.want {
-				t.Errorf("parseStopOffset(%q) = %v, want %v", tt.input, got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -157,13 +132,9 @@ func TestRenderSVG_GradientFallbackToSolidFill(t *testing.T) {
 		<rect width="100" height="100" fill="url(#nonexistent)"/>
 	</svg>`, ctx, 0, 0, 100, 100)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if ctx.ShadingManager.HasShadings() {
-		t.Error("should not have registered a shading for nonexistent gradient")
-	}
+	assert.False(t, ctx.ShadingManager.HasShadings(), "should not have registered a shading for nonexistent gradient")
 }
 
 func TestRenderSVG_GradientStopWithInlineStyle(t *testing.T) {
@@ -180,18 +151,12 @@ func TestRenderSVG_GradientStopWithInlineStyle(t *testing.T) {
 		<rect width="200" height="200" fill="url(#styledGrad)"/>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "sh\n") {
-		t.Error("expected shading paint operator for gradient with inline-styled stops")
-	}
-	if !ctx.ShadingManager.HasShadings() {
-		t.Error("expected ShadingManager to have a shading registered")
-	}
+	assert.Contains(t, output, "sh\n", "expected shading paint operator for gradient with inline-styled stops")
+	assert.True(t, ctx.ShadingManager.HasShadings(), "expected ShadingManager to have a shading registered")
 }
 
 func TestRenderSVG_GradientAutoPlacedIntermediateStops(t *testing.T) {
@@ -206,19 +171,11 @@ func TestRenderSVG_GradientAutoPlacedIntermediateStops(t *testing.T) {
 		},
 	}
 	stops := parseGradientStops(node)
-	if len(stops) != 3 {
-		t.Fatalf("expected 3 stops, got %d", len(stops))
-	}
-	if stops[0].Position != 0 {
-		t.Errorf("first stop position = %v, want 0", stops[0].Position)
-	}
+	require.Len(t, stops, 3)
+	assert.Equal(t, 0.0, stops[0].Position, "first stop position")
 
-	if math.Abs(stops[1].Position-0.5) > 0.01 {
-		t.Errorf("middle stop position = %v, want ~0.5", stops[1].Position)
-	}
-	if stops[2].Position != 1.0 {
-		t.Errorf("last stop position = %v, want 1.0", stops[2].Position)
-	}
+	assert.InDelta(t, 0.5, stops[1].Position, 0.01, "middle stop position")
+	assert.Equal(t, 1.0, stops[2].Position, "last stop position")
 }
 
 func TestNormaliseStopPositions(t *testing.T) {
@@ -258,9 +215,7 @@ func TestNormaliseStopPositions(t *testing.T) {
 			}
 			normaliseStopPositions(stops)
 			for i, s := range stops {
-				if math.Abs(s.Position-tt.want[i]) > 0.01 {
-					t.Errorf("stop[%d].Position = %v, want %v", i, s.Position, tt.want[i])
-				}
+				assert.InDelta(t, tt.want[i], s.Position, 0.01, "stop[%d].Position", i)
 			}
 		})
 	}
@@ -301,9 +256,7 @@ func TestFindNextKnownPosition(t *testing.T) {
 				stops[i] = pdfwriter_domain.ResolvedStop{Position: p}
 			}
 			got := findNextKnownPosition(stops, tt.index)
-			if math.Abs(got-tt.want) > 1e-9 {
-				t.Errorf("findNextKnownPosition(stops, %d) = %v, want %v", tt.index, got, tt.want)
-			}
+			assert.InDelta(t, tt.want, got, 1e-9)
 		})
 	}
 }
@@ -333,9 +286,7 @@ func TestGradientCoord_Percentage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := gradientCoord(node, tt.attr, tt.fallback)
-			if math.Abs(got-tt.want) > 1e-9 {
-				t.Errorf("gradientCoord(node, %q, %v) = %v, want %v", tt.attr, tt.fallback, got, tt.want)
-			}
+			assert.InDelta(t, tt.want, got, 1e-9)
 		})
 	}
 }
@@ -354,17 +305,11 @@ func TestRenderSVG_LinearGradientWithTransform(t *testing.T) {
 		<rect width="200" height="200" fill="url(#rotGrad)"/>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "sh\n") {
-		t.Error("expected shading operator for gradient with gradientTransform")
-	}
-	if !ctx.ShadingManager.HasShadings() {
-		t.Error("expected ShadingManager to have a shading registered")
-	}
+	assert.Contains(t, output, "sh\n", "expected shading operator for gradient with gradientTransform")
+	assert.True(t, ctx.ShadingManager.HasShadings(), "expected ShadingManager to have a shading registered")
 }
 
 func TestRenderSVG_RadialGradientWithTransform(t *testing.T) {
@@ -381,14 +326,10 @@ func TestRenderSVG_RadialGradientWithTransform(t *testing.T) {
 		<circle cx="100" cy="100" r="80" fill="url(#rotRGrad)"/>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "sh\n") {
-		t.Error("expected shading operator for radial gradient with gradientTransform")
-	}
+	assert.Contains(t, output, "sh\n", "expected shading operator for radial gradient with gradientTransform")
 }
 
 func TestRenderSVG_LinearGradientFewerThan2Stops(t *testing.T) {
@@ -405,11 +346,7 @@ func TestRenderSVG_LinearGradientFewerThan2Stops(t *testing.T) {
 		<rect width="200" height="200" fill="url(#singleStop)"/>
 	</svg>`, ctx, 0, 0, 200, 200)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if ctx.ShadingManager.HasShadings() {
-		t.Error("gradient with fewer than 2 stops should not register a shading")
-	}
+	assert.False(t, ctx.ShadingManager.HasShadings(), "gradient with fewer than 2 stops should not register a shading")
 }

@@ -125,7 +125,7 @@ class PikoSettingsConfigurable : Configurable {
     private fun com.intellij.ui.dsl.builder.Panel.languageServerGroup() = group("Language Server") {
         row { checkBox("Enable LSP support").bindSelected(::lspEnabled) }
         row { checkBox("Enable formatting").bindSelected(::formattingEnabled) }
-        row { checkBox("Enable file logging").bindSelected(::fileLoggingEnabled).comment("Logs to /tmp/piko-lsp-&lt;pid&gt;.log") }
+        row { checkBox("Enable file logging").bindSelected(::fileLoggingEnabled).comment("Logs to /tmp/pikopls-&lt;pid&gt;.log") }
         row { checkBox("Show notification when LSP binary is not found").bindSelected(::showLspNotFoundNotification) }
     }
 
@@ -195,7 +195,7 @@ class PikoSettingsConfigurable : Configurable {
         row("Host:") { textField().bindText(::tcpHost).comment("Default: 127.0.0.1") }
         row("Port:") {
             intTextField(1..65535).bindIntText(::tcpPort)
-                .comment("Default: 4389. Start external server with: piko-lsp --tcp --port=4389")
+                .comment("Default: 4389. Start external server with: pikopls --tcp --port=4389")
         }
     }
 

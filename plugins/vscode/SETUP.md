@@ -131,7 +131,7 @@ Hover over `string` - should show Go type information from gopls.
 
 ```bash
 # Check LSP logs
-cat /tmp/piko-lsp-main.log
+cat /tmp/pikopls-main.log
 
 # In VS Code, enable verbose logging
 # Settings > Piko: Trace Server > "verbose"
@@ -141,7 +141,7 @@ cat /tmp/piko-lsp-main.log
 
 ```bash
 # Verify binaries exist
-ls -lh bin/lsp/*/piko-lsp*
+ls -lh bin/lsp/*/pikopls*
 
 # Rebuild if missing
 make build-lsp-all
@@ -195,16 +195,16 @@ During development, use a custom LSP path:
 ```json
 // settings.json
 {
-  "piko.lspPath": "/path/to/piko/cmd/lsp/piko-lsp"
+  "piko.lspPath": "/path/to/piko/cmd/pikopls/pikopls"
 }
 ```
 
 Build the binary separately:
 ```bash
-go build -o /tmp/piko-lsp ./cmd/lsp
+go build -o /tmp/pikopls ./cmd/pikopls
 ```
 
-Then update the setting to `/tmp/piko-lsp` and restart the language server.
+Then update the setting to `/tmp/pikopls` and restart the language server.
 
 ## Configuration
 
@@ -232,7 +232,7 @@ Then update the setting to `/tmp/piko-lsp` and restart the language server.
 
 Then check:
 - VS Code Output: "Piko Language Server"
-- Log file: `/tmp/piko-lsp-main.log`
+- Log file: `/tmp/pikopls-main.log`
 
 ## Quick Commands
 
@@ -250,7 +250,7 @@ make build-lsp-all && \
 # Ctrl+Shift+P > "Piko: Restart Language Server"
 
 # View LSP logs
-tail -f /tmp/piko-lsp-main.log
+tail -f /tmp/pikopls-main.log
 ```
 
 ## Multi-Language Support

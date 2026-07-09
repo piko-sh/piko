@@ -24,6 +24,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
@@ -47,9 +49,7 @@ func TestPaintBorders_SolidBorder(t *testing.T) {
 	requireStreamContains(t, &stream, "S")
 	requireStreamContains(t, &stream, "0 0 0 RG")
 
-	if strings.Contains(got, " d") {
-		t.Error("solid border should not set a dash pattern")
-	}
+	assert.NotContains(t, got, " d", "solid border should not set a dash pattern")
 }
 
 func TestPaintBorders_DashedBorder(t *testing.T) {
@@ -112,9 +112,7 @@ func TestPaintBorders_DoubleBorderThickEnough(t *testing.T) {
 
 	strokeCount := strings.Count(got, "\nS\n") + strings.Count(got, " S\n")
 
-	if strokeCount < 8 {
-		t.Errorf("double border expected at least 8 strokes, got %d", strokeCount)
-	}
+	assert.GreaterOrEqual(t, strokeCount, 8, "double border expected at least 8 strokes")
 }
 
 func TestPaintBorders_DoubleBorderTooThinFallsBackToSolid(t *testing.T) {
@@ -136,9 +134,8 @@ func TestPaintBorders_DoubleBorderTooThinFallsBackToSolid(t *testing.T) {
 	requireStreamContains(t, &stream, "S")
 	requireStreamContains(t, &stream, "2 w")
 
-	if strings.Contains(got, "0.6667 w") || strings.Contains(got, "0.66667 w") {
-		t.Error("double border < 3px should not split into thirds")
-	}
+	assert.NotContains(t, got, "0.6667 w", "double border < 3px should not split into thirds")
+	assert.NotContains(t, got, "0.66667 w", "double border < 3px should not split into thirds")
 }
 
 func TestPaintBorders_GrooveBorder(t *testing.T) {
@@ -164,9 +161,7 @@ func TestPaintBorders_GrooveBorder(t *testing.T) {
 	requireStreamContains(t, &stream, "2 w")
 
 	rgCount := strings.Count(got, "RG")
-	if rgCount < 4 {
-		t.Errorf("groove border expected at least 4 colour changes, got %d", rgCount)
-	}
+	assert.GreaterOrEqual(t, rgCount, 4, "groove border expected at least 4 colour changes")
 }
 
 func TestPaintBorders_RidgeBorder(t *testing.T) {
@@ -190,9 +185,7 @@ func TestPaintBorders_RidgeBorder(t *testing.T) {
 	requireStreamContains(t, &stream, "2 w")
 
 	rgCount := strings.Count(got, "RG")
-	if rgCount < 4 {
-		t.Errorf("ridge border expected at least 4 colour changes, got %d", rgCount)
-	}
+	assert.GreaterOrEqual(t, rgCount, 4, "ridge border expected at least 4 colour changes")
 }
 
 func TestPaintBorders_InsetBorder(t *testing.T) {
@@ -215,9 +208,7 @@ func TestPaintBorders_InsetBorder(t *testing.T) {
 	requireStreamContains(t, &stream, "S")
 
 	rgCount := strings.Count(got, "RG")
-	if rgCount < 2 {
-		t.Errorf("inset border expected at least 2 colour settings, got %d", rgCount)
-	}
+	assert.GreaterOrEqual(t, rgCount, 2, "inset border expected at least 2 colour settings")
 }
 
 func TestPaintBorders_OutsetBorder(t *testing.T) {
@@ -239,9 +230,7 @@ func TestPaintBorders_OutsetBorder(t *testing.T) {
 	requireStreamContains(t, &stream, "RG")
 	requireStreamContains(t, &stream, "S")
 	rgCount := strings.Count(got, "RG")
-	if rgCount < 2 {
-		t.Errorf("outset border expected at least 2 colour settings, got %d", rgCount)
-	}
+	assert.GreaterOrEqual(t, rgCount, 2, "outset border expected at least 2 colour settings")
 }
 
 func TestPaintBorders_ZeroWidthSkipped(t *testing.T) {
@@ -259,9 +248,7 @@ func TestPaintBorders_ZeroWidthSkipped(t *testing.T) {
 	painter.paintBorders(&stream, box)
 
 	got := stream.String()
-	if strings.Contains(got, "S") {
-		t.Error("zero-width borders should produce no stroke operators")
-	}
+	assert.NotContains(t, got, "S", "zero-width borders should produce no stroke operators")
 }
 
 func TestPaintBorders_NoneStyleSkipped(t *testing.T) {
@@ -279,9 +266,7 @@ func TestPaintBorders_NoneStyleSkipped(t *testing.T) {
 	painter.paintBorders(&stream, box)
 
 	got := stream.String()
-	if strings.Contains(got, "S") {
-		t.Error("border-style: none should produce no stroke operators")
-	}
+	assert.NotContains(t, got, "S", "border-style: none should produce no stroke operators")
 }
 
 func TestPaintBorders_RoundedUniformSolid(t *testing.T) {
@@ -332,9 +317,7 @@ func TestPaintBorders_RoundedNonUniform(t *testing.T) {
 	requireStreamContains(t, &stream, "S")
 
 	rgCount := strings.Count(got, "RG")
-	if rgCount < 4 {
-		t.Errorf("non-uniform rounded border expected at least 4 colour settings, got %d", rgCount)
-	}
+	assert.GreaterOrEqual(t, rgCount, 4, "non-uniform rounded border expected at least 4 colour settings")
 }
 
 func TestPaintBorders_RoundedUniformDouble(t *testing.T) {
@@ -356,9 +339,7 @@ func TestPaintBorders_RoundedUniformDouble(t *testing.T) {
 	got := stream.String()
 
 	strokeCount := strings.Count(got, "\nS\n") + strings.Count(got, " S\n")
-	if strokeCount < 2 {
-		t.Errorf("rounded double border expected at least 2 strokes, got %d", strokeCount)
-	}
+	assert.GreaterOrEqual(t, strokeCount, 2, "rounded double border expected at least 2 strokes")
 }
 
 func TestIsUniformBorder_AllSame(t *testing.T) {
@@ -370,9 +351,7 @@ func TestIsUniformBorder_AllSame(t *testing.T) {
 		WithBorderColour(testColour(0, 0, 0, 1)).
 		Build()
 
-	if !isUniformBorder(box) {
-		t.Error("expected uniform border when all sides are the same")
-	}
+	assert.True(t, isUniformBorder(box), "expected uniform border when all sides are the same")
 }
 
 func TestIsUniformBorder_DifferentWidths(t *testing.T) {
@@ -384,9 +363,7 @@ func TestIsUniformBorder_DifferentWidths(t *testing.T) {
 		WithBorderColour(testColour(0, 0, 0, 1)).
 		Build()
 
-	if isUniformBorder(box) {
-		t.Error("expected non-uniform border with different widths")
-	}
+	assert.False(t, isUniformBorder(box), "expected non-uniform border with different widths")
 }
 
 func TestIsUniformBorder_DifferentColours(t *testing.T) {
@@ -401,9 +378,7 @@ func TestIsUniformBorder_DifferentColours(t *testing.T) {
 	box.Style.BorderBottomColour = testColour(0, 0, 1, 1)
 	box.Style.BorderLeftColour = testColour(1, 1, 0, 1)
 
-	if isUniformBorder(box) {
-		t.Error("expected non-uniform border with different colours")
-	}
+	assert.False(t, isUniformBorder(box), "expected non-uniform border with different colours")
 }
 
 func TestIsUniformBorder_DifferentStyles(t *testing.T) {
@@ -418,9 +393,7 @@ func TestIsUniformBorder_DifferentStyles(t *testing.T) {
 	box.Style.BorderBottomStyle = layouter_domain.BorderStyleSolid
 	box.Style.BorderLeftStyle = layouter_domain.BorderStyleDashed
 
-	if isUniformBorder(box) {
-		t.Error("expected non-uniform border with different styles")
-	}
+	assert.False(t, isUniformBorder(box), "expected non-uniform border with different styles")
 }
 
 func TestPaintOutline_Solid(t *testing.T) {
@@ -459,9 +432,7 @@ func TestPaintOutline_ZeroWidthSkipped(t *testing.T) {
 	painter.paintOutline(&stream, box)
 
 	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream for zero-width outline, got %q", got)
-	}
+	assert.Empty(t, got, "expected empty stream for zero-width outline")
 }
 
 func TestPaintOutline_NoneStyleSkipped(t *testing.T) {
@@ -478,9 +449,7 @@ func TestPaintOutline_NoneStyleSkipped(t *testing.T) {
 	painter.paintOutline(&stream, box)
 
 	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream for none outline, got %q", got)
-	}
+	assert.Empty(t, got, "expected empty stream for none outline")
 }
 
 func TestPaintOutline_DashedEmitsDashPattern(t *testing.T) {
@@ -548,9 +517,7 @@ func TestPaintColumnRules_SkippedWithSingleChild(t *testing.T) {
 	painter.paintColumnRules(&stream, parent)
 
 	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream with single child, got %q", got)
-	}
+	assert.Empty(t, got, "expected empty stream with single child")
 }
 
 func TestPaintColumnRules_SkippedWithZeroWidth(t *testing.T) {
@@ -567,9 +534,7 @@ func TestPaintColumnRules_SkippedWithZeroWidth(t *testing.T) {
 	painter.paintColumnRules(&stream, parent)
 
 	got := stream.String()
-	if got != "" {
-		t.Errorf("expected empty stream with zero rule width, got %q", got)
-	}
+	assert.Empty(t, got, "expected empty stream with zero rule width")
 }
 
 func TestResolveBorderImageEdges_UsesBorderImageWidth(t *testing.T) {
@@ -582,9 +547,10 @@ func TestResolveBorderImageEdges_UsesBorderImageWidth(t *testing.T) {
 
 	top, right, bottom, left := resolveBorderImageEdges(box)
 
-	if top != 10 || right != 10 || bottom != 10 || left != 10 {
-		t.Errorf("expected all 10, got (%v, %v, %v, %v)", top, right, bottom, left)
-	}
+	assert.EqualValues(t, 10, top, "top edge")
+	assert.EqualValues(t, 10, right, "right edge")
+	assert.EqualValues(t, 10, bottom, "bottom edge")
+	assert.EqualValues(t, 10, left, "left edge")
 }
 
 func TestResolveBorderImageEdges_FallsToBorderWidths(t *testing.T) {
@@ -596,9 +562,10 @@ func TestResolveBorderImageEdges_FallsToBorderWidths(t *testing.T) {
 
 	top, right, bottom, left := resolveBorderImageEdges(box)
 
-	if top != 2 || right != 3 || bottom != 4 || left != 5 {
-		t.Errorf("expected (2, 3, 4, 5), got (%v, %v, %v, %v)", top, right, bottom, left)
-	}
+	assert.EqualValues(t, 2, top, "top edge")
+	assert.EqualValues(t, 3, right, "right edge")
+	assert.EqualValues(t, 4, bottom, "bottom edge")
+	assert.EqualValues(t, 5, left, "left edge")
 }
 
 func TestApplyBorderDashPattern_Solid(t *testing.T) {
@@ -609,9 +576,7 @@ func TestApplyBorderDashPattern_Solid(t *testing.T) {
 	painter.applyBorderDashPattern(&stream, layouter_domain.BorderStyleSolid, 2)
 
 	got := stream.String()
-	if got != "" {
-		t.Errorf("solid should not set dash pattern, got %q", got)
-	}
+	assert.Empty(t, got, "solid should not set dash pattern")
 }
 
 func TestApplyBorderDashPattern_Dashed(t *testing.T) {

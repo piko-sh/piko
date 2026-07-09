@@ -3112,8 +3112,22 @@ const MAX_RETRY_DELAY = 3e4;
 const DEFAULT_SSE_RECONNECT_DELAY = 3e3;
 const MAX_SSE_RECONNECT_DELAY = 3e4;
 const HTTP_STATUS_TIMEOUT = 408;
+const HTTP_STATUS_TOO_EARLY = 425;
+const HTTP_STATUS_TOO_MANY_REQUESTS = 429;
 const HTTP_STATUS_SERVER_ERROR = 500;
+const HTTP_STATUS_BAD_GATEWAY = 502;
+const HTTP_STATUS_SERVICE_UNAVAILABLE = 503;
+const HTTP_STATUS_GATEWAY_TIMEOUT = 504;
 const HTTP_STATUS_OK = 200;
+const DEFAULT_SSE_RETRYABLE_STATUSES = [
+  HTTP_STATUS_TIMEOUT,
+  HTTP_STATUS_TOO_EARLY,
+  HTTP_STATUS_TOO_MANY_REQUESTS,
+  HTTP_STATUS_SERVER_ERROR,
+  HTTP_STATUS_BAD_GATEWAY,
+  HTTP_STATUS_SERVICE_UNAVAILABLE,
+  HTTP_STATUS_GATEWAY_TIMEOUT
+];
 const RANDOM_STRING_RADIX = 36;
 const RANDOM_STRING_SLICE_START = 2;
 const RANDOM_STRING_SLICE_END = 9;
@@ -3408,7 +3422,8 @@ async function executeServerRequest(descriptor, element) {
         ephemeralToken,
         onProgress: descriptor.onProgress,
         retryConfig: descriptor.retryStream,
-        options: sseOptions
+        options: sseOptions,
+        refreshTokens: () => getCSRFTokens(element)
       });
     } else {
       data = await executeServerActionSSE({
@@ -3610,6 +3625,9 @@ function rethrowAsActionError(error, options) {
       isTimeout ? "Request timeout" : "Request cancelled"
     );
   }
+  if (error instanceof TypeError) {
+    throw createActionError(0, error.message);
+  }
   throw error;
 }
 async function executeServerActionSSEInternal(params) {
@@ -3651,11 +3669,62 @@ async function executeServerActionSSEInternal(params) {
 async function executeServerActionSSE(params) {
   return executeServerActionSSEInternal(params);
 }
+function isSSECSRFError(error) {
+  return error.status === HTTP_STATUS_FORBIDDEN$1 && (error.data === CSRF_ERROR_EXPIRED || error.data === CSRF_ERROR_INVALID);
+}
+function isReconnectableSSEError(error, retryableStatuses) {
+  if (error.message === "Request cancelled") {
+    return false;
+  }
+  if (isSSECSRFError(error)) {
+    return true;
+  }
+  if (retryableStatuses.includes(error.status)) {
+    return true;
+  }
+  if (error.data !== void 0) {
+    return false;
+  }
+  return error.status === 0;
+}
+function nextReconnectTokens(tokens, params) {
+  const { retryConfig, refreshTokens } = params;
+  if (retryConfig.refreshTokensOnReconnect === false || !refreshTokens) {
+    return tokens;
+  }
+  const refreshed = refreshTokens();
+  return {
+    actionToken: refreshed.actionToken ?? tokens.actionToken,
+    ephemeralToken: refreshed.ephemeralToken ?? tokens.ephemeralToken
+  };
+}
+async function handleSSEStreamError(error, reconnectCount, tokens, params) {
+  const { retryConfig, options } = params;
+  const retryableStatuses = retryConfig.retryableStatuses ?? DEFAULT_SSE_RETRYABLE_STATUSES;
+  if (!isReconnectableSSEError(error, retryableStatuses)) {
+    retryConfig.onError?.(error, false);
+    throw error;
+  }
+  if (reconnectCount >= retryConfig.maxReconnects) {
+    retryConfig.onError?.(error, false);
+    throw createActionError(
+      error.status,
+      `SSE stream failed after ${reconnectCount} reconnection attempts`
+    );
+  }
+  retryConfig.onError?.(error, true);
+  retryConfig.onDisconnect?.();
+  await delay(calculateSSEReconnectDelay(reconnectCount, retryConfig));
+  if (options?.signal?.aborted) {
+    throw createActionError(0, "Request cancelled");
+  }
+  return nextReconnectTokens(tokens, params);
+}
 async function executeServerActionSSEWithRetry(params) {
-  const { actionName, args, method, actionToken, ephemeralToken, onProgress, retryConfig, options } = params;
+  const { actionName, args, method, onProgress, retryConfig, options } = params;
+  let tokens = { actionToken: params.actionToken, ephemeralToken: params.ephemeralToken };
   let reconnectCount = 0;
   let lastEventId;
-  const maxReconnects = retryConfig.maxReconnects;
   for (; ; ) {
     try {
       let isReconnection = reconnectCount > 0;
@@ -3666,12 +3735,12 @@ async function executeServerActionSSEWithRetry(params) {
         }
         onProgress(data, eventType);
       };
-      const result = await executeServerActionSSEInternal({
+      return await executeServerActionSSEInternal({
         actionName,
         args,
         method,
-        actionToken,
-        ephemeralToken,
+        actionToken: tokens.actionToken,
+        ephemeralToken: tokens.ephemeralToken,
         onProgress: wrappedOnProgress,
         options,
         lastEventId,
@@ -3679,30 +3748,8 @@ async function executeServerActionSSEWithRetry(params) {
           lastEventId = id;
         }
       });
-      return result;
     } catch (error) {
-      const actionError = error;
-      if (actionError.message === "Request cancelled") {
-        throw error;
-      }
-      if (actionError.data !== void 0) {
-        throw error;
-      }
-      if (actionError.status !== 0) {
-        throw error;
-      }
-      if (reconnectCount >= maxReconnects) {
-        throw createActionError(
-          0,
-          `SSE stream failed after ${reconnectCount} reconnection attempts`
-        );
-      }
-      retryConfig.onDisconnect?.();
-      const reconnectDelay = calculateSSEReconnectDelay(reconnectCount, retryConfig);
-      await delay(reconnectDelay);
-      if (options?.signal?.aborted) {
-        throw createActionError(0, "Request cancelled");
-      }
+      tokens = await handleSSEStreamError(error, reconnectCount, tokens, params);
       reconnectCount++;
       retryConfig.onReconnect?.(reconnectCount);
     }
@@ -3722,7 +3769,8 @@ async function callServerActionDirect(actionName, args, method = "POST", options
         ephemeralToken,
         onProgress: options.onProgress,
         retryConfig: options.retryStream,
-        options: sseOptions
+        options: sseOptions,
+        refreshTokens: () => getCSRFTokens()
       });
     } else {
       data = await executeServerActionSSE({
@@ -6505,13 +6553,27 @@ async function handlePageLoad(deps, parsedDocument, _targetUrl, scrollOptions) {
     return;
   }
   const domUpdateDeps = { bindDOM: deps.bindDOM, moduleLoader: deps.moduleLoader };
-  if ("startViewTransition" in document && typeof document.startViewTransition === "function") {
-    const transition = document.startViewTransition(() => {
-      performDOMUpdate(domUpdateDeps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions);
-    });
-    await transition.updateCallbackDone;
-  } else {
+  const updateState = { applied: false };
+  const applyUpdate = () => {
+    if (updateState.applied) {
+      return;
+    }
+    updateState.applied = true;
     performDOMUpdate(domUpdateDeps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions);
+  };
+  const canAnimate = document.visibilityState !== "hidden" && "startViewTransition" in document && typeof document.startViewTransition === "function";
+  if (!canAnimate) {
+    applyUpdate();
+    return;
+  }
+  try {
+    const transition = document.startViewTransition(applyUpdate);
+    await transition.updateCallbackDone;
+  } catch (error) {
+    if (updateState.applied) {
+      throw error;
+    }
+    applyUpdate();
   }
 }
 function initFrameworkServices(services, options, instance) {

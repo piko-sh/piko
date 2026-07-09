@@ -120,8 +120,12 @@ func (b *ASTBinder) convertAndSet(field reflect.Value, value string, fullPath st
 	}
 
 	if fi.Type.Kind() == reflect.Pointer {
-		ptr := reflect.New(fi.Type.Elem())
+		elementType := fi.Type.Elem()
+		if !convertedVal.Type().AssignableTo(elementType) {
+			convertedVal = convertedVal.Convert(elementType)
+		}
 
+		ptr := reflect.New(elementType)
 		ptr.Elem().Set(convertedVal)
 
 		field.Set(ptr)
@@ -166,7 +170,43 @@ func (b *ASTBinder) convertToType(value string, fi *fieldInfo) (reflect.Value, e
 		return primitiveConv(value)
 	}
 
+	if targetType.Kind() == reflect.Slice && targetType != reflect.TypeFor[[]byte]() {
+		return b.convertScalarToSlice(value, targetType)
+	}
+
 	return reflect.Value{}, fmt.Errorf("unsupported type: %s", targetType.String())
+}
+
+// convertScalarToSlice coerces a single scalar string into a length-1 slice of the
+// declared slice type.
+//
+// A form that serialises a single-selected checkbox group as one scalar still binds
+// cleanly to a []T field. The scalar is converted and stored through convertAndSet, which
+// applies the full converter precedence.
+//
+// Takes value (string) which is the raw scalar to convert.
+// Takes sliceType (reflect.Type) which is the declared slice type (any outer pointer
+// already dereferenced by convertToType).
+//
+// Returns reflect.Value which holds a length-1 slice of sliceType.
+// Returns error when the scalar cannot be converted to the element type.
+func (b *ASTBinder) convertScalarToSlice(value string, sliceType reflect.Type) (reflect.Value, error) {
+	elementType := sliceType.Elem()
+
+	effectiveElementType := elementType
+	if effectiveElementType.Kind() == reflect.Pointer {
+		effectiveElementType = effectiveElementType.Elem()
+	}
+	if effectiveElementType.Kind() == reflect.Slice && effectiveElementType != reflect.TypeFor[[]byte]() {
+		return reflect.Value{}, fmt.Errorf("unsupported type: %s", sliceType.String())
+	}
+
+	slice := reflect.MakeSlice(sliceType, 1, 1)
+	elementInfo := newFieldInfoForType(sliceType.String(), elementType)
+	if err := b.convertAndSet(slice.Index(0), value, sliceType.String(), elementInfo); err != nil {
+		return reflect.Value{}, err
+	}
+	return slice, nil
 }
 
 // getUserConverter retrieves a user-registered converter for the given type.

@@ -103,31 +103,31 @@ describe('extensionUtils', () => {
     describe('resolvePlatformBinaryPath', () => {
         describe('Linux', () => {
             it('should resolve Linux x64 path', () => {
-                expect(resolvePlatformBinaryPath('linux', 'x64')).toBe('bin/linux-amd64/piko-lsp');
+                expect(resolvePlatformBinaryPath('linux', 'x64')).toBe('bin/linux-amd64/pikopls');
             });
 
             it('should resolve Linux arm64 path', () => {
-                expect(resolvePlatformBinaryPath('linux', 'arm64')).toBe('bin/linux-arm64/piko-lsp');
+                expect(resolvePlatformBinaryPath('linux', 'arm64')).toBe('bin/linux-arm64/pikopls');
             });
         });
 
         describe('macOS', () => {
             it('should resolve macOS x64 path', () => {
-                expect(resolvePlatformBinaryPath('darwin', 'x64')).toBe('bin/darwin-amd64/piko-lsp');
+                expect(resolvePlatformBinaryPath('darwin', 'x64')).toBe('bin/darwin-amd64/pikopls');
             });
 
             it('should resolve macOS arm64 path (Apple Silicon)', () => {
-                expect(resolvePlatformBinaryPath('darwin', 'arm64')).toBe('bin/darwin-arm64/piko-lsp');
+                expect(resolvePlatformBinaryPath('darwin', 'arm64')).toBe('bin/darwin-arm64/pikopls');
             });
         });
 
         describe('Windows', () => {
             it('should resolve Windows x64 path with .exe extension', () => {
-                expect(resolvePlatformBinaryPath('win32', 'x64')).toBe('bin/win32-amd64/piko-lsp.exe');
+                expect(resolvePlatformBinaryPath('win32', 'x64')).toBe('bin/win32-amd64/pikopls.exe');
             });
 
             it('should resolve Windows arm64 path with .exe extension', () => {
-                expect(resolvePlatformBinaryPath('win32', 'arm64')).toBe('bin/win32-arm64/piko-lsp.exe');
+                expect(resolvePlatformBinaryPath('win32', 'arm64')).toBe('bin/win32-arm64/pikopls.exe');
             });
         });
     });
@@ -246,21 +246,21 @@ describe('extensionUtils', () => {
     });
 
     describe('getBinaryName', () => {
-        it('should return piko-lsp for Linux', () => {
-            expect(getBinaryName('linux')).toBe('piko-lsp');
+        it('should return pikopls for Linux', () => {
+            expect(getBinaryName('linux')).toBe('pikopls');
         });
 
-        it('should return piko-lsp for macOS', () => {
-            expect(getBinaryName('darwin')).toBe('piko-lsp');
+        it('should return pikopls for macOS', () => {
+            expect(getBinaryName('darwin')).toBe('pikopls');
         });
 
-        it('should return piko-lsp.exe for Windows', () => {
-            expect(getBinaryName('win32')).toBe('piko-lsp.exe');
+        it('should return pikopls.exe for Windows', () => {
+            expect(getBinaryName('win32')).toBe('pikopls.exe');
         });
 
-        it('should return piko-lsp for unknown platforms', () => {
-            expect(getBinaryName('freebsd')).toBe('piko-lsp');
-            expect(getBinaryName('unknown')).toBe('piko-lsp');
+        it('should return pikopls for unknown platforms', () => {
+            expect(getBinaryName('freebsd')).toBe('pikopls');
+            expect(getBinaryName('unknown')).toBe('pikopls');
         });
     });
 

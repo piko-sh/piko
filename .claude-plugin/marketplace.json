@@ -1,0 +1,15 @@
+{
+  "name": "piko-sh",
+  "description": "Official marketplace for the Piko web framework's Claude Code plugin.",
+  "owner": {
+    "name": "PolitePixels Limited",
+    "url": "https://github.com/piko-sh/piko"
+  },
+  "plugins": [
+    {
+      "name": "piko",
+      "source": "./plugins/agents",
+      "description": "Piko language intelligence for .pk and .pkc files - diagnostics, hover, completions, navigation, and project analysis, backed by the pikopls language server. Requires the pikopls binary on PATH (install the Piko CLI, or download from the GitHub releases)."
+    }
+  ]
+}

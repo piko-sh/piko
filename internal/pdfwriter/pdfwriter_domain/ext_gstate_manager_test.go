@@ -19,16 +19,15 @@
 package pdfwriter_domain
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewExtGStateManager_HasNoStatesInitially(t *testing.T) {
 	manager := NewExtGStateManager()
 
-	if manager.HasStates() {
-		t.Error("expected HasStates to return false for a new manager")
-	}
+	assert.False(t, manager.HasStates(), "expected HasStates to return false for a new manager")
 }
 
 func TestRegisterOpacity_ReturnsGS1ForFirstRegistration(t *testing.T) {
@@ -36,9 +35,7 @@ func TestRegisterOpacity_ReturnsGS1ForFirstRegistration(t *testing.T) {
 
 	name := manager.RegisterOpacity(0.5)
 
-	if name != "GS1" {
-		t.Errorf("expected first registration to return \"GS1\", got %q", name)
-	}
+	assert.Equal(t, "GS1", name, "expected first registration to return \"GS1\"")
 }
 
 func TestRegisterOpacity_DeduplicatesSameOpacity(t *testing.T) {
@@ -47,9 +44,7 @@ func TestRegisterOpacity_DeduplicatesSameOpacity(t *testing.T) {
 	first_name := manager.RegisterOpacity(0.75)
 	second_name := manager.RegisterOpacity(0.75)
 
-	if first_name != second_name {
-		t.Errorf("expected duplicate registration to return %q, got %q", first_name, second_name)
-	}
+	assert.Equal(t, first_name, second_name, "expected duplicate registration to return the same name")
 }
 
 func TestRegisterOpacity_DifferentValuesGetDifferentNames(t *testing.T) {
@@ -58,12 +53,8 @@ func TestRegisterOpacity_DifferentValuesGetDifferentNames(t *testing.T) {
 	first_name := manager.RegisterOpacity(0.5)
 	second_name := manager.RegisterOpacity(0.8)
 
-	if first_name != "GS1" {
-		t.Errorf("expected first registration to return \"GS1\", got %q", first_name)
-	}
-	if second_name != "GS2" {
-		t.Errorf("expected second registration to return \"GS2\", got %q", second_name)
-	}
+	assert.Equal(t, "GS1", first_name, "expected first registration to return \"GS1\"")
+	assert.Equal(t, "GS2", second_name, "expected second registration to return \"GS2\"")
 }
 
 func TestHasStates_ReturnsTrueAfterRegistration(t *testing.T) {
@@ -71,9 +62,7 @@ func TestHasStates_ReturnsTrueAfterRegistration(t *testing.T) {
 
 	manager.RegisterOpacity(0.5)
 
-	if !manager.HasStates() {
-		t.Error("expected HasStates to return true after registering an opacity")
-	}
+	assert.True(t, manager.HasStates(), "expected HasStates to return true after registering an opacity")
 }
 
 func TestWriteObjects_WritesCorrectPdfObjects(t *testing.T) {
@@ -83,24 +72,14 @@ func TestWriteObjects_WritesCorrectPdfObjects(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/GS1") {
-		t.Error("expected entries to contain \"/GS1\"")
-	}
-	if !strings.Contains(entries, "0 R") {
-		t.Error("expected entries to contain an object reference (\"0 R\")")
-	}
+	assert.Contains(t, entries, "/GS1", "expected entries to contain \"/GS1\"")
+	assert.Contains(t, entries, "0 R", "expected entries to contain an object reference (\"0 R\")")
 
 	output := writer.buffer.String()
 
-	if !strings.Contains(output, "/Type /ExtGState") {
-		t.Error("expected PDF output to contain \"/Type /ExtGState\"")
-	}
-	if !strings.Contains(output, "/ca 0.50") {
-		t.Error("expected PDF output to contain \"/ca 0.50\"")
-	}
-	if !strings.Contains(output, "/CA 0.50") {
-		t.Error("expected PDF output to contain \"/CA 0.50\"")
-	}
+	assert.Contains(t, output, "/Type /ExtGState", "expected PDF output to contain \"/Type /ExtGState\"")
+	assert.Contains(t, output, "/ca 0.50", "expected PDF output to contain \"/ca 0.50\"")
+	assert.Contains(t, output, "/CA 0.50", "expected PDF output to contain \"/CA 0.50\"")
 }
 
 func TestWriteObjects_HandlesMultipleStates(t *testing.T) {
@@ -111,21 +90,13 @@ func TestWriteObjects_HandlesMultipleStates(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/GS1") {
-		t.Error("expected entries to contain \"/GS1\"")
-	}
-	if !strings.Contains(entries, "/GS2") {
-		t.Error("expected entries to contain \"/GS2\"")
-	}
+	assert.Contains(t, entries, "/GS1", "expected entries to contain \"/GS1\"")
+	assert.Contains(t, entries, "/GS2", "expected entries to contain \"/GS2\"")
 
 	output := writer.buffer.String()
 
-	if !strings.Contains(output, "/ca 0.30") {
-		t.Error("expected PDF output to contain \"/ca 0.30\"")
-	}
-	if !strings.Contains(output, "/ca 1") {
-		t.Error("expected PDF output to contain \"/ca 1\"")
-	}
+	assert.Contains(t, output, "/ca 0.30", "expected PDF output to contain \"/ca 0.30\"")
+	assert.Contains(t, output, "/ca 1", "expected PDF output to contain \"/ca 1\"")
 }
 
 func TestRegisterBlendMode_ReturnsName(t *testing.T) {
@@ -133,9 +104,7 @@ func TestRegisterBlendMode_ReturnsName(t *testing.T) {
 
 	name := manager.RegisterBlendMode("Multiply")
 
-	if name != "GS1" {
-		t.Errorf("expected \"GS1\", got %q", name)
-	}
+	assert.Equal(t, "GS1", name)
 }
 
 func TestRegisterBlendMode_DeduplicatesSameMode(t *testing.T) {
@@ -144,9 +113,7 @@ func TestRegisterBlendMode_DeduplicatesSameMode(t *testing.T) {
 	first_name := manager.RegisterBlendMode("Screen")
 	second_name := manager.RegisterBlendMode("Screen")
 
-	if first_name != second_name {
-		t.Errorf("expected duplicate to return %q, got %q", first_name, second_name)
-	}
+	assert.Equal(t, first_name, second_name, "expected duplicate to return the same name")
 }
 
 func TestRegisterBlendMode_WritesBMInOutput(t *testing.T) {
@@ -156,14 +123,10 @@ func TestRegisterBlendMode_WritesBMInOutput(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/GS1") {
-		t.Error("expected entries to contain \"/GS1\"")
-	}
+	assert.Contains(t, entries, "/GS1", "expected entries to contain \"/GS1\"")
 
 	output := writer.buffer.String()
-	if !strings.Contains(output, "/BM /Multiply") {
-		t.Errorf("expected /BM /Multiply in output, got %q", output)
-	}
+	assert.Contains(t, output, "/BM /Multiply", "expected /BM /Multiply in output")
 }
 
 func TestRegisterBlendMode_DoesNotWriteOpacity(t *testing.T) {
@@ -174,9 +137,7 @@ func TestRegisterBlendMode_DoesNotWriteOpacity(t *testing.T) {
 	manager.WriteObjects(writer)
 
 	output := writer.buffer.String()
-	if strings.Contains(output, "/ca") {
-		t.Errorf("expected no /ca in blend-mode-only state, got %q", output)
-	}
+	assert.NotContains(t, output, "/ca", "expected no /ca in blend-mode-only state")
 }
 
 func TestRegisterSoftMask_ReturnsName(t *testing.T) {
@@ -184,12 +145,8 @@ func TestRegisterSoftMask_ReturnsName(t *testing.T) {
 
 	name := manager.RegisterSoftMask(42)
 
-	if name != "GS1" {
-		t.Errorf("expected \"GS1\", got %q", name)
-	}
-	if !manager.HasStates() {
-		t.Error("expected HasStates to return true after RegisterSoftMask")
-	}
+	assert.Equal(t, "GS1", name)
+	assert.True(t, manager.HasStates(), "expected HasStates to return true after RegisterSoftMask")
 }
 
 func TestRegisterSoftMask_WritesSMaskInOutput(t *testing.T) {
@@ -200,20 +157,12 @@ func TestRegisterSoftMask_WritesSMaskInOutput(t *testing.T) {
 	writer.AllocateObject()
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/GS1") {
-		t.Error("expected entries to contain \"/GS1\"")
-	}
+	assert.Contains(t, entries, "/GS1", "expected entries to contain \"/GS1\"")
 
 	output := writer.buffer.String()
-	if !strings.Contains(output, "/SMask") {
-		t.Errorf("expected /SMask in output, got %q", output)
-	}
-	if !strings.Contains(output, "/Luminosity") {
-		t.Errorf("expected /Luminosity in output, got %q", output)
-	}
-	if !strings.Contains(output, "42 0 R") {
-		t.Errorf("expected reference to object 42 in output, got %q", output)
-	}
+	assert.Contains(t, output, "/SMask", "expected /SMask in output")
+	assert.Contains(t, output, "/Luminosity", "expected /Luminosity in output")
+	assert.Contains(t, output, "42 0 R", "expected reference to object 42 in output")
 }
 
 func TestRegisterSoftMask_DoesNotWriteOpacity(t *testing.T) {
@@ -224,9 +173,7 @@ func TestRegisterSoftMask_DoesNotWriteOpacity(t *testing.T) {
 	manager.WriteObjects(writer)
 
 	output := writer.buffer.String()
-	if strings.Contains(output, "/ca") {
-		t.Errorf("expected no /ca in soft-mask-only state, got %q", output)
-	}
+	assert.NotContains(t, output, "/ca", "expected no /ca in soft-mask-only state")
 }
 
 func TestMixedOpacityAndBlendMode(t *testing.T) {
@@ -237,18 +184,10 @@ func TestMixedOpacityAndBlendMode(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	entries := manager.WriteObjects(writer)
 
-	if !strings.Contains(entries, "/GS1") {
-		t.Error("expected /GS1")
-	}
-	if !strings.Contains(entries, "/GS2") {
-		t.Error("expected /GS2")
-	}
+	assert.Contains(t, entries, "/GS1", "expected /GS1")
+	assert.Contains(t, entries, "/GS2", "expected /GS2")
 
 	output := writer.buffer.String()
-	if !strings.Contains(output, "/ca 0.50") {
-		t.Error("expected /ca 0.50")
-	}
-	if !strings.Contains(output, "/BM /Screen") {
-		t.Error("expected /BM /Screen")
-	}
+	assert.Contains(t, output, "/ca 0.50", "expected /ca 0.50")
+	assert.Contains(t, output, "/BM /Screen", "expected /BM /Screen")
 }

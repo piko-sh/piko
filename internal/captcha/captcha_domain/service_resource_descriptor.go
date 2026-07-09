@@ -19,22 +19,16 @@
 package captcha_domain
 
 import (
-	"cmp"
 	"context"
 	"fmt"
-	"slices"
-	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-const (
-	// hoursPerDay is the number of hours in a day, used for duration formatting.
-	hoursPerDay = 24
-)
-
 var (
 	_ provider_domain.ResourceDescriptor = (*captchaService)(nil)
+
+	_ provider_domain.ReadinessProbeNamed = (*captchaService)(nil)
 )
 
 // ResourceType returns the resource name for the captcha hexagon.
@@ -42,6 +36,16 @@ var (
 // Returns string which is the resource type identifier.
 func (*captchaService) ResourceType() string {
 	return "captcha"
+}
+
+// ProbeName returns the readiness health-probe name of the captcha service, bridging the
+// "captcha" resource type to the "CaptchaService" readiness dependency so a readiness
+// collector can attach this descriptor's provider info to the matching dependency. It
+// returns the same constant the service's health-probe Name method returns.
+//
+// Returns string which is healthProbeName ("CaptchaService").
+func (*captchaService) ProbeName() string {
+	return healthProbeName
 }
 
 // ResourceListColumns returns column definitions for the captcha provider list table.
@@ -76,7 +80,7 @@ func (s *captchaService) ResourceListProviders(ctx context.Context) []provider_d
 			Values: map[string]string{
 				"name":       info.Name,
 				"type":       providerType,
-				"registered": formatRegisteredAge(info.RegisteredAt),
+				"registered": provider_domain.FormatRegisteredAge(info.RegisteredAt),
 			},
 		}
 	}
@@ -114,12 +118,12 @@ func (s *captchaService) ResourceDescribeProvider(ctx context.Context, name stri
 				{Key: "Default", Value: isDefault},
 				{Key: "Site Key", Value: captchaProvider.SiteKey()},
 				{Key: "Script URL", Value: captchaProvider.ScriptURL()},
-				{Key: "Registered", Value: formatRegisteredAge(info.RegisteredAt)},
+				{Key: "Registered", Value: provider_domain.FormatRegisteredAge(info.RegisteredAt)},
 			},
 		},
 	}
 
-	if metaSection, ok := buildMetadataSection(captchaProvider); ok {
+	if metaSection, ok := provider_domain.BuildMetadataSection(captchaProvider); ok {
 		sections = append(sections, metaSection)
 	}
 
@@ -144,64 +148,4 @@ func findProviderInfo(infos []provider_domain.ProviderInfo, name string) provide
 		}
 	}
 	return provider_domain.ProviderInfo{Name: name}
-}
-
-// buildMetadataSection extracts provider metadata into an InfoSection if the provider
-// implements the ProviderMetadata interface.
-//
-// Takes captchaProvider (any) which is the provider to extract metadata from.
-//
-// Returns provider_domain.InfoSection which contains the sorted metadata entries.
-// Returns bool which is true when the provider had metadata to display.
-func buildMetadataSection(captchaProvider any) (provider_domain.InfoSection, bool) {
-	meta, ok := captchaProvider.(provider_domain.ProviderMetadata)
-	if !ok {
-		return provider_domain.InfoSection{}, false
-	}
-
-	metadata := meta.GetProviderMetadata()
-	if len(metadata) == 0 {
-		return provider_domain.InfoSection{}, false
-	}
-
-	entries := make([]provider_domain.InfoEntry, 0, len(metadata))
-	for key, value := range metadata {
-		entries = append(entries, provider_domain.InfoEntry{
-			Key:   key,
-			Value: fmt.Sprintf("%v", value),
-		})
-	}
-	slices.SortFunc(entries, func(a, b provider_domain.InfoEntry) int {
-		return cmp.Compare(a.Key, b.Key)
-	})
-
-	return provider_domain.InfoSection{
-		Title:   "Configuration",
-		Entries: entries,
-	}, true
-}
-
-// formatRegisteredAge formats a registration timestamp as a human-readable relative age
-// string.
-//
-// Takes registeredAt (time.Time) which is the timestamp to format.
-//
-// Returns string which is the human-readable relative age.
-func formatRegisteredAge(registeredAt time.Time) string {
-	if registeredAt.IsZero() {
-		return "unknown"
-	}
-
-	duration := time.Since(registeredAt)
-
-	switch {
-	case duration < time.Minute:
-		return fmt.Sprintf("%ds ago", int(duration.Seconds()))
-	case duration < time.Hour:
-		return fmt.Sprintf("%dm ago", int(duration.Minutes()))
-	case duration < hoursPerDay*time.Hour:
-		return fmt.Sprintf("%dh ago", int(duration.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(duration.Hours()/hoursPerDay))
-	}
 }

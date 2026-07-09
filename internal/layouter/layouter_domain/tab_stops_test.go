@@ -20,127 +20,80 @@ package layouter_domain
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseTabStops_None(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("none", ctx)
-	if stops != nil {
-		t.Errorf("expected nil, got %v", stops)
-	}
+	assert.Nil(t, stops)
 }
 
 func TestParseTabStops_Empty(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("", ctx)
-	if stops != nil {
-		t.Errorf("expected nil, got %v", stops)
-	}
+	assert.Nil(t, stops)
 }
 
 func TestParseTabStops_SingleLeftStop(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("200pt", ctx)
-	if len(stops) != 1 {
-		t.Fatalf("expected 1 stop, got %d", len(stops))
-	}
-	if stops[0].Position != 200 {
-		t.Errorf("expected position 200, got %v", stops[0].Position)
-	}
-	if stops[0].Align != TabAlignLeft {
-		t.Errorf("expected left align, got %v", stops[0].Align)
-	}
-	if stops[0].Leader != 0 {
-		t.Errorf("expected no leader, got %v", stops[0].Leader)
-	}
+	require.Len(t, stops, 1)
+	assert.Equal(t, 200.0, stops[0].Position)
+	assert.Equal(t, TabAlignLeft, stops[0].Align)
+	assert.Equal(t, rune(0), stops[0].Leader, "expected no leader")
 }
 
 func TestParseTabStops_RightAlignWithLeader(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("400pt right '.'", ctx)
-	if len(stops) != 1 {
-		t.Fatalf("expected 1 stop, got %d", len(stops))
-	}
-	if stops[0].Position != 400 {
-		t.Errorf("expected position 400, got %v", stops[0].Position)
-	}
-	if stops[0].Align != TabAlignRight {
-		t.Errorf("expected right align, got %v", stops[0].Align)
-	}
-	if stops[0].Leader != '.' {
-		t.Errorf("expected '.' leader, got %v", stops[0].Leader)
-	}
+	require.Len(t, stops, 1)
+	assert.Equal(t, 400.0, stops[0].Position)
+	assert.Equal(t, TabAlignRight, stops[0].Align)
+	assert.Equal(t, '.', stops[0].Leader)
 }
 
 func TestParseTabStops_MultipleStops(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("200pt right '.'; 400pt right", ctx)
-	if len(stops) != 2 {
-		t.Fatalf("expected 2 stops, got %d", len(stops))
-	}
-	if stops[0].Position != 200 {
-		t.Errorf("stop 0: expected position 200, got %v", stops[0].Position)
-	}
-	if stops[0].Leader != '.' {
-		t.Errorf("stop 0: expected '.' leader, got %v", stops[0].Leader)
-	}
-	if stops[1].Position != 400 {
-		t.Errorf("stop 1: expected position 400, got %v", stops[1].Position)
-	}
-	if stops[1].Align != TabAlignRight {
-		t.Errorf("stop 1: expected right align, got %v", stops[1].Align)
-	}
+	require.Len(t, stops, 2)
+	assert.Equal(t, 200.0, stops[0].Position, "stop 0 position")
+	assert.Equal(t, '.', stops[0].Leader, "stop 0 leader")
+	assert.Equal(t, 400.0, stops[1].Position, "stop 1 position")
+	assert.Equal(t, TabAlignRight, stops[1].Align, "stop 1 align")
 }
 
 func TestParseTabStops_CenterAlign(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("300pt center", ctx)
-	if len(stops) != 1 {
-		t.Fatalf("expected 1 stop, got %d", len(stops))
-	}
-	if stops[0].Align != TabAlignCenter {
-		t.Errorf("expected center align, got %v", stops[0].Align)
-	}
+	require.Len(t, stops, 1)
+	assert.Equal(t, TabAlignCenter, stops[0].Align)
 }
 
 func TestParseTabStops_PixelUnits(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("300px right", ctx)
-	if len(stops) != 1 {
-		t.Fatalf("expected 1 stop, got %d", len(stops))
-	}
+	require.Len(t, stops, 1)
 
 	expected := 300.0 * PixelsToPoints
-	if stops[0].Position != expected {
-		t.Errorf("expected position %v, got %v", expected, stops[0].Position)
-	}
+	assert.Equal(t, expected, stops[0].Position)
 }
 
 func TestParseTabStops_DoubleQuotedLeader(t *testing.T) {
 	ctx := ResolutionContext{}
 	stops := parseTabStops("200pt right \".\"", ctx)
-	if len(stops) != 1 {
-		t.Fatalf("expected 1 stop, got %d", len(stops))
-	}
-	if stops[0].Leader != '.' {
-		t.Errorf("expected '.' leader, got %v", stops[0].Leader)
-	}
+	require.Len(t, stops, 1)
+	assert.Equal(t, '.', stops[0].Leader)
 }
 
 func TestTokeniseTabStop(t *testing.T) {
 	tokens := tokeniseTabStop("400pt right '.'")
-	if len(tokens) != 3 {
-		t.Fatalf("expected 3 tokens, got %d: %v", len(tokens), tokens)
-	}
-	if tokens[0] != "400pt" {
-		t.Errorf("token 0: expected '400pt', got %q", tokens[0])
-	}
-	if tokens[1] != "right" {
-		t.Errorf("token 1: expected 'right', got %q", tokens[1])
-	}
-	if tokens[2] != "'.'" {
-		t.Errorf("token 2: expected \"'.'\", got %q", tokens[2])
-	}
+	require.Len(t, tokens, 3)
+	assert.Equal(t, "400pt", tokens[0], "token 0")
+	assert.Equal(t, "right", tokens[1], "token 1")
+	assert.Equal(t, "'.'", tokens[2], "token 2")
 }
 
 func TestLayoutTextWithTabStops_AdvancesToPosition(t *testing.T) {
@@ -161,14 +114,10 @@ func TestLayoutTextWithTabStops_AdvancesToPosition(t *testing.T) {
 
 	ctx.layoutTextWithTabStops(box, nil, VerticalAlignBaseline)
 
-	if len(ctx.currentLineItems) < 2 {
-		t.Fatalf("expected at least 2 line items, got %d", len(ctx.currentLineItems))
-	}
+	require.GreaterOrEqual(t, len(ctx.currentLineItems), 2, "expected at least 2 line items")
 
 	second_item := ctx.currentLineItems[1]
-	if second_item.x != 200 {
-		t.Errorf("expected second item at x=200, got x=%v", second_item.x)
-	}
+	assert.Equal(t, 200.0, second_item.x, "expected second item at x=200")
 }
 
 func TestLayoutTextWithTabStops_RightAligned(t *testing.T) {
@@ -189,15 +138,11 @@ func TestLayoutTextWithTabStops_RightAligned(t *testing.T) {
 
 	ctx.layoutTextWithTabStops(box, nil, VerticalAlignBaseline)
 
-	if len(ctx.currentLineItems) < 2 {
-		t.Fatalf("expected at least 2 line items, got %d", len(ctx.currentLineItems))
-	}
+	require.GreaterOrEqual(t, len(ctx.currentLineItems), 2, "expected at least 2 line items")
 
 	second_item := ctx.currentLineItems[1]
 	expected_x := 400.0 - 12.0
-	if second_item.x != expected_x {
-		t.Errorf("expected second item at x=%v, got x=%v", expected_x, second_item.x)
-	}
+	assert.Equal(t, expected_x, second_item.x)
 }
 
 func TestLayoutTextWithTabStops_LeaderCharacters(t *testing.T) {
@@ -218,18 +163,12 @@ func TestLayoutTextWithTabStops_LeaderCharacters(t *testing.T) {
 
 	ctx.layoutTextWithTabStops(box, nil, VerticalAlignBaseline)
 
-	if len(ctx.currentLineItems) != 3 {
-		t.Fatalf("expected 3 line items, got %d", len(ctx.currentLineItems))
-	}
+	require.Len(t, ctx.currentLineItems, 3)
 
 	leader_item := ctx.currentLineItems[1]
-	if leader_item.fragment.Box.Text == "" {
-		t.Error("expected leader text, got empty")
-	}
+	assert.NotEmpty(t, leader_item.fragment.Box.Text, "expected leader text, got empty")
 
-	if leader_item.x != 30 {
-		t.Errorf("expected leader at x=30, got x=%v", leader_item.x)
-	}
+	assert.Equal(t, 30.0, leader_item.x, "expected leader at x=30")
 }
 
 type tabStopTestMetrics struct{}

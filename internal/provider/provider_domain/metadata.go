@@ -27,6 +27,10 @@ package provider_domain
 //   - GetProviderMetadata can include version, region, capabilities, limits, and
 //     configuration details.
 //   - Metadata is included in ListProviders() responses for monitoring dashboards.
+//   - Metadata MUST NOT contain secrets or credentials (passwords, tokens, API keys,
+//     DSNs/connection strings): it can be sampled into the readiness telemetry stream and
+//     egress off-box. The readiness path applies a default-deny key filter as defence in
+//     depth, but a provider must not rely on it and must not place secrets here.
 type ProviderMetadata interface {
 	// GetProviderType returns the provider implementation type.
 	//

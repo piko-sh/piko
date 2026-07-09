@@ -4362,6 +4362,182 @@ func TestBindMap_NestedStruct_EdgeCases(t *testing.T) {
 		assert.Equal(t, []string{"go", "web"}, form.Tags)
 	})
 
+	t.Run("scalar coerces into []string slice field via BindMap", func(t *testing.T) {
+		type Form struct {
+			ConsentCommunications []string `json:"consent_communications"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		src := map[string]any{
+			"consent_communications": "consent-emails",
+		}
+
+		err := binder.BindMap(context.Background(), &form, src, IgnoreUnknownKeys(true))
+		require.NoError(t, err)
+		assert.Equal(t, []string{"consent-emails"}, form.ConsentCommunications)
+	})
+
+	t.Run("array still binds into []string slice field via BindMap (regression)", func(t *testing.T) {
+		type Form struct {
+			ConsentCommunications []string `json:"consent_communications"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		src := map[string]any{
+			"consent_communications": []any{"consent-emails", "consent-sms"},
+		}
+
+		err := binder.BindMap(context.Background(), &form, src, IgnoreUnknownKeys(true))
+		require.NoError(t, err)
+		assert.Equal(t, []string{"consent-emails", "consent-sms"}, form.ConsentCommunications)
+	})
+
+	t.Run("scalar number coerces into []int slice field via BindMap", func(t *testing.T) {
+		type Form struct {
+			Scores []int `json:"scores"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		src := map[string]any{
+			"scores": 5,
+		}
+
+		err := binder.BindMap(context.Background(), &form, src, IgnoreUnknownKeys(true))
+		require.NoError(t, err)
+		assert.Equal(t, []int{5}, form.Scores)
+	})
+
+	t.Run("scalar form value coerces into []string slice field via Bind", func(t *testing.T) {
+		type Form struct {
+			Consent []string `bind:"consent"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		src := map[string][]string{
+			"consent": {"emails"},
+		}
+
+		err := binder.Bind(context.Background(), &form, src)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"emails"}, form.Consent)
+	})
+
+	t.Run("repeated bare key binds every value into the slice via Bind", func(t *testing.T) {
+		type Form struct {
+			Consent []string `bind:"consent"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		src := map[string][]string{
+			"consent": {"emails", "sms", "post"},
+		}
+
+		err := binder.Bind(context.Background(), &form, src)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"emails", "sms", "post"}, form.Consent)
+	})
+
+	t.Run("repeated bare key converts each element for a typed slice", func(t *testing.T) {
+		type Form struct {
+			Scores []int `bind:"scores"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		src := map[string][]string{
+			"scores": {"1", "2", "3"},
+		}
+
+		err := binder.Bind(context.Background(), &form, src)
+		require.NoError(t, err)
+		assert.Equal(t, []int{1, 2, 3}, form.Scores)
+	})
+
+	t.Run("repeated bare key binds pointer elements without panicking", func(t *testing.T) {
+		type Form struct {
+			Tags []*string `bind:"tags"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		require.NotPanics(t, func() {
+			err := binder.Bind(context.Background(), &form, map[string][]string{"tags": {"a", "b"}})
+			require.NoError(t, err)
+		})
+		require.Len(t, form.Tags, 2)
+		require.NotNil(t, form.Tags[0])
+		require.NotNil(t, form.Tags[1])
+		assert.Equal(t, "a", *form.Tags[0])
+		assert.Equal(t, "b", *form.Tags[1])
+	})
+
+	t.Run("repeated key on a scalar field keeps last-value-wins", func(t *testing.T) {
+		type Form struct {
+			Name string `bind:"name"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		src := map[string][]string{
+			"name": {"first", "second", "third"},
+		}
+
+		err := binder.Bind(context.Background(), &form, src)
+		require.NoError(t, err)
+		assert.Equal(t, "third", form.Name)
+	})
+
+	t.Run("repeated bare key is bounded by maxSliceSize", func(t *testing.T) {
+		type Form struct {
+			Tags []string `bind:"tags"`
+		}
+
+		binder := NewASTBinder()
+		binder.SetMaxSliceSize(3)
+		var form Form
+		src := map[string][]string{
+			"tags": {"a", "b", "c", "d", "e"},
+		}
+
+		err := binder.Bind(context.Background(), &form, src)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "exceeds maximum allowed size")
+	})
+
+	t.Run("scalar coerces into []*string slice field via BindMap without panicking", func(t *testing.T) {
+		type Form struct {
+			Tags []*string `json:"tags"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		require.NotPanics(t, func() {
+			err := binder.BindMap(context.Background(), &form, map[string]any{"tags": "hello"}, IgnoreUnknownKeys(true))
+			require.NoError(t, err)
+		})
+		require.Len(t, form.Tags, 1)
+		require.NotNil(t, form.Tags[0])
+		assert.Equal(t, "hello", *form.Tags[0])
+	})
+
+	t.Run("repeated bare key fills a pointer-to-slice field", func(t *testing.T) {
+		type Form struct {
+			Tags *[]string `bind:"tags"`
+		}
+
+		binder := NewASTBinder()
+		var form Form
+		err := binder.Bind(context.Background(), &form, map[string][]string{"tags": {"a", "b"}})
+		require.NoError(t, err)
+		require.NotNil(t, form.Tags)
+		assert.Equal(t, []string{"a", "b"}, *form.Tags)
+	})
+
 	t.Run("nested struct with mixed json tags and Go names", func(t *testing.T) {
 		type Metadata struct {
 			CreatedBy string `json:"created_by"`

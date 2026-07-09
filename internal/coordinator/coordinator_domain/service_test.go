@@ -52,13 +52,34 @@ func (m *mockAnnotator) GetCallCount() int {
 	return m.Calls
 }
 
+func (m *mockAnnotator) setBuildDelay(delay time.Duration) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.BuildDelay = delay
+}
+
+func (m *mockAnnotator) setResult(result *annotator_dto.ProjectAnnotationResult) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.ResultToReturn = result
+}
+
+func (m *mockAnnotator) setError(err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.ErrorToReturn = err
+}
+
 func (m *mockAnnotator) AnnotateProject(ctx context.Context, entryPoints []annotator_dto.EntryPoint, scriptHashes map[string]string, _ ...annotator_domain.AnnotationOption) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.CompilationLogStore, error) {
 	m.mu.Lock()
 	m.Calls++
+	buildDelay := m.BuildDelay
+	result := m.ResultToReturn
+	errToReturn := m.ErrorToReturn
 	m.mu.Unlock()
 
-	if m.BuildDelay > 0 {
-		time.Sleep(m.BuildDelay)
+	if buildDelay > 0 {
+		time.Sleep(buildDelay)
 	}
 
 	if ctx.Err() != nil {
@@ -66,7 +87,7 @@ func (m *mockAnnotator) AnnotateProject(ctx context.Context, entryPoints []annot
 	}
 
 	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
-	return m.ResultToReturn, logStore, m.ErrorToReturn
+	return result, logStore, errToReturn
 }
 
 func (m *mockAnnotator) Annotate(_ context.Context, _ string, _ bool) (*annotator_dto.AnnotationResult, *annotator_domain.CompilationLogStore, error) {
@@ -81,23 +102,26 @@ func (m *mockAnnotator) RunPhase1IntrospectionAndAnnotate(
 ) (*annotator_domain.Phase1Result, error) {
 	m.mu.Lock()
 	m.Calls++
+	buildDelay := m.BuildDelay
+	result := m.ResultToReturn
+	errToReturn := m.ErrorToReturn
 	m.mu.Unlock()
 
-	if m.BuildDelay > 0 {
+	if buildDelay > 0 {
 		select {
-		case <-time.After(m.BuildDelay):
+		case <-time.After(buildDelay):
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
 	}
 
-	if m.ErrorToReturn != nil {
-		return nil, m.ErrorToReturn
+	if errToReturn != nil {
+		return nil, errToReturn
 	}
 
 	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
 	return &annotator_domain.Phase1Result{
-		Annotations: m.ResultToReturn,
+		Annotations: result,
 		Logs:        logStore,
 	}, nil
 }
@@ -193,14 +217,23 @@ func (m *mockCache) Clear(ctx context.Context) error {
 
 type mockFSReader struct {
 	Files map[string][]byte
+	mu    sync.RWMutex
 }
 
 func (m *mockFSReader) ReadFile(ctx context.Context, path string) ([]byte, error) {
+	m.mu.RLock()
 	content, ok := m.Files[path]
+	m.mu.RUnlock()
 	if !ok {
 		return nil, os.ErrNotExist
 	}
 	return content, nil
+}
+
+func (m *mockFSReader) setFile(path string, content []byte) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.Files[path] = content
 }
 
 type testHarness struct {
@@ -247,7 +280,7 @@ func newTestHarness(t *testing.T) *testHarness {
 		},
 	}
 
-	h.fsReader.Files["/project/pages/index.pk"] = []byte("content")
+	h.fsReader.setFile("/project/pages/index.pk", []byte("content"))
 	h.sandbox.AddFile("pages/index.pk", []byte("content"))
 
 	service := NewService(
@@ -314,7 +347,7 @@ func TestCoordinatorService(t *testing.T) {
 			_, err := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 			require.NoError(t, err)
 
-			h.fsReader.Files["/project/components/card.pk"] = []byte("new content")
+			h.fsReader.setFile("/project/components/card.pk", []byte("new content"))
 			h.sandbox.AddFile("components/card.pk", []byte("new content"))
 			newEntryPoints := append(h.entryPoints, annotator_dto.EntryPoint{Path: "test-module/components/card.pk"})
 
@@ -330,9 +363,9 @@ func TestCoordinatorService(t *testing.T) {
 			defer h.service.Shutdown(context.Background())
 
 			contentA := "original content"
-			h.fsReader.Files["/project/pages/index.pk"] = []byte(contentA)
+			h.fsReader.setFile("/project/pages/index.pk", []byte(contentA))
 			resultA := &annotator_dto.ProjectAnnotationResult{}
-			h.annotator.ResultToReturn = resultA
+			h.annotator.setResult(resultA)
 
 			res1, err1 := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 			require.NoError(t, err1)
@@ -341,9 +374,9 @@ func TestCoordinatorService(t *testing.T) {
 			assert.Equal(t, 1, h.cache.setCalls, "Cache should be set after the first build")
 
 			contentB := "changed content"
-			h.fsReader.Files["/project/pages/index.pk"] = []byte(contentB)
+			h.fsReader.setFile("/project/pages/index.pk", []byte(contentB))
 			resultB := &annotator_dto.ProjectAnnotationResult{}
-			h.annotator.ResultToReturn = resultB
+			h.annotator.setResult(resultB)
 
 			res2, err2 := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 			require.NoError(t, err2)
@@ -351,8 +384,8 @@ func TestCoordinatorService(t *testing.T) {
 			assert.Equal(t, 2, h.annotator.GetCallCount(), "Annotator should be called again for the changed content")
 			assert.Equal(t, 2, h.cache.setCalls, "Cache should be set again for the new state")
 
-			h.fsReader.Files["/project/pages/index.pk"] = []byte(contentA)
-			h.annotator.ResultToReturn = resultA
+			h.fsReader.setFile("/project/pages/index.pk", []byte(contentA))
+			h.annotator.setResult(resultA)
 
 			res3, err3 := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 			require.NoError(t, err3)
@@ -372,7 +405,7 @@ func TestCoordinatorService(t *testing.T) {
 			defer h.service.Shutdown(context.Background())
 
 			h.cache.getError = ErrCacheMiss
-			h.annotator.BuildDelay = 100 * time.Millisecond
+			h.annotator.setBuildDelay(100 * time.Millisecond)
 
 			var wg sync.WaitGroup
 			numGoroutines := 10
@@ -406,7 +439,7 @@ func TestCoordinatorService(t *testing.T) {
 			defer h.service.Shutdown(context.Background())
 
 			h.service.debounceDuration = 50 * time.Millisecond
-			h.annotator.BuildDelay = 20 * time.Millisecond
+			h.annotator.setBuildDelay(20 * time.Millisecond)
 
 			h.service.RequestRebuild(context.Background(), h.entryPoints)
 
@@ -437,7 +470,7 @@ func TestCoordinatorService(t *testing.T) {
 			h := newTestHarness(t)
 			defer h.service.Shutdown(context.Background())
 
-			h.annotator.BuildDelay = 200 * time.Millisecond
+			h.annotator.setBuildDelay(200 * time.Millisecond)
 			h.cache.getError = ErrCacheMiss
 			var wg sync.WaitGroup
 
@@ -464,7 +497,7 @@ func TestCoordinatorService(t *testing.T) {
 			assert.False(t, ok, "Should be no initial successful build")
 
 			h.service.debounceDuration = 50 * time.Millisecond
-			h.annotator.BuildDelay = 100 * time.Millisecond
+			h.annotator.setBuildDelay(100 * time.Millisecond)
 			h.service.RequestRebuild(context.Background(), h.entryPoints)
 			time.Sleep(10 * time.Millisecond)
 
@@ -484,7 +517,7 @@ func TestCoordinatorService(t *testing.T) {
 			h := newTestHarness(t)
 			defer h.service.Shutdown(context.Background())
 			buildErr := errors.New("annotator failed")
-			h.annotator.ErrorToReturn = buildErr
+			h.annotator.setError(buildErr)
 
 			_, err := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 			require.Error(t, err)
@@ -526,7 +559,7 @@ func TestCoordinatorService(t *testing.T) {
 			defer h.service.Shutdown(context.Background())
 
 			hash1, _, _ := h.service.calculateInputHash(context.Background(), h.entryPoints, &buildOptions{})
-			h.fsReader.Files["/project/pages/index.pk"] = []byte("new different content")
+			h.fsReader.setFile("/project/pages/index.pk", []byte("new different content"))
 			hash2, _, _ := h.service.calculateInputHash(context.Background(), h.entryPoints, &buildOptions{})
 			assert.NotEqual(t, hash1, hash2)
 		})
@@ -537,7 +570,7 @@ func TestCoordinatorService(t *testing.T) {
 
 			hash1, _, _ := h.service.calculateInputHash(context.Background(), h.entryPoints, &buildOptions{})
 			newEntryPoints := append(h.entryPoints, annotator_dto.EntryPoint{Path: "test-module/pages/about.pk"})
-			h.fsReader.Files["/project/pages/about.pk"] = []byte("about page")
+			h.fsReader.setFile("/project/pages/about.pk", []byte("about page"))
 			h.sandbox.AddFile("pages/about.pk", []byte("about page"))
 			hash2, _, _ := h.service.calculateInputHash(context.Background(), newEntryPoints, &buildOptions{})
 			assert.NotEqual(t, hash1, hash2)
@@ -597,7 +630,7 @@ func TestCoordinatorService(t *testing.T) {
 			h := newTestHarness(t)
 			defer h.service.Shutdown(context.Background())
 
-			h.annotator.BuildDelay = 500 * time.Millisecond
+			h.annotator.setBuildDelay(500 * time.Millisecond)
 
 			ctx, cancel := context.WithCancelCause(context.Background())
 
@@ -618,7 +651,7 @@ func TestCoordinatorService(t *testing.T) {
 
 			time.Sleep(10 * time.Millisecond)
 
-			h.annotator.BuildDelay = 0
+			h.annotator.setBuildDelay(0)
 			result, err := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 			require.NoError(t, err)
 			assert.NotNil(t, result)
@@ -628,7 +661,7 @@ func TestCoordinatorService(t *testing.T) {
 			h := newTestHarness(t)
 			defer h.service.Shutdown(context.Background())
 
-			h.annotator.BuildDelay = 200 * time.Millisecond
+			h.annotator.setBuildDelay(200 * time.Millisecond)
 			ctx1, cancel1 := context.WithCancelCause(context.Background())
 
 			var wg sync.WaitGroup
@@ -641,8 +674,8 @@ func TestCoordinatorService(t *testing.T) {
 			cancel1(fmt.Errorf("test: simulating cancelled context"))
 			wg.Wait()
 
-			h.fsReader.Files["/project/pages/index.pk"] = []byte("new content")
-			h.annotator.BuildDelay = 0
+			h.fsReader.setFile("/project/pages/index.pk", []byte("new content"))
+			h.annotator.setBuildDelay(0)
 
 			result, err := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 			require.NoError(t, err)

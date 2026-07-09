@@ -168,6 +168,27 @@ type SVGRenderContext struct {
 
 	// PageHeight holds the page height in points for coordinate conversion.
 	PageHeight float64
+
+	// CurrentColourSet indicates whether the CurrentColour* fields carry the inherited CSS
+	// `color` used to resolve `currentColor` fills and strokes. When false, the SVG default
+	// (black) applies.
+	CurrentColourSet bool
+
+	// CurrentColourR holds the inherited text colour red channel (in [0,1]) that
+	// `currentColor` resolves to, so icons match their surrounding text.
+	CurrentColourR float64
+
+	// CurrentColourG holds the inherited text colour green channel (in [0,1]) that
+	// `currentColor` resolves to, so icons match their surrounding text.
+	CurrentColourG float64
+
+	// CurrentColourB holds the inherited text colour blue channel (in [0,1]) that
+	// `currentColor` resolves to, so icons match their surrounding text.
+	CurrentColourB float64
+
+	// CurrentColourA holds the inherited text colour alpha channel (in [0,1]) that
+	// `currentColor` resolves to, so icons match their surrounding text.
+	CurrentColourA float64
 }
 
 // TemplateRunnerPort provides access to compiled PDF templates.

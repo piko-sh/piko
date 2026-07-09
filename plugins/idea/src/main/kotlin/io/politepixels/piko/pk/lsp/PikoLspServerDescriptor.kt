@@ -166,7 +166,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
         if (lspPath != null) return lspPath
 
         lspNotFound = true
-        log.warn("piko-lsp binary not found")
+        log.warn("pikopls binary not found")
         if (settings.showLspNotFoundNotification) {
             showLspNotFoundNotification()
         }
@@ -398,7 +398,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
     )
 
     /**
-     * Searches for the piko-lsp binary in standard locations.
+     * Searches for the pikopls binary in standard locations.
      *
      * Checks custom path, bundled binary, file system paths, and system PATH.
      *
@@ -439,7 +439,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
             arch.contains("aarch64") || arch.contains("arm64") -> "arm64"
             else -> "amd64"
         }
-        val binaryName = if (platform == "windows") "piko-lsp.exe" else "piko-lsp"
+        val binaryName = if (platform == "windows") "pikopls.exe" else "pikopls"
 
         return PlatformInfo(
             platform = platform,
@@ -509,7 +509,7 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
     }
 
     /**
-     * Looks up piko-lsp in the system PATH.
+     * Looks up pikopls in the system PATH.
      *
      * @param platform The current platform for command selection.
      * @return The command name if found in PATH, or null otherwise.
@@ -517,24 +517,24 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
     private fun lookupInSystemPath(platform: String): String? {
         val whichCmd = if (platform == "windows") "where" else "which"
         return try {
-            val proc = ProcessBuilder(whichCmd, "piko-lsp")
+            val proc = ProcessBuilder(whichCmd, "pikopls")
                 .redirectErrorStream(true)
                 .start()
             if (proc.waitFor() == 0) {
-                log.info("Found piko-lsp in PATH")
-                "piko-lsp"
+                log.info("Found pikopls in PATH")
+                "pikopls"
             } else {
                 null
             }
         } catch (e: IOException) {
-            log.debug("Failed to check PATH for piko-lsp: I/O error", e)
+            log.debug("Failed to check PATH for pikopls: I/O error", e)
             null
         } catch (e: InterruptedException) {
-            log.debug("PATH check for piko-lsp interrupted", e)
+            log.debug("PATH check for pikopls interrupted", e)
             Thread.currentThread().interrupt()
             null
         } catch (e: SecurityException) {
-            log.debug("Failed to check PATH for piko-lsp: permission denied", e)
+            log.debug("Failed to check PATH for pikopls: permission denied", e)
             null
         }
     }
@@ -550,27 +550,28 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
      * @return The path to the extracted binary, or null if not bundled.
      */
     private fun extractBundledLsp(platformDir: String, binaryName: String): String? {
-        val dataDir = Path.of(PathManager.getPluginsPath(), "piko-lsp-bin")
+        val dataDir = Path.of(PathManager.getPluginsPath(), "pikopls-bin")
         val binaryFile = dataDir.resolve(platformDir).resolve(binaryName)
         val versionFile = dataDir.resolve(".version")
         val currentVersion = getPluginVersion()
 
+        val resourcePath = "/bin/$platformDir/$binaryName"
+        val resourceUrl = javaClass.getResource(resourcePath)
+        if (resourceUrl == null) {
+            log.debug("Bundled LSP not found in resources: $resourcePath")
+            return null
+        }
+        val bundledSize = bundledResourceSize(resourceUrl)
+
         if (Files.exists(binaryFile) && binaryFile.toFile().canExecute()
-            && isVersionCurrent(versionFile, currentVersion, binaryFile)) {
+            && isBinaryCurrent(versionFile, currentVersion, bundledSize, binaryFile)) {
             log.debug("Bundled LSP is up to date (version: $currentVersion)")
             return binaryFile.toString()
         }
 
-        val resourcePath = "/bin/$platformDir/$binaryName"
-        val resourceStream = javaClass.getResourceAsStream(resourcePath)
-        if (resourceStream == null) {
-            log.debug("Bundled LSP not found in resources: $resourcePath")
-            return null
-        }
-
         try {
             Files.createDirectories(binaryFile.parent)
-            resourceStream.use { input ->
+            resourceUrl.openStream().use { input ->
                 Files.copy(input, binaryFile, StandardCopyOption.REPLACE_EXISTING)
             }
 
@@ -599,31 +600,52 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
      */
     private fun getPluginVersion(): String {
         return try {
-            val pluginId = com.intellij.openapi.extensions.PluginId.getId("io.politepixels.piko")
-            com.intellij.ide.plugins.PluginManager.getInstance().findEnabledPlugin(pluginId)?.version ?: "unknown"
-        } catch (e: Exception) {
+            javaClass.getResourceAsStream("/piko-plugin-version.properties")?.use { stream ->
+                val properties = java.util.Properties()
+                properties.load(stream)
+                properties.getProperty("version")
+            } ?: "unknown"
+        } catch (e: IOException) {
             log.debug("Could not determine plugin version: ${e.message}")
             "unknown"
         }
     }
 
     /**
-     * Checks if the extracted binary version and file size match expectations.
+     * Reads the uncompressed size of a bundled resource without inflating it.
      *
-     * The version file stores "version:filesize" (e.g. "1.2.3:57803264").
-     * Both must match for the binary to be considered current. The size check
-     * catches partial writes from interrupted extractions.
-     *
-     * Falls back to version-only comparison for legacy version files that
-     * don't contain a size component.
+     * @param resourceUrl The URL of the bundled resource.
+     * @return The size in bytes, or -1 if it cannot be determined.
+     */
+    private fun bundledResourceSize(resourceUrl: java.net.URL): Long {
+        return try {
+            resourceUrl.openConnection().contentLengthLong
+        } catch (e: IOException) {
+            log.debug("Could not determine bundled LSP size: ${e.message}")
+            -1L
+        }
+    }
+
+    /**
+     * Checks whether the extracted binary matches the currently bundled one.
      *
      * @param versionFile The path to the version marker file.
      * @param currentVersion The current plugin version.
+     * @param bundledSize The size of the bundled binary, or -1 if unknown.
      * @param binaryFile The path to the extracted binary.
-     * @return True if version and size both match, false otherwise.
+     * @return True if the extracted binary is current, false otherwise.
      */
-    private fun isVersionCurrent(versionFile: Path, currentVersion: String, binaryFile: Path): Boolean {
+    private fun isBinaryCurrent(
+        versionFile: Path,
+        currentVersion: String,
+        bundledSize: Long,
+        binaryFile: Path,
+    ): Boolean {
         if (!Files.exists(versionFile)) return false
+        if (bundledSize < 0) {
+            log.debug("Bundled size unknown, forcing re-extraction")
+            return false
+        }
         return try {
             val stored = Files.readString(versionFile).trim()
             val parts = stored.split(":", limit = 2)
@@ -636,15 +658,20 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
                 return false
             }
 
-            val expectedSize = parts[1].toLongOrNull()
-            if (expectedSize == null) {
+            val storedSize = parts[1].toLongOrNull()
+            if (storedSize == null) {
                 log.debug("Version file has invalid size component: ${parts[1]}")
                 return false
             }
 
+            if (storedSize != bundledSize) {
+                log.debug("Bundled binary changed (recorded: $storedSize, bundled: $bundledSize), re-extracting")
+                return false
+            }
+
             val actualSize = Files.size(binaryFile)
-            if (actualSize != expectedSize) {
-                log.warn("Binary size mismatch (expected: $expectedSize, actual: $actualSize), forcing re-extraction")
+            if (actualSize != bundledSize) {
+                log.warn("Binary size mismatch (expected: $bundledSize, actual: $actualSize), forcing re-extraction")
                 return false
             }
 
@@ -665,21 +692,21 @@ class PikoLspStreamConnectionProvider(private val project: Project) : StreamConn
                 .createNotification(
                     "Piko LSP Not Found",
                     """
-                    The piko-lsp binary could not be found.
+                    The pikopls binary could not be found.
 
                     Template intelligence features will be unavailable.
                     Go/CSS/TypeScript support via language injection will still work.
 
                     To fix this:
-                    1. Install piko-lsp: go install piko.sh/piko/cmd/lsp@latest
+                    1. Install pikopls: go install piko.sh/piko/cmd/pikopls@latest
                     2. Or set a custom path in Settings > Languages & Frameworks > Piko
                     """.trimIndent(),
                     NotificationType.WARNING
                 )
                 .notify(project)
         } catch (e: IllegalStateException) {
-            log.warn("piko-lsp binary not found (notification failed: ${e.message}). " +
-                "Install with: go install piko.sh/piko/cmd/lsp@latest")
+            log.warn("pikopls binary not found (notification failed: ${e.message}). " +
+                "Install with: go install piko.sh/piko/cmd/pikopls@latest")
         }
     }
 

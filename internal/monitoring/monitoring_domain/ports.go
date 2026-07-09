@@ -100,6 +100,23 @@ type MonitoringService interface {
 	//
 	// Takes provider (RenderCacheStatsProvider) which may be nil.
 	SetRenderCacheStatsProvider(provider RenderCacheStatsProvider)
+
+	// HealthProbe returns the configured health probe service, or nil when health probing
+	// has not been wired (SetInspectors not called with a probe). It exposes the same
+	// readiness/liveness tree the transport serves so an in-process telemetry collector can
+	// sample it without depending on the transport.
+	//
+	// Returns HealthProbeService which runs liveness/readiness checks, or nil.
+	HealthProbe() HealthProbeService
+
+	// ProviderInfoInspector returns the configured provider info inspector, or nil when no
+	// services implement ResourceDescriptor (SetProviderInfoInspector not called, or called
+	// with nil). It exposes the same provider detail the transport serves so an in-process
+	// telemetry collector can enrich readiness samples with provider info without depending
+	// on the transport, mirroring HealthProbe.
+	//
+	// Returns ProviderInfoInspector which describes registered providers, or nil.
+	ProviderInfoInspector() ProviderInfoInspector
 }
 
 // TelemetryProvider provides access to OTEL telemetry data. Implementations store and
@@ -303,6 +320,18 @@ type ProviderInfoInspector interface {
 	DescribeResourceType(ctx context.Context, resourceType string) (*provider_domain.ProviderDetail, error)
 }
 
+// ProviderProbeResolver maps a readiness probe name to the resource type describing the
+// same service. A ProviderInfoInspector may optionally implement it.
+type ProviderProbeResolver interface {
+	// ResourceTypeForProbe returns the resource type whose descriptor declared the given
+	// readiness probe name, and whether such a descriptor exists.
+	//
+	// Takes probeName (string) which is the readiness dependency name.
+	//
+	// Returns string which is the matching resource type, and bool which is true on a match.
+	ResourceTypeForProbe(ctx context.Context, probeName string) (string, bool)
+}
+
 // TransportServer is the port interface for a monitoring transport layer that handles
 // network serving and delegates to domain dependencies via MonitoringDeps.
 type TransportServer interface {
@@ -389,6 +418,45 @@ type SpanProcessorFactory func(store *TelemetryStore) SpanProcessor
 // MetricsCollectorFactory creates a metrics collector that stores metrics in the given
 // store, letting adapters provide their own metrics collector implementation.
 type MetricsCollectorFactory func(store *TelemetryStore, interval time.Duration) MetricsCollectorAdapter
+
+// QueryObservation is one observed database statement execution, handed to a registered
+// QueryObserver after each instrumented Exec/Query/QueryRow.
+//
+// Adapters (e.g. a grpcfb query collector) translate it into their own telemetry record.
+type QueryObservation struct {
+	// Err is the execution error, or nil on success.
+	Err error
+
+	// Connection is the registered database name (e.g. "registry", "orchestrator").
+	Connection string
+
+	// Operation is the resolved human-readable operation name ("UNKNOWN" when unresolved).
+	Operation string
+
+	// Statement is the SQL text.
+	Statement string
+
+	// System is the db.system value (e.g. "sqlite", "postgresql").
+	System string
+
+	// DurationMs is the wall-clock duration of the call.
+	DurationMs int64
+
+	// Rows is the affected/returned row count when known (0 when unavailable, e.g. for
+	// streaming QueryContext that the caller has not yet iterated).
+	Rows int64
+}
+
+// QueryObserver receives a QueryObservation after each instrumented database call.
+//
+// It must be non-blocking and must not retain the observation beyond the call. The domain
+// layer passes the concrete observer opaquely from the WithQueryObserver option to the
+// instrumented DBTX wrapper.
+type QueryObserver interface {
+	// ObserveQuery records one database statement execution. The observation is passed by
+	// pointer to avoid copying it on the hot path; the callee must not retain it.
+	ObserveQuery(ctx context.Context, obs *QueryObservation)
+}
 
 // ProfilingController manages on-demand pprof profiling for production diagnostics. It
 // controls the lifecycle of the pprof HTTP server and Go runtime profiling rates, with

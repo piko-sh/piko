@@ -36,4 +36,8 @@ var (
 
 	// errNoBuildAvailable indicates that no build has been successfully completed.
 	errNoBuildAvailable = errors.New("coordinator: no build result is available")
+
+	// errBuildInvalidated is delivered to a waiter whose queued build was discarded by
+	// Invalidate.
+	errBuildInvalidated = errors.New("coordinator: pending build invalidated")
 )

@@ -288,6 +288,28 @@ plugin-idea-run: ## Run sandbox IDE with IntelliJ plugin
 plugin-idea-clean: ## Clean IntelliJ plugin build artefacts
 	@$(HACK_DIR)/plugin/idea.sh clean
 
+##@ Plugins - Zed
+
+.PHONY: plugin-zed-build
+plugin-zed-build: ## Generate the grammar, test it, and build the Zed extension
+	@$(HACK_DIR)/plugin/zed.sh build
+
+.PHONY: plugin-zed-install
+plugin-zed-install: ## Build, then print Zed dev-install instructions
+	@$(HACK_DIR)/plugin/zed.sh install
+
+.PHONY: plugin-zed-lint
+plugin-zed-lint: ## Lint the Zed extension (clippy + clang-tidy)
+	@$(HACK_DIR)/plugin/zed.sh lint
+
+.PHONY: plugin-zed-sync-commit
+plugin-zed-sync-commit: ## Pin extension.toml's grammar commit to HEAD
+	@$(HACK_DIR)/plugin/zed.sh sync-commit
+
+.PHONY: plugin-zed-clean
+plugin-zed-clean: ## Clean Zed extension build artefacts
+	@$(HACK_DIR)/plugin/zed.sh clean
+
 ##@ Pre-submit
 
 .PHONY: check
@@ -359,6 +381,6 @@ clean: ## Clean build artefacts
 	rm -rf $(BIN_DIR)
 	rm -f COVERAGE_REPORT.md
 	rm -f /tmp/piko-coverage-total.out /tmp/piko-coverage-total.deduped.out /tmp/coverage.out
-	rm -f /tmp/piko-lsp-debug
-	rm -f /tmp/piko-lsp-*.log /tmp/piko-lsp-*.log.gz
+	rm -f /tmp/pikopls-debug
+	rm -f /tmp/pikopls-*.log /tmp/pikopls-*.log.gz
 	rm -rf /tmp/chromedp-runner*

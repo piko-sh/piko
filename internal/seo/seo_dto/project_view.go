@@ -24,9 +24,6 @@ package seo_dto
 type ProjectView struct {
 	// Components holds the component views within this project.
 	Components []ComponentView
-
-	// FinalAssetManifest contains all asset dependencies discovered across the project.
-	FinalAssetManifest []AssetDependency
 }
 
 // ComponentView represents a single component within the project from the SEO
@@ -42,11 +39,20 @@ type ComponentView struct {
 	// RoutePattern is the URL path pattern for this component if it is a page.
 	RoutePattern string
 
+	// RouteSourceName is the name of the build-time RouteSource bound to this page via the
+	// p-route-source directive, empty when the page is not route-source-backed.
+	RouteSourceName string
+
+	// RouteSourceParamName is the dynamic route segment the RouteSource enumerates (from the
+	// p-param directive), e.g. "locationslug".
+	RouteSourceParamName string
+
 	// SEO holds the SEO metadata for the component.
 	SEO PageSEOMetadata
 
-	// SupportedLocales lists the locales available for this component, taken from
-	// LocalTranslations.
+	// SupportedLocales lists the locales available for this component, derived from a
+	// declared SupportedLocales() function (the same signal the manifest builder uses to fan
+	// out per-locale routes).
 	SupportedLocales []string
 
 	// IsPage indicates whether this component is a page that users can visit directly.
@@ -54,13 +60,7 @@ type ComponentView struct {
 
 	// IsPublic indicates whether the page can be viewed by anyone.
 	IsPublic bool
-}
 
-// AssetDependency represents a single static asset that a file depends on.
-type AssetDependency struct {
-	// SourcePath is the path to the asset file relative to the project root.
-	SourcePath string
-
-	// AssetType specifies the kind of asset (e.g. "img", "css", "js").
-	AssetType string
+	// IsAuthGated indicates whether the page declares an AuthPolicy.
+	IsAuthGated bool
 }

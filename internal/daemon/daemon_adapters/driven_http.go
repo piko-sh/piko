@@ -166,11 +166,12 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	publicDownloadHandler http.Handler,
 ) {
 	noCache := routerConfig.DisableHTTPCache
+	sitemapCacheControl := cacheControlForMode(noCache, sitemapCacheControlValue(routerConfig.SitemapCacheMaxAgeSeconds))
 	router.Get(routerConfig.DistServePath+"/*", serveEmbeddedFrontend(routerConfig.WatchMode, noCache))
 	router.Get("/theme.css", builder.serveTheme(registryService, noCache))
-	router.Get("/sitemap.xml", builder.serveSitemapArtefact(registryService, "sitemap.xml", noCache))
-	router.Get("/sitemap-{number}.xml", builder.serveSitemapChunk(registryService, noCache))
-	router.Get("/robots.txt", builder.serveRobotsTxt(registryService, noCache))
+	router.Get("/sitemap.xml", builder.serveSitemapArtefact(registryService, "sitemap.xml", sitemapCacheControl))
+	router.Get("/sitemap-{number}.xml", builder.serveSitemapChunk(registryService, sitemapCacheControl))
+	router.Get("/robots.txt", builder.serveRobotsTxt(registryService, sitemapCacheControl))
 	router.Get(fmt.Sprintf("%s/*", routerConfig.ArtefactServePath), builder.serveArtefact(registryService, variantGenerator, noCache))
 
 	router.Get("/_piko/video/{artefactID}/master.m3u8", builder.serveVideoMasterPlaylist(registryService, noCache))
@@ -363,11 +364,11 @@ func (*HTTPRouterBuilder) serveTheme(registryService registry_domain.RegistrySer
 //
 // Returns http.HandlerFunc which serves the sitemap with XML content type and a one-hour
 // cache duration.
-func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.RegistryService, artefactID string, disableHTTPCache bool) http.HandlerFunc {
+func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.RegistryService, artefactID string, cacheControl string) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      artefactID,
 		defaultMimeType: contentTypeXML,
-		cacheMaxAge:     cacheControlForMode(disableHTTPCache, cacheControlMutableAsset),
+		cacheMaxAge:     cacheControl,
 		preferredType:   variantSource,
 		useCompression:  true,
 	}, "serveSitemapArtefact")
@@ -380,11 +381,11 @@ func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.R
 // sitemap files.
 //
 // Returns http.HandlerFunc which handles requests for sitemap chunks.
-func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
+func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_domain.RegistryService, cacheControl string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		number := chi.URLParam(r, "number")
 		artefactID := fmt.Sprintf("sitemap-%s.xml", number)
-		builder.serveSitemapArtefact(registryService, artefactID, disableHTTPCache)(w, r)
+		builder.serveSitemapArtefact(registryService, artefactID, cacheControl)(w, r)
 	}
 }
 
@@ -393,11 +394,11 @@ func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_dom
 // Takes registryService (RegistryService) which provides access to static files.
 //
 // Returns http.HandlerFunc which serves the robots.txt file with a one-hour cache.
-func (*HTTPRouterBuilder) serveRobotsTxt(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
+func (*HTTPRouterBuilder) serveRobotsTxt(registryService registry_domain.RegistryService, cacheControl string) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      "robots.txt",
 		defaultMimeType: "text/plain; charset=utf-8",
-		cacheMaxAge:     cacheControlForMode(disableHTTPCache, cacheControlMutableAsset),
+		cacheMaxAge:     cacheControl,
 		preferredType:   variantSource,
 		useCompression:  false,
 	}, "serveRobotsTxt")
@@ -437,8 +438,14 @@ type variantResolutionContext struct {
 	// variantGenerator creates image variants when they are needed.
 	variantGenerator daemon_domain.OnDemandVariantGenerator
 
-	// cacheControl is the Cache-Control header value for the response.
-	cacheControl string
+	// disableHTTPCache indicates dev mode; it forces no-cache for every response via
+	// cacheControlForMode.
+	disableHTTPCache bool
+
+	// foundByStorageKey reports whether the artefact was resolved by its content-addressed
+	// storage key (true) rather than its stable logical ID (false). It selects the cache
+	// policy: a content-addressed URL is immutable-safe, a stable URL must revalidate.
+	foundByStorageKey bool
 }
 
 // serveArtefact returns an HTTP handler that serves artefact content.
@@ -455,7 +462,6 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 	variantGenerator daemon_domain.OnDemandVariantGenerator,
 	disableHTTPCache bool,
 ) http.HandlerFunc {
-	artefactCacheControl := cacheControlForMode(disableHTTPCache, cacheControlLongLived)
 	builder.metadataCache = newArtefactMetadataCache(builder.artefactCache, registryService)
 	metadataCache := builder.metadataCache
 
@@ -489,12 +495,13 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 		}
 
 		vrc := variantResolutionContext{
-			span:             span,
-			w:                w,
-			r:                r,
-			registryService:  registryService,
-			variantGenerator: variantGenerator,
-			cacheControl:     artefactCacheControl,
+			span:              span,
+			w:                 w,
+			r:                 r,
+			registryService:   registryService,
+			variantGenerator:  variantGenerator,
+			disableHTTPCache:  disableHTTPCache,
+			foundByStorageKey: lookup.foundByStorageKey,
 		}
 
 		variant := builder.resolveVariant(ctx, vrc, lookup, artefactID, variantParam)
@@ -950,21 +957,6 @@ func buildAllowedOrigins(routerConfig *daemon_domain.RouterConfig) []string {
 	return origins
 }
 
-// cacheControlForMode returns the appropriate Cache-Control header value, using no-cache
-// to force ETag revalidation when HTTP caching is disabled (dev mode) and the provided
-// production value when enabled (prod mode).
-//
-// Takes disableHTTPCache (bool) which indicates whether HTTP caching is disabled.
-// Takes prodValue (string) which is the Cache-Control value to use in production mode.
-//
-// Returns string which is the resolved Cache-Control header value.
-func cacheControlForMode(disableHTTPCache bool, prodValue string) string {
-	if disableHTTPCache {
-		return cacheControlNoCache
-	}
-	return prodValue
-}
-
 // fetchStaticArtefact gets an artefact from the registry and handles not-found errors.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
@@ -1233,7 +1225,9 @@ func serveVariantResponse(
 	}
 
 	etag := bestVariant.MetadataTags.Get(registry_dto.TagEtag)
+	cacheControl := cacheControlForArtefact(vrc.disableHTTPCache, vrc.foundByStorageKey, bestVariant)
 	if etag != "" && vrc.r.Header.Get(headerIfNoneMatch) == etag {
+		setVariantCacheHeaders(vrc.w.Header(), etag, cacheControl)
 		vrc.w.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -1253,8 +1247,7 @@ func serveVariantResponse(
 
 	h := vrc.w.Header()
 	h[headerContentType] = []string{bestVariant.MimeType}
-	h[headerETag] = []string{etag}
-	h[headerCacheControl] = []string{vrc.cacheControl}
+	setVariantCacheHeaders(h, etag, cacheControl)
 
 	if encoding := bestVariant.MetadataTags.Get(registry_dto.TagContentEncoding); encoding != "" {
 		h[headerContentEncoding] = []string{encoding}
@@ -1282,7 +1275,7 @@ func serveVariantResponse(
 // Returns *registry_dto.Variant which is the best matching compressed variant, or the
 // base variant if no compressed version is available.
 func findBestCompressedVariant(r *http.Request, artefact *registry_dto.ArtefactMeta, baseVariantID string) *registry_dto.Variant {
-	acceptEncoding := r.Header.Get("Accept-Encoding")
+	acceptEncoding := r.Header.Get(headerAcceptEncoding)
 
 	if strings.Contains(acceptEncoding, "br") {
 		if v := findVariantByID(artefact.ActualVariants, baseVariantID+"_br"); v != nil {
@@ -1329,7 +1322,7 @@ func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFu
 
 		basePath := path.Join("built", fileParam)
 
-		finalPath := daemon_frontend.DetermineBestAssetPath(r.Context(), basePath, r.Header.Get("Accept-Encoding"))
+		finalPath := daemon_frontend.DetermineBestAssetPath(r.Context(), basePath, r.Header.Get(headerAcceptEncoding))
 
 		asset, found := daemon_frontend.GetAsset(r.Context(), finalPath)
 		if !found {
@@ -1353,7 +1346,7 @@ func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFu
 		if asset.Encoding != "" {
 			h[headerContentEncoding] = []string{asset.Encoding}
 		}
-		w.Header().Add("Vary", "Accept-Encoding")
+		w.Header().Add("Vary", headerAcceptEncoding)
 
 		http.ServeContent(w, r, filepath.Base(basePath), time.Time{}, bytes.NewReader(asset.Content))
 	}

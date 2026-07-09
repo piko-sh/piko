@@ -223,24 +223,35 @@ function findAnchorContainer(shadowRoot) {
   }
   return null;
 }
-function computeAnchorPosition(targetRect, containerRect, elementWidth, elementHeight, wantBottom, wantRight) {
+function computeAnchorPosition(targetRect, containerRect, elementWidth, elementHeight, position, insetBottom) {
+  const bottomLimit = containerRect.height - insetBottom;
+  const wantBottom = position.startsWith("bottom");
+  const wantRight = position.endsWith("right");
+  const isSide = position === "right" || position === "left";
   let top;
-  if (wantBottom) {
-    top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
-    if (top + elementHeight > containerRect.height - ANCHOR_PADDING) {
-      top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
-    }
-  } else {
-    top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
-    if (top < ANCHOR_PADDING) {
-      top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
-    }
-  }
   let left;
-  if (wantRight) {
-    left = targetRect.right - containerRect.left - elementWidth;
+  if (isSide) {
+    top = targetRect.top - containerRect.top;
+    left = position === "right" ? targetRect.right - containerRect.left + ANCHOR_PADDING : targetRect.left - containerRect.left - elementWidth - ANCHOR_PADDING;
   } else {
-    left = targetRect.left - containerRect.left;
+    if (wantBottom) {
+      top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
+      if (top + elementHeight > bottomLimit - ANCHOR_PADDING) {
+        const flipped = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
+        if (flipped >= ANCHOR_PADDING) {
+          top = flipped;
+        }
+      }
+    } else {
+      top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
+      if (top < ANCHOR_PADDING) {
+        const flipped = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
+        if (flipped + elementHeight <= bottomLimit - ANCHOR_PADDING) {
+          top = flipped;
+        }
+      }
+    }
+    left = wantRight ? targetRect.right - containerRect.left - elementWidth : targetRect.left - containerRect.left;
   }
   if (left + elementWidth > containerRect.width - ANCHOR_PADDING) {
     left = containerRect.width - elementWidth - ANCHOR_PADDING;
@@ -251,8 +262,11 @@ function computeAnchorPosition(targetRect, containerRect, elementWidth, elementH
   if (top < ANCHOR_PADDING) {
     top = ANCHOR_PADDING;
   }
-  if (top + elementHeight > containerRect.height - ANCHOR_PADDING) {
-    top = containerRect.height - elementHeight - ANCHOR_PADDING;
+  if (top + elementHeight > bottomLimit - ANCHOR_PADDING) {
+    top = bottomLimit - elementHeight - ANCHOR_PADDING;
+  }
+  if (top < ANCHOR_PADDING) {
+    top = ANCHOR_PADDING;
   }
   return { top, left };
 }
@@ -270,6 +284,7 @@ function evaluateAnchors(component) {
     return;
   }
   const containerRect = container.getBoundingClientRect();
+  const insetBottom = parseFloat(container.getAttribute("data-anchor-inset-bottom") ?? "") || 0;
   for (const el of Array.from(anchored)) {
     const htmlEl = el;
     if (htmlEl.hasAttribute("p-timeline-hidden")) {
@@ -282,8 +297,6 @@ function evaluateAnchors(component) {
     const parts = raw.split(" ");
     const targetRef = parts[0];
     const position = parts[1] || "bottom-left";
-    const wantBottom = position.startsWith("bottom");
-    const wantRight = position.endsWith("right");
     const target = component.refs?.[targetRef];
     if (!target || target.hasAttribute("p-timeline-hidden")) {
       htmlEl.style.top = "";
@@ -300,8 +313,8 @@ function evaluateAnchors(component) {
       containerRect,
       elementWidth,
       elementHeight,
-      wantBottom,
-      wantRight
+      position,
+      insetBottom
     );
     htmlEl.style.top = `${pos.top}px`;
     htmlEl.style.left = `${pos.left}px`;

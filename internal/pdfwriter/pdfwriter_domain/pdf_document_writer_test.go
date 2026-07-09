@@ -23,6 +23,9 @@ package pdfwriter_domain
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAllocateObject(t *testing.T) {
@@ -32,9 +35,7 @@ func TestAllocateObject(t *testing.T) {
 		t.Parallel()
 		writer := &PdfDocumentWriter{}
 		num := writer.AllocateObject()
-		if num != 1 {
-			t.Errorf("first object number = %d, want 1", num)
-		}
+		assert.Equal(t, 1, num, "first object number")
 	})
 
 	t.Run("sequential allocation", func(t *testing.T) {
@@ -43,9 +44,9 @@ func TestAllocateObject(t *testing.T) {
 		n1 := writer.AllocateObject()
 		n2 := writer.AllocateObject()
 		n3 := writer.AllocateObject()
-		if n1 != 1 || n2 != 2 || n3 != 3 {
-			t.Errorf("expected 1, 2, 3 but got %d, %d, %d", n1, n2, n3)
-		}
+		assert.Equal(t, 1, n1)
+		assert.Equal(t, 2, n2)
+		assert.Equal(t, 3, n3)
 	})
 }
 
@@ -56,16 +57,10 @@ func TestWriteHeader(t *testing.T) {
 	writer.WriteHeader()
 	output := string(writer.Bytes())
 
-	if !strings.HasPrefix(output, "%PDF-1.7\n") {
-		t.Errorf("expected PDF header, got %q", output[:20])
-	}
+	assert.True(t, strings.HasPrefix(output, "%PDF-1.7\n"), "expected PDF header")
 
-	if len(output) < 15 {
-		t.Fatal("output too short for header")
-	}
-	if output[9] != '%' {
-		t.Errorf("expected binary comment marker '%%', got %q", output[9:10])
-	}
+	require.GreaterOrEqual(t, len(output), 15, "output too short for header")
+	assert.Equal(t, byte('%'), output[9], "expected binary comment marker")
 }
 
 func TestWriteObject(t *testing.T) {
@@ -79,15 +74,9 @@ func TestWriteObject(t *testing.T) {
 		writer.WriteObject(num, "<< /Type /Catalog >>")
 		output := string(writer.Bytes())
 
-		if !strings.Contains(output, "1 0 obj") {
-			t.Error("expected '1 0 obj' in output")
-		}
-		if !strings.Contains(output, "<< /Type /Catalog >>") {
-			t.Error("expected body content in output")
-		}
-		if !strings.Contains(output, "endobj") {
-			t.Error("expected 'endobj' in output")
-		}
+		assert.Contains(t, output, "1 0 obj")
+		assert.Contains(t, output, "<< /Type /Catalog >>", "expected body content in output")
+		assert.Contains(t, output, "endobj")
 	})
 
 	t.Run("invalid object number is ignored", func(t *testing.T) {
@@ -97,9 +86,7 @@ func TestWriteObject(t *testing.T) {
 		headerLen := len(writer.Bytes())
 		writer.WriteObject(0, "should not appear")
 		writer.WriteObject(99, "should not appear")
-		if len(writer.Bytes()) != headerLen {
-			t.Error("expected no output for invalid object numbers")
-		}
+		assert.Len(t, writer.Bytes(), headerLen, "expected no output for invalid object numbers")
 	})
 }
 
@@ -112,24 +99,12 @@ func TestWriteStreamObject(t *testing.T) {
 	writer.WriteStreamObject(num, "/Length1 100", []byte("test content"))
 	output := string(writer.Bytes())
 
-	if !strings.Contains(output, "1 0 obj") {
-		t.Error("expected '1 0 obj' in output")
-	}
-	if !strings.Contains(output, "/Filter /FlateDecode") {
-		t.Error("expected FlateDecode filter in output")
-	}
-	if !strings.Contains(output, "/Length1 100") {
-		t.Error("expected custom dictionary entry in output")
-	}
-	if !strings.Contains(output, "stream") {
-		t.Error("expected 'stream' keyword in output")
-	}
-	if !strings.Contains(output, "endstream") {
-		t.Error("expected 'endstream' keyword in output")
-	}
-	if !strings.Contains(output, "endobj") {
-		t.Error("expected 'endobj' in output")
-	}
+	assert.Contains(t, output, "1 0 obj")
+	assert.Contains(t, output, "/Filter /FlateDecode", "expected FlateDecode filter in output")
+	assert.Contains(t, output, "/Length1 100", "expected custom dictionary entry in output")
+	assert.Contains(t, output, "stream")
+	assert.Contains(t, output, "endstream")
+	assert.Contains(t, output, "endobj")
 }
 
 func TestWriteRawStreamObject(t *testing.T) {
@@ -142,18 +117,10 @@ func TestWriteRawStreamObject(t *testing.T) {
 	writer.WriteRawStreamObject(num, "<< /Type /XObject /Filter /DCTDecode /Length 4 >>", rawContent)
 	output := string(writer.Bytes())
 
-	if !strings.Contains(output, "1 0 obj") {
-		t.Error("expected '1 0 obj' in output")
-	}
-	if !strings.Contains(output, "/DCTDecode") {
-		t.Error("expected DCTDecode in output")
-	}
-	if !strings.Contains(output, "stream") {
-		t.Error("expected 'stream' in output")
-	}
-	if !strings.Contains(output, "endstream") {
-		t.Error("expected 'endstream' in output")
-	}
+	assert.Contains(t, output, "1 0 obj")
+	assert.Contains(t, output, "/DCTDecode")
+	assert.Contains(t, output, "stream")
+	assert.Contains(t, output, "endstream")
 }
 
 func TestWriteTrailer(t *testing.T) {
@@ -168,24 +135,12 @@ func TestWriteTrailer(t *testing.T) {
 		writer.WriteTrailer(catNum)
 		output := string(writer.Bytes())
 
-		if !strings.Contains(output, "xref") {
-			t.Error("expected xref table")
-		}
-		if !strings.Contains(output, "trailer") {
-			t.Error("expected trailer keyword")
-		}
-		if !strings.Contains(output, "/Root 1 0 R") {
-			t.Error("expected /Root reference")
-		}
-		if !strings.Contains(output, "/Size 2") {
-			t.Error("expected /Size 2 (1 object + free head)")
-		}
-		if !strings.Contains(output, "startxref") {
-			t.Error("expected startxref")
-		}
-		if !strings.Contains(output, "%"+"%EOF") {
-			t.Error("expected EOF marker")
-		}
+		assert.Contains(t, output, "xref", "expected xref table")
+		assert.Contains(t, output, "trailer", "expected trailer keyword")
+		assert.Contains(t, output, "/Root 1 0 R", "expected /Root reference")
+		assert.Contains(t, output, "/Size 2", "expected /Size 2 (1 object + free head)")
+		assert.Contains(t, output, "startxref", "expected startxref")
+		assert.Contains(t, output, "%"+"%EOF", "expected EOF marker")
 	})
 
 	t.Run("trailer with info dictionary", func(t *testing.T) {
@@ -199,9 +154,7 @@ func TestWriteTrailer(t *testing.T) {
 		writer.WriteTrailer(catNum, infoNum)
 		output := string(writer.Bytes())
 
-		if !strings.Contains(output, "/Info 2 0 R") {
-			t.Error("expected /Info reference")
-		}
+		assert.Contains(t, output, "/Info 2 0 R", "expected /Info reference")
 	})
 
 	t.Run("xref has correct entry count", func(t *testing.T) {
@@ -217,9 +170,7 @@ func TestWriteTrailer(t *testing.T) {
 		writer.WriteTrailer(n1)
 		output := string(writer.Bytes())
 
-		if !strings.Contains(output, "/Size 4") {
-			t.Errorf("expected /Size 4, output: %s", output)
-		}
+		assert.Contains(t, output, "/Size 4", "expected /Size 4")
 	})
 }
 
@@ -239,9 +190,7 @@ func TestFormatReference(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := FormatReference(test.number)
-			if got != test.want {
-				t.Errorf("FormatReference(%d) = %q, want %q", test.number, got, test.want)
-			}
+			assert.Equal(t, test.want, got, "FormatReference(%d)", test.number)
 		})
 	}
 }
@@ -251,8 +200,8 @@ func TestFormatArray(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		items []string
 		want  string
+		items []string
 	}{
 		{name: "empty array", items: nil, want: "[]"},
 		{name: "single item", items: []string{"1 0 R"}, want: "[1 0 R]"},
@@ -263,9 +212,7 @@ func TestFormatArray(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := FormatArray(test.items...)
-			if got != test.want {
-				t.Errorf("FormatArray(%v) = %q, want %q", test.items, got, test.want)
-			}
+			assert.Equal(t, test.want, got, "FormatArray(%v)", test.items)
 		})
 	}
 }
@@ -288,9 +235,7 @@ func TestFormatNumber(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			got := FormatNumber(test.value)
-			if got != test.want {
-				t.Errorf("FormatNumber(%f) = %q, want %q", test.value, got, test.want)
-			}
+			assert.Equal(t, test.want, got, "FormatNumber(%f)", test.value)
 		})
 	}
 }
@@ -321,24 +266,22 @@ func TestCompletePdfStructure(t *testing.T) {
 	writer.WriteTrailer(catNum)
 
 	output := writer.Bytes()
-	if len(output) == 0 {
-		t.Fatal("expected non-empty PDF output")
-	}
+	require.NotEmpty(t, output, "expected non-empty PDF output")
 
 	outputStr := string(output)
-	if !strings.HasPrefix(outputStr, "%PDF-1.7") {
-		t.Error("missing PDF header")
-	}
-	if !strings.HasSuffix(outputStr, "%"+"%EOF\n") {
-		t.Error("missing EOF marker")
-	}
-	if !strings.Contains(outputStr, "/Type /Catalog") {
-		t.Error("missing catalogue object")
-	}
-	if !strings.Contains(outputStr, "/Type /Pages") {
-		t.Error("missing pages object")
-	}
-	if !strings.Contains(outputStr, "/Type /Page") {
-		t.Error("missing page object")
-	}
+	assert.True(t, strings.HasPrefix(outputStr, "%PDF-1.7"), "missing PDF header")
+	assert.True(t, strings.HasSuffix(outputStr, "%"+"%EOF\n"), "missing EOF marker")
+	assert.Contains(t, outputStr, "/Type /Catalog", "missing catalogue object")
+	assert.Contains(t, outputStr, "/Type /Pages", "missing pages object")
+	assert.Contains(t, outputStr, "/Type /Page", "missing page object")
+}
+
+func TestWriteStreamObject_CompressionFallbackCount(t *testing.T) {
+	writer := &PdfDocumentWriter{}
+	writer.WriteHeader()
+	number := writer.AllocateObject()
+	writer.WriteStreamObject(number, "/Type /Test", []byte("compressible content"))
+
+	assert.Zero(t, writer.CompressionFallbackCount(), "expected 0 compression fallbacks for a normal write")
+	assert.Contains(t, string(writer.Bytes()), "/Filter /FlateDecode", "expected the stream to be FlateDecode compressed")
 }

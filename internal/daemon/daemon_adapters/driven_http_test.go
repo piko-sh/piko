@@ -1305,6 +1305,113 @@ func TestArtefactLookupResult_ErrorFields(t *testing.T) {
 	assert.False(t, result.foundByStorageKey)
 }
 
+func mountProdAssetHandler(t *testing.T, registry registry_domain.RegistryService) http.Handler {
+	t.Helper()
+	builder := &HTTPRouterBuilder{}
+	t.Cleanup(builder.Close)
+	router := chi.NewRouter()
+	router.Get("/_piko/assets/*", builder.serveArtefact(registry, daemon_domain.OnDemandVariantGenerator(nil), false))
+	return router
+}
+
+func staticByIDRegistry(artefactID, mimeType, etag, body string) *registry_domain.MockRegistryService {
+	tags := registry_dto.Tags{}
+	tags.Set(registry_dto.TagEtag, etag)
+	artefact := &registry_dto.ArtefactMeta{
+		ID:     artefactID,
+		Status: registry_dto.VariantStatusReady,
+		ActualVariants: []registry_dto.Variant{
+			{
+				VariantID:    variantSource,
+				MimeType:     mimeType,
+				StorageKey:   "store/" + artefactID,
+				SizeBytes:    int64(len(body)),
+				Status:       registry_dto.VariantStatusReady,
+				MetadataTags: tags,
+			},
+		},
+	}
+	return &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, id string) (*registry_dto.ArtefactMeta, error) {
+			if id != artefactID {
+				return nil, registry_domain.ErrArtefactNotFound
+			}
+			return artefact, nil
+		},
+		GetVariantDataFunc: func(_ context.Context, _ *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader(body)), nil
+		},
+	}
+}
+
+func TestServeArtefact_CacheControlAndVaryHeaders(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name             string
+		artefactID       string
+		mimeType         string
+		wantCacheControl string
+	}{
+		{
+			name:             "stable-URL pk-js bundle revalidates",
+			artefactID:       "pk-js/pk/actions.gen.js",
+			mimeType:         "application/javascript",
+			wantCacheControl: jitCacheControl,
+		},
+		{
+			name:             "stable-URL @/-aliased module JS revalidates",
+			artefactID:       "module/lib/utils.js",
+			mimeType:         "application/javascript",
+			wantCacheControl: jitCacheControl,
+		},
+		{
+			name:             "image served by ID uses bounded media tier",
+			artefactID:       "module/lib/logo.png",
+			mimeType:         "image/png",
+			wantCacheControl: cacheControlMutableAsset,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			registry := staticByIDRegistry(tc.artefactID, tc.mimeType, `"etag-1"`, "body-"+tc.artefactID)
+			handler := mountProdAssetHandler(t, registry)
+
+			request := httptest.NewRequest(http.MethodGet, "/_piko/assets/"+tc.artefactID, nil)
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+
+			assert.Equal(t, http.StatusOK, recorder.Code)
+			assert.Equal(t, tc.wantCacheControl, recorder.Header().Get("Cache-Control"))
+			assert.Equal(t, "Accept-Encoding", recorder.Header().Get("Vary"))
+			assert.Equal(t, `"etag-1"`, recorder.Header().Get("Etag"))
+		})
+	}
+}
+
+func TestServeArtefact_NotModifiedCarriesCacheHeaders(t *testing.T) {
+	t.Parallel()
+
+	const artefactID = "pk-js/pk/actions.gen.js"
+	registry := staticByIDRegistry(artefactID, "application/javascript", `"etag-1"`, "actions-body")
+	handler := mountProdAssetHandler(t, registry)
+
+	request := httptest.NewRequest(http.MethodGet, "/_piko/assets/"+artefactID, nil)
+	request.Header.Set("If-None-Match", `"etag-1"`)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+
+	assert.Equal(t, http.StatusNotModified, recorder.Code)
+	assert.Empty(t, recorder.Body.String(), "304 must not carry a body")
+	assert.Equal(t, jitCacheControl, recorder.Header().Get("Cache-Control"),
+		"304 must refresh the client's stored Cache-Control so it never goes stale")
+	assert.Equal(t, `"etag-1"`, recorder.Header().Get("Etag"))
+	assert.Equal(t, "Accept-Encoding", recorder.Header().Get("Vary"))
+}
+
 func TestHlsQualityConfigs_AllQualities(t *testing.T) {
 	t.Parallel()
 
@@ -1618,28 +1725,4 @@ func TestNewPipeResponseWriter_SetStatusOK(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, prw.statusCode)
 	assert.NotNil(t, prw.header)
-}
-
-func TestCacheControlForMode_DisabledReturnsNoCache(t *testing.T) {
-	t.Parallel()
-
-	result := cacheControlForMode(true, cacheControlMutableAsset)
-
-	assert.Equal(t, cacheControlNoCache, result)
-}
-
-func TestCacheControlForMode_EnabledReturnsProdValue(t *testing.T) {
-	t.Parallel()
-
-	result := cacheControlForMode(false, cacheControlMutableAsset)
-
-	assert.Equal(t, cacheControlMutableAsset, result)
-}
-
-func TestCacheControlForMode_LongLivedProdValue(t *testing.T) {
-	t.Parallel()
-
-	result := cacheControlForMode(false, cacheControlLongLived)
-
-	assert.Equal(t, cacheControlLongLived, result)
 }

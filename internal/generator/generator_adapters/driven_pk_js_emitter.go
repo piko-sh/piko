@@ -117,7 +117,7 @@ func (e *PKJSEmitter) EmitJS(
 
 	desiredProfiles := lifecycle_domain.GetProfilesForFile(artefactID, nil)
 
-	blobSourcePath := "pk/" + filepath.Base(cleanPath)
+	blobSourcePath := "pk/" + filepath.Base(cleanPath) + ".js"
 
 	_, err = e.registryService.UpsertArtefact(
 		ctx,

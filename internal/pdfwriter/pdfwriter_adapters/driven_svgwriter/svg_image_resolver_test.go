@@ -22,6 +22,9 @@ import (
 	"context"
 	"encoding/base64"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSVGImageResolver_SVGDataURI(t *testing.T) {
@@ -33,15 +36,9 @@ func TestSVGImageResolver_SVGDataURI(t *testing.T) {
 	resolver := NewSVGImageResolver(nil, dataAdapter)
 
 	w, h, err := resolver.GetImageDimensions(context.Background(), source)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if w != 200 {
-		t.Errorf("width = %v, want 200", w)
-	}
-	if h != 150 {
-		t.Errorf("height = %v, want 150", h)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 200.0, w)
+	assert.Equal(t, 150.0, h)
 }
 
 func TestSVGImageResolver_ViewBoxOnly(t *testing.T) {
@@ -53,15 +50,9 @@ func TestSVGImageResolver_ViewBoxOnly(t *testing.T) {
 	resolver := NewSVGImageResolver(nil, dataAdapter)
 
 	w, h, err := resolver.GetImageDimensions(context.Background(), source)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if w != 300 {
-		t.Errorf("width = %v, want 300", w)
-	}
-	if h != 200 {
-		t.Errorf("height = %v, want 200", h)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 300.0, w)
+	assert.Equal(t, 200.0, h)
 }
 
 func TestSVGImageResolver_NonSVG_FallsThrough(t *testing.T) {
@@ -78,15 +69,10 @@ func TestSVGImageResolver_NonSVG_FallsThrough(t *testing.T) {
 	resolver := NewSVGImageResolver(inner, dataAdapter)
 
 	w, h, err := resolver.GetImageDimensions(context.Background(), "/images/photo.jpg")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !innerCalled {
-		t.Error("expected inner resolver to be called for non-SVG source")
-	}
-	if w != 50 || h != 75 {
-		t.Errorf("dimensions = %vx%v, want 50x75", w, h)
-	}
+	require.NoError(t, err)
+	assert.True(t, innerCalled, "expected inner resolver to be called for non-SVG source")
+	assert.Equal(t, 50.0, w)
+	assert.Equal(t, 75.0, h)
 }
 
 func TestSVGImageResolver_NilInner_ReturnsDefault(t *testing.T) {
@@ -94,12 +80,9 @@ func TestSVGImageResolver_NilInner_ReturnsDefault(t *testing.T) {
 	resolver := NewSVGImageResolver(nil, dataAdapter)
 
 	w, h, err := resolver.GetImageDimensions(context.Background(), "/images/photo.jpg")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if w != 100 || h != 100 {
-		t.Errorf("dimensions = %vx%v, want 100x100", w, h)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 100.0, w)
+	assert.Equal(t, 100.0, h)
 }
 
 type mockImageResolver struct {

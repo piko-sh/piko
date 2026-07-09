@@ -1,0 +1,4 @@
+{
+  "description": "A json_each(...) je table-valued function inside an EXISTS subquery searches every element of a JSON array column, and the scalar SELECT-list variant resolves a contact by uuid. addRawTablesToScope registers FROM-clause table-valued functions into the inner subquery scope, so the je alias and je.value resolve and no Q001 is emitted. The golden output proves the generated DAL is correct at runtime: searching the SECOND contact (\"Mia Richardson\") still finds the customer.",
+  "expectedDiagnostics": []
+}

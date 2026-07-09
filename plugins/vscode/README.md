@@ -84,9 +84,9 @@ Search for "Piko" in the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
 Access settings via `File > Preferences > Settings` (or `Code > Preferences > Settings` on macOS), then search for "Piko":
 
 - **`piko.lspPath`** (string, default: `""`)
-  - Custom path to the `piko-lsp` binary
+  - Custom path to the `pikopls` binary
   - Leave empty to use the bundled binary
-  - Example: `/usr/local/bin/piko-lsp`
+  - Example: `/usr/local/bin/pikopls`
 
 - **`piko.trace.server`** (enum, default: `"off"`)
   - Trace LSP communication for debugging
@@ -175,7 +175,7 @@ Access commands via the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
   - View LSP communication logs and status
 
 - **`Piko: Open LSP Logs`**
-  - Open the LSP server log file at `/tmp/piko-lsp-main.log`
+  - Open the LSP server log file at `/tmp/pikopls-main.log`
   - Useful for debugging server-side issues
 
 ## Troubleshooting
@@ -188,7 +188,7 @@ Access commands via the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`):
 
 ### LSP Binary Not Found
 
-**Error**: `Bundled piko-lsp binary not found`
+**Error**: `Bundled pikopls binary not found`
 
 **Solution**:
 1. Build the LSP binaries:
@@ -244,7 +244,7 @@ Your installed Go version is too old for your project. Fix:
 ### Server Unresponsive
 
 1. Run: `Piko: Restart Language Server` command
-2. Check `/tmp/piko-lsp-main.log` for errors
+2. Check `/tmp/pikopls-main.log` for errors
 3. Increase trace level: Set `piko.trace.server` to `"verbose"`
 
 ## Development

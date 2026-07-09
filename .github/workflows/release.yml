@@ -67,8 +67,8 @@ jobs:
           mkdir -p dist/lsp
           go build -trimpath \
             -ldflags="-s -w" \
-            -o "dist/lsp/piko-lsp${{ steps.ext.outputs.lsp }}" \
-            ./cmd/lsp
+            -o "dist/lsp/pikopls${{ steps.ext.outputs.lsp }}" \
+            ./cmd/pikopls
 
       - name: Archive CLI
         run: |
@@ -83,9 +83,9 @@ jobs:
         run: |
           cd dist/lsp
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            zip "../../piko-lsp-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip" piko-lsp${{ steps.ext.outputs.lsp }}
+            zip "../../pikopls-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip" pikopls${{ steps.ext.outputs.lsp }}
           else
-            tar czf "../../piko-lsp-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz" piko-lsp${{ steps.ext.outputs.lsp }}
+            tar czf "../../pikopls-${{ steps.version.outputs.version }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz" pikopls${{ steps.ext.outputs.lsp }}
           fi
 
       - name: Upload CLI archive
@@ -98,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: lsp-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: piko-lsp-*
+          path: pikopls-*
 
       - name: Upload LSP binary (for plugin bundling)
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -220,6 +220,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
 
       - name: Tag WDK and command sub-modules
         run: |
@@ -340,7 +342,7 @@ jobs:
       - name: Generate SBOMs
         run: |
           mkdir -p sbom-tmp
-          for archive in release/piko-cli-*.tar.gz release/piko-lsp-*.tar.gz; do
+          for archive in release/piko-cli-*.tar.gz release/pikopls-*.tar.gz; do
             [ -f "$archive" ] || continue
             basename=$(basename "$archive")
             extract_dir="sbom-tmp/${basename%.tar.gz}"
@@ -352,7 +354,7 @@ jobs:
               syft "$binary" -o "spdx-json" --file "release/${basename}.sbom.spdx.json"
             fi
           done
-          for archive in release/piko-cli-*.zip release/piko-lsp-*.zip; do
+          for archive in release/piko-cli-*.zip release/pikopls-*.zip; do
             [ -f "$archive" ] || continue
             basename=$(basename "$archive")
             extract_dir="sbom-tmp/${basename%.zip}"

@@ -21,35 +21,29 @@ package pdf_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/wdk/pdf"
 )
 
 func TestNewRenderBuilder_NilService(t *testing.T) {
 	_, err := pdf.NewRenderBuilder(nil)
-	if err == nil {
-		t.Fatal("expected error for nil service")
-	}
+	require.Error(t, err, "expected error for nil service")
 }
 
 func TestGetDefaultService_WithoutBootstrap(t *testing.T) {
 	_, err := pdf.GetDefaultService()
-	if err == nil {
-		t.Fatal("expected error when framework is not bootstrapped")
-	}
+	require.Error(t, err, "expected error when framework is not bootstrapped")
 }
 
 func TestNewRenderBuilderFromDefault_WithoutBootstrap(t *testing.T) {
 	_, err := pdf.NewRenderBuilderFromDefault()
-	if err == nil {
-		t.Fatal("expected error when framework is not bootstrapped")
-	}
+	require.Error(t, err, "expected error when framework is not bootstrapped")
 }
 
 func TestNewTransformerRegistry(t *testing.T) {
 	registry := pdf.NewTransformerRegistry()
-	if registry == nil {
-		t.Fatal("expected non-nil transformer registry")
-	}
+	require.NotNil(t, registry, "expected non-nil transformer registry")
 }
 
 func TestConstants(t *testing.T) {
@@ -57,9 +51,7 @@ func TestConstants(t *testing.T) {
 	levels := []pdf.PdfALevel{pdf.PdfA2B, pdf.PdfA2U, pdf.PdfA2A}
 	seen := make(map[pdf.PdfALevel]bool, len(levels))
 	for _, level := range levels {
-		if seen[level] {
-			t.Errorf("duplicate PdfA level: %d", level)
-		}
+		assert.False(t, seen[level], "duplicate PdfA level: %d", level)
 		seen[level] = true
 	}
 
@@ -69,21 +61,13 @@ func TestConstants(t *testing.T) {
 	}
 	seen_labels := make(map[pdf.PageLabelStyle]bool, len(label_styles))
 	for _, style := range label_styles {
-		if seen_labels[style] {
-			t.Errorf("duplicate label style: %s", style)
-		}
+		assert.False(t, seen_labels[style], "duplicate label style: %s", style)
 		seen_labels[style] = true
 	}
 }
 
 func TestPageSizes(t *testing.T) {
-	if pdf.PageA4.Width == 0 || pdf.PageA4.Height == 0 {
-		t.Error("PageA4 has zero dimensions")
-	}
-	if pdf.PageA3.Width == 0 || pdf.PageA3.Height == 0 {
-		t.Error("PageA3 has zero dimensions")
-	}
-	if pdf.PageLetter.Width == 0 || pdf.PageLetter.Height == 0 {
-		t.Error("PageLetter has zero dimensions")
-	}
+	assert.False(t, pdf.PageA4.Width == 0 || pdf.PageA4.Height == 0, "PageA4 has zero dimensions")
+	assert.False(t, pdf.PageA3.Width == 0 || pdf.PageA3.Height == 0, "PageA3 has zero dimensions")
+	assert.False(t, pdf.PageLetter.Width == 0 || pdf.PageLetter.Height == 0, "PageLetter has zero dimensions")
 }

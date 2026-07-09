@@ -28,12 +28,12 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-func TestCopyClaudeCodeSkill_WritesCorrectFiles(t *testing.T) {
+func TestCopyClaudeCodePlugin_WritesCorrectFiles(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	if err := templates.CopyClaudeCodeSkill(directory); err != nil {
-		t.Fatalf("CopyClaudeCodeSkill() = %v", err)
+	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
+		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
 	}
 
 	if _, err := os.Stat(filepath.Join(directory, "SKILL.md")); err != nil {
@@ -47,16 +47,19 @@ func TestCopyClaudeCodeSkill_WritesCorrectFiles(t *testing.T) {
 		t.Error("references/template-syntax.md not created")
 	}
 
+	if _, err := os.Stat(filepath.Join(directory, ".claude-plugin", "plugin.json")); err != nil {
+		t.Error(".claude-plugin/plugin.json not created")
+	}
+
+	lspConfig, err := os.ReadFile(filepath.Join(directory, ".lsp.json"))
+	if err != nil {
+		t.Errorf(".lsp.json not created: %v", err)
+	} else if !strings.Contains(string(lspConfig), "pikopls") {
+		t.Error(".lsp.json should configure the pikopls command")
+	}
+
 	if _, err := os.Stat(filepath.Join(directory, "AGENTS.md")); err == nil {
-		t.Error("AGENTS.md should not be written by CopyClaudeCodeSkill")
-	}
-
-	if _, err := os.Stat(filepath.Join(directory, ".claude-plugin")); err == nil {
-		t.Error(".claude-plugin/ should not be written by CopyClaudeCodeSkill")
-	}
-
-	if _, err := os.Stat(filepath.Join(directory, ".lsp.json")); err == nil {
-		t.Error(".lsp.json should not be written by CopyClaudeCodeSkill")
+		t.Error("AGENTS.md should not be written by CopyClaudeCodePlugin")
 	}
 }
 
@@ -89,8 +92,8 @@ func TestCopyAgentFiles_SkipsGoFiles(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
-	if err := templates.CopyClaudeCodeSkill(directory); err != nil {
-		t.Fatalf("CopyClaudeCodeSkill() = %v", err)
+	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
+		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
 	}
 
 	if _, err := os.Stat(filepath.Join(directory, "embed.go")); err == nil {
@@ -98,7 +101,7 @@ func TestCopyAgentFiles_SkipsGoFiles(t *testing.T) {
 	}
 }
 
-func TestCopyClaudeCodeSkill_OverwritesExisting(t *testing.T) {
+func TestCopyClaudeCodePlugin_OverwritesExisting(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
@@ -108,8 +111,8 @@ func TestCopyClaudeCodeSkill_OverwritesExisting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := templates.CopyClaudeCodeSkill(directory); err != nil {
-		t.Fatalf("CopyClaudeCodeSkill() = %v", err)
+	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
+		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
 	}
 
 	content, err := os.ReadFile(skillPath)
@@ -122,7 +125,7 @@ func TestCopyClaudeCodeSkill_OverwritesExisting(t *testing.T) {
 	}
 }
 
-func TestCopyClaudeCodeSkill_RemovesStaleFiles(t *testing.T) {
+func TestCopyClaudeCodePlugin_RemovesStaleFiles(t *testing.T) {
 	t.Parallel()
 
 	directory := t.TempDir()
@@ -136,8 +139,8 @@ func TestCopyClaudeCodeSkill_RemovesStaleFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := templates.CopyClaudeCodeSkill(directory); err != nil {
-		t.Fatalf("CopyClaudeCodeSkill() = %v", err)
+	if err := templates.CopyClaudeCodePlugin(directory); err != nil {
+		t.Fatalf("CopyClaudeCodePlugin() = %v", err)
 	}
 
 	if _, err := os.Stat(stalePath); err == nil {
@@ -375,7 +378,7 @@ func TestNewAgentsModel_Initialisation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m := newAgentsModel(factory)
+	m := newAgentsModel(factory, "0.0.0-test")
 
 	if len(m.targets) != 2 {
 		t.Errorf("len(targets) = %d, want 2", len(m.targets))

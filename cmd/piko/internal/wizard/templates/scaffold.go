@@ -148,29 +148,31 @@ func CopyProjectAgents(destRoot string) error {
 	})
 }
 
-// CopyClaudeCodeSkill writes SKILL.md and references/ to the given directory. Used by
-// `piko agents install` to install a personal-level Claude Code skill at
-// ~/.claude/skills/piko/.
+// CopyClaudeCodePlugin writes the Claude Code skills-directory plugin to a directory.
+//
+// The plugin comprises SKILL.md, references/, the .claude-plugin/plugin.json manifest,
+// and the .lsp.json language-server config. Used by `piko agents install` to install it
+// at ~/.claude/skills/piko/, where Claude Code auto-loads it as the piko@skills-dir
+// plugin, giving Claude both the framework skill and live pikopls intelligence for .pk
+// and .pkc files.
 //
 // The entire destination directory is removed before copying so that renamed or deleted
 // files do not linger across Piko upgrades.
 //
-// Takes destDir (string) which is the directory to write skill files into.
+// Takes destDir (string) which is the directory to write plugin files into.
 //
 // Returns error when a file cannot be read from the embed or written to disc.
-func CopyClaudeCodeSkill(destDir string) error {
+func CopyClaudeCodePlugin(destDir string) error {
 	if err := os.RemoveAll(destDir); err != nil {
-		return fmt.Errorf("failed to clean skill directory %s: %w", destDir, err)
+		return fmt.Errorf("failed to clean plugin directory %s: %w", destDir, err)
 	}
 
 	return copyAgentFiles(destDir, func(path string) bool {
-		if path == "SKILL.md" {
+		switch path {
+		case "SKILL.md", ".lsp.json", ".claude-plugin/plugin.json":
 			return true
 		}
-		if strings.HasPrefix(path, "references/") {
-			return true
-		}
-		return false
+		return strings.HasPrefix(path, "references/")
 	})
 }
 

@@ -401,6 +401,13 @@ type buildWaiter struct {
 
 	// done signals when the build has finished; closed by notifyWaiters.
 	done chan struct{}
+
+	// signature is the content-independent target identity (buildRequestSignature) this
+	// waiter awaits. notifyWaiters wakes every waiter whose signature matches the just-built
+	// request, so a waiter whose exact-content build was coalesced away by a newer
+	// same-target edit still receives the latest result instead of blocking until the build
+	// wait deadline.
+	signature string
 }
 
 // executeBuild runs the core build logic on a cache miss, orchestrated by the buildLoop.

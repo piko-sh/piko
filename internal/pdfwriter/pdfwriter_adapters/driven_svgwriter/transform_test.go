@@ -21,6 +21,8 @@ package driven_svgwriter
 import (
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -77,9 +79,7 @@ func TestScale(t *testing.T) {
 			t.Parallel()
 
 			got := Scale(tt.sx, tt.sy)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("Scale(%v,%v) = %+v, want %+v", tt.sx, tt.sy, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "Scale(%v,%v) = %+v, want %+v", tt.sx, tt.sy, got, tt.want)
 		})
 	}
 }
@@ -124,9 +124,7 @@ func TestRotate(t *testing.T) {
 			t.Parallel()
 
 			got := Rotate(tt.deg)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("Rotate(%v) = %+v, want %+v", tt.deg, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "Rotate(%v) = %+v, want %+v", tt.deg, got, tt.want)
 		})
 	}
 }
@@ -161,9 +159,7 @@ func TestSkewX(t *testing.T) {
 			t.Parallel()
 
 			got := SkewX(tt.deg)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("SkewX(%v) = %+v, want %+v", tt.deg, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "SkewX(%v) = %+v, want %+v", tt.deg, got, tt.want)
 		})
 	}
 }
@@ -198,9 +194,7 @@ func TestSkewY(t *testing.T) {
 			t.Parallel()
 
 			got := SkewY(tt.deg)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("SkewY(%v) = %+v, want %+v", tt.deg, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "SkewY(%v) = %+v, want %+v", tt.deg, got, tt.want)
 		})
 	}
 }
@@ -235,9 +229,7 @@ func TestApplyScale(t *testing.T) {
 			t.Parallel()
 
 			got := applyScale(tt.args)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("applyScale(%v) = %+v, want %+v", tt.args, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "applyScale(%v) = %+v, want %+v", tt.args, got, tt.want)
 		})
 	}
 }
@@ -273,9 +265,7 @@ func TestApplyRotate(t *testing.T) {
 			t.Parallel()
 
 			got := applyRotate(tt.args)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("applyRotate(%v) = %+v, want %+v", tt.args, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "applyRotate(%v) = %+v, want %+v", tt.args, got, tt.want)
 		})
 	}
 }
@@ -380,9 +370,7 @@ func TestApplyTransformFunc(t *testing.T) {
 			t.Parallel()
 
 			got := applyTransformFunc(tt.funcName, tt.args)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("applyTransformFunc(%q, %v) = %+v, want %+v", tt.funcName, tt.args, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "applyTransformFunc(%q, %v) = %+v, want %+v", tt.funcName, tt.args, got, tt.want)
 		})
 	}
 }
@@ -472,9 +460,7 @@ func TestParseTransform(t *testing.T) {
 			t.Parallel()
 
 			got := ParseTransform(tt.s)
-			if !matrixApproxEqual(got, tt.want, matrixTol) {
-				t.Errorf("ParseTransform(%q) = %+v, want %+v", tt.s, got, tt.want)
-			}
+			assert.True(t, matrixApproxEqual(got, tt.want, matrixTol), "ParseTransform(%q) = %+v, want %+v", tt.s, got, tt.want)
 		})
 	}
 }
@@ -483,21 +469,15 @@ func TestIdentity(t *testing.T) {
 	t.Parallel()
 
 	m := Identity()
-	if m.A != 1 || m.B != 0 || m.C != 0 || m.D != 1 || m.E != 0 || m.F != 0 {
-		t.Errorf("Identity() = %+v, want {1 0 0 1 0 0}", m)
-	}
-	if !m.IsIdentity() {
-		t.Error("Identity().IsIdentity() returned false")
-	}
+	assert.True(t, m.A == 1 && m.B == 0 && m.C == 0 && m.D == 1 && m.E == 0 && m.F == 0, "Identity() = %+v, want {1 0 0 1 0 0}", m)
+	assert.True(t, m.IsIdentity(), "Identity().IsIdentity() returned false")
 }
 
 func TestIsIdentity_NonIdentity(t *testing.T) {
 	t.Parallel()
 
 	m := Translate(1, 0)
-	if m.IsIdentity() {
-		t.Error("Translate(1,0).IsIdentity() returned true")
-	}
+	assert.False(t, m.IsIdentity(), "Translate(1,0).IsIdentity() returned true")
 }
 
 func TestMultiply_IdentityIsNeutral(t *testing.T) {
@@ -505,13 +485,9 @@ func TestMultiply_IdentityIsNeutral(t *testing.T) {
 
 	m := Matrix{A: 2, B: 3, C: 4, D: 5, E: 6, F: 7}
 	got := m.Multiply(Identity())
-	if !matrixApproxEqual(got, m, matrixTol) {
-		t.Errorf("m * Identity = %+v, want %+v", got, m)
-	}
+	assert.True(t, matrixApproxEqual(got, m, matrixTol), "m * Identity = %+v, want %+v", got, m)
 	got = Identity().Multiply(m)
-	if !matrixApproxEqual(got, m, matrixTol) {
-		t.Errorf("Identity * m = %+v, want %+v", got, m)
-	}
+	assert.True(t, matrixApproxEqual(got, m, matrixTol), "Identity * m = %+v, want %+v", got, m)
 }
 
 func TestMultiply_ScaleTranslate(t *testing.T) {
@@ -519,7 +495,5 @@ func TestMultiply_ScaleTranslate(t *testing.T) {
 
 	got := Scale(2, 2).Multiply(Translate(10, 20))
 	want := Matrix{A: 2, B: 0, C: 0, D: 2, E: 20, F: 40}
-	if !matrixApproxEqual(got, want, matrixTol) {
-		t.Errorf("Scale(2,2).Multiply(Translate(10,20)) = %+v, want %+v", got, want)
-	}
+	assert.True(t, matrixApproxEqual(got, want, matrixTol), "Scale(2,2).Multiply(Translate(10,20)) = %+v, want %+v", got, want)
 }

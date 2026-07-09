@@ -1273,6 +1273,89 @@ func TestTypeResolver_ResolveParameters_SubqueryOverView(t *testing.T) {
 	assert.Equal(t, querier_dto.TypeCategoryText, params[0].SQLType.Category)
 }
 
+func TestTypeResolver_ResolveParameters_SubqueryOverTableValuedFunction(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	catalogue := newTestCatalogue("public")
+
+	engine := &mockEngine{
+		tableValuedFunctionColumnsFn: func(functionName string) []querier_dto.ScopedColumn {
+			if functionName != "json_each" {
+				return nil
+			}
+			return []querier_dto.ScopedColumn{
+				{Name: "key", SQLType: textType, Nullable: true},
+				{Name: "value", SQLType: textType, Nullable: true},
+			}
+		},
+	}
+	builtins := &querier_dto.FunctionCatalogue{Functions: make(map[string][]*querier_dto.FunctionSignature)}
+	resolver := newTypeResolver(catalogue, newFunctionResolver(builtins, catalogue, engine), engine)
+
+	param := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "je", ColumnName: "value"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	existsSubquery := &querier_dto.RawQueryAnalysis{
+		RawTableValuedFunctions: []querier_dto.RawTableValuedFunctionReference{
+			{FunctionName: "json_each", Alias: "je"},
+		},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		PredicateSubqueries: []*querier_dto.RawQueryAnalysis{existsSubquery},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	params, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	assert.Empty(t, diagnostics, "je.value from a json_each table-valued function in an EXISTS subquery must resolve in the subquery scope, no false Q001")
+	require.Len(t, params, 1)
+	assert.Equal(t, querier_dto.TypeCategoryText, params[0].SQLType.Category,
+		"the parameter takes the json_each value column type")
+}
+
+func TestTypeResolver_ResolveParameters_SubqueryOverUnknownTableValuedFunctionStillErrors(t *testing.T) {
+	t.Parallel()
+
+	catalogue := newTestCatalogue("public")
+
+	engine := &mockEngine{
+		tableValuedFunctionColumnsFn: func(string) []querier_dto.ScopedColumn { return nil },
+	}
+	builtins := &querier_dto.FunctionCatalogue{Functions: make(map[string][]*querier_dto.FunctionSignature)}
+	resolver := newTypeResolver(catalogue, newFunctionResolver(builtins, catalogue, engine), engine)
+
+	param := querier_dto.RawParameterReference{
+		Number:          1,
+		ColumnReference: &querier_dto.ColumnReference{TableAlias: "je", ColumnName: "value"},
+		Context:         querier_dto.ParameterContextComparison,
+	}
+	existsSubquery := &querier_dto.RawQueryAnalysis{
+		RawTableValuedFunctions: []querier_dto.RawTableValuedFunctionReference{
+			{FunctionName: "totally_unknown_function", Alias: "je"},
+		},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+	rawAnalysis := &querier_dto.RawQueryAnalysis{
+		PredicateSubqueries: []*querier_dto.RawQueryAnalysis{existsSubquery},
+		ParameterReferences: []querier_dto.RawParameterReference{param},
+	}
+
+	outerScope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+	_, diagnostics := resolver.ResolveParameters(
+		context.Background(), rawAnalysis, outerScope, []*querier_dto.ParameterDirective{},
+	)
+
+	require.NotEmpty(t, diagnostics, "an unknown table-valued function must not silently resolve; je stays unresolved and a diagnostic is raised")
+	assert.Equal(t, querier_dto.CodeUnknownColumn, diagnostics[0].Code)
+}
+
 func TestCollectParameters(t *testing.T) {
 	t.Parallel()
 

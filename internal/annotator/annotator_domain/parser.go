@@ -321,6 +321,16 @@ func buildParsedComponent(
 		}
 	}
 
+	if sfcResult.HasRouteSourceDirective() {
+		component.RouteSourceName = sfcResult.GetRouteSource()
+		component.RouteSourceParamName = sfcResult.GetRouteSourceParamName()
+	}
+
+	component.SitemapPriority = sfcResult.GetSitemapPriority()
+	component.SitemapChangeFrequency = sfcResult.GetSitemapChangeFreq()
+	component.SitemapCanonical = sfcResult.GetSitemapCanonical()
+	component.SitemapNoindex = sfcResult.HasNoindexDirective()
+
 	if sfcResult.HasPublicDirective() {
 		component.VisibilityOverride = new(true)
 	} else if sfcResult.HasPrivateDirective() {

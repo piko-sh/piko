@@ -1297,6 +1297,9 @@ func TestDetectMimeType(t *testing.T) {
 		{name: "Unknown Extension", path: "file.xyz", expected: "application/octet-stream"},
 		{name: "No Extension", path: "README", expected: "application/octet-stream"},
 		{name: "Nested Path", path: "path/to/deep/file.js", expected: "javascript"},
+		{name: "PK JS Page Source", path: "pk/checkout.js", expected: "javascript"},
+		{name: "PK Actions Source", path: "pk/actions.gen.js", expected: "javascript"},
+		{name: "Pre-Fix Extensionless Regression", path: "pk/checkout", expected: "application/octet-stream"},
 	}
 
 	for _, tc := range testCases {

@@ -48,7 +48,7 @@ Supplemental references (only when needed):
 - `references/styling.md` - scoped/global CSS, deep selectors, theme variables
 - `references/i18n.md` - translations, pluralisation, locale routing
 - `references/collections.md` - content-driven routing, markdown, search
-- `references/cli-reference.md` - piko new, piko fmt, piko-lsp
+- `references/cli-reference.md` - piko new, piko fmt, pikopls
 - `references/do-dont-patterns.md` - fast checklist of common mistakes
 - `references/examples.md` - annotated code examples for common patterns
 - `references/pk-javascript-interactive.md` - PK client-side scripting, lifecycle hooks, event bus, piko namespace

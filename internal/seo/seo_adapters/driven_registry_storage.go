@@ -28,6 +28,11 @@ import (
 	"piko.sh/piko/internal/seo/seo_domain"
 )
 
+const (
+	// seoStorageBackendID is the blob storage backend SEO artefacts are written to.
+	seoStorageBackendID = "local_disk_cache"
+)
+
 // RegistryStorageAdapter implements SEOStoragePort using the registry service. It stores
 // SEO artefacts (sitemap.xml, robots.txt) in the registry.
 type RegistryStorageAdapter struct {
@@ -55,9 +60,9 @@ func (a *RegistryStorageAdapter) StoreSitemap(
 	_, err := a.registryService.UpsertArtefact(
 		ctx,
 		artefactID,
-		"",
+		artefactID,
 		reader,
-		"default",
+		seoStorageBackendID,
 		desiredProfiles,
 	)
 
@@ -80,9 +85,9 @@ func (a *RegistryStorageAdapter) StoreRobotsTxt(ctx context.Context, content []b
 	_, err := a.registryService.UpsertArtefact(
 		ctx,
 		"robots.txt",
-		"",
+		"robots.txt",
 		reader,
-		"default",
+		seoStorageBackendID,
 		nil,
 	)
 

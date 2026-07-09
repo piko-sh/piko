@@ -19,8 +19,10 @@
 package driven_svgwriter
 
 import (
+	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -41,6 +43,12 @@ const (
 
 	// arcArgCount holds the number of arguments for an SVG arc command.
 	arcArgCount = 7
+
+	// arcLargeArcFlagIndex holds the index of the large-arc-flag within arc arguments.
+	arcLargeArcFlagIndex = 3
+
+	// arcSweepFlagIndex holds the index of the sweep-flag within arc arguments.
+	arcSweepFlagIndex = 4
 
 	// arcEndXIndex holds the index of the end-point X coordinate within arc arguments.
 	arcEndXIndex = 5
@@ -65,6 +73,30 @@ const (
 
 	// arcAlphaDivisor holds the divisor used in the arc-to-cubic alpha calculation.
 	arcAlphaDivisor = 3
+
+	// maxPathCommands bounds the number of commands a single path d attribute may produce.
+	//
+	// It guards against denial-of-service via an enormous d attribute that would otherwise
+	// allocate an unbounded slice of commands. The default is deliberately high so that
+	// legitimate, highly detailed paths are never truncated.
+	maxPathCommands = 1 << 16
+
+	// maxArcSegments bounds the number of cubic Bezier segments a single elliptical-arc
+	// command may fan out into. A well-formed arc never needs more than four (one per
+	// quadrant), so this generous cap only ever trips on degenerate or hostile angular spans
+	// (for example a non-finite or astronomically large dtheta).
+	maxArcSegments = 256
+)
+
+var (
+	// ErrNonFiniteCoordinate indicates that a parsed path coordinate was NaN or infinite.
+	// Such values are rejected because they would propagate into the emitted PDF drawing
+	// operators and produce corrupt output.
+	ErrNonFiniteCoordinate = errors.New("svg: non-finite path coordinate")
+
+	// ErrTooManyPathCommands indicates that a path d attribute produced more commands than
+	// maxPathCommands permits and parsing was aborted.
+	ErrTooManyPathCommands = errors.New("svg: path command count exceeds limit")
 )
 
 // PathCommand represents a single SVG path command with absolute coordinates.
@@ -114,7 +146,7 @@ type pathState struct {
 //
 // Returns error when the path data contains invalid syntax or unexpected tokens.
 func ParsePathData(d string) ([]PathCommand, error) {
-	tokens, err := tokenizePath(d)
+	tokens, err := tokenisePath(d)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +169,10 @@ func ParsePathData(d string) ([]PathCommand, error) {
 		i, parseErr = processPathCommand(state, tokens, i, cmd)
 		if parseErr != nil {
 			return nil, parseErr
+		}
+
+		if len(state.commands) > maxPathCommands {
+			return nil, fmt.Errorf("%w: %d", ErrTooManyPathCommands, len(state.commands))
 		}
 	}
 
@@ -493,6 +529,8 @@ func computeArcCentre(p arcParams, cosPhi, sinPhi float64) (centreX, centreY, th
 func emitArcSegments(centreX, centreY, rx, ry, phi, theta1, dtheta float64) []PathCommand {
 	segments := int(math.Ceil(math.Abs(dtheta) / (math.Pi / 2)))
 	segments = max(segments, 1)
+
+	segments = min(segments, maxArcSegments)
 	segAngle := dtheta / float64(segments)
 
 	result := make([]PathCommand, 0, segments)
@@ -547,9 +585,6 @@ func arcSegmentToCubic(cx, cy, rx, ry, phi, theta1, theta2 float64) PathCommand 
 	dx2 := dpx(cos2, sin2)
 	dy2 := dpy(cos2, sin2)
 
-	_ = x1
-	_ = y1
-
 	return PathCommand{
 		Type: 'C',
 		Args: []float64{
@@ -572,6 +607,10 @@ func vecAngle(ux, uy, vx, vy float64) float64 {
 	dot := ux*vx + uy*vy
 	lenU := math.Sqrt(ux*ux + uy*uy)
 	lenV := math.Sqrt(vx*vx + vy*vy)
+
+	if lenU*lenV == 0 {
+		return 0
+	}
 	cos := dot / (lenU * lenV)
 	cos = math.Max(-1, math.Min(1, cos))
 	angle := math.Acos(cos)
@@ -590,36 +629,100 @@ type pathToken struct {
 	isCommand bool
 }
 
-// tokenizePath splits an SVG path data string into command and number tokens.
+// tokenisePath splits an SVG path data string into command and number tokens.
 //
 // Takes d (string) which specifies the raw path data string.
 //
 // Returns []pathToken which holds the parsed tokens.
 // Returns error when an unexpected character is encountered.
-func tokenizePath(d string) ([]pathToken, error) {
+func tokenisePath(d string) ([]pathToken, error) {
 	var tokens []pathToken
 	r := strings.NewReader(d)
+
+	var curCmd byte
+	argIdx := 0
 
 	for {
 		ch, _, err := r.ReadRune()
 		if err != nil {
 			break
 		}
-		if unicode.IsSpace(ch) || ch == ',' {
+		switch {
+		case unicode.IsSpace(ch) || ch == ',':
 			continue
-		}
-		if isPathCommand(ch) {
+		case isPathCommand(ch):
 			tokens = append(tokens, pathToken{value: string(ch), isCommand: true})
-			continue
+			curCmd = pathCommandByte(ch)
+			argIdx = 0
+		case isNumberStart(ch):
+			var token pathToken
+			token, argIdx = readArgToken(r, ch, curCmd, argIdx)
+			tokens = append(tokens, token)
+		default:
+			return nil, fmt.Errorf("svg: unexpected character %q in path data", ch)
 		}
-		if ch == '+' || ch == '-' || ch == '.' || (ch >= '0' && ch <= '9') {
-			num := readNumber(r, ch)
-			tokens = append(tokens, pathToken{value: num, isCommand: false})
-			continue
-		}
-		return nil, fmt.Errorf("svg: unexpected character %q in path data", ch)
 	}
 	return tokens, nil
+}
+
+// isNumberStart reports whether ch can begin a numeric path argument token.
+//
+// Takes ch (rune) which is the character to classify.
+//
+// Returns bool which is true for a sign, decimal point, or digit.
+func isNumberStart(ch rune) bool {
+	return ch == '+' || ch == '-' || ch == '.' || (ch >= '0' && ch <= '9')
+}
+
+// pathCommandByte converts a recognised path-command rune to its uppercase byte form.
+// Path commands are ASCII letters, so the conversion is bounded; the explicit range check
+// keeps it provably safe against any non-ASCII rune.
+//
+// Takes ch (rune) which is a path-command character (see isPathCommand).
+//
+// Returns byte which is the uppercase command, or 0 when ch is outside ASCII.
+func pathCommandByte(ch rune) byte {
+	if ch < 0 || ch > unicode.MaxASCII {
+		return 0
+	}
+	return toUpper(byte(ch))
+}
+
+// readArgToken reads a single numeric argument token for the active command, accounting
+// for the elliptical-arc flag positions that the SVG grammar allows to be written as bare
+// single digits.
+//
+// Takes r (*strings.Reader) which specifies the input reader.
+// Takes ch (rune) which is the first character of the argument already consumed.
+// Takes curCmd (byte) which is the active uppercased command.
+// Takes argIdx (int) which is the position within the command's argument group.
+//
+// Returns pathToken which holds the numeric token.
+// Returns int which is the next argument index.
+func readArgToken(r *strings.Reader, ch rune, curCmd byte, argIdx int) (pathToken, int) {
+	var num string
+	if isArcFlagPosition(curCmd, argIdx) {
+		num = string(ch)
+	} else {
+		num = readNumber(r, ch)
+	}
+	if argCount := commandArgCount(curCmd); argCount > 0 {
+		argIdx = (argIdx + 1) % argCount
+	}
+	return pathToken{value: num, isCommand: false}, argIdx
+}
+
+// isArcFlagPosition reports whether the argument at argIdx of command cmd is an
+// elliptical-arc flag (large-arc-flag or sweep-flag), which the SVG grammar permits to be
+// written as a bare single digit with no separator before the next number. Arc arguments
+// are: rx(0) ry(1) x-axis-rotation(2) large-arc-flag(3) sweep-flag(4) x(5) y(6).
+//
+// Takes cmd (byte) which is the uppercased current command letter.
+// Takes argIdx (int) which is the position within the command's argument group.
+//
+// Returns bool which is true for the two arc flag positions.
+func isArcFlagPosition(cmd byte, argIdx int) bool {
+	return cmd == 'A' && (argIdx == arcLargeArcFlagIndex || argIdx == arcSweepFlagIndex)
 }
 
 // readNumber reads a complete numeric token from the reader, starting with the given
@@ -778,14 +881,28 @@ func consumeArgs(tokens []pathToken, pos, argCount int) ([]float64, int, error) 
 
 // parsePathFloat parses a numeric string into a float64 using the %g format.
 //
+// Non-finite results are rejected: tokens such as "1e400" overflow to +Inf and tokens
+// such as "NaN" or "Inf" parse to non-finite values. Allowing them through would
+// propagate NaN/Inf into the emitted PDF drawing operators and corrupt the output, so
+// they are treated as parse errors via ErrNonFiniteCoordinate.
+//
 // Takes s (string) which specifies the numeric string to parse.
 //
 // Returns float64 which holds the parsed value.
-// Returns error when the string is not a valid number.
+// Returns error when the string is not a valid number or is non-finite.
 func parsePathFloat(s string) (float64, error) {
 	var result float64
 	_, err := fmt.Sscanf(s, "%g", &result)
-	return result, err
+	if err != nil {
+		if errors.Is(err, strconv.ErrRange) {
+			return 0, fmt.Errorf("%w: %q", ErrNonFiniteCoordinate, s)
+		}
+		return 0, err
+	}
+	if math.IsNaN(result) || math.IsInf(result, 0) {
+		return 0, fmt.Errorf("%w: %q", ErrNonFiniteCoordinate, s)
+	}
+	return result, nil
 }
 
 // makeAbsolute converts relative command arguments to absolute by adding the current
@@ -810,13 +927,16 @@ func makeAbsolute(absCmd byte, args []float64, cx, cy float64) {
 		args[cubicCP1XIndex] += cx
 		args[cubicCP1YIndex] += cy
 		args[cubicEndXIndex] += cx
-		args[arcEndXIndex] += cy
+		args[cubicEndYIndex] += cy
 	case 'S', 'Q':
 		args[0] += cx
 		args[1] += cy
 		args[cubicCP1XIndex] += cx
 		args[cubicCP1YIndex] += cy
 	case 'A':
+		if len(args) <= arcEndYIndex {
+			return
+		}
 		args[arcEndXIndex] += cx
 		args[arcEndYIndex] += cy
 	}

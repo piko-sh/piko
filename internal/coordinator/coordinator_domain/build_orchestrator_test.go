@@ -1815,12 +1815,15 @@ func TestRequestRebuild_ImmediateTrigger(t *testing.T) {
 	service.RequestRebuild(context.Background(), entryPoints, WithCausationID("immediate"))
 
 	select {
-	case request := <-service.rebuildTrigger:
-		require.NotNil(t, request)
-		assert.Equal(t, "immediate", request.CausationID)
+	case <-service.rebuildSignal:
 	case <-time.After(time.Second):
-		t.Fatal("expected build request in channel")
+		t.Fatal("expected the build loop to be signalled immediately")
 	}
+
+	request, found := service.takeNextPendingBuild()
+	require.True(t, found, "expected a queued build request")
+	require.NotNil(t, request)
+	assert.Equal(t, "immediate", request.CausationID)
 }
 
 func TestRequestRebuild_DebouncedTrigger(t *testing.T) {
@@ -1865,14 +1868,24 @@ func TestRequestRebuild_DebouncedTrigger(t *testing.T) {
 
 	assert.Equal(t, stateBuilding, service.GetStatus().State)
 
+	select {
+	case <-service.rebuildSignal:
+		t.Fatal("did not expect a wake signal before the debounce elapsed")
+	default:
+	}
+
 	mockClock.Advance(600 * time.Millisecond)
 
 	select {
-	case request := <-service.rebuildTrigger:
-		require.NotNil(t, request)
+	case <-service.rebuildSignal:
 	case <-time.After(2 * time.Second):
-		t.Fatal("expected build request after debounce")
+		t.Fatal("expected a wake signal after debounce")
 	}
+
+	request, found := service.takeNextPendingBuild()
+	require.True(t, found, "expected a queued build request after debounce")
+	require.NotNil(t, request)
+	assert.Equal(t, "debounced", request.CausationID)
 }
 
 func TestRequestRebuild_ReplacesDebounceTimer(t *testing.T) {
@@ -1998,7 +2011,7 @@ func TestBuildLoop_NilRequest(t *testing.T) {
 	service.wg.Add(1)
 	go service.buildLoop(context.Background())
 
-	service.rebuildTrigger <- nil
+	service.triggerBuild(context.Background(), nil)
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -2052,7 +2065,7 @@ func TestBuildLoop_ProcessesBuildRequest(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	service.rebuildTrigger <- request
+	service.triggerBuild(context.Background(), request)
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -2109,7 +2122,7 @@ func TestBuildLoop_BuildError(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	service.rebuildTrigger <- request
+	service.triggerBuild(context.Background(), request)
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -2649,7 +2662,7 @@ func TestBuildLoop_HashCalculationError(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	service.rebuildTrigger <- request
+	service.triggerBuild(context.Background(), request)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -2710,7 +2723,7 @@ func TestBuildLoop_NotifiesWaiters(t *testing.T) {
 	inputHash, _, err := service.calculateInputHash(context.Background(), entryPoints, buildOpts)
 	require.NoError(t, err)
 
-	waiter := &buildWaiter{result: nil, err: nil, done: make(chan struct{})}
+	waiter := &buildWaiter{result: nil, err: nil, done: make(chan struct{}), signature: entryPointsSignature(entryPoints)}
 	service.waiters.Store(inputHash, waiter)
 
 	request := &coordinator_dto.BuildRequest{
@@ -2720,7 +2733,7 @@ func TestBuildLoop_NotifiesWaiters(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	service.rebuildTrigger <- request
+	service.triggerBuild(context.Background(), request)
 
 	select {
 	case <-waiter.done:
@@ -2728,6 +2741,80 @@ func TestBuildLoop_NotifiesWaiters(t *testing.T) {
 		assert.NoError(t, waiter.err)
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for build notification")
+	}
+
+	close(service.shutdown)
+	service.wg.Wait()
+}
+
+func TestBuildLoop_NotifiesAllConcurrentDistinctTargets(t *testing.T) {
+	t.Parallel()
+
+	pages := []string{"home", "about", "contact", "blog", "pricing"}
+
+	sandbox := safedisk.NewMockSandbox("/project", safedisk.ModeReadOnly)
+	files := map[string][]byte{}
+	for _, page := range pages {
+		sandbox.AddFile("pages/"+page+".pk", []byte("content of "+page))
+		files["/project/pages/"+page+".pk"] = []byte("content of " + page)
+	}
+
+	annotator := &mockAnnotator{ResultToReturn: &annotator_dto.ProjectAnnotationResult{}}
+
+	service := newCoordinatorService(
+		annotator,
+		newMockCache(),
+		newMockIntrospectionCache(),
+		&mockFSReader{Files: files},
+		&resolver_domain.MockResolver{
+			GetBaseDirFunc:    func() string { return "/project" },
+			GetModuleNameFunc: func() string { return "test-module" },
+			ResolvePKPathFunc: func(_ context.Context, importPath string, _ string) (string, error) {
+				const moduleName = "test-module"
+				if after, ok := strings.CutPrefix(importPath, moduleName+"/"); ok {
+					return filepath.Join("/project", after), nil
+				}
+				return importPath, nil
+			},
+			ConvertEntryPointPathToManifestKeyFunc: func(path string) string { return path },
+		},
+		applyCoordinatorOptions(WithBaseDirSandbox(sandbox)),
+	)
+
+	service.wg.Add(1)
+	go service.buildLoop(context.Background())
+
+	waiters := make([]*buildWaiter, len(pages))
+	for i, page := range pages {
+		entryPoints := []annotator_dto.EntryPoint{
+			{Path: "test-module/pages/" + page + ".pk", IsPage: true},
+		}
+		inputHash, _, err := service.calculateInputHash(context.Background(), entryPoints, &buildOptions{})
+		require.NoError(t, err)
+		waiter := &buildWaiter{result: nil, err: nil, done: make(chan struct{}), signature: entryPointsSignature(entryPoints)}
+		service.waiters.Store(inputHash, waiter)
+		waiters[i] = waiter
+	}
+
+	var wg sync.WaitGroup
+	for _, page := range pages {
+		wg.Go(func() {
+			service.triggerBuild(context.Background(), &coordinator_dto.BuildRequest{
+				EntryPoints: []annotator_dto.EntryPoint{
+					{Path: "test-module/pages/" + page + ".pk", IsPage: true},
+				},
+				CausationID: page,
+			})
+		})
+	}
+	wg.Wait()
+
+	for i, page := range pages {
+		select {
+		case <-waiters[i].done:
+		case <-time.After(10 * time.Second):
+			t.Fatalf("waiter for %q was never notified (orphaned build request)", page)
+		}
 	}
 
 	close(service.shutdown)

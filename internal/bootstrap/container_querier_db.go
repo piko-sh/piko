@@ -859,6 +859,34 @@ func isPostgresDriver(driver string) bool {
 	return driver == "postgres" || driver == "pgx"
 }
 
+// resolveQuerierDatabase runs any configured migrations for a querier-managed database
+// and returns its connection and resolved driver name, ready for a per-subsystem DAL to
+// be constructed.
+//
+// Takes name (string) which identifies the database registered via AddDatabase.
+// Takes subsystem (string) which names the owning subsystem for error messages.
+//
+// Returns *sql.DB which is the database connection.
+// Returns string which is the resolved database/sql driver name.
+// Returns error when migration, connection, or driver resolution fails.
+func (c *Container) resolveQuerierDatabase(name, subsystem string) (*sql.DB, string, error) {
+	if err := c.runMigrationsIfConfigured(name); err != nil {
+		return nil, "", fmt.Errorf("failed to migrate %s database: %w", subsystem, err)
+	}
+
+	database, err := c.GetDatabaseConnection(name)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get %s database connection: %w", subsystem, err)
+	}
+
+	driver, err := c.GetDatabaseDriver(name)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to resolve %s database driver: %w", subsystem, err)
+	}
+
+	return database, driver, nil
+}
+
 // GetDatabaseReader returns the DBTX for reading from a named database, where replicas
 // are balanced via round-robin when configured or the primary connection is returned
 // otherwise.
@@ -1056,8 +1084,9 @@ func (c *Container) openDatabaseInstance(
 
 	if reg.EnableOTel {
 		databaseSystem := resolveDBSystem(reg)
-		instance.writer = newOTelDBTX(instance.writer, databaseSystem, name, reg.QueryNameResolver)
-		instance.reader = newOTelDBTX(instance.reader, databaseSystem, name, reg.QueryNameResolver)
+		observer := c.GetQueryObserver()
+		instance.writer = newOTelDBTX(instance.writer, databaseSystem, name, reg.QueryNameResolver, observer)
+		instance.reader = newOTelDBTX(instance.reader, databaseSystem, name, reg.QueryNameResolver, observer)
 	}
 
 	instance.migrator = c.createMigrationServiceForInstance(ctx, database, name, reg)

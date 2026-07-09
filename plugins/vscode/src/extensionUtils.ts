@@ -60,7 +60,7 @@ export function validateFileName(value: string): string | null {
  * @returns The relative path to the binary file.
  */
 export function resolvePlatformBinaryPath(platform: string, arch: string): string {
-    const binaryName = platform === 'win32' ? 'piko-lsp.exe' : 'piko-lsp';
+    const binaryName = platform === 'win32' ? 'pikopls.exe' : 'pikopls';
     const goArch = arch === 'x64' ? 'amd64' : arch;
     return `bin/${platform}-${goArch}/${binaryName}`;
 }
@@ -107,7 +107,7 @@ export function isValidFileName(value: string): boolean {
  * @returns The binary name with extension if needed.
  */
 export function getBinaryName(platform: string): string {
-    return platform === 'win32' ? 'piko-lsp.exe' : 'piko-lsp';
+    return platform === 'win32' ? 'pikopls.exe' : 'pikopls';
 }
 
 /**

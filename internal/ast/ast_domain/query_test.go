@@ -60,6 +60,35 @@ func TestQueryAll(t *testing.T) {
 		}
 	})
 
+	t.Run("svg type selector matches piko:svg asset element", func(t *testing.T) {
+
+		tree := &TemplateAST{
+			RootNodes: []*TemplateNode{
+				{
+					NodeType: NodeElement,
+					TagName:  "p",
+					Attributes: []HTMLAttribute{
+						{Name: "class", Value: "contacts"},
+					},
+					Children: []*TemplateNode{
+						{NodeType: NodeElement, TagName: "piko:svg"},
+						{NodeType: NodeElement, TagName: "piko:img"},
+						{NodeType: NodeElement, TagName: "span"},
+					},
+				},
+			},
+		}
+
+		svgResults, diagnostics := QueryAll(tree, ".contacts svg", "test.pkc")
+		assert.Nil(t, diagnostics)
+		assert.Len(t, svgResults, 1, "`svg` selector should match the piko:svg element")
+		assert.Equal(t, "piko:svg", svgResults[0].TagName)
+
+		imgResults, _ := QueryAll(tree, "img", "test.pkc")
+		assert.Len(t, imgResults, 1, "`img` selector should match the piko:img element")
+		assert.Equal(t, "piko:img", imgResults[0].TagName)
+	})
+
 	t.Run("class selector", func(t *testing.T) {
 		tree := &TemplateAST{
 			RootNodes: []*TemplateNode{

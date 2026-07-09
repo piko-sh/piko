@@ -24,6 +24,7 @@ package bootstrap
 import (
 	"fmt"
 	"maps"
+	"strings"
 
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/config"
@@ -623,14 +624,13 @@ func (c *Container) createDefaultSEOService() {
 	storageAdapter := seo_adapters.NewRegistryStorageAdapter(registryService)
 	httpSourceAdapter := seo_adapters.NewHTTPSourceAdapter()
 
-	var seoOpts []seo_domain.SEOServiceOption
-	if factory, factoryErr := c.GetSandboxFactory(); factoryErr == nil {
-		seoOpts = append(seoOpts, seo_domain.WithSEOSandboxFactory(factory))
-	}
+	seoOpts := c.buildSEOOptions()
+	c.warnSEOHostnameMismatch(seoConfig)
+	seoDefaultLocale := c.resolveSEODefaultLocale()
 
 	seoService, err := seo_domain.NewSEOService(
 		seoConfig,
-		deref(c.serverConfig.I18nDefaultLocale, "en"),
+		seoDefaultLocale,
 		storageAdapter,
 		httpSourceAdapter,
 		seoOpts...,
@@ -645,6 +645,72 @@ func (c *Container) createDefaultSEOService() {
 	l.Internal("SEO service created successfully")
 }
 
+// buildSEOOptions assembles the SEO service options from the container's configured
+// sandbox factory, URL provider, i18n settings, route sources, and production mode.
+//
+// Returns []seo_domain.SEOServiceOption which are the assembled options.
+func (c *Container) buildSEOOptions() []seo_domain.SEOServiceOption {
+	var seoOpts []seo_domain.SEOServiceOption
+	if factory, factoryErr := c.GetSandboxFactory(); factoryErr == nil {
+		seoOpts = append(seoOpts, seo_domain.WithSEOSandboxFactory(factory))
+	}
+	if c.seoURLProvider != nil {
+		seoOpts = append(seoOpts, seo_domain.WithSEOURLProvider(c.seoURLProvider))
+	}
+	if strategy := c.GetWebsiteConfig().I18n.Strategy; strategy != "" {
+		seoOpts = append(seoOpts, seo_domain.WithI18nStrategy(strategy))
+	}
+	if locales := c.GetWebsiteConfig().I18n.Locales; len(locales) > 0 {
+		if err := i18n_domain.ValidateLocaleCodes(locales); err != nil {
+			_, l := logger_domain.From(c.GetAppContext(), log)
+			l.Warn("SEO: invalid i18n locale code; localised URLs may be malformed", logger_domain.Error(err))
+		}
+		seoOpts = append(seoOpts, seo_domain.WithI18nLocales(locales))
+	}
+	if len(c.routeSources) > 0 {
+		seoOpts = append(seoOpts, seo_domain.WithRouteSources(c.routeSources))
+	}
+	if c.seoProductionMode != nil {
+		seoOpts = append(seoOpts, seo_domain.WithProductionMode(*c.seoProductionMode))
+	}
+	return seoOpts
+}
+
+// warnSEOHostnameMismatch warns when the sitemap hostname and canonical base URL differ.
+//
+// Both must be set for the check to fire. The sitemap <loc> uses the sitemap hostname
+// while the page canonical and hreflang hrefs use the canonical base URL, so a mismatch
+// makes them disagree; warning at startup surfaces it before it becomes an indexing
+// problem.
+//
+// Takes seoConfig (config.SEOConfig) which carries the sitemap hostname.
+func (c *Container) warnSEOHostnameMismatch(seoConfig config.SEOConfig) {
+	canonicalBase := strings.TrimRight(c.GetWebsiteConfig().CanonicalBaseURL, "/")
+	if canonicalBase == "" {
+		return
+	}
+	sitemapHost := strings.TrimRight(seoConfig.Sitemap.Hostname, "/")
+	if sitemapHost != "" && sitemapHost != canonicalBase {
+		_, l := logger_domain.From(c.GetAppContext(), log)
+		l.Warn("SEO: sitemap hostname and canonical base URL differ; sitemap <loc> and page canonical/hreflang will disagree",
+			logger_domain.String("sitemapHostname", sitemapHost),
+			logger_domain.String("canonicalBaseURL", canonicalBase))
+	}
+}
+
+// resolveSEODefaultLocale returns the default locale for sitemap URLs. It prefers the
+// website i18n default locale (the field the runtime router derives its routes from) so
+// the sitemap <loc>/hreflang cannot invert relative to the served routes, falling back to
+// the server-config value only when it is unset.
+//
+// Returns string which is the resolved default locale.
+func (c *Container) resolveSEODefaultLocale() string {
+	if locale := c.GetWebsiteConfig().I18n.DefaultLocale; locale != "" {
+		return locale
+	}
+	return deref(c.serverConfig.I18nDefaultLocale, "en")
+}
+
 // SetSEOConfig stores the SEO configuration for use when creating the default SEO
 // service. Must be called before GetSEOService.
 //
@@ -655,6 +721,14 @@ func (c *Container) SetSEOConfig(seoConfig config.SEOConfig) {
 	l.Internal("SEO config set via programmatic API",
 		logger_domain.String("hostname", seoConfig.Sitemap.Hostname),
 		logger_domain.Bool("enabled", seoConfig.Enabled))
+}
+
+// SetSitemapURLProvider stores a build-time provider of additional sitemap URLs for use
+// when creating the default SEO service. Must be called before GetSEOService.
+//
+// Takes provider (seo_domain.SitemapURLProvider) which enumerates the extra URLs.
+func (c *Container) SetSitemapURLProvider(provider seo_domain.SitemapURLProvider) {
+	c.seoURLProvider = provider
 }
 
 // SetAssetsConfig stores the assets configuration for use when creating the annotator

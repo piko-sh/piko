@@ -19,37 +19,31 @@
 package pdfwriter_domain
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildViewerPreferencesDict_Nil(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	result := buildViewerPreferencesDict(nil, writer)
-	if result != "" {
-		t.Errorf("expected empty string for nil prefs, got %q", result)
-	}
+	assert.Equal(t, "", result, "expected empty string for nil prefs")
 }
 
 func TestBuildViewerPreferencesDict_PageLayoutOnly(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	prefs := &ViewerPreferences{PageLayout: "OneColumn"}
 	result := buildViewerPreferencesDict(prefs, writer)
-	if !strings.Contains(result, "/PageLayout /OneColumn") {
-		t.Errorf("expected /PageLayout /OneColumn in result, got %q", result)
-	}
-	if strings.Contains(result, "/ViewerPreferences") {
-		t.Errorf("expected no /ViewerPreferences object when no booleans set, got %q", result)
-	}
+	assert.Contains(t, result, "/PageLayout /OneColumn", "expected /PageLayout /OneColumn in result")
+	assert.NotContains(t, result, "/ViewerPreferences", "expected no /ViewerPreferences object when no booleans set")
 }
 
 func TestBuildViewerPreferencesDict_PageModeOnly(t *testing.T) {
 	writer := &PdfDocumentWriter{}
 	prefs := &ViewerPreferences{PageMode: "UseOutlines"}
 	result := buildViewerPreferencesDict(prefs, writer)
-	if !strings.Contains(result, "/PageMode /UseOutlines") {
-		t.Errorf("expected /PageMode /UseOutlines in result, got %q", result)
-	}
+	assert.Contains(t, result, "/PageMode /UseOutlines", "expected /PageMode /UseOutlines in result")
 }
 
 func TestBuildViewerPreferencesDict_BooleanFlags(t *testing.T) {
@@ -61,20 +55,12 @@ func TestBuildViewerPreferencesDict_BooleanFlags(t *testing.T) {
 		DisplayDocTitle: true,
 	}
 	result := buildViewerPreferencesDict(prefs, writer)
-	if !strings.Contains(result, "/ViewerPreferences") {
-		t.Fatalf("expected /ViewerPreferences reference in result, got %q", result)
-	}
+	require.Contains(t, result, "/ViewerPreferences", "expected /ViewerPreferences reference in result")
 
 	output := string(writer.Bytes())
-	if !strings.Contains(output, "/HideToolbar true") {
-		t.Errorf("expected /HideToolbar true in PDF output, got %q", output)
-	}
-	if !strings.Contains(output, "/FitWindow true") {
-		t.Errorf("expected /FitWindow true in PDF output, got %q", output)
-	}
-	if !strings.Contains(output, "/DisplayDocTitle true") {
-		t.Errorf("expected /DisplayDocTitle true in PDF output, got %q", output)
-	}
+	assert.Contains(t, output, "/HideToolbar true", "expected /HideToolbar true in PDF output")
+	assert.Contains(t, output, "/FitWindow true", "expected /FitWindow true in PDF output")
+	assert.Contains(t, output, "/DisplayDocTitle true", "expected /DisplayDocTitle true in PDF output")
 }
 
 func TestBuildViewerPreferencesDict_AllFields(t *testing.T) {
@@ -91,20 +77,12 @@ func TestBuildViewerPreferencesDict_AllFields(t *testing.T) {
 		DisplayDocTitle: true,
 	}
 	result := buildViewerPreferencesDict(prefs, writer)
-	if !strings.Contains(result, "/PageLayout /TwoColumnLeft") {
-		t.Errorf("missing /PageLayout, got %q", result)
-	}
-	if !strings.Contains(result, "/PageMode /FullScreen") {
-		t.Errorf("missing /PageMode, got %q", result)
-	}
-	if !strings.Contains(result, "/ViewerPreferences") {
-		t.Errorf("missing /ViewerPreferences, got %q", result)
-	}
+	assert.Contains(t, result, "/PageLayout /TwoColumnLeft", "missing /PageLayout")
+	assert.Contains(t, result, "/PageMode /FullScreen", "missing /PageMode")
+	assert.Contains(t, result, "/ViewerPreferences", "missing /ViewerPreferences")
 
 	output := string(writer.Bytes())
 	for _, flag := range []string{"/HideToolbar true", "/HideMenubar true", "/HideWindowUI true", "/FitWindow true", "/CenterWindow true", "/DisplayDocTitle true"} {
-		if !strings.Contains(output, flag) {
-			t.Errorf("missing %s in PDF output", flag)
-		}
+		assert.Contains(t, output, flag, "missing %s in PDF output", flag)
 	}
 }

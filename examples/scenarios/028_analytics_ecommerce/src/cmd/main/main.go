@@ -37,6 +37,11 @@ func main() {
 
 	logger.AddPrettyOutput()
 
+	ga4Collector, err := ga4.NewCollector("G-DEBUGDEMO1", "demo-api-secret", ga4.WithDebug(true))
+	if err != nil {
+		panic(err)
+	}
+
 	ssr := piko.New(
 		piko.WithCSSReset(piko.WithCSSResetComplete()),
 
@@ -58,7 +63,7 @@ func main() {
 		}),
 		piko.WithBackendAnalytics(
 			analytics_collector_stdout.NewCollector(),
-			ga4.NewCollector("G-DEBUGDEMO1", "demo-api-secret", ga4.WithDebug(true)),
+			ga4Collector,
 		),
 		piko.WithDevWidget(),
 		piko.WithDevHotreload(),

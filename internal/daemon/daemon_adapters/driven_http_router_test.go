@@ -1384,11 +1384,26 @@ func TestComputeAutoLocaleHead_LocalisedStaticPage(t *testing.T) {
 	assert.Equal(t, map[string]string{"hreflang": "x-default", "href": "https://example.com/what-we-do/"}, head.AlternateLinks[2])
 }
 
-func TestComputeAutoLocaleHead_SingleLocaleReturnsNil(t *testing.T) {
+func TestComputeAutoLocaleHead_SingleLocaleEmitsSelfCanonicalOnly(t *testing.T) {
 	t.Parallel()
 
 	entry := &templater_domain.MockPageEntryView{
 		GetRoutePatternsFunc: func() map[string]string { return map[string]string{"en": "/about"} },
+	}
+	cfg := &config.WebsiteConfig{I18n: config.I18nConfig{Locales: []string{"en"}, DefaultLocale: "en"}}
+
+	head := computeAutoLocaleHead(newAutoHeadRequest("en", "/about", nil), entry, cfg)
+
+	require.NotNil(t, head)
+	assert.Equal(t, "https://example.com/about", head.CanonicalURL)
+	assert.Empty(t, head.AlternateLinks)
+}
+
+func TestComputeAutoLocaleHead_NoRoutePatternsReturnsNil(t *testing.T) {
+	t.Parallel()
+
+	entry := &templater_domain.MockPageEntryView{
+		GetRoutePatternsFunc: func() map[string]string { return map[string]string{} },
 	}
 	cfg := &config.WebsiteConfig{I18n: config.I18nConfig{Locales: []string{"en"}, DefaultLocale: "en"}}
 

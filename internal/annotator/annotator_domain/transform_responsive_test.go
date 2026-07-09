@@ -871,6 +871,21 @@ func TestCreateVariantDependency(t *testing.T) {
 		assert.False(t, hasSizes, "sizes should be removed")
 	})
 
+	t.Run("propagates the sitemap opt-in flag to every variant", func(t *testing.T) {
+		t.Parallel()
+
+		baseDep := &annotator_dto.StaticAssetDependency{
+			SourcePath:           "/images/photo.jpg",
+			AssetType:            "img",
+			TransformationParams: map[string]string{"width": "800"},
+			IncludeInSitemap:     true,
+		}
+
+		result := createVariantDependency(baseDep, ResponsiveVariantSpec{Width: 1600, Density: "x2"})
+
+		assert.True(t, result.IncludeInSitemap, "variant must inherit IncludeInSitemap from base")
+	})
+
 	t.Run("does not modify original dependency", func(t *testing.T) {
 		t.Parallel()
 

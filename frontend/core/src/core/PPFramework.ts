@@ -468,13 +468,33 @@ async function handlePageLoad(
 
     const domUpdateDeps: DOMUpdateDeps = {bindDOM: deps.bindDOM, moduleLoader: deps.moduleLoader};
 
-    if ('startViewTransition' in document && typeof document.startViewTransition === 'function') {
-        const transition = document.startViewTransition(() => {
-            performDOMUpdate(domUpdateDeps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions);
-        });
-        await transition.updateCallbackDone;
-    } else {
+    const updateState = {applied: false};
+    const applyUpdate = (): void => {
+        if (updateState.applied) {
+            return;
+        }
+        updateState.applied = true;
         performDOMUpdate(domUpdateDeps, parsedDocument, oldAppRoot, newAppRoot, scrollOptions);
+    };
+
+    const canAnimate =
+        document.visibilityState !== 'hidden' &&
+        'startViewTransition' in document &&
+        typeof document.startViewTransition === 'function';
+
+    if (!canAnimate) {
+        applyUpdate();
+        return;
+    }
+
+    try {
+        const transition = document.startViewTransition(applyUpdate);
+        await transition.updateCallbackDone;
+    } catch (error) {
+        if (updateState.applied) {
+            throw error;
+        }
+        applyUpdate();
     }
 }
 

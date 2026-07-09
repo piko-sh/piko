@@ -29,7 +29,7 @@ The plugin injects the appropriate language into each block:
 | `<script lang="js">` | TypeScript | JavaScript plugin installed |
 | `<script lang="ts">` | TypeScript | JavaScript plugin installed |
 | `<style>` | CSS | CSS plugin installed |
-| `<template>` | Piko LSP | LSP4IJ + piko-lsp binary |
+| `<template>` | Piko LSP | LSP4IJ + pikopls binary |
 
 ### LSP Support
 
@@ -47,7 +47,7 @@ The template block uses the Piko Language Server Protocol for:
 - CSS plugin (bundled)
 - JavaScript plugin (bundled with Ultimate)
 - [LSP4IJ](https://plugins.jetbrains.com/plugin/23257-lsp4ij) plugin (for template LSP support)
-- `piko-lsp` binary in PATH or project directory
+- `pikopls` binary in PATH or project directory
 
 ## Building
 
@@ -81,7 +81,7 @@ The plugin will be created in `build/distributions/`.
 1. Build the plugin or download from JetBrains Marketplace
 2. In IntelliJ: Settings -> Plugins -> Install from disk
 3. Install the LSP4IJ plugin from the Marketplace
-4. Ensure `piko-lsp` is available in your PATH
+4. Ensure `pikopls` is available in your PATH
 
 ## File Structure
 

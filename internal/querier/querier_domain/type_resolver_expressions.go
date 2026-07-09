@@ -651,8 +651,9 @@ func (r *typeResolver) resolveStructFieldAccessExpression(
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
 }
 
-// addRawTablesToScope registers the FROM, JOIN, and FROM-clause derived-table relations
-// of a raw query analysis into the given scope by resolving each against the catalogue.
+// addRawTablesToScope registers the FROM, JOIN, FROM-clause derived-table, and
+// table-valued-function relations of a raw query analysis into the given scope by
+// resolving each against the catalogue.
 //
 // A relation may be a base table or a view; a view is folded into a synthetic table
 // carrying its resolved columns (mirroring resolveTableReference) so a subquery whose
@@ -686,6 +687,8 @@ func (r *typeResolver) addRawTablesToScope(raw *querier_dto.RawQueryAnalysis, sc
 			_ = scope.AddTable(joinClause.Table, joinClause.Kind, table)
 		}
 	}
+
+	r.addRawTableValuedFunctionsToScope(raw.RawTableValuedFunctions, scope)
 	if depth >= maxExpressionResolveDepth {
 		return
 	}
@@ -696,13 +699,6 @@ func (r *typeResolver) addRawTablesToScope(raw *querier_dto.RawQueryAnalysis, sc
 
 // addRawCTEsToScope resolves each WITH-clause CTE definition of an inner subquery and
 // registers it in the given scope.
-//
-// A scalar, EXISTS, predicate, or nested-derived subquery that declares its own WITH
-// clause (for example (WITH c AS (...) SELECT id FROM c)) would otherwise have its CTE
-// columns resolve to Unknown, because addRawTablesToScope only walked FROM/JOIN/derived
-// relations. This mirrors the top-level derived-table path which resolves CTEs via the
-// query analyser, removing that asymmetry. CTEs are resolved in order so a later CTE body
-// can reference an earlier one.
 //
 // Takes cteDefinitions ([]querier_dto.RawCTEDefinition) which are the inner query's CTEs.
 // Takes scope (*scopeChain) which receives the resolved CTEs.
@@ -848,6 +844,50 @@ func (r *typeResolver) addRawDerivedTableToScope(
 		Columns:  columns,
 		JoinKind: rawDerived.JoinKind,
 	})
+}
+
+// addRawTableValuedFunctionsToScope registers an inner subquery's FROM-clause
+// table-valued functions into the given scope.
+//
+// This covers functions such as json_each(payload) je or generate_series(1, 10) g, so a
+// column or parameter inside an EXISTS, scalar, derived, or predicate subquery that
+// references the function's alias still resolves. Without this a reference such as
+// je.value raised a spurious Q001, because addRawTablesToScope walked only
+// FROM/JOIN/CTE/derived relations and never the table-valued functions.
+//
+// The scope builder stays silent: a function whose columns cannot be resolved is skipped
+// (as an unresolvable FROM relation is), and the alias-count-mismatch diagnostic is
+// discarded here. The top-level resolveTableValuedFunctions owns table-valued function
+// diagnostics; an unknown subquery function still surfaces downstream as its alias
+// reference failing to resolve.
+//
+// Takes tableValuedFunctions ([]querier_dto.RawTableValuedFunctionReference) which holds
+// the inner query's parsed function references.
+// Takes scope (*scopeChain) which receives the resolved functions as derived tables.
+func (r *typeResolver) addRawTableValuedFunctionsToScope(
+	tableValuedFunctions []querier_dto.RawTableValuedFunctionReference,
+	scope *scopeChain,
+) {
+	if len(tableValuedFunctions) == 0 {
+		return
+	}
+
+	engine, ok := r.engine.(EnginePort)
+	if !ok {
+		return
+	}
+	for _, tvf := range tableValuedFunctions {
+		columns, _ := resolveTableValuedFunctionColumns(engine, r.catalogue, tvf)
+		if columns == nil {
+			continue
+		}
+		scope.AddDerivedTable(querier_dto.DerivedTableReference{
+			Alias:    tvf.Alias,
+			Columns:  columns,
+			Source:   querier_dto.DerivedSourceTableFunction,
+			JoinKind: tvf.JoinKind,
+		})
+	}
 }
 
 // catalogueRelation resolves a FROM/JOIN reference to its catalogue entry: a base table

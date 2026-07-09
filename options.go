@@ -129,6 +129,16 @@ type MonitoringOption = bootstrap.MonitoringOption
 // metric reader integration and HTTP handlers.
 type MetricsExporter = monitoring_domain.MetricsExporter
 
+// SpanProcessor is the interface for additional OTEL span processors.
+type SpanProcessor = monitoring_domain.SpanProcessor
+
+// QueryObserver receives a QueryObservation after each instrumented database call.
+type QueryObserver = monitoring_domain.QueryObserver
+
+// QueryObservation is one observed database statement execution passed to a
+// QueryObserver.
+type QueryObservation = monitoring_domain.QueryObservation
+
 // MonitoringTLSOption configures TLS settings for the monitoring gRPC server.
 type MonitoringTLSOption = bootstrap.MonitoringTLSOption
 
@@ -2081,6 +2091,29 @@ func WithMetricsExporter(exporter MetricsExporter) Option {
 	return bootstrap.WithMetricsExporter(exporter)
 }
 
+// WithSpanProcessor registers an additional OTEL span processor on piko's tracer
+// provider, so an adapter can forward every finished span to a remote sink over the
+// shared stream. The processor must satisfy
+// go.opentelemetry.io/otel/sdk/trace.SpanProcessor.
+//
+// Takes p (SpanProcessor) which receives every finished span.
+//
+// Returns Option which registers the span processor on the server.
+func WithSpanProcessor(p SpanProcessor) Option {
+	return bootstrap.WithSpanProcessor(p)
+}
+
+// WithQueryObserver registers an observer that receives a QueryObservation after every
+// instrumented database statement, so an adapter can stream per-query telemetry to a
+// remote sink over the shared stream. The observer must be non-blocking.
+//
+// Takes o (QueryObserver) which receives each observed database call.
+//
+// Returns Option which registers the query observer on the server.
+func WithQueryObserver(o QueryObserver) Option {
+	return bootstrap.WithQueryObserver(o)
+}
+
 // WithDatabase registers a named SQL database connection for the registry or orchestrator
 // subsystem. When a database named "registry" or "orchestrator" is registered, piko uses
 // a SQL-backed DAL instead of the default otter in-memory backend for that subsystem.
@@ -3119,11 +3152,11 @@ func WithLogLevel(level string) Option {
 
 // WithLogger replaces the entire logger configuration.
 //
-// Takes cfg (logger_dto.Config) which is the value to apply.
+// Takes loggerConfig (logger_dto.Config) which is the value to apply.
 //
 // Returns Option which the bootstrap consumes when applied.
-func WithLogger(cfg logger_dto.Config) Option {
-	return bootstrap.WithLogger(cfg)
+func WithLogger(loggerConfig logger_dto.Config) Option {
+	return bootstrap.WithLogger(loggerConfig)
 }
 
 // WithDatabaseDriver selects the database backend. Valid values: "sqlite" (default),

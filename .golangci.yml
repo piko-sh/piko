@@ -274,7 +274,7 @@ linters:
         linters: [misspell]
         text: "(?i)(materializ|randomiz)"
 
-      - path: (cmd/lsp/|tests/integration/lsp/)
+      - path: (cmd/pikopls/|tests/integration/lsp/)
         linters: [misspell]
         text: "(?i)initializ"
 

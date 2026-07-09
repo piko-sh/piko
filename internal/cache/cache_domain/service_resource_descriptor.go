@@ -19,7 +19,6 @@
 package cache_domain
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"maps"
@@ -39,6 +38,8 @@ var (
 	_ provider_domain.SubResourceDescriptor = (*service)(nil)
 
 	_ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+
+	_ provider_domain.ReadinessProbeNamed = (*service)(nil)
 )
 
 // ResourceType returns the CLI resource name for the cache hexagon.
@@ -46,6 +47,16 @@ var (
 // Returns string which is "cache".
 func (*service) ResourceType() string {
 	return "cache"
+}
+
+// ProbeName returns the readiness health-probe name of the cache service, bridging the
+// "cache" resource type to the "CacheService" readiness dependency so a readiness
+// collector can attach this descriptor's provider info to the matching dependency. It
+// must return the same string the service's health-probe Name method returns.
+//
+// Returns string which is "CacheService".
+func (*service) ProbeName() string {
+	return "CacheService"
 }
 
 // ResourceListColumns returns column definitions for the cache provider list table.
@@ -113,7 +124,9 @@ func (s *service) ResourceDescribeProvider(_ context.Context, name string) (*pro
 	sections := []provider_domain.InfoSection{
 		cacheOverviewSection(name, providerAny, isDefault),
 	}
-	sections = appendCacheConfigSection(sections, providerAny)
+	if section, ok := provider_domain.BuildMetadataSection(providerAny); ok {
+		sections = append(sections, section)
+	}
 	sections = appendCacheNamespacesSection(sections, providerAny)
 
 	return &provider_domain.ProviderDetail{
@@ -244,39 +257,6 @@ func cacheOverviewSection(name string, providerAny any, isDefault bool) provider
 			{Key: "Default", Value: defaultString},
 		},
 	}
-}
-
-// appendCacheConfigSection appends a Configuration section when the provider exposes
-// metadata.
-//
-// Takes sections ([]provider_domain.InfoSection) which is the current list.
-// Takes providerAny (any) which is the provider instance to inspect.
-//
-// Returns []provider_domain.InfoSection which is the updated section list.
-func appendCacheConfigSection(sections []provider_domain.InfoSection, providerAny any) []provider_domain.InfoSection {
-	meta, ok := providerAny.(provider_domain.ProviderMetadata)
-	if !ok {
-		return sections
-	}
-	metadata := meta.GetProviderMetadata()
-	if len(metadata) == 0 {
-		return sections
-	}
-
-	entries := make([]provider_domain.InfoEntry, 0, len(metadata))
-	for k, v := range metadata {
-		entries = append(entries, provider_domain.InfoEntry{
-			Key:   k,
-			Value: fmt.Sprintf("%v", v),
-		})
-	}
-	slices.SortFunc(entries, func(a, b provider_domain.InfoEntry) int {
-		return cmp.Compare(a.Key, b.Key)
-	})
-	return append(sections, provider_domain.InfoSection{
-		Title:   "Configuration",
-		Entries: entries,
-	})
 }
 
 // appendCacheNamespacesSection appends a Namespaces section when the provider supports

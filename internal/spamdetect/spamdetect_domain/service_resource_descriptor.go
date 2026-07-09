@@ -19,25 +19,18 @@
 package spamdetect_domain
 
 import (
-	"cmp"
 	"context"
 	"fmt"
-	"slices"
 	"strings"
-	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
-	"piko.sh/piko/wdk/safeconv"
-)
-
-const (
-	// hoursPerDay is the number of hours in a day for age formatting.
-	hoursPerDay = 24
 )
 
 var (
 	_ provider_domain.ResourceDescriptor = (*spamDetectService)(nil)
+
+	_ provider_domain.ReadinessProbeNamed = (*spamDetectService)(nil)
 )
 
 // ResourceType returns the resource name for the spam detection hexagon.
@@ -45,6 +38,17 @@ var (
 // Returns string which is "spamdetect".
 func (*spamDetectService) ResourceType() string {
 	return "spamdetect"
+}
+
+// ProbeName returns the readiness health-probe name of the spam detection service,
+// bridging the "spamdetect" resource type to the "SpamDetectService" readiness dependency
+// so a readiness collector can attach this descriptor's provider info to the matching
+// dependency. It returns the same constant the service's health-probe Name method
+// returns.
+//
+// Returns string which is healthProbeName ("SpamDetectService").
+func (*spamDetectService) ProbeName() string {
+	return healthProbeName
 }
 
 // ResourceListColumns returns column definitions for the detector list table.
@@ -88,7 +92,7 @@ func (s *spamDetectService) ResourceListProviders(ctx context.Context) []provide
 			Values: map[string]string{
 				"name":       info.Name,
 				"signals":    signalsDisplay,
-				"registered": formatRegisteredAge(info.RegisteredAt),
+				"registered": provider_domain.FormatRegisteredAge(info.RegisteredAt),
 			},
 		}
 	}
@@ -122,12 +126,12 @@ func (s *spamDetectService) ResourceDescribeProvider(ctx context.Context, name s
 			Entries: []provider_domain.InfoEntry{
 				{Key: "Name", Value: info.Name},
 				{Key: "Signals", Value: strings.Join(signalStrings, ", ")},
-				{Key: "Registered", Value: formatRegisteredAge(info.RegisteredAt)},
+				{Key: "Registered", Value: provider_domain.FormatRegisteredAge(info.RegisteredAt)},
 			},
 		},
 	}
 
-	if metaSection, ok := buildMetadataSection(detector); ok {
+	if metaSection, ok := provider_domain.BuildMetadataSection(detector); ok {
 		sections = append(sections, metaSection)
 	}
 
@@ -151,62 +155,4 @@ func findDetectorInfo(infos []provider_domain.ProviderInfo, name string) provide
 		}
 	}
 	return provider_domain.ProviderInfo{Name: name}
-}
-
-// buildMetadataSection creates an InfoSection from a detector's metadata.
-//
-// Takes detector (any) which may implement ProviderMetadata.
-//
-// Returns provider_domain.InfoSection which contains the metadata.
-// Returns bool which is true when metadata was found.
-func buildMetadataSection(detector any) (provider_domain.InfoSection, bool) {
-	meta, ok := detector.(provider_domain.ProviderMetadata)
-	if !ok {
-		return provider_domain.InfoSection{}, false
-	}
-
-	metadata := meta.GetProviderMetadata()
-	if len(metadata) == 0 {
-		return provider_domain.InfoSection{}, false
-	}
-
-	entries := make([]provider_domain.InfoEntry, 0, len(metadata))
-	for key, value := range metadata {
-		entries = append(entries, provider_domain.InfoEntry{
-			Key:   key,
-			Value: fmt.Sprintf("%v", value),
-		})
-	}
-	slices.SortFunc(entries, func(a, b provider_domain.InfoEntry) int {
-		return cmp.Compare(a.Key, b.Key)
-	})
-
-	return provider_domain.InfoSection{
-		Title:   "Configuration",
-		Entries: entries,
-	}, true
-}
-
-// formatRegisteredAge formats a registration timestamp as a human-readable age.
-//
-// Takes registeredAt (time.Time) which is the registration timestamp.
-//
-// Returns string which is the formatted age string.
-func formatRegisteredAge(registeredAt time.Time) string {
-	if registeredAt.IsZero() {
-		return "unknown"
-	}
-
-	duration := time.Since(registeredAt)
-
-	switch {
-	case duration < time.Minute:
-		return fmt.Sprintf("%ds ago", safeconv.Int64ToInt(int64(duration.Seconds())))
-	case duration < time.Hour:
-		return fmt.Sprintf("%dm ago", safeconv.Int64ToInt(int64(duration.Minutes())))
-	case duration < hoursPerDay*time.Hour:
-		return fmt.Sprintf("%dh ago", safeconv.Int64ToInt(int64(duration.Hours())))
-	default:
-		return fmt.Sprintf("%dd ago", safeconv.Int64ToInt(int64(duration.Hours()/hoursPerDay)))
-	}
 }

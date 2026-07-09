@@ -44,7 +44,7 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
     /**
      * Holds all persistent settings values.
      *
-     * @property lspPath Custom path to the piko-lsp binary. Empty uses standard locations.
+     * @property lspPath Custom path to the pikopls binary. Empty uses standard locations.
      * @property lspEnabled Whether LSP support is enabled.
      * @property showLspNotFoundNotification Whether to show a notification when LSP is missing.
      * @property useStdioTransport Whether to use stdio instead of TCP. Experimental.
@@ -54,7 +54,7 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
      * @property pprofEnabled Whether to enable the pprof profiling server.
      * @property pprofPort The port number for the pprof HTTP server.
      * @property formattingEnabled Whether to enable document formatting.
-     * @property fileLoggingEnabled Whether to enable file logging to /tmp/piko-lsp-<pid>.log.
+     * @property fileLoggingEnabled Whether to enable file logging to /tmp/pikopls-<pid>.log.
      * @property goBinPath Custom path to directory containing the Go binary. Empty uses auto-detection.
      * @property detectGoFromIde Whether to detect Go SDK from IntelliJ/GoLand configuration.
      * @property searchGlobalGoLocations Whether to search common Go installation locations.
@@ -94,7 +94,7 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
         XmlSerializerUtil.copyBean(state, myState)
     }
 
-    /** Custom path to the piko-lsp binary. Empty uses standard locations. */
+    /** Custom path to the pikopls binary. Empty uses standard locations. */
     var lspPath: String
         get() = myState.lspPath
         set(value) {
@@ -164,7 +164,7 @@ class PikoSettings : PersistentStateComponent<PikoSettings.State> {
             myState.formattingEnabled = value
         }
 
-    /** Whether to enable file logging to /tmp/piko-lsp-<pid>.log. */
+    /** Whether to enable file logging to /tmp/pikopls-<pid>.log. */
     var fileLoggingEnabled: Boolean
         get() = myState.fileLoggingEnabled
         set(value) {

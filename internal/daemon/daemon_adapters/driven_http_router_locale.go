@@ -27,6 +27,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
@@ -109,7 +110,7 @@ func computeAutoLocaleHead(
 		return nil
 	}
 	patterns := entry.GetRoutePatterns()
-	if len(patterns) < 2 {
+	if len(patterns) == 0 {
 		return nil
 	}
 
@@ -117,11 +118,59 @@ func computeAutoLocaleHead(
 	if pctx := daemon_dto.PikoRequestCtxFromContext(request.Context()); pctx != nil {
 		currentLocale = pctx.Locale
 	}
-	defaultLocale := websiteConfig.I18n.DefaultLocale
 	baseURL := canonicalBaseURL(websiteConfig, request)
 	params := routePathParams(request)
 
-	ordered := websiteConfig.I18n.Locales
+	if len(patterns) < 2 {
+		return singleLocaleHead(currentLocale, baseURL, patterns, params)
+	}
+
+	return localeAlternatesHead(currentLocale, websiteConfig.I18n.DefaultLocale, baseURL,
+		websiteConfig.I18n.Locales, patterns, params)
+}
+
+// singleLocaleHead builds the SEO head for a page with a single locale variant.
+//
+// The head carries a self-referential canonical (every indexable page should declare one)
+// but no hreflang alternates or x-default. The substituted path is escaped per segment
+// (the same helper the build-time sitemap uses) so an attacker-controlled route param
+// cannot break out of the href attribute, and the served canonical matches the sitemap
+// URL.
+//
+// Takes currentLocale (string) which is the active request locale.
+// Takes baseURL (string) which is the absolute site origin.
+// Takes patterns (map[string]string) which holds the single locale route pattern.
+// Takes params (map[string]string) which holds the matched route params.
+//
+// Returns *templater_domain.LocaleSEOHead, or nil when no canonical could be built.
+func singleLocaleHead(currentLocale, baseURL string, patterns, params map[string]string) *templater_domain.LocaleSEOHead {
+	head := &templater_domain.LocaleSEOHead{Language: currentLocale}
+	for _, pattern := range patterns {
+		head.CanonicalURL = baseURL + seo_dto.EscapePathSegments(substituteRouteParams(pattern, params))
+		break
+	}
+	if head.CanonicalURL == "" {
+		return nil
+	}
+	return head
+}
+
+// localeAlternatesHead builds the SEO head for a multi-locale page: a self-referential
+// hreflang alternate for every locale, a canonical pointing at the default-locale
+// variant, and an x-default. Each href is escaped per segment so it is both
+// injection-safe and byte-identical to the build-time sitemap URL.
+//
+// Takes currentLocale (string) which is the active request locale.
+// Takes defaultLocale (string) which selects the canonical variant.
+// Takes baseURL (string) which is the absolute site origin.
+// Takes orderedLocales ([]string) which orders the alternates; empty sorts the pattern
+// keys.
+// Takes patterns (map[string]string) which maps each locale to its route pattern.
+// Takes params (map[string]string) which holds the matched route params.
+//
+// Returns *templater_domain.LocaleSEOHead which holds the derived head.
+func localeAlternatesHead(currentLocale, defaultLocale, baseURL string, orderedLocales []string, patterns, params map[string]string) *templater_domain.LocaleSEOHead {
+	ordered := orderedLocales
 	if len(ordered) == 0 {
 		ordered = make([]string, 0, len(patterns))
 		for locale := range patterns {
@@ -137,7 +186,7 @@ func computeAutoLocaleHead(
 		if !ok {
 			continue
 		}
-		fullURL := baseURL + substituteRouteParams(pattern, params)
+		fullURL := baseURL + seo_dto.EscapePathSegments(substituteRouteParams(pattern, params))
 		alternates = append(alternates, map[string]string{"hreflang": locale, "href": fullURL})
 		if locale == defaultLocale {
 			head.CanonicalURL = fullURL

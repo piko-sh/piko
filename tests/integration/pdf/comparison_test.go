@@ -31,6 +31,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -113,7 +114,7 @@ func runPdfTestCase(t *testing.T, tc testCase) {
 	if *updateGolden {
 		fmt.Println("[PDF] Phase 8: Updating golden files...")
 		require.NoError(t, os.MkdirAll(goldenDir, 0755), "failed to create golden directory")
-		require.NoError(t, os.WriteFile(goldenPath, actualPdf, 0644), "failed to write golden file")
+		require.NoError(t, os.WriteFile(goldenPath, stripPdfTimestamps(actualPdf), 0644), "failed to write golden file")
 		require.NoError(t, os.WriteFile(comparisonPath, stripPdfTimestamps(comparisonPdf), 0644), "failed to write comparison file")
 		if renderResult.layoutDump != "" {
 			layoutGoldenPath := filepath.Join(goldenDir, "golden.go")
@@ -130,15 +131,15 @@ func runPdfTestCase(t *testing.T, tc testCase) {
 	expectedPdf, err := os.ReadFile(goldenPath)
 	require.NoError(t, err, "failed to read golden file at %s (run with -update to generate)", goldenPath)
 
-	if !bytes.Equal(actualPdf, expectedPdf) {
-		firstDifference := findFirstDifference(actualPdf, expectedPdf)
-		t.Errorf("PDF output differs from golden file\n"+
-			"  actual size:   %d bytes\n"+
+	normalisedActual := stripPdfTimestamps(actualPdf)
+	if !bytes.Equal(normalisedActual, expectedPdf) {
+		firstDifference := findFirstDifference(normalisedActual, expectedPdf)
+		assert.Fail(t, "PDF output differs from golden file", "actual size:   %d bytes\n"+
 			"  expected size: %d bytes\n"+
 			"  first diff at: byte %d\n"+
 			"  golden file:   %s\n"+
 			"  run with -update to regenerate",
-			len(actualPdf), len(expectedPdf), firstDifference, goldenPath)
+			len(normalisedActual), len(expectedPdf), firstDifference, goldenPath)
 	}
 
 	fmt.Printf("--- [PDF] COMPLETE: %s ---\n", tc.Name)
@@ -146,10 +147,13 @@ func runPdfTestCase(t *testing.T, tc testCase) {
 
 var (
 	pdfTimestampPattern = regexp.MustCompile(`/(CreationDate|ModDate) \(D:\d{14}[^)]*\)`)
+	xmpTimestampPattern = regexp.MustCompile(`<xmp:(CreateDate|ModifyDate)>[^<]*</xmp:(CreateDate|ModifyDate)>`)
 )
 
 func stripPdfTimestamps(data []byte) []byte {
-	return pdfTimestampPattern.ReplaceAll(data, []byte("/$1 (D:19700101000000+00'00')"))
+	data = pdfTimestampPattern.ReplaceAll(data, []byte("/$1 (D:19700101000000+00'00')"))
+	data = xmpTimestampPattern.ReplaceAll(data, []byte("<xmp:${1}>1970-01-01T00:00:00Z</xmp:${2}>"))
+	return data
 }
 
 func findFirstDifference(actual, expected []byte) int {

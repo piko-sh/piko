@@ -285,7 +285,100 @@ func (i *Inliner) processImports(ctx context.Context, tree css_ast.AST, containi
 		MergeASTs(&newTree, importToMerge)
 	}
 
+	newTree.Rules = hoistImportRules(newTree.Rules)
+
 	return newTree, nil
+}
+
+// hoistImportRules reorders a rule list into the prologue order the CSS specification
+// requires: a leading @charset (if present) first, then every @import rule, then all
+// other rules.
+//
+// Takes rules ([]css_ast.Rule) which is the rule list to reorder.
+//
+// Returns []css_ast.Rule ordered @charset first, then @import, then the remaining rules.
+func hoistImportRules(rules []css_ast.Rule) []css_ast.Rule {
+	if !importRulesMisplaced(rules) {
+		return rules
+	}
+
+	charsets := make([]css_ast.Rule, 0, len(rules))
+	imports := make([]css_ast.Rule, 0, len(rules))
+	others := make([]css_ast.Rule, 0, len(rules))
+	for _, rule := range rules {
+		switch rule.Data.(type) {
+		case *css_ast.RAtCharset:
+			charsets = append(charsets, rule)
+		case *css_ast.RAtImport:
+			imports = append(imports, rule)
+		default:
+			others = append(others, rule)
+		}
+	}
+
+	ordered := make([]css_ast.Rule, 0, len(rules))
+	ordered = append(ordered, charsets...)
+	ordered = append(ordered, imports...)
+	ordered = append(ordered, others...)
+	return ordered
+}
+
+// importRulesMisplaced reports whether a rule list deviates from the CSS prologue order
+// of @charset, then @import, then everything else.
+//
+// Takes rules ([]css_ast.Rule) which is the rule list to inspect.
+//
+// Returns bool which is true when at least one @charset or @import rule is out of place.
+func importRulesMisplaced(rules []css_ast.Rule) bool {
+	seenImport := false
+	seenOther := false
+	for i := range rules {
+		switch rules[i].Data.(type) {
+		case *css_ast.RAtCharset:
+			if seenImport || seenOther {
+				return true
+			}
+		case *css_ast.RAtImport:
+			if seenOther {
+				return true
+			}
+			seenImport = true
+		default:
+			seenOther = true
+		}
+	}
+	return false
+}
+
+// isExternalImportPath reports whether a CSS @import target refers to an external
+// resource that must be fetched by the browser at runtime rather than inlined at build
+// time.
+//
+// Takes path (string) which is the raw @import target text.
+//
+// Returns bool which is true when the target is external and should be kept verbatim.
+func isExternalImportPath(path string) bool {
+	if strings.HasPrefix(path, "//") {
+		return true
+	}
+
+	colon := strings.IndexByte(path, ':')
+	if colon <= 0 {
+		return false
+	}
+	for i := range colon {
+		c := path[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z':
+		case c >= '0' && c <= '9', c == '+', c == '-', c == '.':
+			if i == 0 {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // collectImportedASTs processes a CSS AST to separate import rules from other rules and
@@ -296,8 +389,9 @@ func (i *Inliner) processImports(ctx context.Context, tree css_ast.AST, containi
 // Takes startLocation (ast.Location) which marks the import's source position.
 // Takes pathStack ([]string) which tracks visited paths to detect cycles.
 //
-// Returns []css_ast.Rule which contains all non-import rules from the tree.
-// Returns []*css_ast.AST which contains the parsed ASTs of imported files.
+// Returns []css_ast.Rule which contains the rules kept as-is: ordinary rules plus any
+// external @import rules that are left verbatim for the browser to resolve at runtime.
+// Returns []*css_ast.AST which contains the parsed ASTs of inlined local imports.
 // Returns error when a circular import is found or parsing fails.
 func (i *Inliner) collectImportedASTs(ctx context.Context, tree css_ast.AST, containingPath string, startLocation ast.Location, pathStack []string) ([]css_ast.Rule, []*css_ast.AST, error) {
 	var rulesToKeep []css_ast.Rule
@@ -306,6 +400,11 @@ func (i *Inliner) collectImportedASTs(ctx context.Context, tree css_ast.AST, con
 	for _, rule := range tree.Rules {
 		imp, isImport := rule.Data.(*css_ast.RAtImport)
 		if !isImport {
+			rulesToKeep = append(rulesToKeep, rule)
+			continue
+		}
+
+		if isExternalImportPath(tree.ImportRecords[imp.ImportRecordIndex].Path.Text) {
 			rulesToKeep = append(rulesToKeep, rule)
 			continue
 		}
@@ -415,6 +514,12 @@ func reIndexRule(rule *css_ast.Rule, symbolOffset, importRecordOffset uint32) {
 		reIndexAtRule(r.Prelude, r.Rules, symbolOffset, importRecordOffset)
 	case *css_ast.RBadDeclaration:
 		reIndexTokens(r.Tokens, symbolOffset, importRecordOffset)
+	case *css_ast.RAtImport:
+		r.ImportRecordIndex += importRecordOffset
+		if r.ImportConditions != nil {
+			reIndexTokens(r.ImportConditions.Layers, symbolOffset, importRecordOffset)
+			reIndexTokens(r.ImportConditions.Supports, symbolOffset, importRecordOffset)
+		}
 	case *css_ast.RUnknownAt:
 		reIndexTokens(r.Prelude, symbolOffset, importRecordOffset)
 		reIndexTokens(r.Block, symbolOffset, importRecordOffset)
@@ -644,8 +749,24 @@ func cloneR(original css_ast.R) css_ast.R {
 func cloneRAtImport(r *css_ast.RAtImport) *css_ast.RAtImport {
 	clone := *r
 	if r.ImportConditions != nil {
-		conditionsClone, _ := r.ImportConditions.CloneWithImportRecords(nil, nil)
-		clone.ImportConditions = &conditionsClone
+		clone.ImportConditions = cloneImportConditions(r.ImportConditions)
+	}
+	return &clone
+}
+
+// cloneImportConditions deep-copies the layer, supports, and media conditions of a CSS
+// @import rule, preserving each url() token's import-record index verbatim.
+//
+// Takes conditions (*css_ast.ImportConditions) which holds the conditions to copy.
+//
+// Returns *css_ast.ImportConditions which is an independent copy of the conditions.
+func cloneImportConditions(conditions *css_ast.ImportConditions) *css_ast.ImportConditions {
+	clone := *conditions
+	clone.Layers = cloneTokens(conditions.Layers)
+	clone.Supports = cloneTokens(conditions.Supports)
+	if conditions.Queries != nil {
+		clone.Queries = make([]css_ast.MediaQuery, len(conditions.Queries))
+		copy(clone.Queries, conditions.Queries)
 	}
 	return &clone
 }

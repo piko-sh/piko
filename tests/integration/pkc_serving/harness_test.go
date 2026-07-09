@@ -35,7 +35,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
+	registry_querier_sqlite "piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_disk"
@@ -121,7 +121,7 @@ func setupPKCServingFixture(t *testing.T, base *testutil.BaseHarness, testPath s
 	require.NoError(t, err)
 	dbConn.SetMaxOpenConns(1)
 
-	metaStore := registry_querier_adapter.NewDAL(dbConn)
+	metaStore := registry_querier_sqlite.New(dbConn)
 
 	blobDir := filepath.Join(tempDir, "blobs")
 	diskProvider, err := provider_disk.NewDiskProvider(provider_disk.Config{

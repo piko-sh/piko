@@ -88,6 +88,13 @@ func FuzzConvertToType(f *testing.F) {
 	f.Add("maybe", "bool")
 	f.Add("1.7976931348623157e+309", "float64")
 	f.Add("2025-10-09T10:00:00Z", "time")
+	f.Add("5", "[]int")
+	f.Add("5", "[]*int")
+	f.Add("hello", "[]string")
+	f.Add("hello", "[]*string")
+	f.Add("2025-10-09T10:00:00Z", "[]time.Time")
+	f.Add("2025-10-09T10:00:00Z", "[]*time.Time")
+	f.Add("x", "[][]string")
 
 	f.Fuzz(func(t *testing.T, value string, typeHint string) {
 		binder := NewASTBinder()
@@ -128,6 +135,20 @@ func FuzzConvertToType(f *testing.F) {
 			targetType = reflect.TypeFor[maths.Decimal]()
 		case "money":
 			targetType = reflect.TypeFor[maths.Money]()
+		case "[]int":
+			targetType = reflect.TypeFor[[]int]()
+		case "[]*int":
+			targetType = reflect.TypeFor[[]*int]()
+		case "[]string":
+			targetType = reflect.TypeFor[[]string]()
+		case "[]*string":
+			targetType = reflect.TypeFor[[]*string]()
+		case "[]time.Time":
+			targetType = reflect.TypeFor[[]time.Time]()
+		case "[]*time.Time":
+			targetType = reflect.TypeFor[[]*time.Time]()
+		case "[][]string":
+			targetType = reflect.TypeFor[[][]string]()
 		default:
 
 			return
@@ -303,6 +324,8 @@ func FuzzPointerFields(f *testing.F) {
 	f.Add("PtrBool", "true")
 	f.Add("PtrFloat", "3.14")
 	f.Add("PtrStruct.Field", "nested")
+	f.Add("PtrInts", "42")
+	f.Add("PtrStrings", "value")
 
 	type PointerStruct struct {
 		PtrString *string
@@ -312,6 +335,8 @@ func FuzzPointerFields(f *testing.F) {
 		PtrStruct *struct {
 			Field string
 		}
+		PtrInts    []*int
+		PtrStrings []*string
 	}
 
 	f.Fuzz(func(t *testing.T, key, value string) {

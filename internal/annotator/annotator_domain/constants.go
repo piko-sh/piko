@@ -74,6 +74,10 @@ const (
 	// attributeSrc is the name of the HTML src attribute.
 	attributeSrc = "src"
 
+	// attributeSitemap is the bare boolean marker attribute that opts an image tag into the
+	// page's image sitemap. It is build only and stripped before rendering.
+	attributeSitemap = "sitemap"
+
 	// pkgStrconv is the package name for the strconv standard library.
 	pkgStrconv = "strconv"
 

@@ -43,7 +43,7 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 				ContentX:      15,
 				ContentY:      15,
 				ContentWidth:  345,
-				ContentHeight: 408.90000000000003,
+				ContentHeight: 417.3,
 				Children: []*layouter_domain.LayoutBox{
 					&layouter_domain.LayoutBox{
 						Type: layouter_domain.BoxBlock,
@@ -475,29 +475,6 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 								ContentHeight:   30,
 								IntrinsicWidth:  120,
 								IntrinsicHeight: 42,
-								Children: []*layouter_domain.LayoutBox{
-									&layouter_domain.LayoutBox{
-										Type: layouter_domain.BoxTextRun,
-										Style: withStyle(func(s *layouter_domain.ComputedStyle) {
-											s.BorderTopColour = layouter_domain.NewRGBA(0.6, 0.6, 0.6, 1)
-											s.BorderRightColour = layouter_domain.NewRGBA(0.6, 0.6, 0.6, 1)
-											s.Colour = layouter_domain.NewRGBA(0.2, 0.2, 0.2, 1)
-											s.BorderBottomColour = layouter_domain.NewRGBA(0.6, 0.6, 0.6, 1)
-											s.BorderLeftColour = layouter_domain.NewRGBA(0.6, 0.6, 0.6, 1)
-											s.FontSize = 9
-											s.LineHeight = 12.6
-											s.BorderTopStyle = layouter_domain.BorderStyleSolid
-											s.BorderRightStyle = layouter_domain.BorderStyleSolid
-											s.BorderBottomStyle = layouter_domain.BorderStyleSolid
-											s.BorderLeftStyle = layouter_domain.BorderStyleSolid
-										}),
-										Text:          "Initial comments here",
-										ContentX:      18.75,
-										ContentY:      220.04999999999998,
-										ContentWidth:  92.61328125,
-										ContentHeight: 12.6,
-									},
-								},
 							},
 						},
 					},
@@ -979,7 +956,7 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 						ContentX:      15,
 						ContentY:      400.8,
 						ContentWidth:  345,
-						ContentHeight: 23.1,
+						ContentHeight: 31.5,
 						Children: []*layouter_domain.LayoutBox{
 							&layouter_domain.LayoutBox{
 								Type: layouter_domain.BoxReplaced,
@@ -1021,32 +998,9 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 								ContentX:        27.75,
 								ContentY:        406.05,
 								ContentWidth:    37.5,
-								ContentHeight:   12.6,
+								ContentHeight:   21,
 								IntrinsicWidth:  37.5,
 								IntrinsicHeight: 21,
-								Children: []*layouter_domain.LayoutBox{
-									&layouter_domain.LayoutBox{
-										Type: layouter_domain.BoxTextRun,
-										Style: withStyle(func(s *layouter_domain.ComputedStyle) {
-											s.BorderTopColour = layouter_domain.NewRGBA(0.2, 0.2, 0.2, 1)
-											s.BorderRightColour = layouter_domain.NewRGBA(0.2, 0.2, 0.2, 1)
-											s.Colour = layouter_domain.ColourWhite
-											s.BorderBottomColour = layouter_domain.NewRGBA(0.2, 0.2, 0.2, 1)
-											s.BorderLeftColour = layouter_domain.NewRGBA(0.2, 0.2, 0.2, 1)
-											s.FontSize = 9
-											s.LineHeight = 12.6
-											s.BorderTopStyle = layouter_domain.BorderStyleSolid
-											s.BorderRightStyle = layouter_domain.BorderStyleSolid
-											s.BorderBottomStyle = layouter_domain.BorderStyleSolid
-											s.BorderLeftStyle = layouter_domain.BorderStyleSolid
-										}),
-										Text:          "Submit",
-										ContentX:      27.75,
-										ContentY:      406.05,
-										ContentWidth:  30.0234375,
-										ContentHeight: 12.6,
-									},
-								},
 							},
 						},
 					},

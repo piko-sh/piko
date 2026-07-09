@@ -87,6 +87,19 @@ func TestConvertAndSet(t *testing.T) {
 		assert.Equal(t, "29.99", target.MustString())
 	})
 
+	t.Run("sets pointer to named primitive type without panicking", func(t *testing.T) {
+		type Tag string
+		var target *Tag
+		v := reflect.ValueOf(&target).Elem()
+		fi := makeFieldInfo("Tag", reflect.TypeFor[*Tag]())
+		require.NotPanics(t, func() {
+			err := binder.convertAndSet(v, "hello", "Tag", fi)
+			require.NoError(t, err)
+		})
+		require.NotNil(t, target)
+		assert.Equal(t, Tag("hello"), *target)
+	})
+
 	t.Run("returns error for invalid field", func(t *testing.T) {
 		var v reflect.Value
 		fi := makeFieldInfo("field", reflect.TypeFor[string]())
@@ -259,6 +272,59 @@ func TestConvertToType(t *testing.T) {
 			expectErr:   true,
 			errContains: "value out of range",
 		},
+		{
+			name:        "Scalar to []string coerces to single-element slice",
+			value:       "consent-emails",
+			targetType:  reflect.TypeFor[[]string](),
+			expectedVal: []string{"consent-emails"},
+		},
+		{
+			name:        "Scalar to []int coerces and converts element",
+			value:       "42",
+			targetType:  reflect.TypeFor[[]int](),
+			expectedVal: []int{42},
+		},
+		{
+			name:        "Empty string to []string yields single empty element",
+			value:       "",
+			targetType:  reflect.TypeFor[[]string](),
+			expectedVal: []string{""},
+		},
+		{
+			name:        "Scalar to []int with invalid element errors",
+			value:       "not-a-number",
+			targetType:  reflect.TypeFor[[]int](),
+			expectErr:   true,
+			errContains: "invalid syntax",
+		},
+		{
+			name:        "[]byte is not wrapped and remains unsupported",
+			value:       "abc",
+			targetType:  reflect.TypeFor[[]byte](),
+			expectErr:   true,
+			errContains: "unsupported type",
+		},
+		{
+			name:        "Slice of unsupported element still errors sensibly",
+			value:       "x",
+			targetType:  reflect.TypeFor[[]chan int](),
+			expectErr:   true,
+			errContains: "unsupported type: chan",
+		},
+		{
+			name:        "Nested slice element is not coerced and errors",
+			value:       "x",
+			targetType:  reflect.TypeFor[[][]string](),
+			expectErr:   true,
+			errContains: "unsupported type: [][]string",
+		},
+		{
+			name:        "Nested byte slice element errors sensibly",
+			value:       "x",
+			targetType:  reflect.TypeFor[[][]byte](),
+			expectErr:   true,
+			errContains: "unsupported type: []uint8",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -280,4 +346,126 @@ func TestConvertToType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConvertToType_ScalarToSlice(t *testing.T) {
+	binder := NewASTBinder()
+
+	t.Run("named slice type preserves declared type", func(t *testing.T) {
+		type Tags []string
+		fi := makeFieldInfo("Tags", reflect.TypeFor[Tags]())
+		got, err := binder.convertToType("go", fi)
+		require.NoError(t, err)
+		require.Equal(t, reflect.TypeFor[Tags](), got.Type())
+		assert.Equal(t, Tags{"go"}, got.Interface())
+	})
+
+	t.Run("named element type converts before append", func(t *testing.T) {
+		type Tag string
+		fi := makeFieldInfo("Tags", reflect.TypeFor[[]Tag]())
+		got, err := binder.convertToType("go", fi)
+		require.NoError(t, err)
+		assert.Equal(t, []Tag{"go"}, got.Interface())
+	})
+
+	t.Run("pointer to slice is dereferenced and coerced", func(t *testing.T) {
+		fi := makeFieldInfo("Tags", reflect.TypeFor[*[]string]())
+		got, err := binder.convertToType("go", fi)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"go"}, got.Interface())
+	})
+
+	t.Run("registered element converter is used for slice element", func(t *testing.T) {
+		type CustomID string
+		b := NewASTBinder()
+		b.RegisterConverter(reflect.TypeFor[CustomID](), func(value string) (reflect.Value, error) {
+			return reflect.ValueOf(CustomID("id-" + value)), nil
+		})
+		fi := makeFieldInfo("IDs", reflect.TypeFor[[]CustomID]())
+		got, err := b.convertToType("7", fi)
+		require.NoError(t, err)
+		assert.Equal(t, []CustomID{"id-7"}, got.Interface())
+	})
+
+	t.Run("single scalar yields exactly one element", func(t *testing.T) {
+		fi := makeFieldInfo("Tags", reflect.TypeFor[[]string]())
+		got, err := binder.convertToType("only", fi)
+		require.NoError(t, err)
+		require.Len(t, got.Interface(), 1)
+	})
+
+	t.Run("named byte-slice element coerces rather than being excluded", func(t *testing.T) {
+		type Grade uint8
+		fi := makeFieldInfo("Grades", reflect.TypeFor[[]Grade]())
+		got, err := binder.convertToType("7", fi)
+		require.NoError(t, err)
+		assert.Equal(t, []Grade{7}, got.Interface())
+	})
+
+	t.Run("struct element without TextUnmarshaler errors without panicking", func(t *testing.T) {
+		type Point struct{ X int }
+		fi := makeFieldInfo("Points", reflect.TypeFor[[]Point]())
+		require.NotPanics(t, func() {
+			_, err := binder.convertToType("x", fi)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "unsupported type")
+		})
+	})
+}
+
+func TestConvertToType_ScalarToPointerSlice(t *testing.T) {
+	binder := NewASTBinder()
+
+	t.Run("primitive pointer element binds", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			fi := makeFieldInfo("Scores", reflect.TypeFor[[]*int]())
+			got, err := binder.convertToType("5", fi)
+			require.NoError(t, err)
+			scores, ok := got.Interface().([]*int)
+			require.True(t, ok)
+			require.Len(t, scores, 1)
+			require.NotNil(t, scores[0])
+			assert.Equal(t, 5, *scores[0])
+		})
+	})
+
+	t.Run("string pointer element binds", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			fi := makeFieldInfo("Tags", reflect.TypeFor[[]*string]())
+			got, err := binder.convertToType("hello", fi)
+			require.NoError(t, err)
+			tags, ok := got.Interface().([]*string)
+			require.True(t, ok)
+			require.Len(t, tags, 1)
+			require.NotNil(t, tags[0])
+			assert.Equal(t, "hello", *tags[0])
+		})
+	})
+
+	t.Run("named pointer element binds", func(t *testing.T) {
+		type Tag string
+		require.NotPanics(t, func() {
+			fi := makeFieldInfo("Tags", reflect.TypeFor[[]*Tag]())
+			got, err := binder.convertToType("go", fi)
+			require.NoError(t, err)
+			tags, ok := got.Interface().([]*Tag)
+			require.True(t, ok)
+			require.Len(t, tags, 1)
+			require.NotNil(t, tags[0])
+			assert.Equal(t, Tag("go"), *tags[0])
+		})
+	})
+
+	t.Run("well-known pointer element binds", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			fi := makeFieldInfo("Times", reflect.TypeFor[[]*time.Time]())
+			got, err := binder.convertToType("2025-10-09T10:00:00Z", fi)
+			require.NoError(t, err)
+			times, ok := got.Interface().([]*time.Time)
+			require.True(t, ok)
+			require.Len(t, times, 1)
+			require.NotNil(t, times[0])
+			assert.Equal(t, time.Date(2025, 10, 9, 10, 0, 0, 0, time.UTC), *times[0])
+		})
+	})
 }

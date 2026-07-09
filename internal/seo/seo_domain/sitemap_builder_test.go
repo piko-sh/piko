@@ -20,8 +20,17 @@ package seo_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"math"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"time"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/seo/seo_dto"
@@ -137,7 +146,7 @@ func TestSitemapBuilder_Build_I18nAlternateLinks(t *testing.T) {
 		Sources:        []string{},
 	}
 
-	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{})
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapI18nStrategy("prefix_except_default"))
 
 	view := &seo_dto.ProjectView{
 		Components: []seo_dto.ComponentView{
@@ -165,8 +174,26 @@ func TestSitemapBuilder_Build_I18nAlternateLinks(t *testing.T) {
 	}
 
 	url := sitemap.URLs[0]
-	if len(url.Alternates) != 3 {
-		t.Errorf("Expected 3 alternate links (en, fr, de), got %d", len(url.Alternates))
+
+	if len(url.Alternates) != 4 {
+		t.Fatalf("Expected 4 alternate links (en, fr, de, x-default), got %d", len(url.Alternates))
+	}
+
+	got := make(map[string]string, len(url.Alternates))
+	for _, alt := range url.Alternates {
+		got[alt.Hreflang] = alt.Href
+	}
+
+	want := map[string]string{
+		"en":        "https://example.com/",
+		"fr":        "https://example.com/fr",
+		"de":        "https://example.com/de",
+		"x-default": "https://example.com/",
+	}
+	for lang, href := range want {
+		if got[lang] != href {
+			t.Errorf("alternate %q: expected href %q, got %q", lang, href, got[lang])
+		}
 	}
 }
 
@@ -187,12 +214,10 @@ func TestSitemapBuilder_Build_ImageDiscovery(t *testing.T) {
 				RoutePattern: "/",
 				IsPage:       true,
 				IsPublic:     true,
+				SEO: seo_dto.PageSEOMetadata{
+					ImageURLs: []string{"/_piko/assets/diagram.svg", "/_piko/assets/hero.png"},
+				},
 			},
-		},
-		FinalAssetManifest: []seo_dto.AssetDependency{
-			{SourcePath: "/images/hero.jpg", AssetType: "img"},
-			{SourcePath: "/images/logo.png", AssetType: "img"},
-			{SourcePath: "/styles/main.css", AssetType: "css"},
 		},
 	}
 
@@ -208,7 +233,15 @@ func TestSitemapBuilder_Build_ImageDiscovery(t *testing.T) {
 
 	url := sitemap.URLs[0]
 	if len(url.Images) != 2 {
-		t.Errorf("Expected 2 images, got %d", len(url.Images))
+		t.Fatalf("Expected 2 opted-in images, got %d", len(url.Images))
+	}
+
+	got := []string{url.Images[0].Location, url.Images[1].Location}
+	want := []string{"https://example.com/_piko/assets/diagram.svg", "https://example.com/_piko/assets/hero.png"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("image %d: expected %q, got %q", i, want[i], got[i])
+		}
 	}
 }
 
@@ -249,6 +282,198 @@ func TestSitemapBuilder_Build_DynamicURLSources(t *testing.T) {
 	if len(sitemap.URLs) != 3 {
 		t.Errorf("Expected 3 URLs (1 discovered + 2 dynamic), got %d", len(sitemap.URLs))
 	}
+}
+
+func TestSitemapBuilder_Build_BuildTimeURLProvider(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		return []seo_dto.SitemapURLInput{
+			{Location: "/benchmarks/interp", Priority: 0.5},
+			{Location: "/examples/sandbox/play", Priority: 0.5},
+		}, nil
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "hash1", RoutePattern: "/", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	if err != nil {
+		t.Fatalf("Build() returned unexpected error: %v", err)
+	}
+
+	sitemap := result.Sitemaps[0]
+	if len(sitemap.URLs) != 3 {
+		t.Fatalf("Expected 3 URLs (1 discovered + 2 provided), got %d", len(sitemap.URLs))
+	}
+
+	locations := make(map[string]bool, len(sitemap.URLs))
+	for i := range sitemap.URLs {
+		locations[sitemap.URLs[i].Location] = true
+	}
+	for _, want := range []string{
+		"https://example.com/",
+		"https://example.com/benchmarks/interp",
+		"https://example.com/examples/sandbox/play",
+	} {
+		if !locations[want] {
+			t.Errorf("expected sitemap to contain %q; got %v", want, locations)
+		}
+	}
+}
+
+func TestSitemapBuilder_Build_URLProviderPanicIsolated(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		panic("provider boom")
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "hash1", RoutePattern: "/", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+	require.Len(t, result.Sitemaps, 1)
+	assert.Len(t, result.Sitemaps[0].URLs, 1, "the discovered page survives; the panicking provider contributes nothing")
+	assert.Equal(t, "https://example.com/", result.Sitemaps[0].URLs[0].Location)
+}
+
+func TestSitemapBuilder_Build_FiltersNonIndexableRoutes(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{})
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{RoutePattern: "/", IsPage: true, IsPublic: true},
+			{RoutePattern: "/blog", IsPage: true, IsPublic: true},
+			{RoutePattern: "/blog/{slug}", IsPage: true, IsPublic: true},
+			{RoutePattern: "/!404", IsPage: true, IsPublic: true},
+			{RoutePattern: "/!error", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	if err != nil {
+		t.Fatalf("Build() returned unexpected error: %v", err)
+	}
+
+	sitemap := result.Sitemaps[0]
+	if len(sitemap.URLs) != 2 {
+		t.Fatalf("Expected 2 indexable URLs (/ and /blog), got %d: %+v", len(sitemap.URLs), sitemap.URLs)
+	}
+
+	locations := make(map[string]bool, len(sitemap.URLs))
+	for i := range sitemap.URLs {
+		locations[sitemap.URLs[i].Location] = true
+	}
+	for _, bad := range []string{
+		"https://example.com/blog/{slug}",
+		"https://example.com/!404",
+		"https://example.com/!error",
+	} {
+		if locations[bad] {
+			t.Errorf("non-indexable route leaked into sitemap: %q", bad)
+		}
+	}
+}
+
+func TestIsAbsoluteURL(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		in   string
+		want bool
+	}{
+		{name: "https scheme", in: "https://example.com/x", want: true},
+		{name: "http scheme", in: "http://example.com/x", want: true},
+		{name: "relative slug beginning with http", in: "http-headers-guide", want: false},
+		{name: "absolute path", in: "/blog/post", want: false},
+		{name: "bare relative slug", in: "benchmarks/interp", want: false},
+		{name: "empty", in: "", want: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, isAbsoluteURL(testCase.in))
+		})
+	}
+}
+
+func TestSitemapBuilder_Build_RelativeHTTPSlugIsResolved(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:       "https://example.com",
+		DiscoverImages: false,
+		Exclude:        []string{},
+		Sources:        []string{},
+	}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		return []seo_dto.SitemapURLInput{{Location: "http-headers-guide", Priority: 0.5}}, nil
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "hash1", RoutePattern: "/", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	locations := make(map[string]bool, len(result.Sitemaps[0].URLs))
+	for i := range result.Sitemaps[0].URLs {
+		locations[result.Sitemaps[0].URLs[i].Location] = true
+	}
+	assert.True(t, locations["https://example.com/http-headers-guide"],
+		"relative http* slug must be resolved against the hostname; got %v", locations)
+}
+
+func TestSitemapBuilder_fetchProvidedURLs_CapsRunawayProvider(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com"}
+
+	provider := SitemapURLProviderFunc(func(_ context.Context) ([]seo_dto.SitemapURLInput, error) {
+		inputs := make([]seo_dto.SitemapURLInput, maxProviderSitemapURLs+10)
+		for i := range inputs {
+			inputs[i] = seo_dto.SitemapURLInput{Location: fmt.Sprintf("/p/%d", i)}
+		}
+		return inputs, nil
+	})
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{}, withSitemapURLProvider(provider))
+
+	urls := builder.fetchProvidedURLs(context.Background())
+	assert.Len(t, urls, maxProviderSitemapURLs, "a runaway provider is capped at maxProviderSitemapURLs")
 }
 
 func TestSitemapBuilder_Build_EmptyView(t *testing.T) {
@@ -766,7 +991,7 @@ func TestSitemapBuilder_ConvertInputToURL_WithVideos(t *testing.T) {
 		},
 	}
 
-	url := builder.convertInputToURL(input)
+	url := builder.convertInputToURL(t.Context(), input)
 
 	if len(url.Videos) != 1 {
 		t.Fatalf("Expected 1 video, got %d", len(url.Videos))
@@ -811,7 +1036,7 @@ func TestSitemapBuilder_ConvertInputToURL_WithNews(t *testing.T) {
 		},
 	}
 
-	url := builder.convertInputToURL(input)
+	url := builder.convertInputToURL(t.Context(), input)
 
 	if url.News == nil {
 		t.Fatal("Expected news entry to be present")
@@ -851,7 +1076,7 @@ func TestSitemapBuilder_ConvertInputToURL_WithRichImages(t *testing.T) {
 		},
 	}
 
-	url := builder.convertInputToURL(input)
+	url := builder.convertInputToURL(t.Context(), input)
 
 	if len(url.Images) != 1 {
 		t.Fatalf("Expected 1 image, got %d", len(url.Images))
@@ -881,7 +1106,7 @@ func TestSitemapBuilder_ConvertInputToURL_NilNews(t *testing.T) {
 		Priority: 0.5,
 	}
 
-	url := builder.convertInputToURL(input)
+	url := builder.convertInputToURL(t.Context(), input)
 
 	if url.News != nil {
 		t.Error("Expected nil news for input without news")
@@ -889,4 +1114,445 @@ func TestSitemapBuilder_ConvertInputToURL_NilNews(t *testing.T) {
 	if len(url.Videos) != 0 {
 		t.Errorf("Expected 0 videos, got %d", len(url.Videos))
 	}
+}
+
+func TestSitemapBuilder_Build_RouteSourceEnumeratesLocalisedURLs(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname: "https://example.com",
+		Defaults: config.SitemapEntryDefaults{Priority: 0.5, ChangeFreq: "weekly"},
+	}
+
+	source := RouteSourceFunc{
+		SourceName: "locations",
+		Fn: func(_ context.Context, rc RouteContext) ([]RouteURL, error) {
+			return []RouteURL{
+				{ParamValue: "-jersey", Locales: []string{"en"}, SEO: seo_dto.SitemapURLInput{Priority: 0.7}},
+				{ParamValue: "-paris", Locales: []string{"fr"}, SEO: seo_dto.SitemapURLInput{Priority: 0.7}},
+			}, nil
+		},
+	}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{},
+		withSitemapI18nStrategy("prefix_except_default"),
+		withSitemapI18nLocales([]string{"en", "fr"}),
+		withSitemapRouteSources([]RouteSource{source}),
+	)
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{
+				HashedName:           "hash1",
+				RoutePattern:         "/services{locationslug}/kubernetes",
+				IsPage:               true,
+				IsPublic:             true,
+				RouteSourceName:      "locations",
+				RouteSourceParamName: "locationslug",
+			},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	locs := make(map[string]seo_dto.SitemapURL)
+	for _, u := range result.Sitemaps[0].URLs {
+		locs[u.Location] = u
+	}
+
+	if _, ok := locs["https://example.com/services{locationslug}/kubernetes"]; ok {
+		t.Error("templated route pattern must not be emitted directly")
+	}
+
+	jersey, ok := locs["https://example.com/services-jersey/kubernetes"]
+	require.True(t, ok, "expected the English city URL")
+	assert.Equal(t, "0.7", jersey.Priority)
+	assert.Empty(t, jersey.Alternates, "single-locale city has no hreflang alternates")
+
+	paris, ok := locs["https://example.com/fr/services-paris/kubernetes"]
+	require.True(t, ok, "expected the French city URL under /fr")
+	assert.Equal(t, "0.7", paris.Priority)
+}
+
+func TestSitemapBuilder_Build_RouteRulesAndPageOverrides(t *testing.T) {
+	homePriority := float32(1.0)
+	pagePriority := float32(0.9)
+	sitemapConfig := config.SitemapConfig{
+		Hostname: "https://example.com",
+		Defaults: config.SitemapEntryDefaults{Priority: 0.5, ChangeFreq: "weekly"},
+		RouteRules: []config.SitemapRouteRule{
+			{Pattern: "/", Priority: &homePriority, ChangeFreq: "daily"},
+			{Pattern: "/private/**", Exclude: true},
+		},
+	}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{})
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "home", RoutePattern: "/", IsPage: true, IsPublic: true},
+			{HashedName: "priv", RoutePattern: "/private/dashboard", IsPage: true, IsPublic: true},
+			{HashedName: "about", RoutePattern: "/about", IsPage: true, IsPublic: true,
+				SEO: seo_dto.PageSEOMetadata{Priority: &pagePriority}},
+			{HashedName: "hidden", RoutePattern: "/hidden", IsPage: true, IsPublic: true,
+				SEO: seo_dto.PageSEOMetadata{RobotsRule: "noindex"}},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	byLoc := make(map[string]seo_dto.SitemapURL)
+	for _, u := range result.Sitemaps[0].URLs {
+		byLoc[u.Location] = u
+	}
+
+	home, ok := byLoc["https://example.com/"]
+	require.True(t, ok)
+	assert.Equal(t, "1.0", home.Priority)
+	assert.Equal(t, "daily", home.ChangeFreq)
+
+	about, ok := byLoc["https://example.com/about"]
+	require.True(t, ok)
+	assert.Equal(t, "0.9", about.Priority)
+
+	if _, ok := byLoc["https://example.com/private/dashboard"]; ok {
+		t.Error("route-rule Exclude should drop /private/dashboard")
+	}
+	if _, ok := byLoc["https://example.com/hidden"]; ok {
+		t.Error("noindex page should be dropped from the sitemap")
+	}
+}
+
+func TestSitemapBuilder_Build_ExcludesAuthGatedPages(t *testing.T) {
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "pub", RoutePattern: "/pricing", IsPage: true, IsPublic: true},
+			{HashedName: "gated", RoutePattern: "/dashboard", IsPage: true, IsPublic: true, IsAuthGated: true},
+		},
+	}
+
+	excluding := newSitemapBuilder(config.SitemapConfig{Hostname: "https://example.com"}, "en", &mockDynamicURLSource{})
+	res, err := excluding.Build(context.Background(), view)
+	require.NoError(t, err)
+	locs := map[string]bool{}
+	for _, u := range res.Sitemaps[0].URLs {
+		locs[u.Location] = true
+	}
+	assert.True(t, locs["https://example.com/pricing"])
+	assert.False(t, locs["https://example.com/dashboard"], "auth-gated page must be excluded by default")
+
+	including := newSitemapBuilder(config.SitemapConfig{Hostname: "https://example.com", IncludeAuthGatedPages: true}, "en", &mockDynamicURLSource{})
+	res, err = including.Build(context.Background(), view)
+	require.NoError(t, err)
+	locs = map[string]bool{}
+	for _, u := range res.Sitemaps[0].URLs {
+		locs[u.Location] = true
+	}
+	assert.True(t, locs["https://example.com/dashboard"], "IncludeAuthGatedPages should keep gated pages")
+}
+
+func TestSitemapBuilder_Build_EmitsVideoAndNewsFromMetadata(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com", DiscoverImages: true}
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{})
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{
+				HashedName: "vid", RoutePattern: "/videos/intro", IsPage: true, IsPublic: true,
+				SEO: seo_dto.PageSEOMetadata{
+					ImageURLs: []string{"/img/intro.png"},
+					Videos: []seo_dto.VideoInputEntry{{
+						Title: "Intro", Description: "An intro video",
+						ThumbnailLocation: "/img/intro.png", PlayerLocation: "https://youtube.com/embed/x",
+					}},
+					News: &seo_dto.NewsInputEntry{
+						PublicationName: "PolitePixels", PublicationLanguage: "en",
+						PublicationDate: "2024-01-01", Title: "Intro",
+					},
+				},
+			},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	require.Len(t, result.Sitemaps[0].URLs, 1)
+	u := result.Sitemaps[0].URLs[0]
+	require.Len(t, u.Videos, 1)
+	assert.Equal(t, "Intro", u.Videos[0].Title)
+	assert.Equal(t, "https://youtube.com/embed/x", u.Videos[0].PlayerLocation)
+	require.NotNil(t, u.News)
+	assert.Equal(t, "PolitePixels", u.News.Publication.Name)
+	require.Len(t, u.Images, 1)
+	assert.Equal(t, "https://example.com/img/intro.png", u.Images[0].Location)
+
+	assert.Equal(t, namespaceVideo, result.Sitemaps[0].XmlnsVideo)
+	assert.Equal(t, namespaceNews, result.Sitemaps[0].XmlnsNews)
+	assert.Equal(t, namespaceImage, result.Sitemaps[0].XmlnsImage)
+}
+
+func TestGitLastCommitDate(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+
+	dir := t.TempDir()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t",
+			"GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t",
+			"GIT_AUTHOR_DATE=2021-05-04T00:00:00", "GIT_COMMITTER_DATE=2021-05-04T00:00:00")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	runGit("init")
+	file := filepath.Join(dir, "page.pk")
+	if err := os.WriteFile(file, []byte("<template></template>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit("add", "page.pk")
+	runGit("commit", "-m", "add page")
+
+	date, ok := gitLastCommitDate(t.Context(), file)
+	require.True(t, ok, "expected a git commit date for a tracked file")
+	assert.Equal(t, "2021-05-04", date)
+
+	untracked := filepath.Join(dir, "untracked.pk")
+	if err := os.WriteFile(untracked, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, ok = gitLastCommitDate(t.Context(), untracked)
+	assert.False(t, ok, "untracked file must not yield a git date")
+
+	_, ok = gitLastCommitDate(t.Context(), "/nonexistent/does-not-exist.pk")
+	assert.False(t, ok)
+}
+
+func TestSitemapBuilder_determineLastMod_GitGatedByConfig(t *testing.T) {
+
+	b := newSitemapBuilder(config.SitemapConfig{Hostname: "https://example.com"}, "en", &mockDynamicURLSource{})
+	explicit := timeMustParse(t, "2022-03-04")
+	assert.Equal(t, "2022-03-04", b.determineLastMod(t.Context(), &explicit, "/some/page.pk"))
+}
+
+func timeMustParse(t *testing.T, iso string) (out time.Time) {
+	t.Helper()
+	out, err := time.Parse("2006-01-02", iso)
+	require.NoError(t, err)
+	return out
+}
+
+func TestSitemapBuilder_Build_NonI18nPageStaysBareUnderPrefixStrategy(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com"}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{},
+		withSitemapI18nStrategy("prefix"))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "about", RoutePattern: "/about", IsPage: true, IsPublic: true},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+	require.Len(t, result.Sitemaps[0].URLs, 1)
+	assert.Equal(t, "https://example.com/about", result.Sitemaps[0].URLs[0].Location)
+}
+
+func TestSitemapBuilder_Build_I18nPagePrefixedUnderPrefixStrategy(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com"}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{},
+		withSitemapI18nStrategy("prefix"))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{
+				HashedName:   "about",
+				RoutePattern: "/about",
+				IsPage:       true,
+				IsPublic:     true,
+				SEO:          seo_dto.PageSEOMetadata{SupportedLocales: []string{"en", "fr"}},
+			},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+	require.Len(t, result.Sitemaps[0].URLs, 1)
+	assert.Equal(t, "https://example.com/en/about", result.Sitemaps[0].URLs[0].Location)
+}
+
+func TestSitemapBuilder_ConvertInputToURL_ClampsPriorityIntoValidRange(t *testing.T) {
+	builder := newSitemapBuilder(
+		config.SitemapConfig{Hostname: "https://example.com", Defaults: config.SitemapEntryDefaults{Priority: 0.5}},
+		"en", &mockDynamicURLSource{})
+
+	high := builder.convertInputToURL(t.Context(), seo_dto.SitemapURLInput{Location: "/p", Priority: 5.0})
+	assert.Equal(t, "1.0", high.Priority)
+
+	low := builder.convertInputToURL(t.Context(), seo_dto.SitemapURLInput{Location: "/p", Priority: -1.0})
+	assert.Equal(t, "0.0", low.Priority)
+
+	nan := builder.convertInputToURL(t.Context(), seo_dto.SitemapURLInput{Location: "/p", Priority: float32(math.NaN())})
+	assert.NotEqual(t, "NaN", nan.Priority)
+	assert.Equal(t, "0.5", nan.Priority)
+}
+
+func TestSitemapBuilder_ConvertInputToURL_ValidatesChangeFreq(t *testing.T) {
+	builder := newSitemapBuilder(
+		config.SitemapConfig{Hostname: "https://example.com"},
+		"en", &mockDynamicURLSource{})
+
+	invalid := builder.convertInputToURL(t.Context(), seo_dto.SitemapURLInput{Location: "/p", ChangeFreq: "fortnightly"})
+	assert.Equal(t, "", invalid.ChangeFreq)
+
+	valid := builder.convertInputToURL(t.Context(), seo_dto.SitemapURLInput{Location: "/p", ChangeFreq: "WEEKLY"})
+	assert.Equal(t, "weekly", valid.ChangeFreq)
+}
+
+func TestSitemapBuilder_Build_RouteSourceAuthGatedPageContributesNoURLs(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{
+		Hostname:              "https://example.com",
+		IncludeAuthGatedPages: false,
+	}
+
+	source := RouteSourceFunc{
+		SourceName: "locations",
+		Fn: func(_ context.Context, _ RouteContext) ([]RouteURL, error) {
+			return []RouteURL{{ParamValue: "a"}}, nil
+		},
+	}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{},
+		withSitemapRouteSources([]RouteSource{source}))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "control", RoutePattern: "/pricing", IsPage: true, IsPublic: true},
+			{
+				HashedName:           "gated",
+				RoutePattern:         "/x/{slug}",
+				IsPage:               true,
+				IsPublic:             true,
+				IsAuthGated:          true,
+				RouteSourceName:      "locations",
+				RouteSourceParamName: "slug",
+			},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	locs := make(map[string]bool)
+	for _, u := range result.Sitemaps[0].URLs {
+		locs[u.Location] = true
+	}
+
+	assert.False(t, locs["https://example.com/x/a"], "auth-gated route-source page must contribute no URLs")
+	assert.True(t, locs["https://example.com/pricing"], "the control page still appears")
+	assert.Len(t, result.Sitemaps[0].URLs, 1)
+}
+
+func TestSitemapBuilder_Build_RouteSourceSkipsInvalidParamValues(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com"}
+
+	source := RouteSourceFunc{
+		SourceName: "locations",
+		Fn: func(_ context.Context, _ RouteContext) ([]RouteURL, error) {
+			return []RouteURL{
+				{ParamValue: ".."},
+				{ParamValue: ""},
+				{ParamValue: "ok"},
+			}, nil
+		},
+	}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{},
+		withSitemapRouteSources([]RouteSource{source}))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{
+				HashedName:           "page",
+				RoutePattern:         "/x/{slug}",
+				IsPage:               true,
+				IsPublic:             true,
+				RouteSourceName:      "locations",
+				RouteSourceParamName: "slug",
+			},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	locs := make(map[string]bool)
+	for _, u := range result.Sitemaps[0].URLs {
+		locs[u.Location] = true
+	}
+
+	assert.False(t, locs["https://example.com/x/.."])
+	assert.True(t, locs["https://example.com/x/ok"], "the well-formed sibling still yields a URL")
+	assert.Len(t, result.Sitemaps[0].URLs, 1)
+}
+
+func TestSitemapBuilder_Build_RouteSourceFailuresAreIsolated(t *testing.T) {
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com"}
+
+	erroring := RouteSourceFunc{
+		SourceName: "erroring",
+		Fn: func(_ context.Context, _ RouteContext) ([]RouteURL, error) {
+			return nil, errors.New("enumeration failed")
+		},
+	}
+	panicking := RouteSourceFunc{
+		SourceName: "panicking",
+		Fn: func(_ context.Context, _ RouteContext) ([]RouteURL, error) {
+			panic("source boom")
+		},
+	}
+
+	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{},
+		withSitemapRouteSources([]RouteSource{erroring, panicking}))
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{HashedName: "control", RoutePattern: "/pricing", IsPage: true, IsPublic: true},
+			{
+				HashedName:           "err",
+				RoutePattern:         "/e/{slug}",
+				IsPage:               true,
+				IsPublic:             true,
+				RouteSourceName:      "erroring",
+				RouteSourceParamName: "slug",
+			},
+			{
+				HashedName:           "pan",
+				RoutePattern:         "/p/{slug}",
+				IsPage:               true,
+				IsPublic:             true,
+				RouteSourceName:      "panicking",
+				RouteSourceParamName: "slug",
+			},
+		},
+	}
+
+	result, err := builder.Build(context.Background(), view)
+	require.NoError(t, err)
+
+	locs := make(map[string]bool)
+	for _, u := range result.Sitemaps[0].URLs {
+		locs[u.Location] = true
+	}
+
+	assert.True(t, locs["https://example.com/pricing"], "the control page survives a failing and a panicking source")
+	assert.Len(t, result.Sitemaps[0].URLs, 1)
 }

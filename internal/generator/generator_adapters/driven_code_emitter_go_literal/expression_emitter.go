@@ -302,7 +302,40 @@ func (*expressionEmitter) emitUnhandledExpression(expression ast_domain.Expressi
 //
 // Returns goast.Expr which is the string conversion expression.
 func (ee *expressionEmitter) valueToString(goExpr goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr {
-	return ee.stringConv.valueToString(goExpr, ann)
+	result := ee.stringConv.valueToString(goExpr, ann)
+	if ee.emitter != nil && containsJSONMarshalCall(result) {
+		ee.emitter.addImport(jsonPackagePath, pkgJSON)
+	}
+	return result
+}
+
+// containsJSONMarshalCall reports whether expr contains the generated json.Marshal call.
+//
+// It matches a selector `json.Marshal` whose qualifier is the JSON package alias. Walking
+// the produced expression keeps this decoupled from the stringConverter's dispatch logic
+// and also catches the case where json.Marshal is nested inside the pointer-to-stringable
+// IIFE.
+//
+// Takes expr (goast.Expr) which is the conversion expression to inspect.
+//
+// Returns bool which is true when the expression contains a json.Marshal call.
+func containsJSONMarshalCall(expr goast.Expr) bool {
+	found := false
+	goast.Inspect(expr, func(n goast.Node) bool {
+		if found {
+			return false
+		}
+		sel, ok := n.(*goast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		if qualifier, ok := sel.X.(*goast.Ident); ok && qualifier.Name == pkgJSON && sel.Sel.Name == "Marshal" {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 // getTypeExprForVarDecl determines the correct type expression to use for a variable

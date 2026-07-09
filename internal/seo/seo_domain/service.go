@@ -23,14 +23,32 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"piko.sh/piko/internal/capabilities/capabilities_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/wdk/safedisk"
+)
+
+const (
+	// sourceVariant is the registry variant ID of the original uploaded artefact; the
+	// sitemap compression profiles consume it as their input.
+	sourceVariant = "source"
+
+	// sitemapAssetType labels the resulting compressed sitemap variants.
+	sitemapAssetType = "sitemap"
+
+	// sitemapStorageBackendID is the blob backend SEO artefacts are written to; it must
+	// match the backend used by RegistryStorageAdapter ("local_disk_cache").
+	sitemapStorageBackendID = "local_disk_cache"
+
+	// sitemapMimeType is the content type served for sitemap variants.
+	sitemapMimeType = "application/xml"
 )
 
 // seoService generates SEO files such as sitemaps and robots.txt. It implements
@@ -271,7 +289,7 @@ func (s *seoService) generateAndStoreRobotsTxt(
 ) error {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("Generating robots.txt...")
-	sitemapURL := s.config.Sitemap.Hostname + "/sitemap.xml"
+	sitemapURL := strings.TrimSuffix(s.config.Sitemap.Hostname, "/") + "/sitemap.xml"
 	robotsTxt, err := s.robotsBuilder.Build(ctx, sitemapURL)
 	if err != nil {
 		return fmt.Errorf("building robots.txt: %w", err)
@@ -310,29 +328,31 @@ func (*seoService) recordMetrics(
 // Returns []registry_dto.NamedProfile which contains profiles for gzip and brotli
 // compression.
 func (*seoService) buildCompressionProfiles() []registry_dto.NamedProfile {
-	gzipTags := registry_dto.Tags{}
-	gzipTags.SetByName("encoding", "gzip")
+	makeCompressProfile := func(name, capability, encoding, ext string) registry_dto.NamedProfile {
+		var tags registry_dto.Tags
+		tags.SetByName("type", sitemapAssetType)
+		tags.SetByName("contentEncoding", encoding)
+		tags.SetByName("storageBackendId", sitemapStorageBackendID)
+		tags.SetByName("mimeType", sitemapMimeType)
+		tags.SetByName("fileExtension", ext)
 
-	brTags := registry_dto.Tags{}
-	brTags.SetByName("encoding", "br")
+		var deps registry_dto.Dependencies
+		deps.Add(sourceVariant)
+
+		return registry_dto.NamedProfile{
+			Name: name,
+			Profile: registry_dto.DesiredProfile{
+				Priority:       registry_dto.PriorityWant,
+				CapabilityName: capability,
+				DependsOn:      deps,
+				ResultingTags:  tags,
+			},
+		}
+	}
 
 	return []registry_dto.NamedProfile{
-		{
-			Name: "gzip",
-			Profile: registry_dto.DesiredProfile{
-				Priority:       registry_dto.PriorityWant,
-				CapabilityName: "gzip",
-				ResultingTags:  gzipTags,
-			},
-		},
-		{
-			Name: "brotli",
-			Profile: registry_dto.DesiredProfile{
-				Priority:       registry_dto.PriorityWant,
-				CapabilityName: "brotli",
-				ResultingTags:  brTags,
-			},
-		},
+		makeCompressProfile("gzip", capabilities_dto.CapabilityCompressGzip.String(), "gzip", ".xml.gz"),
+		makeCompressProfile("br", capabilities_dto.CapabilityCompressBrotli.String(), "br", ".xml.br"),
 	}
 }
 
@@ -344,6 +364,29 @@ type seoServiceOptions struct {
 	// sandboxFactory holds the sandbox factory for file operations such as checking sitemap
 	// file modification times.
 	sandboxFactory safedisk.Factory
+
+	// urlProvider supplies additional sitemap URLs at build time, in-process. Optional.
+	urlProvider SitemapURLProvider
+
+	// productionMode reports whether this is a production build.
+	//
+	// Nil means unknown, which is treated as production so a plumbing gap fails open (a live
+	// site keeps indexing) rather than accidentally de-indexing production. When explicitly
+	// false, robots.txt blocks all crawlers unless RobotsConfig.AllowNonProductionIndexing
+	// opts out.
+	productionMode *bool
+
+	// i18nStrategy is the locale-routing strategy (one of i18n_domain.Strategy*) used when
+	// building localised <loc> values and hreflang alternates. Empty behaves as bare
+	// patterns (query-only / disabled).
+	i18nStrategy string
+
+	// i18nLocales is the full configured locale set, supplied to route sources via
+	// RouteContext.
+	i18nLocales []string
+
+	// routeSources enumerate URLs for pages bound to a p-route-source directive.
+	routeSources []RouteSource
 }
 
 // WithSEOSandboxFactory sets a sandbox factory for file operations such as checking
@@ -355,6 +398,74 @@ type seoServiceOptions struct {
 func WithSEOSandboxFactory(factory safedisk.Factory) SEOServiceOption {
 	return func(o *seoServiceOptions) {
 		o.sandboxFactory = factory
+	}
+}
+
+// WithSEOURLProvider sets a build-time, in-process provider of additional sitemap URLs.
+// Use it for dynamic routes whose URLs come from application data rather than content
+// collections (auto-expanded) or runtime HTTP Sources.
+//
+// Takes provider (SitemapURLProvider) which enumerates the extra URLs during generation.
+//
+// Returns SEOServiceOption which configures the URL provider on the service.
+func WithSEOURLProvider(provider SitemapURLProvider) SEOServiceOption {
+	return func(o *seoServiceOptions) {
+		o.urlProvider = provider
+	}
+}
+
+// WithI18nStrategy sets the locale-routing strategy (one of i18n_domain.Strategy*) used
+// when building localised sitemap URLs and hreflang alternates. Passing the same strategy
+// the runtime router uses keeps the sitemap and the served routes in lockstep.
+//
+// Takes strategy (string) which is the i18n routing strategy.
+//
+// Returns SEOServiceOption which configures the strategy on the service.
+func WithI18nStrategy(strategy string) SEOServiceOption {
+	return func(o *seoServiceOptions) {
+		o.i18nStrategy = strategy
+	}
+}
+
+// WithProductionMode declares whether SEO artefacts are generated for a production build.
+//
+// In non-production builds robots.txt blocks all crawlers (unless
+// RobotsConfig.AllowNonProductionIndexing is set), preventing a dev/staging deploy from
+// being indexed with production URLs. When this option is not supplied the service
+// assumes production, so a missing wiring path fails open rather than de-indexing a live
+// site.
+//
+// Takes isProduction (bool) which is true for a production build.
+//
+// Returns SEOServiceOption which configures the production flag on the service.
+func WithProductionMode(isProduction bool) SEOServiceOption {
+	return func(o *seoServiceOptions) {
+		o.productionMode = &isProduction
+	}
+}
+
+// WithI18nLocales sets the full configured locale set, supplied to route sources via
+// RouteContext when a RouteURL does not name its own locales.
+//
+// Takes locales ([]string) which is the configured locale set.
+//
+// Returns SEOServiceOption which configures the locale set on the service.
+func WithI18nLocales(locales []string) SEOServiceOption {
+	return func(o *seoServiceOptions) {
+		o.i18nLocales = locales
+	}
+}
+
+// WithRouteSources registers build-time route sources that enumerate the concrete URLs
+// for pages bound to a p-route-source directive. It is additive across calls-worth of
+// sources supplied here.
+//
+// Takes sources ([]RouteSource) which are the route sources.
+//
+// Returns SEOServiceOption which configures the sources on the service.
+func WithRouteSources(sources []RouteSource) SEOServiceOption {
+	return func(o *seoServiceOptions) {
+		o.routeSources = append(o.routeSources, sources...)
 	}
 }
 
@@ -394,6 +505,18 @@ func NewSEOService(
 	if options.sandboxFactory != nil {
 		sitemapOpts = append(sitemapOpts, withSitemapSandboxFactory(options.sandboxFactory))
 	}
+	if options.urlProvider != nil {
+		sitemapOpts = append(sitemapOpts, withSitemapURLProvider(options.urlProvider))
+	}
+	if options.i18nStrategy != "" {
+		sitemapOpts = append(sitemapOpts, withSitemapI18nStrategy(options.i18nStrategy))
+	}
+	if len(options.i18nLocales) > 0 {
+		sitemapOpts = append(sitemapOpts, withSitemapI18nLocales(options.i18nLocales))
+	}
+	if len(options.routeSources) > 0 {
+		sitemapOpts = append(sitemapOpts, withSitemapRouteSources(options.routeSources))
+	}
 
 	sitemapBuilder := newSitemapBuilder(
 		seoConfig.Sitemap,
@@ -402,7 +525,17 @@ func NewSEOService(
 		sitemapOpts...,
 	)
 
-	robotsBuilder := newRobotsBuilder(seoConfig.Robots)
+	isProduction := options.productionMode == nil || *options.productionMode
+	blockAllIndexing := !isProduction && !seoConfig.Robots.AllowNonProductionIndexing
+	if blockAllIndexing {
+		log.Warn("SEO: non-production build - robots.txt will block all crawlers (set robots.allowNonProductionIndexing to override)",
+			logger_domain.String("hostname", seoConfig.Sitemap.Hostname))
+	} else if !isProduction {
+		log.Warn("SEO: non-production build is indexable - robots.txt allows crawlers and the sitemap uses the configured production hostname",
+			logger_domain.String("hostname", seoConfig.Sitemap.Hostname))
+	}
+
+	robotsBuilder := newRobotsBuilder(seoConfig.Robots, blockAllIndexing)
 
 	return &seoService{
 		storagePort:    storagePort,

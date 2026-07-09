@@ -1051,6 +1051,9 @@ func layoutOutsideListMarker(listItem *LayoutBox, fontMetrics FontMetricsPort) {
 		child.ContentHeight = markerHeight
 		child.ContentX = listItem.ContentX + listItem.Padding.Left + listItem.Border.Left - markerWidth
 		child.ContentY = listItem.ContentY + listItem.Padding.Top + listItem.Border.Top
+
+		halfLeading := (markerHeight - fontLineHeight) / 2
+		child.BaselineOffset = halfLeading + metrics.Ascent
 		return
 	}
 }

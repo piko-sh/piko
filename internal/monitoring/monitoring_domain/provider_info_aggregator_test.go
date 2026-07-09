@@ -262,3 +262,65 @@ func TestProviderInfoAggregator_RegisterReplacesExisting(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, newColumns, result.Columns)
 }
+
+type mockProbeNamedDescriptor struct {
+	mockDescriptor
+	probeName string
+}
+
+func (m *mockProbeNamedDescriptor) ProbeName() string {
+	return m.probeName
+}
+
+func TestResourceTypeForProbe(t *testing.T) {
+	agg := NewProviderInfoAggregator()
+	agg.Register(&mockProbeNamedDescriptor{
+		mockDescriptor: mockDescriptor{resourceType: "database"},
+		probeName:      "DatabaseService",
+	})
+	agg.Register(&mockDescriptor{resourceType: "cache"})
+
+	resourceType, ok := agg.ResourceTypeForProbe(context.Background(), "DatabaseService")
+	require.True(t, ok)
+	assert.Equal(t, "database", resourceType)
+
+	_, ok = agg.ResourceTypeForProbe(context.Background(), "Unknown")
+	assert.False(t, ok, "unknown probe name yields no resource type")
+
+	_, ok = agg.ResourceTypeForProbe(context.Background(), "cache")
+	assert.False(t, ok, "a descriptor without ProbeName registers no probe bridge")
+}
+
+type panicDescriptor struct {
+	resourceType string
+}
+
+func (p *panicDescriptor) ResourceType() string {
+	return p.resourceType
+}
+
+func (*panicDescriptor) ResourceListColumns() []provider_domain.ColumnDefinition {
+	return nil
+}
+
+func (*panicDescriptor) ResourceListProviders(context.Context) []provider_domain.ProviderListEntry {
+	panic("descriptor boom")
+}
+
+func (*panicDescriptor) ResourceDescribeProvider(context.Context, string) (*provider_domain.ProviderDetail, error) {
+	panic("descriptor boom")
+}
+
+func TestDescribeProviderRecoversFromPanic(t *testing.T) {
+	agg := NewProviderInfoAggregator()
+	agg.Register(&panicDescriptor{resourceType: "database"})
+
+	require.NotPanics(t, func() {
+		_, err := agg.DescribeProvider(context.Background(), "database", "primary")
+		assert.Error(t, err, "a panicking descriptor must surface as an error")
+	})
+	require.NotPanics(t, func() {
+		_, err := agg.ListProviders(context.Background(), "database")
+		assert.Error(t, err, "a panicking ListProviders must surface as an error")
+	})
+}

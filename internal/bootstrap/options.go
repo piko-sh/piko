@@ -19,6 +19,7 @@
 package bootstrap
 
 import (
+	"context"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -47,6 +48,8 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko/internal/seo/seo_domain"
+	"piko.sh/piko/internal/seo/seo_dto"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -446,6 +449,51 @@ func WithMetricsExporter(exporter monitoring_domain.MetricsExporter) Option {
 		}
 		c.SetMetricsExporter(exporter)
 		l.Internal("Metrics exporter enabled")
+	}
+}
+
+// WithSpanProcessor registers an additional OTEL span processor with the container. It is
+// appended to the tracer provider's processors during OTEL setup (alongside the
+// monitoring service's own processor), so an adapter can forward finished spans to a
+// remote telemetry sink without replacing piko's in-process span store.
+//
+// The concrete processor MUST satisfy the full OTEL sdktrace.SpanProcessor interface
+// (OnStart/OnEnd as well as Shutdown/ForceFlush). The parameter is the narrower
+// monitoring_domain.SpanProcessor alias to keep this option decoupled from the OTEL SDK;
+// a processor that does not implement the full SDK interface is dropped during OTEL setup
+// with a logged warning rather than silently ignored.
+//
+// Takes p (monitoring_domain.SpanProcessor) which receives every finished span.
+//
+// Returns Option which configures the container with the span processor.
+func WithSpanProcessor(p monitoring_domain.SpanProcessor) Option {
+	return func(c *Container) {
+		_, l := logger_domain.From(c.GetAppContext(), log)
+		if p == nil {
+			l.Error("WithSpanProcessor called with nil processor")
+			return
+		}
+		c.AddSpanProcessor(p)
+		l.Internal("Additional span processor registered")
+	}
+}
+
+// WithQueryObserver registers a query observer with the container. The instrumented DBTX
+// wrapper hands it a QueryObservation after every database statement, so an adapter can
+// forward per-query telemetry without replacing piko's tracing/metrics instrumentation.
+//
+// Takes o (monitoring_domain.QueryObserver) which receives each observed database call.
+//
+// Returns Option which configures the container with the query observer.
+func WithQueryObserver(o monitoring_domain.QueryObserver) Option {
+	return func(c *Container) {
+		_, l := logger_domain.From(c.GetAppContext(), log)
+		if o == nil {
+			l.Error("WithQueryObserver called with nil observer")
+			return
+		}
+		c.SetQueryObserver(o)
+		l.Internal("Query observer registered")
 	}
 }
 
@@ -1563,6 +1611,35 @@ func WithE2EMode(enabled bool) Option {
 func WithSEO(seoConfig config.SEOConfig) Option {
 	return func(c *Container) {
 		c.SetSEOConfig(seoConfig)
+	}
+}
+
+// WithSitemapURLProvider registers a build-time provider of additional sitemap URLs.
+//
+// Takes provider (func(context.Context) ([]seo_dto.SitemapURLInput, error)) which
+// enumerates the extra URLs during generation.
+//
+// Returns Option which registers the provider on the container.
+func WithSitemapURLProvider(provider func(ctx context.Context) ([]seo_dto.SitemapURLInput, error)) Option {
+	return func(c *Container) {
+		if provider == nil {
+			return
+		}
+		c.SetSitemapURLProvider(seo_domain.SitemapURLProviderFunc(provider))
+	}
+}
+
+// WithRouteSource registers a build-time route source that enumerates concrete URLs.
+//
+// Takes source (seo_domain.RouteSource) which enumerates the URLs; nil is ignored.
+//
+// Returns Option which registers the source on the container.
+func WithRouteSource(source seo_domain.RouteSource) Option {
+	return func(c *Container) {
+		if source == nil {
+			return
+		}
+		c.AddRouteSource(source)
 	}
 }
 

@@ -68,6 +68,21 @@ sourceSets {
         java {
             srcDirs("src/main/java/io/politepixels/gen/pk")
         }
+        resources {
+            srcDir(layout.buildDirectory.dir("generated/version"))
+        }
+    }
+}
+
+val generateVersionResource by tasks.registering {
+    val versionString = project.version.toString()
+    val outputDir = layout.buildDirectory.dir("generated/version")
+    inputs.property("version", versionString)
+    outputs.dir(outputDir)
+    doLast {
+        val file = outputDir.get().file("piko-plugin-version.properties").asFile
+        file.parentFile.mkdirs()
+        file.writeText("version=$versionString\n")
     }
 }
 
@@ -81,6 +96,7 @@ val copyTypeDefinitions by tasks.registering(Copy::class) {
 
 tasks.named("processResources") {
     dependsOn(copyTypeDefinitions)
+    dependsOn(generateVersionResource)
 }
 
 tasks.named("compileJava") {

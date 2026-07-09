@@ -19,8 +19,9 @@
 package pdfwriter_domain
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildWatermarkStream_ContainsExpectedOperators(t *testing.T) {
@@ -35,51 +36,25 @@ func TestBuildWatermarkStream_ContainsExpectedOperators(t *testing.T) {
 	}
 	result := buildWatermarkStream(wm, "FW", "GS1", 595.28, 841.89)
 
-	if !strings.Contains(result, "q\n") {
-		t.Error("expected SaveState (q)")
-	}
-	if !strings.Contains(result, "/GS1 gs\n") {
-		t.Error("expected ExtGState reference")
-	}
-	if !strings.Contains(result, "BT\n") {
-		t.Error("expected BeginText")
-	}
-	if !strings.Contains(result, "/FW 60 Tf\n") {
-		t.Error("expected font selection")
-	}
-	if !strings.Contains(result, "0.85 0.85 0.85 rg\n") {
-		t.Error("expected fill colour")
-	}
-	if !strings.Contains(result, "cm\n") {
-		t.Error("expected transformation matrix")
-	}
-	if !strings.Contains(result, "(DRAFT) Tj\n") {
-		t.Error("expected text showing")
-	}
-	if !strings.Contains(result, "ET\n") {
-		t.Error("expected EndText")
-	}
-	if !strings.Contains(result, "Q\n") {
-		t.Error("expected RestoreState (Q)")
-	}
+	assert.Contains(t, result, "q\n", "expected SaveState (q)")
+	assert.Contains(t, result, "/GS1 gs\n", "expected ExtGState reference")
+	assert.Contains(t, result, "BT\n", "expected BeginText")
+	assert.Contains(t, result, "/FW 60 Tf\n", "expected font selection")
+	assert.Contains(t, result, "0.85 0.85 0.85 rg\n", "expected fill colour")
+	assert.Contains(t, result, "cm\n", "expected transformation matrix")
+	assert.Contains(t, result, "(DRAFT) Tj\n", "expected text showing")
+	assert.Contains(t, result, "ET\n", "expected EndText")
+	assert.Contains(t, result, "Q\n", "expected RestoreState (Q)")
 }
 
 func TestWatermarkConfig_ApplyDefaults(t *testing.T) {
 	wm := &WatermarkConfig{Text: "TEST"}
 	wm.applyDefaults()
 
-	if wm.FontSize != 60 {
-		t.Errorf("expected FontSize 60, got %v", wm.FontSize)
-	}
-	if wm.ColourR != 0.85 {
-		t.Errorf("expected ColourR 0.85, got %v", wm.ColourR)
-	}
-	if wm.Angle != 45 {
-		t.Errorf("expected Angle 45, got %v", wm.Angle)
-	}
-	if wm.Opacity != 0.3 {
-		t.Errorf("expected Opacity 0.3, got %v", wm.Opacity)
-	}
+	assert.Equal(t, 60.0, wm.FontSize, "expected FontSize 60")
+	assert.Equal(t, 0.85, wm.ColourR, "expected ColourR 0.85")
+	assert.Equal(t, 45.0, wm.Angle, "expected Angle 45")
+	assert.Equal(t, 0.3, wm.Opacity, "expected Opacity 0.3")
 }
 
 func TestWatermarkConfig_PreservesCustomValues(t *testing.T) {
@@ -94,16 +69,9 @@ func TestWatermarkConfig_PreservesCustomValues(t *testing.T) {
 	}
 	wm.applyDefaults()
 
-	if wm.FontSize != 80 {
-		t.Errorf("expected FontSize 80, got %v", wm.FontSize)
-	}
-	if wm.ColourR != 1 || wm.ColourG != 0 {
-		t.Errorf("expected custom colour preserved, got R=%v G=%v", wm.ColourR, wm.ColourG)
-	}
-	if wm.Angle != 30 {
-		t.Errorf("expected Angle 30, got %v", wm.Angle)
-	}
-	if wm.Opacity != 0.5 {
-		t.Errorf("expected Opacity 0.5, got %v", wm.Opacity)
-	}
+	assert.Equal(t, 80.0, wm.FontSize, "expected FontSize 80")
+	assert.Equal(t, 1.0, wm.ColourR, "expected custom colour preserved")
+	assert.Equal(t, 0.0, wm.ColourG, "expected custom colour preserved")
+	assert.Equal(t, 30.0, wm.Angle, "expected Angle 30")
+	assert.Equal(t, 0.5, wm.Opacity, "expected Opacity 0.5")
 }

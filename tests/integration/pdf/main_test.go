@@ -33,6 +33,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 	"piko.sh/piko/internal/testutil/leakcheck"
 	browserpkg "piko.sh/piko/wdk/browser"
@@ -98,9 +99,7 @@ func TestPdfRendering_Integration(t *testing.T) {
 	testdataRoot := "testdata"
 
 	entries, err := os.ReadDir(testdataRoot)
-	if err != nil {
-		t.Fatalf("failed to read testdata directory at %q: %v", testdataRoot, err)
-	}
+	require.NoError(t, err, "failed to read testdata directory at %q", testdataRoot)
 
 	isSubprocess := os.Getenv(subprocessEnvVar) != ""
 

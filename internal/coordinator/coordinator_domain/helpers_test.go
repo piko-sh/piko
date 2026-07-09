@@ -250,7 +250,8 @@ func TestNewCoordinatorService(t *testing.T) {
 	assert.NotNil(t, service.clock)
 	assert.NotNil(t, service.shutdown)
 	assert.NotNil(t, service.subscribers)
-	assert.NotNil(t, service.rebuildTrigger)
+	assert.NotNil(t, service.rebuildSignal)
+	assert.NotNil(t, service.pendingBuilds)
 	assert.Equal(t, stateIdle, service.status.State)
 	assert.Nil(t, service.status.Result)
 	assert.Nil(t, service.status.LastBuildError)
@@ -810,7 +811,7 @@ func TestPublish(t *testing.T) {
 func TestTriggerBuild(t *testing.T) {
 	t.Parallel()
 
-	t.Run("sends request to rebuild trigger channel", func(t *testing.T) {
+	t.Run("queues request and signals the build loop", func(t *testing.T) {
 		t.Parallel()
 		service := newCoordinatorService(
 			&mockAnnotator{},
@@ -840,14 +841,17 @@ func TestTriggerBuild(t *testing.T) {
 		service.triggerBuild(context.Background(), request)
 
 		select {
-		case received := <-service.rebuildTrigger:
-			assert.Same(t, request, received)
+		case <-service.rebuildSignal:
 		case <-time.After(time.Second):
-			t.Fatal("timed out waiting for request in rebuild trigger channel")
+			t.Fatal("timed out waiting for the build loop to be signalled")
 		}
+
+		queued, found := service.takeNextPendingBuild()
+		require.True(t, found, "expected a queued build request")
+		assert.Same(t, request, queued)
 	})
 
-	t.Run("does not block when channel is full", func(t *testing.T) {
+	t.Run("preserves distinct targets and coalesces same-target requests", func(t *testing.T) {
 		t.Parallel()
 		service := newCoordinatorService(
 			&mockAnnotator{},
@@ -870,20 +874,36 @@ func TestTriggerBuild(t *testing.T) {
 			applyCoordinatorOptions(),
 		)
 
-		service.rebuildTrigger <- &coordinator_dto.BuildRequest{CausationID: "first"}
-
-		done := make(chan struct{})
-		go func() {
-			service.triggerBuild(context.Background(), &coordinator_dto.BuildRequest{CausationID: "second"})
-			close(done)
-		}()
-
-		select {
-		case <-done:
-
-		case <-time.After(time.Second):
-			t.Fatal("triggerBuild blocked on full channel")
+		homeFirst := &coordinator_dto.BuildRequest{
+			CausationID: "home-1",
+			EntryPoints: []annotator_dto.EntryPoint{{Path: "test-module/pages/home.pk", IsPage: true}},
 		}
+		homeSecond := &coordinator_dto.BuildRequest{
+			CausationID: "home-2",
+			EntryPoints: []annotator_dto.EntryPoint{{Path: "test-module/pages/home.pk", IsPage: true}},
+		}
+		about := &coordinator_dto.BuildRequest{
+			CausationID: "about-1",
+			EntryPoints: []annotator_dto.EntryPoint{{Path: "test-module/pages/about.pk", IsPage: true}},
+		}
+
+		service.triggerBuild(context.Background(), homeFirst)
+		service.triggerBuild(context.Background(), about)
+		service.triggerBuild(context.Background(), homeSecond)
+
+		queued := map[string]*coordinator_dto.BuildRequest{}
+		for {
+			request, found := service.takeNextPendingBuild()
+			if !found {
+				break
+			}
+			queued[request.CausationID] = request
+		}
+
+		require.Len(t, queued, 2, "same-target edits must coalesce but distinct targets must be preserved")
+		assert.Contains(t, queued, "home-2", "the latest home edit must win")
+		assert.NotContains(t, queued, "home-1", "the superseded home edit must be dropped")
+		assert.Contains(t, queued, "about-1", "the distinct about target must never be dropped")
 	})
 }
 
@@ -913,7 +933,7 @@ func TestNotifyWaiters(t *testing.T) {
 			applyCoordinatorOptions(),
 		)
 
-		waiter := &buildWaiter{done: make(chan struct{})}
+		waiter := &buildWaiter{done: make(chan struct{}), signature: "hash-1"}
 		service.waiters.Store("hash-1", waiter)
 
 		expected := &annotator_dto.ProjectAnnotationResult{}
@@ -951,7 +971,7 @@ func TestNotifyWaiters(t *testing.T) {
 			applyCoordinatorOptions(),
 		)
 
-		waiter := &buildWaiter{done: make(chan struct{})}
+		waiter := &buildWaiter{done: make(chan struct{}), signature: "hash-2"}
 		service.waiters.Store("hash-2", waiter)
 
 		expectedErr := errors.New("build failed")
@@ -1017,7 +1037,7 @@ func TestNotifyWaiters(t *testing.T) {
 			applyCoordinatorOptions(),
 		)
 
-		waiter := &buildWaiter{done: make(chan struct{})}
+		waiter := &buildWaiter{done: make(chan struct{}), signature: "hash-3"}
 		service.waiters.Store("hash-3", waiter)
 
 		service.notifyWaiters(context.Background(), "hash-3", &annotator_dto.ProjectAnnotationResult{}, nil)
@@ -1049,7 +1069,7 @@ func TestNotifyWaiters(t *testing.T) {
 			applyCoordinatorOptions(),
 		)
 
-		waiter := &buildWaiter{done: make(chan struct{})}
+		waiter := &buildWaiter{done: make(chan struct{}), signature: "hash-4"}
 		service.waiters.Store("hash-4", waiter)
 
 		service.notifyWaiters(context.Background(), "hash-4", "not a result", nil)
@@ -1091,6 +1111,69 @@ func TestNotifyWaiters(t *testing.T) {
 			service.notifyWaiters(context.Background(), "hash-5", nil, nil)
 		})
 	})
+}
+
+func TestNotifyWaiters_FansOutToEverySameTargetWaiter(t *testing.T) {
+	t.Parallel()
+
+	service := &coordinatorService{}
+
+	const targetSignature = "pages/home.pk"
+	older := &buildWaiter{done: make(chan struct{}), signature: targetSignature}
+	newer := &buildWaiter{done: make(chan struct{}), signature: targetSignature}
+	unrelated := &buildWaiter{done: make(chan struct{}), signature: "pages/about.pk"}
+
+	service.waiters.Store("home-content-1", older)
+	service.waiters.Store("home-content-2", newer)
+	service.waiters.Store("about-content-1", unrelated)
+
+	result := &annotator_dto.ProjectAnnotationResult{}
+	service.notifyWaiters(context.Background(), targetSignature, result, nil)
+
+	for name, waiter := range map[string]*buildWaiter{"older": older, "newer": newer} {
+		select {
+		case <-waiter.done:
+			assert.Same(t, result, waiter.result, "%s waiter must receive the build result", name)
+		case <-time.After(time.Second):
+			t.Fatalf("%s same-target waiter was never notified (orphaned)", name)
+		}
+	}
+
+	select {
+	case <-unrelated.done:
+		t.Fatal("a different target's waiter must not be woken")
+	default:
+	}
+
+	_, olderPresent := service.waiters.Load("home-content-1")
+	_, newerPresent := service.waiters.Load("home-content-2")
+	_, unrelatedPresent := service.waiters.Load("about-content-1")
+	assert.False(t, olderPresent, "notified waiter must be removed")
+	assert.False(t, newerPresent, "notified waiter must be removed")
+	assert.True(t, unrelatedPresent, "untouched waiter must remain")
+}
+
+func TestDrainRebuildTrigger_FailsDiscardedWaiters(t *testing.T) {
+	t.Parallel()
+
+	service := &coordinatorService{
+		pendingBuilds: map[string]*coordinator_dto.BuildRequest{},
+	}
+	const targetSignature = "pages/discarded.pk"
+	service.pendingBuilds[targetSignature] = &coordinator_dto.BuildRequest{CausationID: "discarded"}
+
+	waiter := &buildWaiter{done: make(chan struct{}), signature: targetSignature}
+	service.waiters.Store("discarded-content-hash", waiter)
+
+	service.drainRebuildTrigger(context.Background())
+
+	select {
+	case <-waiter.done:
+		assert.ErrorIs(t, waiter.err, errBuildInvalidated)
+	case <-time.After(time.Second):
+		t.Fatal("a waiter on a discarded build was not failed by drainRebuildTrigger")
+	}
+	assert.Empty(t, service.pendingBuilds, "pending builds must be cleared")
 }
 
 func TestInvalidate(t *testing.T) {

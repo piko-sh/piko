@@ -175,7 +175,7 @@ func (s *coordinatorService) waitForBuildResult(
 	opts []BuildOption,
 ) (*annotator_dto.ProjectAnnotationResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	waiter := &buildWaiter{result: nil, err: nil, done: make(chan struct{})}
+	waiter := &buildWaiter{result: nil, err: nil, done: make(chan struct{}), signature: entryPointsSignature(entryPoints)}
 	waiterChan, loaded := s.waiters.LoadOrStore(inputHash, waiter)
 	actualWaiter, waiterOK := waiterChan.(*buildWaiter)
 	if !waiterOK {

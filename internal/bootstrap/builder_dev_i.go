@@ -55,6 +55,7 @@ import (
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters/driven_svgwriter"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -542,12 +543,16 @@ func (b *interpretedDaemonBuilder) setupPdfWriter() error {
 	if fontMetricsError != nil {
 		return fmt.Errorf("failed to create font metrics for interpreted mode: %w", fontMetricsError)
 	}
+
+	svgData := driven_svgwriter.NewRegistrySVGDataAdapter(b.c.GetRenderRegistry(), driven_svgwriter.NewDataURISVGDataAdapter())
+	imageResolver := driven_svgwriter.NewSVGImageResolver(&layouter_adapters.MockImageResolver{}, svgData)
 	b.c.SetPdfWriterService(pdfwriter_domain.NewPdfWriterService(
 		pdfwriter_adapters.NewTemplateRunnerAdapter(b.runner),
-		pdfwriter_adapters.NewLayouterAdapter(fontMetrics, &layouter_adapters.MockImageResolver{}),
+		pdfwriter_adapters.NewLayouterAdapter(fontMetrics, imageResolver),
 		fontEntries,
 		nil,
 		fontMetrics,
+		pdfwriter_domain.WithSVGRenderer(driven_svgwriter.New(), svgData),
 	))
 
 	return nil
@@ -687,6 +692,7 @@ func (b *interpretedDaemonBuilder) buildRouterConfig() *daemon_domain.RouterConf
 
 	routerConfig := NewRouterConfig(&serverConfig, shValues, b.c.GetReportingConfig())
 	routerConfig.DisableHTTPCache = true
+	routerConfig.SitemapCacheMaxAgeSeconds = sitemapCacheMaxAge(b.c.seoConfigOverride)
 	if b.devEventBroadcaster != nil {
 		routerConfig.DevEventsBroadcaster = b.devEventBroadcaster
 	}
@@ -799,6 +805,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 		FinalRouter:         b.routerManager,
 		CoordinatorService:  b.coordinatorService,
 		SEOService:          seoService,
+		I18nLocales:         b.c.GetWebsiteConfig().I18n.Locales,
 		HealthServer:        healthServer,
 		HealthRouter:        healthRouter,
 		DrainSignaller:      drainSignaller,

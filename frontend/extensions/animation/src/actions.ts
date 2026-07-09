@@ -469,8 +469,8 @@ function findAnchorContainer(shadowRoot: ShadowRoot): HTMLElement | null {
  * @param containerRect - Bounding rectangle of the positioning container.
  * @param elementWidth - Width of the anchored element in pixels.
  * @param elementHeight - Height of the anchored element in pixels.
- * @param wantBottom - Whether to prefer positioning below the target.
- * @param wantRight - Whether to align to the right edge of the target.
+ * @param position - Preferred placement keyword such as bottom-left, top-right, or right.
+ * @param insetBottom - Pixels to reserve at the container's bottom edge.
  * @returns The computed top and left offsets relative to the container.
  */
 function computeAnchorPosition(
@@ -478,27 +478,39 @@ function computeAnchorPosition(
     containerRect: DOMRect,
     elementWidth: number,
     elementHeight: number,
-    wantBottom: boolean,
-    wantRight: boolean,
+    position: string,
+    insetBottom: number,
 ): { top: number; left: number } {
-    let top: number;
-    if (wantBottom) {
-        top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
-        if (top + elementHeight > containerRect.height - ANCHOR_PADDING) {
-            top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
-        }
-    } else {
-        top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
-        if (top < ANCHOR_PADDING) {
-            top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
-        }
-    }
+    const bottomLimit = containerRect.height - insetBottom;
+    const wantBottom = position.startsWith('bottom');
+    const wantRight = position.endsWith('right');
+    const isSide = position === 'right' || position === 'left';
 
+    let top: number;
     let left: number;
-    if (wantRight) {
-        left = targetRect.right - containerRect.left - elementWidth;
+
+    if (isSide) {
+        top = targetRect.top - containerRect.top;
+        left = position === 'right'
+            ? targetRect.right - containerRect.left + ANCHOR_PADDING
+            : targetRect.left - containerRect.left - elementWidth - ANCHOR_PADDING;
     } else {
-        left = targetRect.left - containerRect.left;
+        if (wantBottom) {
+            top = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
+            const flipped = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
+            if (top + elementHeight > bottomLimit - ANCHOR_PADDING && flipped >= ANCHOR_PADDING) {
+                top = flipped;
+            }
+        } else {
+            top = targetRect.top - containerRect.top - elementHeight - ANCHOR_PADDING;
+            const flipped = targetRect.bottom - containerRect.top + ANCHOR_PADDING;
+            if (top < ANCHOR_PADDING && flipped + elementHeight <= bottomLimit - ANCHOR_PADDING) {
+                top = flipped;
+            }
+        }
+        left = wantRight
+            ? targetRect.right - containerRect.left - elementWidth
+            : targetRect.left - containerRect.left;
     }
 
     if (left + elementWidth > containerRect.width - ANCHOR_PADDING) {
@@ -506,9 +518,10 @@ function computeAnchorPosition(
     }
     if (left < ANCHOR_PADDING) {left = ANCHOR_PADDING;}
     if (top < ANCHOR_PADDING) {top = ANCHOR_PADDING;}
-    if (top + elementHeight > containerRect.height - ANCHOR_PADDING) {
-        top = containerRect.height - elementHeight - ANCHOR_PADDING;
+    if (top + elementHeight > bottomLimit - ANCHOR_PADDING) {
+        top = bottomLimit - elementHeight - ANCHOR_PADDING;
     }
+    if (top < ANCHOR_PADDING) {top = ANCHOR_PADDING;}
 
     return { top, left };
 }
@@ -518,8 +531,8 @@ function computeAnchorPosition(
  * target elements.
  *
  * The attribute value is "refName" or "refName position" where
- * position is one of: bottom-left (default), bottom-right,
- * top-left, top-right.
+ * position is one of: bottom-left (default), bottom-right, top-left,
+ * top-right (placed above/below the target), or right/left.
  *
  * Scans the component's shadow DOM for elements that have a
  * p-timeline-anchor attribute. For each visible anchored element,
@@ -546,6 +559,7 @@ export function evaluateAnchors(component: PikoComponent): void {
     if (!container) {return;}
 
     const containerRect = container.getBoundingClientRect();
+    const insetBottom = parseFloat(container.getAttribute('data-anchor-inset-bottom') ?? '') || 0;
 
     for (const el of Array.from(anchored)) {
         const htmlEl = el as HTMLElement;
@@ -558,8 +572,6 @@ export function evaluateAnchors(component: PikoComponent): void {
         const parts = raw.split(' ');
         const targetRef = parts[0];
         const position = parts[1] || 'bottom-left';
-        const wantBottom = position.startsWith('bottom');
-        const wantRight = position.endsWith('right');
 
         const target = component.refs?.[targetRef];
         if (!target || target.hasAttribute('p-timeline-hidden')) {
@@ -575,7 +587,7 @@ export function evaluateAnchors(component: PikoComponent): void {
         const elementHeight = htmlEl.offsetHeight || DEFAULT_ANCHOR_HEIGHT;
 
         const pos = computeAnchorPosition(
-            targetRect, containerRect, elementWidth, elementHeight, wantBottom, wantRight,
+            targetRect, containerRect, elementWidth, elementHeight, position, insetBottom,
         );
 
         htmlEl.style.top = `${pos.top}px`;

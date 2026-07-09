@@ -1,6 +1,10 @@
 {
   "name": "piko",
-  "display_name": "Piko Language Support",
-  "description": "Piko language intelligence - diagnostics, hover, completions, navigation, formatting, and project analysis.",
-  "version": "0.1.0"
+  "displayName": "Piko Language Support",
+  "description": "Piko language intelligence for .pk and .pkc files - diagnostics, hover, completions, navigation, and project analysis.",
+  "version": "0.1.0",
+  "author": {
+    "name": "PolitePixels Limited",
+    "url": "https://github.com/piko-sh/piko"
+  }
 }

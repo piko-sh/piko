@@ -1452,3 +1452,147 @@ func TestResolveCompoundBranches_GenuineArityMismatchStillReported(t *testing.T)
 	}
 	assert.True(t, foundArityError, "a genuine arity mismatch must still be reported")
 }
+
+func TestResolveTableValuedFunctionColumns(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	builtinEngine := &mockEngine{
+		tableValuedFunctionColumnsFn: func(functionName string) []querier_dto.ScopedColumn {
+			if functionName != "json_each" {
+				return nil
+			}
+			return []querier_dto.ScopedColumn{
+				{Name: "key", SQLType: textType, Nullable: true},
+				{Name: "value", SQLType: textType, Nullable: true},
+			}
+		},
+	}
+	catalogue := newTestCatalogue("public")
+
+	testCases := []struct {
+		name           string
+		engine         EnginePort
+		tvf            querier_dto.RawTableValuedFunctionReference
+		wantColumns    []string
+		wantNilColumns bool
+		wantDiagnostic bool
+	}{
+		{
+			name:        "builtin lookup resolves json_each",
+			engine:      builtinEngine,
+			tvf:         querier_dto.RawTableValuedFunctionReference{FunctionName: "json_each", Alias: "je"},
+			wantColumns: []string{"key", "value"},
+		},
+		{
+			name:   "explicit typed column definitions win over lookup",
+			engine: builtinEngine,
+			tvf: querier_dto.RawTableValuedFunctionReference{
+				FunctionName:      "json_each",
+				Alias:             "je",
+				ColumnDefinitions: []querier_dto.TVFColumnDefinition{{Name: "n", TypeName: "int4"}},
+			},
+			wantColumns: []string{"n"},
+		},
+		{
+			name:           "unknown function resolves to nil columns without a diagnostic",
+			engine:         builtinEngine,
+			tvf:            querier_dto.RawTableValuedFunctionReference{FunctionName: "does_not_exist", Alias: "x"},
+			wantNilColumns: true,
+		},
+		{
+			name:   "surplus alias-only definitions rename what fits and report the mismatch",
+			engine: builtinEngine,
+			tvf: querier_dto.RawTableValuedFunctionReference{
+				FunctionName:      "json_each",
+				Alias:             "je",
+				ColumnDefinitions: []querier_dto.TVFColumnDefinition{{Name: "a"}, {Name: "b"}, {Name: "c"}},
+			},
+			wantColumns:    []string{"a", "b"},
+			wantDiagnostic: true,
+		},
+		{
+			name: "catalogue fallback resolves a user-defined function",
+			engine: &catalogueResolverMockEngine{
+				mockEngine: &mockEngine{},
+				fromCatalogueFn: func(_ *querier_dto.Catalogue, functionName string) []querier_dto.ScopedColumn {
+					if functionName != "my_udf" {
+						return nil
+					}
+					return []querier_dto.ScopedColumn{{Name: "out", SQLType: textType}}
+				},
+			},
+			tvf:         querier_dto.RawTableValuedFunctionReference{FunctionName: "my_udf", Alias: "u"},
+			wantColumns: []string{"out"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			columns, diagnostic := resolveTableValuedFunctionColumns(testCase.engine, catalogue, testCase.tvf)
+
+			if testCase.wantNilColumns {
+				assert.Nil(t, columns)
+				assert.Nil(t, diagnostic)
+				return
+			}
+
+			names := make([]string, len(columns))
+			for index, column := range columns {
+				names[index] = column.Name
+			}
+			assert.Equal(t, testCase.wantColumns, names)
+
+			if testCase.wantDiagnostic {
+				assert.NotNil(t, diagnostic)
+			} else {
+				assert.Nil(t, diagnostic)
+			}
+		})
+	}
+}
+
+func TestQueryAnalyser_ResolveTableValuedFunctions(t *testing.T) {
+	t.Parallel()
+
+	textType := querier_dto.SQLType{EngineName: "text", Category: querier_dto.TypeCategoryText}
+	engine := &mockEngine{
+		tableValuedFunctionColumnsFn: func(functionName string) []querier_dto.ScopedColumn {
+			if functionName != "json_each" {
+				return nil
+			}
+			return []querier_dto.ScopedColumn{{Name: "value", SQLType: textType, Nullable: true}}
+		},
+	}
+	analyser := &queryAnalyser{engine: engine, catalogue: newTestCatalogue("public")}
+
+	t.Run("known function registers as a derived table without diagnostics", func(t *testing.T) {
+		t.Parallel()
+
+		scope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+		diagnostics := analyser.resolveTableValuedFunctions(
+			[]querier_dto.RawTableValuedFunctionReference{{FunctionName: "json_each", Alias: "je"}},
+			scope,
+		)
+
+		assert.Empty(t, diagnostics)
+		column, _, err := scope.ResolveColumn("je", "value")
+		require.NoError(t, err)
+		assert.Equal(t, querier_dto.TypeCategoryText, column.SQLType.Category)
+	})
+
+	t.Run("unknown function reports an unknown-table diagnostic", func(t *testing.T) {
+		t.Parallel()
+
+		scope := newScopeChain(querier_dto.ScopeKindQuery, nil)
+		diagnostics := analyser.resolveTableValuedFunctions(
+			[]querier_dto.RawTableValuedFunctionReference{{FunctionName: "missing", Alias: "m"}},
+			scope,
+		)
+
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, querier_dto.CodeUnknownTable, diagnostics[0].Code)
+	})
+}

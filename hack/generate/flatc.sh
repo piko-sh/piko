@@ -42,6 +42,7 @@ FBS_SCHEMAS=(
     "internal/search/search_schema/search_index.fbs"
     "internal/interp/interp_schema/bytecode.fbs"
     "internal/typegen/typegen_schema/action_manifest.fbs"
+    "wdk/telemetry/telemetry_grpcfb/telemetry.fbs"
 )
 
 # ensure_flatc downloads flatc if not already present.

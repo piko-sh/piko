@@ -76,9 +76,7 @@ func testScenarioSustainedLoad(t *testing.T) {
 		versions[i].Store(1)
 	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		rng := rand.New(rand.NewPCG(42, 0))
 
 		for time.Now().Before(deadline) {
@@ -95,11 +93,9 @@ func testScenarioSustainedLoad(t *testing.T) {
 
 			time.Sleep(time.Duration(rng.IntN(50)) * time.Millisecond)
 		}
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		rng := rand.New(rand.NewPCG(99, 0))
 
 		pos := protocol.Position{Line: 3, Character: 10}
@@ -133,7 +129,7 @@ func testScenarioSustainedLoad(t *testing.T) {
 
 			time.Sleep(time.Duration(rng.IntN(100)) * time.Millisecond)
 		}
-	}()
+	})
 
 	wg.Wait()
 

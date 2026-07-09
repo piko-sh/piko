@@ -19,12 +19,10 @@
 package db_schema_registry_sqlite
 
 import (
-	"embed"
+	"piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 )
 
 var (
 	// Migrations contains the SQLite migration files for the registry database.
-	//
-	//go:embed migrations/*.sql
-	Migrations embed.FS
+	Migrations = querier_sqlite.Migrations
 )

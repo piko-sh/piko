@@ -187,10 +187,13 @@ func TestFormattedFrame_CachesResults(t *testing.T) {
 
 func TestFormattedFrame_ConsistentWithNameFileLine(t *testing.T) {
 	pc := caller.Caller(0)
-	_, file, line := pc.NameFileLine()
+	name, file, line := pc.NameFileLine()
 	frame := pc.FormattedFrame()
 
 	expected := "\t" + file + ":" + strconv.Itoa(line)
+	if name != "" {
+		expected = "\t" + name + " " + file + ":" + strconv.Itoa(line)
+	}
 
 	assert.Equal(t, expected, frame,
 		"FormattedFrame should be consistent with NameFileLine")
@@ -206,8 +209,11 @@ func TestFormattedFrame_AsFirstCall(t *testing.T) {
 	assert.Contains(t, frame, "caller_test.go:",
 		"Frame should contain filename and colon")
 
-	_, file, line := pc.NameFileLine()
+	name, file, line := pc.NameFileLine()
 	expected := "\t" + file + ":" + strconv.Itoa(line)
+	if name != "" {
+		expected = "\t" + name + " " + file + ":" + strconv.Itoa(line)
+	}
 	assert.Equal(t, expected, frame,
 		"FormattedFrame should match NameFileLine data")
 }

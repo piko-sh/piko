@@ -20,67 +20,41 @@ package driven_svgwriter
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseSVGString_BasicRect(t *testing.T) {
 	svg, err := ParseSVGString(`<svg width="100" height="50" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="20" width="80" height="30"/></svg>`)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if svg.Width != 100 {
-		t.Errorf("width = %v, want 100", svg.Width)
-	}
-	if svg.Height != 50 {
-		t.Errorf("height = %v, want 50", svg.Height)
-	}
-	if svg.Root == nil {
-		t.Fatal("root is nil")
-	}
-	if len(svg.Root.Children) != 1 {
-		t.Fatalf("children = %d, want 1", len(svg.Root.Children))
-	}
-	if svg.Root.Children[0].Tag != "rect" {
-		t.Errorf("child tag = %q, want rect", svg.Root.Children[0].Tag)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 100.0, svg.Width)
+	assert.Equal(t, 50.0, svg.Height)
+	require.NotNil(t, svg.Root)
+	require.Len(t, svg.Root.Children, 1)
+	assert.Equal(t, "rect", svg.Root.Children[0].Tag)
 }
 
 func TestParseSVGString_ViewBox(t *testing.T) {
 	svg, err := ParseSVGString(`<svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg"></svg>`)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !svg.VBox.Valid {
-		t.Fatal("viewBox not valid")
-	}
-	if svg.VBox.Width != 200 || svg.VBox.Height != 100 {
-		t.Errorf("viewBox = %v x %v, want 200 x 100", svg.VBox.Width, svg.VBox.Height)
-	}
+	require.NoError(t, err)
+	require.True(t, svg.VBox.Valid, "viewBox not valid")
+	assert.Equal(t, 200.0, svg.VBox.Width)
+	assert.Equal(t, 100.0, svg.VBox.Height)
 }
 
 func TestParseSVGString_PreserveAspectRatio(t *testing.T) {
 	svg, err := ParseSVGString(`<svg viewBox="0 0 100 100" preserveAspectRatio="xMinYMax slice" xmlns="http://www.w3.org/2000/svg"></svg>`)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if svg.PreserveAspectRatio.Align != "xMinYMax" {
-		t.Errorf("align = %q, want xMinYMax", svg.PreserveAspectRatio.Align)
-	}
-	if svg.PreserveAspectRatio.MeetOrSlice != "slice" {
-		t.Errorf("meetOrSlice = %q, want slice", svg.PreserveAspectRatio.MeetOrSlice)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "xMinYMax", svg.PreserveAspectRatio.Align)
+	assert.Equal(t, "slice", svg.PreserveAspectRatio.MeetOrSlice)
 }
 
 func TestParseSVGString_DefaultPreserveAspectRatio(t *testing.T) {
 	svg, err := ParseSVGString(`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"></svg>`)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if svg.PreserveAspectRatio.Align != "xMidYMid" {
-		t.Errorf("align = %q, want xMidYMid", svg.PreserveAspectRatio.Align)
-	}
-	if svg.PreserveAspectRatio.MeetOrSlice != "meet" {
-		t.Errorf("meetOrSlice = %q, want meet", svg.PreserveAspectRatio.MeetOrSlice)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "xMidYMid", svg.PreserveAspectRatio.Align)
+	assert.Equal(t, "meet", svg.PreserveAspectRatio.MeetOrSlice)
 }
 
 func TestParseSVGString_RecursiveDefsIndexing(t *testing.T) {
@@ -91,15 +65,9 @@ func TestParseSVGString_RecursiveDefsIndexing(t *testing.T) {
 			</g>
 		</defs>
 	</svg>`)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, ok := svg.Defs["outer"]; !ok {
-		t.Error("missing def 'outer'")
-	}
-	if _, ok := svg.Defs["inner"]; !ok {
-		t.Error("missing def 'inner' - recursive indexing failed")
-	}
+	require.NoError(t, err)
+	assert.Contains(t, svg.Defs, "outer", "missing def 'outer'")
+	assert.Contains(t, svg.Defs, "inner", "missing def 'inner' - recursive indexing failed")
 }
 
 func TestParseSVGString_DimensionsWithUnits(t *testing.T) {
@@ -116,13 +84,7 @@ func TestParseSVGString_DimensionsWithUnits(t *testing.T) {
 	}
 	for _, tt := range tests {
 		got := parseDimension(tt.input)
-		diff := got - tt.want
-		if diff < 0 {
-			diff = -diff
-		}
-		if diff > 0.01 {
-			t.Errorf("parseDimension(%q) = %v, want %v", tt.input, got, tt.want)
-		}
+		assert.InDelta(t, tt.want, got, 0.01)
 	}
 }
 
@@ -132,25 +94,18 @@ func TestParseSVGString_Transform(t *testing.T) {
 			<rect width="5" height="5"/>
 		</g>
 	</svg>`)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	g := svg.Root.Children[0]
-	if g.Transform.E != 10 || g.Transform.F != 20 {
-		t.Errorf("transform = %+v, want translate(10,20)", g.Transform)
-	}
+	assert.Equal(t, 10.0, g.Transform.E)
+	assert.Equal(t, 20.0, g.Transform.F)
 }
 
 func TestParseSVGString_EmptyDocument(t *testing.T) {
 	_, err := ParseSVGString("")
-	if err == nil {
-		t.Error("expected error for empty document")
-	}
+	assert.Error(t, err, "expected error for empty document")
 }
 
 func TestParseSVGString_NoSVGElement(t *testing.T) {
 	_, err := ParseSVGString("<html><body></body></html>")
-	if err == nil {
-		t.Error("expected error for missing svg element")
-	}
+	assert.Error(t, err, "expected error for missing svg element")
 }

@@ -70,6 +70,15 @@ func createProviders(
 	sdkProcessors := collectTyped[sdktrace.SpanProcessor](additionalProcessors)
 	sdkReaders := collectTyped[sdkmetric.Reader](additionalReaders)
 
+	if dropped := len(additionalProcessors) - len(sdkProcessors); dropped > 0 {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn(fmt.Sprintf("OTEL setup dropped %d span processor(s) that do not implement sdktrace.SpanProcessor", dropped))
+	}
+	if dropped := len(additionalReaders) - len(sdkReaders); dropped > 0 {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn(fmt.Sprintf("OTEL setup dropped %d metric reader(s) that do not implement sdkmetric.Reader", dropped))
+	}
+
 	sdkTP, closers, err := buildTracerProvider(ctx, config, sdkProcessors)
 	if err != nil {
 		return driver_handlers.OtelProviderResult{}, fmt.Errorf("failed to create tracer provider: %w", err)

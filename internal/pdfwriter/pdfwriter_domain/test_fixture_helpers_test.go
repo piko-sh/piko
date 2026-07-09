@@ -19,8 +19,9 @@
 package pdfwriter_domain
 
 import (
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/layouter/layouter_domain"
@@ -170,18 +171,12 @@ func newPainterWithFonts(entries []layouter_dto.FontEntry) *PdfPainter {
 
 func requireStreamContains(t *testing.T, stream *ContentStream, want string) {
 	t.Helper()
-	got := stream.String()
-	if !strings.Contains(got, want) {
-		t.Errorf("stream does not contain %q\ngot: %q", want, got)
-	}
+	assert.Contains(t, stream.String(), want, "stream does not contain %q", want)
 }
 
 func requireStreamEquals(t *testing.T, stream *ContentStream, want string) {
 	t.Helper()
-	got := stream.String()
-	if got != want {
-		t.Errorf("stream mismatch\nwant: %q\n got: %q", want, got)
-	}
+	assert.Equal(t, want, stream.String(), "stream mismatch")
 }
 
 func testColour(r, g, b, a float64) layouter_domain.Colour {

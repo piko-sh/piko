@@ -558,6 +558,26 @@ func matches(node *TemplateNode, simple *SimpleSelector, qc *QueryContext) bool 
 	return true
 }
 
+// effectiveTagName maps Piko's asset-reference custom elements to their HTML equivalents
+// for CSS type-selector matching.
+//
+// Takes tag (string) which is the element tag name to map.
+//
+// Returns string which is the HTML-equivalent tag, or the tag unchanged when it is not a
+// recognised alias.
+func effectiveTagName(tag string) string {
+	switch tag {
+	case "piko:svg":
+		return "svg"
+	case "piko:img":
+		return "img"
+	case "piko:picture":
+		return "picture"
+	default:
+		return tag
+	}
+}
+
 // matchesCore checks whether a template node matches a simple CSS selector.
 //
 // Takes node (*TemplateNode) which is the element to test.
@@ -569,7 +589,8 @@ func matchesCore(node *TemplateNode, simple *SimpleSelector) bool {
 		return false
 	}
 
-	if simple.Tag != "" && simple.Tag != "*" && node.TagName != simple.Tag {
+	if simple.Tag != "" && simple.Tag != "*" &&
+		node.TagName != simple.Tag && effectiveTagName(node.TagName) != simple.Tag {
 		return false
 	}
 
@@ -1125,6 +1146,10 @@ func indexElementNode(node *TemplateNode, info *effectiveTreeInfo) {
 
 	info.allElements = append(info.allElements, node)
 	info.byTag[node.TagName] = append(info.byTag[node.TagName], node)
+
+	if eff := effectiveTagName(node.TagName); eff != node.TagName {
+		info.byTag[eff] = append(info.byTag[eff], node)
+	}
 
 	indexByID(node, info)
 	indexByClass(node, info)

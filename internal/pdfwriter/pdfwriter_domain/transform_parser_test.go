@@ -21,6 +21,9 @@ package pdfwriter_domain
 import (
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -30,23 +33,19 @@ const (
 func assertTransform(t *testing.T, label string, input string, ea, eb, ec, ed, ee, ef float64) {
 	t.Helper()
 	m, ok := ParseCSSTransform(input)
-	if !ok {
-		t.Fatalf("%s: ParseCSSTransform(%q) returned ok=false", label, input)
-	}
-	if math.Abs(m.a-ea) > transformEpsilon || math.Abs(m.b-eb) > transformEpsilon ||
-		math.Abs(m.c-ec) > transformEpsilon || math.Abs(m.d-ed) > transformEpsilon ||
-		math.Abs(m.e-ee) > transformEpsilon || math.Abs(m.f-ef) > transformEpsilon {
-		t.Errorf("%s: ParseCSSTransform(%q) = [%f %f %f %f %f %f], want [%f %f %f %f %f %f]",
-			label, input, m.a, m.b, m.c, m.d, m.e, m.f, ea, eb, ec, ed, ee, ef)
-	}
+	require.True(t, ok, "%s: ParseCSSTransform(%q) returned ok=false", label, input)
+	assert.InDelta(t, ea, m.a, transformEpsilon, "%s: ParseCSSTransform(%q) a", label, input)
+	assert.InDelta(t, eb, m.b, transformEpsilon, "%s: ParseCSSTransform(%q) b", label, input)
+	assert.InDelta(t, ec, m.c, transformEpsilon, "%s: ParseCSSTransform(%q) c", label, input)
+	assert.InDelta(t, ed, m.d, transformEpsilon, "%s: ParseCSSTransform(%q) d", label, input)
+	assert.InDelta(t, ee, m.e, transformEpsilon, "%s: ParseCSSTransform(%q) e", label, input)
+	assert.InDelta(t, ef, m.f, transformEpsilon, "%s: ParseCSSTransform(%q) f", label, input)
 }
 
 func assertTransformFails(t *testing.T, label string, input string) {
 	t.Helper()
 	_, ok := ParseCSSTransform(input)
-	if ok {
-		t.Errorf("%s: ParseCSSTransform(%q) should have returned ok=false", label, input)
-	}
+	assert.False(t, ok, "%s: ParseCSSTransform(%q) should have returned ok=false", label, input)
 }
 
 func TestParseCSSTransform_None(t *testing.T) {
@@ -177,47 +176,35 @@ func TestParseCSSTransform_CaseInsensitive(t *testing.T) {
 func TestParseTranslateX_EmptyParts(t *testing.T) {
 	t.Parallel()
 	_, ok := parseTranslateX(nil)
-	if ok {
-		t.Error("expected false for nil parts")
-	}
+	assert.False(t, ok, "expected false for nil parts")
 }
 
 func TestParseTranslateY_EmptyParts(t *testing.T) {
 	t.Parallel()
 	_, ok := parseTranslateY(nil)
-	if ok {
-		t.Error("expected false for nil parts")
-	}
+	assert.False(t, ok, "expected false for nil parts")
 }
 
 func TestParseScaleX_EmptyParts(t *testing.T) {
 	t.Parallel()
 	_, ok := parseScaleX(nil)
-	if ok {
-		t.Error("expected false for nil parts")
-	}
+	assert.False(t, ok, "expected false for nil parts")
 }
 
 func TestParseScaleY_EmptyParts(t *testing.T) {
 	t.Parallel()
 	_, ok := parseScaleY(nil)
-	if ok {
-		t.Error("expected false for nil parts")
-	}
+	assert.False(t, ok, "expected false for nil parts")
 }
 
 func TestParseSkewX_EmptyParts(t *testing.T) {
 	t.Parallel()
 	_, ok := parseSkewX(nil)
-	if ok {
-		t.Error("expected false for nil parts")
-	}
+	assert.False(t, ok, "expected false for nil parts")
 }
 
 func TestParseSkewY_EmptyParts(t *testing.T) {
 	t.Parallel()
 	_, ok := parseSkewY(nil)
-	if ok {
-		t.Error("expected false for nil parts")
-	}
+	assert.False(t, ok, "expected false for nil parts")
 }

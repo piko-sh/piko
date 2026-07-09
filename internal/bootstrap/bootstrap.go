@@ -165,6 +165,8 @@ func Daemon(ctx context.Context, runMode string, container *Container, deps *Dep
 		return nil, fmt.Errorf("selecting daemon builder: %w", err)
 	}
 
+	container.SetSEOProductionMode(runMode == runModeProd)
+
 	l.Internal("Selected builder, assembling daemon...", logger_domain.String(logKeyRunMode, runMode))
 	daemon, err := builder(ctx, container, deps)
 	if err != nil {
@@ -252,8 +254,9 @@ func buildOtelSetupOptions(ctx context.Context, container *Container) *driver_ha
 	_, l := logger_domain.From(ctx, log)
 	metricsExporter := container.GetMetricsExporter()
 	monitoringService := container.GetMonitoringService()
+	extraSpanProcessors := container.GetSpanProcessors()
 
-	if metricsExporter == nil && monitoringService == nil {
+	if metricsExporter == nil && monitoringService == nil && len(extraSpanProcessors) == 0 {
 		return nil
 	}
 
@@ -263,6 +266,11 @@ func buildOtelSetupOptions(ctx context.Context, container *Container) *driver_ha
 		opts.AdditionalSpanProcessors = append(opts.AdditionalSpanProcessors, monitoringService.SpanProcessor())
 		opts.AdditionalMetricReaders = append(opts.AdditionalMetricReaders, monitoringService.MetricsReader())
 		l.Internal("Monitoring service OTEL components registered")
+	}
+
+	for _, p := range extraSpanProcessors {
+		opts.AdditionalSpanProcessors = append(opts.AdditionalSpanProcessors, p)
+		l.Internal("Additional span processor registered for OTEL setup")
 	}
 
 	if metricsExporter != nil {

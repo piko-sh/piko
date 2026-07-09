@@ -31,8 +31,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_adapters"
 	"piko.sh/piko/internal/registry/registry_dal"
-	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
-	registry_querier_adapter_postgres "piko.sh/piko/internal/registry/registry_dal/querier_adapter_postgres"
+	registry_querier_postgres "piko.sh/piko/internal/registry/registry_dal/querier_postgres"
+	registry_querier_sqlite "piko.sh/piko/internal/registry/registry_dal/querier_sqlite"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_adapters"
@@ -119,28 +119,23 @@ func (c *Container) createRegistryMetadataStore() (registry_domain.MetadataStore
 // Returns registry_domain.MetadataStore which is the querier-backed metadata store.
 // Returns error when the database connection cannot be obtained.
 func (c *Container) createQuerierRegistryDAL() (registry_domain.MetadataStore, error) {
-	if err := c.runMigrationsIfConfigured(DatabaseNameRegistry); err != nil {
-		return nil, fmt.Errorf("failed to migrate registry database: %w", err)
-	}
-
-	database, err := c.GetDatabaseConnection(DatabaseNameRegistry)
+	database, driver, err := c.resolveQuerierDatabase(DatabaseNameRegistry, "registry")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get registry database connection: %w", err)
-	}
-
-	driver, err := c.GetDatabaseDriver(DatabaseNameRegistry)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve registry database driver: %w", err)
+		return nil, err
 	}
 
 	if isPostgresDriver(driver) {
-		dal := registry_querier_adapter_postgres.NewDAL(database)
-		c.registryInspector = dal
+		dal := registry_querier_postgres.New(database)
+		if inspector, ok := dal.(registry_domain.RegistryInspector); ok {
+			c.registryInspector = inspector
+		}
 		return dal, nil
 	}
 
-	dal := registry_querier_adapter.NewDAL(database)
-	c.registryInspector = dal
+	dal := registry_querier_sqlite.New(database)
+	if inspector, ok := dal.(registry_domain.RegistryInspector); ok {
+		c.registryInspector = inspector
+	}
 
 	return dal, nil
 }
@@ -327,4 +322,9 @@ func (c *Container) createDefaultRenderRegistry() {
 			return nil
 		})
 	}
+
+	shutdown.Register(c.GetAppContext(), "SpriteSheetCache", func(_ context.Context) error {
+		render_domain.ShutdownSpriteSheetCache()
+		return nil
+	})
 }

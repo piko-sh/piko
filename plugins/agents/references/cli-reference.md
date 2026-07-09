@@ -86,16 +86,13 @@ Default address: `http://localhost:8080`
 
 ```bash
 # Stdio mode (default, for editor integration)
-go run ./cmd/lsp
-
-# With formatting enabled
-go run ./cmd/lsp --formatting
+go run ./cmd/pikopls
 
 # TCP mode (for debugging)
-go run ./cmd/lsp --tcp --port 4389
+go run ./cmd/pikopls --tcp --port 4389
 
 # File logging for debugging
-go run ./cmd/lsp --file-logging
+go run ./cmd/pikopls --file-logging
 ```
 
 ### LSP capabilities

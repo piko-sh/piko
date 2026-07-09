@@ -88,6 +88,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 		source             string
 		pagePath           string
 		expectedArtefactID string
+		expectedSourcePath string
 		checkContains      []string
 		checkExcludes      []string
 		expectEmpty        bool
@@ -104,6 +105,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 			source:             `const x: number = 42;`,
 			pagePath:           "pages/checkout",
 			expectedArtefactID: "pk-js/pages/checkout.js",
+			expectedSourcePath: "pk/checkout.js",
 			checkContains:      []string{"const x", "42"},
 			checkExcludes:      []string{": number"},
 		},
@@ -112,6 +114,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 			source:             `const x = 1;`,
 			pagePath:           "pages/cart.pk",
 			expectedArtefactID: "pk-js/pages/cart.js",
+			expectedSourcePath: "pk/cart.js",
 			checkContains:      []string{"const x", "1"},
 		},
 		{
@@ -119,6 +122,7 @@ func TestPKJSEmitter_EmitJS(t *testing.T) {
 			source:             `const y = "test";`,
 			pagePath:           "pages/admin/dashboard",
 			expectedArtefactID: "pk-js/pages/admin/dashboard.js",
+			expectedSourcePath: "pk/dashboard.js",
 		},
 		{
 			name: "typescript with interface is transpiled",
@@ -128,15 +132,24 @@ const user: User = { name: "Alice" };
 `,
 			pagePath:           "pages/users",
 			expectedArtefactID: "pk-js/pages/users.js",
+			expectedSourcePath: "pk/users.js",
 			checkContains:      []string{"const user", "Alice"},
 			checkExcludes:      []string{"interface User", ": User"},
+		},
+		{
+			name:               "actions.gen keeps a js mime via the source path",
+			source:             `const a = 1;`,
+			pagePath:           "pk/actions.gen",
+			expectedArtefactID: "pk-js/pk/actions.gen.js",
+			expectedSourcePath: "pk/actions.gen.js",
+			checkContains:      []string{"const a", "1"},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock, lastArtefactID, _, lastContent, _, lastDesiredProfiles := newCapturingRegistryMock(false)
+			mock, lastArtefactID, lastSourcePath, lastContent, _, lastDesiredProfiles := newCapturingRegistryMock(false)
 			emitter := generator_adapters.NewPKJSEmitter(mock)
 			artefactID, err := emitter.EmitJS(ctx, tc.source, tc.pagePath, "", "", false)
 			if err != nil {
@@ -156,6 +169,9 @@ const user: User = { name: "Alice" };
 			}
 			if *lastArtefactID != tc.expectedArtefactID {
 				t.Errorf("expected stored artefact ID %q, got %q", tc.expectedArtefactID, *lastArtefactID)
+			}
+			if *lastSourcePath != tc.expectedSourcePath {
+				t.Errorf("expected stored source path %q, got %q", tc.expectedSourcePath, *lastSourcePath)
 			}
 			for _, s := range tc.checkContains {
 				if !strings.Contains(*lastContent, s) {

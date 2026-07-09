@@ -21,6 +21,7 @@ package bootstrap
 // This file provides integration of the collection system into the Piko build pipeline.
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/markdown/markdown_domain"
+	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -150,6 +152,11 @@ func initHybridCache(c *Container) {
 	}
 
 	collection_domain.InitHybridCache(hybridCache)
+
+	shutdown.Register(c.GetAppContext(), "HybridCollectionCache", func(ctx context.Context) error {
+		return hybridCache.Close(ctx)
+	})
+
 	l.Internal("Hybrid collection cache migrated to cache service")
 }
 

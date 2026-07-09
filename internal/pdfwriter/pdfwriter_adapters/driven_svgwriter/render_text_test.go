@@ -23,6 +23,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 )
 
@@ -52,22 +54,12 @@ func TestRenderSVG_TextElement(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "BT") {
-		t.Error("expected BT (begin text) in output")
-	}
-	if !strings.Contains(output, "ET") {
-		t.Error("expected ET (end text) in output")
-	}
-	if !strings.Contains(output, "Tf") {
-		t.Error("expected Tf (set font) in output")
-	}
-	if !strings.Contains(output, "Tj") {
-		t.Error("expected Tj (show text) in output")
-	}
+	assert.Contains(t, output, "BT", "expected BT (begin text) in output")
+	assert.Contains(t, output, "ET", "expected ET (end text) in output")
+	assert.Contains(t, output, "Tf", "expected Tf (set font) in output")
+	assert.Contains(t, output, "Tj", "expected Tj (show text) in output")
 }
 
 func TestRenderSVG_TextWithTspan(t *testing.T) {
@@ -83,14 +75,10 @@ func TestRenderSVG_TextWithTspan(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if strings.Count(output, "Tj") < 2 {
-		t.Errorf("expected at least 2 Tj operators, got %d", strings.Count(output, "Tj"))
-	}
+	assert.GreaterOrEqual(t, strings.Count(output, "Tj"), 2, "expected at least 2 Tj operators")
 }
 
 func TestRenderSVG_TextSkippedWithoutRegisterFont(t *testing.T) {
@@ -103,13 +91,9 @@ func TestRenderSVG_TextSkippedWithoutRegisterFont(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if strings.Contains(output, "BT") {
-		t.Error("text should be skipped when RegisterFont is nil")
-	}
+	assert.NotContains(t, output, "BT", "text should be skipped when RegisterFont is nil")
 }
 
 func TestRenderSVG_TextDecoration_Underline(t *testing.T) {
@@ -122,18 +106,11 @@ func TestRenderSVG_TextDecoration_Underline(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if !strings.Contains(output, "Tj") {
-		t.Error("expected Tj (show text) in output")
-	}
-
-	if strings.Count(output, "S\n") < 1 {
-		t.Error("expected stroke 'S' for underline decoration")
-	}
+	assert.Contains(t, output, "Tj", "expected Tj (show text) in output")
+	assert.GreaterOrEqual(t, strings.Count(output, "S\n"), 1, "expected stroke 'S' for underline decoration")
 }
 
 func TestRenderSVG_TextDecoration_LineThrough(t *testing.T) {
@@ -146,16 +123,10 @@ func TestRenderSVG_TextDecoration_LineThrough(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "Tj") {
-		t.Error("expected Tj in output")
-	}
-	if strings.Count(output, "S\n") < 1 {
-		t.Error("expected stroke for line-through decoration")
-	}
+	assert.Contains(t, output, "Tj", "expected Tj in output")
+	assert.GreaterOrEqual(t, strings.Count(output, "S\n"), 1, "expected stroke for line-through decoration")
 }
 
 func TestRenderSVG_TextDecoration_Overline(t *testing.T) {
@@ -168,13 +139,9 @@ func TestRenderSVG_TextDecoration_Overline(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if strings.Count(output, "S\n") < 1 {
-		t.Error("expected stroke for overline decoration")
-	}
+	assert.GreaterOrEqual(t, strings.Count(output, "S\n"), 1, "expected stroke for overline decoration")
 }
 
 func TestRenderSVG_TextDecoration_None(t *testing.T) {
@@ -187,17 +154,10 @@ func TestRenderSVG_TextDecoration_None(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "Tj") {
-		t.Error("expected Tj in output")
-	}
-
-	if strings.Count(output, "S\n") > 0 {
-		t.Error("text-decoration=none should not emit stroke for decoration")
-	}
+	assert.Contains(t, output, "Tj", "expected Tj in output")
+	assert.Equal(t, 0, strings.Count(output, "S\n"), "text-decoration=none should not emit stroke for decoration")
 }
 
 func TestRenderSVG_LetterSpacing(t *testing.T) {
@@ -210,13 +170,9 @@ func TestRenderSVG_LetterSpacing(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "Tc") {
-		t.Error("expected Tc (char spacing) operator in output")
-	}
+	assert.Contains(t, output, "Tc", "expected Tc (char spacing) operator in output")
 }
 
 func TestRenderSVG_WordSpacing(t *testing.T) {
@@ -229,13 +185,9 @@ func TestRenderSVG_WordSpacing(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 300, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
-	if !strings.Contains(output, "Tw") {
-		t.Error("expected Tw (word spacing) operator in output")
-	}
+	assert.Contains(t, output, "Tw", "expected Tw (word spacing) operator in output")
 }
 
 func TestParseFontWeight(t *testing.T) {
@@ -255,9 +207,7 @@ func TestParseFontWeight(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			t.Parallel()
 			got := parseFontWeight(tt.input)
-			if got != tt.want {
-				t.Errorf("parseFontWeight(%q) = %d, want %d", tt.input, got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -273,9 +223,7 @@ func TestRenderSVG_TextAnchorMiddle(t *testing.T) {
 		</svg>`,
 		ctxStart, 0, 0, 400, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	ctxMiddle := newTestContextWithFont()
 	err = w.RenderSVG(context.Background(),
@@ -284,19 +232,13 @@ func TestRenderSVG_TextAnchorMiddle(t *testing.T) {
 		</svg>`,
 		ctxMiddle, 0, 0, 400, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	outputStart := ctxStart.Stream.String()
 	outputMiddle := ctxMiddle.Stream.String()
 
-	if outputStart == outputMiddle {
-		t.Error("text-anchor='middle' should produce different output than 'start'")
-	}
-	if !strings.Contains(outputMiddle, "Td") {
-		t.Error("expected Td operator in middle-anchored text output")
-	}
+	assert.NotEqual(t, outputStart, outputMiddle, "text-anchor='middle' should produce different output than 'start'")
+	assert.Contains(t, outputMiddle, "Td", "expected Td operator in middle-anchored text output")
 }
 
 func TestRenderSVG_TextAnchorEnd(t *testing.T) {
@@ -310,9 +252,7 @@ func TestRenderSVG_TextAnchorEnd(t *testing.T) {
 		</svg>`,
 		ctxStart, 0, 0, 400, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	ctxEnd := newTestContextWithFont()
 	err = w.RenderSVG(context.Background(),
@@ -321,18 +261,12 @@ func TestRenderSVG_TextAnchorEnd(t *testing.T) {
 		</svg>`,
 		ctxEnd, 0, 0, 400, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	outputStart := ctxStart.Stream.String()
 	outputEnd := ctxEnd.Stream.String()
-	if outputStart == outputEnd {
-		t.Error("text-anchor='end' should produce different output than 'start'")
-	}
-	if !strings.Contains(outputEnd, "Td") {
-		t.Error("expected Td operator in end-anchored text output")
-	}
+	assert.NotEqual(t, outputStart, outputEnd, "text-anchor='end' should produce different output than 'start'")
+	assert.Contains(t, outputEnd, "Td", "expected Td operator in end-anchored text output")
 }
 
 func TestRenderSVG_DominantBaseline(t *testing.T) {
@@ -359,9 +293,7 @@ func TestRenderSVG_DominantBaseline(t *testing.T) {
 				</svg>`,
 				ctxAuto, 0, 0, 200, 100,
 			)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			ctxTest := newTestContextWithFont()
 			err = w.RenderSVG(context.Background(),
@@ -370,16 +302,12 @@ func TestRenderSVG_DominantBaseline(t *testing.T) {
 				</svg>`,
 				ctxTest, 0, 0, 200, 100,
 			)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			outputAuto := ctxAuto.Stream.String()
 			outputTest := ctxTest.Stream.String()
 
-			if outputAuto == outputTest {
-				t.Errorf("dominant-baseline=%q should produce different output than 'auto'", tt.baseline)
-			}
+			assert.NotEqual(t, outputAuto, outputTest, "dominant-baseline=%q should produce different output than 'auto'", tt.baseline)
 		})
 	}
 }
@@ -398,14 +326,10 @@ func TestRenderSVG_TextMixedDirectAndTspan(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 400, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if strings.Count(output, "Tj") < 2 {
-		t.Errorf("expected at least 2 Tj operators for multiple tspans, got %d", strings.Count(output, "Tj"))
-	}
+	assert.GreaterOrEqual(t, strings.Count(output, "Tj"), 2, "expected at least 2 Tj operators for multiple tspans")
 }
 
 func TestCollectText(t *testing.T) {
@@ -457,9 +381,7 @@ func TestCollectText(t *testing.T) {
 			var sb strings.Builder
 			collectText(tt.node, &sb)
 			got := sb.String()
-			if got != tt.want {
-				t.Errorf("collectText() = %q, want %q", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -474,14 +396,10 @@ func TestRenderSVG_EmptyTextContent(t *testing.T) {
 		</svg>`,
 		ctx, 0, 0, 200, 100,
 	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 	output := ctx.Stream.String()
 
-	if strings.Contains(output, "Tj") {
-		t.Error("empty text content should not emit Tj")
-	}
+	assert.NotContains(t, output, "Tj", "empty text content should not emit Tj")
 }
 
 func TestParseFontStyle(t *testing.T) {
@@ -500,9 +418,7 @@ func TestParseFontStyle(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			t.Parallel()
 			got := parseFontStyle(tt.input)
-			if got != tt.want {
-				t.Errorf("parseFontStyle(%q) = %d, want %d", tt.input, got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

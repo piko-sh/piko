@@ -32,7 +32,7 @@ source "$(dirname "$0")/../lib/init.sh"
 TARGET_DIR=""
 
 # Path to the debug binary output.
-DEBUG_BINARY="/tmp/piko-lsp-debug"
+DEBUG_BINARY="/tmp/pikopls-debug"
 trap 'rm -f "$DEBUG_BINARY"' EXIT
 
 # validate_args checks that a valid project directory was provided.
@@ -68,8 +68,8 @@ verify_delve() {
 #   DEBUG_BINARY - Read (output path)
 #   PIKO_ROOT - Read
 build_debug_binary() {
-    piko::log::info "Building debug version of piko-lsp..."
-    go build -o "$DEBUG_BINARY" -gcflags="all=-N -l" "${PIKO_ROOT}/cmd/lsp"
+    piko::log::info "Building debug version of pikopls..."
+    go build -o "$DEBUG_BINARY" -gcflags="all=-N -l" "${PIKO_ROOT}/cmd/pikopls"
     piko::log::success "Debug binary built at $DEBUG_BINARY"
     piko::log::footer
 }

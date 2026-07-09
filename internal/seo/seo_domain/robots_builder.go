@@ -30,6 +30,12 @@ import (
 type robotsBuilder struct {
 	// config holds the settings for robots.txt generation.
 	config config.RobotsConfig
+
+	// blockAllIndexing, when true, replaces the permissive base rule with a site-wide
+	// "Disallow: /" so no crawler indexes the site. It is set for non-production builds
+	// (unless RobotsConfig.AllowNonProductionIndexing opts out) to stop a dev/staging deploy
+	// being indexed with production URLs.
+	blockAllIndexing bool
 }
 
 // Build creates the full robots.txt content using all set rules.
@@ -70,10 +76,20 @@ func (b *robotsBuilder) Build(ctx context.Context, sitemapURL string) ([]byte, e
 	return []byte(textContent), nil
 }
 
-// generateBaseRules creates the default rules that allow all bots to access all paths.
+// generateBaseRules creates the base rule for all bots. Normally this allows all paths;
+// in a non-production build with blockAllIndexing set it disallows everything instead, so
+// the deploy cannot be indexed.
 //
-// Returns seo_dto.RobotGroup which permits all user agents to access all paths.
-func (*robotsBuilder) generateBaseRules() seo_dto.RobotGroup {
+// Returns seo_dto.RobotGroup which permits (or, when blocking, forbids) all user agents
+// on all paths.
+func (b *robotsBuilder) generateBaseRules() seo_dto.RobotGroup {
+	if b.blockAllIndexing {
+		return seo_dto.RobotGroup{
+			UserAgents: []string{"*"},
+			Disallow:   []string{"/"},
+			Allow:      []string{},
+		}
+	}
 	return seo_dto.RobotGroup{
 		UserAgents: []string{"*"},
 		Disallow:   []string{},
@@ -106,10 +122,13 @@ func (*robotsBuilder) generateNonSEOBotRules() seo_dto.RobotGroup {
 // newRobotsBuilder creates a new robotsBuilder with the given settings.
 //
 // Takes robotsConfig (config.RobotsConfig) which specifies the robots.txt settings.
+// Takes blockAllIndexing (bool) which, when true, makes the base rule disallow all paths
+// (used for non-production builds).
 //
 // Returns *robotsBuilder which is ready for use.
-func newRobotsBuilder(robotsConfig config.RobotsConfig) *robotsBuilder {
+func newRobotsBuilder(robotsConfig config.RobotsConfig, blockAllIndexing bool) *robotsBuilder {
 	return &robotsBuilder{
-		config: robotsConfig,
+		config:           robotsConfig,
+		blockAllIndexing: blockAllIndexing,
 	}
 }

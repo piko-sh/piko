@@ -4,7 +4,7 @@ use (
 	.
 	./cmd/asmgen
 	./cmd/generate_dal
-	./cmd/lsp
+	./cmd/pikopls
 	./cmd/piko
 	./cmd/stdlib-generator
 	./cmd/wasm
@@ -34,6 +34,7 @@ use (
 	./tests/integration/testutil
 	./tests/integration/wasm_runner
 	./tests/testutil
+	./wdk/analytics/analytics_collector_grpcfb
 	./wdk/browser
 	./wdk/cache/cache_linguistics
 	./wdk/cache/cache_provider_redis
@@ -134,6 +135,7 @@ use (
 	./wdk/llm/llm_provider_ollama
 	./wdk/llm/llm_provider_openai
 	./wdk/llm/llm_provider_zoltai
+	./wdk/logger/log_collector_grpcfb
 	./wdk/logger/logger_integration_otel_grpc
 	./wdk/logger/logger_integration_otel_http
 	./wdk/logger/logger_integration_sentry
@@ -145,12 +147,19 @@ use (
 	./wdk/metrics/metrics_exporter_prometheus
 	./wdk/monitoring/monitoring_api
 	./wdk/monitoring/monitoring_transport_grpc
+	./wdk/monitoring/watchdog_grpcfb
 	./wdk/storage/storage_provider_gcs
 	./wdk/storage/storage_provider_r2
 	./wdk/storage/storage_provider_s3
 	./wdk/storage/storage_transformer_gzip
 	./wdk/storage/storage_transformer_zstd
 	./wdk/system/system_memlimit_automemlimit
+	./wdk/telemetry/email_collector_grpcfb
+	./wdk/telemetry/metric_collector_grpcfb
+	./wdk/telemetry/query_collector_grpcfb
+	./wdk/telemetry/readiness_collector_grpcfb
+	./wdk/telemetry/span_collector_grpcfb
+	./wdk/telemetry/telemetry_grpcfb
 	./wdk/validation/validation_provider_playground
 )
 
@@ -158,7 +167,7 @@ replace (
 	piko.sh/piko v0.0.0 => .
 	piko.sh/piko/cmd/asmgen v0.0.0 => ./cmd/asmgen
 	piko.sh/piko/cmd/generate_dal v0.0.0 => ./cmd/generate_dal
-	piko.sh/piko/cmd/lsp v0.0.0 => ./cmd/lsp
+	piko.sh/piko/cmd/pikopls v0.0.0 => ./cmd/pikopls
 	piko.sh/piko/cmd/piko v0.0.0 => ./cmd/piko
 	piko.sh/piko/cmd/stdlib-generator v0.0.0 => ./cmd/stdlib-generator
 	piko.sh/piko/cmd/wasm v0.0.0 => ./cmd/wasm
@@ -188,6 +197,7 @@ replace (
 	piko.sh/piko/tests/integration/testutil v0.0.0 => ./tests/integration/testutil
 	piko.sh/piko/tests/integration/wasm_runner v0.0.0 => ./tests/integration/wasm_runner
 	piko.sh/piko/tests/testutil v0.0.0 => ./tests/testutil
+	piko.sh/piko/wdk/analytics/analytics_collector_grpcfb v0.0.0 => ./wdk/analytics/analytics_collector_grpcfb
 	piko.sh/piko/wdk/browser v0.0.0 => ./wdk/browser
 	piko.sh/piko/wdk/cache/cache_linguistics v0.0.0 => ./wdk/cache/cache_linguistics
 	piko.sh/piko/wdk/cache/cache_provider_redis v0.0.0 => ./wdk/cache/cache_provider_redis
@@ -288,6 +298,7 @@ replace (
 	piko.sh/piko/wdk/llm/llm_provider_ollama v0.0.0 => ./wdk/llm/llm_provider_ollama
 	piko.sh/piko/wdk/llm/llm_provider_openai v0.0.0 => ./wdk/llm/llm_provider_openai
 	piko.sh/piko/wdk/llm/llm_provider_zoltai v0.0.0 => ./wdk/llm/llm_provider_zoltai
+	piko.sh/piko/wdk/logger/log_collector_grpcfb v0.0.0 => ./wdk/logger/log_collector_grpcfb
 	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0 => ./wdk/logger/logger_integration_otel_grpc
 	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0 => ./wdk/logger/logger_integration_otel_http
 	piko.sh/piko/wdk/logger/logger_integration_sentry v0.0.0 => ./wdk/logger/logger_integration_sentry
@@ -299,11 +310,18 @@ replace (
 	piko.sh/piko/wdk/metrics/metrics_exporter_prometheus v0.0.0 => ./wdk/metrics/metrics_exporter_prometheus
 	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0 => ./wdk/monitoring/monitoring_api
 	piko.sh/piko/wdk/monitoring/monitoring_transport_grpc v0.0.0 => ./wdk/monitoring/monitoring_transport_grpc
+	piko.sh/piko/wdk/monitoring/watchdog_grpcfb v0.0.0 => ./wdk/monitoring/watchdog_grpcfb
 	piko.sh/piko/wdk/storage/storage_provider_gcs v0.0.0 => ./wdk/storage/storage_provider_gcs
 	piko.sh/piko/wdk/storage/storage_provider_r2 v0.0.0 => ./wdk/storage/storage_provider_r2
 	piko.sh/piko/wdk/storage/storage_provider_s3 v0.0.0 => ./wdk/storage/storage_provider_s3
 	piko.sh/piko/wdk/storage/storage_transformer_gzip v0.0.0 => ./wdk/storage/storage_transformer_gzip
 	piko.sh/piko/wdk/storage/storage_transformer_zstd v0.0.0 => ./wdk/storage/storage_transformer_zstd
 	piko.sh/piko/wdk/system/system_memlimit_automemlimit v0.0.0 => ./wdk/system/system_memlimit_automemlimit
+	piko.sh/piko/wdk/telemetry/email_collector_grpcfb v0.0.0 => ./wdk/telemetry/email_collector_grpcfb
+	piko.sh/piko/wdk/telemetry/metric_collector_grpcfb v0.0.0 => ./wdk/telemetry/metric_collector_grpcfb
+	piko.sh/piko/wdk/telemetry/query_collector_grpcfb v0.0.0 => ./wdk/telemetry/query_collector_grpcfb
+	piko.sh/piko/wdk/telemetry/readiness_collector_grpcfb v0.0.0 => ./wdk/telemetry/readiness_collector_grpcfb
+	piko.sh/piko/wdk/telemetry/span_collector_grpcfb v0.0.0 => ./wdk/telemetry/span_collector_grpcfb
+	piko.sh/piko/wdk/telemetry/telemetry_grpcfb v0.0.0 => ./wdk/telemetry/telemetry_grpcfb
 	piko.sh/piko/wdk/validation/validation_provider_playground v0.0.0 => ./wdk/validation/validation_provider_playground
 )

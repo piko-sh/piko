@@ -416,27 +416,113 @@ func (b *ASTBinder) bindFields(ctx context.Context, v reflect.Value, src map[str
 	var multiErrors MultiError
 
 	for path, values := range src {
-		if err := validatePathLength(path, limits.maxPathLength); err != nil {
-			accumulateError(&multiErrors, path, err)
-			continue
-		}
-
-		if len(values) == 0 {
-			continue
-		}
-		value := values[len(values)-1]
-
-		if err := validateValueLength(path, value, limits.maxValueLength); err != nil {
-			accumulateError(&multiErrors, path, err)
-			continue
-		}
-
-		if err := b.bindSingleField(ctx, v, path, value, structMeta, limits); err != nil {
+		if err := b.bindPathValues(ctx, v, path, values, structMeta, limits); err != nil {
 			accumulateError(&multiErrors, path, err)
 		}
 	}
 
 	return multiErrors
+}
+
+// bindPathValues binds the values for a single form key onto the destination struct.
+//
+// A repeated bare key targeting a slice field fills the slice; any other key uses the
+// last value. An empty value list is skipped without error.
+//
+// Takes v (reflect.Value) which is the destination struct.
+// Takes path (string) which is the form key.
+// Takes values ([]string) which are the raw values for the key.
+// Takes structMeta (*structInfo) which holds the destination field metadata.
+// Takes limits (binderOptions) which specifies validation constraints.
+//
+// Returns error when validation fails or a value cannot be set.
+func (b *ASTBinder) bindPathValues(ctx context.Context, v reflect.Value, path string, values []string, structMeta *structInfo, limits binderOptions) error {
+	if err := validatePathLength(path, limits.maxPathLength); err != nil {
+		return err
+	}
+
+	if len(values) == 0 {
+		return nil
+	}
+
+	if len(values) > 1 {
+		if fieldMeta, ok := coercibleSliceField(path, structMeta); ok {
+			field := fieldByIndexSafe(v, fieldMeta.Index)
+			return b.bindValuesToSliceField(field, values, path, limits)
+		}
+	}
+
+	value := values[len(values)-1]
+
+	if err := validateValueLength(path, value, limits.maxValueLength); err != nil {
+		return err
+	}
+
+	return b.bindSingleField(ctx, v, path, value, structMeta, limits)
+}
+
+// coercibleSliceField reports whether a bare form key targets a coercible slice field.
+//
+// A coercible slice field is a simple identifier naming a known field whose type, after
+// one pointer dereference, is a slice other than []byte (a text or binary scalar). A
+// repeated key such as tags=a&tags=b then fills the slice exactly as the indexed keys
+// tags[0], tags[1] already do; scalar fields fall through to the existing last-value-wins
+// behaviour.
+//
+// Takes path (string) which is the form key.
+// Takes structMeta (*structInfo) which holds the destination field metadata.
+//
+// Returns the matched *fieldInfo and true when the field is a coercible slice, or nil and
+// false.
+func coercibleSliceField(path string, structMeta *structInfo) (*fieldInfo, bool) {
+	if !isSimpleIdentifier(path) {
+		return nil, false
+	}
+	fieldMeta, ok := structMeta.Fields[path]
+	if !ok {
+		return nil, false
+	}
+	fieldType := fieldMeta.Type
+	if fieldType.Kind() == reflect.Pointer {
+		fieldType = fieldType.Elem()
+	}
+	if fieldType.Kind() != reflect.Slice || fieldType == reflect.TypeFor[[]byte]() {
+		return nil, false
+	}
+	return fieldMeta, true
+}
+
+// bindValuesToSliceField binds every value of a repeated bare form key into the
+// destination slice field, growing it to fit and honouring maxSliceSize, so a repeated
+// key fills the slice exactly as indexed keys do. Each value is converted through
+// convertAndSet, reusing the full converter precedence and pointer-element handling.
+//
+// Takes field (reflect.Value) which is the destination slice field (a nil *[]T is
+// allocated).
+// Takes values ([]string) which are the raw values to bind in order.
+// Takes path (string) which identifies the field for error messages.
+// Takes limits (binderOptions) which supplies maxValueLength and maxSliceSize.
+//
+// Returns error when a value is too long, the slice would exceed maxSliceSize, or an
+// element cannot be converted.
+func (b *ASTBinder) bindValuesToSliceField(field reflect.Value, values []string, path string, limits binderOptions) error {
+	target := dereferencePointer(field)
+	elementType := target.Type().Elem()
+	elementInfo := newFieldInfoForType(path, elementType)
+
+	for index, value := range values {
+		if err := validateValueLength(path, value, limits.maxValueLength); err != nil {
+			return err
+		}
+		if err := growSliceToFitIndex(target, index, limits.maxSliceSize); err != nil {
+			return errSetField{err: err, path: path, field: path, fieldType: target.Type().String()}
+		}
+		if err := b.convertAndSet(target.Index(index), value, path, elementInfo); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // bindSingleField attempts to bind a single field using fast path or slow path. Extracted

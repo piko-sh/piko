@@ -1,0 +1,16 @@
+id = "piko"
+name = "Piko"
+description = "Piko single-file component (.pk / .pkc) language support: syntax highlighting and the pikopls language server."
+version = "0.1.0"
+schema_version = 1
+authors = ["PolitePixels Limited"]
+repository = "https://github.com/piko-sh/piko"
+
+[language_servers.pikopls]
+name = "pikopls"
+language = "Piko"
+
+[grammars.piko]
+repository = "file:///home/mhaddon/git/piko-sh/piko"
+path = "plugins/zed/tree-sitter-piko"
+commit = "4e250592a49f1cba50f38c7a53b1687f768a2803"

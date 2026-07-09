@@ -19,12 +19,10 @@
 package db_schema_orchestrator_sqlite
 
 import (
-	"embed"
+	"piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_sqlite"
 )
 
 var (
 	// Migrations contains the SQLite migration files for the orchestrator database.
-	//
-	//go:embed migrations/*.sql
-	Migrations embed.FS
+	Migrations = querier_sqlite.Migrations
 )

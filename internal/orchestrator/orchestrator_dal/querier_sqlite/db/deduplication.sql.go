@@ -22,3 +22,29 @@ func (queries *Queries) CheckDuplicateActiveTask(ctx context.Context, deduplicat
 	}
 	return row, nil
 }
+
+const createtaskwithdedup = `INSERT INTO tasks (
+    id, workflow_id, executor, priority, payload, config, status, execute_at, attempt, created_at, updated_at, deduplication_key
+) VALUES (
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+);`
+
+type CreateTaskWithDedupParams struct {
+	ID               string
+	WorkflowID       string
+	Executor         string
+	Priority         int32
+	Payload          string
+	Config           string
+	Status           string
+	ExecuteAt        int64
+	Attempt          int32
+	CreatedAt        int64
+	UpdatedAt        int64
+	DeduplicationKey *string
+}
+
+func (queries *Queries) CreateTaskWithDedup(ctx context.Context, params CreateTaskWithDedupParams) error {
+	_, err := queries.writer.ExecContext(ctx, createtaskwithdedup, params.ID, params.WorkflowID, params.Executor, params.Priority, params.Payload, params.Config, params.Status, params.ExecuteAt, params.Attempt, params.CreatedAt, params.UpdatedAt, params.DeduplicationKey)
+	return err
+}
