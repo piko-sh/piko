@@ -6,6 +6,7 @@ require (
 	github.com/sethvargo/go-envconfig v1.3.0
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/llm/llm_provider_zoltai v0.0.0
+	piko.sh/piko/wdk/markdown/markdown_provider_goldmark v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -31,11 +32,14 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sony/gobreaker/v2 v2.4.0 // indirect
+	github.com/stefanfritsch/goldmark-fences v1.0.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tdewolff/minify/v2 v2.24.11 // indirect
 	github.com/tdewolff/parse/v2 v2.8.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/quicktemplate v1.8.0 // indirect
+	github.com/yuin/goldmark v1.8.2 // indirect
+	github.com/yuin/goldmark-meta v1.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
@@ -47,6 +51,7 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

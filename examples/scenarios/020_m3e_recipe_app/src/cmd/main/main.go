@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/components"
 	"piko.sh/piko/wdk/llm/llm_provider_zoltai"
 	"piko.sh/piko/wdk/logger"
+	_ "piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
 )
 
 func main() {
