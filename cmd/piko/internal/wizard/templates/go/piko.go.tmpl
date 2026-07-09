@@ -62,25 +62,9 @@ func baseOptions() []Option {
 {{- end }}
 		piko.WithWebsiteConfig(piko.WebsiteConfig{
 			Fonts: []piko.FontDefinition{
-				{
-					Type: "google",
-					URL:  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
-				},
-			},
-			Theme: map[string]string{
-				"font-family":     `"Inter", sans-serif`,
-				"colour-primary":  "#6F47EB",
-				"colour-grey-900": "#2B333B",
-				"colour-grey-800": "#364049",
-				"colour-grey-700": "#485461",
-				"colour-grey-600": "#5B6B7B",
-				"colour-grey-500": "#788A9B",
-				"colour-grey-400": "#92A1AF",
-				"colour-grey-300": "#ADB8C2",
-				"colour-grey-200": "#CAD1D8",
-				"colour-grey-100": "#E8EBEE",
-				"colour-grey-50":  "#F6F7F8",
-				"colour-grey-25":  "#fafbfc",
+				{Type: "google", URL: "https://fonts.googleapis.com/css2?family=DynaPuff:wght@400..700&display=swap"},
+				{Type: "google", URL: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap"},
+				{Type: "google", URL: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"},
 			},
 		}),
 

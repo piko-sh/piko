@@ -10,7 +10,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "Hello, World!"
+      "expected": "Hello, world!"
     },
     {
       "action": "checkText",

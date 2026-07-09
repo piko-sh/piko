@@ -6,8 +6,8 @@
     <h1 p-text="state.Title"></h1>
     <p class="description">
       A chat interface demonstrating cross-component communication via the
-      Piko event bus. Type a message below and press Send - the message log
-      above updates in real time without any server round-trips.
+      Piko event bus. Type a message below and press send, the message log
+      below will update in real time without any server round-trips.
     </p>
 
     <piko:partial is="message_log"></piko:partial>
@@ -32,29 +32,38 @@ type Response struct {
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     return Response{
-        Title: "Event Bus Chat",
+        Title: "Event bus chat",
     }, piko.Metadata{
-        Title:       "Event Bus Chat - Piko Example",
+        Title:       "Event bus chat | Piko example",
         Description: "Cross-component communication via the Piko event bus.",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
     padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
+    border-radius: var(--g-radius-xl, 30px);
   }
 
   h1 {
-    color: #1f2937;
-    margin-bottom: 0.25rem;
+    font-family: var(--g-font-family-heading);
+    color: var(--g-colour-grey-900, #2B333B);
+    font-size: 2rem;
+    margin-bottom: 0.25em;
   }
 
   .description {
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 1.5rem;
     line-height: 1.5;
   }

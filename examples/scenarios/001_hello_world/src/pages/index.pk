@@ -3,10 +3,10 @@
      and <style> for scoped CSS. {{ state.X }} references the Response struct. -->
 <template>
   <div id="app">
-    <h1>{{ state.Greeting }}</h1>
-    <p>{{ state.Description }}</p>
+    <h1 class="greeting">{{ state.Greeting }}</h1>
+    <p class="description">{{ state.Description }}</p>
 
-    <footer>
+    <footer class="footer">
       <small>Built with Piko v{{ state.Version }}</small>
     </footer>
   </div>
@@ -26,39 +26,49 @@ type Response struct {
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     return Response{
-        Greeting:    "Hello, World!",
+        Greeting:    "Hello, world!",
         Description: "This is a minimal Piko page with server-side rendering.",
         Version:     "0.1.0",
     }, piko.Metadata{
-        Title: "Hello World - Piko Example",
+        Title: "Hello world | Piko example",
         Description: "A minimal Piko page demonstrating server-side rendering.",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
     padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
+    border-radius: var(--g-radius-lg, 20px);
   }
 
-  h1 {
-    color: #2563eb;
+  .greeting {
+    font-family: var(--g-font-family-heading);
+    font-size: 1.75rem;
+    color: var(--g-colour-grey-900, #2B333B);
+    letter-spacing: -0.01em;
     margin-bottom: 0.5rem;
   }
 
-  p {
-    color: #374151;
+  .description {
+    color: var(--g-colour-grey-600, #5B6B7B);
     line-height: 1.6;
   }
 
-  footer {
+  .footer {
     margin-top: 2rem;
     padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
-    color: #9ca3af;
+    border-top: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    color: var(--g-colour-grey-400, #92A1AF);
     font-size: 0.875rem;
   }
 </style>

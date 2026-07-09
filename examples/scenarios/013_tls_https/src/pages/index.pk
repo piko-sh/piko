@@ -1,10 +1,10 @@
 <template>
-  <div id="app">
-    <h1>{{ state.Heading }}</h1>
-    <p>{{ state.Description }}</p>
+  <div id="app" class="tls-page">
+    <h1 class="tls-heading">{{ state.Heading }}</h1>
+    <p class="tls-description">{{ state.Description }}</p>
 
-    <footer>
-      <small>Served with TLS enabled</small>
+    <footer class="tls-footer">
+      <small class="tls-footer-note">Served with TLS enabled</small>
     </footer>
   </div>
 </template>
@@ -21,38 +21,47 @@ type Response struct {
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     return Response{
-        Heading:     "Secure Connection",
+        Heading:     "Secure connection",
         Description: "This page was served over HTTPS using a self-signed TLS certificate.",
     }, piko.Metadata{
-        Title:       "TLS/HTTPS - Piko Example",
+        Title:       "TLS/HTTPS | Piko example",
         Description: "A Piko page served over HTTPS with a self-signed TLS certificate.",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
     padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
+    border-radius: var(--g-radius-xl, 30px);
   }
 
-  h1 {
-    color: #059669;
+  .tls-heading {
+    color: var(--g-colour-secondary-700, #39ABA1);
+    font-family: var(--g-font-family-heading, sans-serif);
+    font-size: 2rem;
     margin-bottom: 0.5rem;
   }
 
-  p {
-    color: #374151;
+  .tls-description {
+    color: var(--g-colour-grey-700, #485461);
     line-height: 1.6;
   }
 
-  footer {
+  .tls-footer {
     margin-top: 2rem;
     padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
-    color: #9ca3af;
+    border-top: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    color: var(--g-colour-grey-400, #92A1AF);
     font-size: 0.875rem;
   }
 </style>

@@ -1,0 +1,349 @@
+<template>
+  <div class="upload-form" p-ref="root" :data-mode="state.Mode">
+    <div class="upload-zone" p-ref="drop_zone" role="button" tabindex="0" aria-label="Choose a file or drag it here">
+      <input p-ref="file_input" type="file" id="file-input" p-on:change="onFileChange()" />
+      <span class="file-label">Choose a file or drag it here</span>
+    </div>
+
+    <div class="file-info" p-ref="file_info" style="display: none">
+      <span p-ref="file_name_display"></span>
+      <span p-ref="file_size_display" class="file-size"></span>
+    </div>
+
+    <button id="upload-btn" class="button" p-ref="upload_btn" p-on:click="uploadFile()" disabled>{{ state.ButtonLabel }}</button>
+
+    <!-- Progress bar for the S3 PUT (presigned mode only). -->
+    <div class="progress-container" p-ref="progress_container" p-if="state.Mode == 'presigned'" style="display: none">
+      <div p-ref="progress_bar" class="progress-bar" style="width: 0%"></div>
+    </div>
+    <div class="progress-text" p-ref="progress_text" p-if="state.Mode == 'presigned'" style="display: none">0%</div>
+
+    <div p-ref="status" class="status" style="display: none"></div>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+    Mode        string `prop:"mode" validate:"required"`
+    ButtonLabel string `prop:"button-label" validate:"required"`
+}
+
+type Response struct {
+    Mode        string
+    ButtonLabel string
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    return Response{
+        Mode:        props.Mode,
+        ButtonLabel: props.ButtonLabel,
+    }, piko.Metadata{}, nil
+}
+</script>
+
+<script lang="ts">
+let selectedFile: File | null = null;
+
+function formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function errorMessage(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    if (err && typeof err === 'object') {
+        const e = err as { message?: unknown; validationErrors?: Record<string, string[]>; error?: unknown };
+        if (e.validationErrors) {
+            const fields = Object.values(e.validationErrors).flat();
+            if (fields.length > 0) return fields.join(', ');
+        }
+        if (typeof e.message === 'string' && e.message) return e.message;
+        if (typeof e.error === 'string' && e.error) return e.error;
+    }
+    if (typeof err === 'string') return err;
+    return 'Unknown error';
+}
+
+function uploadMode(): string {
+    return (pk.refs.root as HTMLElement).dataset.mode ?? 'direct';
+}
+
+function setStatus(text: string, type: string): void {
+    pk.refs.status!.textContent = text;
+    pk.refs.status!.className = 'status ' + type;
+    pk.refs.status!.style.display = 'block';
+}
+
+function selectFile(file: File | null): void {
+    selectedFile = file;
+    if (file) {
+        pk.refs.file_name_display!.textContent = file.name;
+        pk.refs.file_size_display!.textContent = formatBytes(file.size);
+        pk.refs.file_info!.style.display = 'flex';
+        pk.refs.upload_btn!.removeAttribute('disabled');
+    } else {
+        pk.refs.file_info!.style.display = 'none';
+        pk.refs.upload_btn!.setAttribute('disabled', '');
+    }
+}
+
+export function onFileChange(): void {
+    const input = pk.refs.file_input as HTMLInputElement;
+    selectFile(input.files?.[0] ?? null);
+}
+
+function hideProgress(): void {
+    if (pk.refs.progress_container) pk.refs.progress_container.style.display = 'none';
+    if (pk.refs.progress_text) pk.refs.progress_text.style.display = 'none';
+}
+
+// Direct multipart upload in a single action call.
+async function uploadDirect(file: File): Promise<{ file_name: string; storage_key: string }> {
+    setStatus('Uploading...', 'uploading');
+    return await action.files.Upload(file).call();
+}
+
+// PUT directly to S3 via a presigned URL using XMLHttpRequest for progress.
+function putFileToPresignedURL(url: string, file: File): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', url, true);
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+        xhr.upload.addEventListener('progress', (e: ProgressEvent) => {
+            if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 100);
+                pk.refs.progress_bar!.style.width = pct + '%';
+                pk.refs.progress_text!.textContent = pct + '%';
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error('S3 PUT failed with status ' + xhr.status));
+        });
+        xhr.addEventListener('error', () => reject(new Error('Network error during S3 upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+        xhr.send(file);
+    });
+}
+
+// Presigned flow: request URL, PUT with progress, then finalise.
+async function uploadPresigned(file: File): Promise<{ file_name: string; storage_key: string }> {
+    pk.refs.progress_container!.style.display = 'block';
+    pk.refs.progress_text!.style.display = 'block';
+    pk.refs.progress_bar!.style.width = '0%';
+    pk.refs.progress_text!.textContent = '0%';
+
+    setStatus('Requesting presigned URL...', 'uploading');
+    const presign = await action.files.RequestUpload({
+        file_name: file.name,
+        content_type: file.type || 'application/octet-stream',
+        file_size: file.size,
+    }).call();
+
+    setStatus('Uploading to S3...', 'uploading');
+    await putFileToPresignedURL(presign.upload_url, file);
+
+    setStatus('Finalising...', 'uploading');
+    return await action.files.FinaliseUpload({
+        temp_key: presign.temp_key,
+        file_name: file.name,
+    }).call();
+}
+
+export async function uploadFile(): Promise<void> {
+    if (!selectedFile) return;
+    const file = selectedFile;
+
+    const btn = pk.refs.upload_btn!;
+    btn.setAttribute('disabled', '');
+
+    try {
+        const result = uploadMode() === 'presigned'
+            ? await uploadPresigned(file)
+            : await uploadDirect(file);
+
+        setStatus('Uploaded: ' + result.file_name + ' (' + result.storage_key + ')', 'success');
+        selectFile(null);
+        (pk.refs.file_input as HTMLInputElement).value = '';
+        hideProgress();
+        piko.partials.reload('file-list');
+    } catch (err: unknown) {
+        setStatus('Upload failed: ' + errorMessage(err), 'error');
+        btn.removeAttribute('disabled');
+        hideProgress();
+    }
+}
+
+pk.onConnected(() => {
+    const zone = pk.refs.drop_zone!;
+    const input = pk.refs.file_input as HTMLInputElement;
+
+    const openPicker = (e: Event) => {
+        if (e.target === input) return; // the hidden input dispatches its own click
+        input.click();
+    };
+    zone.addEventListener('click', openPicker);
+    pk.onCleanup(() => zone.removeEventListener('click', openPicker));
+
+    const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            input.click();
+        }
+    };
+    zone.addEventListener('keydown', onKey);
+    pk.onCleanup(() => zone.removeEventListener('keydown', onKey));
+
+    const halt = (e: DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+    const onDragEnter = (e: DragEvent) => { halt(e); zone.classList.add('drag-over'); };
+    const onDragOver = (e: DragEvent) => { halt(e); zone.classList.add('drag-over'); };
+    const onDragLeave = (e: DragEvent) => { halt(e); zone.classList.remove('drag-over'); };
+    const onDrop = (e: DragEvent) => {
+        halt(e);
+        zone.classList.remove('drag-over');
+        const dt = e.dataTransfer;
+        const file = dt?.files?.[0] ?? null;
+        if (file) {
+            try { if (dt) input.files = dt.files; } catch { /* not settable on older browsers */ }
+            selectFile(file);
+        }
+    };
+    zone.addEventListener('dragenter', onDragEnter);
+    zone.addEventListener('dragover', onDragOver);
+    zone.addEventListener('dragleave', onDragLeave);
+    zone.addEventListener('drop', onDrop);
+    pk.onCleanup(() => {
+        zone.removeEventListener('dragenter', onDragEnter);
+        zone.removeEventListener('dragover', onDragOver);
+        zone.removeEventListener('dragleave', onDragLeave);
+        zone.removeEventListener('drop', onDrop);
+    });
+});
+</script>
+
+<style>
+  @import "testmodule/styles/theme.css";
+
+  * { box-sizing: border-box; }
+
+  .upload-zone {
+    border: 1px dashed var(--g-colour-grey-400);
+    background-color: var(--g-colour-grey-25);
+    border-radius: var(--g-radius-lg, 20px);
+    padding: 2rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--g-colour-grey-500);
+    cursor: pointer;
+    transition: border-color .2s, background-color .2s, color .2s;
+    &.drag-over, &:hover {
+      border-color: var(--g-colour-primary-300);
+      color: var(--g-colour-primary-400);
+      background: var(--g-colour-primary-25);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--g-colour-primary-400);
+      outline-offset: 2px;
+    }
+    input[type="file"] {
+      display: none;
+    }
+  }
+
+  .file-label {
+    font-weight: 500;
+    pointer-events: none;
+  }
+
+  .file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--g-colour-grey-50, #F6F7F8);
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    border-radius: var(--g-radius-md, 15px);
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    .file-size { color: var(--g-colour-grey-500, #788A9B); }
+  }
+
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: flex;
+    margin: 2rem auto var(--button-shadow-depth);
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 2rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
+    text-decoration: none;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
+    &:hover:not(:disabled) {
+      transform: translateY(calc(var(--button-shadow-depth) / 2));
+      box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+      background-color: var(--colour-background-hover);
+      border-color: var(--colour-border-hover);
+      color: var(--colour-text-hover);
+    }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  .progress-container {
+    height: 1.25rem;
+    background: var(--g-colour-grey-100, #E8EBEE);
+    border-radius: var(--g-radius-lg, 20px);
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+    .progress-bar {
+      height: 100%;
+      background: var(--g-colour-primary-500, #6F47EB);
+      transition: width 0.2s ease;
+      border-radius: var(--g-radius-lg, 20px);
+    }
+  }
+
+  .progress-text {
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--g-colour-grey-500, #788A9B);
+    margin-bottom: 0.75rem;
+  }
+
+  .status {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--g-radius-md, 15px);
+    font-size: 0.9rem;
+    margin: 1rem 0;
+    border: 1px solid;
+
+    &.uploading { background: var(--g-colour-secondary-50); color: var(--g-colour-secondary-700); border-color: var(--g-colour-secondary-500); }
+    &.success { background: var(--g-colour-secondary-100); color: var(--g-colour-secondary-800); border-color: var(--g-colour-secondary-600); }
+    &.error { background: #ffeeee; color: #991b1b; border-color: #ff8f8f; }
+  }
+</style>

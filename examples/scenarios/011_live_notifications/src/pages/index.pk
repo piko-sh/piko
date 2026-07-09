@@ -2,14 +2,14 @@
      using withRetryStream(). chat.Send broadcasts messages to all connected listeners. -->
 <template>
   <div id="app">
-    <h1>Piko Chat</h1>
+    <h1 class="page-title">Piko chat</h1>
 
     <!-- Login area: shown before joining -->
     <div p-ref="login_area" class="login-area">
-      <p>Enter a username to join the chat room.</p>
+      <p class="login-prompt">Enter a username to join the chat room.</p>
       <div class="login-row">
         <input p-ref="username_input" type="text" placeholder="Username" maxlength="20" />
-        <button p-on:click="joinChat()">Join Chat</button>
+        <button class="button button-primary" p-on:click="joinChat()">Join chat</button>
       </div>
     </div>
 
@@ -24,7 +24,7 @@
 
       <div class="send-row">
         <input p-ref="message_input" type="text" placeholder="Type a message..." maxlength="500" />
-        <button p-ref="send_btn" p-on:click="sendMessage()">Send</button>
+        <button class="button button-primary" p-ref="send_btn" p-on:click="sendMessage()">Send</button>
       </div>
     </div>
   </div>
@@ -37,7 +37,7 @@ import "piko.sh/piko"
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Piko Chat - SSE Instant Messaging",
+        Title: "Piko chat | SSE instant messaging",
     }, nil
 }
 </script>
@@ -145,69 +145,100 @@ export async function sendMessage(): Promise<void> {
 
 function appendMessage(username: string, text: string, time: string, own: boolean): void {
     const el = document.createElement('div');
-    el.className = 'msg' + (own ? ' own' : '');
+    el.className = 'message' + (own ? ' own' : '');
     el.innerHTML =
-        '<div class="msg-header">' +
-            '<span class="msg-user">' + escapeHtml(username) + '</span>' +
-            '<span class="msg-time">' + escapeHtml(time) + '</span>' +
+        '<div class="message-header">' +
+            '<span class="message-user">' + escapeHtml(username) + '</span>' +
+            '<span class="message-time">' + escapeHtml(time) + '</span>' +
         '</div>' +
-        '<div class="msg-text">' + escapeHtml(text) + '</div>';
+        '<div class="message-text">' + escapeHtml(text) + '</div>';
     pk.refs.messages!.appendChild(el);
     pk.refs.messages!.scrollTop = pk.refs.messages!.scrollHeight;
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   * { box-sizing: border-box; }
 
   #app {
     max-width: 520px;
     margin: 2rem auto;
-    padding: 0 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    padding: 1.5rem 1rem;
+    border-radius: var(--g-radius-xl, 30px);
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  h1 {
-    color: #1f2937;
+  .page-title {
+    font-family: var(--g-font-family-heading);
+    font-size: 2rem;
+    color: var(--g-colour-grey-900, #2B333B);
+    letter-spacing: -0.01em;
     margin-bottom: 1rem;
   }
 
-  /* Login */
-  .login-area p {
-    color: #6b7280;
+  .login-prompt {
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 1rem;
   }
 
   .login-row {
     display: flex;
     gap: 0.5rem;
+    margin-top: 30px;
   }
 
-  .login-row input {
+  .login-row input,
+  .send-row input {
     flex: 1;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--g-colour-grey-200, #CAD1D8);
+    border-radius: var(--g-radius-max, 9999px);
     font-size: 0.95rem;
+    font-family: var(--g-font-family, sans-serif);
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  .login-row button,
-  .send-row button {
-    padding: 0.5rem 1.25rem;
-    background: #2563eb;
-    color: #fff;
-    border: none;
-    border-radius: 0.375rem;
-    font-weight: 600;
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    margin-bottom: var(--button-shadow-depth);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
+    text-decoration: none;
     cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
+  }
+  .button:hover {
+    transform: translateY(calc(var(--button-shadow-depth) / 2));
+    box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
   }
 
-  .login-row button:hover,
-  .send-row button:hover {
-    background: #1d4ed8;
-  }
-
-  /* Chat area */
   .chat-area {
     flex-direction: column;
     gap: 0.75rem;
@@ -221,89 +252,90 @@ function appendMessage(username: string, text: string, time: string, own: boolea
 
   .badge {
     padding: 0.2rem 0.6rem;
-    border-radius: 9999px;
+    border-radius: var(--g-radius-max, 9999px);
     font-size: 0.75rem;
     font-weight: 600;
-    background: #e5e7eb;
-    color: #374151;
+    background: var(--g-colour-grey-100, #E8EBEE);
+    color: var(--g-colour-grey-700, #485461);
+    border: var(--g-colour-grey-400);
   }
 
-  .badge.connecting { background: #fef3c7; color: #92400e; }
-  .badge.connected  { background: #d1fae5; color: #065f46; }
+  .badge.connecting {
+    background: var(--g-colour-secondary-50, #ECFAFA);
+    color: var(--g-colour-secondary-800, #2E8B83);
+    border: 1px solid var(--g-colour-secondary-400);
+  }
+  .badge.connected  {
+    background: var(--g-colour-secondary-100, #DBF8F6);
+    color: var(--g-colour-secondary-900, #236962);
+    border: 1px solid var(--g-colour-secondary-500);
+  }
 
   .user-label {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-left: auto;
   }
 
-  /* Messages */
   .messages {
     height: 360px;
     overflow-y: auto;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    border-radius: var(--g-radius-lg, 20px);
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    background: #fafafa;
+    background: white;
   }
 
-  .msg {
+  .message {
     max-width: 80%;
     padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
+    border-radius: var(--g-radius-md, 15px);
     background: #fff;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
     align-self: flex-start;
   }
 
-  .msg.own {
+  .message.own {
     align-self: flex-end;
-    background: #eff6ff;
-    border-color: #bfdbfe;
+    background: var(--g-colour-primary-50, #F1EDFD);
+    border-color: var(--g-colour-primary-200, #D1C4F9);
   }
 
-  .msg-header {
+  .message-header {
     display: flex;
     justify-content: space-between;
     gap: 0.75rem;
     margin-bottom: 0.2rem;
   }
 
-  .msg-user {
+  :deep(.message-user) {
     font-weight: 600;
-    font-size: 0.8rem;
-    color: #2563eb;
+    font-size: 0.875rem;
+    color: var(--g-colour-primary-500, #5A39C7);
   }
 
-  .msg-time {
-    font-size: 0.75rem;
-    color: #9ca3af;
+  :deep(.message-time) {
+    display: inline-block;
+    margin-left: 10px;
+    font-size: .75rem;
+    color: var(--g-colour-grey-400, #92A1AF);
   }
 
-  .msg-text {
+  .message-text {
     font-size: 0.9rem;
-    color: #1f2937;
+    color: var(--g-colour-grey-800, #364049);
     word-break: break-word;
   }
 
-  /* Send row */
   .send-row {
     display: flex;
     gap: 0.5rem;
   }
 
-  .send-row input {
-    flex: 1;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.95rem;
-  }
-
-  .send-row button:disabled {
+  .button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }

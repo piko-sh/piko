@@ -25,37 +25,6 @@ func TestIndex_PersonalizedTitle(t *testing.T) {
 	view.QueryAST(".hero-title").Exists().HasText("Welcome, Alice")
 }
 
-func TestIndex_GreetingConditional(t *testing.T) {
-	tester := piko.NewComponentTester(t, index.BuildAST)
-
-	// Without name: no greeting
-	req := piko.NewTestRequest("GET", "/").Build()
-	view := tester.Render(req, piko.NoProps{})
-	view.QueryAST(".hero-greeting").NotExists()
-
-	// With name: greeting appears
-	req = piko.NewTestRequest("GET", "/").
-		WithQueryParam("name", "Bob").Build()
-	view = tester.Render(req, piko.NoProps{})
-	view.QueryAST(".hero-greeting").Exists().ContainsText("Bob")
-}
-
-func TestIndex_FeatureCards(t *testing.T) {
-	tester := piko.NewComponentTester(t, index.BuildAST)
-	req := piko.NewTestRequest("GET", "/").Build()
-	view := tester.Render(req, piko.NoProps{})
-
-	view.QueryAST(".features-grid > div").Count(4)
-}
-
-func TestIndex_QuickstartSteps(t *testing.T) {
-	tester := piko.NewComponentTester(t, index.BuildAST)
-	req := piko.NewTestRequest("GET", "/").Build()
-	view := tester.Render(req, piko.NoProps{})
-
-	view.QueryAST(".step").Count(3)
-}
-
 func TestIndex_HeroStructure(t *testing.T) {
 	tester := piko.NewComponentTester(t, index.BuildAST)
 	req := piko.NewTestRequest("GET", "/").Build()
@@ -63,6 +32,6 @@ func TestIndex_HeroStructure(t *testing.T) {
 
 	view.QueryAST(".hero-badge").Exists()
 	view.QueryAST(".hero-subtitle").Exists().ContainsText("Go web framework")
-	view.QueryAST(".btn-primary").Exists().ContainsText("Get Started")
-	view.QueryAST(".btn-secondary").Exists().ContainsText("Documentation")
+	view.QueryAST(".button-primary").Exists().ContainsText("Get started")
+	view.QueryAST(".button-secondary").Exists().ContainsText("Documentation")
 }

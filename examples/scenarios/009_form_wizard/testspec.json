@@ -21,7 +21,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-signup-wizard >>> #next-btn"
+      "selector": "pp-signup-wizard >>> #next-button"
     },
     {
       "action": "wait",
@@ -44,7 +44,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-signup-wizard >>> #next-btn"
+      "selector": "pp-signup-wizard >>> #next-button"
     },
     {
       "action": "wait",
@@ -57,7 +57,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-signup-wizard >>> #next-btn"
+      "selector": "pp-signup-wizard >>> #next-button"
     },
     {
       "action": "wait",
@@ -80,7 +80,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-signup-wizard >>> #submit-btn"
+      "selector": "pp-signup-wizard >>> #submit-button"
     },
     {
       "action": "wait",

@@ -4,7 +4,7 @@
      See https://piko.sh/docs/guide/template-syntax and https://piko.sh/docs/guide/partials -->
 <template>
   <div id="app">
-    <h1>Product Catalogue</h1>
+    <h1>Product catalogue</h1>
     <p id="product-count">Showing {{ len(state.Products) }} products</p>
 
     <div class="product-grid">
@@ -47,76 +47,82 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     return Response{
         Products: []Product{
             {
-                Name:        "Wireless Headphones",
+                Name:        "Wireless headphones",
                 Description: "Premium noise-cancelling headphones with 30-hour battery life.",
                 Price:       "$129.99",
                 Category:    "Electronics",
                 InStock:     true,
-                ImageURL:    "https://placehold.co/300x200?text=Headphones",
+                ImageURL:    "https://placehold.co/300x200/F6F7F8/E8EBEE?font=poppins&text=Headphones",
             },
             {
-                Name:        "Go Programming Language",
+                Name:        "Go programming language",
                 Description: "The definitive guide to Go by Alan Donovan and Brian Kernighan.",
                 Price:       "$34.99",
                 Category:    "Books",
                 InStock:     true,
-                ImageURL:    "https://placehold.co/300x200?text=Go+Book",
+                ImageURL:    "https://placehold.co/300x200/F6F7F8/E8EBEE?font=poppins&text=Go+Book",
             },
             {
-                Name:        "Cotton T-Shirt",
+                Name:        "Cotton t-shirt",
                 Description: "Comfortable 100% organic cotton t-shirt in navy blue.",
                 Price:       "$24.99",
                 Category:    "Clothing",
                 InStock:     false,
-                ImageURL:    "https://placehold.co/300x200?text=T-Shirt",
+                ImageURL:    "https://placehold.co/300x200/F6F7F8/E8EBEE?font=poppins&text=T-Shirt",
             },
             {
-                Name:        "Mechanical Keyboard",
+                Name:        "Mechanical keyboard",
                 Description: "Compact 75% layout with hot-swappable switches and RGB.",
                 Price:       "$89.99",
                 Category:    "Electronics",
                 InStock:     true,
-                ImageURL:    "https://placehold.co/300x200?text=Keyboard",
+                ImageURL:    "https://placehold.co/300x200/F6F7F8/E8EBEE?font=poppins&text=Keyboard",
             },
             {
-                Name:        "Wool Jumper",
+                Name:        "Wool jumper",
                 Description: "Merino wool jumper, perfect for autumn and winter layering.",
                 Price:       "$59.99",
                 Category:    "Clothing",
                 InStock:     true,
-                ImageURL:    "https://placehold.co/300x200?text=Jumper",
+                ImageURL:    "https://placehold.co/300x200/F6F7F8/E8EBEE?font=poppins&text=Jumper",
             },
             {
-                Name:        "Design Patterns",
+                Name:        "Design patterns",
                 Description: "Elements of Reusable Object-Oriented Software by the Gang of Four.",
                 Price:       "$44.99",
                 Category:    "Books",
                 InStock:     false,
-                ImageURL:    "https://placehold.co/300x200?text=Design+Patterns",
+                ImageURL:    "https://placehold.co/300x200/F6F7F8/E8EBEE?font=poppins&text=Design+Patterns",
             },
         },
     }, piko.Metadata{
-        Title:       "Product Catalogue - Piko Example",
+        Title:       "Product catalogue | Piko example",
         Description: "A product catalogue demonstrating p-for, p-if, partials, and dynamic attributes.",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 960px;
     margin: 2rem auto;
     padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--g-font-family, sans-serif);
+    color: var(--g-colour-grey-800, #364049);
   }
 
   h1 {
-    color: #1f2937;
-    margin-bottom: 0.25rem;
+    font-family: var(--g-font-family-heading);
+    font-size: 2rem;
+    margin-bottom: .75em;
+    color: var(--g-colour-grey-900, #2B333B);
+    letter-spacing: -0.01em;
   }
 
   #product-count {
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 1.5rem;
   }
 

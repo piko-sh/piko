@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Signup Wizard</h1>
+    <h1>Signup wizard</h1>
     <p>A multi-step form with client-side validation, built as a PKC component.</p>
     <pp-signup-wizard></pp-signup-wizard>
   </div>
@@ -16,27 +16,36 @@ import "piko.sh/piko"
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Signup Wizard - Piko Example",
+        Title: "Signup wizard | Piko example",
     }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
     padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    border-radius: var(--g-radius-xl, 30px);
+    font-family: var(--g-font-family, sans-serif);
     text-align: center;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 
   h1 {
-    color: #1f2937;
+    color: var(--g-colour-grey-900, #2B333B);
+    font-family: var(--g-font-family-heading);
+    font-size: 2rem;
     margin-bottom: 0.5rem;
   }
 
   p {
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 2rem;
   }
 </style>

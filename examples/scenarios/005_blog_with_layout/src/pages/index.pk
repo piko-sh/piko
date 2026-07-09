@@ -12,13 +12,13 @@
       <section class="hero">
         <piko:img
           src="@/lib/images/hero-placeholder.png"
-          alt="Piko Blog hero banner"
+          alt="Piko blog hero banner"
           class="hero-image"
         ></piko:img>
       </section>
 
       <section class="featured" id="featured-posts">
-        <h2>Featured Posts</h2>
+        <h2>Featured posts</h2>
         <div class="post-cards">
           <div class="post-card" p-for="(i, post) in state.Posts" p-key="post.Slug">
             <div class="post-card-icon">
@@ -27,7 +27,7 @@
             <h3 p-text="post.Title"></h3>
             <p class="post-excerpt" p-text="post.Excerpt"></p>
 
-            <piko:a :href="'/blog'" class="read-more">
+            <piko:a :href="'/blog'" class="button button-xs read-more">
               Read more <piko:svg src="@/lib/icons/arrow-right.svg" class="icon-inline"></piko:svg>
             </piko:a>
           </div>
@@ -35,16 +35,12 @@
       </section>
 
       <div p-slot="sidebar" class="sidebar-content">
-        <div class="quick-links">
-          <h3>Quick Links</h3>
-          <ul>
-            <li><piko:a href="/blog">Latest post</piko:a></li>
-            <li><piko:a href="/about">About us</piko:a></li>
-            <li><piko:a href="/contact">Get in touch</piko:a></li>
-          </ul>
+        <div class="sidebar-card">
+          <h3>Get involved</h3>
+          <p>Piko is open source. Contributions, feedback, and bug reports are always welcome.</p>
+          <piko:a href="/contact" class="button">Contact us</piko:a>
         </div>
       </div>
-
     </piko:partial>
   </div>
 </template>
@@ -71,60 +67,63 @@ type Response struct {
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
   return Response{
-    Title:       "Welcome to the Piko Blog",
+    Title:       "Welcome to the Piko blog",
     Description: "Tutorials, guides, and insights about building modern web applications with the Piko framework.",
     Posts: []Post{
       {
-        Title:   "Getting Started with Piko",
+        Title:   "Getting started with Piko",
         Slug:    "getting-started",
         Excerpt: "A comprehensive introduction to the Piko web framework, covering layout partials, server-side rendering, and component composition.",
       },
       {
-        Title:   "Understanding Layout Partials",
+        Title:   "Understanding layout partials",
         Slug:    "layout-partials",
         Excerpt: "Learn how to build reusable page layouts with slots, props, and nested partial composition.",
       },
     },
   }, piko.Metadata{
-    Title:       "Home - Piko Blog",
+    Title:       "Home | Piko blog",
     Description: "Tutorials and guides about the Piko web framework.",
   }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     margin: 0;
     padding: 0;
   }
 
   .hero {
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
   }
 
   .hero-image {
     width: 100%;
     height: auto;
-    border-radius: 0.5rem;
+    border-radius: var(--g-radius-lg, 20px);
     display: block;
   }
 
   .featured h2 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 600;
-    margin-bottom: 1rem;
-    color: #111827;
+    margin-bottom: 1.25rem;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
   .post-cards {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.5rem;
   }
 
   .post-card {
     padding: 1.5rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    border-radius: var(--g-radius-lg, 20px);
     background: #ffffff;
   }
 
@@ -135,40 +134,70 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
   .post-card-icon .icon {
     width: 1.5rem;
     height: 1.5rem;
-    color: #2563eb;
+    color: var(--g-colour-primary-500, #6F47EB);
   }
 
   .post-card h3 {
     font-size: 1.125rem;
     font-weight: 600;
     margin-bottom: 0.5rem;
-    color: #1f2937;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
   .post-excerpt {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     line-height: 1.6;
     margin-bottom: 1rem;
-  }
-
-  .read-more {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    color: #2563eb;
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-
-  .read-more:hover {
-    text-decoration: underline;
   }
 
   .icon-inline {
     width: 1rem;
     height: 1rem;
+  }
+
+  /* Pushable pill button (matches piko-site); .button-xs is the small variant. */
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    margin-bottom: var(--button-shadow-depth);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
+    text-decoration: none;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
+  }
+
+  .button:hover {
+    transform: translateY(calc(var(--button-shadow-depth) / 2));
+    box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
+  }
+
+  .button-xs {
+    --button-shadow-depth: 3px;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.8125rem;
+    gap: 0.3rem;
   }
 
   .sidebar-content {
@@ -177,30 +206,24 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
     gap: 2rem;
   }
 
-  .quick-links h3 {
+  .sidebar-card {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: var(--g-radius-xl, 30px);
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
+  }
+
+  .sidebar-card h3 {
     font-size: 1rem;
     font-weight: 600;
-    margin-bottom: 0.75rem;
-    color: #111827;
-  }
-
-  .quick-links ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .quick-links li {
     margin-bottom: 0.5rem;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
-  .quick-links a {
-    color: #2563eb;
-    text-decoration: none;
+  .sidebar-card p {
     font-size: 0.875rem;
-  }
-
-  .quick-links a:hover {
-    text-decoration: underline;
+    color: var(--g-colour-grey-500, #788A9B);
+    line-height: 1.5;
+    margin-bottom: 1rem;
   }
 </style>

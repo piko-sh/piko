@@ -4,12 +4,12 @@
      See https://piko.sh/docs/guide/server-actions -->
 <template>
   <div id="app">
-    <h1>Progress Tracker</h1>
-    <p>Stream real-time progress updates from a server action via SSE.</p>
+    <h1 class="heading">Progress tracker</h1>
+    <p class="description">Stream real-time progress updates from a server action via SSE.</p>
 
     <div class="controls">
-      <input p-ref="task_input" type="text" placeholder="Task name" value="deploy-v2" />
-      <button id="start-btn" p-on:click="startTask()">Start Task</button>
+      <input p-ref="task_input" class="task-input" type="text" placeholder="Task name" value="deploy-v2" />
+      <button id="start-btn" class="button" p-on:click="startTask()">Start task</button>
     </div>
 
     <div class="progress-container">
@@ -32,7 +32,7 @@ import "piko.sh/piko"
 
 func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Metadata, error) {
     return piko.NoResponse{}, piko.Metadata{
-        Title: "Progress Tracker - Piko Example",
+        Title: "Progress tracker | Piko example",
     }, nil
 }
 </script>
@@ -78,20 +78,29 @@ export async function startTask(): Promise<void> {
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
-    padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    padding: 2rem 1.5rem;
+    border-radius: var(--g-radius-xl, 30px);
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  h1 {
-    color: #1f2937;
+  .heading {
+    color: var(--g-colour-grey-900, #2B333B);
+    font-family: var(--g-font-family-heading, sans-serif);
+    font-size: 2rem;
     margin-bottom: 0.25rem;
   }
 
-  p {
-    color: #6b7280;
+  .description {
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 1.5rem;
   }
 
@@ -101,72 +110,96 @@ export async function startTask(): Promise<void> {
     margin-bottom: 1.5rem;
   }
 
-  .controls input {
+  .task-input {
     flex: 1;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--g-colour-grey-200, #CAD1D8);
+    border-radius: var(--g-radius-max, 9999px);
+    font-family: var(--g-font-family, sans-serif);
     font-size: 0.95rem;
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  .controls button {
-    padding: 0.5rem 1.25rem;
-    background-color: #2563eb;
-    color: #ffffff;
-    border: none;
-    border-radius: 0.375rem;
-    font-weight: 600;
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    margin-bottom: var(--button-shadow-depth);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
+    text-decoration: none;
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
   }
 
-  .controls button:hover {
-    background-color: #1d4ed8;
+  .button:hover {
+    transform: translateY(calc(var(--button-shadow-depth) / 2));
+    box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
   }
 
   .progress-container {
     height: 1.5rem;
-    background: #e5e7eb;
-    border-radius: 0.375rem;
+    background: var(--g-colour-grey-100, #E8EBEE);
+    border-radius: var(--g-radius-max, 9999px);
     overflow: hidden;
     margin-bottom: 0.5rem;
   }
 
   .progress-bar {
     height: 100%;
-    background: #2563eb;
+    background: linear-gradient(90deg, var(--g-colour-primary-500, #6F47EB), var(--g-colour-secondary-600, #6BD5CC));
     transition: width 0.3s ease;
-    border-radius: 0.375rem;
+    border-radius: var(--g-radius-max, 9999px);
   }
 
   .progress-text {
     text-align: right;
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     margin-bottom: 1rem;
   }
 
   .status {
     font-weight: 600;
     margin-bottom: 1rem;
-    color: #374151;
+    color: var(--g-colour-grey-700, #485461);
   }
 
   .event-log {
-    border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
+    border: 1px solid var(--g-colour-grey-200, #E8EBEE);
+    border-radius: var(--g-radius-lg, 20px);
     padding: 0.75rem;
     max-height: 200px;
     overflow-y: auto;
     margin-bottom: 1rem;
-    background: #f9fafb;
+    background: var(--g-colour-grey-25, #fafbfc);
   }
 
   .log-entry {
+    font-family: var(--g-font-family-mono, monospace);
     font-size: 0.85rem;
-    color: #4b5563;
+    color: var(--g-colour-grey-600, #5B6B7B);
     padding: 0.25rem 0;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--g-colour-grey-100, #E8EBEE);
   }
 
   .log-entry:last-child {
@@ -175,12 +208,12 @@ export async function startTask(): Promise<void> {
 
   .result {
     padding: 0.75rem;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    border-radius: 0.375rem;
-    font-family: monospace;
+    background: var(--g-colour-secondary-100);
+    border: 1px solid var(--g-colour-secondary-600);
+    border-radius: var(--g-radius-lg, 20px);
+    font-family: var(--g-font-family-mono, monospace);
     font-size: 0.875rem;
-    color: #065f46;
+    color: var(--g-colour-secondary-900);
     word-break: break-all;
   }
 </style>

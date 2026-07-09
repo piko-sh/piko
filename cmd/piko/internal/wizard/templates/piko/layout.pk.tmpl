@@ -2,12 +2,11 @@
   <header class="site-header">
     <div class="header-container">
       <a href="/" class="brand">
-        <piko:svg src="@/lib/icons/piko-mark.svg" class="brand-logo" aria-hidden="true"></piko:svg>
-        <span class="brand-name">Piko</span>
+        <piko:svg src="@/lib/icons/piko-logo-inline.svg" class="brand-logo" aria-hidden="true"></piko:svg>
       </a>
       <nav class="main-nav">
-        <a href="https://piko.sh/docs" target="_blank" rel="noopener">Documents</a>
-        <a href="https://github.com/piko-sh/piko" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://piko.sh/docs" target="_blank" rel="noopener" class="nav-item">Documents</a>
+        <a href="https://github.com/piko-sh/piko" target="_blank" rel="noopener" class="nav-item">GitHub</a>
       </nav>
     </div>
   </header>
@@ -18,7 +17,7 @@
 
   <footer class="site-footer">
     <div class="footer-container">
-      <p>Built with <a href="https://piko.sh">Piko</a> &mdash; {{ "{{ state.CurrentYear }}" }}</p>
+      <p>Built with <a href="https://piko.sh">Piko</a> | {{ "{{ state.CurrentYear }}" }}</p>
     </div>
   </footer>
 </template>
@@ -27,8 +26,8 @@
 package main
 
 import (
-    "piko.sh/piko"
     "time"
+    "piko.sh/piko"
 )
 
 // Props received from the page that uses this layout.
@@ -60,23 +59,24 @@ func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
 </script>
 
 <style>
+  @import "{{ .ModuleName }}/styles/theme.css";
+
   :host {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     font-family: var(--g-font-family, sans-serif);
     background:
-      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.06), transparent),
-      var(--g-colour-grey-50, #f9fafb);
-    color: var(--g-colour-grey-800, #1f2937);
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  /* Header */
   .site-header {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--g-colour-grey-100, #e5e7eb);
+    border-bottom: 1px solid var(--g-colour-grey-100, #E8EBEE);
     padding: 0 1.5rem;
     position: sticky;
     top: 0;
@@ -89,43 +89,42 @@ func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
     justify-content: space-between;
     max-width: 960px;
     margin: 0 auto;
-    height: 3.5rem;
+    padding: 10px 0;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    text-decoration: none;
-    color: var(--g-colour-grey-900, #111827);
+    height: 40px;
   }
 
   .brand-logo {
-    width: 1.5rem;
-    height: 1.5rem;
-    color: var(--g-colour-primary, #6F47EB);
-  }
-
-  .brand-name {
-    font-size: 1.125rem;
-    font-weight: 600;
+    height: 100%;
+    width: auto;
+    display: block;
   }
 
   .main-nav {
     display: flex;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 0.25rem;
   }
 
-  .main-nav a {
-    color: var(--g-colour-grey-500, #6b7280);
+  .nav-item {
+    color: var(--g-colour-grey-700, #485461);
     text-decoration: none;
-    font-size: 0.875rem;
+    font-size: 1.125rem;
     font-weight: 500;
-    transition: color 0.15s ease;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid transparent;
+    border-radius: var(--g-radius-max, 9999px);
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
   }
 
-  .main-nav a:hover {
-    color: var(--g-colour-grey-900, #111827);
+  .nav-item:hover {
+    background: var(--g-colour-primary-25, #F8F6FE);
+    border-color: var(--g-colour-primary-300, #B09AF4);
+    color: var(--g-colour-primary-600, #5A39C7);
   }
 
   /* Main Content */
@@ -141,7 +140,7 @@ func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
   .site-footer {
     padding: 2rem 1.5rem;
     font-size: 0.8125rem;
-    color: var(--g-colour-grey-400, #9ca3af);
+    color: var(--g-colour-grey-400, #92A1AF);
     text-align: center;
   }
 
@@ -155,12 +154,12 @@ func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
   }
 
   .footer-container a {
-    color: var(--g-colour-grey-500, #6b7280);
+    color: var(--g-colour-grey-500, #788A9B);
     text-decoration: none;
     transition: color 0.15s ease;
   }
 
   .footer-container a:hover {
-    color: var(--g-colour-primary, #6F47EB);
+    color: var(--g-colour-primary-600, #5A39C7);
   }
 </style>

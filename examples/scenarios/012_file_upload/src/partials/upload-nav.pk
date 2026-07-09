@@ -1,0 +1,55 @@
+<template>
+  <nav class="nav">
+    <a href="/" class="nav-item" p-class="state.Active == 'direct' ? 'active' : ''">Direct upload</a>
+    <a href="/presigned" class="nav-item" p-class="state.Active == 'presigned' ? 'active' : ''">Presigned URL upload</a>
+  </nav>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+    Active string `prop:"active" validate:"required"`
+}
+
+type Response struct {
+    Active string
+}
+
+func Render(r *piko.RequestData, props Props) (Response, piko.Metadata, error) {
+    return Response{Active: props.Active}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  @import "testmodule/styles/theme.css";
+
+  .nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid var(--g-colour-grey-200);
+    padding-bottom: 0.5rem;
+    .nav-item {
+      text-decoration: none;
+      color: var(--g-colour-grey-500, #788A9B);
+      font-weight: 500;
+      padding: 0.5em 1em;
+      border: 1px solid transparent;
+      border-radius: var(--g-radius-max);
+      transition: color .2s, border-color .2s, background-color .2s;
+      &:hover {
+        color: var(--g-colour-primary-500);
+        background-color: var(--g-colour-primary-25);
+        border-color: var(--g-colour-primary-200);
+      }
+      &.active {
+        color: var(--g-colour-primary-700);
+        background-color: var(--g-colour-primary-50);
+        border-color: var(--g-colour-primary-300);
+      }
+    }
+  }
+</style>

@@ -1,5 +1,5 @@
 <!--
-  021: Live Playground
+  021: Live playground
 
   Minimal shell page that mounts the pp-playground PKC component.
   All client-side logic (Monaco Editor, WASM integration, preview) lives
@@ -11,11 +11,16 @@
 </template>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
     overflow: hidden;
+    font-family: var(--g-font-family, sans-serif);
+    background: var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 </style>
 
@@ -28,7 +33,7 @@ type Response struct{}
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
 	return Response{}, piko.Metadata{
-		Title:       "Piko Live Playground",
+		Title:       "Piko live playground",
 		Description: "A browser-based live coding IDE for Piko templates, powered by WebAssembly.",
 	}, nil
 }

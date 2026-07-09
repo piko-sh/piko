@@ -29,17 +29,17 @@
 
       <div p-slot="sidebar" class="sidebar-content">
         <div class="author-card">
-          <h3>About the Author</h3>
+          <h3>About the author</h3>
           <p class="author-name" p-text="state.Author"></p>
           <p class="author-bio">Software engineer and technical writer. Passionate about developer experience and modern web frameworks.</p>
         </div>
 
         <div class="related-links">
-          <h3>Related Posts</h3>
+          <h3>Related posts</h3>
           <ul>
-            <li><piko:a href="/blog">Understanding Piko Partials</piko:a></li>
-            <li><piko:a href="/blog">CSS Scoping in Piko</piko:a></li>
-            <li><piko:a href="/blog">Server Actions Deep Dive</piko:a></li>
+            <li><piko:a href="/blog">Understanding Piko partials</piko:a></li>
+            <li><piko:a href="/blog">CSS scoping in Piko</piko:a></li>
+            <li><piko:a href="/blog">Server actions deep dive</piko:a></li>
           </ul>
         </div>
       </div>
@@ -66,7 +66,7 @@ type Response struct {
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
   return Response{
-    Title:  "Getting Started with Piko",
+    Title:  "Getting started with Piko",
     Author: "Alice Williams",
     Date:   "15 January 2026",
     Content: `<p>Piko is a full-stack web framework for Go that brings server-side
@@ -79,7 +79,7 @@ approach and a client-side single-page application. Piko takes a different
 path: pages are server-rendered by default, with client-side components
 available when you need interactivity.</p>
 
-<h2>Layout Partials</h2>
+<h2>Layout partials</h2>
 <p>One of Piko's most useful patterns is the layout partial. Instead of
 duplicating navigation, footers, and structural markup across every page,
 you define a layout once as a partial and wrap your page content inside it.
@@ -87,13 +87,15 @@ The layout uses slots to project page-specific content into the right
 places.</p>`,
     Tags: []string{"piko", "go", "web-framework", "tutorial"},
   }, piko.Metadata{
-    Title:       "Getting Started with Piko - Blog",
+    Title:       "Getting started with Piko | blog",
     Description: "An introduction to the Piko web framework.",
   }, nil
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     margin: 0;
     padding: 0;
@@ -109,69 +111,69 @@ places.</p>`,
     gap: 0.5rem;
     margin-bottom: 1.5rem;
     font-size: 0.9375rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
   }
 
   .meta-icon {
     width: 1.125rem;
     height: 1.125rem;
-    color: #9ca3af;
+    color: var(--g-colour-grey-400, #92A1AF);
   }
 
   .author {
     font-weight: 600;
-    color: #374151;
+    color: var(--g-colour-grey-700, #485461);
   }
 
   .meta-separator {
-    color: #d1d5db;
+    color: var(--g-colour-grey-300, #ADB8C2);
   }
 
   .date {
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
   }
 
   .blog-hero {
     width: 100%;
     height: auto;
-    border-radius: 0.5rem;
+    border-radius: var(--g-radius-xl, 30px);
+    border: 1px solid var(--g-colour-grey-200);
     margin-bottom: 2rem;
     display: block;
   }
 
-  .blog-content {
+  :deep(.blog-content) {
     margin-bottom: 2rem;
   }
 
-  .blog-content h2 {
+  :deep(.blog-content h2) {
     font-size: 1.5rem;
     font-weight: 600;
     margin-top: 2rem;
     margin-bottom: 0.75rem;
-    color: #111827;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
-  .blog-content p {
+  :deep(.blog-content p) {
     margin-bottom: 1rem;
-    color: #374151;
+    color: var(--g-colour-grey-700, #485461);
   }
 
   .blog-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
   }
 
   .tag {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
-    background-color: #eff6ff;
-    color: #2563eb;
-    border-radius: 9999px;
+    padding: 0.125rem 0.75rem;
+    background-color: var(--g-colour-secondary-100, #ECFAFA);
+    color: var(--g-colour-secondary-800, #2E8B83);
+    border-radius: var(--g-radius-max, 9999px);
     font-size: 0.8125rem;
     font-weight: 500;
+    border: 1px solid var(--g-colour-secondary-600);
   }
 
   .sidebar-content {
@@ -181,28 +183,28 @@ places.</p>`,
   }
 
   .author-card {
-    background-color: #f9fafb;
+    background-color: white;
     padding: 1.5rem;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
+    border-radius: var(--g-radius-xl, 30px);
+    border: 1px solid var(--g-colour-grey-100, #E8EBEE);
   }
 
   .author-card h3 {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: #111827;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
   .author-name {
     font-weight: 600;
-    color: #2563eb;
+    color: var(--g-colour-primary-600, #5A39C7);
     margin-bottom: 0.5rem;
   }
 
   .author-bio {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
     line-height: 1.5;
   }
 
@@ -210,7 +212,7 @@ places.</p>`,
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: #111827;
+    color: var(--g-colour-grey-900, #2B333B);
   }
 
   .related-links ul {
@@ -220,16 +222,36 @@ places.</p>`,
   }
 
   .related-links li {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
+  /* Pill-style links (no underline), matching the piko-site link treatment. */
   .related-links a {
-    color: #2563eb;
+    display: inline-block;
+    color: var(--g-colour-primary-600, #5A39C7);
     text-decoration: none;
     font-size: 0.875rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: var(--g-radius-max, 9999px);
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   }
 
   .related-links a:hover {
+    color: var(--g-colour-primary-700, #482CA6);
+    background-color: var(--g-colour-primary-25, #F8F6FE);
+    border-color: var(--g-colour-primary-200, #D1C4F9);
+  }
+
+  /* Exception: prose links within the article body keep the classic
+     underlined-link treatment, since pills don't belong mid-paragraph. */
+  :deep(.blog-content a) {
+    color: var(--g-colour-primary-600, #5A39C7);
     text-decoration: underline;
+    transition: color 0.2s ease;
+  }
+
+  :deep(.blog-content a:hover) {
+    color: var(--g-colour-primary-700, #482CA6);
   }
 </style>

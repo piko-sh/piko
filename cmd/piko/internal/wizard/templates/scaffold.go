@@ -110,6 +110,10 @@ func CreateProject(data ScaffoldData) error {
 		return err
 	}
 
+	if err := createStyles(factory, data); err != nil {
+		return err
+	}
+
 	if err := createTemplateFiles(factory, data); err != nil {
 		return err
 	}
@@ -253,6 +257,7 @@ func createDirs(factory safedisk.Factory, data ScaffoldData) error {
 		"partials",
 		"pkg",
 		"lib/icons",
+		"styles",
 		"dist",
 		"e2e",
 	}
@@ -368,14 +373,26 @@ func createConfigs(factory safedisk.Factory, data ScaffoldData) error {
 // Returns error when the files cannot be created.
 func createIcons(factory safedisk.Factory, data ScaffoldData) error {
 	files := map[string]string{
-		"lib/icons/piko-mark.svg":   "icons/piko-mark.svg",
-		"lib/icons/bolt.svg":        "icons/bolt.svg",
-		"lib/icons/shield.svg":      "icons/shield.svg",
-		"lib/icons/puzzle.svg":      "icons/puzzle.svg",
-		"lib/icons/zap.svg":         "icons/zap.svg",
-		"lib/icons/arrow-right.svg": "icons/arrow-right.svg",
+		"lib/icons/piko-logo-inline.svg": "icons/piko-logo-inline.svg",
+		"lib/icons/book-open.svg":        "icons/book-open.svg",
+		"lib/icons/bolt.svg":             "icons/bolt.svg",
 	}
 	return createStaticFiles(factory, data.DestinationPath, IconsFS, files)
+}
+
+// createStyles copies the shared stylesheet(s) into the project's styles directory.
+// The scaffolded pages and partials import styles/theme.css for the project's design
+// tokens (font families, brand colours, and corner radii).
+//
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
+// Takes data (ScaffoldData) which provides the destination path.
+//
+// Returns error when the files cannot be created.
+func createStyles(factory safedisk.Factory, data ScaffoldData) error {
+	files := map[string]string{
+		"styles/theme.css": "styles/theme.css",
+	}
+	return createStaticFiles(factory, data.DestinationPath, StylesFS, files)
 }
 
 // createTemplateFiles creates the project scaffold by rendering templates.
@@ -402,7 +419,7 @@ func createTemplateFiles(factory safedisk.Factory, data ScaffoldData) error {
 		{destPath: "pages/!404.pk", templateName: "piko/!404.pk.tmpl", fs: PikoTmplFS},
 		{destPath: "pages/index_test.go", templateName: "go/index_test.go.tmpl", fs: GoTmplFS},
 		{destPath: "partials/layout.pk", templateName: "piko/layout.pk.tmpl", fs: PikoTmplFS},
-		{destPath: "partials/feature-card.pk", templateName: "piko/feature-card.pk.tmpl", fs: PikoTmplFS},
+		{destPath: "partials/code-window.pk", templateName: "piko/code-window.pk.tmpl", fs: PikoTmplFS},
 		{destPath: "e2e/e2e_test.go", templateName: "e2e/e2e_test.go.tmpl", fs: E2ETmplFS},
 		{destPath: "e2e/homepage_test.go", templateName: "e2e/homepage_test.go.tmpl", fs: E2ETmplFS},
 	}

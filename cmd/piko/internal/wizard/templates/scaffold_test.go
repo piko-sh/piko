@@ -141,6 +141,7 @@ func TestCreateDirs(t *testing.T) {
 		"pages",
 		"partials",
 		"lib/icons",
+		"styles",
 		"dist",
 		"e2e",
 		"internal/interpreted",
@@ -187,13 +188,11 @@ func TestCreateProject_HappyPath(t *testing.T) {
 		"pages/index.pk",
 		"pages/index_test.go",
 		"partials/layout.pk",
-		"partials/feature-card.pk",
-		"lib/icons/piko-mark.svg",
+		"partials/code-window.pk",
+		"lib/icons/piko-logo-inline.svg",
+		"lib/icons/book-open.svg",
 		"lib/icons/bolt.svg",
-		"lib/icons/shield.svg",
-		"lib/icons/puzzle.svg",
-		"lib/icons/zap.svg",
-		"lib/icons/arrow-right.svg",
+		"styles/theme.css",
 	}
 
 	for _, f := range expectedFiles {

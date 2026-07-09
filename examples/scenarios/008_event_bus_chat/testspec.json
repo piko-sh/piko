@@ -10,7 +10,7 @@
     {
       "action": "checkText",
       "selector": "h1",
-      "expected": "Event Bus Chat"
+      "expected": "Event bus chat"
     },
     {
       "action": "waitForSelector",
@@ -41,7 +41,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-chat-input >>> #send-btn"
+      "selector": "pp-chat-input >>> #send-button"
     },
     {
       "action": "wait",
@@ -64,7 +64,7 @@
     },
     {
       "action": "click",
-      "selector": "pp-chat-input >>> #send-btn"
+      "selector": "pp-chat-input >>> #send-button"
     },
     {
       "action": "wait",

@@ -3,6 +3,13 @@
 <template p-collection="blog" p-provider="markdown">
   <piko:partial is="layout">
     <article class="post">
+      <nav class="post-nav-top">
+        <piko:a href="/" class="button">
+          <piko:svg src="@/lib/icons/arrow-left.svg" class="button-icon"></piko:svg>
+          Back to all posts
+        </piko:a>
+      </nav>
+
       <header class="post-header">
         <h1 class="post-title" p-text="state.Title"></h1>
         <time class="post-date" p-text="state.Date"></time>
@@ -13,7 +20,14 @@
       </div>
 
       <footer class="post-footer">
-        <piko:a href="/" class="back-link">&larr; Back to all posts</piko:a>
+        <piko:a :href="state.PrevURL" class="button" :aria-label="'Previous article: ' + state.PrevTitle">
+          <piko:svg src="@/lib/icons/arrow-left.svg" class="button-icon"></piko:svg>
+          Previous article
+        </piko:a>
+        <piko:a :href="state.NextURL" class="button" :aria-label="'Next article: ' + state.NextTitle">
+          Next article
+          <piko:svg src="@/lib/icons/arrow-right.svg" class="button-icon"></piko:svg>
+        </piko:a>
       </footer>
     </article>
   </piko:partial>
@@ -35,115 +49,204 @@ type Post struct {
 }
 
 type Response struct {
-    Title string
-    Date  string
+    Title     string
+    Date      string
+    PrevTitle string
+    PrevURL   string
+    NextTitle string
+    NextURL   string
 }
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     post := piko.GetData[Post](r)
 
-    return Response{
+    resp := Response{
         Title: post.Title,
         Date:  post.Date,
-    }, piko.Metadata{
-        Title:       post.Title + " - Piko Blog",
+    }
+
+    if items, err := piko.GetAllCollectionItems("blog"); err == nil && len(items) > 1 {
+        current := 0
+        for i, item := range items {
+            if stringField(item, "Title") == post.Title {
+                current = i
+                break
+            }
+        }
+        n := len(items)
+        prev := items[(current-1+n)%n]
+        next := items[(current+1)%n]
+        resp.PrevTitle = stringField(prev, "Title")
+        resp.PrevURL = stringField(prev, "URL")
+        resp.NextTitle = stringField(next, "Title")
+        resp.NextURL = stringField(next, "URL")
+    }
+
+    return resp, piko.Metadata{
+        Title:       post.Title + " | Piko blog",
         Description: post.Description,
     }, nil
+}
+
+func stringField(item map[string]any, key string) string {
+    if value, ok := item[key]; ok {
+        if str, ok := value.(string); ok {
+            return str
+        }
+    }
+    return ""
 }
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
+  .post-nav-top {
+    margin-bottom: 2rem;
+  }
+
   .post-header {
     margin-bottom: 2rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--g-colour-grey-100, #E8EBEE);
   }
 
   .post-title {
-    font-size: 2rem;
-    font-weight: 700;
+    font-family: var(--g-font-family-heading);
+    color: var(--g-colour-grey-900, #2B333B);
+    font-size: 2.25rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     margin: 0 0 0.5rem;
     line-height: 1.3;
   }
 
   .post-date {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--g-colour-grey-500, #788A9B);
   }
 
   .post-content {
     line-height: 1.8;
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  .post-content h2 {
+  :deep(.post-content h2) {
+    color: var(--g-colour-grey-900, #2B333B);
     font-size: 1.375rem;
-    font-weight: 600;
+    font-weight: 500;
     margin: 2rem 0 0.75rem;
   }
 
-  .post-content p {
+  :deep(.post-content p) {
     margin: 0 0 1.25rem;
-    color: #374151;
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  .post-content a {
-    color: #2563eb;
+  :deep(.post-content a) {
+    color: var(--g-colour-primary-600, #5A39C7);
     text-decoration: underline;
   }
 
-  .post-content code {
-    background: #f3f4f6;
+  :deep(.post-content code) {
+    font-family: var(--g-font-family-mono, monospace);
+    background: var(--g-colour-grey-50, #F6F7F8);
     padding: 0.125rem 0.375rem;
-    border-radius: 0.25rem;
+    border-radius: var(--g-radius-sm, 10px);
     font-size: 0.875em;
   }
 
-  .post-content pre {
-    background: #1e1e2e;
+  :deep(.post-content pre) {
+    background: var(--g-colour-grey-900, #2B333B);
     padding: 1rem 1.25rem;
-    border-radius: 0.5rem;
+    border-radius: var(--g-radius-lg, 20px);
     overflow-x: auto;
     margin: 1.5rem 0;
   }
 
-  .post-content pre code {
+  :deep(.post-content pre code) {
+    font-family: var(--g-font-family-mono, monospace);
     background: none;
     padding: 0;
-    color: #cdd6f4;
+    color: var(--g-colour-grey-100, #E8EBEE);
     font-size: 0.875rem;
   }
 
-  .post-content blockquote {
-    border-left: 3px solid #2563eb;
+  :deep(.post-content blockquote) {
+    border-left: 3px solid var(--g-colour-primary-500, #6F47EB);
     padding-left: 1rem;
     margin: 1.5rem 0;
-    color: #4b5563;
+    color: var(--g-colour-grey-600, #5B6B7B);
     font-style: italic;
   }
 
-  .post-content ul,
-  .post-content ol {
+  :deep(.post-content ul),
+  :deep(.post-content ol) {
     margin: 0 0 1.25rem;
     padding-left: 1.5rem;
   }
 
-  .post-content li {
+  :deep(.post-content li) {
     margin-bottom: 0.375rem;
   }
 
   .post-footer {
     margin-top: 3rem;
     padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--g-colour-grey-100, #E8EBEE);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    .button {
+        --colour-background: var(--g-colour-secondary-100);
+        --colour-background-hover: var(--g-colour-secondary-200);
+        --colour-text: var(--g-colour-secondary-700);
+        --colour-text-hover: var(--g-colour-secondary-800);
+        --colour-border: var(--g-colour-secondary-700);
+        --colour-border-hover: var(--g-colour-secondary-800);
+    }
   }
 
-  .back-link {
-    color: #2563eb;
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    margin-bottom: var(--button-shadow-depth);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
     text-decoration: none;
-    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
   }
 
-  .back-link:hover {
-    text-decoration: underline;
+  .button:hover {
+    transform: translateY(calc(var(--button-shadow-depth) / 2));
+    box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
+  }
+
+  .button-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
   }
 </style>

@@ -44,7 +44,7 @@
     },
     {
       "action": "checkText",
-      "selector": ".msg-text",
+      "selector": ".message-text",
       "expected": "Hello from the test!"
     }
   ]

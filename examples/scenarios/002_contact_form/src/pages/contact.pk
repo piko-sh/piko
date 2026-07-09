@@ -3,7 +3,7 @@
      See https://piko.sh/docs/guide/server-actions -->
 <template>
   <div id="app">
-    <h1>Contact Us</h1>
+    <h1>Contact us</h1>
 
     <form id="contact-form" p-on:submit.prevent="handleSubmit($event, $form)">
       <div>
@@ -21,11 +21,11 @@
         <textarea id="message" name="message" required></textarea>
       </div>
 
-      <button type="submit">Send Message</button>
+      <button type="submit" class="button">Send message</button>
     </form>
 
     <div class="result-container" p-ref="result_container" style="display: none;">
-      <h2>Submission Received</h2>
+      <h2>Submission received</h2>
       <div class="result-detail">
         <p>Name: <span p-ref="result_name"></span></p>
         <p>Email: <span p-ref="result_email"></span></p>
@@ -44,13 +44,13 @@ type Response struct{}
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     return Response{}, piko.Metadata{
-        Title: "Contact Form - Piko Example",
+        Title: "Contact form | Piko example",
     }, nil
 }
 </script>
 
 <script lang="ts">
-async function handleSubmit(event: SubmitEvent, form: FormDataHandle): Promise<void> {
+export async function handleSubmit(event: SubmitEvent, form: FormDataHandle): Promise<void> {
     try {
         // action.contact.Submit maps to the SubmitAction struct in actions/contact/
         const data = await action.contact.Submit(form).call();
@@ -66,16 +66,27 @@ async function handleSubmit(event: SubmitEvent, form: FormDataHandle): Promise<v
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 600px;
     margin: 2rem auto;
-    padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    padding: 2rem;
+    border-radius: var(--g-radius-xl, 30px);
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 
   h1 {
-    color: #2563eb;
-    margin-bottom: 1rem;
+    font-family: var(--g-font-family-heading);
+    font-size: 1.5rem;
+    text-align: center;
+    color: var(--g-colour-grey-900, #2B333B);
+    letter-spacing: -0.01em;
+    margin-bottom: 1.5rem;
   }
 
   form div {
@@ -84,17 +95,28 @@ async function handleSubmit(event: SubmitEvent, form: FormDataHandle): Promise<v
 
   label {
     display: block;
-    font-weight: 600;
+    font-size: .875rem;
+    font-weight: 500;
     margin-bottom: 0.25rem;
-    color: #374151;
+    color: var(--g-colour-grey-700, #485461);
   }
 
   input, textarea {
     width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--g-colour-grey-200, #CAD1D8);
+    border-radius: var(--g-radius-lg, 20px);
     font-size: 1rem;
+    font-family: var(--g-font-family, sans-serif);
+    color: var(--g-colour-grey-800, #364049);
+    background-color: #ffffff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--g-colour-primary-500, #6F47EB);
+    box-shadow: 0 0 0 3px var(--g-colour-primary-100, #E1D9FB);
   }
 
   textarea {
@@ -102,35 +124,59 @@ async function handleSubmit(event: SubmitEvent, form: FormDataHandle): Promise<v
     resize: vertical;
   }
 
-  button {
-    background-color: #2563eb;
-    color: white;
-    padding: 0.5rem 1.5rem;
-    border: none;
-    border-radius: 0.375rem;
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto var(--button-shadow-depth);
+    width: 200px;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    background-color: var(--colour-background);
+    color: var(--colour-text);
     font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
+    text-decoration: none;
     cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
   }
 
-  button:hover {
-    background-color: #1d4ed8;
+  .button:hover {
+    transform: translateY(calc(var(--button-shadow-depth) / 2));
+    box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
   }
 
   .result-container {
     margin-top: 2rem;
     padding: 1rem;
-    background-color: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 0.375rem;
+    background-color: var(--g-colour-secondary-50, #F7FDFD);
+    border: 1px solid var(--g-colour-secondary-600, #DBF8F6);
+    border-radius: var(--g-radius-lg, 15px);
   }
 
   .result-container h2 {
-    color: #166534;
-    margin-bottom: 0.5rem;
+    color: var(--g-colour-secondary-800, #2E8B83);
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: .75rem;
   }
 
   .result-detail p {
     margin: 0.25rem 0;
-    color: #374151;
+    color: var(--g-colour-secondary-700);
   }
 </style>

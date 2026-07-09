@@ -4,7 +4,7 @@
   "expectedStatus": 200,
   "browserSteps": [
     { "action": "waitForSelector", "selector": "#app" },
-    { "action": "checkText", "selector": "h1", "expected": "Product Catalogue" },
+    { "action": "checkText", "selector": "h1", "expected": "Product catalogue" },
     { "action": "checkText", "selector": "#product-count", "expected": "Showing 6 products" },
     { "action": "waitForSelector", "selector": ".product-card" }
   ]

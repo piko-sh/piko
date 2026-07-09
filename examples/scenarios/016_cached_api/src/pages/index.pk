@@ -3,23 +3,23 @@
      See https://piko.sh/docs/guide/advanced-actions#caching -->
 <template>
   <div id="app">
-    <h1>Cached Weather API</h1>
+    <h1 class="title">Cached weather API</h1>
     <p class="subtitle">This action caches its response for 10 seconds. Two rapid calls should return identical timestamps.</p>
 
-    <button id="test-btn" p-on:click="testCache()">Test Cache</button>
+    <button id="test-btn" class="button" p-on:click="testCache()">Test cache</button>
 
     <div class="results">
       <div class="result-row">
         <span class="label">First call timestamp:</span>
-        <span p-ref="ts1">-</span>
+        <span class="value" p-ref="ts1">-</span>
       </div>
       <div class="result-row">
         <span class="label">Second call timestamp:</span>
-        <span p-ref="ts2">-</span>
+        <span class="value" p-ref="ts2">-</span>
       </div>
       <div class="result-row">
         <span class="label">Result:</span>
-        <span p-ref="result">idle</span>
+        <span class="value" p-ref="result">idle</span>
       </div>
     </div>
   </div>
@@ -34,7 +34,7 @@ type Response struct{}
 
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
     return Response{}, piko.Metadata{
-        Title: "Cached Weather API",
+        Title: "Cached weather API",
     }, nil
 }
 </script>
@@ -60,44 +60,75 @@ export async function testCache(): Promise<void> {
 </script>
 
 <style>
+  @import "testmodule/styles/theme.css";
+
   #app {
     max-width: 640px;
     margin: 2rem auto;
     padding: 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    border-radius: var(--g-radius-xl, 30px);
+    font-family: var(--g-font-family, sans-serif);
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(111, 71, 235, 0.07), transparent),
+      var(--g-colour-grey-50, #F6F7F8);
+    color: var(--g-colour-grey-800, #364049);
   }
 
-  h1 {
-    color: #1f2937;
-    margin-bottom: 0.25rem;
+  .title {
+    color: var(--g-colour-grey-900);
+    font-family: var(--g-font-family-heading);
+    font-size: 2rem;
+    margin-bottom: .5em;
   }
 
   .subtitle {
-    color: #6b7280;
+    color: var(--g-colour-grey-500);
     margin-bottom: 2rem;
+    line-height: 1.6;
   }
 
-  #test-btn {
-    background-color: #2563eb;
-    color: white;
-    padding: 0.5rem 1.25rem;
-    border: none;
-    border-radius: 0.375rem;
-    font-size: 0.9375rem;
+  .button {
+    --colour-background: var(--g-colour-primary-50);
+    --colour-background-hover: var(--g-colour-primary-100);
+    --colour-text: var(--g-colour-primary-600);
+    --colour-text-hover: var(--g-colour-primary-700);
+    --colour-border: var(--g-colour-primary-600);
+    --colour-border-hover: var(--g-colour-primary-700);
+    --button-shadow-depth: 4px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--g-radius-max, 9999px);
+    border: 1px solid var(--colour-border);
+    box-shadow: 0 var(--button-shadow-depth) 0 var(--colour-border);
+    margin-bottom: calc(1.5rem + var(--button-shadow-depth));
+    background-color: var(--colour-background);
+    color: var(--colour-text);
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--g-font-family, sans-serif);
+    text-decoration: none;
     cursor: pointer;
-    margin-bottom: 1.5rem;
+    transition: box-shadow 0.2s, transform 0.2s, color 0.2s, background-color 0.2s, border-color 0.2s;
   }
 
-  #test-btn:hover {
-    background-color: #1d4ed8;
+  .button:hover {
+    transform: translateY(calc(var(--button-shadow-depth) / 2));
+    box-shadow: 0 calc(var(--button-shadow-depth) / 2) 0 var(--colour-border-hover);
+    background-color: var(--colour-background-hover);
+    border-color: var(--colour-border-hover);
+    color: var(--colour-text-hover);
   }
 
   .results {
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border: 1px solid var(--g-colour-grey-100);
+    border-radius: var(--g-radius-lg);
     overflow: hidden;
     background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(43, 51, 59, 0.08);
   }
 
   .result-row {
@@ -105,7 +136,7 @@ export async function testCache(): Promise<void> {
     justify-content: space-between;
     align-items: center;
     padding: 0.875rem 1.25rem;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--g-colour-grey-100);
   }
 
   .result-row:last-child {
@@ -115,13 +146,18 @@ export async function testCache(): Promise<void> {
   .label {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--g-colour-grey-700);
   }
 
-  .result-row span:last-child {
-    font-size: 0.875rem;
+  .value {
+    display: inline-block;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: #1f2937;
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+    color: var(--g-colour-grey-900);
+    font-family: var(--g-font-family-mono);
+    background: var(--g-colour-grey-50);
+    border: 1px solid var(--g-colour-grey-100);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--g-radius-xs, 6px);
   }
 </style>
