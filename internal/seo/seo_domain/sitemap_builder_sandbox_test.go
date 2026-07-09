@@ -43,7 +43,7 @@ func TestDetermineLastMod_WithInjectedSandbox(t *testing.T) {
 			withSitemapSandbox(sandbox),
 		)
 
-		result := builder.determineLastMod(new(time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)), "/project/page.pk")
+		result := builder.determineLastMod(t.Context(), new(time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)), "/project/page.pk")
 
 		assert.Equal(t, "2025-06-15", result)
 	})
@@ -63,7 +63,7 @@ func TestDetermineLastMod_WithInjectedSandbox(t *testing.T) {
 			withSitemapSandbox(sandbox),
 		)
 
-		result := builder.determineLastMod(nil, "/project/page.pk")
+		result := builder.determineLastMod(t.Context(), nil, "/project/page.pk")
 
 		today := time.Now().Format("2006-01-02")
 		assert.Equal(t, today, result)
@@ -83,7 +83,7 @@ func TestDetermineLastMod_WithInjectedSandbox(t *testing.T) {
 			withSitemapSandbox(sandbox),
 		)
 
-		result := builder.determineLastMod(nil, "/project/nonexistent.pk")
+		result := builder.determineLastMod(t.Context(), nil, "/project/nonexistent.pk")
 
 		today := time.Now().Format("2006-01-02")
 		assert.Equal(t, today, result)
@@ -102,7 +102,7 @@ func TestDetermineLastMod_WithInjectedSandbox(t *testing.T) {
 			withSitemapSandbox(sandbox),
 		)
 
-		result := builder.determineLastMod(nil, "")
+		result := builder.determineLastMod(t.Context(), nil, "")
 
 		today := time.Now().Format("2006-01-02")
 		assert.Equal(t, today, result)

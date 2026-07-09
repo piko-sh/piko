@@ -88,6 +88,10 @@ type DaemonServiceDeps struct {
 	// SEOService provides search engine optimisation operations.
 	SEOService SEOServicePort
 
+	// I18nLocales is the full configured locale set, forwarded to the SEO translator so
+	// pages that declare a SupportedLocales() function receive hreflang alternates.
+	I18nLocales []string
+
 	// OnServerBound is an optional callback invoked after the main HTTP server successfully
 	// binds to a port, receiving the resolved listen address.
 	OnServerBound func(address string)
@@ -144,6 +148,10 @@ type daemonService struct {
 
 	// seoService generates SEO output for projects; nil disables SEO processing.
 	seoService SEOServicePort
+
+	// i18nLocales is the full configured locale set, forwarded to the SEO translator so
+	// pages that declare a SupportedLocales() function receive hreflang alternates.
+	i18nLocales []string
 
 	// finalRouter is the HTTP handler that processes requests after tracing is set up.
 	finalRouter http.Handler
@@ -451,7 +459,7 @@ func (ds *daemonService) processSEOArtefacts(result *annotator_dto.ProjectAnnota
 
 	ds.seoWg.Go(func() {
 		defer ds.releaseSEOSlot()
-		translator := seo_adapters.NewProjectViewTranslator()
+		translator := seo_adapters.NewProjectViewTranslator(ds.i18nLocales)
 		projectView := translator.Translate(result)
 		if err := ds.seoService.GenerateArtefacts(ctx, projectView); err != nil {
 			if !errors.Is(err, context.Canceled) {
@@ -558,6 +566,7 @@ func NewService(ctx context.Context, deps *DaemonServiceDeps) DaemonService {
 		tlsRedirectServer:   deps.TLSRedirectServer,
 		signalNotifier:      signalNotifier,
 		seoService:          deps.SEOService,
+		i18nLocales:         deps.I18nLocales,
 		stopChan:            make(chan struct{}),
 		stopOnce:            sync.Once{},
 		seoWg:               sync.WaitGroup{},

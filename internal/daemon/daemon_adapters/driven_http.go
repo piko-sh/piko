@@ -166,11 +166,12 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	publicDownloadHandler http.Handler,
 ) {
 	noCache := routerConfig.DisableHTTPCache
+	sitemapCacheControl := cacheControlForMode(noCache, sitemapCacheControlValue(routerConfig.SitemapCacheMaxAgeSeconds))
 	router.Get(routerConfig.DistServePath+"/*", serveEmbeddedFrontend(routerConfig.WatchMode, noCache))
 	router.Get("/theme.css", builder.serveTheme(registryService, noCache))
-	router.Get("/sitemap.xml", builder.serveSitemapArtefact(registryService, "sitemap.xml", noCache))
-	router.Get("/sitemap-{number}.xml", builder.serveSitemapChunk(registryService, noCache))
-	router.Get("/robots.txt", builder.serveRobotsTxt(registryService, noCache))
+	router.Get("/sitemap.xml", builder.serveSitemapArtefact(registryService, "sitemap.xml", sitemapCacheControl))
+	router.Get("/sitemap-{number}.xml", builder.serveSitemapChunk(registryService, sitemapCacheControl))
+	router.Get("/robots.txt", builder.serveRobotsTxt(registryService, sitemapCacheControl))
 	router.Get(fmt.Sprintf("%s/*", routerConfig.ArtefactServePath), builder.serveArtefact(registryService, variantGenerator, noCache))
 
 	router.Get("/_piko/video/{artefactID}/master.m3u8", builder.serveVideoMasterPlaylist(registryService, noCache))
@@ -363,11 +364,11 @@ func (*HTTPRouterBuilder) serveTheme(registryService registry_domain.RegistrySer
 //
 // Returns http.HandlerFunc which serves the sitemap with XML content type and a one-hour
 // cache duration.
-func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.RegistryService, artefactID string, disableHTTPCache bool) http.HandlerFunc {
+func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.RegistryService, artefactID string, cacheControl string) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      artefactID,
 		defaultMimeType: contentTypeXML,
-		cacheMaxAge:     cacheControlForMode(disableHTTPCache, cacheControlMutableAsset),
+		cacheMaxAge:     cacheControl,
 		preferredType:   variantSource,
 		useCompression:  true,
 	}, "serveSitemapArtefact")
@@ -380,11 +381,11 @@ func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.R
 // sitemap files.
 //
 // Returns http.HandlerFunc which handles requests for sitemap chunks.
-func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
+func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_domain.RegistryService, cacheControl string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		number := chi.URLParam(r, "number")
 		artefactID := fmt.Sprintf("sitemap-%s.xml", number)
-		builder.serveSitemapArtefact(registryService, artefactID, disableHTTPCache)(w, r)
+		builder.serveSitemapArtefact(registryService, artefactID, cacheControl)(w, r)
 	}
 }
 
@@ -393,11 +394,11 @@ func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_dom
 // Takes registryService (RegistryService) which provides access to static files.
 //
 // Returns http.HandlerFunc which serves the robots.txt file with a one-hour cache.
-func (*HTTPRouterBuilder) serveRobotsTxt(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
+func (*HTTPRouterBuilder) serveRobotsTxt(registryService registry_domain.RegistryService, cacheControl string) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      "robots.txt",
 		defaultMimeType: "text/plain; charset=utf-8",
-		cacheMaxAge:     cacheControlForMode(disableHTTPCache, cacheControlMutableAsset),
+		cacheMaxAge:     cacheControl,
 		preferredType:   variantSource,
 		useCompression:  false,
 	}, "serveRobotsTxt")

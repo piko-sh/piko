@@ -58,6 +58,10 @@ const (
 
 	// fontWeightBold is the CSS font-weight value for bold text.
 	fontWeightBold = 700
+
+	// defaultSitemapCacheMaxAgeSeconds mirrors the SitemapConfig.CacheMaxAgeSeconds struct
+	// default.
+	defaultSitemapCacheMaxAgeSeconds = 600
 )
 
 // NewDaemonConfig converts the pointer-based ServerConfig into a value-type DaemonConfig
@@ -155,6 +159,19 @@ func NewOtelSetupConfig(sc *ServerConfig) driver_handlers.OtelSetupConfig {
 		TLSInsecure:     deref(sc.Otlp.TLS.Insecure, true),
 		Headers:         sc.Otlp.Headers,
 	}
+}
+
+// sitemapCacheMaxAge resolves the sitemap/robots Cache-Control max-age from the SEO
+// config.
+//
+// Takes seo (*config.SEOConfig) which provides the sitemap cache setting.
+//
+// Returns int which is the resolved max-age in seconds.
+func sitemapCacheMaxAge(seo *config.SEOConfig) int {
+	if seo == nil || seo.Sitemap.CacheMaxAgeSeconds == nil {
+		return defaultSitemapCacheMaxAgeSeconds
+	}
+	return *seo.Sitemap.CacheMaxAgeSeconds
 }
 
 // NewRouterConfig converts a ServerConfig into a RouterConfig for the HTTP router. The

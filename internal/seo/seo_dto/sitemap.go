@@ -23,8 +23,7 @@ import (
 	"time"
 )
 
-// Sitemap represents the root XML structure for a sitemap document. It follows the
-// Sitemap protocol at https://www.sitemaps.org/protocol.html.
+// Sitemap represents the root XML structure for a sitemap document.
 type Sitemap struct {
 	// XMLName identifies the XML element name for the sitemap URL set.
 	XMLName xml.Name `xml:"urlset"`
@@ -50,8 +49,8 @@ type Sitemap struct {
 
 // SitemapURL represents a single URL entry in a sitemap.
 type SitemapURL struct {
-	// News holds the news article entry for this page. Google allows at most one news entry
-	// per URL.
+	// News holds the news article entry for this page. At most one news entry is allowed per
+	// URL.
 	News *NewsEntry `xml:"news:news,omitempty"`
 
 	// Location is the full URL of the page. Required.
@@ -110,9 +109,7 @@ type ImageEntry struct {
 	GeoLocation string `xml:"image:geo_location,omitempty"`
 }
 
-// VideoEntry represents a video within a sitemap URL entry. It follows Google's video
-// sitemap specification at
-// developers.google.com/search/docs/crawling-indexing/sitemaps/video-sitemaps.
+// VideoEntry represents a video within a sitemap URL entry.
 //
 // Field order must match VideoInputEntry exactly so that direct type conversion
 // (VideoEntry(input)) works without a field-by-field copy.
@@ -165,8 +162,8 @@ type VideoEntry struct {
 	Rating float32 `xml:"video:rating,omitempty"`
 }
 
-// NewsEntry represents a news article within a sitemap URL entry. It follows Google's
-// news sitemap specification and permits at most one entry per URL.
+// NewsEntry represents a news article within a sitemap URL entry. At most one entry is
+// permitted per URL.
 type NewsEntry struct {
 	// Publication identifies the news publication (name and language). Required.
 	Publication NewsPublication `xml:"news:publication"`
@@ -196,7 +193,9 @@ type SitemapURLInput struct {
 	// Location is the URL path, which can be relative or absolute.
 	Location string `json:"loc"`
 
-	// LastMod is the last modification date in any format that can be parsed.
+	// LastMod is the last modification date. It is normalised to an ISO date (YYYY-MM-DD) on
+	// ingest; plain ISO dates and full ISO date-time timestamps are accepted, and an
+	// unparseable value is dropped.
 	LastMod string `json:"lastmod,omitempty"`
 
 	// ChangeFreq is a hint for crawlers (always, hourly, daily, weekly, monthly, yearly,
@@ -213,6 +212,9 @@ type SitemapURLInput struct {
 	// ImageEntries provides rich image metadata beyond simple URLs. When populated, these
 	// take precedence over the Images string list.
 	ImageEntries []ImageInputEntry `json:"imageEntries,omitempty"`
+
+	// Alternates holds hreflang alternate links for this URL.
+	Alternates []AlternateLink `json:"alternates,omitempty"`
 
 	// Priority is a value from 0.0 to 1.0; higher values mean more important.
 	Priority float32 `json:"priority,omitempty"`
@@ -309,16 +311,39 @@ type PageSEOMetadata struct {
 	// modification time is used instead.
 	LastModified *time.Time
 
-	// RobotsRule specifies the robots meta tag value (e.g., "noindex, nofollow"). If empty,
-	// sensible defaults are used based on environment.
+	// Priority overrides the sitemap priority (0.0-1.0) for this page; nil inherits the
+	// matching route rule or the configured default.
+	Priority *float32
+
+	// News holds an optional news sitemap entry for the page, populated from collection
+	// frontmatter (the reserved "sitemapNews" key). Emitted as a <news:news> entry.
+	News *NewsInputEntry
+
+	// RobotsRule specifies the robots meta tag value.
+	//
+	// An example value is "noindex, nofollow". If empty, sensible defaults are used based on
+	// environment. A rule containing "noindex" drops the page from the sitemap.
 	RobotsRule string
+
+	// ChangeFrequency overrides the sitemap changefreq for this page; empty inherits the
+	// matching route rule or the configured default.
+	ChangeFrequency string
+
+	// Canonical is an explicit canonical URL for the page; empty lets the framework derive
+	// one. Reserved for author overrides.
+	Canonical string
 
 	// SupportedLocales lists the language codes this page supports. Used to build hreflang
 	// alternate links in the sitemap.
 	SupportedLocales []string
 
-	// ImageURLs is a list of image URLs discovered in the component's asset references.
+	// ImageURLs is a list of image URLs discovered in the component's asset references or
+	// declared in collection frontmatter for the image sitemap extension.
 	ImageURLs []string
+
+	// Videos holds video sitemap entries for the page, populated from collection frontmatter
+	// (the reserved "sitemapVideos" key). Emitted as <video:video> entries.
+	Videos []VideoInputEntry
 }
 
 // SitemapIndex represents the root structure for a sitemap index file. It is used when a

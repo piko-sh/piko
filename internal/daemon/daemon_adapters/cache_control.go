@@ -19,6 +19,7 @@
 package daemon_adapters
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -42,6 +43,22 @@ func cacheControlForArtefact(disableHTTPCache, foundByStorageKey bool, variant *
 	default:
 		return cacheControlForMode(disableHTTPCache, jitCacheControl)
 	}
+}
+
+// sitemapCacheControlValue builds the production Cache-Control value for sitemap and
+// robots responses from the resolved max-age. A non-positive value (an operator setting
+// CacheMaxAgeSeconds to 0 to disable caching) yields no-cache; otherwise it serves fresh
+// for max-age with a one-day stale-while-revalidate window so crawlers can revalidate
+// cheaply.
+//
+// Takes maxAgeSeconds (int) which is the configured sitemap cache duration in seconds.
+//
+// Returns string which is the Cache-Control value to use in production mode.
+func sitemapCacheControlValue(maxAgeSeconds int) string {
+	if maxAgeSeconds <= 0 {
+		return cacheControlNoCache
+	}
+	return fmt.Sprintf("public, max-age=%d, stale-while-revalidate=86400", maxAgeSeconds)
 }
 
 // cacheControlForMode returns the appropriate Cache-Control header value, using no-cache

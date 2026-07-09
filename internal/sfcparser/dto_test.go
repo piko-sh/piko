@@ -890,6 +890,24 @@ func TestParseResult_GetCollectionProvider(t *testing.T) {
 			wantName: "markdown",
 		},
 		{
+			name: "Returns default markdown when p-provider is whitespace only",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-provider": "   ",
+				},
+			},
+			wantName: "markdown",
+		},
+		{
+			name: "Trims surrounding whitespace from p-provider",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-provider": "  yaml  ",
+				},
+			},
+			wantName: "yaml",
+		},
+		{
 			name: "Returns default markdown when TemplateAttributes is nil",
 			parseResult: sfcparser.ParseResult{
 				TemplateAttributes: nil,
@@ -912,6 +930,421 @@ func TestParseResult_GetCollectionProvider(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := tc.parseResult.GetCollectionProvider()
 			assert.Equal(t, tc.wantName, got)
+		})
+	}
+}
+
+func TestParseResult_GetCollectionParamName(t *testing.T) {
+	testCases := []struct {
+		name        string
+		wantName    string
+		parseResult sfcparser.ParseResult
+	}{
+		{
+			name: "Returns the p-param value when set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-param": "id",
+				},
+			},
+			wantName: "id",
+		},
+		{
+			name: "Trims surrounding whitespace from p-param",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-param": "  id  ",
+				},
+			},
+			wantName: "id",
+		},
+		{
+			name: "Defaults to slug when p-param is absent",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{},
+			},
+			wantName: "slug",
+		},
+		{
+			name: "Defaults to slug when p-param is empty string",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-param": "",
+				},
+			},
+			wantName: "slug",
+		},
+		{
+			name: "Defaults to slug when p-param is whitespace only",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-param": "   ",
+				},
+			},
+			wantName: "slug",
+		},
+		{
+			name: "Defaults to slug when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantName: "slug",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.GetCollectionParamName()
+			assert.Equal(t, tc.wantName, got)
+		})
+	}
+}
+
+func TestParseResult_HasRouteSourceDirective(t *testing.T) {
+	testCases := []struct {
+		name        string
+		parseResult sfcparser.ParseResult
+		wantResult  bool
+	}{
+		{
+			name: "Returns true when p-route-source is set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-route-source": "locations",
+				},
+			},
+			wantResult: true,
+		},
+		{
+			name: "Returns true even when p-route-source is empty string",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-route-source": "",
+				},
+			},
+			wantResult: true,
+		},
+		{
+			name: "Returns false when p-route-source is absent",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"other-attr": "value",
+				},
+			},
+			wantResult: false,
+		},
+		{
+			name: "Returns false when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantResult: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.HasRouteSourceDirective()
+			assert.Equal(t, tc.wantResult, got)
+		})
+	}
+}
+
+func TestParseResult_GetRouteSource(t *testing.T) {
+	testCases := []struct {
+		name        string
+		wantSource  string
+		parseResult sfcparser.ParseResult
+	}{
+		{
+			name: "Returns the route source name when set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-route-source": "locations",
+				},
+			},
+			wantSource: "locations",
+		},
+		{
+			name: "Returns empty string when p-route-source is empty",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-route-source": "",
+				},
+			},
+			wantSource: "",
+		},
+		{
+			name: "Returns empty string when p-route-source is absent",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{},
+			},
+			wantSource: "",
+		},
+		{
+			name: "Returns empty string when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantSource: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.GetRouteSource()
+			assert.Equal(t, tc.wantSource, got)
+		})
+	}
+}
+
+func TestParseResult_GetRouteSourceParamName(t *testing.T) {
+	testCases := []struct {
+		name        string
+		wantName    string
+		parseResult sfcparser.ParseResult
+	}{
+		{
+			name: "Returns the p-param value when set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-param": "locationslug",
+				},
+			},
+			wantName: "locationslug",
+		},
+		{
+			name: "Trims surrounding whitespace from p-param",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-param": "  locationslug  ",
+				},
+			},
+			wantName: "locationslug",
+		},
+		{
+			name: "Returns empty (not slug) when p-param is absent so the sitemap builder skips the page",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{},
+			},
+			wantName: "",
+		},
+		{
+			name: "Returns empty when p-param is whitespace only",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-param": "  ",
+				},
+			},
+			wantName: "",
+		},
+		{
+			name: "Returns empty when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantName: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.GetRouteSourceParamName()
+			assert.Equal(t, tc.wantName, got)
+		})
+	}
+}
+
+func TestParseResult_GetSitemapPriority(t *testing.T) {
+	testCases := []struct {
+		name         string
+		wantPriority string
+		parseResult  sfcparser.ParseResult
+	}{
+		{
+			name: "Returns the priority value when set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-sitemap-priority": "0.8",
+				},
+			},
+			wantPriority: "0.8",
+		},
+		{
+			name: "Returns empty string when p-sitemap-priority is empty",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-sitemap-priority": "",
+				},
+			},
+			wantPriority: "",
+		},
+		{
+			name: "Returns empty string when p-sitemap-priority is absent",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{},
+			},
+			wantPriority: "",
+		},
+		{
+			name: "Returns empty string when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantPriority: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.GetSitemapPriority()
+			assert.Equal(t, tc.wantPriority, got)
+		})
+	}
+}
+
+func TestParseResult_GetSitemapChangeFreq(t *testing.T) {
+	testCases := []struct {
+		name           string
+		wantChangeFreq string
+		parseResult    sfcparser.ParseResult
+	}{
+		{
+			name: "Returns the changefreq value when set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-sitemap-changefreq": "weekly",
+				},
+			},
+			wantChangeFreq: "weekly",
+		},
+		{
+			name: "Returns empty string when p-sitemap-changefreq is empty",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-sitemap-changefreq": "",
+				},
+			},
+			wantChangeFreq: "",
+		},
+		{
+			name: "Returns empty string when p-sitemap-changefreq is absent",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{},
+			},
+			wantChangeFreq: "",
+		},
+		{
+			name: "Returns empty string when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantChangeFreq: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.GetSitemapChangeFreq()
+			assert.Equal(t, tc.wantChangeFreq, got)
+		})
+	}
+}
+
+func TestParseResult_GetSitemapCanonical(t *testing.T) {
+	testCases := []struct {
+		name          string
+		wantCanonical string
+		parseResult   sfcparser.ParseResult
+	}{
+		{
+			name: "Returns the canonical value when set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-canonical": "https://example.com/page",
+				},
+			},
+			wantCanonical: "https://example.com/page",
+		},
+		{
+			name: "Returns empty string when p-canonical is empty",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-canonical": "",
+				},
+			},
+			wantCanonical: "",
+		},
+		{
+			name: "Returns empty string when p-canonical is absent",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{},
+			},
+			wantCanonical: "",
+		},
+		{
+			name: "Returns empty string when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantCanonical: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.GetSitemapCanonical()
+			assert.Equal(t, tc.wantCanonical, got)
+		})
+	}
+}
+
+func TestParseResult_HasNoindexDirective(t *testing.T) {
+	testCases := []struct {
+		name        string
+		parseResult sfcparser.ParseResult
+		wantResult  bool
+	}{
+		{
+			name: "Returns true when p-noindex is set",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-noindex": "true",
+				},
+			},
+			wantResult: true,
+		},
+		{
+			name: "Returns true even when p-noindex is empty string",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"p-noindex": "",
+				},
+			},
+			wantResult: true,
+		},
+		{
+			name: "Returns false when p-noindex is absent",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: map[string]string{
+					"other-attr": "value",
+				},
+			},
+			wantResult: false,
+		},
+		{
+			name: "Returns false when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{
+				TemplateAttributes: nil,
+			},
+			wantResult: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.parseResult.HasNoindexDirective()
+			assert.Equal(t, tc.wantResult, got)
 		})
 	}
 }

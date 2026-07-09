@@ -1629,6 +1629,20 @@ func WithSitemapURLProvider(provider func(ctx context.Context) ([]seo_dto.Sitema
 	}
 }
 
+// WithRouteSource registers a build-time route source that enumerates concrete URLs.
+//
+// Takes source (seo_domain.RouteSource) which enumerates the URLs; nil is ignored.
+//
+// Returns Option which registers the source on the container.
+func WithRouteSource(source seo_domain.RouteSource) Option {
+	return func(c *Container) {
+		if source == nil {
+			return
+		}
+		c.AddRouteSource(source)
+	}
+}
+
 // WithAssets provides the asset configuration including image/video profiles, screen
 // breakpoints, and default densities for responsive images. These settings are used at
 // compile time by the annotator for static asset analysis.

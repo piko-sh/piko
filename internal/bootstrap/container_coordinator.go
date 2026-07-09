@@ -542,6 +542,7 @@ func (c *Container) createDefaultGeneratorService() {
 		generator_domain.WithDwarfLineDirectives(c.experimentalDwarfLineDirectives),
 		generator_domain.WithFormatGeneratedCode(c.formatGeneratedCode),
 		generator_domain.WithVerifyGeneratedCode(c.verifyGeneratedCode),
+		generator_domain.WithI18nLocales(c.GetWebsiteConfig().I18n.Locales),
 	)
 }
 

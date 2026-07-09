@@ -100,6 +100,28 @@ type ParsedComponent struct {
 	// project's content directory.
 	ContentModulePath string
 
+	// RouteSourceName is the name from the p-route-source attribute, binding this page to a
+	// build-time RouteSource that enumerates its dynamic URLs. Empty when absent.
+	RouteSourceName string
+
+	// RouteSourceParamName is the dynamic route segment the bound RouteSource enumerates.
+	//
+	// It comes from the p-param attribute (e.g. "locationslug") and is required when
+	// RouteSourceName is set.
+	RouteSourceParamName string
+
+	// SitemapPriority is the raw p-sitemap-priority attribute (a 0.0-1.0 string) overriding
+	// the page's sitemap priority; empty when unset.
+	SitemapPriority string
+
+	// SitemapChangeFrequency is the p-sitemap-changefreq attribute overriding the page's
+	// sitemap changefreq; empty when unset.
+	SitemapChangeFrequency string
+
+	// SitemapCanonical is the p-canonical attribute setting an explicit canonical URL; empty
+	// when unset.
+	SitemapCanonical string
+
 	// StyleBlocks holds the parsed style sections from the component.
 	StyleBlocks []sfcparser.Style
 
@@ -109,6 +131,10 @@ type ParsedComponent struct {
 	// HasCollection indicates whether this component has a p-collection attribute on its
 	// template element.
 	HasCollection bool
+
+	// SitemapNoindex reports whether the page carries a p-noindex attribute, keeping it out
+	// of the sitemap and marking it noindex.
+	SitemapNoindex bool
 
 	// IsExternal indicates whether the component is from an external Go module (located in
 	// GOMODCACHE) rather than the current project.

@@ -30,6 +30,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/route_pattern"
 	"piko.sh/piko/wdk/safedisk"
@@ -469,7 +470,7 @@ func (mb *ManifestBuilder) computeRoutePatterns(
 
 	strategy := cmp.Or(websiteConfig.I18n.Strategy, "query-only")
 
-	routePatterns := generateRoutesByStrategy(strategy, basePattern, defaultLocale, websiteConfig.I18n.Locales)
+	routePatterns := i18n_domain.RoutesByStrategy(strategy, basePattern, defaultLocale, websiteConfig.I18n.Locales)
 	return routePatterns, strategy
 }
 
@@ -522,6 +523,10 @@ func (mb *ManifestBuilder) loadWebsiteConfig() (*config.WebsiteConfig, error) {
 	var websiteConfig config.WebsiteConfig
 	if err := json.Unmarshal(data, &websiteConfig); err != nil {
 		return nil, fmt.Errorf("failed to parse config.json: %w", err)
+	}
+
+	if err := i18n_domain.ValidateLocaleCodes(websiteConfig.I18n.Locales); err != nil {
+		return nil, fmt.Errorf("invalid i18n locale in config.json: %w", err)
 	}
 
 	return &websiteConfig, nil
@@ -586,62 +591,4 @@ func buildJSArtefactIDs(pageJSArtefactID string, partialJSArtefactIDs []string) 
 	result = append(result, partialJSArtefactIDs...)
 
 	return result
-}
-
-// generateRoutesByStrategy generates route patterns based on the i18n strategy. This is a
-// pure function that does not need receiver state.
-//
-// Takes strategy (string) which specifies the i18n routing approach: "prefix",
-// "prefix_except_default", or "query-only".
-// Takes basePattern (string) which is the base URL path to generate routes for.
-// Takes defaultLocale (string) which is the locale that may receive special treatment
-// depending on strategy.
-// Takes locales ([]string) which lists all locales to generate routes for.
-//
-// Returns map[string]string which maps each locale to its generated route pattern.
-func generateRoutesByStrategy(strategy, basePattern, defaultLocale string, locales []string) map[string]string {
-	routePatterns := make(map[string]string)
-
-	switch strategy {
-	case "prefix":
-		for _, locale := range locales {
-			routePatterns[locale] = joinLocaleRoutePattern(locale, basePattern)
-		}
-
-	case "prefix_except_default":
-		for _, locale := range locales {
-			if locale == defaultLocale {
-				routePatterns[locale] = basePattern
-			} else {
-				routePatterns[locale] = joinLocaleRoutePattern(locale, basePattern)
-			}
-		}
-
-	default:
-		for _, locale := range locales {
-			routePatterns[locale] = basePattern
-		}
-	}
-
-	return routePatterns
-}
-
-// joinLocaleRoutePattern prefixes a base route pattern with its locale.
-//
-// It preserves the trailing slash of a non-root directory-index pattern (so "/articles/"
-// becomes "/fr/articles/") which path.Join would otherwise strip, while keeping the
-// locale root free of a trailing slash (so "/" becomes "/fr", not "/fr/"). This keeps
-// localised routes consistent with the default-locale slash convention so directory-index
-// links resolve.
-//
-// Takes locale (string) which is the locale prefix to add.
-// Takes basePattern (string) which is the default-locale route pattern.
-//
-// Returns string which is the locale-prefixed route pattern.
-func joinLocaleRoutePattern(locale, basePattern string) string {
-	joined := path.Join(rootURLPath, locale, basePattern)
-	if basePattern != "/" && strings.HasSuffix(basePattern, "/") && !strings.HasSuffix(joined, "/") {
-		joined += "/"
-	}
-	return joined
 }

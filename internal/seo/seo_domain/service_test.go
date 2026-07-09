@@ -24,6 +24,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/seo/seo_dto"
@@ -468,4 +471,102 @@ func TestSEOService_GenerateArtefacts_WithNewsNamespace(t *testing.T) {
 	if !strings.Contains(sitemapContent, "<news:name>The Example Times</news:name>") {
 		t.Error("Expected sitemap XML to contain publication name element")
 	}
+}
+
+func generateAndStoreRobots(t *testing.T, seoConfig config.SEOConfig, opts ...SEOServiceOption) string {
+	t.Helper()
+
+	storage := &mockStoragePort{}
+	service, err := NewSEOService(seoConfig, "en", storage, &mockDynamicURLSource{}, opts...)
+	require.NoError(t, err)
+
+	require.NoError(t, service.GenerateArtefacts(context.Background(), &seo_dto.ProjectView{}))
+	require.NotNil(t, storage.storedRobotsTxt)
+	return string(storage.storedRobotsTxt)
+}
+
+func TestSEOService_GenerateArtefacts_DefaultModeIsPermissive(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig)
+	assert.Contains(t, content, "Allow: /", "default build must be permissive")
+	assert.NotContains(t, content, "Disallow: /", "default build must not block all crawlers")
+}
+
+func TestSEOService_GenerateArtefacts_NonProductionBlocksAllCrawlers(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig, WithProductionMode(false))
+	assert.Contains(t, content, "Disallow: /", "non-production build must block all crawlers")
+	assert.NotContains(t, content, "Allow: /", "non-production build must not emit a permissive base rule")
+}
+
+func TestSEOService_GenerateArtefacts_NonProductionIndexingOptInIsPermissive(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+		Robots:  config.RobotsConfig{AllowNonProductionIndexing: true},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig, WithProductionMode(false))
+	assert.Contains(t, content, "Allow: /", "opting into non-production indexing restores the permissive rule")
+	assert.NotContains(t, content, "Disallow: /", "opting in must not block all crawlers")
+}
+
+func TestSEOService_GenerateArtefacts_ProductionModeIsPermissive(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig, WithProductionMode(true))
+	assert.Contains(t, content, "Allow: /", "production build must be permissive")
+	assert.NotContains(t, content, "Disallow: /", "production build must not block all crawlers")
+}
+
+func TestSEOService_GenerateArtefacts_RouteSourceEmitsLocalisedURL(t *testing.T) {
+	storage := &mockStoragePort{}
+
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+	}
+
+	source := RouteSourceFunc{
+		SourceName: "locations",
+		Fn: func(_ context.Context, _ RouteContext) ([]RouteURL, error) {
+			return []RouteURL{{ParamValue: "-paris", Locales: []string{"fr"}}}, nil
+		},
+	}
+
+	service, err := NewSEOService(seoConfig, "en", storage, &mockDynamicURLSource{},
+		WithI18nStrategy("prefix_except_default"),
+		WithI18nLocales([]string{"en", "fr"}),
+		WithRouteSources([]RouteSource{source}),
+	)
+	require.NoError(t, err)
+
+	view := &seo_dto.ProjectView{
+		Components: []seo_dto.ComponentView{
+			{
+				HashedName:           "loc",
+				RoutePattern:         "/services{locationslug}/kubernetes",
+				IsPage:               true,
+				IsPublic:             true,
+				RouteSourceName:      "locations",
+				RouteSourceParamName: "locationslug",
+			},
+		},
+	}
+
+	require.NoError(t, service.GenerateArtefacts(context.Background(), view))
+
+	assert.Contains(t, string(storage.storedSitemap),
+		"https://example.com/fr/services-paris/kubernetes")
 }

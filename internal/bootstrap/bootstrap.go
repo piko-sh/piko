@@ -165,6 +165,8 @@ func Daemon(ctx context.Context, runMode string, container *Container, deps *Dep
 		return nil, fmt.Errorf("selecting daemon builder: %w", err)
 	}
 
+	container.SetSEOProductionMode(runMode == runModeProd)
+
 	l.Internal("Selected builder, assembling daemon...", logger_domain.String(logKeyRunMode, runMode))
 	daemon, err := builder(ctx, container, deps)
 	if err != nil {

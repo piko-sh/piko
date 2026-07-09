@@ -348,7 +348,7 @@ func (pr *ParseResult) GetCollectionName() string {
 // Returns string which is the provider name, or "markdown" if p-provider is not
 // specified.
 func (pr *ParseResult) GetCollectionProvider() string {
-	if provider, ok := pr.TemplateAttributes["p-provider"]; ok && provider != "" {
+	if provider := strings.TrimSpace(pr.TemplateAttributes["p-provider"]); provider != "" {
 		return provider
 	}
 	return "markdown"
@@ -363,10 +363,70 @@ func (pr *ParseResult) GetCollectionProvider() string {
 //
 // Returns string which is the parameter name for content lookup.
 func (pr *ParseResult) GetCollectionParamName() string {
-	if param, ok := pr.TemplateAttributes["p-param"]; ok && param != "" {
+	if param := strings.TrimSpace(pr.TemplateAttributes["p-param"]); param != "" {
 		return param
 	}
 	return "slug"
+}
+
+// HasRouteSourceDirective checks if the template has a p-route-source attribute, binding
+// the page to a build-time RouteSource that enumerates its dynamic URLs.
+//
+// Returns bool which is true if the p-route-source attribute is present.
+func (pr *ParseResult) HasRouteSourceDirective() bool {
+	_, ok := pr.TemplateAttributes["p-route-source"]
+	return ok
+}
+
+// GetRouteSource returns the route source name from the p-route-source attribute.
+//
+// Returns string which is the source name, or empty if p-route-source is not present.
+func (pr *ParseResult) GetRouteSource() string {
+	return pr.TemplateAttributes["p-route-source"]
+}
+
+// GetRouteSourceParamName returns the p-param dynamic route parameter the bound
+// RouteSource enumerates.
+//
+// Returns string which is the parameter name, or empty when p-param is not set.
+func (pr *ParseResult) GetRouteSourceParamName() string {
+	return strings.TrimSpace(pr.TemplateAttributes["p-param"])
+}
+
+// GetSitemapPriority returns the raw p-sitemap-priority attribute value overriding this
+// page's sitemap priority.
+//
+// Returns string which is the sitemap priority override, or empty when p-sitemap-priority
+// is not set.
+func (pr *ParseResult) GetSitemapPriority() string {
+	return pr.TemplateAttributes["p-sitemap-priority"]
+}
+
+// GetSitemapChangeFreq returns the p-sitemap-changefreq attribute value overriding this
+// page's sitemap changefreq.
+//
+// Returns string which is the sitemap changefreq override, or empty when
+// p-sitemap-changefreq is not set.
+func (pr *ParseResult) GetSitemapChangeFreq() string {
+	return pr.TemplateAttributes["p-sitemap-changefreq"]
+}
+
+// GetSitemapCanonical returns the p-canonical attribute value setting an explicit
+// canonical URL for the page.
+//
+// Returns string which is the explicit canonical URL, or empty when p-canonical is not
+// set.
+func (pr *ParseResult) GetSitemapCanonical() string {
+	return pr.TemplateAttributes["p-canonical"]
+}
+
+// HasNoindexDirective reports whether the template carries a p-noindex attribute, which
+// keeps the page out of the sitemap and marks it noindex.
+//
+// Returns bool which is true if the p-noindex attribute is present.
+func (pr *ParseResult) HasNoindexDirective() bool {
+	_, ok := pr.TemplateAttributes["p-noindex"]
+	return ok
 }
 
 // HasCollectionSource checks if the template specifies an external content source. When

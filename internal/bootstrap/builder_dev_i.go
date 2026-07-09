@@ -692,6 +692,7 @@ func (b *interpretedDaemonBuilder) buildRouterConfig() *daemon_domain.RouterConf
 
 	routerConfig := NewRouterConfig(&serverConfig, shValues, b.c.GetReportingConfig())
 	routerConfig.DisableHTTPCache = true
+	routerConfig.SitemapCacheMaxAgeSeconds = sitemapCacheMaxAge(b.c.seoConfigOverride)
 	if b.devEventBroadcaster != nil {
 		routerConfig.DevEventsBroadcaster = b.devEventBroadcaster
 	}
@@ -804,6 +805,7 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 		FinalRouter:         b.routerManager,
 		CoordinatorService:  b.coordinatorService,
 		SEOService:          seoService,
+		I18nLocales:         b.c.GetWebsiteConfig().I18n.Locales,
 		HealthServer:        healthServer,
 		HealthRouter:        healthRouter,
 		DrainSignaller:      drainSignaller,

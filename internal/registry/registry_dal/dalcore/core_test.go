@@ -92,9 +92,9 @@ type stubDriver struct {
 	insertVariantTagFunc                 func(ctx context.Context, artefactID, variantID, tagKey, tagValue string) error
 	insertVariantChunkFunc               func(ctx context.Context, params InsertVariantChunkParams) error
 	insertDesiredProfileFunc             func(ctx context.Context, params InsertDesiredProfileParams) error
-	calls          *[]string
-	popGCHintLimit *int
-	deletedGCHints *[]int64
+	calls                                *[]string
+	popGCHintLimit                       *int
+	deletedGCHints                       *[]int64
 }
 
 func (s *stubDriver) record(name string) {

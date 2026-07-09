@@ -263,6 +263,7 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 		Server:            serverAdapter,
 		FinalRouter:       b.finalRouter,
 		SEOService:        seoService,
+		I18nLocales:       b.c.GetWebsiteConfig().I18n.Locales,
 		HealthServer:      healthServer,
 		HealthRouter:      healthRouter,
 		DrainSignaller:    drainSignaller,

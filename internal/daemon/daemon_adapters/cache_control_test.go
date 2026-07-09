@@ -68,6 +68,28 @@ func TestCacheControlForArtefact(t *testing.T) {
 	}
 }
 
+func TestSitemapCacheControlValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		maxAgeSeconds int
+		want          string
+	}{
+		{"zero disables caching with no-cache", 0, cacheControlNoCache},
+		{"negative disables caching with no-cache", -1, cacheControlNoCache},
+		{"one minute serves public with revalidation window", 60, "public, max-age=60, stale-while-revalidate=86400"},
+		{"ten minutes serves public with revalidation window", 600, "public, max-age=600, stale-while-revalidate=86400"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, sitemapCacheControlValue(tc.maxAgeSeconds))
+		})
+	}
+}
+
 func TestCacheControlForMode_DisabledReturnsNoCache(t *testing.T) {
 	t.Parallel()
 

@@ -24,6 +24,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/seo/seo_dto"
 )
@@ -35,7 +38,7 @@ func TestRobotsBuilder_Build_BasicPermissiveRules(t *testing.T) {
 		CustomRules:     []config.RobotsRuleGroup{},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := "https://example.com/sitemap.xml"
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
@@ -57,6 +60,23 @@ func TestRobotsBuilder_Build_BasicPermissiveRules(t *testing.T) {
 	}
 }
 
+func TestRobotsBuilder_Build_NonProductionBlocksAllCrawlers(t *testing.T) {
+	robotsConfig := config.RobotsConfig{
+		CustomRules: []config.RobotsRuleGroup{},
+	}
+
+	builder := newRobotsBuilder(robotsConfig, true)
+
+	robotsTxt, err := builder.Build(context.Background(), "https://example.com/sitemap.xml")
+	require.NoError(t, err)
+
+	content := string(robotsTxt)
+
+	assert.Contains(t, content, "User-agent: *", "expected the 'User-agent: *' rule")
+	assert.Contains(t, content, "Disallow: /", "non-production build must emit 'Disallow: /' blocking all crawlers")
+	assert.NotContains(t, content, "Allow: /", "non-production build must not emit a permissive 'Allow: /' base rule")
+}
+
 func TestRobotsBuilder_Build_BlockAIBots(t *testing.T) {
 	robotsConfig := config.RobotsConfig{
 		BlockAiBots:     true,
@@ -64,7 +84,7 @@ func TestRobotsBuilder_Build_BlockAIBots(t *testing.T) {
 		CustomRules:     []config.RobotsRuleGroup{},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := "https://example.com/sitemap.xml"
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
@@ -102,7 +122,7 @@ func TestRobotsBuilder_Build_BlockNonSEOBots(t *testing.T) {
 		CustomRules:     []config.RobotsRuleGroup{},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := "https://example.com/sitemap.xml"
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
@@ -134,7 +154,7 @@ func TestRobotsBuilder_Build_BlockBothAIAndNonSEO(t *testing.T) {
 		CustomRules:     []config.RobotsRuleGroup{},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := "https://example.com/sitemap.xml"
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
@@ -173,7 +193,7 @@ func TestRobotsBuilder_Build_CustomRules(t *testing.T) {
 		},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := "https://example.com/sitemap.xml"
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
@@ -214,7 +234,7 @@ func TestRobotsBuilder_Build_CustomRulesWithAllowAndDisallow(t *testing.T) {
 		},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := "https://example.com/sitemap.xml"
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
@@ -242,7 +262,7 @@ func TestRobotsBuilder_Build_NoSitemap(t *testing.T) {
 		CustomRules:     []config.RobotsRuleGroup{},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := ""
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
@@ -269,7 +289,7 @@ func TestRobotsBuilder_Build_RuleOrder(t *testing.T) {
 		},
 	}
 
-	builder := newRobotsBuilder(robotsConfig)
+	builder := newRobotsBuilder(robotsConfig, false)
 	sitemapURL := "https://example.com/sitemap.xml"
 
 	robotsTxt, err := builder.Build(context.Background(), sitemapURL)
