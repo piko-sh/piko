@@ -65,6 +65,14 @@ var (
 		"FULL": {}, "CROSS": {}, "NATURAL": {},
 	}
 
+	// onConflictTargetPredicateTerminators lists the keywords that end the optional WHERE
+	// index-predicate of an ON CONFLICT target at depth zero. The predicate stops before the
+	// DO action; RETURNING guards against a malformed clause that omits the action entirely.
+	onConflictTargetPredicateTerminators = map[string]struct{}{
+		"DO":             {},
+		keywordRETURNING: {},
+	}
+
 	// joinKeywordTerminators is the subset of expressionTerminatorKeywords whose tokens are
 	// also valid SQL function names such as LEFT() and RIGHT().
 	//
@@ -650,6 +658,7 @@ func (p *parser) parseOnConflict(tableName string) {
 
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
+		p.skipConflictTargetPredicate()
 	}
 
 	if p.matchKeyword(keywordON) {
@@ -672,6 +681,16 @@ func (p *parser) parseOnConflict(tableName string) {
 			}
 		}
 	}
+}
+
+// skipConflictTargetPredicate consumes the optional WHERE index_predicate that follows a
+// parenthesised ON CONFLICT target, which Postgres permits for partial-unique-index
+// inference.
+func (p *parser) skipConflictTargetPredicate() {
+	if !p.matchKeyword(keywordWHERE) {
+		return
+	}
+	p.skipTokensUntilTerminatorSet(onConflictTargetPredicateTerminators)
 }
 
 // parseSetClause walks a SET clause of an UPDATE, dispatching between single-column and

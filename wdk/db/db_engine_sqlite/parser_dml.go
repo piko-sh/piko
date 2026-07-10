@@ -208,7 +208,7 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	}
 	analysis.InsertSelect = insertSelect
 
-	if p.matchKeyword(keywordON) {
+	for p.matchKeyword(keywordON) {
 		p.skipOnConflict(tableName)
 	}
 

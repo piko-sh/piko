@@ -256,4 +256,11 @@ const (
 	// resolvers handle, but a resolver that ever returned a data-modifying function this way
 	// would be misrouted to a read replica, so the gap is surfaced rather than hidden.
 	CodeFunctionDataAccessUndeclared = "Q045"
+
+	// CodeConflictDoNothingReturning indicates a command:one query pairs ON CONFLICT DO
+	// NOTHING with a RETURNING clause. When a conflict occurs the insert is skipped and
+	// RETURNING yields no row, so the generated QueryRow scan returns sql.ErrNoRows on the
+	// conflict path. The query is valid; the warning steers the author towards command:exec
+	// / execrows or explicit errors.Is(err, sql.ErrNoRows) handling.
+	CodeConflictDoNothingReturning = "Q046"
 )

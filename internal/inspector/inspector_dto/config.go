@@ -66,4 +66,9 @@ type Config struct {
 	// This is slower but always stable, as it is maintained by the Go team. Useful as a
 	// fallback when quickpackages encounters issues with specific dependency configurations.
 	UseStandardLoader bool
+
+	// TolerateTypeErrors keeps type introspection best-effort: type and parse errors in the
+	// surrounding Go codebase are logged and skipped rather than aborting the build, so code
+	// generation does not depend on the health of unrelated user code.
+	TolerateTypeErrors bool
 }

@@ -50,6 +50,14 @@ const (
 		packages.NeedFiles
 )
 
+const (
+	// logFieldPackage is the structured-log field key for a package import path.
+	logFieldPackage = "package"
+
+	// logFieldError is the structured-log field key for an error message.
+	logFieldError = "error"
+)
+
 // loadPackagesFromSource wraps the Go packages loader as a pure function that takes all
 // configuration and source data as arguments. This is the core logic for the default
 // builderPackageLoader implementation.
@@ -91,7 +99,7 @@ func loadPackagesFromSource(ctx context.Context, inspectorConfig inspector_dto.C
 	}
 	l.Internal("packages.Load call completed.")
 
-	if err := aggregatePackageErrors(ctx, loadedPackages); err != nil {
+	if err := aggregatePackageErrors(ctx, loadedPackages, inspectorConfig.TolerateTypeErrors); err != nil {
 		BuilderPackageLoadErrorCount.Add(ctx, 1)
 		return nil, fmt.Errorf("aggregating package errors: %w", err)
 	}
@@ -189,7 +197,7 @@ func getLoadPatterns(moduleName string, overlay map[string][]byte) []string {
 // (including their transitive dependency graph).
 //
 // Returns error when one or more packages contain errors.
-func aggregatePackageErrors(ctx context.Context, loadedPackages []*packages.Package) error {
+func aggregatePackageErrors(ctx context.Context, loadedPackages []*packages.Package, tolerateTypeErrors bool) error {
 	ctx, l := logger_domain.From(ctx, log)
 	var allErrors []string
 
@@ -200,27 +208,13 @@ func aggregatePackageErrors(ctx context.Context, loadedPackages []*packages.Pack
 
 	packages.Visit(loadedPackages, nil, func(pkg *packages.Package) {
 		if len(pkg.Errors) > 0 {
-			l.Internal("Found potential errors in loaded package", logger_domain.String("package", pkg.PkgPath), logger_domain.Int("error_count", len(pkg.Errors)))
+			l.Internal("Found potential errors in loaded package", logger_domain.String(logFieldPackage, pkg.PkgPath), logger_domain.Int("error_count", len(pkg.Errors)))
 		}
 		_, isRoot := rootPaths[pkg.PkgPath]
 		for _, err := range pkg.Errors {
-			message := err.Error()
-			if isIgnorablePackageError(message) {
-				l.Internal("Ignoring benign package error",
-					logger_domain.String("package", pkg.PkgPath),
-					logger_domain.String("error", message))
-				continue
+			if fatal := reportPackageError(ctx, pkg.PkgPath, err, isRoot, tolerateTypeErrors); fatal {
+				allErrors = append(allErrors, err.Error())
 			}
-
-			if !isRoot && err.Kind != packages.ListError {
-				l.Internal("Skipping non-root package error",
-					logger_domain.String("package", pkg.PkgPath),
-					logger_domain.String("error", message),
-					logger_domain.String("kind", errorKindName(err.Kind)))
-				continue
-			}
-			allErrors = append(allErrors, message)
-			l.Warn("Package error detail", logger_domain.String("package", pkg.PkgPath), logger_domain.String("error", message))
 		}
 	})
 
@@ -231,6 +225,48 @@ func aggregatePackageErrors(ctx context.Context, loadedPackages []*packages.Pack
 
 	l.Internal("No errors found in any loaded packages.")
 	return nil
+}
+
+// reportPackageError logs a single package-load error according to its origin and the
+// tolerance mode, and reports whether it must be treated as fatal. Benign errors and
+// non-root non-list errors are always skipped; type and parse errors are skipped when
+// best-effort introspection is enabled; only list errors and untolerated root errors
+// abort.
+//
+// Takes pkgPath (string) which is the package the error came from.
+// Takes err (packages.Error) which is the error under consideration.
+// Takes isRoot (bool) which is true when pkgPath is a root package.
+// Takes tolerateTypeErrors (bool) which enables best-effort introspection.
+//
+// Returns bool which is true when the error must abort package loading.
+func reportPackageError(ctx context.Context, pkgPath string, err packages.Error, isRoot, tolerateTypeErrors bool) bool {
+	_, l := logger_domain.From(ctx, log)
+	message := err.Error()
+	if isIgnorablePackageError(message) {
+		l.Internal("Ignoring benign package error",
+			logger_domain.String(logFieldPackage, pkgPath),
+			logger_domain.String(logFieldError, message))
+		return false
+	}
+
+	if !isRoot && err.Kind != packages.ListError {
+		l.Internal("Skipping non-root package error",
+			logger_domain.String(logFieldPackage, pkgPath),
+			logger_domain.String(logFieldError, message),
+			logger_domain.String("kind", errorKindName(err.Kind)))
+		return false
+	}
+
+	if tolerateTypeErrors && err.Kind != packages.ListError {
+		l.Warn("Tolerating package error in best-effort introspection; generation continues on partial type information",
+			logger_domain.String(logFieldPackage, pkgPath),
+			logger_domain.String(logFieldError, message),
+			logger_domain.String("kind", errorKindName(err.Kind)))
+		return false
+	}
+
+	l.Warn("Package error detail", logger_domain.String(logFieldPackage, pkgPath), logger_domain.String(logFieldError, message))
+	return true
 }
 
 // errorKindName returns a human-readable name for a packages.ErrorKind value.
@@ -264,7 +300,7 @@ func filterValidPackages(ctx context.Context, pkgs []*packages.Package) []*packa
 	for _, pkg := range pkgs {
 		if pkg.Name == "" {
 			l.Internal("Filtering out package with empty name",
-				logger_domain.String("package", pkg.PkgPath))
+				logger_domain.String(logFieldPackage, pkg.PkgPath))
 			continue
 		}
 		valid = append(valid, pkg)

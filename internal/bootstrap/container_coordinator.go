@@ -750,10 +750,11 @@ func (c *Container) createDefaultTypeInspectorManager() {
 	}
 	c.typeInspectorBuilder = inspector_domain.NewTypeBuilder(
 		inspector_dto.Config{
-			BaseDir:           deref(serverConfig.Paths.BaseDir, "."),
-			ModuleName:        resolver.GetModuleName(),
-			BuildFlags:        inspector_dto.AnalysisBuildFlags,
-			UseStandardLoader: c.useStandardLoader,
+			BaseDir:            deref(serverConfig.Paths.BaseDir, "."),
+			ModuleName:         resolver.GetModuleName(),
+			BuildFlags:         inspector_dto.AnalysisBuildFlags,
+			UseStandardLoader:  c.useStandardLoader,
+			TolerateTypeErrors: true,
 		},
 		inspector_domain.WithProvider(provider),
 	)

@@ -380,9 +380,9 @@ func createIcons(factory safedisk.Factory, data ScaffoldData) error {
 	return createStaticFiles(factory, data.DestinationPath, IconsFS, files)
 }
 
-// createStyles copies the shared stylesheet(s) into the project's styles directory.
-// The scaffolded pages and partials import styles/theme.css for the project's design
-// tokens (font families, brand colours, and corner radii).
+// createStyles copies the shared stylesheet(s) into the project's styles directory. The
+// scaffolded pages and partials import styles/theme.css for the project's design tokens
+// (font families, brand colours, and corner radii).
 //
 // Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes data (ScaffoldData) which provides the destination path.

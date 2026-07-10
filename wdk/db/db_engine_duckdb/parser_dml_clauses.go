@@ -661,6 +661,13 @@ var (
 	insertSourceTerminators = map[string]struct{}{
 		keywordON: {}, keywordRETURNING: {},
 	}
+
+	// onConflictTargetPredicateTerminators lists the keywords that end the optional WHERE
+	// index-predicate of an ON CONFLICT target at depth zero. The predicate stops before the
+	// DO action; RETURNING guards against a malformed clause that omits the action entirely.
+	onConflictTargetPredicateTerminators = map[string]struct{}{
+		"DO": {}, keywordRETURNING: {},
+	}
 )
 
 // parseInsertSource skips the SELECT or query expression supplying an INSERT, stopping at
@@ -678,6 +685,7 @@ func (p *parser) parseOnConflict(tableName string) {
 
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
+		p.skipConflictTargetPredicate()
 	}
 
 	if p.matchKeyword(keywordON) {
@@ -700,6 +708,17 @@ func (p *parser) parseOnConflict(tableName string) {
 			}
 		}
 	}
+}
+
+// skipConflictTargetPredicate consumes the optional WHERE index_predicate that follows a
+// parenthesised ON CONFLICT target, used for partial-unique-index inference. The
+// predicate ends at the DO action, leaving the conflict action and any trailing RETURNING
+// clause for the caller to parse.
+func (p *parser) skipConflictTargetPredicate() {
+	if !p.matchKeyword(keywordWHERE) {
+		return
+	}
+	p.skipTokensUntilTerminatorSet(onConflictTargetPredicateTerminators)
 }
 
 // parseSetClause walks an UPDATE SET list, dispatching to single- or multi-column

@@ -46,6 +46,8 @@ func TestSnakeToPascalCase(t *testing.T) {
 		{"single", "Single"},
 		{"ALREADY_UPPER", "AlreadyUpper"},
 		{"user_ids", "UserIDs"},
+		{"jobCount", "JobCount"},
+		{"job_countValue", "JobCountValue"},
 
 		{"2fa_enabled", "_2faEnabled"},
 		{"123", "_123"},

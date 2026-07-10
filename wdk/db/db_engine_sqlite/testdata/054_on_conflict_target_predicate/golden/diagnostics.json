@@ -1,0 +1,13 @@
+[
+  {
+    "Filename": "insert_do_nothing.sql",
+    "Message": "query \"InsertEventDoNothing\" uses command \"one\" with ON CONFLICT DO NOTHING and RETURNING; a conflict skips the insert so RETURNING yields no row and the call returns sql.ErrNoRows. Use command \"exec\"/\"execrows\", or handle errors.Is(err, sql.ErrNoRows).",
+    "Code": "Q046",
+    "Suggestion": "",
+    "Line": 1,
+    "Column": 1,
+    "EndLine": 0,
+    "EndColumn": 0,
+    "Severity": 1
+  }
+]

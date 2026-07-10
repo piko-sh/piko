@@ -44,6 +44,7 @@ import (
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_go_sql"
+	"piko.sh/piko/internal/querier/querier_adapters/emitter_shared"
 	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -1068,6 +1069,10 @@ func writeSQLGeneratedFiles(factory safedisk.Factory, outputDir, name string, fi
 		return fmt.Errorf("creating output sandbox for database %q: %w", name, sandboxErr)
 	}
 	defer func() { _ = sandbox.Close() }()
+
+	if pruneErr := emitter_shared.PruneStaleGeneratedFiles(sandbox, emitter_shared.GeneratedFileNameSet(files)); pruneErr != nil {
+		return fmt.Errorf("pruning stale generated files for database %q: %w", name, pruneErr)
+	}
 
 	for _, file := range files {
 		if len(file.Content) == 0 {

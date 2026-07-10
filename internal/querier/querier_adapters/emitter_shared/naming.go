@@ -89,6 +89,13 @@ func SnakeToPascalCase(name string) string {
 			continue
 		}
 
+		if isMixedCaseSegment(segment) {
+			runes := []rune(segment)
+			runes[0] = unicode.ToUpper(runes[0])
+			builder.WriteString(string(runes))
+			continue
+		}
+
 		runes := []rune(lower)
 		runes[0] = unicode.ToUpper(runes[0])
 		builder.WriteString(string(runes))
@@ -135,6 +142,26 @@ func SnakeToCamelCase(name string) string {
 	}
 
 	return sanitiseGoIdentifier(builder.String())
+}
+
+// isMixedCaseSegment reports whether a segment already carries both an upper-case and a
+// lower-case letter, marking it as a camelCase token (such as "jobCount") whose interior
+// capitalisation must be preserved rather than folded away.
+//
+// Takes segment (string) which is a single underscore-delimited identifier segment.
+//
+// Returns bool which is true when the segment mixes upper- and lower-case letters.
+func isMixedCaseSegment(segment string) bool {
+	var hasLower, hasUpper bool
+	for _, character := range segment {
+		switch {
+		case unicode.IsLower(character):
+			hasLower = true
+		case unicode.IsUpper(character):
+			hasUpper = true
+		}
+	}
+	return hasLower && hasUpper
 }
 
 // sanitiseGoIdentifier ensures a converted name is a legal Go identifier stem.

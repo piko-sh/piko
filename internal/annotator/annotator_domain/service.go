@@ -1137,9 +1137,10 @@ func (s *AnnotatorService) initialiseTypeResolver(
 	if options != nil && options.resolver != nil {
 		resolver := options.resolver
 		s.typeInspector.SetConfig(inspector_dto.Config{
-			BaseDir:    resolver.GetBaseDir(),
-			ModuleName: resolver.GetModuleName(),
-			BuildFlags: inspector_dto.AnalysisBuildFlags,
+			BaseDir:            resolver.GetBaseDir(),
+			ModuleName:         resolver.GetModuleName(),
+			BuildFlags:         inspector_dto.AnalysisBuildFlags,
+			TolerateTypeErrors: true,
 		})
 	}
 

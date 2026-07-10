@@ -1,0 +1,1 @@
+{"description": "INSERT ... ON CONFLICT (col) WHERE <partial-index predicate> DO NOTHING RETURNING keeps the RETURNING columns"}

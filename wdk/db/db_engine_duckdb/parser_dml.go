@@ -188,6 +188,11 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	}
 
 	p.mustKeyword("INSERT")
+	if p.matchKeyword("OR") {
+		if !p.matchKeyword("REPLACE") {
+			p.matchKeyword("IGNORE")
+		}
+	}
 	p.matchKeyword("INTO")
 
 	schema, tableName := p.mustSchemaQualifiedName()

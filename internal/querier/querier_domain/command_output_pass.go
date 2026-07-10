@@ -20,8 +20,15 @@ package querier_domain
 
 import (
 	"fmt"
+	"regexp"
 
 	"piko.sh/piko/internal/querier/querier_dto"
+)
+
+var (
+	// conflictDoNothingPattern matches an ON CONFLICT ... DO NOTHING action across any
+	// interior whitespace and newlines.
+	conflictDoNothingPattern = regexp.MustCompile(`(?is)\bON\s+CONFLICT\b.*?\bDO\s+NOTHING\b`)
 )
 
 // commandOutputPass validates that the query command is consistent with the output
@@ -69,6 +76,24 @@ func (*commandOutputPass) Analyse(context *diagnosticContext) []querier_dto.Sour
 				Code:     querier_dto.CodeCommandOutputMismatch,
 			})
 		}
+	}
+
+	if context.Query.Command == querier_dto.QueryCommandOne &&
+		context.RawAnalysis != nil && context.RawAnalysis.HasReturning &&
+		conflictDoNothingPattern.MatchString(context.Query.SQL) {
+		diagnostics = append(diagnostics, querier_dto.SourceError{
+			Filename: context.Filename,
+			Line:     context.Query.Line,
+			Column:   1,
+			Message: fmt.Sprintf(
+				"query %q uses command %q with ON CONFLICT DO NOTHING and RETURNING; a conflict skips the "+
+					"insert so RETURNING yields no row and the call returns sql.ErrNoRows. Use command "+
+					"\"exec\"/\"execrows\", or handle errors.Is(err, sql.ErrNoRows).",
+				context.Query.Name, commandName(context.Query.Command),
+			),
+			Severity: querier_dto.SeverityWarning,
+			Code:     querier_dto.CodeConflictDoNothingReturning,
+		})
 	}
 
 	return diagnostics

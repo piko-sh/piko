@@ -1576,6 +1576,7 @@ func (p *parser) skipOnConflict(tableName string) {
 
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
+		p.skipConflictTargetPredicate()
 	}
 
 	if p.matchKeyword("DO") {
@@ -1591,4 +1592,22 @@ func (p *parser) skipOnConflict(tableName string) {
 			}
 		}
 	}
+}
+
+var (
+	// onConflictTargetPredicateTerminators lists the keywords that end the optional WHERE
+	// index-predicate of an ON CONFLICT target at depth zero. The predicate stops before the
+	// DO action; RETURNING guards against a malformed clause that omits the action entirely.
+	onConflictTargetPredicateTerminators = map[string]bool{
+		"DO": true, keywordRETURNING: true,
+	}
+)
+
+// skipConflictTargetPredicate consumes the optional WHERE index-predicate that follows a
+// parenthesised ON CONFLICT target, which SQLite permits for partial-index UPSERT.
+func (p *parser) skipConflictTargetPredicate() {
+	if !p.matchKeyword(keywordWHERE) {
+		return
+	}
+	p.parseExpressionUntilTerminator(onConflictTargetPredicateTerminators)
 }

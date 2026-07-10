@@ -2437,3 +2437,59 @@ func TestAnalyseQuery_HasWhereClause(t *testing.T) {
 		})
 	}
 }
+
+func TestAnalyseQuery_InsertPartitionClause(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		sql  string
+	}{
+		{
+			name: "single partition",
+			sql:  "INSERT INTO users PARTITION (p0) (name, email) VALUES (?, ?)",
+		},
+		{
+			name: "multiple partitions",
+			sql:  "INSERT INTO users PARTITION (p0, p1) (name, email) VALUES (?, ?)",
+		},
+		{
+			name: "replace with partition",
+			sql:  "REPLACE INTO users PARTITION (p0) (name, email) VALUES (?, ?)",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyseQuery(t, testCase.sql)
+
+			assert.Equal(t, "users", analysis.InsertTable)
+			assert.Equal(t, []string{"name", "email"}, analysis.InsertColumns,
+				"a PARTITION clause must not strand the parser before the column list")
+			require.Len(t, analysis.ParameterReferences, 2,
+				"a PARTITION clause must not drop the VALUES parameters")
+		})
+	}
+}
+
+func TestAnalyseQuery_InsertPartitionClauseKeepsReturning(t *testing.T) {
+	t.Parallel()
+
+	engine := NewMySQLEngine(WithReturningSupport(true))
+	stmts, err := engine.ParseStatements(
+		"INSERT INTO users PARTITION (p0) (name, email) VALUES (?, ?) RETURNING id")
+	require.NoError(t, err)
+	require.NotEmpty(t, stmts)
+
+	analysis, err := engine.AnalyseQuery(nil, stmts[0])
+	require.NoError(t, err)
+	require.NotNil(t, analysis)
+
+	assert.True(t, analysis.HasReturning,
+		"a PARTITION clause must not swallow a trailing RETURNING")
+	require.Len(t, analysis.OutputColumns, 1)
+	assert.Equal(t, "id", analysis.OutputColumns[0].Name)
+	require.Len(t, analysis.ParameterReferences, 2)
+}
