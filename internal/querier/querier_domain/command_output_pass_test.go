@@ -133,3 +133,87 @@ func TestCommandOutputPass(t *testing.T) {
 		})
 	}
 }
+
+func TestCommandOutputPassConflictDoNothingReturning(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		command      querier_dto.QueryCommand
+		sql          string
+		hasReturning bool
+		wantWarning  bool
+	}{
+		{
+			name:         "one with DO NOTHING and RETURNING warns",
+			command:      querier_dto.QueryCommandOne,
+			sql:          "INSERT INTO t (id) VALUES ($1) ON CONFLICT (id) DO NOTHING RETURNING id",
+			hasReturning: true,
+			wantWarning:  true,
+		},
+		{
+			name:         "DO UPDATE does not warn",
+			command:      querier_dto.QueryCommandOne,
+			sql:          "INSERT INTO t (id) VALUES ($1) ON CONFLICT (id) DO UPDATE SET id = $1 RETURNING id",
+			hasReturning: true,
+			wantWarning:  false,
+		},
+		{
+			name:         "many with DO NOTHING does not warn",
+			command:      querier_dto.QueryCommandMany,
+			sql:          "INSERT INTO t (id) VALUES ($1) ON CONFLICT (id) DO NOTHING RETURNING id",
+			hasReturning: true,
+			wantWarning:  false,
+		},
+		{
+			name:         "one with DO NOTHING but no RETURNING does not warn",
+			command:      querier_dto.QueryCommandOne,
+			sql:          "INSERT INTO t (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+			hasReturning: false,
+			wantWarning:  false,
+		},
+		{
+			name:         "lowercase do nothing across newlines and multiple spaces warns",
+			command:      querier_dto.QueryCommandOne,
+			sql:          "insert into t (id) values ($1)\non conflict (id)\ndo   nothing\nreturning id",
+			hasReturning: true,
+			wantWarning:  true,
+		},
+		{
+			name:         "DO NOTHING only inside a string literal without ON CONFLICT does not warn",
+			command:      querier_dto.QueryCommandOne,
+			sql:          "INSERT INTO logs (action) VALUES ('DO NOTHING') RETURNING id",
+			hasReturning: true,
+			wantWarning:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			pass := &commandOutputPass{}
+			context := &diagnosticContext{
+				Filename: "test.sql",
+				Query: &querier_dto.AnalysedQuery{
+					Name:          "TestQuery",
+					Command:       tt.command,
+					SQL:           tt.sql,
+					OutputColumns: []querier_dto.OutputColumn{{Name: "id"}},
+					Line:          3,
+				},
+				RawAnalysis: &querier_dto.RawQueryAnalysis{HasReturning: tt.hasReturning},
+			}
+
+			var found bool
+			for _, diagnostic := range pass.Analyse(context) {
+				if diagnostic.Code == querier_dto.CodeConflictDoNothingReturning {
+					found = true
+					assert.Equal(t, querier_dto.SeverityWarning, diagnostic.Severity)
+					assert.Contains(t, diagnostic.Message, "sql.ErrNoRows")
+				}
+			}
+			assert.Equal(t, tt.wantWarning, found)
+		})
+	}
+}

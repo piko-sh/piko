@@ -2412,3 +2412,71 @@ func TestAnalyseQuery_DollarParameterOverflowFallsBackToZero(t *testing.T) {
 	assert.Equal(t, 0, analysis.ParameterReferences[0].Number,
 		"an unparseable $N number should fall back to 0, not overflow to MaxInt64")
 }
+
+func TestAnalyseQuery_InsertOnConflictTargetPredicateReturning(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+
+	tests := []struct {
+		name           string
+		sql            string
+		expectedParams int
+	}{
+		{
+			name:           "DO NOTHING with partial-index predicate keeps RETURNING",
+			sql:            "INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) WHERE email IS NOT NULL DO NOTHING RETURNING id",
+			expectedParams: 2,
+		},
+		{
+			name:           "DO UPDATE with partial-index predicate keeps SET parameter and RETURNING",
+			sql:            "INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) WHERE email IS NOT NULL DO UPDATE SET name = $3 RETURNING id",
+			expectedParams: 3,
+		},
+		{
+			name:           "predicate over a parenthesised expression still reaches RETURNING",
+			sql:            "INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) WHERE (email IS NOT NULL AND name <> '') DO NOTHING RETURNING id",
+			expectedParams: 2,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyseQuery(t, catalogue, testCase.sql)
+
+			require.NotNil(t, analysis)
+			assert.True(t, analysis.HasReturning,
+				"RETURNING after a conflict-target WHERE predicate must be detected")
+			require.Len(t, analysis.OutputColumns, 1)
+			assert.Equal(t, "id", analysis.OutputColumns[0].Name)
+			require.Len(t, analysis.ParameterReferences, testCase.expectedParams)
+		})
+	}
+}
+
+func TestAnalyseQuery_InsertOrReplaceIgnorePrefix(t *testing.T) {
+	t.Parallel()
+
+	catalogue := buildTestCatalogue()
+
+	for _, sql := range []string{
+		"INSERT OR REPLACE INTO users (name, email) VALUES ($1, $2) RETURNING id",
+		"INSERT OR IGNORE INTO users (name, email) VALUES ($1, $2) RETURNING id",
+	} {
+		t.Run(sql, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyseQuery(t, catalogue, sql)
+
+			assert.Equal(t, "users", analysis.InsertTable,
+				"the OR REPLACE/IGNORE prefix must not be mistaken for the table name")
+			assert.Equal(t, []string{"name", "email"}, analysis.InsertColumns)
+			require.Len(t, analysis.ParameterReferences, 2)
+			assert.True(t, analysis.HasReturning)
+			require.Len(t, analysis.OutputColumns, 1)
+			assert.Equal(t, "id", analysis.OutputColumns[0].Name)
+		})
+	}
+}

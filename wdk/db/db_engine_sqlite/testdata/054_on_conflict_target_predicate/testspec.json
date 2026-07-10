@@ -1,0 +1,3 @@
+{
+  "description": "INSERT ... ON CONFLICT (col) WHERE <partial-index predicate> DO NOTHING / DO UPDATE ... RETURNING. The conflict-target WHERE predicate (partial-index UPSERT) must be consumed so the trailing RETURNING columns and the DO UPDATE SET parameter are not silently dropped."
+}

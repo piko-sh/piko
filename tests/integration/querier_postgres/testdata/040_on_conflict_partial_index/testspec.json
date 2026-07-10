@@ -1,0 +1,3 @@
+{
+  "description": "INSERT ... ON CONFLICT (unique_key) WHERE unique_key IS NOT NULL DO NOTHING RETURNING id (the auditor's worker_jobs upsert). The partial-index conflict-target predicate must not swallow the RETURNING clause."
+}

@@ -199,6 +199,7 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	p.matchKeyword("INTO")
 
 	schema, tableName := p.mustSchemaQualifiedName()
+	p.skipPartitionClause()
 	alias := p.parseOptionalAlias()
 	analysis.FromTables = []querier_dto.TableReference{{Schema: schema, Name: tableName, Alias: alias}}
 
@@ -237,6 +238,17 @@ func (p *parser) parseOptionalAlias() string {
 		}
 	}
 	return ""
+}
+
+// skipPartitionClause consumes an optional MySQL PARTITION (partition_list) clause that
+// may follow the target table of an INSERT or REPLACE.
+func (p *parser) skipPartitionClause() {
+	if !p.matchKeyword("PARTITION") {
+		return
+	}
+	if p.current().kind == tokenLeftParen {
+		p.mustSkipParenthesised()
+	}
 }
 
 // parseInsertColumnList parses the optional INSERT column-name list.

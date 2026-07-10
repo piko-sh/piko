@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_go_sql"
+	"piko.sh/piko/internal/querier/querier_adapters/emitter_shared"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 	"piko.sh/piko/wdk/db/db_engine_postgres"
@@ -201,6 +202,10 @@ func writeOutput(factory safedisk.Factory, base string, files []querier_dto.Gene
 		return fmt.Errorf("sandbox: %w", err)
 	}
 	defer func() { _ = innerSandbox.Close() }()
+
+	if err := emitter_shared.PruneStaleGeneratedFiles(innerSandbox, emitter_shared.GeneratedFileNameSet(files)); err != nil {
+		return fmt.Errorf("prune stale output: %w", err)
+	}
 
 	for _, generatedFile := range files {
 		if len(generatedFile.Content) == 0 {

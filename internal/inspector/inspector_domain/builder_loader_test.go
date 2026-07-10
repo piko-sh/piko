@@ -30,7 +30,7 @@ import (
 func TestAggregatePackageErrors_NoErrors(t *testing.T) {
 	t.Parallel()
 	root := &packages.Package{PkgPath: "example.com/app", Imports: map[string]*packages.Package{}}
-	err := aggregatePackageErrors(context.Background(), []*packages.Package{root})
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, false)
 	require.NoError(t, err)
 }
 
@@ -43,9 +43,37 @@ func TestAggregatePackageErrors_RootTypeErrorIsFatal(t *testing.T) {
 			{Msg: "undefined: Foo", Kind: packages.TypeError},
 		},
 	}
-	err := aggregatePackageErrors(context.Background(), []*packages.Package{root})
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "undefined: Foo")
+}
+
+func TestAggregatePackageErrors_RootTypeErrorToleratedWhenBestEffort(t *testing.T) {
+	t.Parallel()
+	root := &packages.Package{
+		PkgPath: "example.com/app",
+		Imports: map[string]*packages.Package{},
+		Errors: []packages.Error{
+			{Msg: "undefined: Foo", Kind: packages.TypeError},
+			{Msg: "expected declaration", Kind: packages.ParseError},
+		},
+	}
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, true)
+	require.NoError(t, err, "best-effort introspection must not abort on root type or parse errors")
+}
+
+func TestAggregatePackageErrors_RootListErrorFatalEvenWhenTolerant(t *testing.T) {
+	t.Parallel()
+	root := &packages.Package{
+		PkgPath: "example.com/app",
+		Imports: map[string]*packages.Package{},
+		Errors: []packages.Error{
+			{Msg: "no required module provides package github.com/missing/module", Kind: packages.ListError},
+		},
+	}
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, true)
+	require.Error(t, err, "a package-list error leaves nothing to introspect and stays fatal")
+	assert.Contains(t, err.Error(), "no required module provides package")
 }
 
 func TestAggregatePackageErrors_DependencyTypeErrorIsSkipped(t *testing.T) {
@@ -62,7 +90,7 @@ func TestAggregatePackageErrors_DependencyTypeErrorIsSkipped(t *testing.T) {
 		PkgPath: "example.com/app",
 		Imports: map[string]*packages.Package{"github.com/mattn/go-sqlite3": dep},
 	}
-	err := aggregatePackageErrors(context.Background(), []*packages.Package{root})
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, false)
 	require.NoError(t, err)
 }
 
@@ -79,7 +107,7 @@ func TestAggregatePackageErrors_DependencyListErrorIsFatal(t *testing.T) {
 		PkgPath: "example.com/app",
 		Imports: map[string]*packages.Package{"github.com/missing/module": dep},
 	}
-	err := aggregatePackageErrors(context.Background(), []*packages.Package{root})
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no required module provides package")
 }
@@ -97,7 +125,7 @@ func TestAggregatePackageErrors_DependencyParseErrorIsSkipped(t *testing.T) {
 		PkgPath: "example.com/app",
 		Imports: map[string]*packages.Package{"github.com/example/dep": dep},
 	}
-	err := aggregatePackageErrors(context.Background(), []*packages.Package{root})
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, false)
 	require.NoError(t, err)
 }
 
@@ -111,7 +139,7 @@ func TestAggregatePackageErrors_IgnorableErrorSkippedRegardless(t *testing.T) {
 			{Msg: "undefined: _Ctype_int", Kind: packages.TypeError},
 		},
 	}
-	err := aggregatePackageErrors(context.Background(), []*packages.Package{root})
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, false)
 	require.NoError(t, err)
 }
 
@@ -132,7 +160,7 @@ func TestAggregatePackageErrors_TransitiveDependencyTypeErrorIsSkipped(t *testin
 		PkgPath: "example.com/app",
 		Imports: map[string]*packages.Package{"github.com/example/dep": dep},
 	}
-	err := aggregatePackageErrors(context.Background(), []*packages.Package{root})
+	err := aggregatePackageErrors(context.Background(), []*packages.Package{root}, false)
 	require.NoError(t, err)
 }
 

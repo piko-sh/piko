@@ -2209,3 +2209,46 @@ func TestAnalyseQuery_NonDML(t *testing.T) {
 	assert.Empty(t, analysis.FromTables, "non-DML should have no FROM tables")
 	assert.Empty(t, analysis.ParameterReferences, "non-DML should have no parameter references")
 }
+
+func TestAnalyseQuery_InsertOnConflictTargetPredicateReturning(t *testing.T) {
+	t.Parallel()
+
+	catalogue := newPostgresCatalogue()
+
+	tests := []struct {
+		name           string
+		sql            string
+		expectedParams int
+	}{
+		{
+			name:           "DO NOTHING RETURNING",
+			sql:            "INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) WHERE email IS NOT NULL DO NOTHING RETURNING id",
+			expectedParams: 2,
+		},
+		{
+			name:           "DO SET RETURNING",
+			sql:            "INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) WHERE email IS NOT NULL DO UPDATE SET name = $3 RETURNING id",
+			expectedParams: 3,
+		},
+		{
+			name:           "predicate over a parenthesised expression still reaches RETURNING",
+			sql:            "INSERT INTO users (name, email) VALUES ($1, $2) ON CONFLICT (email) WHERE (email IS NOT NULL AND name <> '') DO NOTHING RETURNING id",
+			expectedParams: 2,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyseQuery(t, catalogue, testCase.sql)
+
+			require.NotNil(t, analysis)
+
+			assert.True(t, analysis.HasReturning, "RETURNING has failed to be properly defined")
+			require.Len(t, analysis.OutputColumns, 1)
+			assert.Equal(t, "id", analysis.OutputColumns[0].Name)
+			require.Len(t, analysis.ParameterReferences, testCase.expectedParams)
+		})
+	}
+}
