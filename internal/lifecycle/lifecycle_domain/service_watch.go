@@ -362,7 +362,7 @@ func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 	}
 	defer func() { _ = file.Close() }()
 
-	profiles := GetProfilesForFile(fec.artefactID, nil)
+	profiles := GetProfilesForFile(fec.artefactID, ResolverModuleName(ls.resolver), nil)
 	normalisedID := NormaliseAssetArtefactID(fec.artefactID)
 	_, err = ls.registryService.UpsertArtefact(ctx, normalisedID, fec.relPath, file, "local_disk_cache", profiles)
 	if err != nil {

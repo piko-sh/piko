@@ -19,15 +19,18 @@
 package binder
 
 import (
+	"bytes"
 	"context"
+	stdjson "encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -199,16 +202,7 @@ func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string
 		return fmt.Errorf("validating bind target: %w", err)
 	}
 
-	var limits binderOptions
-	if len(opts) == 0 {
-		limits = b.loadDefaults()
-	} else {
-		bindOpts := &BindOptions{}
-		for _, opt := range opts {
-			opt(bindOpts)
-		}
-		limits = b.resolveOptions(bindOpts)
-	}
+	limits := b.resolveLimits(opts)
 
 	v := reflect.ValueOf(destination).Elem()
 
@@ -230,18 +224,28 @@ func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string
 // map[string]any, typically produced by JSON decoding. It flattens the nested map into
 // bracket-notation form data and delegates to the standard Bind pipeline.
 //
+// Because the source is already decoded, numbers have collapsed to float64 and a
+// json.RawMessage cannot be reconstructed byte-for-byte; callers that need either
+// preserved (opaque JSON, 64-bit identifiers, canonical payloads) should use BindJSON,
+// which retains the original bytes.
+//
 // Takes destination (any) which is the destination struct pointer to populate.
 // Takes source (map[string]any) which provides the source data for binding.
 // Takes opts (...Option) which override global settings for this call.
 //
 // Returns error as a MultiError containing all binding errors, or nil if successful.
 func (b *ASTBinder) BindMap(ctx context.Context, destination any, source map[string]any, opts ...Option) error {
-	flattened := flattenMapToFormData(source)
-	return b.Bind(ctx, destination, flattened, opts...)
+	limits := b.resolveLimits(opts)
+	remaining, subtreeErrs := b.bindWholeSubtreeFields(destination, source, limits)
+	flattened := flattenMapToFormData(remaining)
+	bindErr := b.Bind(ctx, destination, flattened, opts...)
+	return mergeBindErrors(subtreeErrs, bindErr)
 }
 
 // BindJSON populates the fields of the destination struct from raw JSON bytes. It decodes
-// the JSON into a map[string]any, then delegates to BindMap.
+// the JSON into per-field raw messages, binds any whole-subtree fields directly from
+// their original bytes (so json.RawMessage fields and 64-bit integers survive
+// byte-for-byte), then flattens and binds the remaining scalar and well-known fields.
 //
 // Inputs larger than the configured maximum (see SetMaxBindJSONBytes) are rejected before
 // decoding. The existing maxPathDepth limit covers the resolved structure; this size cap
@@ -257,11 +261,15 @@ func (b *ASTBinder) BindJSON(ctx context.Context, destination any, source []byte
 	if maxBytes := b.maxBindJSONBytes.Load(); maxBytes > 0 && int64(len(source)) > maxBytes {
 		return fmt.Errorf("BindJSON input %d bytes exceeds limit %d: %w", len(source), maxBytes, ErrBindJSONTooLarge)
 	}
-	var m map[string]any
-	if err := json.Unmarshal(source, &m); err != nil {
+	var rawFields map[string]stdjson.RawMessage
+	if err := stdjson.Unmarshal(source, &rawFields); err != nil {
 		return fmt.Errorf("decoding JSON for binding: %w", err)
 	}
-	return b.BindMap(ctx, destination, m, opts...)
+	limits := b.resolveLimits(opts)
+	remaining, subtreeErrs := b.bindWholeSubtreeFieldsRaw(destination, rawFields, limits)
+	flattened := flattenMapToFormData(remaining)
+	bindErr := b.Bind(ctx, destination, flattened, opts...)
+	return mergeBindErrors(subtreeErrs, bindErr)
 }
 
 // RegisterConverter registers a custom function to convert string values to a specific
@@ -348,6 +356,219 @@ func (b *ASTBinder) SetMaxValueLength(length int) {
 // or cause an error for each unknown key (false, the default).
 func (b *ASTBinder) SetIgnoreUnknownKeys(ignore bool) {
 	b.ignoreUnknownKeys.Store(ignore)
+}
+
+// resolveLimits resolves the effective binder options for a call, using the binder's
+// global defaults when no per-call options are supplied.
+//
+// Takes opts ([]Option) which override the binder's global defaults for this call.
+//
+// Returns binderOptions which are the effective protection limits for the call.
+func (b *ASTBinder) resolveLimits(opts []Option) binderOptions {
+	if len(opts) == 0 {
+		return b.loadDefaults()
+	}
+	bindOpts := &BindOptions{}
+	for _, opt := range opts {
+		opt(bindOpts)
+	}
+	return b.resolveOptions(bindOpts)
+}
+
+// bindWholeSubtreeFields binds each top-level opaque field directly from its decoded
+// source subtree. The original source map is never mutated, and a non-struct-pointer
+// destination is left for the flatten pass to reject.
+//
+// Takes destination (any) which is the struct pointer being populated.
+// Takes source (map[string]any) which is the decoded request body.
+// Takes limits (binderOptions) which supply the DoS ceilings for the subtree.
+//
+// Returns map[string]any which holds the source keys still to be bound by the flatten
+// pass.
+// Returns MultiError which accumulates any per-field binding failures.
+func (b *ASTBinder) bindWholeSubtreeFields(destination any, source map[string]any, limits binderOptions) (map[string]any, MultiError) {
+	elem, ok := structPointerElem(destination)
+	if !ok {
+		return source, nil
+	}
+
+	var remaining map[string]any
+	var errs MultiError
+
+	present := func(key string) bool { _, present := source[key]; return present }
+	for _, field := range reflect.VisibleFields(elem.Type()) {
+		key, ok := b.subtreeFieldKey(field, present)
+		if !ok {
+			continue
+		}
+		target, err := elem.FieldByIndexErr(field.Index)
+		if err != nil || !target.CanSet() {
+			continue
+		}
+
+		if remaining == nil {
+			remaining = maps.Clone(source)
+		}
+		delete(remaining, key)
+
+		if err := bindSubtreeFieldValue(key, source[key], target, limits); err != nil {
+			accumulateError(&errs, key, err)
+		}
+	}
+
+	if remaining == nil {
+		remaining = source
+	}
+	return remaining, errs
+}
+
+// bindWholeSubtreeFieldsRaw is the byte-preserving counterpart of bindWholeSubtreeFields
+// used by BindJSON. Whole-subtree fields are bound from their original JSON bytes so a
+// json.RawMessage field and any 64-bit integer survive byte-for-byte.
+//
+// Takes destination (any) which is the struct pointer being populated.
+// Takes source (map[string]stdjson.RawMessage) which holds each top field's raw JSON.
+// Takes limits (binderOptions) which supply the DoS ceilings for the subtree.
+//
+// Returns map[string]any which holds the decoded values left for the flatten pass.
+// Returns MultiError which accumulates any per-field binding failures.
+func (b *ASTBinder) bindWholeSubtreeFieldsRaw(destination any, source map[string]stdjson.RawMessage, limits binderOptions) (map[string]any, MultiError) {
+	elem, ok := structPointerElem(destination)
+	if !ok {
+		return rawFieldsToAnyMap(source), nil
+	}
+
+	subtreeKeys := make(map[string]struct{})
+	var errs MultiError
+
+	present := func(key string) bool { _, present := source[key]; return present }
+	for _, field := range reflect.VisibleFields(elem.Type()) {
+		key, ok := b.subtreeFieldKey(field, present)
+		if !ok {
+			continue
+		}
+		target, err := elem.FieldByIndexErr(field.Index)
+		if err != nil || !target.CanSet() {
+			continue
+		}
+		subtreeKeys[key] = struct{}{}
+		if err := bindSubtreeFieldRaw(key, source[key], target, limits); err != nil {
+			accumulateError(&errs, key, err)
+		}
+	}
+
+	remaining := make(map[string]any, len(source))
+	for key, raw := range source {
+		if _, isSubtree := subtreeKeys[key]; isSubtree {
+			continue
+		}
+
+		value, err := decodeJSONUseNumber(raw)
+		if err != nil {
+			accumulateError(&errs, key, errInvalidPath{path: key, err: fmt.Errorf("decoding value: %w", err)})
+			continue
+		}
+		remaining[key] = value
+	}
+	return remaining, errs
+}
+
+// subtreeFieldKey reports whether an exported struct field present in the source should
+// be bound directly from its JSON subtree, returning the source key to bind from.
+//
+// Takes field (reflect.StructField) which is the destination struct field being
+// considered.
+// Takes present (func(string) bool) which reports whether the source holds a given key.
+//
+// Returns string which is the source key to bind from when the bool is true.
+// Returns bool which is true when the field should be bound from its whole subtree.
+func (b *ASTBinder) subtreeFieldKey(field reflect.StructField, present func(string) bool) (string, bool) {
+	if field.PkgPath != "" || field.Anonymous {
+		return "", false
+	}
+	key, ignored := parseFieldPath(&field, "")
+	if ignored {
+		return "", false
+	}
+	if !present(key) {
+		return "", false
+	}
+	return key, b.isWholeSubtreeField(field.Type)
+}
+
+// subtreeStats summarises a decoded JSON value for DoS-limit checks.
+type subtreeStats struct {
+	// depth is the deepest object or array nesting level found.
+	depth int
+
+	// fieldCount is the total number of object keys and array elements.
+	fieldCount int
+
+	// maxArrayLen is the length of the longest array, in elements.
+	maxArrayLen int
+
+	// maxValueLen is the length of the longest string leaf, in bytes.
+	maxValueLen int
+}
+
+// isWholeSubtreeField reports whether a field type must be bound by unmarshalling its
+// JSON subtree directly rather than through the flatten-and-rebind path. Types with an
+// established conversion path are excluded so their custom parsing is preserved.
+//
+// Takes t (reflect.Type) which is the destination field type.
+//
+// Returns bool which is true when the field must be bound from its whole JSON subtree.
+func (b *ASTBinder) isWholeSubtreeField(t reflect.Type) bool {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t == reflect.TypeFor[stdjson.RawMessage]() {
+		return true
+	}
+	if isCustomType(t) || hasWellKnownConverter(t) || b.hasRegisteredConverter(t) {
+		return false
+	}
+	if _, ok := implementsTextUnmarshaler(t); ok {
+		return false
+	}
+	switch t.Kind() {
+	case reflect.Struct, reflect.Map, reflect.Interface:
+		return true
+	case reflect.Slice, reflect.Array:
+		elem := t.Elem()
+		for elem.Kind() == reflect.Pointer {
+			elem = elem.Elem()
+		}
+
+		if isCustomType(elem) || hasWellKnownConverter(elem) || b.hasRegisteredConverter(elem) {
+			return false
+		}
+		if _, ok := implementsTextUnmarshaler(elem); ok {
+			return false
+		}
+		switch elem.Kind() {
+		case reflect.Struct, reflect.Map, reflect.Interface, reflect.Slice, reflect.Array:
+			return true
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+}
+
+// hasRegisteredConverter reports whether the type has a built-in or user-registered
+// string converter, in which case it keeps the flatten path rather than a JSON
+// round-trip.
+//
+// Takes t (reflect.Type) which is the type to inspect.
+//
+// Returns bool which is true when a built-in or user converter is registered for t.
+func (b *ASTBinder) hasRegisteredConverter(t reflect.Type) bool {
+	if _, ok := wellKnownTypeConverters[t]; ok {
+		return true
+	}
+	return b.getUserConverter(t) != nil
 }
 
 // loadDefaults gets all protection limits using the global defaults only. This is the
@@ -708,4 +929,369 @@ func isSimpleIdentifier(path string) bool {
 		}
 	}
 	return true
+}
+
+// rawFieldsToAnyMap decodes every raw field to a value on a best-effort basis so a
+// non-struct destination still reaches the flatten pass, where the real target error is
+// reported.
+//
+// Takes source (map[string]stdjson.RawMessage) which holds each field's raw JSON.
+//
+// Returns map[string]any which holds the successfully decoded field values.
+func rawFieldsToAnyMap(source map[string]stdjson.RawMessage) map[string]any {
+	out := make(map[string]any, len(source))
+	for key, raw := range source {
+		value, err := decodeJSONUseNumber(raw)
+		if err != nil {
+			continue
+		}
+		out[key] = value
+	}
+	return out
+}
+
+// structPointerElem returns the struct value that a non-nil pointer destination refers
+// to.
+//
+// Takes destination (any) which should be a non-nil pointer to a struct.
+//
+// Returns reflect.Value which is the referenced struct value when the bool is true.
+// Returns bool which is true when destination is a non-nil pointer to a struct.
+func structPointerElem(destination any) (reflect.Value, bool) {
+	rv := reflect.ValueOf(destination)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return reflect.Value{}, false
+	}
+	elem := rv.Elem()
+	if elem.Kind() != reflect.Struct {
+		return reflect.Value{}, false
+	}
+	return elem, true
+}
+
+// bindSubtreeFieldValue enforces the DoS limits on an already-decoded JSON subtree and
+// binds it into target. It is used by BindMap, whose source is a decoded value map.
+//
+// Takes key (string) which is the source key, used for error context.
+// Takes raw (any) which is the already-decoded subtree value.
+// Takes target (reflect.Value) which is the settable destination field.
+// Takes limits (binderOptions) which supply the DoS ceilings for the subtree.
+//
+// Returns error which wraps any limit breach or decode failure, or nil on success.
+func bindSubtreeFieldValue(key string, raw any, target reflect.Value, limits binderOptions) error {
+	if err := checkSubtreeLimits(key, raw, limits); err != nil {
+		return err
+	}
+	remapped := remapSubtreeKeys(raw, target.Type())
+	data, err := stdjson.Marshal(remapped)
+	if err != nil {
+		return errSetField{path: key, field: key, fieldType: target.Type().String(), err: fmt.Errorf("re-encoding value for binding: %w", err)}
+	}
+	return decodeSubtreeBytes(key, data, target, !limits.ignoreUnknownKeys)
+}
+
+// bindSubtreeFieldRaw binds a whole-subtree field from its original JSON bytes,
+// preserving a json.RawMessage field byte-for-byte and keeping integer precision for
+// everything else.
+//
+// Takes key (string) which is the source key, used for error context.
+// Takes raw (stdjson.RawMessage) which is the field's original JSON bytes.
+// Takes target (reflect.Value) which is the settable destination field.
+// Takes limits (binderOptions) which supply the DoS ceilings for the subtree.
+//
+// Returns error which wraps any limit breach or decode failure, or nil on success.
+func bindSubtreeFieldRaw(key string, raw stdjson.RawMessage, target reflect.Value, limits binderOptions) error {
+	decoded, err := decodeJSONUseNumber(raw)
+	if err != nil {
+		return errInvalidPath{path: key, err: fmt.Errorf("decoding value: %w", err)}
+	}
+	if err := checkSubtreeLimits(key, decoded, limits); err != nil {
+		return err
+	}
+	if isRawMessageType(target.Type()) {
+		return decodeSubtreeBytes(key, raw, target, false)
+	}
+	remapped := remapSubtreeKeys(decoded, target.Type())
+	data, err := stdjson.Marshal(remapped)
+	if err != nil {
+		return errSetField{path: key, field: key, fieldType: target.Type().String(), err: fmt.Errorf("re-encoding value for binding: %w", err)}
+	}
+	return decodeSubtreeBytes(key, data, target, !limits.ignoreUnknownKeys)
+}
+
+// checkSubtreeLimits enforces the flatten path's depth, field-count, slice-length and
+// value-length limits on a JSON subtree so a whole-subtree bind cannot bypass them. All
+// breaches are reported as errInvalidPath so the SafeMessage convention holds.
+//
+// Takes key (string) which is the source key, used for error context.
+// Takes raw (any) which is the decoded subtree value to inspect.
+// Takes limits (binderOptions) which supply the DoS ceilings to enforce.
+//
+// Returns error which is an errInvalidPath on a breach, or nil when within limits.
+func checkSubtreeLimits(key string, raw any, limits binderOptions) error {
+	stats := subtreeStatsOf(raw, limits.maxPathDepth)
+	if limits.maxPathDepth > 0 && 1+stats.depth > limits.maxPathDepth {
+		return errInvalidPath{path: key, err: fmt.Errorf("path depth exceeds maximum limit of %d", limits.maxPathDepth)}
+	}
+	if limits.maxFieldCount > 0 && stats.fieldCount > limits.maxFieldCount {
+		return errInvalidPath{path: key, err: fmt.Errorf("number of form fields (%d) exceeds maximum limit of %d", stats.fieldCount, limits.maxFieldCount)}
+	}
+	if limits.maxSliceSize > 0 && stats.maxArrayLen > limits.maxSliceSize {
+		return errInvalidPath{path: key, err: fmt.Errorf("slice length (%d) exceeds maximum limit of %d", stats.maxArrayLen, limits.maxSliceSize)}
+	}
+	if limits.maxValueLength > 0 && stats.maxValueLen > limits.maxValueLength {
+		return errInvalidPath{path: key, err: fmt.Errorf("value length exceeds maximum limit of %d", limits.maxValueLength)}
+	}
+	return nil
+}
+
+// subtreeStatsOf walks a decoded JSON value collecting its nesting depth, entry count,
+// longest array and longest string value. Recursion stops once maxDepth is exceeded so a
+// hostile deeply-nested value cannot exhaust the stack before the depth limit is checked.
+//
+// Takes value (any) which is the decoded JSON value to summarise.
+// Takes maxDepth (int) which caps the recursion depth; 0 disables the bound.
+//
+// Returns subtreeStats which summarises the value for the DoS-limit checks.
+func subtreeStatsOf(value any, maxDepth int) subtreeStats {
+	var s subtreeStats
+	walkSubtreeStats(value, 0, maxDepth, &s)
+	return s
+}
+
+// walkSubtreeStats recursively accumulates a decoded JSON value's statistics into s,
+// stopping once depth exceeds maxDepth.
+//
+// Takes value (any) which is the current decoded JSON node.
+// Takes depth (int) which is the current nesting level.
+// Takes maxDepth (int) which caps the recursion depth; 0 disables the bound.
+// Takes s (*subtreeStats) which accumulates the collected statistics.
+func walkSubtreeStats(value any, depth, maxDepth int, s *subtreeStats) {
+	if maxDepth > 0 && depth > maxDepth {
+		s.depth = max(s.depth, depth)
+		return
+	}
+	switch v := value.(type) {
+	case map[string]any:
+		s.depth = max(s.depth, depth+1)
+		s.fieldCount += len(v)
+		for _, child := range v {
+			walkSubtreeStats(child, depth+1, maxDepth, s)
+		}
+	case []any:
+		s.depth = max(s.depth, depth+1)
+		s.fieldCount += len(v)
+		s.maxArrayLen = max(s.maxArrayLen, len(v))
+		for _, child := range v {
+			walkSubtreeStats(child, depth+1, maxDepth, s)
+		}
+	case string:
+		s.maxValueLen = max(s.maxValueLen, len(v))
+	default:
+	}
+}
+
+// decodeSubtreeBytes unmarshals JSON bytes into target, rejecting unknown struct fields
+// in strict mode. Errors are wrapped as errSetField so the SafeMessage convention holds.
+//
+// Takes key (string) which is the source key, used for error context.
+// Takes data ([]byte) which is the JSON to decode.
+// Takes target (reflect.Value) which is the settable destination field.
+// Takes disallowUnknown (bool) which rejects unknown struct fields when true.
+//
+// Returns error which is an errSetField on failure, or nil on success.
+func decodeSubtreeBytes(key string, data []byte, target reflect.Value, disallowUnknown bool) error {
+	decoder := stdjson.NewDecoder(bytes.NewReader(data))
+	if disallowUnknown {
+		decoder.DisallowUnknownFields()
+	}
+	if err := decoder.Decode(target.Addr().Interface()); err != nil {
+		return errSetField{path: key, field: key, fieldType: target.Type().String(), err: fmt.Errorf("decoding value: %w", err)}
+	}
+	return nil
+}
+
+// decodeJSONUseNumber decodes JSON bytes into a value, keeping numbers as json.Number so
+// a subsequent re-encode does not lose the integer precision a float64 intermediate
+// would.
+//
+// Takes data ([]byte) which is the JSON to decode.
+//
+// Returns any which is the decoded value with numbers preserved as json.Number.
+// Returns error which is non-nil when the bytes are not valid JSON.
+func decodeJSONUseNumber(data []byte) (any, error) {
+	decoder := stdjson.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+// isRawMessageType reports whether t, after dereferencing pointers, is a json.RawMessage.
+//
+// Takes t (reflect.Type) which is the type to inspect.
+//
+// Returns bool which is true when t is a json.RawMessage or pointer to one.
+func isRawMessageType(t reflect.Type) bool {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	return t == reflect.TypeFor[stdjson.RawMessage]()
+}
+
+// remapSubtreeKeys rewrites a decoded JSON value's keys so a later encoding/json decode
+// into t honours the binder's bind and json tag precedence, recursing through pointer,
+// slice, array and map element types. Types with their own JSON handling are returned
+// unchanged.
+//
+// Takes value (any) which is the decoded JSON value to rewrite.
+// Takes t (reflect.Type) which is the destination type the value will decode into.
+//
+// Returns any which is the value with struct keys remapped for encoding/json.
+func remapSubtreeKeys(value any, t reflect.Type) any {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	switch t.Kind() {
+	case reflect.Struct:
+		nested, ok := value.(map[string]any)
+		if !ok || isJSONNativeType(t) {
+			return value
+		}
+		return remapStructKeys(nested, t)
+	case reflect.Slice, reflect.Array:
+		elements, ok := value.([]any)
+		if !ok {
+			return value
+		}
+		elementType := t.Elem()
+		out := make([]any, len(elements))
+		for i, child := range elements {
+			out[i] = remapSubtreeKeys(child, elementType)
+		}
+		return out
+	case reflect.Map:
+		nested, ok := value.(map[string]any)
+		if !ok {
+			return value
+		}
+		elementType := t.Elem()
+		out := make(map[string]any, len(nested))
+		for key, child := range nested {
+			out[key] = remapSubtreeKeys(child, elementType)
+		}
+		return out
+	default:
+		return value
+	}
+}
+
+// remapStructKeys re-keys a decoded object so encoding/json binds it into t while
+// honouring bind and json tag precedence. Source keys that match no field pass through
+// unchanged so strict mode still rejects genuine unknowns.
+//
+// Takes source (map[string]any) which is the decoded object to re-key.
+// Takes t (reflect.Type) which is the destination struct type.
+//
+// Returns map[string]any which is the object with keys matched to encoding/json field
+// names.
+func remapStructKeys(source map[string]any, t reflect.Type) map[string]any {
+	out := make(map[string]any, len(source))
+	matched := make(map[string]struct{}, len(source))
+	for _, field := range reflect.VisibleFields(t) {
+		if field.Anonymous || field.PkgPath != "" {
+			continue
+		}
+		key, ignored := parseFieldPath(&field, "")
+		if ignored {
+			continue
+		}
+		child, present := source[key]
+		if !present {
+			continue
+		}
+		matched[key] = struct{}{}
+		out[jsonMatchKey(&field)] = remapSubtreeKeys(child, field.Type)
+	}
+	for key, child := range source {
+		if _, ok := matched[key]; ok {
+			continue
+		}
+		if _, exists := out[key]; exists {
+			continue
+		}
+		out[key] = child
+	}
+	return out
+}
+
+// jsonMatchKey returns the object key that encoding/json matches when decoding into
+// field, preferring the json tag name and falling back to the Go field name.
+//
+// Takes field (*reflect.StructField) which is the destination struct field.
+//
+// Returns string which is the object key encoding/json will match for the field.
+func jsonMatchKey(field *reflect.StructField) string {
+	tag := field.Tag.Get("json")
+	if tag != "" && tag != "-" {
+		if name, _, _ := strings.Cut(tag, ","); name != "" {
+			return name
+		}
+	}
+	return field.Name
+}
+
+// isJSONNativeType reports whether a struct type manages its own JSON representation, in
+// which case its internal fields must not be remapped.
+//
+// Takes t (reflect.Type) which is the struct type to inspect.
+//
+// Returns bool which is true for a well-known converter type or a json.Unmarshaler.
+func isJSONNativeType(t reflect.Type) bool {
+	if isCustomType(t) || hasWellKnownConverter(t) {
+		return true
+	}
+	return implementsJSONUnmarshaler(t)
+}
+
+// implementsJSONUnmarshaler reports whether a type or its pointer form implements
+// json.Unmarshaler.
+//
+// Takes t (reflect.Type) which is the type to inspect.
+//
+// Returns bool which is true when t or *t implements json.Unmarshaler.
+func implementsJSONUnmarshaler(t reflect.Type) bool {
+	ptr := reflect.New(t)
+	if _, ok := reflect.TypeAssert[stdjson.Unmarshaler](ptr); ok {
+		return true
+	}
+	if _, ok := reflect.TypeAssert[stdjson.Unmarshaler](ptr.Elem()); ok {
+		return true
+	}
+	return false
+}
+
+// mergeBindErrors combines the subtree binding errors with the flatten-pass error into a
+// single error, preserving MultiError semantics.
+//
+// Takes subtreeErrs (MultiError) which holds the per-field subtree binding errors.
+// Takes bindErr (error) which is the flatten-pass result, possibly nil.
+//
+// Returns error which merges both sources, or nil when neither reported a failure.
+func mergeBindErrors(subtreeErrs MultiError, bindErr error) error {
+	if len(subtreeErrs) == 0 {
+		return bindErr
+	}
+	if bindErr == nil {
+		return subtreeErrs
+	}
+	var flat MultiError
+	if errors.As(bindErr, &flat) {
+		maps.Copy(subtreeErrs, flat)
+		return subtreeErrs
+	}
+	subtreeErrs["_binding"] = bindErr
+	return subtreeErrs
 }

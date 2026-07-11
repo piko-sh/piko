@@ -41,6 +41,9 @@ const (
 	// typeObject is the type name for JavaScript object literals.
 	typeObject = "object"
 
+	// typeAny is the fallback type name for values with no inferable type.
+	typeAny = "any"
+
 	// propTagName is the property key for a custom element's tag name.
 	propTagName = "tagName"
 

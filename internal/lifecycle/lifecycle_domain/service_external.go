@@ -306,7 +306,7 @@ func (ls *lifecycleService) seedArtefactAsync(
 		}
 		defer func() { _ = file.Close() }()
 
-		profiles := GetProfilesForFile(artefactID, nil)
+		profiles := GetProfilesForFile(artefactID, ResolverModuleName(ls.resolver), nil)
 		normalisedID := NormaliseAssetArtefactID(artefactID)
 		if _, upsertErr := ls.registryService.UpsertArtefact(ctx, normalisedID, sourcePath, file, "local_disk_cache", profiles); upsertErr != nil {
 			l.Error("Failed to seed external "+kind+" artefact",

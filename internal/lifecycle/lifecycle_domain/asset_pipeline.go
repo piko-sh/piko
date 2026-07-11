@@ -234,7 +234,7 @@ func (p *AssetPipelineOrchestrator) processManifestAsset(ctx context.Context, as
 	case "video":
 		desiredProfiles = p.generateVideoProfiles(asset)
 	default:
-		desiredProfiles = GetProfilesForFile(asset.SourcePath, nil)
+		desiredProfiles = GetProfilesForFile(asset.SourcePath, ResolverModuleName(p.resolver), nil)
 	}
 
 	var sourceData io.Reader

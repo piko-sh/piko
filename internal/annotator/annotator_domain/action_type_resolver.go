@@ -21,6 +21,8 @@ package annotator_domain
 import (
 	"context"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -46,6 +48,9 @@ const (
 
 	// pointerPrefix is the symbol used to mark pointer types in Go type strings.
 	pointerPrefix = "*"
+
+	// slicePrefix is the marker for slice types in Go type strings.
+	slicePrefix = "[]"
 )
 
 // ResolveActionTypes enriches the ActionManifest with full type information for
@@ -363,15 +368,17 @@ func extractFieldsFromType(
 
 	for _, field := range t.Fields {
 		fieldInfo := annotator_dto.ActionFieldInfo{
-			Name:       field.Name,
-			GoType:     field.TypeString,
-			TSType:     goTypeToTSType(field.TypeString),
-			JSONName:   extractJSONTag(field.RawTag),
-			Validation: extractValidateTag(field.RawTag),
-			Optional:   isOptionalField(field),
+			Name:         field.Name,
+			GoType:       field.TypeString,
+			TSType:       goTypeToTSType(field.TypeString),
+			JSONName:     resolveFieldJSONName(field.RawTag, field.Name),
+			Validation:   extractValidateTag(field.RawTag),
+			Optional:     isOptionalField(field),
+			IsFileUpload: isFileUploadType(field.TypeString, field.PackagePath),
+			IsPointer:    strings.HasPrefix(field.TypeString, pointerPrefix),
 		}
 
-		if !field.IsInternalType && field.PackagePath != "" {
+		if !fieldInfo.IsFileUpload && !field.IsInternalType && field.PackagePath != "" {
 			nestedTypeName := extractTypeName(field.TypeString)
 			if pkg, ok := packages[field.PackagePath]; ok {
 				if nestedType, ok := pkg.NamedTypes[nestedTypeName]; ok {
@@ -400,7 +407,7 @@ func extractFieldsFromType(
 func extractTypeName(typeString string) string {
 	typeString = strings.TrimPrefix(typeString, pointerPrefix)
 
-	typeString = strings.TrimPrefix(typeString, "[]")
+	typeString = strings.TrimPrefix(typeString, slicePrefix)
 
 	if index := strings.LastIndex(typeString, "."); index != -1 {
 		return typeString[index+1:]
@@ -549,9 +556,9 @@ func goTypeToTSType(goType string) string {
 		return tsType
 	}
 
-	if strings.HasPrefix(goType, "[]") {
+	if strings.HasPrefix(goType, slicePrefix) {
 		innerType := goTypeToTSType(goType[2:])
-		return innerType + "[]"
+		return innerType + slicePrefix
 	}
 
 	if strings.HasPrefix(goType, "map[") {
@@ -600,4 +607,48 @@ func isPrimitive(typeString string) bool {
 		"any":     true,
 	}
 	return primitives[typeString]
+}
+
+// resolveFieldJSONName returns the effective wire key for a field: the json tag name when
+// present, otherwise the field name with its leading rune lower-cased. Resolving it here
+// means the TypeScript interface, the generated Go wrapper and the runtime multipart key
+// all read one canonical value and cannot drift.
+//
+// Takes rawTag (string) which is the field's raw struct tag.
+// Takes fieldName (string) which is the Go field name.
+//
+// Returns string which is the effective wire key for the field.
+func resolveFieldJSONName(rawTag, fieldName string) string {
+	if name := extractJSONTag(rawTag); name != "" {
+		return name
+	}
+	return lowerFirstRune(fieldName)
+}
+
+// lowerFirstRune returns name with its first rune lower-cased, handling multi-byte runes.
+//
+// Takes name (string) which is the identifier to adjust.
+//
+// Returns string which is name with its leading rune lower-cased.
+func lowerFirstRune(name string) string {
+	if name == "" {
+		return ""
+	}
+	first, size := utf8.DecodeRuneInString(name)
+	return string(unicode.ToLower(first)) + name[size:]
+}
+
+// isFileUploadType reports whether a field type is a piko.FileUpload, matching the base
+// type name and a piko package path so a user type coincidentally named FileUpload is not
+// treated as a special upload field.
+//
+// Takes typeString (string) which is the field's Go type string.
+// Takes packagePath (string) which is the package the field type is defined in.
+//
+// Returns bool which is true for a piko.FileUpload field.
+func isFileUploadType(typeString, packagePath string) bool {
+	if strings.HasPrefix(strings.TrimPrefix(typeString, pointerPrefix), slicePrefix) {
+		return false
+	}
+	return extractTypeName(typeString) == "FileUpload" && strings.HasPrefix(packagePath, "piko.sh/piko")
 }

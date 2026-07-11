@@ -119,6 +119,22 @@ function parseJsonAttribute(
 }
 
 /**
+ * Parses an attribute for a property typed `any`. A JSON value (object, array, number,
+ * boolean) is parsed so a JSON-seeded attribute is not silently left as an unparsed string,
+ * while a plain (non-JSON) string is returned verbatim.
+ *
+ * @param attributeValue - The raw attribute string.
+ * @returns The parsed JSON value, or the original string when it is not valid JSON.
+ */
+function parseAnyAttribute(attributeValue: string): unknown {
+    try {
+        return JSON.parse(attributeValue) as unknown;
+    } catch {
+        return attributeValue;
+    }
+}
+
+/**
  * Returns the type-appropriate empty value for a property type.
  *
  * Used as the last-resort fallback when an attribute is absent and the
@@ -202,6 +218,8 @@ function translateValue(
         case "object":
         case "json":
             return parseJsonAttribute(attributeValue, typeHint, defaultValue);
+        case "any":
+            return parseAnyAttribute(attributeValue);
         default:
             return attributeValue;
     }

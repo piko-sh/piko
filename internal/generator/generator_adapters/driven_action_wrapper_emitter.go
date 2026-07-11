@@ -114,11 +114,17 @@ func (e *ActionWrapperEmitter) EmitWrappers(_ context.Context, specs []annotator
 func (*ActionWrapperEmitter) checkSpecialTypeImports(specs []annotator_dto.ActionSpec) (needsPiko, needsMultipart bool) {
 	for i := range specs {
 		spec := &specs[i]
-		for _, param := range spec.CallParams {
+		for i := range spec.CallParams {
+			param := spec.CallParams[i]
 			if param.IsFileUpload || param.IsFileUploadSlice || param.IsRawBody {
 				needsPiko = true
 			}
 			if param.IsFileUpload || param.IsFileUploadSlice {
+				needsMultipart = true
+			}
+
+			if structSpecHasFileUpload(param.Struct) {
+				needsPiko = true
 				needsMultipart = true
 			}
 		}
@@ -328,8 +334,38 @@ func (e *ActionWrapperEmitter) buildParamExtraction(param *annotator_dto.ParamSp
 //
 // Returns []ast.Stmt which contains the AST statements for JSON unmarshalling.
 func (e *ActionWrapperEmitter) buildStructParamExtraction(varName, jsonKey string, typeSpec *annotator_dto.TypeSpec) []ast.Stmt {
+	if structSpecHasFileUpload(typeSpec) {
+		return e.buildStructParamWithFileUploads(varName, jsonKey, typeSpec)
+	}
 	qualifiedType := wrapperQualifiedTypeName(typeSpec)
 	return e.buildJSONUnmarshalExtraction(varName, jsonKey, qualifiedType)
+}
+
+// buildStructParamWithFileUploads extracts a struct parameter that contains
+// piko.FileUpload fields. The generated client sends such a struct as multipart form with
+// the file(s) as top-level form fields, so each FileUpload field is pulled from the args
+// map as a *multipart.FileHeader and removed, then the remaining flat fields bind into
+// the struct.
+//
+// Takes varName (string) which is the local variable name for the struct.
+// Takes jsonKey (string) which is the JSON key, used for binder error context.
+// Takes typeSpec (*annotator_dto.TypeSpec) which describes the struct and its fields.
+//
+// Returns []ast.Stmt which declares the struct, extracts its files, and binds the rest.
+func (*ActionWrapperEmitter) buildStructParamWithFileUploads(varName, jsonKey string, typeSpec *annotator_dto.TypeSpec) []ast.Stmt {
+	qualifiedType := wrapperQualifiedTypeName(typeSpec)
+	stmts := []ast.Stmt{goastutil.VarDecl(varName, parseTypeExpr(qualifiedType))}
+
+	for i := range typeSpec.Fields {
+		field := typeSpec.Fields[i]
+		if !field.IsFileUpload {
+			continue
+		}
+		stmts = append(stmts, buildStructFileUploadFieldExtraction(varName, field.Name, field.JSONName, field.IsPointer)...)
+	}
+
+	stmts = append(stmts, buildFlatBindBlock(varName, jsonKey))
+	return stmts
 }
 
 // buildBasicTypeAssertion builds a type assertion statement of the form varName, _ :=
@@ -698,4 +734,90 @@ func wrapperQualifiedTypeName(typeSpec *annotator_dto.TypeSpec) string {
 		packageName = parts[len(parts)-1]
 	}
 	return packageName + "." + typeSpec.Name
+}
+
+// structSpecHasFileUpload reports whether a struct parameter has any piko.FileUpload fields,
+// which must be extracted from the multipart form rather than bound from the body.
+//
+// Takes typeSpec (*annotator_dto.TypeSpec) which describes the struct parameter.
+//
+// Returns bool which is true when the struct has at least one FileUpload field.
+func structSpecHasFileUpload(typeSpec *annotator_dto.TypeSpec) bool {
+	if typeSpec == nil {
+		return false
+	}
+	for i := range typeSpec.Fields {
+		if typeSpec.Fields[i].IsFileUpload {
+			return true
+		}
+	}
+	return false
+}
+
+// buildStructFileUploadFieldExtraction assigns a struct FileUpload field from the
+// multipart header in the args map and then removes that key so the binder does not try
+// to bind it. A pointer field is assigned by address, since piko.NewFileUpload returns a
+// value.
+//
+// Takes varName (string) which is the struct variable name.
+// Takes fieldName (string) which is the Go field name to assign.
+// Takes jsonKey (string) which is the args-map key holding the *multipart.FileHeader.
+// Takes isPointer (bool) which is true when the field type is a pointer to FileUpload.
+//
+// Returns []ast.Stmt which contains the type-asserted assignment and the delete call.
+func buildStructFileUploadFieldExtraction(varName, fieldName, jsonKey string, isPointer bool) []ast.Stmt {
+	target := goastutil.SelectorExprFrom(goastutil.CachedIdent(varName), fieldName)
+	newUpload := goastutil.CallExpr(
+		goastutil.SelectorExpr(wrapperIdentPiko, "NewFileUpload"),
+		goastutil.CachedIdent("fh"),
+	)
+
+	var body *ast.BlockStmt
+	if isPointer {
+		body = goastutil.BlockStmt(
+			goastutil.DefineStmt("fu", newUpload),
+			goastutil.AssignStmt(target, &ast.UnaryExpr{Op: token.AND, X: goastutil.CachedIdent("fu")}),
+		)
+	} else {
+		body = goastutil.BlockStmt(goastutil.AssignStmt(target, newUpload))
+	}
+
+	return []ast.Stmt{
+		goastutil.IfStmt(
+			goastutil.DefineStmtMulti(
+				[]string{"fh", wrapperIdentOK},
+				goastutil.TypeAssertExpr(
+					goastutil.IndexExpr(goastutil.CachedIdent(wrapperIdentArgsMap), goastutil.StrLit(jsonKey)),
+					goastutil.StarExpr(goastutil.SelectorExpr("multipart", "FileHeader")),
+				),
+			),
+			goastutil.CachedIdent(wrapperIdentOK),
+			body,
+		),
+		goastutil.ExprStmt(
+			goastutil.CallExpr(
+				goastutil.CachedIdent("delete"),
+				goastutil.CachedIdent(wrapperIdentArgsMap),
+				goastutil.StrLit(jsonKey),
+			),
+		),
+	}
+}
+
+// buildFlatBindBlock binds the remaining flat args-map entries into the struct via
+// pikobinder.BindMap when any remain after file fields have been removed.
+//
+// Takes varName (string) which is the struct variable name.
+// Takes jsonKey (string) which is the JSON key, used for binder error context.
+//
+// Returns ast.Stmt which guards the BindMap call behind a non-empty args-map check.
+func buildFlatBindBlock(varName, jsonKey string) ast.Stmt {
+	return &ast.IfStmt{
+		Cond: &ast.BinaryExpr{
+			X:  goastutil.CallExpr(goastutil.CachedIdent("len"), goastutil.CachedIdent(wrapperIdentArgsMap)),
+			Op: token.GTR,
+			Y:  goastutil.IntLit(0),
+		},
+		Body: buildBindMapBlock(goastutil.CachedIdent(wrapperIdentArgsMap), varName, jsonKey, "Failed to bind action parameter from flat argsMap"),
+	}
 }

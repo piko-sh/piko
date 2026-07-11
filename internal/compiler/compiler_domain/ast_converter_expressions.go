@@ -19,7 +19,9 @@
 package compiler_domain
 
 import (
+	"errors"
 	"fmt"
+	"math"
 
 	parsejs "github.com/tdewolff/parse/v2/js"
 	"piko.sh/piko/internal/esbuild/helpers"
@@ -29,6 +31,13 @@ import (
 const (
 	// jsImportKeyword is the JavaScript import keyword used in dynamic imports.
 	jsImportKeyword = "import"
+)
+
+var (
+	// errUnsupportedExpression is returned when the converter meets an expression node it
+	// cannot represent, so a miscompilation surfaces as a clear error rather than silently
+	// emitting a broken placeholder.
+	errUnsupportedExpression = errors.New("unsupported expression node")
 )
 
 // convertExpression converts an esbuild expression to a tdewolff expression.
@@ -198,7 +207,7 @@ func (c *ASTConverter) convertOperatorOrFunctionExpr(expression js_ast.Expr) (pa
 	case *js_ast.EImportMeta:
 		result, err = c.convertEImportMeta()
 	default:
-		return &parsejs.Var{Data: []byte("/* unsupported */")}, nil
+		return nil, fmt.Errorf("%w: %T", errUnsupportedExpression, expression.Data)
 	}
 
 	if err != nil {
@@ -284,6 +293,15 @@ func (*ASTConverter) convertEString(e *js_ast.EString) (parsejs.IExpr, error) {
 // Returns parsejs.IExpr which is the converted literal expression.
 // Returns error when conversion fails.
 func (*ASTConverter) convertENumber(e *js_ast.ENumber) (parsejs.IExpr, error) {
+	if math.IsInf(e.Value, 1) {
+		return &parsejs.Var{Data: []byte("Infinity")}, nil
+	}
+	if math.IsInf(e.Value, -1) {
+		return &parsejs.UnaryExpr{Op: parsejs.SubToken, X: &parsejs.Var{Data: []byte("Infinity")}}, nil
+	}
+	if math.IsNaN(e.Value) {
+		return &parsejs.Var{Data: []byte("NaN")}, nil
+	}
 	return &parsejs.LiteralExpr{
 		TokenType: parsejs.DecimalToken,
 		Data:      fmt.Appendf(nil, "%g", e.Value),
@@ -437,7 +455,10 @@ func (c *ASTConverter) convertEDot(e *js_ast.EDot) (parsejs.IExpr, error) {
 	}, nil
 }
 
-// convertEIndex converts a bracket index expression (e.g. obj[key]).
+// convertEIndex converts a bracket index expression such as obj[key].
+//
+// The target is wrapped in a GroupExpr when needed to preserve operator precedence, so
+// (a || [])[i] does not become a || [][i], which would index the empty array literal.
 //
 // Takes e (*js_ast.EIndex) which is the index expression to convert.
 //
@@ -448,6 +469,9 @@ func (c *ASTConverter) convertEIndex(e *js_ast.EIndex) (parsejs.IExpr, error) {
 	if err != nil {
 		return nil, fmt.Errorf("converting index target: %w", err)
 	}
+
+	target = wrapLowPrecedenceForMemberAccess(e.Target, target)
+
 	index, err := c.convertExpression(e.Index)
 	if err != nil {
 		return nil, fmt.Errorf("converting index key: %w", err)
@@ -477,30 +501,6 @@ func (c *ASTConverter) convertEBinary(e *js_ast.EBinary) (parsejs.IExpr, error) 
 	if err != nil {
 		return nil, fmt.Errorf("converting binary right operand: %w", err)
 	}
-
-	parentPrec := getOpPrecedence(e.Op)
-
-	if leftBin, ok := e.Left.Data.(*js_ast.EBinary); ok {
-		leftPrec := getOpPrecedence(leftBin.Op)
-		if leftPrec < parentPrec {
-			left = &parsejs.GroupExpr{X: left}
-		}
-	}
-
-	if rightBin, ok := e.Right.Data.(*js_ast.EBinary); ok {
-		rightPrec := getOpPrecedence(rightBin.Op)
-		if rightPrec < parentPrec || (rightPrec == parentPrec && e.Op.IsLeftAssociative()) {
-			right = &parsejs.GroupExpr{X: right}
-		}
-	}
-
-	if _, ok := e.Right.Data.(*js_ast.EIf); ok {
-		right = &parsejs.GroupExpr{X: right}
-	}
-	if _, ok := e.Left.Data.(*js_ast.EIf); ok {
-		left = &parsejs.GroupExpr{X: left}
-	}
-
 	op, err := convertBinaryOp(e.Op)
 	if err != nil {
 		return nil, fmt.Errorf("converting binary operator: %w", err)
@@ -508,8 +508,8 @@ func (c *ASTConverter) convertEBinary(e *js_ast.EBinary) (parsejs.IExpr, error) 
 
 	return &parsejs.BinaryExpr{
 		Op: op,
-		X:  left,
-		Y:  right,
+		X:  groupBinaryOperand(left, e.Left, e.Op, false),
+		Y:  groupBinaryOperand(right, e.Right, e.Op, true),
 	}, nil
 }
 
@@ -938,8 +938,79 @@ func wrapIIFETarget(original js_ast.Expr, converted parsejs.IExpr) parsejs.IExpr
 // needed.
 func wrapLowPrecedenceForMemberAccess(original js_ast.Expr, converted parsejs.IExpr) parsejs.IExpr {
 	switch original.Data.(type) {
-	case *js_ast.EBinary, *js_ast.EIf:
+	case *js_ast.EBinary, *js_ast.EIf, *js_ast.EUnary, *js_ast.EAwait, *js_ast.EArrow, *js_ast.EYield:
 		return &parsejs.GroupExpr{X: converted}
 	}
 	return converted
+}
+
+// groupBinaryOperand wraps a converted binary operand in parentheses when the printer would
+// otherwise emit an ambiguous or invalid expression.
+//
+// The tdewolff printer never adds its own parentheses, so operator precedence, ternary
+// operands, and the rule that `??` cannot directly contain an unparenthesised `&&`/`||` are
+// all honoured here.
+//
+// Takes operand (parsejs.IExpr) which is the already-converted operand.
+// Takes child (js_ast.Expr) which is the source operand node being wrapped.
+// Takes parentOp (js_ast.OpCode) which is the enclosing binary operator.
+// Takes isRight (bool) which is true when operand is the right-hand side.
+//
+// Returns parsejs.IExpr which is operand, wrapped in a GroupExpr when parentheses are due.
+func groupBinaryOperand(operand parsejs.IExpr, child js_ast.Expr, parentOp js_ast.OpCode, isRight bool) parsejs.IExpr {
+	if binaryChildNeedsGroup(child, parentOp, isRight) {
+		return &parsejs.GroupExpr{X: operand}
+	}
+	return operand
+}
+
+// binaryChildNeedsGroup reports whether a converted binary operand must be parenthesised.
+//
+// A ternary, arrow or yield operand always needs parentheses; a unary or await operand needs
+// them only as the left side of `**`, since `-a ** b` and `await a ** b` are SyntaxErrors.
+//
+// Takes child (js_ast.Expr) which is the source operand node.
+// Takes parentOp (js_ast.OpCode) which is the enclosing binary operator.
+// Takes isRight (bool) which is true when the operand is the right-hand side.
+//
+// Returns bool which is true when the operand must be wrapped in parentheses.
+func binaryChildNeedsGroup(child js_ast.Expr, parentOp js_ast.OpCode, isRight bool) bool {
+	switch node := child.Data.(type) {
+	case *js_ast.EIf:
+		return true
+	case *js_ast.EArrow, *js_ast.EYield:
+		return getOpPrecedence(js_ast.BinOpAssign) < getOpPrecedence(parentOp)
+	case *js_ast.EBinary:
+		return binaryOperandNeedsGroup(node.Op, parentOp, isRight)
+	case *js_ast.EUnary, *js_ast.EAwait:
+		return !isRight && parentOp == js_ast.BinOpPow
+	case *js_ast.ENumber:
+		return !isRight && parentOp == js_ast.BinOpPow && math.Signbit(node.Value)
+	default:
+		return false
+	}
+}
+
+// binaryOperandNeedsGroup reports whether a child operator must be parenthesised inside a
+// parent binary operator to preserve meaning or JavaScript validity.
+//
+// Takes childOp (js_ast.OpCode) which is the child operand's operator.
+// Takes parentOp (js_ast.OpCode) which is the enclosing binary operator.
+// Takes isRight (bool) which is true when the child is the right-hand operand.
+//
+// Returns bool which is true when the child operand must be wrapped in parentheses.
+func binaryOperandNeedsGroup(childOp, parentOp js_ast.OpCode, isRight bool) bool {
+	if parentOp == js_ast.BinOpNullishCoalescing &&
+		(childOp == js_ast.BinOpLogicalAnd || childOp == js_ast.BinOpLogicalOr) {
+		return true
+	}
+	childPrec, parentPrec := getOpPrecedence(childOp), getOpPrecedence(parentOp)
+	if childPrec < parentPrec {
+		return true
+	}
+
+	if isRight && parentOp.IsLeftAssociative() {
+		return childPrec == parentPrec
+	}
+	return !isRight && parentOp.IsRightAssociative() && childPrec == parentPrec
 }

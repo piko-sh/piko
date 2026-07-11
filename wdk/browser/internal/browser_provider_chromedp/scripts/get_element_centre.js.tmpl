@@ -1,6 +1,7 @@
 (() => {
     const el = document.querySelector({{jsStr .Selector}});
     if (!el) return null;
+    el.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
     const rect = el.getBoundingClientRect();
     return {
         x: rect.left + rect.width / 2,

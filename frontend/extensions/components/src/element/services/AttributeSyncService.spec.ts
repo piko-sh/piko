@@ -188,6 +188,20 @@ describe("AttributeSyncService", () => {
       });
     });
 
+    describe("any type (runtime safety net)", () => {
+      it("should JSON-parse a JSON-valued attribute typed any", () => {
+        expect(
+          attributeSyncService.translateAttributeValue("any", '{"k": 1}', "unknown")
+        ).toEqual({ k: 1 });
+      });
+
+      it("should return a non-JSON string verbatim without throwing", () => {
+        expect(
+          attributeSyncService.translateAttributeValue("any", "just a string", "unknown")
+        ).toBe("just a string");
+      });
+    });
+
     describe("nullable properties", () => {
       it("should return null for null attribute when nullable", () => {
         expect(

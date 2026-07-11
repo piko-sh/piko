@@ -23,9 +23,157 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tdewolff/minify/v2"
+	minifyjs "github.com/tdewolff/minify/v2/js"
 	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
+
+func minifyEmittedJS(t *testing.T, src string) string {
+	t.Helper()
+	m := minify.New()
+	m.AddFunc("application/javascript", minifyjs.Minify)
+	out, err := m.String("application/javascript", src)
+	require.NoErrorf(t, err, "minify rejected emitted JS: %q", src)
+	return out
+}
+
+func convertAndPrint(t *testing.T, code string) string {
+	t.Helper()
+	parser := NewTypeScriptParser()
+	esbuildAST, err := parser.ParseTypeScript(code, "test.ts")
+	require.NoError(t, err)
+	result, err := ConvertEsbuildToTdewolff(esbuildAST, NewRegistryContext())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	return printTdewolffAST(result)
+}
+
+func TestConvertEBinary_NullishParenthesisation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"and left of nullish", `const r = (a && b) ?? 0;`, "(a&&b)??0"},
+		{"or left of nullish", `const r = (a || b) ?? 0;`, "(a||b)??0"},
+		{"and right of nullish", `const r = a ?? (b && c);`, "a??(b&&c)"},
+		{"or right of nullish", `const r = a ?? (b || c);`, "a??(b||c)"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			minified := minifyEmittedJS(t, convertAndPrint(t, tc.code))
+			assert.Contains(t, minified, tc.want)
+		})
+	}
+}
+
+func TestConvertEIndex_MemberAccessParenthesisation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		code    string
+		want    string
+		notWant string
+	}{
+		{"or with array literal base", `const e = (a || [])[i];`, "(a||[])[i]", "a||[][i]"},
+		{"or with identifier base", `const e = (a || b)[0];`, "(a||b)[0]", "a||b[0]"},
+		{"and with object literal base", `const e = (a && {})[k];`, "(a&&{})[k]", "a&&{}[k]"},
+		{"ternary base", `const e = (c ? a : b)[0];`, "(c?a:b)[0]", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			minified := minifyEmittedJS(t, convertAndPrint(t, tc.code))
+			assert.Contains(t, minified, tc.want)
+			if tc.notWant != "" {
+				assert.NotContains(t, minified, tc.notWant)
+			}
+		})
+	}
+}
+
+func TestConvertEBinary_PowAssociativity(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		code    string
+		want    string
+		notWant string
+	}{
+		{"left grouped pow keeps parens", `const r = (a ** b) ** c;`, "(a**b)**c", ""},
+		{"right grouped pow drops redundant parens", `const r = a ** (b ** c);`, "a**b**c", "(b**c)"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			minified := minifyEmittedJS(t, convertAndPrint(t, tc.code))
+			assert.Contains(t, minified, tc.want)
+			if tc.notWant != "" {
+				assert.NotContains(t, minified, tc.notWant)
+			}
+		})
+	}
+}
+
+func TestConvertLowPrecedenceOperands(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		code string
+		want string
+	}{
+		{"unary member access", `const r = (-a)[i];`, "(-a)[i]"},
+		{"await member access", `async function f(a){ return (await a).b; }`, "(await a).b"},
+		{"arrow as binary operand", `const r = x || (() => y);`, "(() =>"},
+		{"unary left of pow", `const r = (-a) ** b;`, "(-a) ** b"},
+		{"negative infinity left of pow", `const r = (-Infinity) ** 2;`, "(-Infinity) ** 2"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			printed := convertAndPrint(t, tc.code)
+			assert.Contains(t, printed, tc.want)
+			minifyEmittedJS(t, printed)
+		})
+	}
+}
+
+func TestConvertNonFinite_EndToEnd(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Infinity global", func(t *testing.T) {
+		t.Parallel()
+		output := convertAndPrint(t, `const x = Infinity;`)
+		assert.Contains(t, output, "Infinity")
+		assert.NotContains(t, output, "+Inf")
+	})
+
+	t.Run("negative Infinity", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Contains(t, convertAndPrint(t, `const y = -Infinity;`), "-Infinity")
+	})
+
+	t.Run("NaN global", func(t *testing.T) {
+		t.Parallel()
+		assert.Contains(t, convertAndPrint(t, `const z = NaN;`), "NaN")
+	})
+
+	t.Run("1/0 folds to Infinity", func(t *testing.T) {
+		t.Parallel()
+		output := convertAndPrint(t, `const q = 1/0;`)
+		assert.NotContains(t, output, "+Inf")
+		minifyEmittedJS(t, output)
+	})
+}
 
 func TestNewASTConverterService(t *testing.T) {
 	t.Run("creates ASTConverterService", func(t *testing.T) {

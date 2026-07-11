@@ -556,17 +556,17 @@ function captureAttrs(el, preserve) {
   if (!preserve || preserve.length === 0) {
     return null;
   }
-  const snapshot = /* @__PURE__ */ new Map();
+  const snapshot2 = /* @__PURE__ */ new Map();
   for (const name of preserve) {
-    snapshot.set(name, el.getAttribute(name));
+    snapshot2.set(name, el.getAttribute(name));
   }
-  return snapshot;
+  return snapshot2;
 }
-function restoreAttrs(el, snapshot) {
-  if (!snapshot) {
+function restoreAttrs(el, snapshot2) {
+  if (!snapshot2) {
     return;
   }
-  for (const [name, value] of snapshot) {
+  for (const [name, value] of snapshot2) {
     if (value === null) {
       if (el.hasAttribute(name)) {
         el.removeAttribute(name);
@@ -587,9 +587,9 @@ function applyMorph(el, sourceEl, mode, ownedAttrs, preserveAttrs) {
       fragmentMorpher(el, sourceEl, { ...morphOptions, childrenOnly: true });
       return;
     case "replace": {
-      const snapshot = captureAttrs(el, preserveAttrs);
+      const snapshot2 = captureAttrs(el, preserveAttrs);
       fragmentMorpher(el, sourceEl, morphOptions);
-      restoreAttrs(el, snapshot);
+      restoreAttrs(el, snapshot2);
       return;
     }
     case "children-only":
@@ -682,9 +682,71 @@ function partial(nameOrElement) {
   };
 }
 const listeners = /* @__PURE__ */ new Map();
+const REACTIVE_RAW = /* @__PURE__ */ Symbol.for("piko.reactivity.rawTarget");
+function toRaw(value) {
+  const raw = value[REACTIVE_RAW];
+  return raw === void 0 ? value : raw;
+}
+function isPlainObject(value) {
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+function snapshot(value, seen) {
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  const raw = toRaw(value);
+  if (seen.has(raw)) {
+    return seen.get(raw);
+  }
+  if (Array.isArray(raw)) {
+    const copy = [];
+    seen.set(raw, copy);
+    for (let index = 0; index < raw.length; index++) {
+      copy[index] = snapshot(raw[index], seen);
+    }
+    return copy;
+  }
+  if (raw instanceof Date) {
+    return new Date(raw.getTime());
+  }
+  if (raw instanceof RegExp) {
+    return new RegExp(raw.source, raw.flags);
+  }
+  if (raw instanceof Map) {
+    const copy = /* @__PURE__ */ new Map();
+    seen.set(raw, copy);
+    for (const [entryKey, entryValue] of raw) {
+      copy.set(snapshot(entryKey, seen), snapshot(entryValue, seen));
+    }
+    return copy;
+  }
+  if (raw instanceof Set) {
+    const copy = /* @__PURE__ */ new Set();
+    seen.set(raw, copy);
+    for (const entryValue of raw) {
+      copy.add(snapshot(entryValue, seen));
+    }
+    return copy;
+  }
+  if (isPlainObject(raw)) {
+    const copy = {};
+    seen.set(raw, copy);
+    for (const key of Object.keys(raw)) {
+      copy[key] = snapshot(raw[key], seen);
+    }
+    return copy;
+  }
+  return raw;
+}
 const bus = {
   /**
    * Emits an event to all listeners.
+   *
+   * The payload is snapshotted once before dispatch: reactive proxies are
+   * unwrapped and plain objects and arrays are deep-copied, so listeners
+   * always receive plain, cloneable data rather than a live reference into
+   * component state.
    *
    * @param event - Event name.
    * @param data - Optional data to pass to listeners.
@@ -692,9 +754,16 @@ const bus = {
   emit(event, data) {
     const handlers = listeners.get(event);
     if (handlers) {
+      let payload;
+      try {
+        payload = snapshot(data, /* @__PURE__ */ new WeakMap());
+      } catch (error) {
+        console.error(`[pk] Error snapshotting payload for "${event}":`, error);
+        payload = data;
+      }
       handlers.forEach((fn) => {
         try {
-          fn(data);
+          fn(payload);
         } catch (error) {
           console.error(`[pk] Error in bus handler for "${event}":`, error);
         }

@@ -19,6 +19,7 @@
 package compiler_domain
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -563,6 +564,45 @@ func TestConvertPropertyName(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, parsejs.DecimalToken, result.Literal.TokenType)
 		assert.Equal(t, "42", string(result.Literal.Data))
+	})
+
+	t.Run("positive infinity key emits the Infinity global", func(t *testing.T) {
+		t.Parallel()
+		converter := NewASTConverter(nil, nil, nil)
+
+		key := js_ast.Expr{Data: &js_ast.ENumber{Value: math.Inf(1)}}
+
+		result, err := converter.convertPropertyName(key)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, parsejs.IdentifierToken, result.Literal.TokenType)
+		assert.Equal(t, "Infinity", string(result.Literal.Data))
+	})
+
+	t.Run("negative infinity key emits a -Infinity string key", func(t *testing.T) {
+		t.Parallel()
+		converter := NewASTConverter(nil, nil, nil)
+
+		key := js_ast.Expr{Data: &js_ast.ENumber{Value: math.Inf(-1)}}
+
+		result, err := converter.convertPropertyName(key)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, parsejs.StringToken, result.Literal.TokenType)
+		assert.Equal(t, `"-Infinity"`, string(result.Literal.Data))
+	})
+
+	t.Run("NaN key emits the NaN global", func(t *testing.T) {
+		t.Parallel()
+		converter := NewASTConverter(nil, nil, nil)
+
+		key := js_ast.Expr{Data: &js_ast.ENumber{Value: math.NaN()}}
+
+		result, err := converter.convertPropertyName(key)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, parsejs.IdentifierToken, result.Literal.TokenType)
+		assert.Equal(t, "NaN", string(result.Literal.Data))
 	})
 
 	t.Run("computed key", func(t *testing.T) {

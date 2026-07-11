@@ -1118,3 +1118,26 @@ func TestSetFilesInShadowDOM(t *testing.T) {
 		})
 	})
 }
+
+func TestClickInShadowDOM_OcclusionReportsFailure(t *testing.T) {
+	t.Parallel()
+	server := newTestServer(testHTMLShadowOccluded)
+	defer server.Close()
+
+	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		ctx := newActionContext(page)
+
+		err := Click(ctx, "#host >>> #covered-btn")
+		if err == nil {
+			t.Fatal("Click() on an occluded shadow element should error, got nil")
+		}
+
+		text, err := GetElementText(page.Ctx(), "#result")
+		if err != nil {
+			t.Fatalf("GetElementText() error = %v", err)
+		}
+		if text == "clicked" {
+			t.Error("occluded element should not have received the click")
+		}
+	})
+}

@@ -446,6 +446,25 @@ func TestConvertFieldsToFieldSpecs(t *testing.T) {
 	}
 }
 
+func TestConvertFieldsToFieldSpecs_FileUpload(t *testing.T) {
+	t.Parallel()
+
+	fields := []annotator_dto.ActionFieldInfo{
+		{Name: "Title", GoType: "string", TSType: "string", JSONName: "title"},
+		{Name: "Avatar", GoType: "piko.FileUpload", TSType: "FileUpload", JSONName: "avatar", IsFileUpload: true},
+	}
+
+	result := convertFieldsToFieldSpecs(fields)
+	require.Len(t, result, 2)
+
+	assert.False(t, result[0].IsFileUpload)
+	assert.Equal(t, "string", result[0].TSType)
+
+	assert.True(t, result[1].IsFileUpload)
+	assert.Equal(t, "File", result[1].TSType, "a FileUpload field is typed File on the client")
+	assert.Equal(t, "avatar", result[1].JSONName)
+}
+
 func TestDeriveTransports(t *testing.T) {
 	t.Parallel()
 

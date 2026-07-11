@@ -227,11 +227,11 @@ func aggregatePackageErrors(ctx context.Context, loadedPackages []*packages.Pack
 	return nil
 }
 
-// reportPackageError logs a single package-load error according to its origin and the
-// tolerance mode, and reports whether it must be treated as fatal. Benign errors and
-// non-root non-list errors are always skipped; type and parse errors are skipped when
-// best-effort introspection is enabled; only list errors and untolerated root errors
-// abort.
+// reportPackageError logs a single package-load error and reports whether it is fatal.
+//
+// Benign errors and non-root non-list errors are always skipped; type and parse errors are
+// skipped when best-effort introspection is enabled; only list errors and untolerated root
+// errors abort.
 //
 // Takes pkgPath (string) which is the package the error came from.
 // Takes err (packages.Error) which is the error under consideration.

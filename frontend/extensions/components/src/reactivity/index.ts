@@ -16,5 +16,5 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-export {makeReactive} from './makeReactive';
+export {makeReactive, toRaw, REACTIVE_RAW} from './makeReactive';
 export type {ReactiveContext} from './makeReactive';

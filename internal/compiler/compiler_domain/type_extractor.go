@@ -154,6 +154,15 @@ func (e *typeExtractor) extractPropertyMetadata(expression js_ast.Expr, propName
 
 	if assertion, found := e.typeAssertions[propName]; found {
 		parsedType := ParseTypeString(assertion.TypeString)
+
+		if parsedType.JSType == typeAny {
+			if inferred := e.inferTypeFromLiteral(expression); inferred != nil && inferred.JSType != typeAny {
+				inferred.Name = propName
+				inferred.IsNullable = parsedType.IsNullable
+				inferred.InitialValue = e.expressionToString(expression)
+				return inferred
+			}
+		}
 		meta.JSType = parsedType.JSType
 		meta.ElementType = parsedType.ElementType
 		meta.KeyType = parsedType.KeyType
@@ -170,7 +179,7 @@ func (e *typeExtractor) extractPropertyMetadata(expression js_ast.Expr, propName
 		return inferredMeta
 	}
 
-	meta.JSType = "any"
+	meta.JSType = typeAny
 	meta.InitialValue = e.expressionToString(expression)
 	return meta
 }
@@ -194,7 +203,7 @@ func (e *typeExtractor) inferTypeFromLiteral(expression js_ast.Expr) *PropertyMe
 	case *js_ast.EObject:
 		return newPropertyMeta(typeObject, "", "", "")
 	case *js_ast.ENull, *js_ast.EUndefined:
-		return newPropertyMeta("any", "", "", "")
+		return newPropertyMeta(typeAny, "", "", "")
 	default:
 		return nil
 	}

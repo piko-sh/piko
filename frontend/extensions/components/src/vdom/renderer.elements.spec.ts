@@ -46,7 +46,6 @@ class PatchTestComponent extends PPElement {
 }
 customElements.define('patch-test-component', PatchTestComponent);
 
-
 describe('PPElement Patching - Elements, Text, Comments', () => {
   let host: HTMLElement;
   let component: PatchTestComponent;
@@ -80,7 +79,6 @@ describe('PPElement Patching - Elements, Text, Comments', () => {
     }
     return html.trim();
   };
-
 
   describe('Creating New Nodes', () => {
     it('should create and append a new element VNode', () => {
@@ -246,7 +244,6 @@ describe('PPElement Patching - Elements, Text, Comments', () => {
       expect(getRenderedContent(component.shadowRoot!)).toBe(`<!--hidden node _k=${vnodeKey}-->`);
       expect(previousElm?.parentNode).toBeNull();
       previousElm = currentVNode.elm;
-
 
       currentVNode = dom.el('p', vnodeKey, { _c: true, id: 'toggler' }, [dom.txt('Visible Again', 'txt-toggle-again')]);
       component.setAndRender(currentVNode);
@@ -739,6 +736,112 @@ describe('PPElement Patching - Elements, Text, Comments', () => {
       const indicator = (vnode.elm as Element).querySelector('circle:last-child') as Element;
       expect(indicator.namespaceURI).toBe(SVG_NS);
       expect(indicator.getAttribute('stroke-dasharray')).toBe(circumference);
+    });
+
+    it('should create dynamically inserted svg children with the SVG namespace', () => {
+      component.setAndRender(dom.el('svg', 'svg-dyn', { viewBox: '0 0 24 24' }, []));
+
+      const vnode2 = dom.el('svg', 'svg-dyn', { viewBox: '0 0 24 24' }, [
+        dom.el('g', 'g-0', {}, [dom.el('path', 'p-0', { d: 'M0 0h4v4h-4z' })]),
+        dom.el('g', 'g-1', {}, [dom.el('path', 'p-1', { d: 'M4 4h4v4h-4z' })]),
+      ]);
+      component.setAndRender(vnode2);
+
+      const svgEl = vnode2.elm as Element;
+      expect(svgEl.namespaceURI).toBe(SVG_NS);
+
+      const g = svgEl.querySelector('g');
+      expect(g).not.toBeNull();
+      expect(g!.namespaceURI).toBe(SVG_NS);
+
+      const path = svgEl.querySelector('path');
+      expect(path).not.toBeNull();
+      expect(path!.namespaceURI).toBe(SVG_NS);
+    });
+
+    it('should keep keyed svg list re-derives in the SVG namespace', () => {
+      component.setAndRender(dom.el('svg', 'svg-keyed', { viewBox: '0 0 24 24' }, [
+        dom.el('g', 'g-a', {}, [dom.el('path', 'p-a', { d: 'M0 0' })]),
+        dom.el('g', 'g-b', {}, [dom.el('path', 'p-b', { d: 'M1 1' })]),
+      ]));
+
+      const vnode2 = dom.el('svg', 'svg-keyed', { viewBox: '0 0 24 24' }, [
+        dom.el('g', 'g-b', {}, [dom.el('path', 'p-b', { d: 'M1 1' })]),
+        dom.el('g', 'g-a', {}, [dom.el('path', 'p-a', { d: 'M0 0' })]),
+        dom.el('g', 'g-c', {}, [dom.el('path', 'p-c', { d: 'M2 2' })]),
+      ]);
+      component.setAndRender(vnode2);
+
+      const svgEl = vnode2.elm as Element;
+      const groups = svgEl.querySelectorAll('g');
+      expect(groups.length).toBe(3);
+      for (const group of Array.from(groups)) {
+        expect(group.namespaceURI).toBe(SVG_NS);
+      }
+      for (const path of Array.from(svgEl.querySelectorAll('path'))) {
+        expect(path.namespaceURI).toBe(SVG_NS);
+      }
+    });
+
+    it('should keep dynamically inserted non-svg children in the XHTML namespace', () => {
+      component.setAndRender(dom.el('div', 'div-dyn', {}, []));
+
+      const vnode2 = dom.el('div', 'div-dyn', {}, [
+        dom.el('span', 'span-0', {}, [dom.txt('a', 'ta')]),
+        dom.el('span', 'span-1', {}, [dom.txt('b', 'tb')]),
+      ]);
+      component.setAndRender(vnode2);
+
+      const divEl = vnode2.elm as Element;
+      expect(divEl.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
+      const span = divEl.querySelector('span');
+      expect(span).not.toBeNull();
+      expect(span!.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
+    });
+
+    it('should return a static foreignObject subtree to the HTML namespace', () => {
+      const vnode = dom.el('svg', 'svg-fo', { viewBox: '0 0 24 24' }, [
+        dom.el('foreignObject', 'fo', { x: '0', y: '0', width: '24', height: '24' }, [
+          dom.el('div', 'fo-div', {}, [dom.el('span', 'fo-span', {}, [dom.txt('hi', 'fo-txt')])]),
+        ]),
+      ]);
+      component.setAndRender(vnode);
+
+      const svgEl = vnode.elm as Element;
+      expect(svgEl.namespaceURI).toBe(SVG_NS);
+
+      const fo = svgEl.querySelector('foreignObject');
+      expect(fo).not.toBeNull();
+      expect(fo!.namespaceURI).toBe(SVG_NS);
+
+      const div = svgEl.querySelector('div');
+      expect(div).not.toBeNull();
+      expect(div!.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
+      const span = svgEl.querySelector('span');
+      expect(span).not.toBeNull();
+      expect(span!.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
+    });
+
+    it('should create dynamically inserted foreignObject children in the HTML namespace', () => {
+      component.setAndRender(dom.el('svg', 'svg-fo-dyn', { viewBox: '0 0 24 24' }, [
+        dom.el('foreignObject', 'fo', { x: '0', y: '0', width: '24', height: '24' }, []),
+      ]));
+
+      const vnode2 = dom.el('svg', 'svg-fo-dyn', { viewBox: '0 0 24 24' }, [
+        dom.el('foreignObject', 'fo', { x: '0', y: '0', width: '24', height: '24' }, [
+          dom.el('div', 'fo-div', {}, [dom.txt('hi', 'fo-txt')]),
+        ]),
+      ]);
+      component.setAndRender(vnode2);
+
+      const svgEl = vnode2.elm as Element;
+      const fo = svgEl.querySelector('foreignObject');
+      expect(fo).not.toBeNull();
+      expect(fo!.namespaceURI).toBe(SVG_NS);
+
+      const div = svgEl.querySelector('div');
+      expect(div).not.toBeNull();
+      expect(div!.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
     });
   });
 

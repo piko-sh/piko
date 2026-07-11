@@ -644,7 +644,7 @@ func (ls *lifecycleService) seedThemeArtefact(ctx context.Context) error {
 		return fmt.Errorf("failed to build theme CSS: %w", err)
 	}
 
-	desiredProfiles := GetProfilesForFile(themeArtefactPath, nil)
+	desiredProfiles := GetProfilesForFile(themeArtefactPath, ResolverModuleName(ls.resolver), nil)
 
 	_, err = ls.registryService.UpsertArtefact(ctx, themeArtefactPath, themeArtefactPath, bytes.NewReader(cssBytes), "local_disk_cache", desiredProfiles)
 	if err != nil {
@@ -697,7 +697,7 @@ func (ls *lifecycleService) seedCaptchaInitScripts(ctx context.Context) error {
 		}
 
 		artefactID := fmt.Sprintf("captcha/init-%s.js", providerInfo.Name)
-		desiredProfiles := GetProfilesForFile(artefactID, nil)
+		desiredProfiles := GetProfilesForFile(artefactID, ResolverModuleName(ls.resolver), nil)
 
 		_, err = ls.registryService.UpsertArtefact(
 			ctx,

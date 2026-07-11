@@ -529,7 +529,7 @@ func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) {
 	}
 
 	l.Trace("Prepending preamble to AST")
-	cc.jsDependencies = prependPreambleToAST(ctx, cc.jsAST, cc.scriptCode, cc.enabledBehaviours, cc.moduleName)
+	cc.jsDependencies = prependPreambleToAST(ctx, cc.jsAST, cc.scriptCode, cc.enabledBehaviours, cc.moduleName, cc.registry)
 
 	if len(cc.jsDependencies) > 0 {
 		l.Trace("Collected JS dependencies", logger_domain.Int("count", len(cc.jsDependencies)))
@@ -562,7 +562,22 @@ func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) *compiler_dt
 		builder.WriteString("\n\n")
 	}
 
-	mainJS := builder.String() + printAST(ctx, cc.jsAST, cc.reactiveTransformResult.InstanceProperties, cc.registry)
+	body, err := printAST(ctx, cc.jsAST, cc.reactiveTransformResult.InstanceProperties, cc.registry)
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Failed to print compiled component AST",
+			logger_domain.String("class", cc.className),
+			logger_domain.String("source", cc.sourceFilename),
+			logger_domain.Error(err),
+		)
+		cc.diagnostics = append(cc.diagnostics, compiler_dto.CompilationDiagnostic{
+			Severity:         "error",
+			Message:          fmt.Sprintf("component %s: failed to compile script to JavaScript: %v", cc.className, err),
+			SourceIdentifier: cc.sourceFilename,
+		})
+	}
+
+	mainJS := builder.String() + body
 	mainJSFileName := fmt.Sprintf("%s.js", cc.tagName)
 
 	return &compiler_dto.CompiledArtefact{
@@ -822,12 +837,13 @@ func buildClassName(rawTag string) string {
 //
 // Returns []compiler_dto.JSDependency which contains dependencies that need registry
 // registration.
-func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode string, enabledBehaviours []string, moduleName string) []compiler_dto.JSDependency {
+func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode string, enabledBehaviours []string, moduleName string, registry *RegistryContext) []compiler_dto.JSDependency {
 	existingStmts := getStmtsFromAST(tree)
 
 	_, nonImportStmts := separateImportsFromAST(existingStmts)
 
 	userImportStmts, dependencies := buildImportStatementsFromSource(ctx, tree, sourceCode, moduleName)
+	userImportStmts = elideTypeOnlyNamedImports(tree, nonImportStmts, userImportStmts, registry)
 
 	iifeStatement := buildIIFEWrapper(nonImportStmts)
 	coreImport := buildCoreImport(tree)
@@ -921,6 +937,30 @@ func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sour
 
 	return statements, dependencies
 }
+
+// usedIdentifierCollector is an AST visitor that records the name of every identifier
+// referenced as a value (a tdewolff Var node). Property keys and member names are
+// LiteralExpr or PropertyName nodes and string contents are literals, so none are
+// recorded.
+type usedIdentifierCollector struct {
+	// names holds the set of identifier names referenced as a value.
+	names map[string]struct{}
+}
+
+// Enter records a Var node's name and continues the walk.
+//
+// Takes node (parsejs.INode) which is the AST node currently being entered.
+//
+// Returns parsejs.IVisitor which is the collector itself, so the walk continues.
+func (c *usedIdentifierCollector) Enter(node parsejs.INode) parsejs.IVisitor {
+	if variable, ok := node.(*parsejs.Var); ok {
+		c.names[string(variable.Name())] = struct{}{}
+	}
+	return c
+}
+
+// Exit is required by the visitor interface and does nothing.
+func (*usedIdentifierCollector) Exit(_ parsejs.INode) {}
 
 // extractImportTextFromSource gets the full import statement text from source code using
 // the ImportRecord's Range data.
@@ -1220,12 +1260,12 @@ func mergeImportRecords(tree *js_ast.AST, statementAST *js_ast.AST, statement *j
 // Takes instanceProps ([]string) which lists the instance property names to prefix.
 // Takes registry (*RegistryContext) which provides the context for conversion.
 //
-// Returns string which is the generated JavaScript source code, or an empty string if
-// tree is nil.
-func printAST(ctx context.Context, tree *js_ast.AST, instanceProps []string, registry *RegistryContext) string {
+// Returns string which is the generated JavaScript source code, or empty when tree is nil.
+// Returns error when the AST cannot be converted for printing.
+func printAST(ctx context.Context, tree *js_ast.AST, instanceProps []string, registry *RegistryContext) (string, error) {
 	_, l := logger_domain.From(ctx, log)
 	if tree == nil {
-		return ""
+		return "", nil
 	}
 
 	statements := getStmtsFromAST(tree)
@@ -1236,14 +1276,12 @@ func printAST(ctx context.Context, tree *js_ast.AST, instanceProps []string, reg
 
 	tdewolffAST, err := ConvertEsbuildToTdewolff(tree, registry)
 	if err != nil {
-		l.Warn("Failed to convert AST for printing",
-			logger_domain.String(logKeyError, err.Error()))
-		return "/* AST conversion error */"
+		return "", fmt.Errorf("converting AST for printing: %w", err)
 	}
 
 	RewriteTdewolffAST(tdewolffAST, instanceProps)
 
-	return printTdewolffAST(tdewolffAST)
+	return printTdewolffAST(tdewolffAST), nil
 }
 
 // printTdewolffAST converts a tdewolff AST back to JavaScript source code.
@@ -1309,4 +1347,109 @@ func injectEventBindings(ctx context.Context, jsAST *js_ast.AST, className strin
 		l.Warn("Failed to inject event bindings into constructor",
 			logger_domain.String(logKeyError, injErr.Error()))
 	}
+}
+
+// elideTypeOnlyNamedImports drops named import bindings never referenced as a value in the
+// compiled component body.
+//
+// Takes tree (*js_ast.AST) which supplies the symbol table for name resolution.
+// Takes bodyStmts ([]js_ast.Stmt) which are the non-import statements (script + template).
+// Takes imports ([]js_ast.Stmt) which are the reconstructed import statements to filter.
+// Takes registry (*RegistryContext) which resolves registry-backed identifier names.
+//
+// Returns []js_ast.Stmt which holds the imports with unused type-only bindings removed.
+func elideTypeOnlyNamedImports(tree *js_ast.AST, bodyStmts, imports []js_ast.Stmt, registry *RegistryContext) []js_ast.Stmt {
+	used, ok := collectUsedIdentifiers(tree, bodyStmts, registry)
+	if !ok {
+		return imports
+	}
+
+	filtered := make([]js_ast.Stmt, 0, len(imports))
+	for _, stmt := range imports {
+		if keepImportStatement(stmt, used) {
+			filtered = append(filtered, stmt)
+		}
+	}
+	return filtered
+}
+
+// keepImportStatement removes named bindings not present in the used set and reports whether
+// the statement still binds something and should be kept.
+//
+// Side-effect, default-only and namespace imports are always kept.
+//
+// Takes stmt (js_ast.Stmt) which is the import statement to filter in place.
+// Takes used (map[string]struct{}) which is the set of value-referenced identifier names.
+//
+// Returns bool which is true when the statement still binds a name and should be kept.
+func keepImportStatement(stmt js_ast.Stmt, used map[string]struct{}) bool {
+	simport, ok := stmt.Data.(*js_ast.SImport)
+	if !ok || simport.Items == nil {
+		return true
+	}
+
+	kept := make([]js_ast.ClauseItem, 0, len(*simport.Items))
+	for _, item := range *simport.Items {
+		if clauseItemIsUsed(item, used) {
+			kept = append(kept, item)
+		}
+	}
+
+	if len(kept) > 0 {
+		*simport.Items = kept
+		return true
+	}
+	simport.Items = nil
+	return simport.DefaultName != nil || simport.StarNameLoc != nil
+}
+
+// clauseItemIsUsed reports whether a named import binding's local name is referenced as a
+// value, conservatively keeping a binding whose local name cannot be determined.
+//
+// Takes item (js_ast.ClauseItem) which is the named import binding to test.
+// Takes used (map[string]struct{}) which is the set of value-referenced identifier names.
+//
+// Returns bool which is true when the binding's local name is referenced as a value.
+func clauseItemIsUsed(item js_ast.ClauseItem, used map[string]struct{}) bool {
+	name := item.OriginalName
+	if name == "" {
+		name = item.Alias
+	}
+	if name == "" {
+		return true
+	}
+	_, ok := used[name]
+	return ok
+}
+
+// collectUsedIdentifiers records the name of every identifier referenced as a value in the
+// converted body.
+//
+// Walking the AST rather than scanning printed text means a name that appears only as a
+// property key or in a string literal is not mistaken for a value use. The final-print
+// registry is reused and conversion only reads it, so this throwaway pass cannot change the
+// final output.
+//
+// Takes tree (*js_ast.AST) which supplies the symbol table for name resolution.
+// Takes bodyStmts ([]js_ast.Stmt) which are the non-import statements to scan.
+// Takes registry (*RegistryContext) which resolves registry-backed identifier names.
+//
+// Returns map[string]struct{} which is the set of value-referenced identifier names.
+// Returns bool which is false when the body cannot be analysed, so the caller keeps all.
+func collectUsedIdentifiers(tree *js_ast.AST, bodyStmts []js_ast.Stmt, registry *RegistryContext) (map[string]struct{}, bool) {
+	if tree == nil || len(bodyStmts) == 0 {
+		return nil, false
+	}
+	scanTree := &js_ast.AST{
+		Symbols:       tree.Symbols,
+		ImportRecords: tree.ImportRecords,
+		Parts:         []js_ast.Part{{Stmts: bodyStmts}},
+	}
+	tdewolffAST, err := ConvertEsbuildToTdewolff(scanTree, registry)
+	if err != nil {
+		return nil, false
+	}
+	collector := &usedIdentifierCollector{names: make(map[string]struct{})}
+	parsejs.Walk(collector, tdewolffAST)
+	return collector.names, true
 }

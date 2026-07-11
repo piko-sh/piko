@@ -20,6 +20,7 @@ package binder
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image/color"
@@ -4173,7 +4174,7 @@ func TestBindMap_NestedStruct_EdgeCases(t *testing.T) {
 
 		err := binder.BindMap(context.Background(), &form, src)
 		require.Error(t, err, "Unknown nested field should return error in strict mode")
-		assert.Contains(t, err.Error(), "field not found")
+		assert.Contains(t, err.Error(), "unknown field")
 	})
 
 	t.Run("unknown nested field ignored when lenient", func(t *testing.T) {
@@ -4762,4 +4763,215 @@ func TestBindMap_NestedStruct_DoSProtection(t *testing.T) {
 		assert.Equal(t, "visible", form.Public)
 		assert.Equal(t, "", form.hidden, "Unexported fields should not be settable")
 	})
+}
+
+func TestBindMap_OpaqueNestedFields(t *testing.T) {
+	type Scene struct {
+		Elements map[string]any `json:"elements"`
+	}
+	type Input struct {
+		Project string          `json:"project"`
+		Rev     int             `json:"rev"`
+		DocRaw  json.RawMessage `json:"docRaw"`
+		Doc     *Scene          `json:"doc"`
+		Tags    []string        `json:"tags"`
+		At      time.Time       `json:"at"`
+	}
+
+	source := map[string]any{
+		"project": "p1",
+		"rev":     float64(3),
+		"docRaw":  map[string]any{"k": []any{float64(1), float64(2)}},
+		"doc": map[string]any{
+			"elements": map[string]any{
+				"el_term1": map[string]any{
+					"config": map[string]any{
+						"steps": []any{map[string]any{"anim": "fade"}},
+					},
+				},
+			},
+		},
+		"tags": []any{"one", "two"},
+		"at":   "2026-07-11T09:30:00Z",
+	}
+
+	var in Input
+	err := NewASTBinder().BindMap(context.Background(), &in, source)
+	require.NoError(t, err)
+
+	assert.Equal(t, "p1", in.Project)
+	assert.Equal(t, 3, in.Rev)
+
+	assert.Equal(t, []string{"one", "two"}, in.Tags)
+
+	assert.Equal(t, 2026, in.At.Year())
+
+	assert.JSONEq(t, `{"k":[1,2]}`, string(in.DocRaw))
+
+	require.NotNil(t, in.Doc)
+	elTerm, ok := in.Doc.Elements["el_term1"].(map[string]any)
+	require.True(t, ok)
+	config, ok := elTerm["config"].(map[string]any)
+	require.True(t, ok)
+	steps, ok := config["steps"].([]any)
+	require.True(t, ok)
+	require.Len(t, steps, 1)
+	assert.Equal(t, "fade", steps[0].(map[string]any)["anim"])
+}
+
+func TestBindMap_InterfaceField(t *testing.T) {
+	type Input struct {
+		Name    string `json:"name"`
+		Payload any    `json:"payload"`
+	}
+	source := map[string]any{
+		"name":    "x",
+		"payload": map[string]any{"nested": []any{float64(1), map[string]any{"deep": true}}},
+	}
+	var in Input
+	err := NewASTBinder().BindMap(context.Background(), &in, source)
+	require.NoError(t, err)
+	assert.Equal(t, "x", in.Name)
+	payload, ok := in.Payload.(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, payload, "nested")
+}
+
+func TestBindJSON_WellKnownSlices(t *testing.T) {
+	type Input struct {
+		Dates []time.Time `json:"dates"`
+		URLs  []url.URL   `json:"urls"`
+	}
+	source := []byte(`{"dates":["2026-07-11","02/01/2026"],"urls":["https://example.com/a"]}`)
+
+	var in Input
+	err := NewASTBinder().BindJSON(context.Background(), &in, source)
+	require.NoError(t, err)
+
+	require.Len(t, in.Dates, 2)
+	assert.Equal(t, 2026, in.Dates[0].Year())
+	assert.Equal(t, time.July, in.Dates[0].Month())
+	require.Len(t, in.URLs, 1)
+	assert.Equal(t, "example.com", in.URLs[0].Host)
+}
+
+func TestBindJSON_NestedBindTag(t *testing.T) {
+	type Inner struct {
+		Value string `bind:"v"`
+	}
+	type Input struct {
+		Doc Inner `json:"doc"`
+	}
+
+	t.Run("bind tag honoured on a nested subtree struct", func(t *testing.T) {
+		var in Input
+		err := NewASTBinder().BindJSON(context.Background(), &in, []byte(`{"doc":{"v":"hello"}}`), IgnoreUnknownKeys(true))
+		require.NoError(t, err)
+		assert.Equal(t, "hello", in.Doc.Value)
+	})
+
+	t.Run("strict mode rejects a genuinely unknown nested key", func(t *testing.T) {
+		var in Input
+		err := NewASTBinder().BindJSON(context.Background(), &in, []byte(`{"doc":{"v":"hello","other":1}}`))
+		require.Error(t, err)
+	})
+}
+
+func TestBindJSON_PreservesLargeIntegersAndRawMessage(t *testing.T) {
+	type Input struct {
+		ID  int64           `json:"id"`
+		Raw json.RawMessage `json:"raw"`
+	}
+	source := []byte(`{"id":9007199254740993,"raw":{"big":12345678901234567890,"id":9007199254740993}}`)
+
+	var in Input
+	err := NewASTBinder().BindJSON(context.Background(), &in, source)
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(9007199254740993), in.ID)
+
+	assert.JSONEq(t, `{"big":12345678901234567890,"id":9007199254740993}`, string(in.Raw))
+	assert.Contains(t, string(in.Raw), "12345678901234567890")
+}
+
+func TestBindJSON_SubtreeDoSLimits(t *testing.T) {
+	type Input struct {
+		Items []map[string]any `json:"items"`
+		Meta  map[string]any   `json:"meta"`
+	}
+
+	t.Run("maxSliceSize rejects an oversized subtree slice", func(t *testing.T) {
+		var builder strings.Builder
+		builder.WriteString(`{"items":[`)
+		for i := range 50 {
+			if i > 0 {
+				builder.WriteByte(',')
+			}
+			builder.WriteString(`{}`)
+		}
+		builder.WriteString(`]}`)
+
+		var in Input
+		err := NewASTBinder().BindJSON(context.Background(), &in, []byte(builder.String()), WithMaxSliceSize(10))
+		require.Error(t, err)
+	})
+
+	t.Run("maxFieldCount rejects a subtree with too many entries", func(t *testing.T) {
+		var builder strings.Builder
+		builder.WriteString(`{"meta":{`)
+		for i := range 50 {
+			if i > 0 {
+				builder.WriteByte(',')
+			}
+			fmt.Fprintf(&builder, `"k%d":{}`, i)
+		}
+		builder.WriteString(`}}`)
+
+		var in Input
+		err := NewASTBinder().BindJSON(context.Background(), &in, []byte(builder.String()), WithMaxFieldCount(10))
+		require.Error(t, err)
+	})
+}
+
+func TestBindJSON_SubtreeErrorIsSafe(t *testing.T) {
+	type Scene struct {
+		Steps []int `json:"steps"`
+	}
+	type Input struct {
+		Doc Scene `json:"doc"`
+	}
+
+	var in Input
+	err := NewASTBinder().BindJSON(context.Background(), &in, []byte(`{"doc":"not-an-object"}`))
+	require.Error(t, err)
+
+	var multi MultiError
+	require.ErrorAs(t, err, &multi)
+	require.Len(t, multi, 1)
+	for _, fieldErr := range multi {
+		safe, ok := fieldErr.(interface{ SafeMessage() string })
+		require.True(t, ok, "subtree error must expose a SafeMessage")
+		assert.Equal(t, "invalid form data", safe.SafeMessage())
+		assert.NotContains(t, safe.SafeMessage(), "binder.")
+	}
+}
+
+func TestBindJSON_EmbeddedOpaqueField(t *testing.T) {
+	type Base struct {
+		Meta map[string]any `json:"meta"`
+	}
+	type Input struct {
+		Base
+		Name string `json:"name"`
+	}
+	source := []byte(`{"name":"x","meta":{"a":{"b":1}}}`)
+
+	var in Input
+	err := NewASTBinder().BindJSON(context.Background(), &in, source, IgnoreUnknownKeys(true))
+	require.NoError(t, err)
+
+	assert.Equal(t, "x", in.Name)
+	inner, ok := in.Meta["a"].(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, inner, "b")
 }

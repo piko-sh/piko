@@ -10,7 +10,7 @@ import (
 
 func TestIndex_DefaultTitle(t *testing.T) {
 	tester := piko.NewComponentTester(t, index.BuildAST)
-	req := piko.NewTestRequest("GET", "/").Build()
+	req := piko.NewTestRequest("GET", "/").Build(t.Context())
 	view := tester.Render(req, piko.NoProps{})
 
 	view.QueryAST(".hero-title").Exists().HasText("Welcome to Piko")
@@ -19,7 +19,7 @@ func TestIndex_DefaultTitle(t *testing.T) {
 func TestIndex_PersonalizedTitle(t *testing.T) {
 	tester := piko.NewComponentTester(t, index.BuildAST)
 	req := piko.NewTestRequest("GET", "/").
-		WithQueryParam("name", "Alice").Build()
+		WithQueryParam("name", "Alice").Build(t.Context())
 	view := tester.Render(req, piko.NoProps{})
 
 	view.QueryAST(".hero-title").Exists().HasText("Welcome, Alice")
@@ -27,7 +27,7 @@ func TestIndex_PersonalizedTitle(t *testing.T) {
 
 func TestIndex_HeroStructure(t *testing.T) {
 	tester := piko.NewComponentTester(t, index.BuildAST)
-	req := piko.NewTestRequest("GET", "/").Build()
+	req := piko.NewTestRequest("GET", "/").Build(t.Context())
 	view := tester.Render(req, piko.NoProps{})
 
 	view.QueryAST(".hero-badge").Exists()

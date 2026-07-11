@@ -168,3 +168,16 @@ func TestDragAndDrop(t *testing.T) {
 		})
 	})
 }
+
+func TestDragByOffset_ShadowSelector(t *testing.T) {
+	t.Parallel()
+	server := newTestServer(testHTMLShadowDOMComprehensive)
+	defer server.Close()
+
+	withExclusivePage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		ctx := newActionContext(page)
+		if err := DragByOffset(ctx, "#host >>> #shadow-btn", 10, 10); err != nil {
+			t.Fatalf("DragByOffset() on shadow selector error = %v", err)
+		}
+	})
+}

@@ -56,6 +56,19 @@ func TestExtractTypeAssertions_Arrays(t *testing.T) {
 	assert.Equal(t, "number[]", assertions["numbers"].TypeString)
 }
 
+func TestExtractTypeAssertions_ObjectLiteral(t *testing.T) {
+	code := `
+		const state = {
+			shape: { steps: [] } as { steps: number[] }
+		};
+	`
+
+	assertions := ExtractTypeAssertions(code)
+
+	assert.Equal(t, "object", assertions["shape"].TypeString)
+	assert.Equal(t, "object", ParseTypeString(assertions["shape"].TypeString).JSType)
+}
+
 func TestExtractTypeAssertions_Generics(t *testing.T) {
 	code := `
 		const state = {

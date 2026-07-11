@@ -178,15 +178,21 @@ func convertFieldsToFieldSpecs(fields []annotator_dto.ActionFieldInfo) []annotat
 
 	specs := make([]annotator_dto.FieldSpec, len(fields))
 	for i, f := range fields {
+		tsType := f.TSType
+		if f.IsFileUpload {
+			tsType = "File"
+		}
 		specs[i] = annotator_dto.FieldSpec{
-			NestedType:  convertActionTypeInfoToTypeSpec(f.NestedType),
-			Name:        f.Name,
-			GoType:      f.GoType,
-			TSType:      f.TSType,
-			JSONName:    f.JSONName,
-			Validation:  f.Validation,
-			Optional:    f.Optional,
-			Description: f.Description,
+			NestedType:   convertActionTypeInfoToTypeSpec(f.NestedType),
+			Name:         f.Name,
+			GoType:       f.GoType,
+			TSType:       tsType,
+			JSONName:     f.JSONName,
+			Validation:   f.Validation,
+			Optional:     f.Optional,
+			Description:  f.Description,
+			IsFileUpload: f.IsFileUpload,
+			IsPointer:    f.IsPointer,
 		}
 	}
 	return specs

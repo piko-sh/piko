@@ -103,7 +103,7 @@ func TestFindTargetByAST_NonStructIdentifier(t *testing.T) {
 		err := binder.BindMap(context.Background(), &form, src)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "not a slice, map, or struct")
+		assert.Contains(t, err.Error(), "data", "error should reference the offending field, not panic")
 	})
 
 	t.Run("dot notation on non-struct via Bind returns error not panic", func(t *testing.T) {

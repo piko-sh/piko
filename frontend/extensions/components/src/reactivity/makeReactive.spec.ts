@@ -17,7 +17,7 @@
 // strip others of their rights and dignity.
 
 import { describe, it, expect, vi } from 'vitest';
-import { makeReactive, type ReactiveContext } from '@/reactivity/makeReactive';
+import { makeReactive, toRaw, REACTIVE_RAW, type ReactiveContext } from '@/reactivity/makeReactive';
 
 describe('makeReactive', () => {
     describe('basic object reactivity', () => {
@@ -250,6 +250,38 @@ describe('makeReactive', () => {
             expect(state.element.tagName).toBe('DIV');
         });
 
+        it('should not wrap Map/Set/Date so their methods keep working', () => {
+            const context: ReactiveContext = { scheduleRender: vi.fn() };
+            const map = new Map<string, number>([['a', 1]]);
+            const set = new Set<number>([1, 2]);
+            const date = new Date(2026, 0, 1);
+
+            const state = makeReactive({ map, set, date }, context);
+
+            expect(() => state.map.get('a')).not.toThrow();
+            expect(state.map.get('a')).toBe(1);
+            expect(() => state.set.has(1)).not.toThrow();
+            expect(state.set.has(1)).toBe(true);
+            expect(() => state.date.getFullYear()).not.toThrow();
+            expect(state.date.getFullYear()).toBe(2026);
+        });
+
+        it('should return a frozen object-valued property as its raw value', () => {
+            const frozen = Object.freeze({ level: 2 });
+            const host = {};
+            Object.defineProperty(host, 'frozen', {
+                value: frozen,
+                writable: false,
+                configurable: false,
+                enumerable: true,
+            });
+
+            const state = makeReactive(host, { scheduleRender: vi.fn() });
+
+            expect(() => (state as { frozen: unknown }).frozen).not.toThrow();
+            expect((state as { frozen: unknown }).frozen).toBe(frozen);
+        });
+
         it('should work without context', () => {
             const state = makeReactive({ count: 0 });
             state.count = 1;
@@ -309,6 +341,37 @@ describe('makeReactive', () => {
             state[sym] = 'new value';
 
             expect(scheduleRender).toHaveBeenCalled();
+        });
+    });
+
+    describe('raw target access', () => {
+        it('should expose the underlying object target through toRaw', () => {
+            const target = { a: 1, nested: { b: 2 } };
+            const state = makeReactive(target);
+
+            expect(toRaw(state)).toBe(target);
+        });
+
+        it('should expose the underlying array target through toRaw', () => {
+            const target = [1, 2, 3];
+            const state = makeReactive(target);
+
+            expect(toRaw(state)).toBe(target);
+        });
+
+        it('should expose the raw target directly through the REACTIVE_RAW key', () => {
+            const target = { value: 'raw' };
+            const state = makeReactive(target);
+
+            expect((state as Record<symbol, unknown>)[REACTIVE_RAW]).toBe(target);
+        });
+
+        it('should return non-reactive values unchanged from toRaw', () => {
+            const plain = { a: 1 };
+
+            expect(toRaw(plain)).toBe(plain);
+            expect(toRaw(5)).toBe(5);
+            expect(toRaw(null)).toBe(null);
         });
     });
 });

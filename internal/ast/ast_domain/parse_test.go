@@ -294,6 +294,36 @@ func TestParse_EventAndBindDirectives(t *testing.T) {
 		assertExprString(t, "handleUpdate", directive.Expression)
 	})
 
+	t.Run("p-on on an svg element", func(t *testing.T) {
+		source := `<svg><rect p-on:click="handleClick"></rect></svg>`
+		tree := mustParse(t, source)
+		node := findNodeByTagFromRoots(t, tree.RootNodes, "rect")
+
+		require.Contains(t, node.OnEvents, "click")
+		require.Len(t, node.OnEvents["click"], 1)
+		assert.Equal(t, "handleClick", node.OnEvents["click"][0].RawExpression)
+	})
+
+	t.Run("p-on on an svg element inside p-for", func(t *testing.T) {
+		source := `<svg><g p-for="(i, item) in state.items"><rect p-on:click="handleClick(item)"></rect></g></svg>`
+		tree := mustParse(t, source)
+		node := findNodeByTagFromRoots(t, tree.RootNodes, "rect")
+
+		require.Contains(t, node.OnEvents, "click")
+		require.Len(t, node.OnEvents["click"], 1)
+		assert.Equal(t, "handleClick(item)", node.OnEvents["click"][0].RawExpression)
+	})
+
+	t.Run("p-event on an svg element", func(t *testing.T) {
+		source := `<svg><rect p-event:update="handleUpdate"></rect></svg>`
+		tree := mustParse(t, source)
+		node := findNodeByTagFromRoots(t, tree.RootNodes, "rect")
+
+		require.Contains(t, node.CustomEvents, "update")
+		require.Len(t, node.CustomEvents["update"], 1)
+		assert.Equal(t, "handleUpdate", node.CustomEvents["update"][0].RawExpression)
+	})
+
 	t.Run("p-bind single", func(t *testing.T) {
 		source := `<a p-bind:href="user.url"></a>`
 		tree := mustParse(t, source)

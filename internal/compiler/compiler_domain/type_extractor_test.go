@@ -132,6 +132,37 @@ func TestTypeExtractor_MixedTyping(t *testing.T) {
 	assert.Equal(t, "string", metadata.StateProperties["complex"].ElementType)
 }
 
+func TestTypeExtractor_UninformativeAnnotations(t *testing.T) {
+	code := `
+		const state = {
+			config: {} as any,
+			list: [] as any,
+			prim: "x" as any,
+			shape: { steps: [] } as { steps: number[] },
+			plainObj: {}
+		};
+	`
+
+	parser := NewTypeScriptParser()
+	tree, err := parser.ParseTypeScript(code, "test.ts")
+	require.NoError(t, err)
+
+	typeAssertions := ExtractTypeAssertions(code)
+	extractor := NewTypeExtractor(tree, typeAssertions)
+	metadata, err := extractor.ExtractMetadata()
+	require.NoError(t, err)
+
+	assert.Equal(t, "object", metadata.StateProperties["config"].JSType)
+	assert.Equal(t, "array", metadata.StateProperties["list"].JSType)
+
+	assert.Equal(t, "string", metadata.StateProperties["prim"].JSType)
+
+	assert.Equal(t, "object", metadata.StateProperties["shape"].JSType)
+	assert.Empty(t, metadata.StateProperties["shape"].ElementType)
+
+	assert.Equal(t, "object", metadata.StateProperties["plainObj"].JSType)
+}
+
 func TestTypeExtractor_EmptyState(t *testing.T) {
 	code := `
 		const other = "not state";

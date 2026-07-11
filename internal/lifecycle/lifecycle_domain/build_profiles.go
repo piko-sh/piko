@@ -25,6 +25,7 @@ import (
 
 	"piko.sh/piko/internal/capabilities/capabilities_dto"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
 const (
@@ -86,6 +87,10 @@ type profileContext struct {
 
 	// ext is the file extension, including the leading dot.
 	ext string
+
+	// moduleName is the Go module name used to rewrite @/ import aliases in transpiled
+	// TypeScript. Empty when no module resolver is available.
+	moduleName string
 }
 
 // profileBuilder is a function type that builds profiles from a given context.
@@ -108,11 +113,13 @@ var (
 // GetProfilesForFile returns the processing profiles for a file based on its extension.
 //
 // Takes artefactID (string) which is the path or name of the file.
+// Takes moduleName (string) which is the Go module name used to rewrite @/ import aliases
+// in transpiled TypeScript; pass "" when no module resolver is available.
 // Takes ignoreExt ([]string) which lists extensions to skip.
 //
 // Returns []registry_dto.NamedProfile which contains the output profiles for the file, or
 // nil if the extension is in the ignore list or not recognised.
-func GetProfilesForFile(artefactID string, ignoreExt []string) []registry_dto.NamedProfile {
+func GetProfilesForFile(artefactID string, moduleName string, ignoreExt []string) []registry_dto.NamedProfile {
 	ext := strings.ToLower(filepath.Ext(artefactID))
 
 	if slices.Contains(ignoreExt, ext) {
@@ -124,7 +131,20 @@ func GetProfilesForFile(artefactID string, ignoreExt []string) []registry_dto.Na
 		return nil
 	}
 
-	return builder(profileContext{artefactID: artefactID, ext: ext})
+	return builder(profileContext{artefactID: artefactID, ext: ext, moduleName: moduleName})
+}
+
+// ResolverModuleName returns the Go module name from resolver for @/ alias rewriting
+// during TypeScript transpilation, or "" when no resolver is available.
+//
+// Takes resolver (resolver_domain.ResolverPort) which may be nil.
+//
+// Returns string which is the module name, or empty when unavailable.
+func ResolverModuleName(resolver resolver_domain.ResolverPort) string {
+	if resolver == nil {
+		return ""
+	}
+	return resolver.GetModuleName()
 }
 
 // makeProfile creates a NamedProfile with the given parameters.
@@ -332,7 +352,7 @@ func buildTypeScriptProfiles(ctx profileContext) []registry_dto.NamedProfile {
 			"mimeType":         mimeTypeJS,
 			"fileExtension":    ".js",
 		},
-		map[string]string{"sourcePath": ctx.artefactID},
+		map[string]string{"sourcePath": ctx.artefactID, "moduleName": ctx.moduleName},
 	))
 
 	return append(profiles, buildMinifyCompressChain(

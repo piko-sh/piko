@@ -552,7 +552,8 @@ class ImportTestElement extends PPElement {
 
 func TestPrintAST(t *testing.T) {
 	t.Run("returns empty for nil AST", func(t *testing.T) {
-		result := printAST(context.Background(), nil, nil, nil)
+		result, err := printAST(context.Background(), nil, nil, nil)
+		require.NoError(t, err)
 		assert.Empty(t, result)
 	})
 
@@ -568,8 +569,9 @@ func TestPrintAST(t *testing.T) {
 			},
 		}
 
-		result := printAST(context.Background(), tree, nil, registry)
+		result, err := printAST(context.Background(), tree, nil, registry)
 
+		require.NoError(t, err)
 		assert.NotNil(t, result)
 	})
 }
@@ -916,4 +918,30 @@ func TestInjectEventBindings(t *testing.T) {
 		injectEventBindings(ctx, tree, "TestElement", ec)
 
 	})
+}
+
+func TestCollectUsedIdentifiers(t *testing.T) {
+	parser := NewTypeScriptParser()
+	tree, err := parser.ParseTypeScript(
+		`const s = { Item: usedVal, price: money }; foo(); bar.Widget; const t = "Item Widget MyType";`,
+		"test.ts",
+	)
+	require.NoError(t, err)
+
+	var bodyStmts []js_ast.Stmt
+	for _, part := range tree.Parts {
+		bodyStmts = append(bodyStmts, part.Stmts...)
+	}
+
+	used, ok := collectUsedIdentifiers(tree, bodyStmts, NewRegistryContext())
+	require.True(t, ok)
+
+	assert.Contains(t, used, "usedVal", "a value use must be recorded")
+	assert.Contains(t, used, "money", "a value use must be recorded")
+	assert.Contains(t, used, "foo", "a call target must be recorded")
+	assert.Contains(t, used, "bar", "a member-access base must be recorded")
+
+	assert.NotContains(t, used, "Item", "an object property key must not be recorded")
+	assert.NotContains(t, used, "Widget", "a member name and string contents must not be recorded")
+	assert.NotContains(t, used, "MyType", "a name only in a string literal must not be recorded")
 }

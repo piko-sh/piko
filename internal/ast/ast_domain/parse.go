@@ -1109,6 +1109,10 @@ func buildForeignElementNode(element xml.StartElement, baseLocation Location) *T
 // Takes baseLocation (Location) which provides the source location.
 func classifyForeignAttribute(node *TemplateNode, attr xml.Attr, baseLocation Location) {
 	attributeName := attr.Name.Local
+
+	if strings.HasPrefix(attr.Name.Space, "p-") {
+		attributeName = attr.Name.Space + ":" + attr.Name.Local
+	}
 	attributeValue := attr.Value
 	keyBytes := []byte(attributeName)
 

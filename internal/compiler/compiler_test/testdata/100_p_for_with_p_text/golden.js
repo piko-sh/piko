@@ -24,7 +24,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             super();
         }
         static get propTypes () {
-            return {"options": {"type": "valuestring"}};
+            return {"options": {"type": "array", "itemType": "object"}};
         }
         static get defaultProps () {
             return {"options": []};

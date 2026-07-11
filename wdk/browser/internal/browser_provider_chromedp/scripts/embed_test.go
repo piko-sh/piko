@@ -227,3 +227,23 @@ func TestTemplateFuncs_JsRaw(t *testing.T) {
 		t.Errorf("jsRaw(%q) = %q, expected identity pass-through", input, result)
 	}
 }
+
+func TestShadowGetCentre_PiercesAndChecksOcclusion(t *testing.T) {
+	js := MustExecute("shadow_get_centre.js.tmpl", map[string]any{
+		"Host":   "pp-x",
+		"Shadow": ".el",
+	})
+	for _, want := range []string{
+		`document.querySelector("pp-x")`,
+		`.shadowRoot.querySelector(".el")`,
+		"document.elementFromPoint(x, y)",
+		"hit.shadowRoot.elementFromPoint(x, y)",
+		"clickable:",
+		"hit !== el",
+		"guard < 64",
+	} {
+		if !strings.Contains(js, want) {
+			t.Errorf("shadow_get_centre.js.tmpl output missing %q\n---\n%s", want, js)
+		}
+	}
+}

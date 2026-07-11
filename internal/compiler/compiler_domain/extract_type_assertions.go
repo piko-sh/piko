@@ -421,6 +421,10 @@ func extractTypeTokens(lexer *js_lexer.Lexer) string {
 //
 // Returns bool which is true when extraction should stop.
 func processTypeToken(lexer *js_lexer.Lexer, state *typeTokenState) bool {
+	if handleObjectLiteral(lexer, state) {
+		return false
+	}
+
 	if handleAngleBrackets(lexer, state) {
 		return false
 	}
@@ -634,4 +638,39 @@ func extractBaseType(typeString string) string {
 		return strings.TrimSpace(parts[0])
 	}
 	return typeString
+}
+
+// handleObjectLiteral collapses an object type literal such as `{ a: string }` into a single
+// "object" token.
+//
+// Its members cannot be meaningfully flattened; for runtime JSON attribute seeding only the
+// fact that it is an object matters. Balanced braces are consumed so surrounding structure,
+// a trailing `[]` making it an object array or a `|` union, is preserved for the caller.
+//
+// Takes lexer (*js_lexer.Lexer) which provides the token stream to read from.
+// Takes state (*typeTokenState) which receives the collapsed token.
+//
+// Returns bool which is true if an object literal was consumed.
+func handleObjectLiteral(lexer *js_lexer.Lexer, state *typeTokenState) bool {
+	if lexer.Token != js_lexer.TOpenBrace {
+		return false
+	}
+
+	depth := 0
+	for lexer.Token != js_lexer.TEndOfFile {
+		switch lexer.Token {
+		case js_lexer.TOpenBrace:
+			depth++
+		case js_lexer.TCloseBrace:
+			depth--
+		default:
+		}
+		lexer.Next()
+		if depth == 0 {
+			break
+		}
+	}
+
+	state.tokens = append(state.tokens, "object")
+	return true
 }

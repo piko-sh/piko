@@ -19,6 +19,7 @@
 package compiler_domain
 
 import (
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -512,6 +513,55 @@ func TestConvertEIndex(t *testing.T) {
 		indexExpr, ok := result.(*parsejs.IndexExpr)
 		require.True(t, ok)
 		assert.False(t, indexExpr.Optional)
+	})
+
+	t.Run("wraps binary expression target in GroupExpr", func(t *testing.T) {
+		t.Parallel()
+		registry := NewRegistryContext()
+		aIdent := registry.MakeIdentifier("a")
+		indexIdent := registry.MakeIdentifier("i")
+		converter := NewASTConverter(nil, nil, registry)
+
+		index := &js_ast.EIndex{
+			Target: js_ast.Expr{Data: &js_ast.EBinary{
+				Op:    js_ast.BinOpLogicalOr,
+				Left:  js_ast.Expr{Data: aIdent},
+				Right: js_ast.Expr{Data: &js_ast.EArray{Items: []js_ast.Expr{}}},
+			}},
+			Index: js_ast.Expr{Data: indexIdent},
+		}
+
+		result, err := converter.convertEIndex(index)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		indexExpr, ok := result.(*parsejs.IndexExpr)
+		require.True(t, ok)
+		_, isGroup := indexExpr.X.(*parsejs.GroupExpr)
+		assert.True(t, isGroup, "binary target should be wrapped in GroupExpr")
+	})
+
+	t.Run("wraps ternary expression target in GroupExpr", func(t *testing.T) {
+		t.Parallel()
+		converter := NewASTConverter(nil, nil, nil)
+
+		index := &js_ast.EIndex{
+			Target: js_ast.Expr{Data: &js_ast.EIf{
+				Test: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}},
+				Yes:  js_ast.Expr{Data: &js_ast.EArray{Items: []js_ast.Expr{}}},
+				No:   js_ast.Expr{Data: &js_ast.EArray{Items: []js_ast.Expr{}}},
+			}},
+			Index: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+		}
+
+		result, err := converter.convertEIndex(index)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		indexExpr, ok := result.(*parsejs.IndexExpr)
+		require.True(t, ok)
+		_, isGroup := indexExpr.X.(*parsejs.GroupExpr)
+		assert.True(t, isGroup, "ternary target should be wrapped in GroupExpr")
 	})
 }
 
@@ -1182,19 +1232,15 @@ func TestConvertEImportString(t *testing.T) {
 func TestConvertOperatorOrFunctionExprUnsupported(t *testing.T) {
 	t.Parallel()
 
-	t.Run("unsupported expression type returns placeholder", func(t *testing.T) {
+	t.Run("unsupported expression type returns an error", func(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
 		result, err := converter.convertOperatorOrFunctionExpr(
 			js_ast.Expr{Data: &js_ast.ENull{}},
 		)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-
-		v, ok := result.(*parsejs.Var)
-		require.True(t, ok)
-		assert.Contains(t, string(v.Data), "unsupported")
+		require.ErrorIs(t, err, errUnsupportedExpression)
+		assert.Nil(t, result)
 	})
 }
 
@@ -1271,5 +1317,86 @@ func TestConvertEObject(t *testing.T) {
 		require.True(t, ok)
 		require.Len(t, objExpr.List, 1)
 		assert.True(t, objExpr.List[0].Spread)
+	})
+}
+
+func TestConvertEBinary_NullishWrapsChild(t *testing.T) {
+	t.Parallel()
+
+	build := func(childOp js_ast.OpCode, onLeft bool) *js_ast.EBinary {
+		child := js_ast.Expr{Data: &js_ast.EBinary{
+			Op:    childOp,
+			Left:  js_ast.Expr{Data: &js_ast.EIdentifier{}},
+			Right: js_ast.Expr{Data: &js_ast.EIdentifier{}},
+		}}
+		other := js_ast.Expr{Data: &js_ast.ENumber{Value: 0}}
+		bin := &js_ast.EBinary{Op: js_ast.BinOpNullishCoalescing}
+		if onLeft {
+			bin.Left, bin.Right = child, other
+		} else {
+			bin.Left, bin.Right = other, child
+		}
+		return bin
+	}
+
+	for _, childOp := range []js_ast.OpCode{js_ast.BinOpLogicalAnd, js_ast.BinOpLogicalOr} {
+		for _, onLeft := range []bool{true, false} {
+			converter := NewASTConverter(nil, nil, nil)
+			result, err := converter.convertEBinary(build(childOp, onLeft))
+			require.NoError(t, err)
+			bin, ok := result.(*parsejs.BinaryExpr)
+			require.True(t, ok)
+			operand := bin.Y
+			if onLeft {
+				operand = bin.X
+			}
+			_, isGroup := operand.(*parsejs.GroupExpr)
+			assert.Truef(t, isGroup, "childOp=%v onLeft=%v operand should be wrapped in GroupExpr", childOp, onLeft)
+		}
+	}
+}
+
+func TestConvertENumber_NonFinite(t *testing.T) {
+	t.Parallel()
+	converter := NewASTConverter(nil, nil, nil)
+
+	t.Run("positive infinity -> Infinity", func(t *testing.T) {
+		t.Parallel()
+		result, err := converter.convertENumber(&js_ast.ENumber{Value: math.Inf(1)})
+		require.NoError(t, err)
+		v, ok := result.(*parsejs.Var)
+		require.True(t, ok)
+		assert.Equal(t, "Infinity", string(v.Data))
+	})
+
+	t.Run("negative infinity -> -Infinity", func(t *testing.T) {
+		t.Parallel()
+		result, err := converter.convertENumber(&js_ast.ENumber{Value: math.Inf(-1)})
+		require.NoError(t, err)
+		u, ok := result.(*parsejs.UnaryExpr)
+		require.True(t, ok)
+		assert.Equal(t, parsejs.SubToken, u.Op)
+		v, ok := u.X.(*parsejs.Var)
+		require.True(t, ok)
+		assert.Equal(t, "Infinity", string(v.Data))
+	})
+
+	t.Run("NaN -> NaN", func(t *testing.T) {
+		t.Parallel()
+		result, err := converter.convertENumber(&js_ast.ENumber{Value: math.NaN()})
+		require.NoError(t, err)
+		v, ok := result.(*parsejs.Var)
+		require.True(t, ok)
+		assert.Equal(t, "NaN", string(v.Data))
+	})
+
+	t.Run("finite -> decimal literal", func(t *testing.T) {
+		t.Parallel()
+		result, err := converter.convertENumber(&js_ast.ENumber{Value: 42})
+		require.NoError(t, err)
+		lit, ok := result.(*parsejs.LiteralExpr)
+		require.True(t, ok)
+		assert.Equal(t, parsejs.DecimalToken, lit.TokenType)
+		assert.Equal(t, "42", string(lit.Data))
 	})
 }

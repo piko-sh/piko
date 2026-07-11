@@ -152,3 +152,37 @@ func TestTranspileTypeScript_FatalError(t *testing.T) {
 	require.Error(t, err)
 	assert.True(t, capabilities_domain.IsFatalError(err), "error should be a fatal error")
 }
+
+func TestTranspileTypeScript_ModuleAliasRewrite(t *testing.T) {
+	t.Parallel()
+
+	transpileFunc := TranspileTypeScript()
+	const source = "import { helper } from '@/lib/utils';\nexport const value = helper();"
+
+	t.Run("rewrites @/ imports when the module name is provided", func(t *testing.T) {
+		t.Parallel()
+
+		outputStream, err := transpileFunc(context.Background(), strings.NewReader(source),
+			capabilities_domain.CapabilityParams{"moduleName": "example.com/site"})
+		require.NoError(t, err)
+
+		outputBytes, readErr := io.ReadAll(outputStream)
+		require.NoError(t, readErr)
+
+		output := string(outputBytes)
+		assert.Contains(t, output, "/_piko/assets/example.com/site/lib/utils.js")
+		assert.NotContains(t, output, "@/lib/utils")
+	})
+
+	t.Run("leaves @/ imports untouched when no module name is provided", func(t *testing.T) {
+		t.Parallel()
+
+		outputStream, err := transpileFunc(context.Background(), strings.NewReader(source), nil)
+		require.NoError(t, err)
+
+		outputBytes, readErr := io.ReadAll(outputStream)
+		require.NoError(t, readErr)
+
+		assert.Contains(t, string(outputBytes), "@/lib/utils")
+	})
+}

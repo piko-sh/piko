@@ -144,6 +144,79 @@ func TestEmitWrappers(t *testing.T) {
 			},
 		},
 		{
+			name: "action with struct param containing a file upload field",
+			specs: []annotator_dto.ActionSpec{
+				baseSpec("test.action", annotator_dto.ParamSpec{
+					Name:     "input",
+					GoType:   "CreateInput",
+					JSONName: "input",
+					Struct: &annotator_dto.TypeSpec{
+						Name:        "CreateInput",
+						PackagePath: "mymod/actions/test",
+						Fields: []annotator_dto.FieldSpec{
+							{Name: "Title", GoType: "string", JSONName: "title"},
+							{Name: "Avatar", GoType: "piko.FileUpload", JSONName: "avatar", TSType: "File", IsFileUpload: true},
+						},
+					},
+				}),
+			},
+			wantContains: []string{
+				"var input test.CreateInput",
+				`argsMap["avatar"].(*multipart.FileHeader)`,
+				"input.Avatar = piko.NewFileUpload(fh)",
+				`delete(argsMap, "avatar")`,
+				"pikobinder.BindMap",
+			},
+		},
+		{
+			name: "struct file upload field is extracted by its resolved json key",
+			specs: []annotator_dto.ActionSpec{
+				baseSpec("test.action", annotator_dto.ParamSpec{
+					Name:     "input",
+					GoType:   "CreateInput",
+					JSONName: "input",
+					Struct: &annotator_dto.TypeSpec{
+						Name:        "CreateInput",
+						PackagePath: "mymod/actions/test",
+						Fields: []annotator_dto.FieldSpec{
+							{Name: "Title", GoType: "string", JSONName: "title"},
+							{Name: "Avatar", GoType: "piko.FileUpload", JSONName: "avatar", TSType: "File", IsFileUpload: true},
+						},
+					},
+				}),
+			},
+			wantContains: []string{
+				`argsMap["avatar"].(*multipart.FileHeader)`,
+			},
+			wantNotContain: []string{
+				`argsMap["Avatar"]`,
+			},
+		},
+		{
+			name: "struct pointer file upload field is assigned by address",
+			specs: []annotator_dto.ActionSpec{
+				baseSpec("test.action", annotator_dto.ParamSpec{
+					Name:     "input",
+					GoType:   "CreateInput",
+					JSONName: "input",
+					Struct: &annotator_dto.TypeSpec{
+						Name:        "CreateInput",
+						PackagePath: "mymod/actions/test",
+						Fields: []annotator_dto.FieldSpec{
+							{Name: "Avatar", GoType: "*piko.FileUpload", JSONName: "avatar", TSType: "File", IsFileUpload: true, IsPointer: true},
+						},
+					},
+				}),
+			},
+			wantContains: []string{
+				"fu := piko.NewFileUpload(fh)",
+				"input.Avatar = &fu",
+			},
+			wantNotContain: []string{
+				"input.Avatar = piko.NewFileUpload(fh)",
+			},
+		},
+		{
 			name: "action with file upload",
 			specs: []annotator_dto.ActionSpec{
 				baseSpec("test.action", annotator_dto.ParamSpec{
@@ -322,6 +395,34 @@ func TestEmitWrappers_ValidGoSyntax(t *testing.T) {
 						{Name: "avatar", JSONName: "avatar", IsFileUpload: true},
 						{Name: "files", JSONName: "files", IsFileUploadSlice: true},
 						{Name: "body", JSONName: "body", IsRawBody: true},
+					},
+				},
+			},
+		},
+		{
+			name: "action with struct param containing a file upload field",
+			specs: []annotator_dto.ActionSpec{
+				{
+					Name:        "profile.action",
+					PackagePath: "mymod/actions/profile",
+					PackageName: "profile",
+					StructName:  "ProfileAction",
+					HTTPMethod:  "POST",
+					HasError:    true,
+					CallParams: []annotator_dto.ParamSpec{
+						{
+							Name:     "input",
+							GoType:   "ProfileInput",
+							JSONName: "input",
+							Struct: &annotator_dto.TypeSpec{
+								Name:        "ProfileInput",
+								PackagePath: "mymod/actions/profile",
+								Fields: []annotator_dto.FieldSpec{
+									{Name: "Title", GoType: "string", JSONName: "title"},
+									{Name: "Avatar", GoType: "piko.FileUpload", JSONName: "avatar", TSType: "File", IsFileUpload: true},
+								},
+							},
+						},
 					},
 				},
 			},

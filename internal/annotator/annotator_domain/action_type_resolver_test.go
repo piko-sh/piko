@@ -197,6 +197,75 @@ func TestExtractJSONTag(t *testing.T) {
 	}
 }
 
+func TestResolveFieldJSONName(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		rawTag    string
+		fieldName string
+		expected  string
+	}{
+		{
+			name:      "json tag wins",
+			rawTag:    "`json:\"avatar_pic\"`",
+			fieldName: "Avatar",
+			expected:  "avatar_pic",
+		},
+		{
+			name:      "no tag falls back to lower camel field name",
+			rawTag:    "",
+			fieldName: "Avatar",
+			expected:  "avatar",
+		},
+		{
+			name:      "already lower first stays unchanged",
+			rawTag:    "",
+			fieldName: "iD",
+			expected:  "iD",
+		},
+		{
+			name:      "single letter field",
+			rawTag:    "",
+			fieldName: "X",
+			expected:  "x",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.expected, resolveFieldJSONName(tc.rawTag, tc.fieldName))
+		})
+	}
+}
+
+func TestIsFileUploadType(t *testing.T) {
+	t.Parallel()
+
+	const pikoPath = "piko.sh/piko"
+	testCases := []struct {
+		name        string
+		typeString  string
+		packagePath string
+		expected    bool
+	}{
+		{name: "value FileUpload", typeString: "piko.FileUpload", packagePath: pikoPath, expected: true},
+		{name: "pointer FileUpload", typeString: "*piko.FileUpload", packagePath: pikoPath, expected: true},
+		{name: "slice FileUpload is rejected", typeString: "[]piko.FileUpload", packagePath: pikoPath, expected: false},
+		{name: "pointer slice FileUpload is rejected", typeString: "*[]piko.FileUpload", packagePath: pikoPath, expected: false},
+		{name: "coincidental name in another package", typeString: "other.FileUpload", packagePath: "example.com/other", expected: false},
+		{name: "unrelated type", typeString: "string", packagePath: pikoPath, expected: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.expected, isFileUploadType(tc.typeString, tc.packagePath))
+		})
+	}
+}
+
 func TestExtractValidateTag(t *testing.T) {
 	t.Parallel()
 

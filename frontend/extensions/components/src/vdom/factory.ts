@@ -16,11 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
+import type {PikoNamespace} from "@piko/shared-types";
+
 import type {DomAPI, VirtualNode} from "./types";
 
 /** Access the piko namespace set by core on window. */
-function getPiko(): PikoNamespace {
-    return window.piko;
+function getPiko(): PikoNamespace | undefined {
+    return window.piko as PikoNamespace | undefined;
 }
 
 /**

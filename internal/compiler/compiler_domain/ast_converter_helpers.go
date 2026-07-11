@@ -20,6 +20,7 @@ package compiler_domain
 
 import (
 	"fmt"
+	"math"
 
 	parsejs "github.com/tdewolff/parse/v2/js"
 	"piko.sh/piko/internal/esbuild/helpers"
@@ -306,6 +307,9 @@ func (c *ASTConverter) convertPropertyName(key js_ast.Expr) (*parsejs.PropertyNa
 		}, nil
 
 	case *js_ast.ENumber:
+		if lit, ok := nonFiniteKeyLiteral(k.Value); ok {
+			return &parsejs.PropertyName{Literal: lit}, nil
+		}
 		return &parsejs.PropertyName{
 			Literal: parsejs.LiteralExpr{
 				TokenType: parsejs.DecimalToken,
@@ -612,4 +616,26 @@ func getOpPrecedence(op js_ast.OpCode) int {
 		return prec
 	}
 	return 0
+}
+
+// nonFiniteKeyLiteral returns the JavaScript literal for a non-finite numeric object key.
+//
+// +Inf and NaN become the Infinity/NaN identifiers; -Inf becomes the string key a -Infinity
+// numeric key coerces to.
+//
+// Takes value (float64) which is the constant-folded numeric key.
+//
+// Returns parsejs.LiteralExpr which is the key literal when the bool is true.
+// Returns bool which is true for a non-finite value and false for a finite one.
+func nonFiniteKeyLiteral(value float64) (parsejs.LiteralExpr, bool) {
+	switch {
+	case math.IsInf(value, 1):
+		return parsejs.LiteralExpr{TokenType: parsejs.IdentifierToken, Data: []byte("Infinity")}, true
+	case math.IsInf(value, -1):
+		return parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: []byte(`"-Infinity"`)}, true
+	case math.IsNaN(value):
+		return parsejs.LiteralExpr{TokenType: parsejs.IdentifierToken, Data: []byte("NaN")}, true
+	default:
+		return parsejs.LiteralExpr{}, false
+	}
 }

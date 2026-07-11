@@ -43,8 +43,9 @@ type GeneratedOutputDir interface {
 	Remove(name string) error
 }
 
-// GeneratedFileNameSet returns the set of names of the files a generation run will
-// actually write, i.e. those carrying content. It is the keep set to pass to
+// GeneratedFileNameSet returns the names of the files a generation run will actually write.
+//
+// Only files carrying content are included; it is the keep set to pass to
 // PruneStaleGeneratedFiles.
 //
 // Takes files ([]querier_dto.GeneratedFile) which are the freshly generated files.
@@ -61,11 +62,12 @@ func GeneratedFileNameSet(files []querier_dto.GeneratedFile) map[string]struct{}
 	return names
 }
 
-// PruneStaleGeneratedFiles removes files left over from a previous generation run so that
-// a renamed or deleted query no longer collides with the fresh output. Only files that
-// carry the piko GeneratedFileHeader and are absent from keep are removed, so
-// hand-written files sharing the directory are never touched. A file that has vanished
-// since the directory listing is treated as already pruned.
+// PruneStaleGeneratedFiles removes files left over from a previous generation run.
+//
+// A renamed or deleted query no longer collides with the fresh output. Only files that carry
+// the piko GeneratedFileHeader and are absent from keep are removed, so hand-written files
+// sharing the directory are never touched. A file that has vanished since the directory
+// listing is treated as already pruned.
 //
 // Takes dir (GeneratedOutputDir) which is the output directory sandbox.
 // Takes keep (map[string]struct{}) which is the set of filenames about to be written.
@@ -105,17 +107,17 @@ func PruneStaleGeneratedFiles(dir GeneratedOutputDir, keep map[string]struct{}) 
 	return nil
 }
 
-// fileHasGeneratedHeader reports whether name begins with the piko generated-file header,
-// reading only a header-length prefix so an unrelated large sibling is never loaded
-// whole. A file shorter than the header, or one already removed, is reported as not
-// generated rather than as an error.
+// fileHasGeneratedHeader reports whether name begins with the piko generated-file header.
+//
+// Only a header-length prefix is read so an unrelated large sibling is never loaded whole. A
+// file shorter than the header, or one already removed, is reported as not generated.
 //
 // Takes dir (GeneratedOutputDir) which is the output directory sandbox.
 // Takes name (string) which is the candidate file name.
 // Takes header ([]byte) which is the generated-file header to match.
 //
 // Returns bool which is true when the file starts with the header.
-// Returns error only for an unexpected open or read failure.
+// Returns error when an unexpected open or read failure occurs.
 func fileHasGeneratedHeader(dir GeneratedOutputDir, name string, header []byte) (bool, error) {
 	handle, openErr := dir.Open(name)
 	if openErr != nil {

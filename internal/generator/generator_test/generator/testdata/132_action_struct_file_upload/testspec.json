@@ -1,0 +1,5 @@
+{
+    "description": "Tests that an action whose struct input contains a piko.FileUpload field extracts the file from the multipart form and binds the remaining fields",
+    "packageName": "action_struct_file_upload_test",
+    "isPage": true
+}

@@ -190,7 +190,7 @@ func (bs *buildService) buildThemeArtefact(ctx context.Context) error {
 		return fmt.Errorf("failed to build theme CSS: %w", err)
 	}
 
-	desiredProfiles := lifecycle_domain.GetProfilesForFile(themeArtefactPath, nil)
+	desiredProfiles := lifecycle_domain.GetProfilesForFile(themeArtefactPath, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	_, err = bs.registryService.UpsertArtefact(themeCtx, themeArtefactPath, themeArtefactPath, bytes.NewReader(cssBytes), localDiskCacheSource, desiredProfiles)
 	if err != nil {
 		themeLog.Error("Failed to upsert theme artefact", logger_domain.Error(err))
@@ -714,7 +714,7 @@ func (bs *buildService) upsertFileArtefact(
 	parentSpan trace.Span,
 ) {
 	ctx, l := logger_domain.From(ctx, log)
-	profiles := lifecycle_domain.GetProfilesForFile(artefactID, nil)
+	profiles := lifecycle_domain.GetProfilesForFile(artefactID, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	artefactID = lifecycle_domain.NormaliseAssetArtefactID(artefactID)
 	l.Trace("Upserting artefact with profiles", logger_domain.Int("profileCount", len(profiles)))
 
@@ -1042,7 +1042,7 @@ func (bs *buildService) seedExternalComponentEntry(
 	}
 	defer func() { _ = file.Close(); _ = sandbox.Close() }()
 
-	profiles := lifecycle_domain.GetProfilesForFile(artefactID, nil)
+	profiles := lifecycle_domain.GetProfilesForFile(artefactID, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	if _, upsertErr := bs.registryService.UpsertArtefact(ctx, artefactID, relPathSlash, file, localDiskCacheSource, profiles); upsertErr != nil {
 		l.Error("Failed to seed external component artefact",
 			logger_domain.String("artefact_id", artefactID),
@@ -1208,7 +1208,7 @@ func (bs *buildService) seedExternalAssetEntry(
 	}
 	defer func() { _ = file.Close(); _ = sandbox.Close() }()
 
-	profiles := lifecycle_domain.GetProfilesForFile(artefactID, nil)
+	profiles := lifecycle_domain.GetProfilesForFile(artefactID, lifecycle_domain.ResolverModuleName(bs.resolver), nil)
 	artefactID = lifecycle_domain.NormaliseAssetArtefactID(artefactID)
 	if _, upsertErr := bs.registryService.UpsertArtefact(ctx, artefactID, relPathSlash, file, localDiskCacheSource, profiles); upsertErr != nil {
 		l.Error("Failed to seed external asset artefact",

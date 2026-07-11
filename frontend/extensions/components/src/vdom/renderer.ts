@@ -34,6 +34,9 @@ import {
 /** SVG namespace URI used when creating SVG elements. */
 const SVG_NS = "http://www.w3.org/2000/svg";
 
+/** Lowercased tag name whose subtree returns to the HTML namespace within an SVG. */
+const FOREIGN_OBJECT_TAG = "foreignobject";
+
 /**
  * Options for element replacement tracking.
  */
@@ -177,15 +180,15 @@ function patchSameFragment(
 
     if (newIsHidden) {
         patchHiddenFragment(oldVNode, newVNode, oldElm, oldIsHidden, parentElement, nextSiblingNode, refs);
-    } else if (oldIsHidden && oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
-        parentElement.replaceChild(createElm(newVNode, refs) as DocumentFragment, oldElm);
+    } else if (oldIsHidden && oldElm?.nodeType === Node.COMMENT_NODE) {
+        parentElement.replaceChild(createElm(newVNode, refs, isSvgParent(parentElement)) as DocumentFragment, oldElm);
         newVNode.elm = undefined;
     } else if (!oldIsHidden) {
         updateChildren(parentElement, oldVNode.children ?? [], newVNode.children ?? [], refs, nextSiblingNode);
         newVNode.elm = undefined;
     } else {
         removeVNode(oldVNode, parentElement, refs);
-        parentElement.insertBefore(createElm(newVNode, refs) as DocumentFragment, nextSiblingNode);
+        parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)) as DocumentFragment, nextSiblingNode);
         newVNode.elm = undefined;
     }
 }
@@ -213,13 +216,13 @@ function patchElementWithReplacement(
         if (hasWatchedPropsChanged(entry, newVNode.props)) {
             parentElement.removeChild(entry.element);
             clearElmRefsRecursive(oldVNode, refs);
-            parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+            parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
         } else {
             newVNode.elm = entry.element;
         }
     } else {
         clearElmRefsRecursive(oldVNode, refs);
-        parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+        parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
     }
 }
 
@@ -248,8 +251,8 @@ function patchSameVNode(
         return;
     }
 
-    if (oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
-        const newContent = createElm(newVNode, refs);
+    if (oldElm?.nodeType === Node.COMMENT_NODE) {
+        const newContent = createElm(newVNode, refs, isSvgParent(parentElement));
         if (oldElm.parentNode === parentElement) {
             parentElement.replaceChild(newContent, oldElm);
         } else {
@@ -268,7 +271,7 @@ function patchSameVNode(
         return;
     }
 
-    parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+    parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
 }
 
 /**
@@ -308,7 +311,7 @@ export function patch(
                 removeVNode(oldVNode, parentElement, refs);
             }
             const newIsHidden = isVNodeHidden(newVNode);
-            const newContent = createElm(newVNode, refs);
+            const newContent = createElm(newVNode, refs, isSvgParent(parentElement));
             parentElement.insertBefore(newContent, nextSiblingNode);
             newVNode.elm = newIsHidden ? newContent : undefined;
         }
@@ -321,7 +324,7 @@ export function patch(
         if (oldVNode) {
             removeVNode(oldVNode, parentElement, refs);
         }
-        parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+        parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
     }
 }
 
@@ -347,10 +350,10 @@ function patchHiddenFragment(
 ): void {
     if (!oldIsHidden) {
         removeVNode(oldVNode, parentElement, refs);
-        const placeholder = createElm(newVNode, refs);
+        const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
         parentElement.insertBefore(placeholder, nextSiblingNode);
         newVNode.elm = placeholder;
-    } else if (oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
+    } else if (oldElm?.nodeType === Node.COMMENT_NODE) {
         const message = `hidden fragment _k=${newVNode.key ?? `err-H2H`}`;
         if (oldElm.nodeValue !== message) {
             oldElm.nodeValue = message;
@@ -360,7 +363,7 @@ function patchHiddenFragment(
             parentElement.removeChild(oldElm);
         }
         clearElmRefsRecursive(oldVNode, refs);
-        const placeholder = createElm(newVNode, refs);
+        const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
         parentElement.insertBefore(placeholder, nextSiblingNode);
         newVNode.elm = placeholder;
     }
@@ -385,20 +388,20 @@ function patchHiddenElement(
     refs: Record<string, Node> | null
 ): void {
     if (oldElm && oldElm.nodeType !== Node.COMMENT_NODE) {
-        const placeholder = createElm(newVNode, refs);
+        const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
         if (oldElm.parentNode === parentElement) {
             parentElement.replaceChild(placeholder, oldElm);
         } else {
             parentElement.insertBefore(placeholder, nextSiblingNode);
         }
         newVNode.elm = placeholder;
-    } else if (oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
+    } else if (oldElm?.nodeType === Node.COMMENT_NODE) {
         const message = `hidden node _k=${newVNode.key ?? `err-elemH2H`}`;
         if (oldElm.nodeValue !== message) {
             oldElm.nodeValue = message;
         }
     } else if (!oldElm) {
-        const placeholder = createElm(newVNode, refs);
+        const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
         parentElement.insertBefore(placeholder, nextSiblingNode);
         newVNode.elm = placeholder;
     }
@@ -453,12 +456,13 @@ function createElm(vnode: VirtualNode, refs: Record<string, Node> | null, isSvg?
  */
 function createElementNode(elVNode: ElementVNode, refs: Record<string, Node> | null, isSvg?: boolean): Element {
     const tagIsSvg = elVNode.tag === "svg";
-    const childSvg = isSvg === true || tagIsSvg === true;
-    const elementNode = childSvg
+    const inSvg = isSvg === true || tagIsSvg === true;
+    const elementNode = inSvg
         ? document.createElementNS(SVG_NS, elVNode.tag)
         : document.createElement(elVNode.tag);
     elVNode.elm = elementNode;
     patchProps(elementNode as HTMLElement, {}, elVNode.props ?? {}, refs);
+    const childSvg = inSvg && elVNode.tag.toLowerCase() !== FOREIGN_OBJECT_TAG;
     if (elVNode.html != null) {
         (elementNode as HTMLElement).innerHTML = elVNode.html;
     } else if (elVNode.children) {
@@ -539,7 +543,7 @@ function addVNodes(
     for (let i = startIndex; i <= endIndex; i++) {
         const childVNode = vnodesToAdd[i];
         if (childVNode) {
-            const createdDomMaterial = createElm(childVNode, refs);
+            const createdDomMaterial = createElm(childVNode, refs, isSvgParent(parentElement));
             parentElement.insertBefore(createdDomMaterial, referenceNode);
 
             if (childVNode._type === "fragment" && !isVNodeHidden(childVNode)) {
@@ -1256,4 +1260,18 @@ function toggleListener(
     } else if (typeof handler === "function") {
         htmlElement[method](eventName, handler, options);
     }
+}
+
+/**
+ * Determines whether DOM children created under the given parent should inherit
+ * the SVG namespace. Children of an SVG element are SVG-namespaced, except the
+ * descendants of a foreignObject, which return to the HTML/XHTML namespace.
+ *
+ * @param parent - The parent DOM node new children will be inserted into.
+ * @returns True when new children should be created in the SVG namespace.
+ */
+function isSvgParent(parent: Node): boolean {
+    return parent instanceof Element
+        && parent.namespaceURI === SVG_NS
+        && parent.localName.toLowerCase() !== FOREIGN_OBJECT_TAG;
 }

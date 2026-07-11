@@ -90,7 +90,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("CSS file gets minify and compress profiles", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("styles/main.css", nil)
+		profiles := GetProfilesForFile("styles/main.css", "", nil)
 
 		require.NotEmpty(t, profiles)
 		assert.Len(t, profiles, 3)
@@ -113,7 +113,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("JavaScript file gets minify and compress profiles", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("scripts/app.js", nil)
+		profiles := GetProfilesForFile("scripts/app.js", "", nil)
 
 		require.NotEmpty(t, profiles)
 		assert.Len(t, profiles, 3)
@@ -127,7 +127,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("PK JS file gets high priority profiles", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("pk-js/page-home.js", nil)
+		profiles := GetProfilesForFile("pk-js/page-home.js", "", nil)
 
 		require.NotEmpty(t, profiles)
 		for _, p := range profiles {
@@ -140,7 +140,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("SVG file gets minify and compress profiles", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("icons/logo.svg", nil)
+		profiles := GetProfilesForFile("icons/logo.svg", "", nil)
 
 		require.NotEmpty(t, profiles)
 		assert.Len(t, profiles, 3)
@@ -154,7 +154,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("PKC component file gets compiled JS profile", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("components/button.pkc", nil)
+		profiles := GetProfilesForFile("components/button.pkc", "", nil)
 
 		require.NotEmpty(t, profiles)
 		profileNames := make([]string, len(profiles))
@@ -175,7 +175,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("ICO file gets compress profiles only", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("favicon.ico", nil)
+		profiles := GetProfilesForFile("favicon.ico", "", nil)
 
 		require.NotEmpty(t, profiles)
 		assert.Len(t, profiles, 2)
@@ -192,7 +192,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("PNG file gets compress profiles only", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("images/logo.png", nil)
+		profiles := GetProfilesForFile("images/logo.png", "", nil)
 
 		require.NotEmpty(t, profiles)
 		assert.Len(t, profiles, 2)
@@ -201,7 +201,7 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("webmanifest file gets compress profiles", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("site.webmanifest", nil)
+		profiles := GetProfilesForFile("site.webmanifest", "", nil)
 
 		require.NotEmpty(t, profiles)
 		assert.Len(t, profiles, 2)
@@ -210,21 +210,21 @@ func TestGetProfilesForFile(t *testing.T) {
 	t.Run("unknown extension returns nil", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("readme.md", nil)
+		profiles := GetProfilesForFile("readme.md", "", nil)
 		assert.Nil(t, profiles)
 	})
 
 	t.Run("ignored extension returns nil", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("styles/main.css", []string{".css"})
+		profiles := GetProfilesForFile("styles/main.css", "", []string{".css"})
 		assert.Nil(t, profiles)
 	})
 
 	t.Run("TypeScript file gets transpile, minify, and compress profiles", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("lib/svg-animations.ts", nil)
+		profiles := GetProfilesForFile("lib/svg-animations.ts", "", nil)
 
 		require.NotEmpty(t, profiles)
 		assert.Len(t, profiles, 4)
@@ -260,13 +260,32 @@ func TestGetProfilesForFile(t *testing.T) {
 		}
 	})
 
+	t.Run("TypeScript transpile profile carries the module name for @/ alias rewriting", func(t *testing.T) {
+		t.Parallel()
+
+		profiles := GetProfilesForFile("lib/svg-animations.ts", "example.com/site", nil)
+		require.NotEmpty(t, profiles)
+
+		var found bool
+		for _, p := range profiles {
+			if p.Name != "transpiled_js" {
+				continue
+			}
+			found = true
+			moduleName, ok := p.Profile.Params.GetByName("moduleName")
+			assert.True(t, ok)
+			assert.Equal(t, "example.com/site", moduleName)
+		}
+		assert.True(t, found)
+	})
+
 	t.Run("case insensitive extension matching", func(t *testing.T) {
 		t.Parallel()
 
-		profiles := GetProfilesForFile("styles/main.CSS", nil)
+		profiles := GetProfilesForFile("styles/main.CSS", "", nil)
 		require.NotEmpty(t, profiles)
 
-		profiles2 := GetProfilesForFile("icons/logo.SVG", nil)
+		profiles2 := GetProfilesForFile("icons/logo.SVG", "", nil)
 		require.NotEmpty(t, profiles2)
 	})
 }

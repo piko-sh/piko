@@ -356,6 +356,23 @@ shadow.getElementById('shadow-form').addEventListener('submit', (e) => {
 </script>
 </body>
 </html>`
+	testHTMLShadowOccluded = `<!DOCTYPE html>
+<html>
+<head><title>Shadow DOM Occlusion Test</title></head>
+<body>
+<div id="host"></div>
+<div id="overlay" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;background:rgba(0,0,0,0.1);"></div>
+<div id="result"></div>
+<script>
+const host = document.getElementById('host');
+const shadow = host.attachShadow({mode: 'open'});
+shadow.innerHTML = '<button id="covered-btn">Covered</button>';
+shadow.getElementById('covered-btn').addEventListener('click', () => {
+    document.getElementById('result').textContent = 'clicked';
+});
+</script>
+</body>
+</html>`
 	testHTMLShadowDOMContenteditable = `<!DOCTYPE html>
 <html>
 <head><title>Shadow DOM Contenteditable Test</title></head>

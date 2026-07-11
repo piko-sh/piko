@@ -35,6 +35,9 @@ type Browser = bpc.Browser
 // BrowserOptions holds settings for creating a browser instance.
 type BrowserOptions = bpc.BrowserOptions
 
+// ChromeFlag is a single Chrome command-line flag passed at browser launch.
+type ChromeFlag = bpc.ChromeFlag
+
 // BrowserPool manages multiple Browser instances and distributes page creation across
 // them via round-robin for multi-process parallelism.
 type BrowserPool = bpc.BrowserPool
@@ -169,4 +172,7 @@ var (
 
 	// GetEventDetail returns the event detail captured by a prior ListenForEvent call.
 	GetEventDetail = bpc.GetEventDetail
+
+	// DefaultChromeFlags returns the provider's default Chrome flag set.
+	DefaultChromeFlags = bpc.DefaultChromeFlags
 )

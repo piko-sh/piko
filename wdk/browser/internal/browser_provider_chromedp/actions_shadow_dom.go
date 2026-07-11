@@ -59,6 +59,10 @@ type elementPosition struct {
 
 	// Found indicates whether the element was located in the shadow DOM.
 	Found bool
+
+	// Clickable indicates whether the element (rather than an overlay) is painted at its own
+	// centre point, matching the occlusion check the non-shadow click path performs.
+	Clickable bool
 }
 
 // parseShadowDOMSelector splits a shadow DOM selector into host and shadow parts.
@@ -309,12 +313,15 @@ func clickInShadowDOM(ctx context.Context, selector string) error {
 		return err
 	}
 
-	position, err := getShadowDOMElementPosition(ctx, selector, selectors)
+	timedCtx, cancel := context.WithTimeoutCause(ctx, DefaultActionTimeout, fmt.Errorf("browser Click exceeded %s timeout", DefaultActionTimeout))
+	defer cancel()
+
+	position, err := pollForClickableShadowElement(timedCtx, selector, selectors)
 	if err != nil {
 		return err
 	}
 
-	if err := dispatchMouseClick(ctx, position.X, position.Y, 1); err != nil {
+	if err := dispatchMouseClick(timedCtx, position.X, position.Y, 1); err != nil {
 		return fmt.Errorf("clicking shadow DOM element %s: %w", selector, err)
 	}
 	return nil
@@ -335,15 +342,18 @@ func doubleClickInShadowDOM(ctx context.Context, selector string) error {
 		return err
 	}
 
-	position, err := getShadowDOMElementPosition(ctx, selector, selectors)
+	timedCtx, cancel := context.WithTimeoutCause(ctx, DefaultActionTimeout, fmt.Errorf("browser DoubleClick exceeded %s timeout", DefaultActionTimeout))
+	defer cancel()
+
+	position, err := pollForClickableShadowElement(timedCtx, selector, selectors)
 	if err != nil {
 		return err
 	}
 
-	if err := dispatchMouseClick(ctx, position.X, position.Y, 1); err != nil {
+	if err := dispatchMouseClick(timedCtx, position.X, position.Y, 1); err != nil {
 		return fmt.Errorf("double-clicking shadow DOM element %s: %w", selector, err)
 	}
-	if err := dispatchMouseClick(ctx, position.X, position.Y, 2); err != nil {
+	if err := dispatchMouseClick(timedCtx, position.X, position.Y, 2); err != nil {
 		return fmt.Errorf("double-clicking shadow DOM element %s: %w", selector, err)
 	}
 	return nil
@@ -436,4 +446,35 @@ func setFilesCDPRuntime(ctx context.Context, selector string, selectors shadowDO
 
 		return nil
 	}))
+}
+
+// pollForClickableShadowElement resolves a shadow DOM element's centre and waits until
+// that point is not occluded by another element, mirroring pollForClickableElement for
+// the non-shadow path. Without this an overlay silently receives the click while the
+// action reports success.
+//
+// Takes selector (string) which is the full shadow-piercing selector for error messages.
+// Takes selectors (shadowDOMSelectors) which provides the host and shadow selectors.
+//
+// Returns elementPosition which holds the clickable centre coordinates.
+// Returns error when the element is not found or never becomes clickable before deadline.
+func pollForClickableShadowElement(ctx context.Context, selector string, selectors shadowDOMSelectors) (elementPosition, error) {
+	ticker := time.NewTicker(DefaultPollingInterval)
+	defer ticker.Stop()
+
+	for {
+		position, err := getShadowDOMElementPosition(ctx, selector, selectors)
+		if err != nil {
+			return elementPosition{}, err
+		}
+		if position.Clickable {
+			return position, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return elementPosition{}, fmt.Errorf("timed out waiting for element %s to become clickable", selector)
+		case <-ticker.C:
+		}
+	}
 }

@@ -188,6 +188,14 @@ type FieldSpec struct {
 
 	// Optional indicates if the field is optional (pointer or omitempty).
 	Optional bool
+
+	// IsFileUpload indicates the field is a piko.FileUpload, extracted from the multipart
+	// form rather than bound from the request body.
+	IsFileUpload bool
+
+	// IsPointer indicates the Go field type is a pointer, so a FileUpload field must be
+	// assigned by address rather than by value.
+	IsPointer bool
 }
 
 // RateLimitSpec describes rate limiting configuration for an action.

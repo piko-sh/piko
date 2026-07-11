@@ -323,6 +323,10 @@ function combineStyles(staticStyle, dynamicStyle) {
   return `${sStyle}; ${dStyle};`;
 }
 const SVG_NS = "http://www.w3.org/2000/svg";
+const FOREIGN_OBJECT_TAG = "foreignobject";
+function isSvgParent(parent) {
+  return parent instanceof Element && parent.namespaceURI === SVG_NS && parent.localName.toLowerCase() !== FOREIGN_OBJECT_TAG;
+}
 const elementReplacements = /* @__PURE__ */ new WeakMap();
 function registerElementReplacement(originalElement, replacementElement, options) {
   const entry = {
@@ -364,15 +368,15 @@ function patchSameFragment(oldVNode, newVNode, oldElm, parentElement, nextSiblin
   newVNode.elm = oldElm;
   if (newIsHidden) {
     patchHiddenFragment(oldVNode, newVNode, oldElm, oldIsHidden, parentElement, nextSiblingNode, refs);
-  } else if (oldIsHidden && oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
-    parentElement.replaceChild(createElm(newVNode, refs), oldElm);
+  } else if (oldIsHidden && oldElm?.nodeType === Node.COMMENT_NODE) {
+    parentElement.replaceChild(createElm(newVNode, refs, isSvgParent(parentElement)), oldElm);
     newVNode.elm = void 0;
   } else if (!oldIsHidden) {
     updateChildren(parentElement, oldVNode.children ?? [], newVNode.children ?? [], refs, nextSiblingNode);
     newVNode.elm = void 0;
   } else {
     removeVNode(oldVNode, parentElement, refs);
-    parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+    parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
     newVNode.elm = void 0;
   }
 }
@@ -382,13 +386,13 @@ function patchElementWithReplacement(oldVNode, newVNode, oldElm, parentElement, 
     if (hasWatchedPropsChanged(entry, newVNode.props)) {
       parentElement.removeChild(entry.element);
       clearElmRefsRecursive(oldVNode, refs);
-      parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+      parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
     } else {
       newVNode.elm = entry.element;
     }
   } else {
     clearElmRefsRecursive(oldVNode, refs);
-    parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+    parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
   }
 }
 function patchSameVNode(oldVNode, newVNode, oldElm, parentElement, nextSiblingNode, refs) {
@@ -397,8 +401,8 @@ function patchSameVNode(oldVNode, newVNode, oldElm, parentElement, nextSiblingNo
     patchHiddenElement(oldVNode, newVNode, oldElm, parentElement, nextSiblingNode, refs);
     return;
   }
-  if (oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
-    const newContent = createElm(newVNode, refs);
+  if (oldElm?.nodeType === Node.COMMENT_NODE) {
+    const newContent = createElm(newVNode, refs, isSvgParent(parentElement));
     if (oldElm.parentNode === parentElement) {
       parentElement.replaceChild(newContent, oldElm);
     } else {
@@ -414,7 +418,7 @@ function patchSameVNode(oldVNode, newVNode, oldElm, parentElement, nextSiblingNo
     patchElementWithReplacement(oldVNode, newVNode, oldElm, parentElement, nextSiblingNode, refs);
     return;
   }
-  parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+  parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
 }
 function patch(oldVNode, newVNode, refs, parentElement, nextSiblingNode) {
   if (newVNode == null) {
@@ -435,7 +439,7 @@ function patch(oldVNode, newVNode, refs, parentElement, nextSiblingNode) {
         removeVNode(oldVNode, parentElement, refs);
       }
       const newIsHidden = isVNodeHidden(newVNode);
-      const newContent = createElm(newVNode, refs);
+      const newContent = createElm(newVNode, refs, isSvgParent(parentElement));
       parentElement.insertBefore(newContent, nextSiblingNode);
       newVNode.elm = newIsHidden ? newContent : void 0;
     }
@@ -447,16 +451,16 @@ function patch(oldVNode, newVNode, refs, parentElement, nextSiblingNode) {
     if (oldVNode) {
       removeVNode(oldVNode, parentElement, refs);
     }
-    parentElement.insertBefore(createElm(newVNode, refs), nextSiblingNode);
+    parentElement.insertBefore(createElm(newVNode, refs, isSvgParent(parentElement)), nextSiblingNode);
   }
 }
 function patchHiddenFragment(oldVNode, newVNode, oldElm, oldIsHidden, parentElement, nextSiblingNode, refs) {
   if (!oldIsHidden) {
     removeVNode(oldVNode, parentElement, refs);
-    const placeholder = createElm(newVNode, refs);
+    const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
     parentElement.insertBefore(placeholder, nextSiblingNode);
     newVNode.elm = placeholder;
-  } else if (oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
+  } else if (oldElm?.nodeType === Node.COMMENT_NODE) {
     const message = `hidden fragment _k=${newVNode.key ?? `err-H2H`}`;
     if (oldElm.nodeValue !== message) {
       oldElm.nodeValue = message;
@@ -466,27 +470,27 @@ function patchHiddenFragment(oldVNode, newVNode, oldElm, oldIsHidden, parentElem
       parentElement.removeChild(oldElm);
     }
     clearElmRefsRecursive(oldVNode, refs);
-    const placeholder = createElm(newVNode, refs);
+    const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
     parentElement.insertBefore(placeholder, nextSiblingNode);
     newVNode.elm = placeholder;
   }
 }
 function patchHiddenElement(_oldVNode, newVNode, oldElm, parentElement, nextSiblingNode, refs) {
   if (oldElm && oldElm.nodeType !== Node.COMMENT_NODE) {
-    const placeholder = createElm(newVNode, refs);
+    const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
     if (oldElm.parentNode === parentElement) {
       parentElement.replaceChild(placeholder, oldElm);
     } else {
       parentElement.insertBefore(placeholder, nextSiblingNode);
     }
     newVNode.elm = placeholder;
-  } else if (oldElm && oldElm.nodeType === Node.COMMENT_NODE) {
+  } else if (oldElm?.nodeType === Node.COMMENT_NODE) {
     const message = `hidden node _k=${newVNode.key ?? `err-elemH2H`}`;
     if (oldElm.nodeValue !== message) {
       oldElm.nodeValue = message;
     }
   } else if (!oldElm) {
-    const placeholder = createElm(newVNode, refs);
+    const placeholder = createElm(newVNode, refs, isSvgParent(parentElement));
     parentElement.insertBefore(placeholder, nextSiblingNode);
     newVNode.elm = placeholder;
   }
@@ -521,10 +525,11 @@ function createElm(vnode, refs, isSvg) {
 }
 function createElementNode(elVNode, refs, isSvg) {
   const tagIsSvg = elVNode.tag === "svg";
-  const childSvg = isSvg === true || tagIsSvg === true;
-  const elementNode = childSvg ? document.createElementNS(SVG_NS, elVNode.tag) : document.createElement(elVNode.tag);
+  const inSvg = isSvg === true || tagIsSvg === true;
+  const elementNode = inSvg ? document.createElementNS(SVG_NS, elVNode.tag) : document.createElement(elVNode.tag);
   elVNode.elm = elementNode;
   patchProps(elementNode, {}, elVNode.props ?? {}, refs);
+  const childSvg = inSvg && elVNode.tag.toLowerCase() !== FOREIGN_OBJECT_TAG;
   if (elVNode.html != null) {
     elementNode.innerHTML = elVNode.html;
   } else if (elVNode.children) {
@@ -570,7 +575,7 @@ function addVNodes(parentElement, referenceNode, vnodesToAdd, startIndex, endInd
   for (let i = startIndex; i <= endIndex; i++) {
     const childVNode = vnodesToAdd[i];
     if (childVNode) {
-      const createdDomMaterial = createElm(childVNode, refs);
+      const createdDomMaterial = createElm(childVNode, refs, isSvgParent(parentElement));
       parentElement.insertBefore(createdDomMaterial, referenceNode);
       if (childVNode._type === "fragment" && !isVNodeHidden(childVNode)) {
         childVNode.elm = void 0;
@@ -1268,6 +1273,13 @@ function parseJsonAttribute(attributeValue, typeHint, defaultValue) {
     return typeHint === "array" ? [] : null;
   }
 }
+function parseAnyAttribute(attributeValue) {
+  try {
+    return JSON.parse(attributeValue);
+  } catch {
+    return attributeValue;
+  }
+}
 function emptyValueForType(typeHint) {
   switch (typeHint) {
     case "boolean":
@@ -1312,6 +1324,8 @@ function translateValue(typeHint, attributeValue, defaultValue, isNullable) {
     case "object":
     case "json":
       return parseJsonAttribute(attributeValue, typeHint, defaultValue);
+    case "any":
+      return parseAnyAttribute(attributeValue);
     default:
       return attributeValue;
   }
@@ -2036,11 +2050,12 @@ function registerPikoSvgInline() {
   }
 }
 const arrayMutatorMethods = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
+const REACTIVE_RAW = /* @__PURE__ */ Symbol.for("piko.reactivity.rawTarget");
 function makeReactive(target, context, parentProp) {
   if (typeof target !== "object" || target === null) {
     return target;
   }
-  if (target instanceof Node) {
+  if (target instanceof Node || isNonReactiveBuiltin(target)) {
     return target;
   }
   if (Array.isArray(target)) {
@@ -2048,9 +2063,19 @@ function makeReactive(target, context, parentProp) {
   }
   return createObjectProxy(target, context);
 }
+function isNonReactiveBuiltin(value) {
+  return value instanceof Date || value instanceof RegExp || value instanceof Map || value instanceof Set || value instanceof WeakMap || value instanceof WeakSet || value instanceof Promise;
+}
+function mustReturnRawValue(target, prop) {
+  const descriptor = Object.getOwnPropertyDescriptor(target, prop);
+  return descriptor?.configurable === false && descriptor.writable === false;
+}
 function createArrayProxy(arr, context, parentProp) {
   return new Proxy(arr, {
     get(target, prop, receiver) {
+      if (prop === REACTIVE_RAW) {
+        return target;
+      }
       const value = Reflect.get(target, prop, receiver);
       if (typeof prop === "string" && arrayMutatorMethods.includes(prop) && typeof value === "function") {
         return function(...args) {
@@ -2065,6 +2090,9 @@ function createArrayProxy(arr, context, parentProp) {
         };
       }
       if (typeof value === "object" && value !== null && !(value instanceof Node)) {
+        if (mustReturnRawValue(target, prop)) {
+          return value;
+        }
         return makeReactive(value, context, parentProp);
       }
       return value;
@@ -2084,8 +2112,14 @@ function createArrayProxy(arr, context, parentProp) {
 function createObjectProxy(target, context) {
   return new Proxy(target, {
     get(proxyTarget, prop, receiver) {
+      if (prop === REACTIVE_RAW) {
+        return proxyTarget;
+      }
       const value = Reflect.get(proxyTarget, prop, receiver);
       if (typeof value === "object" && value !== null && !(value instanceof Node)) {
+        if (mustReturnRawValue(proxyTarget, prop)) {
+          return value;
+        }
         const propKey = typeof prop === "string" ? prop : String(prop);
         return makeReactive(value, context, propKey);
       }

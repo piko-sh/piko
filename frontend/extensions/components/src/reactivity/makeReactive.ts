@@ -36,6 +36,28 @@ export interface ReactiveContext {
 }
 
 /**
+ * Key used to read the plain, non-reactive target behind a reactive proxy.
+ */
+export const REACTIVE_RAW: symbol = Symbol.for('piko.reactivity.rawTarget');
+
+/**
+ * Returns the plain, non-reactive target behind a reactive proxy.
+ *
+ * Values that are not reactive proxies are returned unchanged, so this is safe
+ * to call on any value.
+ *
+ * @param value - A value that may be a reactive proxy.
+ * @returns The underlying target when reactive, otherwise the value itself.
+ */
+export function toRaw<T>(value: T): T {
+    if (value === null || typeof value !== 'object') {
+        return value;
+    }
+    const raw = (value as Record<symbol, unknown>)[REACTIVE_RAW];
+    return raw === undefined ? value : (raw as T);
+}
+
+/**
  * Makes an object reactive by wrapping it in an ES Proxy.
  *
  * Primitive values, `null`, and DOM {@link Node} instances are returned
@@ -58,7 +80,7 @@ export function makeReactive<T extends object>(
         return target as unknown as T;
     }
 
-    if (target instanceof Node) {
+    if (target instanceof Node || isNonReactiveBuiltin(target)) {
         return target;
     }
 
@@ -67,6 +89,40 @@ export function makeReactive<T extends object>(
     }
 
     return createObjectProxy(target, context) as T;
+}
+
+/**
+ * Reports whether a value is a built-in whose methods rely on internal slots and
+ * therefore throw an "incompatible receiver" error when called through a Proxy.
+ * Such values are returned unwrapped so their methods keep working, at the cost
+ * of not being reactive.
+ *
+ * @param value - The object to inspect.
+ * @returns True for Date, RegExp, Map, Set, WeakMap, WeakSet and Promise.
+ */
+function isNonReactiveBuiltin(value: object): boolean {
+    return value instanceof Date
+        || value instanceof RegExp
+        || value instanceof Map
+        || value instanceof Set
+        || value instanceof WeakMap
+        || value instanceof WeakSet
+        || value instanceof Promise;
+}
+
+/**
+ * Reports whether a property must be returned as its raw value to satisfy the ES
+ * Proxy invariant: a non-configurable, non-writable own data property must yield
+ * the identical value, so it cannot be replaced with a fresh reactive proxy.
+ *
+ * @param target - The proxied target object.
+ * @param prop - The property being read.
+ * @returns True when the own descriptor is non-configurable and non-writable.
+ */
+function mustReturnRawValue(target: object, prop: PropertyKey): boolean {
+    const descriptor = Object.getOwnPropertyDescriptor(target, prop);
+    return descriptor?.configurable === false
+        && descriptor.writable === false;
 }
 
 /**
@@ -89,6 +145,9 @@ function createArrayProxy<T extends unknown[]>(
 ): T {
     return new Proxy(arr, {
         get(target, prop, receiver) {
+            if (prop === REACTIVE_RAW) {
+                return target;
+            }
             const value = Reflect.get(target, prop, receiver) as unknown;
             if (typeof prop === 'string' && arrayMutatorMethods.includes(prop) && typeof value === 'function') {
                 return function (...args: unknown[]) {
@@ -103,6 +162,9 @@ function createArrayProxy<T extends unknown[]>(
                 };
             }
             if (typeof value === 'object' && value !== null && !(value instanceof Node)) {
+                if (mustReturnRawValue(target, prop)) {
+                    return value;
+                }
                 return makeReactive(value as object, context, parentProp);
             }
             return value;
@@ -138,8 +200,14 @@ function createObjectProxy<T extends object>(
 ): T {
     return new Proxy(target, {
         get(proxyTarget, prop, receiver) {
+            if (prop === REACTIVE_RAW) {
+                return proxyTarget;
+            }
             const value = Reflect.get(proxyTarget, prop, receiver) as unknown;
             if (typeof value === 'object' && value !== null && !(value instanceof Node)) {
+                if (mustReturnRawValue(proxyTarget, prop)) {
+                    return value;
+                }
                 const propKey = typeof prop === 'string' ? prop : String(prop);
                 return makeReactive(value as object, context, propKey);
             }

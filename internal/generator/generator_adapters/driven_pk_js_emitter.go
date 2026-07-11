@@ -115,7 +115,7 @@ func (e *PKJSEmitter) EmitJS(
 
 	artefactID := fmt.Sprintf("pk-js/%s.js", cleanPath)
 
-	desiredProfiles := lifecycle_domain.GetProfilesForFile(artefactID, nil)
+	desiredProfiles := lifecycle_domain.GetProfilesForFile(artefactID, moduleName, nil)
 
 	blobSourcePath := "pk/" + filepath.Base(cleanPath) + ".js"
 

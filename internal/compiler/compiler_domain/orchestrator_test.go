@@ -559,6 +559,7 @@ func TestCompileSFCBytes_AtAliasImportTransformation(t *testing.T) {
 			sfcContent: `<template name="at-alias-test"><div>Test</div></template>
 <script>
 import { parse } from '@/lib/parser.js';
+const state = { used: parse };
 </script>`,
 			wantTransformedImport:  `"/_piko/assets/github.com/user/project/lib/parser.js"`,
 			wantOriginalImport:     `"@/lib/parser.js"`,
@@ -571,6 +572,7 @@ import { parse } from '@/lib/parser.js';
 			sfcContent: `<template name="at-alias-test"><div>Test</div></template>
 <script>
 import { utils } from '@/scripts/markdown-parser/dist/index.js';
+const state = { used: utils };
 </script>`,
 			wantTransformedImport:  `"/_piko/assets/github.com/org/repo/scripts/markdown-parser/dist/index.js"`,
 			wantOriginalImport:     `"@/scripts/markdown-parser/dist/index.js"`,
@@ -583,6 +585,7 @@ import { utils } from '@/scripts/markdown-parser/dist/index.js';
 			sfcContent: `<template name="at-alias-test"><div>Test</div></template>
 <script>
 import { something } from 'external-module';
+const state = { used: something };
 </script>`,
 			wantTransformedImport: `"external-module"`,
 			wantOriginalImport:    `"external-module"`,
@@ -594,6 +597,7 @@ import { something } from 'external-module';
 			sfcContent: `<template name="at-alias-test"><div>Test</div></template>
 <script>
 import { local } from './local.js';
+const state = { used: local };
 </script>`,
 			wantTransformedImport: `"./local.js"`,
 			wantOriginalImport:    `"./local.js"`,
@@ -605,6 +609,7 @@ import { local } from './local.js';
 			sfcContent: `<template name="at-alias-test"><div>Test</div></template>
 <script>
 import { parse } from '@/lib/parser.js';
+const state = { used: parse };
 </script>`,
 			wantTransformedImport: `"@/lib/parser.js"`,
 			wantOriginalImport:    `"@/lib/parser.js"`,
@@ -643,6 +648,53 @@ import { parse } from '@/lib/parser.js';
 				dependency := artefact.JSDependencies[0]
 				assert.Equal(t, tt.wantDependencyResolved, dependency.ResolvedPath,
 					"dependency should have correct resolved path")
+			}
+		})
+	}
+}
+
+func TestCompileSFCBytes_TypeOnlyImportElision(t *testing.T) {
+	tests := []struct {
+		name        string
+		sfcContent  string
+		wantKept    []string
+		wantDropped []string
+	}{
+		{
+			name: "type-only name dropped; script value and template-only value kept",
+			sfcContent: `<template name="elision-a"><div p-text="fmtDate(state.x)"></div></template>
+<script lang="ts">
+import { MyType, usedVal, tmplOnly as fmtDate } from '@/lib/helpers';
+const state = { x: usedVal() as MyType };
+</script>`,
+			wantKept:    []string{"usedVal", "fmtDate", "helpers.js"},
+			wantDropped: []string{"MyType"},
+		},
+		{
+			name: "whole import statement dropped when every binding is type-only",
+			sfcContent: `<template name="elision-b"><div>Hi</div></template>
+<script lang="ts">
+import { OnlyAType } from '@/types';
+const state = { n: 0 as OnlyAType };
+</script>`,
+			wantKept:    nil,
+			wantDropped: []string{"OnlyAType", "/types"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orchestrator := NewCompilerOrchestrator(nil, nil, WithOrchestratorModuleName("example.com/proj"))
+			artefact, err := orchestrator.CompileSFCBytes(context.Background(), "elision.pkc", []byte(tt.sfcContent))
+			require.NoError(t, err)
+			require.NotNil(t, artefact)
+
+			js := artefact.Files[artefact.BaseJSPath]
+			for _, kept := range tt.wantKept {
+				assert.Contains(t, js, kept, "expected %q to be preserved", kept)
+			}
+			for _, dropped := range tt.wantDropped {
+				assert.NotContains(t, js, dropped, "expected %q to be elided", dropped)
 			}
 		})
 	}

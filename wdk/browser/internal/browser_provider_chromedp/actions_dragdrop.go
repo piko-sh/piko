@@ -37,7 +37,10 @@ const (
 	dragStepInterval = 10 * time.Millisecond
 )
 
-// DragAndDrop drags an element from source to target selector.
+// DragAndDrop drags an element from source to target selector. The target is measured
+// first and the source last: measuring an element scrolls it into view, so measuring the
+// source last keeps its coordinate current at mouse-down when the two share a scroll
+// container.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes sourceSelector (string) which identifies the element to drag.
@@ -46,14 +49,14 @@ const (
 // Returns error when the source or target element cannot be found, or when the drag
 // operation fails.
 func DragAndDrop(ctx *ActionContext, sourceSelector, targetSelector string) error {
-	sourceX, sourceY, err := getElementCentre(ctx, sourceSelector)
-	if err != nil {
-		return fmt.Errorf("getting source element position: %w", err)
-	}
-
 	targetX, targetY, err := getElementCentre(ctx, targetSelector)
 	if err != nil {
 		return fmt.Errorf("getting target element position: %w", err)
+	}
+
+	sourceX, sourceY, err := getElementCentre(ctx, sourceSelector)
+	if err != nil {
+		return fmt.Errorf("getting source element position: %w", err)
 	}
 
 	return performDrag(ctx, sourceX, sourceY, targetX, targetY)
@@ -230,6 +233,19 @@ func performDrag(ctx *ActionContext, fromX, fromY, toX, toY float64) error {
 // Returns centreY (float64) which is the vertical centre of the element.
 // Returns err (error) when the element cannot be found or the coordinates are invalid.
 func getElementCentre(ctx *ActionContext, selector string) (centreX float64, centreY float64, err error) {
+	if strings.Contains(selector, ShadowDOMSeparator) {
+		selectors := parseShadowDOMSelector(selector)
+
+		if scrollErr := scrollShadowDOMElementIntoView(ctx.Ctx, selector, selectors); scrollErr != nil {
+			return 0, 0, fmt.Errorf("getting element centre: %w", scrollErr)
+		}
+		position, posErr := getShadowDOMElementPosition(ctx.Ctx, selector, selectors)
+		if posErr != nil {
+			return 0, 0, fmt.Errorf("getting element centre: %w", posErr)
+		}
+		return position.X, position.Y, nil
+	}
+
 	js := scripts.MustExecute("get_element_centre.js.tmpl", map[string]any{
 		"Selector": selector,
 	})

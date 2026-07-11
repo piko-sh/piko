@@ -69,8 +69,9 @@ func TranspileTypeScript() capabilities_domain.CapabilityFunc {
 		span.SetAttributes(attribute.Int("inputSize", len(inputBytes)))
 
 		result, err := transpiler.Transpile(ctx, string(inputBytes), generator_domain.TranspileOptions{
-			Filename: sourcePath,
-			Minify:   false,
+			Filename:   sourcePath,
+			ModuleName: params["moduleName"],
+			Minify:     false,
 		})
 		if err != nil {
 			l.ReportError(span, err, "TypeScript transpilation failed")
