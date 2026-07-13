@@ -336,7 +336,6 @@ func (g *onDemandVariantGeneratorImpl) transformImage(
 	ctx, l := logger_domain.From(ctx, log)
 	sourceStream, err := g.registryService.GetVariantData(ctx, sourceVariant)
 	if err != nil {
-		l.ReportError(span, err, "Failed to get source variant data")
 		return nil, nil, fmt.Errorf("failed to get source data: %w", err)
 	}
 

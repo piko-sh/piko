@@ -240,12 +240,10 @@ func NewBrowser(opts BrowserOptions) (*Browser, error) {
 //
 // Returns *IncognitoPage which provides an isolated browsing context.
 // Returns error when page creation fails after retrying with backoff.
-//
-// Safe for concurrent use. Call IncognitoPage.Close() to clean up both the page and the
-// browser context.
 func (b *Browser) NewIncognitoPage() (*IncognitoPage, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	if err := b.browserCtx.Err(); err != nil {
+		return nil, fmt.Errorf("browser is closed: %w", err)
+	}
 
 	var lastErr error
 	for attempt := range maxPageCreationRetries {

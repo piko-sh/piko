@@ -25,6 +25,7 @@ import (
 	"iter"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/valkey-io/valkey-go"
@@ -109,6 +110,10 @@ type ValkeyAdapter[K comparable, V any] struct {
 	// maxComputeRetries is the maximum number of retry attempts for optimistic locking in
 	// Compute methods.
 	maxComputeRetries int
+
+	// indexMu serialises lazy creation and teardown of the search index and guards
+	// indexCreated.
+	indexMu sync.Mutex
 
 	// allowUnsafeFLUSHDB controls whether InvalidateAll may use FLUSHDB when no namespace is
 	// set. If false, InvalidateAll is blocked without a namespace for safety.

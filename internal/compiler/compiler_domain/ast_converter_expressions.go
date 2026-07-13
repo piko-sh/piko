@@ -457,8 +457,8 @@ func (c *ASTConverter) convertEDot(e *js_ast.EDot) (parsejs.IExpr, error) {
 
 // convertEIndex converts a bracket index expression such as obj[key].
 //
-// The target is wrapped in a GroupExpr when needed to preserve operator precedence, so
-// (a || [])[i] does not become a || [][i], which would index the empty array literal.
+// The target is wrapped in a GroupExpr when needed to preserve operator precedence, so (a
+// || [])[i] does not become a || [][i], which would index the empty array literal.
 //
 // Takes e (*js_ast.EIndex) which is the index expression to convert.
 //
@@ -944,19 +944,20 @@ func wrapLowPrecedenceForMemberAccess(original js_ast.Expr, converted parsejs.IE
 	return converted
 }
 
-// groupBinaryOperand wraps a converted binary operand in parentheses when the printer would
-// otherwise emit an ambiguous or invalid expression.
+// groupBinaryOperand wraps a converted binary operand in parentheses when the printer
+// would otherwise emit an ambiguous or invalid expression.
 //
 // The tdewolff printer never adds its own parentheses, so operator precedence, ternary
-// operands, and the rule that `??` cannot directly contain an unparenthesised `&&`/`||` are
-// all honoured here.
+// operands, and the rule that `??` cannot directly contain an unparenthesised `&&`/`||`
+// are all honoured here.
 //
 // Takes operand (parsejs.IExpr) which is the already-converted operand.
 // Takes child (js_ast.Expr) which is the source operand node being wrapped.
 // Takes parentOp (js_ast.OpCode) which is the enclosing binary operator.
 // Takes isRight (bool) which is true when operand is the right-hand side.
 //
-// Returns parsejs.IExpr which is operand, wrapped in a GroupExpr when parentheses are due.
+// Returns parsejs.IExpr which is operand, wrapped in a GroupExpr when parentheses are
+// due.
 func groupBinaryOperand(operand parsejs.IExpr, child js_ast.Expr, parentOp js_ast.OpCode, isRight bool) parsejs.IExpr {
 	if binaryChildNeedsGroup(child, parentOp, isRight) {
 		return &parsejs.GroupExpr{X: operand}
@@ -966,8 +967,9 @@ func groupBinaryOperand(operand parsejs.IExpr, child js_ast.Expr, parentOp js_as
 
 // binaryChildNeedsGroup reports whether a converted binary operand must be parenthesised.
 //
-// A ternary, arrow or yield operand always needs parentheses; a unary or await operand needs
-// them only as the left side of `**`, since `-a ** b` and `await a ** b` are SyntaxErrors.
+// A ternary, arrow or yield operand always needs parentheses; a unary or await operand
+// needs them only as the left side of `**`, since `-a ** b` and `await a ** b` are
+// SyntaxErrors.
 //
 // Takes child (js_ast.Expr) which is the source operand node.
 // Takes parentOp (js_ast.OpCode) which is the enclosing binary operator.

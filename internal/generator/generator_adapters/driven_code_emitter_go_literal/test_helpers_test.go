@@ -36,9 +36,7 @@ func requireEmitter(t *testing.T) *emitter {
 
 func requireNodeEmitter(t *testing.T, em *emitter) *nodeEmitter {
 	t.Helper()
-	ne, ok := em.astBuilder.nodeEmitter.(*nodeEmitter)
-	require.True(t, ok, "astBuilder.nodeEmitter should be *nodeEmitter")
-	return ne
+	return em.astBuilder.nodeEmitter
 }
 
 func requireExpressionEmitter(t *testing.T, em *emitter) *expressionEmitter {

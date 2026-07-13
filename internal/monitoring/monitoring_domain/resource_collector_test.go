@@ -563,17 +563,17 @@ func TestResourceCollector_LoopTicksOnClock(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(fmt.Errorf("test: cleanup"))
 
+	baseline := mockClock.TimerCount()
 	collector.Start(ctx)
 
+	require.True(t, mockClock.AwaitTimerSetup(baseline, time.Second), "loop should register a ticker")
 	mockClock.Advance(3 * time.Second)
 
-	time.Sleep(50 * time.Millisecond)
-
-	collector.mu.RLock()
-	count := len(collector.firstSeen)
-	collector.mu.RUnlock()
-
-	assert.Greater(t, count, 0, "loop should have performed a scan")
+	require.Eventually(t, func() bool {
+		collector.mu.RLock()
+		defer collector.mu.RUnlock()
+		return len(collector.firstSeen) > 0
+	}, time.Second, 5*time.Millisecond, "loop should have performed a scan on the clock tick")
 
 	cancel(fmt.Errorf("test: cleanup"))
 	time.Sleep(50 * time.Millisecond)

@@ -103,17 +103,17 @@ type astBuilder struct {
 	// emitter holds the node emission context and annotation results.
 	emitter *emitter
 
-	// nodeEmitter creates AST nodes; uses interface type for pooling.
-	nodeEmitter NodeEmitter
+	// nodeEmitter creates AST nodes.
+	nodeEmitter *nodeEmitter
 
-	// ifEmitter handles if/else-if/else chain output; stored as interface type.
-	ifEmitter IfEmitter
+	// ifEmitter handles if/else-if/else chain output.
+	ifEmitter *ifEmitter
 
 	// forEmitter builds for-loop statements from template nodes.
-	forEmitter ForEmitter
+	forEmitter *forEmitter
 
 	// staticEmitter registers and stores static template nodes.
-	staticEmitter StaticEmitter
+	staticEmitter *staticEmitter
 
 	// expressionEmitter converts template expressions into Go AST nodes.
 	expressionEmitter ExpressionEmitter

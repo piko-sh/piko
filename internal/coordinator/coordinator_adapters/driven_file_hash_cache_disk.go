@@ -200,9 +200,6 @@ func (d *diskFileHashCache) Persist(ctx context.Context) error {
 
 	data, err := json.ConfigStd.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
-		l.Error("Failed to serialise cache to JSON.",
-			logger_domain.Error(err),
-		)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "Failed to marshal cache")
 		return fmt.Errorf("marshalling cache to JSON: %w", err)

@@ -25,6 +25,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/maypok86/otter/v2"
@@ -102,13 +103,20 @@ var (
 		},
 	}
 
+	// spriteSheetCacheBuilt reports whether the lazily initialised sprite sheet cache has
+	// been created. Invalidation and shutdown consult it so they never force the cache, and
+	// its background goroutine, into existence when no sprite sheet has been assembled.
+	spriteSheetCacheBuilt atomic.Bool
+
 	// getSpriteSheetCache returns the lazily initialised sprite sheet cache.
 	getSpriteSheetCache = sync.OnceValue(func() *otter.Cache[uint64, string] {
-		return otter.Must(&otter.Options[uint64, string]{
+		cache := otter.Must(&otter.Options[uint64, string]{
 			MaximumSize:      500,
 			InitialCapacity:  32,
 			ExpiryCalculator: otter.ExpiryWriting[uint64, string](30 * time.Minute),
 		})
+		spriteSheetCacheBuilt.Store(true)
+		return cache
 	})
 )
 
@@ -395,9 +403,11 @@ func (*RenderOrchestrator) buildSvgSpriteSheet(rctx *renderContext) (string, err
 	return result, nil
 }
 
-// ShutdownSpriteSheetCache stops the sprite sheet cache's background goroutines. Call
-// during application shutdown or test cleanup.
+// ShutdownSpriteSheetCache stops the sprite sheet cache's background goroutines.
 func ShutdownSpriteSheetCache() {
+	if !spriteSheetCacheBuilt.Load() {
+		return
+	}
 	getSpriteSheetCache().StopAllGoroutines()
 }
 
@@ -408,6 +418,9 @@ func ClearSpriteSheetCacheForTesting() {
 
 // InvalidateSpriteSheetCache clears every assembled sprite sheet from the cache.
 func InvalidateSpriteSheetCache() {
+	if !spriteSheetCacheBuilt.Load() {
+		return
+	}
 	getSpriteSheetCache().InvalidateAll()
 }
 

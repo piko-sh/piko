@@ -26,21 +26,7 @@ import (
 	"piko.sh/piko/internal/goastutil"
 )
 
-// BinaryOpEmitter provides a way to emit binary operation expressions. This enables
-// mocking and testing of binary operation logic.
-type BinaryOpEmitter interface {
-	// emit converts a binary expression to its Go AST representation.
-	//
-	// Takes n (*ast_domain.BinaryExpression) which is the binary expression to convert.
-	//
-	// Returns goast.Expr which is the converted Go expression.
-	// Returns []goast.Stmt which contains any auxiliary statements needed.
-	// Returns []*ast_domain.Diagnostic which reports any conversion issues.
-	emit(n *ast_domain.BinaryExpression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic)
-}
-
-// binaryOpEmitter handles code generation for binary expressions. It implements
-// BinaryOpEmitter.
+// binaryOpEmitter handles code generation for binary expressions.
 type binaryOpEmitter struct {
 	// emitter provides access to the main code emitter.
 	emitter *emitter
@@ -48,10 +34,6 @@ type binaryOpEmitter struct {
 	// expressionEmitter handles emitting the left and right operands of binary operations.
 	expressionEmitter ExpressionEmitter
 }
-
-var (
-	_ BinaryOpEmitter = (*binaryOpEmitter)(nil)
-)
 
 // emit generates a Go binary expression from a domain binary expression.
 //

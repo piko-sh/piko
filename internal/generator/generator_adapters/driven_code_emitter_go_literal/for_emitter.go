@@ -29,53 +29,6 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// ForEmitter provides an interface for emitting p-for loop directives. This enables
-// mocking and testing of loop emission logic.
-type ForEmitter interface {
-	// emit generates Go AST statements for a template node.
-	//
-	// Takes node (*ast_domain.TemplateNode) which is the template node to process.
-	// Takes parentSliceExpr (goast.Expr) which is the parent slice expression for appending
-	// results.
-	// Takes partialScopeID (string) which is the HashedName of the current partial for CSS
-	// scoping.
-	// Takes mainComponentScope (string) which is the HashedName of the main component being
-	// generated.
-	//
-	// Returns []goast.Stmt which contains the generated statements.
-	// Returns []*ast_domain.Diagnostic which contains any issues found during emission.
-	emit(
-		ctx context.Context,
-		node *ast_domain.TemplateNode,
-		parentSliceExpr goast.Expr,
-		partialScopeID string,
-		mainComponentScope string,
-	) ([]goast.Stmt, []*ast_domain.Diagnostic)
-
-	// emitWithExtractedIterable emits a p-for loop using a pre-extracted iterable variable.
-	// This avoids re-evaluating the collection expression and enables accurate child slice
-	// capacity.
-	//
-	// Takes node (*ast_domain.TemplateNode) which is the loop node to emit.
-	// Takes parentSliceExpr (goast.Expr) which is the parent slice expression.
-	// Takes loopInfo (*LoopIterableInfo) which contains the extracted iterable.
-	// Takes partialScopeID (string) which is the HashedName of the current partial for CSS
-	// scoping.
-	// Takes mainComponentScope (string) which is the HashedName of the main component being
-	// generated.
-	//
-	// Returns []goast.Stmt which contains the generated loop statements.
-	// Returns []*ast_domain.Diagnostic which contains any diagnostics produced.
-	emitWithExtractedIterable(
-		ctx context.Context,
-		node *ast_domain.TemplateNode,
-		parentSliceExpr goast.Expr,
-		loopInfo *LoopIterableInfo,
-		partialScopeID string,
-		mainComponentScope string,
-	) ([]goast.Stmt, []*ast_domain.Diagnostic)
-}
-
 // forEmitter generates Go code for the `p-for` directive. It handles iteration over
 // slices, arrays, strings, and maps, applying optimisations where possible.
 type forEmitter struct {
@@ -97,10 +50,6 @@ type forEmitter struct {
 	// set during emit and used in generateLoopBody.
 	currentMainComponentScope string
 }
-
-var (
-	_ ForEmitter = (*forEmitter)(nil)
-)
 
 // emit is the primary entry point for this emitter. It is called by the astBuilder when
 // it encounters a node with a `p-for` directive.

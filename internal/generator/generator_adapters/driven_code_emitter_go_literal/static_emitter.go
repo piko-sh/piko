@@ -49,43 +49,8 @@ const (
 	initialStatementCapacity = 3
 )
 
-// StaticEmitter provides methods for hoisting and managing static AST nodes. It enables
-// mocking and testing of static node handling.
-type StaticEmitter interface {
-	// registerStaticNode registers a static template node in the cross-reference system.
-	//
-	// Takes node (*ast_domain.TemplateNode) which is the static node to register.
-	// Takes partialScopeID (string) which is the current partial's HashedName for CSS
-	// scoping.
-	//
-	// Returns *goast.Ident which is the identifier for the registered node.
-	// Returns []*ast_domain.Diagnostic which contains any issues found during registration.
-	registerStaticNode(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (*goast.Ident, []*ast_domain.Diagnostic)
-
-	// registerStaticAttributes registers a static attribute slice and returns the variable
-	// name. If an identical attribute set was already registered, returns the existing
-	// variable name (deduplication).
-	//
-	// Takes node (*ast_domain.TemplateNode) which provides the attributes.
-	// Takes partialScopeID (string) which is the current partial's HashedName.
-	//
-	// Returns string which is the variable name for the static attribute slice, or empty
-	// string if there are no attributes.
-	registerStaticAttributes(node *ast_domain.TemplateNode, partialScopeID string) string
-
-	// buildDeclarations builds and returns the AST declarations.
-	//
-	// Returns goast.Decl which contains the built declarations.
-	buildDeclarations() goast.Decl
-
-	// buildInitFunction builds an init function declaration.
-	//
-	// Returns goast.Decl which is the generated init function.
-	buildInitFunction() goast.Decl
-}
-
-// staticEmitter creates static code declarations and init functions. It implements
-// StaticEmitter and stores a mapping of node hashes to variable names.
+// staticEmitter creates static code declarations and init functions. It stores a mapping
+// of node hashes to variable names.
 type staticEmitter struct {
 	// emitter provides variable naming and source mapping helpers.
 	emitter *emitter
@@ -110,10 +75,6 @@ type staticEmitter struct {
 	// initFunctionStatements holds the statements to add to the init() function.
 	initFunctionStatements []goast.Stmt
 }
-
-var (
-	_ StaticEmitter = (*staticEmitter)(nil)
-)
 
 // registerStaticNode registers a template node for static use. It checks a cache to avoid
 // repeated work and then starts the recursive process to build the node.

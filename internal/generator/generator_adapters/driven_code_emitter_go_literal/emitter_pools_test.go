@@ -48,12 +48,10 @@ func TestPool_GetAstBuilder_Initialisation(t *testing.T) {
 	assert.NotNil(t, expressionEmitter.binaryEmitter, "BinaryOpEmitter should be initialised")
 	assert.Same(t, em, expressionEmitter.emitter, "ExpressionEmitter should reference emitter")
 
-	binaryEmitter, ok := expressionEmitter.binaryEmitter.(*binaryOpEmitter)
-	require.True(t, ok, "Should be concrete binaryOpEmitter type")
+	binaryEmitter := expressionEmitter.binaryEmitter
 	assert.Same(t, expressionEmitter, binaryEmitter.expressionEmitter, "BinaryEmitter should reference ExpressionEmitter")
 
-	nodeEmitter, ok := builder.nodeEmitter.(*nodeEmitter)
-	require.True(t, ok, "Should be concrete nodeEmitter type")
+	nodeEmitter := builder.nodeEmitter
 	assert.NotNil(t, nodeEmitter.attributeEmitter, "AttributeEmitter should be initialised")
 
 	concreteAttributeEmitter, ok := nodeEmitter.attributeEmitter.(*attributeEmitter)
@@ -61,13 +59,11 @@ func TestPool_GetAstBuilder_Initialisation(t *testing.T) {
 	assert.Same(t, em, concreteAttributeEmitter.emitter, "AttributeEmitter should reference emitter")
 	assert.Same(t, expressionEmitter, concreteAttributeEmitter.expressionEmitter, "AttributeEmitter should reference ExpressionEmitter")
 
-	ifEmitter, ok := builder.ifEmitter.(*ifEmitter)
-	require.True(t, ok, "Should be concrete ifEmitter type")
+	ifEmitter := builder.ifEmitter
 	assert.Same(t, builder, ifEmitter.astBuilder, "IfEmitter should reference AstBuilder")
 	assert.Same(t, em, ifEmitter.emitter, "IfEmitter should reference emitter")
 
-	forEmitter, ok := builder.forEmitter.(*forEmitter)
-	require.True(t, ok, "Should be concrete forEmitter type")
+	forEmitter := builder.forEmitter
 	assert.Same(t, builder, forEmitter.astBuilder, "ForEmitter should reference AstBuilder")
 	assert.Same(t, em, forEmitter.emitter, "ForEmitter should reference emitter")
 }
@@ -159,8 +155,7 @@ func TestPool_StaticEmitterCleanup(t *testing.T) {
 
 	builder := getAstBuilder(context.Background(), em)
 
-	staticEmitter, ok := builder.staticEmitter.(*staticEmitter)
-	require.True(t, ok)
+	staticEmitter := builder.staticEmitter
 
 	require.NotNil(t, staticEmitter.emitter)
 

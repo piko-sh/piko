@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -105,6 +106,10 @@ type RedisClusterAdapter[K comparable, V any] struct {
 	// maxComputeRetries is the maximum number of retries for optimistic locking in Compute
 	// methods.
 	maxComputeRetries int
+
+	// indexMu serialises lazy creation and teardown of the search index and guards
+	// indexCreated.
+	indexMu sync.Mutex
 
 	// If true and no namespace is set, InvalidateAll uses FLUSHDB. If false, InvalidateAll
 	// is blocked without a namespace for safety.

@@ -92,24 +92,9 @@ const (
 	maxCollectionInitStmts = 3
 )
 
-// NodeEmitter defines how to convert template nodes into code output. It allows for
-// mocking and testing of the node output logic.
-type NodeEmitter interface {
-	// emit generates output for the given template node.
-	//
-	// Takes node (*ast_domain.TemplateNode) which is the template node to process.
-	// Takes partialScopeID (string) which is the current partial's HashedName for CSS
-	// scoping.
-	//
-	// Returns string which is the generated output text.
-	// Returns []goast.Stmt which contains any Go statements produced.
-	// Returns []*ast_domain.Diagnostic which reports any issues found during emission.
-	emit(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (string, []goast.Stmt, []*ast_domain.Diagnostic)
-}
-
 // nodeEmitter generates Go AST statements to build a single dynamic
-// ast_domain.TemplateNode at runtime. It implements NodeEmitter, delegating to
-// attributeEmitter for attributes and astBuilder for child nodes.
+// ast_domain.TemplateNode at runtime. It delegates to attributeEmitter for attributes and
+// astBuilder for child nodes.
 type nodeEmitter struct {
 	// emitter holds shared state and helper methods for code generation.
 	emitter *emitter
@@ -124,10 +109,6 @@ type nodeEmitter struct {
 	// interface to break a circular dependency between types.
 	astBuilder AstBuilder
 }
-
-var (
-	_ NodeEmitter = (*nodeEmitter)(nil)
-)
 
 // getPartialScopeID returns the HashedName of the current component for CSS scoping.
 // Works for both pages and partials.

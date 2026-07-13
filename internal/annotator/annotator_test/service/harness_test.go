@@ -238,6 +238,8 @@ func (r *realFSReader) ReadFile(_ context.Context, filePath string) ([]byte, err
 }
 
 func assertNode(t *testing.T, annotatedAST *ast_domain.TemplateAST, assertion NodeAssertion, baseDir string) {
+	t.Helper()
+
 	var targetNodes []*ast_domain.TemplateNode
 
 	if assertion.Select == "_fragment" {

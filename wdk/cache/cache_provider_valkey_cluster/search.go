@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/valkey-io/valkey-go"
 
@@ -47,11 +46,6 @@ const (
 	logKeyIndex = "index"
 )
 
-var (
-	// indexCreationMu protects concurrent index creation attempts.
-	indexCreationMu sync.Mutex
-)
-
 // ensureIndexExists creates the Valkey Search index if it does not already exist. This is
 // called lazily on the first search operation.
 //
@@ -65,12 +59,8 @@ func (a *ValkeyClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) erro
 		return cache.ErrSearchNotSupported
 	}
 
-	if a.indexCreated {
-		return nil
-	}
-
-	indexCreationMu.Lock()
-	defer indexCreationMu.Unlock()
+	a.indexMu.Lock()
+	defer a.indexMu.Unlock()
 
 	if a.indexCreated {
 		return nil
@@ -482,10 +472,19 @@ func (a *ValkeyClusterAdapter[K, V]) queryWithValkeySearch(ctx context.Context, 
 
 // dropIndex removes the Valkey Search index. Called during InvalidateAll if search is
 // enabled.
+//
+// Safe for concurrent use. Serialises index teardown under the same mutex as creation.
 func (a *ValkeyClusterAdapter[K, V]) dropIndex(ctx context.Context) {
 	ctx, l := logger.From(ctx, log)
 
-	if a.schema == nil || !a.indexCreated {
+	if a.schema == nil {
+		return
+	}
+
+	a.indexMu.Lock()
+	defer a.indexMu.Unlock()
+
+	if !a.indexCreated {
 		return
 	}
 

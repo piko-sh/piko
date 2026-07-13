@@ -29,37 +29,8 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// IfEmitter provides methods for emitting conditional directive chains (p-if, p-else-if,
-// p-else). It allows mocking and testing of conditional logic emission.
-type IfEmitter interface {
-	// emitChain emits Go statements for a chain of template nodes.
-	//
-	// Takes startNode (*ast_domain.TemplateNode) which is the first node in the chain.
-	// Takes siblings ([]*ast_domain.TemplateNode) which contains all sibling nodes at this
-	// level.
-	// Takes currentNodeIndex (int) which is the position of startNode in siblings.
-	// Takes parentSliceExpr (goast.Expr) which is the expression to append output to.
-	// Takes partialScopeID (string) which is the HashedName of the current partial for CSS
-	// scoping.
-	// Takes mainComponentScope (string) which is the HashedName of the main component being
-	// generated.
-	//
-	// Returns []goast.Stmt which contains the generated Go statements.
-	// Returns int which is the number of siblings consumed by the chain.
-	// Returns []*ast_domain.Diagnostic which contains any errors or warnings.
-	emitChain(
-		ctx context.Context,
-		startNode *ast_domain.TemplateNode,
-		siblings []*ast_domain.TemplateNode,
-		currentNodeIndex int,
-		parentSliceExpr goast.Expr,
-		partialScopeID string,
-		mainComponentScope string,
-	) ([]goast.Stmt, int, []*ast_domain.Diagnostic)
-}
-
 // ifEmitter generates Go code for conditional directive chains such as p-if, p-else-if,
-// and p-else. It implements the IfEmitter interface.
+// and p-else.
 type ifEmitter struct {
 	// emitter provides helper methods for building Go AST nodes.
 	emitter *emitter
@@ -79,10 +50,6 @@ type ifEmitter struct {
 	// set during emitChain and used in buildConditionalBody.
 	currentMainComponentScope string
 }
-
-var (
-	_ IfEmitter = (*ifEmitter)(nil)
-)
 
 // emitChain is the primary entry point for this emitter, called by the astBuilder when it
 // encounters a node with a `p-if` directive. It generates a complete `if / else if /

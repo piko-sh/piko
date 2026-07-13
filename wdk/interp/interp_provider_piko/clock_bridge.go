@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// FromWDK adapts a wdk/clock.Clock so it implements the interpreter-side Clock interface
-// used by interp_provider_piko.WithClock.
+// FromWDKClock adapts a wdk/clock.Clock so it implements the interpreter-side Clock
+// interface used by interp_provider_piko.WithClock.
 //
 // A nil source returns nil; callers should treat that as "use the interpreter default
 // wall clock."

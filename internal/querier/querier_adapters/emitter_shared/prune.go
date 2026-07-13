@@ -43,7 +43,8 @@ type GeneratedOutputDir interface {
 	Remove(name string) error
 }
 
-// GeneratedFileNameSet returns the names of the files a generation run will actually write.
+// GeneratedFileNameSet returns the names of the files a generation run will actually
+// write.
 //
 // Only files carrying content are included; it is the keep set to pass to
 // PruneStaleGeneratedFiles.
@@ -64,10 +65,10 @@ func GeneratedFileNameSet(files []querier_dto.GeneratedFile) map[string]struct{}
 
 // PruneStaleGeneratedFiles removes files left over from a previous generation run.
 //
-// A renamed or deleted query no longer collides with the fresh output. Only files that carry
-// the piko GeneratedFileHeader and are absent from keep are removed, so hand-written files
-// sharing the directory are never touched. A file that has vanished since the directory
-// listing is treated as already pruned.
+// A renamed or deleted query no longer collides with the fresh output. Only files that
+// carry the piko GeneratedFileHeader and are absent from keep are removed, so
+// hand-written files sharing the directory are never touched. A file that has vanished
+// since the directory listing is treated as already pruned.
 //
 // Takes dir (GeneratedOutputDir) which is the output directory sandbox.
 // Takes keep (map[string]struct{}) which is the set of filenames about to be written.
@@ -109,8 +110,9 @@ func PruneStaleGeneratedFiles(dir GeneratedOutputDir, keep map[string]struct{}) 
 
 // fileHasGeneratedHeader reports whether name begins with the piko generated-file header.
 //
-// Only a header-length prefix is read so an unrelated large sibling is never loaded whole. A
-// file shorter than the header, or one already removed, is reported as not generated.
+// Only a header-length prefix is read so an unrelated large sibling is never loaded
+// whole. A file shorter than the header, or one already removed, is reported as not
+// generated.
 //
 // Takes dir (GeneratedOutputDir) which is the output directory sandbox.
 // Takes name (string) which is the candidate file name.

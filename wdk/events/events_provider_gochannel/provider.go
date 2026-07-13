@@ -95,8 +95,12 @@ type GoChannelProvider struct {
 	// config holds the GoChannel provider settings.
 	config Config
 
-	// runningMutex guards access to the running field.
+	// runningMutex guards access to the running field so status reads stay fast.
 	runningMutex sync.RWMutex
+
+	// startMutex serialises Start and Close so their multi-step setup and teardown never
+	// interleave.
+	startMutex sync.Mutex
 
 	// running indicates whether the router is currently active.
 	running bool
@@ -139,10 +143,13 @@ func NewGoChannelProvider(config Config) (*GoChannelProvider, error) {
 func (p *GoChannelProvider) Start(ctx context.Context) error {
 	startTime := time.Now()
 
-	p.runningMutex.Lock()
-	defer p.runningMutex.Unlock()
+	p.startMutex.Lock()
+	defer p.startMutex.Unlock()
 
-	if p.running {
+	p.runningMutex.RLock()
+	alreadyRunning := p.running
+	p.runningMutex.RUnlock()
+	if alreadyRunning {
 		p.pikoLogger.Internal("GoChannel provider already running")
 		return nil
 	}
@@ -159,7 +166,10 @@ func (p *GoChannelProvider) Start(ctx context.Context) error {
 	p.ctx, p.cancel = context.WithCancelCause(ctx)
 	p.startRouterGoroutine()
 	<-p.router.Running()
+
+	p.runningMutex.Lock()
 	p.running = true
+	p.runningMutex.Unlock()
 
 	p.recordStartMetrics(ctx, startTime)
 	return nil
@@ -207,6 +217,9 @@ func (p *GoChannelProvider) Running() bool {
 func (p *GoChannelProvider) Close() error {
 	ctx := context.Background()
 	startTime := time.Now()
+
+	p.startMutex.Lock()
+	defer p.startMutex.Unlock()
 
 	p.runningMutex.Lock()
 	if !p.running {

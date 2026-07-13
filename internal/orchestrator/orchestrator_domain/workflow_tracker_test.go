@@ -261,8 +261,6 @@ func TestHandleCompletionEvent_Success(t *testing.T) {
 
 	service.handleCompletionEvent(context.Background(), event)
 
-	time.Sleep(50 * time.Millisecond)
-
 	select {
 	case err := <-receipt.Done():
 		if err != nil {
@@ -297,8 +295,6 @@ func TestHandleCompletionEvent_Failure(t *testing.T) {
 	}
 
 	service.handleCompletionEvent(context.Background(), event)
-
-	time.Sleep(50 * time.Millisecond)
 
 	select {
 	case err := <-receipt.Done():

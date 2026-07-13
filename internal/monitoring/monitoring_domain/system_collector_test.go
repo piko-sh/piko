@@ -334,14 +334,15 @@ func TestSystemCollector_LoopTicksOnClock(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(fmt.Errorf("test: cleanup"))
 
+	baseline := mockClock.TimerCount()
 	collector.Start(ctx)
 
+	require.True(t, mockClock.AwaitTimerSetup(baseline, time.Second), "loop should register a ticker")
 	mockClock.Advance(2 * time.Second)
 
-	time.Sleep(100 * time.Millisecond)
-
-	stats := collector.GetStats()
-	assert.Greater(t, stats.Memory.Sys, uint64(0), "sample should have been called")
+	require.Eventually(t, func() bool {
+		return collector.GetStats().Memory.Sys > 0
+	}, time.Second, 5*time.Millisecond, "sample should have been called on the clock tick")
 
 	cancel(fmt.Errorf("test: cleanup"))
 	time.Sleep(50 * time.Millisecond)

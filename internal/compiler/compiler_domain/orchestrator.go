@@ -82,7 +82,6 @@ func (o *compilerOrchestrator) CompileSingle(ctx context.Context, sourceID strin
 	})
 
 	if err != nil {
-		l.ReportError(span, err, "Failed to read SFC")
 		return nil, fmt.Errorf("failed to read SFC: %w", err)
 	}
 

@@ -521,7 +521,9 @@ func TestDispatcher_ProcessesOnFlush(t *testing.T) {
 
 	_ = disp.Queue(ctx, testParams("one"))
 
-	time.Sleep(20 * time.Millisecond)
+	require.Eventually(t, func() bool {
+		return len(disp.queue) == 0
+	}, time.Second, 5*time.Millisecond, "queued item should be consumed into the batch")
 	_ = disp.Flush(ctx)
 
 	deadline := time.After(2 * time.Second)

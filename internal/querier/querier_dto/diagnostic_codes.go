@@ -261,8 +261,8 @@ const (
 	// NOTHING with a RETURNING clause.
 	//
 	// When a conflict occurs the insert is skipped and RETURNING yields no row, so the
-	// generated QueryRow scan returns sql.ErrNoRows on the conflict path. The query is valid;
-	// the warning steers the author towards command:exec / execrows or explicit sql.ErrNoRows
-	// handling.
+	// generated QueryRow scan returns sql.ErrNoRows on the conflict path. The query is
+	// valid; the warning steers the author towards command:exec / execrows or explicit
+	// sql.ErrNoRows handling.
 	CodeConflictDoNothingReturning = "Q046"
 )

@@ -28,28 +28,11 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// StringConverter provides conversion of Go expressions to their string representations.
-// It enables mocking and testing of string conversion.
-type StringConverter interface {
-	// valueToString converts a Go expression to its string representation.
-	//
-	// Takes goExpr (goast.Expr) which is the expression to convert.
-	// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides conversion context.
-	//
-	// Returns goast.Expr which is the string representation of the input expression.
-	valueToString(goExpr goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr
-}
-
-// stringConverter turns values into Go string literals. It implements the StringConverter
-// interface.
+// stringConverter turns values into Go string literals.
 type stringConverter struct {
 	// A reference to the parent emitter is not needed here, as this component is a pure,
 	// functional transformer of a `goast.Expr`.
 }
-
-var (
-	_ StringConverter = (*stringConverter)(nil)
-)
 
 // valueToString is the main entry point for this component. It generates Go code to
 // convert an expression to a string, using type information from the annotator to select

@@ -26,6 +26,7 @@ import (
 	"runtime/debug"
 	"slices"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
@@ -354,7 +355,13 @@ func (engine *MySQLEngine) ApplyDDL(
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			mutation = nil
-			err = fmt.Errorf("mysql: panic while applying DDL: %v\nstack:\n%s", recovered, debug.Stack())
+
+			_, logger := logger_domain.From(ctx, log)
+			logger.Warn("mysql: panic while applying DDL",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("mysql: ddl panic: %v", recovered)
 		}
 	}()
 
@@ -399,7 +406,12 @@ func (engine *MySQLEngine) AnalyseQuery(
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			analysis = nil
-			err = fmt.Errorf("mysql: panic while analysing query: %v\nstack:\n%s", recovered, debug.Stack())
+
+			log.Warn("mysql: panic while analysing query",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("mysql: analyse panic: %v", recovered)
 		}
 	}()
 

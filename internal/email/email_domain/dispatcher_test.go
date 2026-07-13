@@ -246,8 +246,10 @@ func TestDispatcher_GracefulShutdown_DrainsQueue(t *testing.T) {
 		}
 	}
 
-	time.Sleep(50 * time.Millisecond)
-	require.Less(t, provider.getBulkSendCallCount(), 4, "No more than the final number of batches should be sent before shutdown")
+	require.Eventually(t, func() bool {
+		return provider.getBulkSendCallCount() == 3
+	}, 2*time.Second, 10*time.Millisecond,
+		"the three full batches should auto-flush before shutdown, leaving the partial batch for Stop to drain")
 
 	require.NoError(t, d.Stop(ctx))
 

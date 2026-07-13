@@ -55,7 +55,6 @@ func EnsureStandardConstructor(
 
 	if classDecl == nil {
 		err := errors.New("EnsureStandardConstructor: provided classDecl is nil")
-		l.ReportError(span, err, "Nil class declaration provided")
 		return nil, err
 	}
 
@@ -85,7 +84,6 @@ func EnsureConnectedCallback(ctx context.Context, classDecl *js_ast.Class, regis
 
 	if classDecl == nil {
 		err := errors.New("EnsureConnectedCallback: provided classDecl is nil")
-		l.ReportError(span, err, "Nil class declaration provided")
 		return nil, err
 	}
 
@@ -114,7 +112,6 @@ func InjectInitIntoConnectedCallback(ctx context.Context, connectedCallback *js_
 
 	if connectedCallback == nil {
 		err := errors.New("InjectInitIntoConnectedCallback: provided connectedCallback is nil")
-		l.ReportError(span, err, "Nil connectedCallback provided")
 		return err
 	}
 
@@ -122,13 +119,11 @@ func InjectInitIntoConnectedCallback(ctx context.Context, connectedCallback *js_
 
 	initStmt, err := parseSnippetAsStatement("this.init(instance.call(this, this));")
 	if err != nil {
-		l.ReportError(span, err, "Failed to parse init statement snippet")
 		return fmt.Errorf("failed to parse init statement snippet: %w", err)
 	}
 
 	superCallStmt, err := parseSnippetAsStatement("super.connectedCallback();")
 	if err != nil {
-		l.ReportError(span, err, "Failed to parse super.connectedCallback snippet")
 		return fmt.Errorf("failed to parse super.connectedCallback snippet: %w", err)
 	}
 

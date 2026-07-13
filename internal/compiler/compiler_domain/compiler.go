@@ -1260,7 +1260,8 @@ func mergeImportRecords(tree *js_ast.AST, statementAST *js_ast.AST, statement *j
 // Takes instanceProps ([]string) which lists the instance property names to prefix.
 // Takes registry (*RegistryContext) which provides the context for conversion.
 //
-// Returns string which is the generated JavaScript source code, or empty when tree is nil.
+// Returns string which is the generated JavaScript source code, or empty when tree is
+// nil.
 // Returns error when the AST cannot be converted for printing.
 func printAST(ctx context.Context, tree *js_ast.AST, instanceProps []string, registry *RegistryContext) (string, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -1349,11 +1350,12 @@ func injectEventBindings(ctx context.Context, jsAST *js_ast.AST, className strin
 	}
 }
 
-// elideTypeOnlyNamedImports drops named import bindings never referenced as a value in the
-// compiled component body.
+// elideTypeOnlyNamedImports drops named import bindings never referenced as a value in
+// the compiled component body.
 //
 // Takes tree (*js_ast.AST) which supplies the symbol table for name resolution.
-// Takes bodyStmts ([]js_ast.Stmt) which are the non-import statements (script + template).
+// Takes bodyStmts ([]js_ast.Stmt) which are the non-import statements (script +
+// template).
 // Takes imports ([]js_ast.Stmt) which are the reconstructed import statements to filter.
 // Takes registry (*RegistryContext) which resolves registry-backed identifier names.
 //
@@ -1373,8 +1375,8 @@ func elideTypeOnlyNamedImports(tree *js_ast.AST, bodyStmts, imports []js_ast.Stm
 	return filtered
 }
 
-// keepImportStatement removes named bindings not present in the used set and reports whether
-// the statement still binds something and should be kept.
+// keepImportStatement removes named bindings not present in the used set and reports
+// whether the statement still binds something and should be kept.
 //
 // Side-effect, default-only and namespace imports are always kept.
 //
@@ -1422,13 +1424,13 @@ func clauseItemIsUsed(item js_ast.ClauseItem, used map[string]struct{}) bool {
 	return ok
 }
 
-// collectUsedIdentifiers records the name of every identifier referenced as a value in the
-// converted body.
+// collectUsedIdentifiers records the name of every identifier referenced as a value in
+// the converted body.
 //
 // Walking the AST rather than scanning printed text means a name that appears only as a
 // property key or in a string literal is not mistaken for a value use. The final-print
-// registry is reused and conversion only reads it, so this throwaway pass cannot change the
-// final output.
+// registry is reused and conversion only reads it, so this throwaway pass cannot change
+// the final output.
 //
 // Takes tree (*js_ast.AST) which supplies the symbol table for name resolution.
 // Takes bodyStmts ([]js_ast.Stmt) which are the non-import statements to scan.

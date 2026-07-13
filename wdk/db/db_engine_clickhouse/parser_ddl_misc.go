@@ -24,6 +24,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -495,10 +496,9 @@ func (p *parser) tryParseViewColumnList() []string {
 //
 // The result is (nil, nil) when the body is empty or does not start with a SELECT/WITH
 // keyword; the caller then falls back to consumeRemainder behaviour. Panics in the nested
-// analyser are recovered into a wrapped error carrying the captured stack trace so a
-// malformed view body cannot crash the DDL apply path while still surfacing the
-// underlying cause for debugging. The stack is intended for engine-side logs; user-facing
-// surfaces should expose only the recovered value.
+// analyser are recovered into an error so a malformed view body cannot crash the DDL
+// apply path; the stack trace is logged engine-side via log.Warn rather than embedded in
+// the error, so user-facing surfaces never expose internal paths.
 //
 // Takes declaredColumns ([]string) which are the explicit view column names that override
 // the analyser's output names when present.
@@ -514,7 +514,11 @@ func (p *parser) analyseViewBody(declaredColumns []string) (result *querier_dto.
 	}
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			err = fmt.Errorf("clickhouse: panic while analysing view body: %v\n%s", recovered, debug.Stack())
+			log.Warn("clickhouse: panic while analysing view body",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("clickhouse: panic while analysing view body: %v", recovered)
 			result = nil
 		}
 	}()

@@ -620,8 +620,8 @@ func getOpPrecedence(op js_ast.OpCode) int {
 
 // nonFiniteKeyLiteral returns the JavaScript literal for a non-finite numeric object key.
 //
-// +Inf and NaN become the Infinity/NaN identifiers; -Inf becomes the string key a -Infinity
-// numeric key coerces to.
+// +Inf and NaN become the Infinity/NaN identifiers; -Inf becomes the string key a
+// -Infinity numeric key coerces to.
 //
 // Takes value (float64) which is the constant-folded numeric key.
 //

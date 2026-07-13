@@ -276,8 +276,8 @@ func initialiseAttributeEmitter(nodeEmit *nodeEmitter, emitter *emitter, express
 // Takes b (*astBuilder) which provides the static emitter to link.
 func wireEmitterReferences(emitter *emitter, b *astBuilder) {
 	emitter.astBuilder = b
-	if staticEmit, ok := b.staticEmitter.(*staticEmitter); ok {
-		emitter.staticEmitter = staticEmit
+	if b.staticEmitter != nil {
+		emitter.staticEmitter = b.staticEmitter
 	}
 }
 
@@ -306,10 +306,9 @@ func returnNodeEmitterToPool(b *astBuilder) {
 		return
 	}
 
-	if ne, ok := b.nodeEmitter.(*nodeEmitter); ok {
-		returnAttributeEmitterToPool(ne)
-		resetAndReturnNodeEmitter(ne)
-	}
+	ne := b.nodeEmitter
+	returnAttributeEmitterToPool(ne)
+	resetAndReturnNodeEmitter(ne)
 	b.nodeEmitter = nil
 }
 
@@ -355,12 +354,11 @@ func returnForEmitterToPool(b *astBuilder) {
 		return
 	}
 
-	if fe, ok := b.forEmitter.(*forEmitter); ok {
-		fe.emitter = nil
-		fe.expressionEmitter = nil
-		fe.astBuilder = nil
-		forEmitterPool.Put(fe)
-	}
+	fe := b.forEmitter
+	fe.emitter = nil
+	fe.expressionEmitter = nil
+	fe.astBuilder = nil
+	forEmitterPool.Put(fe)
 	b.forEmitter = nil
 }
 
@@ -372,12 +370,11 @@ func returnIfEmitterToPool(b *astBuilder) {
 		return
 	}
 
-	if ie, ok := b.ifEmitter.(*ifEmitter); ok {
-		ie.emitter = nil
-		ie.expressionEmitter = nil
-		ie.astBuilder = nil
-		ifEmitterPool.Put(ie)
-	}
+	ie := b.ifEmitter
+	ie.emitter = nil
+	ie.expressionEmitter = nil
+	ie.astBuilder = nil
+	ifEmitterPool.Put(ie)
 	b.ifEmitter = nil
 }
 
@@ -405,11 +402,10 @@ func returnBinaryOpEmitterToPool(ee *expressionEmitter) {
 		return
 	}
 
-	if be, ok := ee.binaryEmitter.(*binaryOpEmitter); ok {
-		be.emitter = nil
-		be.expressionEmitter = nil
-		binaryOpEmitterPool.Put(be)
-	}
+	be := ee.binaryEmitter
+	be.emitter = nil
+	be.expressionEmitter = nil
+	binaryOpEmitterPool.Put(be)
 }
 
 // resetAndReturnExpressionEmitter clears and returns an expressionEmitter to its pool.
@@ -431,11 +427,10 @@ func returnStaticEmitterToPool(b *astBuilder) {
 		return
 	}
 
-	if se, ok := b.staticEmitter.(*staticEmitter); ok {
-		se.emitter = nil
+	se := b.staticEmitter
+	se.emitter = nil
 
-		staticEmitterPool.Put(se)
-	}
+	staticEmitterPool.Put(se)
 	b.staticEmitter = nil
 }
 

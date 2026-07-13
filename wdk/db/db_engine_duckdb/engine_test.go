@@ -1115,11 +1115,10 @@ func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
 
 	require.Error(t, err)
 	require.Nil(t, analysis)
-	assert.Contains(t, err.Error(), "panic while analysing query")
-	assert.Contains(t, err.Error(), "stack:")
+	assert.Contains(t, err.Error(), "analyse panic")
 }
 
-func TestApplyDDL_RecoversWithStackTrace(t *testing.T) {
+func TestApplyDDL_RecoversFromPanic(t *testing.T) {
 	t.Parallel()
 
 	engine := NewDuckDBEngine()
@@ -1134,6 +1133,5 @@ func TestApplyDDL_RecoversWithStackTrace(t *testing.T) {
 
 	require.Error(t, err)
 	require.Nil(t, mutation)
-	assert.Contains(t, err.Error(), "panic while applying DDL")
-	assert.Contains(t, err.Error(), "stack:")
+	assert.Contains(t, err.Error(), "ddl panic")
 }

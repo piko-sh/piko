@@ -197,6 +197,7 @@ func getAllGoSource(t *testing.T, srcDir string) map[string][]byte {
 }
 
 func assertOnJSON(t *testing.T, jsonData any, assertion JSONAssertion) {
+	t.Helper()
 	segments := strings.Split(assertion.Select, ".")
 	var current = jsonData
 

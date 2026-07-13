@@ -136,8 +136,12 @@ type NATSProvider struct {
 	// config holds the NATS connection settings such as URL and cluster ID.
 	config Config
 
-	// runningMutex guards access to the running field.
+	// runningMutex guards access to the running field so status reads stay fast.
 	runningMutex sync.RWMutex
+
+	// startMutex serialises Start and Close so their multi-step setup and teardown never
+	// interleave.
+	startMutex sync.Mutex
 
 	// running indicates whether the NATS provider is currently active.
 	running bool
@@ -171,10 +175,13 @@ func (p *NATSProvider) Start(ctx context.Context) error {
 
 	startTime := time.Now()
 
-	p.runningMutex.Lock()
-	defer p.runningMutex.Unlock()
+	p.startMutex.Lock()
+	defer p.startMutex.Unlock()
 
-	if p.running {
+	p.runningMutex.RLock()
+	alreadyRunning := p.running
+	p.runningMutex.RUnlock()
+	if alreadyRunning {
 		l.Internal("NATS provider already running")
 		return nil
 	}
@@ -197,7 +204,10 @@ func (p *NATSProvider) Start(ctx context.Context) error {
 	p.ctx, p.cancel = context.WithCancelCause(ctx)
 	p.startRouterGoroutine(ctx)
 	<-p.router.Running()
+
+	p.runningMutex.Lock()
 	p.running = true
+	p.runningMutex.Unlock()
 
 	p.recordStartMetrics(ctx, startTime)
 	return nil
@@ -253,6 +263,9 @@ func (p *NATSProvider) Close() error {
 	ctx := context.Background()
 	_, l := logger.From(ctx, log)
 	startTime := time.Now()
+
+	p.startMutex.Lock()
+	defer p.startMutex.Unlock()
 
 	p.runningMutex.Lock()
 	if !p.running {

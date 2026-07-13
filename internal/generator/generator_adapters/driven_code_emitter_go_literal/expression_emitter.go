@@ -148,11 +148,11 @@ type expressionEmitter struct {
 	// emitter provides shared output generation and import management.
 	emitter *emitter
 
-	// binaryEmitter handles binary operations; uses interface type for flexibility.
-	binaryEmitter BinaryOpEmitter
+	// binaryEmitter handles binary operations.
+	binaryEmitter *binaryOpEmitter
 
 	// stringConv converts values to their string form.
-	stringConv StringConverter
+	stringConv *stringConverter
 }
 
 // emit is the main entry point for converting expressions.
@@ -398,11 +398,11 @@ func wrapWithStringerCall(expression goast.Expr) *goast.CallExpr {
 // newExpressionEmitter creates a new emitter for expressions.
 //
 // Takes emitter (*emitter) which provides the base emitting functions.
-// Takes binaryEmitter (BinaryOpEmitter) which handles binary operations.
-// Takes stringConv (StringConverter) which converts values to strings.
+// Takes binaryEmitter (*binaryOpEmitter) which handles binary operations.
+// Takes stringConv (*stringConverter) which converts values to strings.
 //
 // Returns *expressionEmitter which is ready to emit expressions.
-func newExpressionEmitter(emitter *emitter, binaryEmitter BinaryOpEmitter, stringConv StringConverter) *expressionEmitter {
+func newExpressionEmitter(emitter *emitter, binaryEmitter *binaryOpEmitter, stringConv *stringConverter) *expressionEmitter {
 	return &expressionEmitter{
 		emitter:       emitter,
 		binaryEmitter: binaryEmitter,

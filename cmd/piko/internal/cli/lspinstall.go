@@ -36,6 +36,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -50,6 +52,12 @@ const (
 
 	// apiTimeout bounds the GitHub API lookup used for the latest-release fallback.
 	apiTimeout = 10 * time.Second
+
+	// installBinaryPerm makes the installed language-server binary executable by its owner.
+	installBinaryPerm = 0o755
+
+	// writeProbePerm is the permission for the transient directory writability probe file.
+	writeProbePerm = 0o600
 )
 
 var (
@@ -360,8 +368,12 @@ func extractFromZip(archive []byte, binaryFile string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer func() { _ = rc.Close() }()
-		return io.ReadAll(rc)
+		data, err := io.ReadAll(rc)
+		_ = rc.Close()
+		if err != nil {
+			return nil, err
+		}
+		return data, nil
 	}
 	return nil, fmt.Errorf("%s not found in archive", binaryFile)
 }
@@ -380,15 +392,36 @@ func install(binary []byte, plat platform) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", false, err
-	}
 
-	target := filepath.Join(dir, plat.binaryFile)
-	if err := os.WriteFile(target, binary, 0o755); err != nil {
+	sandbox, err := openInstallSandbox(dir)
+	if err != nil {
 		return "", false, err
 	}
-	return target, onPath, nil
+	defer func() { _ = sandbox.Close() }()
+
+	if err := sandbox.WriteFile(plat.binaryFile, binary, installBinaryPerm); err != nil {
+		return "", false, fmt.Errorf("writing language server to %q: %w", dir, err)
+	}
+	return filepath.Join(dir, plat.binaryFile), onPath, nil
+}
+
+// openInstallSandbox opens a read-write sandbox rooted at the install directory, creating
+// the directory when it does not yet exist.
+//
+// Takes dir (string) which is the install directory to root the sandbox at.
+//
+// Returns safedisk.Sandbox which scopes all file operations to dir.
+// Returns error when the directory cannot be created or opened.
+func openInstallSandbox(dir string) (safedisk.Sandbox, error) {
+	factory, err := safedisk.NewCLIFactory(dir)
+	if err != nil {
+		return nil, fmt.Errorf("creating sandbox factory: %w", err)
+	}
+	sandbox, err := factory.Create("lsp-install", dir, safedisk.ModeReadWrite)
+	if err != nil {
+		return nil, fmt.Errorf("opening install directory %q: %w", dir, err)
+	}
+	return sandbox, nil
 }
 
 // chooseInstallDir selects where to write the binary, preferring a candidate that is
@@ -414,18 +447,23 @@ func chooseInstallDir() (string, bool, error) {
 	return localBin, slices.Contains(pathDirs, localBin), nil
 }
 
-// isWritable reports whether dir exists and accepts new files.
+// isWritable reports whether files can be created in dir, creating the directory first
+// when it does not yet exist.
 //
 // Takes dir (string) which is the directory to probe.
 //
 // Returns bool which is true when a file can be created in dir.
 func isWritable(dir string) bool {
-	probe := filepath.Join(dir, ".piko-write-test")
-	file, err := os.OpenFile(probe, os.O_CREATE|os.O_WRONLY, 0o600)
+	sandbox, err := openInstallSandbox(dir)
 	if err != nil {
 		return false
 	}
-	_ = file.Close()
-	_ = os.Remove(probe)
+	defer func() { _ = sandbox.Close() }()
+
+	probeName := ".piko-write-test"
+	if err := sandbox.WriteFile(probeName, nil, writeProbePerm); err != nil {
+		return false
+	}
+	_ = sandbox.Remove(probeName)
 	return true
 }

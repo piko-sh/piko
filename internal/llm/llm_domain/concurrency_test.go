@@ -322,10 +322,9 @@ func TestBudgetManager_ConcurrentAlertThreshold(t *testing.T) {
 
 	wg.Wait()
 
-	time.Sleep(100 * time.Millisecond)
-
-	count := alertCount.Load()
-	assert.GreaterOrEqual(t, count, int64(1),
+	require.Eventually(t, func() bool {
+		return alertCount.Load() >= 1
+	}, time.Second, 5*time.Millisecond,
 		"alert should fire at least once since threshold is exceeded")
 }
 

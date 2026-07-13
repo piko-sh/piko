@@ -171,6 +171,7 @@ func TestParsePK(t *testing.T) {
 }
 
 func assertTranslations(t *testing.T, expected map[string]map[string]string, actual i18n_domain.Translations) {
+	t.Helper()
 	require.Equal(t, len(expected), len(actual), "Mismatch in number of locales")
 	for locale, expectedKeys := range expected {
 		actualKeys, ok := actual[locale]

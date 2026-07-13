@@ -286,11 +286,13 @@ func (dh *DialogHandler) recordDialog(dialog *page.EventJavascriptDialogOpening)
 // asynchronously, tracked by the handler's WaitGroup.
 func (dh *DialogHandler) autoHandleDialog(ctx *ActionContext, _ DialogInfo) {
 	dh.mu.RLock()
+	defer dh.mu.RUnlock()
 	if !dh.enabled || dh.closed {
-		dh.mu.RUnlock()
 		return
 	}
-	dh.mu.RUnlock()
+
+	autoAccept := dh.autoAccept
+	autoText := dh.autoText
 
 	dh.wg.Go(func() {
 		select {
@@ -301,7 +303,7 @@ func (dh *DialogHandler) autoHandleDialog(ctx *ActionContext, _ DialogInfo) {
 		timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, DefaultActionTimeout, fmt.Errorf("dialog autoHandleDialog exceeded %s timeout", DefaultActionTimeout))
 		defer cancel()
 		_ = chromedp.Run(timedCtx, chromedp.ActionFunc(func(ctx2 context.Context) error {
-			return page.HandleJavaScriptDialog(dh.autoAccept).WithPromptText(dh.autoText).Do(ctx2)
+			return page.HandleJavaScriptDialog(autoAccept).WithPromptText(autoText).Do(ctx2)
 		}))
 	})
 }
@@ -342,6 +344,53 @@ func (h *DialogAutoHandler) Stop() {
 	case <-done:
 	case <-time.After(2 * time.Second):
 	}
+}
+
+// listenForDialogs registers a target listener that auto-answers JavaScript dialogues
+// until Stop is called.
+//
+// Takes ctx (*ActionContext) which provides the browser context for listening and
+// dispatch.
+// Takes accept (bool) which reports whether to accept dialogues rather than dismiss them.
+// Takes promptText (string) which is the text entered into prompt dialogues.
+func (h *DialogAutoHandler) listenForDialogs(ctx *ActionContext, accept bool, promptText string) {
+	chromedp.ListenTarget(ctx.Ctx, func(ev any) {
+		select {
+		case <-h.stopChan:
+			return
+		default:
+		}
+
+		if _, ok := ev.(*page.EventJavascriptDialogOpening); ok {
+			h.dispatchDialog(ctx, accept, promptText)
+		}
+	})
+}
+
+// dispatchDialog spawns a bounded goroutine that answers an open dialog.
+//
+// Takes ctx (*ActionContext) which provides the browser context for the response.
+// Takes accept (bool) which reports whether to accept the dialog rather than dismiss it.
+// Takes promptText (string) which is the text entered into prompt dialogues.
+func (h *DialogAutoHandler) dispatchDialog(ctx *ActionContext, accept bool, promptText string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.stopped {
+		return
+	}
+
+	h.wg.Go(func() {
+		select {
+		case <-ctx.Ctx.Done():
+			return
+		default:
+		}
+		timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, DefaultActionTimeout, fmt.Errorf("dialog auto-handler exceeded %s timeout", DefaultActionTimeout))
+		defer cancel()
+		_ = chromedp.Run(timedCtx, chromedp.ActionFunc(func(ctx2 context.Context) error {
+			return page.HandleJavaScriptDialog(accept).WithPromptText(promptText).Do(ctx2)
+		}))
+	})
 }
 
 // HandleAlert accepts an alert dialog.
@@ -412,28 +461,7 @@ func SetupDialogAutoAccept(ctx *ActionContext, promptText string) *DialogAutoHan
 		mu:       sync.Mutex{},
 	}
 
-	chromedp.ListenTarget(ctx.Ctx, func(ev any) {
-		select {
-		case <-handler.stopChan:
-			return
-		default:
-		}
-
-		if _, ok := ev.(*page.EventJavascriptDialogOpening); ok {
-			handler.wg.Go(func() {
-				select {
-				case <-ctx.Ctx.Done():
-					return
-				default:
-				}
-				timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, DefaultActionTimeout, fmt.Errorf("dialog SetupDialogAutoAccept exceeded %s timeout", DefaultActionTimeout))
-				defer cancel()
-				_ = chromedp.Run(timedCtx, chromedp.ActionFunc(func(ctx2 context.Context) error {
-					return page.HandleJavaScriptDialog(true).WithPromptText(promptText).Do(ctx2)
-				}))
-			})
-		}
-	})
+	handler.listenForDialogs(ctx, true, promptText)
 	return handler
 }
 
@@ -450,28 +478,7 @@ func SetupDialogAutoDismiss(ctx *ActionContext) *DialogAutoHandler {
 		mu:       sync.Mutex{},
 	}
 
-	chromedp.ListenTarget(ctx.Ctx, func(ev any) {
-		select {
-		case <-handler.stopChan:
-			return
-		default:
-		}
-
-		if _, ok := ev.(*page.EventJavascriptDialogOpening); ok {
-			handler.wg.Go(func() {
-				select {
-				case <-ctx.Ctx.Done():
-					return
-				default:
-				}
-				timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, DefaultActionTimeout, fmt.Errorf("dialog SetupDialogAutoDismiss exceeded %s timeout", DefaultActionTimeout))
-				defer cancel()
-				_ = chromedp.Run(timedCtx, chromedp.ActionFunc(func(ctx2 context.Context) error {
-					return page.HandleJavaScriptDialog(false).Do(ctx2)
-				}))
-			})
-		}
-	})
+	handler.listenForDialogs(ctx, false, "")
 	return handler
 }
 

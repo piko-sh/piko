@@ -25,6 +25,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -164,11 +165,11 @@ func (p *parser) populateCTASColumns(mutation *querier_dto.CatalogueMutation) er
 // column list as nullable catalogue columns; subsequent type resolution refines them
 // through the function / expression resolvers.
 //
-// On analyser panic the recovered value plus a captured stack trace becomes the returned
-// error so a malformed CTAS body cannot crash the apply loop. The stack is intended for
-// engine-side logs; user-facing surfaces should expose only the recovered value. The
-// remainder of the source is consumed so the caller's engine-clause parse continues from
-// a known position.
+// On analyser panic the recovered value becomes the returned error so a malformed CTAS
+// body cannot crash the apply loop; the stack trace is logged engine-side via log.Warn
+// rather than embedded in the error, so user-facing surfaces never expose internal paths.
+// The remainder of the source is consumed so the caller's engine-clause parse continues
+// from a known position.
 //
 // Takes mutation (*querier_dto.CatalogueMutation) which receives the analysed columns.
 //
@@ -177,7 +178,11 @@ func (p *parser) populateCTASFromSelect(mutation *querier_dto.CatalogueMutation)
 	remainingTokens := p.tokens[p.position:]
 	defer func() {
 		if recovered := recover(); recovered != nil {
-			err = fmt.Errorf("clickhouse: panic while analysing CTAS body: %v\n%s", recovered, debug.Stack())
+			log.Warn("clickhouse: panic while analysing CTAS body",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("clickhouse: panic while analysing CTAS body: %v", recovered)
 		}
 	}()
 	nested := newParser(remainingTokens)

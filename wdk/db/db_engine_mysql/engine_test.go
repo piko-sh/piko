@@ -1183,8 +1183,7 @@ func TestAnalyseQuery_RecoversFromParserPanic(t *testing.T) {
 
 	require.Error(t, err)
 	require.Nil(t, analysis)
-	assert.Contains(t, err.Error(), "panic while analysing query")
-	assert.Contains(t, err.Error(), "stack:")
+	assert.Contains(t, err.Error(), "analyse panic")
 }
 
 func TestApplyDDL_RecoversFromPanic(t *testing.T) {

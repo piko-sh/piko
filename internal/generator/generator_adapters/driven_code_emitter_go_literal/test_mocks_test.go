@@ -67,40 +67,9 @@ func (m *mockExpressionEmitter) emitTemplateLiteralParts(template *ast_domain.Te
 
 var (
 	_ ExpressionEmitter = (*mockExpressionEmitter)(nil)
-	_ BinaryOpEmitter   = (*mockBinaryOpEmitter)(nil)
-	_ StringConverter   = (*mockStringConverter)(nil)
 	_ AttributeEmitter  = (*mockAttributeEmitter)(nil)
-	_ NodeEmitter       = (*mockNodeEmitter)(nil)
-	_ IfEmitter         = (*mockIfEmitter)(nil)
-	_ ForEmitter        = (*mockForEmitter)(nil)
-	_ StaticEmitter     = (*mockStaticEmitter)(nil)
 	_ AstBuilder        = (*mockAstBuilder)(nil)
 )
-
-type mockBinaryOpEmitter struct {
-	emitFunc func(*ast_domain.BinaryExpression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic)
-}
-
-func (m *mockBinaryOpEmitter) emit(n *ast_domain.BinaryExpression) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
-	if m.emitFunc != nil {
-		return m.emitFunc(n)
-	}
-	return cachedIdent("mockBinaryResult"), nil, nil
-}
-
-type mockStringConverter struct {
-	valueToStringFunc func(goast.Expr, *ast_domain.GoGeneratorAnnotation) goast.Expr
-}
-
-func (m *mockStringConverter) valueToString(goExpr goast.Expr, ann *ast_domain.GoGeneratorAnnotation) goast.Expr {
-	if m.valueToStringFunc != nil {
-		return m.valueToStringFunc(goExpr, ann)
-	}
-	return &goast.CallExpr{
-		Fun:  &goast.SelectorExpr{X: cachedIdent("strconv"), Sel: cachedIdent("Itoa")},
-		Args: []goast.Expr{goExpr},
-	}
-}
 
 type mockAttributeEmitter struct {
 	emitFunc                      func(*goast.Ident, *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic)
@@ -119,103 +88,6 @@ func (m *mockAttributeEmitter) emitDynamicAttributesOnly(nodeVar *goast.Ident, n
 		return m.emitDynamicAttributesOnlyFunc(nodeVar, node)
 	}
 	return []goast.Stmt{}, nil
-}
-
-type mockNodeEmitter struct {
-	emitFunc func(context.Context, *ast_domain.TemplateNode, string) (string, []goast.Stmt, []*ast_domain.Diagnostic)
-}
-
-func (m *mockNodeEmitter) emit(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (string, []goast.Stmt, []*ast_domain.Diagnostic) {
-	if m.emitFunc != nil {
-		return m.emitFunc(ctx, node, partialScopeID)
-	}
-	return "mockTempVar", []goast.Stmt{}, nil
-}
-
-type mockIfEmitter struct {
-	emitChainFunc func(context.Context, *ast_domain.TemplateNode, []*ast_domain.TemplateNode, int, goast.Expr, string, string) ([]goast.Stmt, int, []*ast_domain.Diagnostic)
-}
-
-func (m *mockIfEmitter) emitChain(
-	ctx context.Context,
-	startNode *ast_domain.TemplateNode,
-	siblings []*ast_domain.TemplateNode,
-	currentNodeIndex int,
-	parentSliceExpr goast.Expr,
-	partialScopeID string,
-	mainComponentScope string,
-) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
-	if m.emitChainFunc != nil {
-		return m.emitChainFunc(ctx, startNode, siblings, currentNodeIndex, parentSliceExpr, partialScopeID, mainComponentScope)
-	}
-	return []goast.Stmt{}, 1, nil
-}
-
-type mockForEmitter struct {
-	emitFunc                      func(context.Context, *ast_domain.TemplateNode, goast.Expr, string, string) ([]goast.Stmt, []*ast_domain.Diagnostic)
-	emitWithExtractedIterableFunc func(context.Context, *ast_domain.TemplateNode, goast.Expr, *LoopIterableInfo, string, string) ([]goast.Stmt, []*ast_domain.Diagnostic)
-}
-
-func (m *mockForEmitter) emit(
-	ctx context.Context,
-	node *ast_domain.TemplateNode,
-	parentSliceExpr goast.Expr,
-	partialScopeID string,
-	mainComponentScope string,
-) ([]goast.Stmt, []*ast_domain.Diagnostic) {
-	if m.emitFunc != nil {
-		return m.emitFunc(ctx, node, parentSliceExpr, partialScopeID, mainComponentScope)
-	}
-	return []goast.Stmt{}, nil
-}
-
-func (m *mockForEmitter) emitWithExtractedIterable(
-	ctx context.Context,
-	node *ast_domain.TemplateNode,
-	parentSliceExpr goast.Expr,
-	loopInfo *LoopIterableInfo,
-	partialScopeID string,
-	mainComponentScope string,
-) ([]goast.Stmt, []*ast_domain.Diagnostic) {
-	if m.emitWithExtractedIterableFunc != nil {
-		return m.emitWithExtractedIterableFunc(ctx, node, parentSliceExpr, loopInfo, partialScopeID, mainComponentScope)
-	}
-	return []goast.Stmt{}, nil
-}
-
-type mockStaticEmitter struct {
-	registerStaticNodeFunc       func(context.Context, *ast_domain.TemplateNode, string) (*goast.Ident, []*ast_domain.Diagnostic)
-	registerStaticAttributesFunc func(*ast_domain.TemplateNode, string) string
-	buildDeclarationsFunc        func() goast.Decl
-	buildInitFunctionFunc        func() goast.Decl
-}
-
-func (m *mockStaticEmitter) registerStaticNode(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (*goast.Ident, []*ast_domain.Diagnostic) {
-	if m.registerStaticNodeFunc != nil {
-		return m.registerStaticNodeFunc(ctx, node, partialScopeID)
-	}
-	return cachedIdent("mockStaticNode"), nil
-}
-
-func (m *mockStaticEmitter) buildDeclarations() goast.Decl {
-	if m.buildDeclarationsFunc != nil {
-		return m.buildDeclarationsFunc()
-	}
-	return nil
-}
-
-func (m *mockStaticEmitter) buildInitFunction() goast.Decl {
-	if m.buildInitFunctionFunc != nil {
-		return m.buildInitFunctionFunc()
-	}
-	return nil
-}
-
-func (m *mockStaticEmitter) registerStaticAttributes(node *ast_domain.TemplateNode, partialScopeID string) string {
-	if m.registerStaticAttributesFunc != nil {
-		return m.registerStaticAttributesFunc(node, partialScopeID)
-	}
-	return ""
 }
 
 type mockAstBuilder struct {

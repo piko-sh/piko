@@ -736,8 +736,9 @@ func wrapperQualifiedTypeName(typeSpec *annotator_dto.TypeSpec) string {
 	return packageName + "." + typeSpec.Name
 }
 
-// structSpecHasFileUpload reports whether a struct parameter has any piko.FileUpload fields,
-// which must be extracted from the multipart form rather than bound from the body.
+// structSpecHasFileUpload reports whether a struct parameter has any piko.FileUpload
+// fields, which must be extracted from the multipart form rather than bound from the
+// body.
 //
 // Takes typeSpec (*annotator_dto.TypeSpec) which describes the struct parameter.
 //

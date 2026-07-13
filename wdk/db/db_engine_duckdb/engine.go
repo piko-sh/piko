@@ -26,6 +26,7 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
@@ -343,7 +344,13 @@ func (engine *DuckDBEngine) ApplyDDL(
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			mutation = nil
-			err = fmt.Errorf("duckdb: panic while applying DDL: %v\nstack:\n%s", recovered, debug.Stack())
+
+			_, logger := logger_domain.From(ctx, log)
+			logger.Warn("duckdb: panic while applying DDL",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("duckdb: ddl panic: %v", recovered)
 		}
 	}()
 
@@ -383,7 +390,12 @@ func (engine *DuckDBEngine) AnalyseQuery(
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			analysis = nil
-			err = fmt.Errorf("duckdb: panic while analysing query: %v\nstack:\n%s", recovered, debug.Stack())
+
+			log.Warn("duckdb: panic while analysing query",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("duckdb: analyse panic: %v", recovered)
 		}
 	}()
 
