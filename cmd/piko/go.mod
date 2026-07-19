@@ -18,12 +18,12 @@ require (
 	golang.org/x/tools v0.43.0
 	google.golang.org/grpc v1.79.3
 	gopkg.in/yaml.v3 v3.0.1
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0
-	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0
-	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0
-	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0
-	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0
+	piko.sh/piko v0.0.0-alpha.31
+	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0-alpha.31
+	piko.sh/piko/wdk/logger/logger_integration_otel_grpc v0.0.0-alpha.31
+	piko.sh/piko/wdk/logger/logger_integration_otel_http v0.0.0-alpha.31
+	piko.sh/piko/wdk/logger/logger_otel_sdk v0.0.0-alpha.31
+	piko.sh/piko/wdk/monitoring/monitoring_api v0.0.0-alpha.31
 )
 
 require (
