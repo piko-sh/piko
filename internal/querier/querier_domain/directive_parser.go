@@ -888,6 +888,8 @@ func extractQueryDirectives(block *querier_dto.DirectiveBlock) *querier_dto.Quer
 			setBoolOverride(&directives.NullableOverride, metadata.Value)
 		case "readonly":
 			setBoolOverride(&directives.ReadOnlyOverride, metadata.Value)
+		case "optional":
+			directives.Optional = strings.EqualFold(strings.TrimSpace(metadata.Value), literalTrue)
 		case "runtime":
 
 			switch strings.ToLower(strings.TrimSpace(metadata.Value)) {

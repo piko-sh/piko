@@ -37,6 +37,8 @@ import (
 	"github.com/google/pprof/profile"
 	"piko.sh/piko/wdk/json"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/profiler"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -46,28 +48,14 @@ func TestParseProfileFlags_Defaults(t *testing.T) {
 
 	var stderr bytes.Buffer
 	flags, url, ok := parseProfileFlags([]string{"http://localhost:8080/"}, &stderr)
-	if !ok {
-		t.Fatalf("parseProfileFlags failed: %s", stderr.String())
-	}
+	require.True(t, ok, "parseProfileFlags failed: %s", stderr.String())
 
-	if url != "http://localhost:8080/" {
-		t.Errorf("url = %q, want %q", url, "http://localhost:8080/")
-	}
-	if flags.pprofPort != 6060 {
-		t.Errorf("pprofPort = %d, want 6060", flags.pprofPort)
-	}
-	if flags.concurrency != 100 {
-		t.Errorf("concurrency = %d, want 100", flags.concurrency)
-	}
-	if flags.duration != 30 {
-		t.Errorf("duration = %d, want 30", flags.duration)
-	}
-	if flags.output != "pprof" {
-		t.Errorf("output = %q, want %q", flags.output, "pprof")
-	}
-	if flags.topN != 60 {
-		t.Errorf("topN = %d, want 60", flags.topN)
-	}
+	assert.Equal(t, "http://localhost:8080/", url, "url = %q, want %q", url, "http://localhost:8080/")
+	assert.Equal(t, 6060, flags.pprofPort, "pprofPort = %d, want 6060", flags.pprofPort)
+	assert.Equal(t, 100, flags.concurrency, "concurrency = %d, want 100", flags.concurrency)
+	assert.Equal(t, 30, flags.duration, "duration = %d, want 30", flags.duration)
+	assert.Equal(t, "pprof", flags.output, "output = %q, want %q", flags.output, "pprof")
+	assert.Equal(t, 60, flags.topN, "topN = %d, want 60", flags.topN)
 }
 
 func TestParseProfileFlags_CustomValues(t *testing.T) {
@@ -85,34 +73,16 @@ func TestParseProfileFlags_CustomValues(t *testing.T) {
 		"http://example.com/",
 	}, &stderr)
 
-	if !ok {
-		t.Fatalf("parseProfileFlags failed: %s", stderr.String())
-	}
+	require.True(t, ok, "parseProfileFlags failed: %s", stderr.String())
 
-	if url != "http://example.com/" {
-		t.Errorf("url = %q, want %q", url, "http://example.com/")
-	}
-	if flags.pprofPort != 9090 {
-		t.Errorf("pprofPort = %d, want 9090", flags.pprofPort)
-	}
-	if flags.concurrency != 50 {
-		t.Errorf("concurrency = %d, want 50", flags.concurrency)
-	}
-	if flags.duration != 10 {
-		t.Errorf("duration = %d, want 10", flags.duration)
-	}
-	if flags.output != "/tmp/profiles" {
-		t.Errorf("output = %q, want %q", flags.output, "/tmp/profiles")
-	}
-	if flags.cookie != "session=abc" {
-		t.Errorf("cookie = %q, want %q", flags.cookie, "session=abc")
-	}
-	if flags.topN != 20 {
-		t.Errorf("topN = %d, want 20", flags.topN)
-	}
-	if flags.focus != "render" {
-		t.Errorf("focus = %q, want %q", flags.focus, "render")
-	}
+	assert.Equal(t, "http://example.com/", url, "url = %q, want %q", url, "http://example.com/")
+	assert.Equal(t, 9090, flags.pprofPort, "pprofPort = %d, want 9090", flags.pprofPort)
+	assert.Equal(t, 50, flags.concurrency, "concurrency = %d, want 50", flags.concurrency)
+	assert.Equal(t, 10, flags.duration, "duration = %d, want 10", flags.duration)
+	assert.Equal(t, "/tmp/profiles", flags.output, "output = %q, want %q", flags.output, "/tmp/profiles")
+	assert.Equal(t, "session=abc", flags.cookie, "cookie = %q, want %q", flags.cookie, "session=abc")
+	assert.Equal(t, 20, flags.topN, "topN = %d, want 20", flags.topN)
+	assert.Equal(t, "render", flags.focus, "focus = %q, want %q", flags.focus, "render")
 }
 
 func TestParseProfileFlags_URLFirst(t *testing.T) {
@@ -126,22 +96,12 @@ func TestParseProfileFlags_URLFirst(t *testing.T) {
 		"--duration", "10",
 	}, &stderr)
 
-	if !ok {
-		t.Fatalf("parseProfileFlags failed: %s", stderr.String())
-	}
+	require.True(t, ok, "parseProfileFlags failed: %s", stderr.String())
 
-	if url != "http://localhost:8080/" {
-		t.Errorf("url = %q, want %q", url, "http://localhost:8080/")
-	}
-	if flags.concurrency != 200 {
-		t.Errorf("concurrency = %d, want 200", flags.concurrency)
-	}
-	if !flags.tui {
-		t.Error("tui should be true")
-	}
-	if flags.duration != 10 {
-		t.Errorf("duration = %d, want 10", flags.duration)
-	}
+	assert.Equal(t, "http://localhost:8080/", url, "url = %q, want %q", url, "http://localhost:8080/")
+	assert.Equal(t, 200, flags.concurrency, "concurrency = %d, want 200", flags.concurrency)
+	assert.True(t, flags.tui, "tui should be true")
+	assert.Equal(t, 10, flags.duration, "duration = %d, want 10", flags.duration)
 }
 
 func TestExtractProfileURL(t *testing.T) {
@@ -183,16 +143,10 @@ func TestExtractProfileURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			gotURL, gotFlags := extractProfileURL(tt.arguments)
-			if gotURL != tt.wantURL {
-				t.Errorf("url = %q, want %q", gotURL, tt.wantURL)
-			}
-			if len(gotFlags) != len(tt.wantFlagArgs) {
-				t.Fatalf("flagArgs len = %d, want %d", len(gotFlags), len(tt.wantFlagArgs))
-			}
+			assert.Equal(t, tt.wantURL, gotURL, "url = %q, want %q", gotURL, tt.wantURL)
+			require.Len(t, gotFlags, len(tt.wantFlagArgs), "flagArgs len = %d, want %d", len(gotFlags), len(tt.wantFlagArgs))
 			for i, f := range gotFlags {
-				if f != tt.wantFlagArgs[i] {
-					t.Errorf("flagArgs[%d] = %q, want %q", i, f, tt.wantFlagArgs[i])
-				}
+				assert.Equal(t, tt.wantFlagArgs[i], f, "flagArgs[%d] = %q, want %q", i, f, tt.wantFlagArgs[i])
 			}
 		})
 	}
@@ -203,12 +157,8 @@ func TestParseProfileFlags_MissingURL(t *testing.T) {
 
 	var stderr bytes.Buffer
 	_, _, ok := parseProfileFlags([]string{}, &stderr)
-	if ok {
-		t.Error("expected parseProfileFlags to fail with no URL")
-	}
-	if !strings.Contains(stderr.String(), "URL to test is a required argument") {
-		t.Errorf("stderr should mention missing URL, got: %s", stderr.String())
-	}
+	assert.False(t, ok, "expected parseProfileFlags to fail with no URL")
+	assert.Contains(t, stderr.String(), "URL to test is a required argument", "stderr should mention missing URL, got: %s", stderr.String())
 }
 
 func TestRunProfile_NoArgs(t *testing.T) {
@@ -216,9 +166,7 @@ func TestRunProfile_NoArgs(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunProfileWithIO(nil, &stdout, &stderr)
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
+	assert.Equal(t, 1, code, "exit code = %d, want 1", code)
 }
 
 func TestRunProfile_Help(t *testing.T) {
@@ -227,12 +175,8 @@ func TestRunProfile_Help(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
 	code := RunProfileWithIO([]string{"-h"}, &stdout, &stderr)
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), "piko profile") {
-		t.Errorf("stderr should contain usage text, got: %s", stderr.String())
-	}
+	assert.Equal(t, 1, code, "exit code = %d, want 1", code)
+	assert.Contains(t, stderr.String(), "piko profile", "stderr should contain usage text, got: %s", stderr.String())
 }
 
 func TestRunProfile_InvalidFocus(t *testing.T) {
@@ -240,12 +184,8 @@ func TestRunProfile_InvalidFocus(t *testing.T) {
 
 	var stdout, stderr bytes.Buffer
 	code := RunProfileWithIO([]string{"--focus", "[invalid", "http://localhost/"}, &stdout, &stderr)
-	if code != 1 {
-		t.Errorf("exit code = %d, want 1", code)
-	}
-	if !strings.Contains(stderr.String(), "invalid --focus pattern") {
-		t.Errorf("stderr should mention invalid focus, got: %s", stderr.String())
-	}
+	assert.Equal(t, 1, code, "exit code = %d, want 1", code)
+	assert.Contains(t, stderr.String(), "invalid --focus pattern", "stderr should mention invalid focus, got: %s", stderr.String())
 }
 
 func TestLoadResult_Percentiles(t *testing.T) {
@@ -268,12 +208,10 @@ func TestLoadResult_Percentiles(t *testing.T) {
 		},
 	}
 
-	if p50 := result.percentile(50); p50 != 6*time.Millisecond {
-		t.Errorf("p50 = %v, want 6ms", p50)
-	}
-	if p100 := result.percentile(100); p100 != 10*time.Millisecond {
-		t.Errorf("p100 = %v, want 10ms", p100)
-	}
+	p50 := result.percentile(50)
+	assert.Equal(t, 6*time.Millisecond, p50, "p50 = %v, want 6ms", p50)
+	p100 := result.percentile(100)
+	assert.Equal(t, 10*time.Millisecond, p100, "p100 = %v, want 10ms", p100)
 }
 
 func TestLoadResult_RequestsPerSecond(t *testing.T) {
@@ -285,9 +223,7 @@ func TestLoadResult_RequestsPerSecond(t *testing.T) {
 	}
 
 	rps := result.requestsPerSecond()
-	if rps != 500 {
-		t.Errorf("requestsPerSecond = %f, want 500", rps)
-	}
+	assert.EqualValues(t, 500, rps, "requestsPerSecond = %f, want 500", rps)
 }
 
 func TestLoadResult_MeanLatency(t *testing.T) {
@@ -302,21 +238,15 @@ func TestLoadResult_MeanLatency(t *testing.T) {
 	}
 
 	mean := result.meanLatency()
-	if mean != 4*time.Millisecond {
-		t.Errorf("meanLatency = %v, want 4ms", mean)
-	}
+	assert.Equal(t, 4*time.Millisecond, mean, "meanLatency = %v, want 4ms", mean)
 }
 
 func TestLoadResult_EmptyLatencies(t *testing.T) {
 	t.Parallel()
 
 	result := &loadResult{}
-	if result.meanLatency() != 0 {
-		t.Error("meanLatency should be 0 for empty latencies")
-	}
-	if result.percentile(50) != 0 {
-		t.Error("percentile should be 0 for empty latencies")
-	}
+	assert.EqualValues(t, 0, result.meanLatency(), "meanLatency should be 0 for empty latencies")
+	assert.EqualValues(t, 0, result.percentile(50), "percentile should be 0 for empty latencies")
 }
 
 func TestFetchProfilerStatus_ReturnsNilWhenEndpointMissing(t *testing.T) {
@@ -326,12 +256,8 @@ func TestFetchProfilerStatus_ReturnsNilWhenEndpointMissing(t *testing.T) {
 	defer server.Close()
 
 	status, err := fetchProfilerStatus(context.Background(), server.URL)
-	if err != nil {
-		t.Fatalf("fetchProfilerStatus returned error: %v", err)
-	}
-	if status != nil {
-		t.Fatalf("status = %#v, want nil", status)
-	}
+	require.NoError(t, err, "fetchProfilerStatus returned error: %v", err)
+	require.Nil(t, status, "status = %#v, want nil", status)
 }
 
 func TestFetchProfilerStatus_DecodesRollingTraceCapability(t *testing.T) {
@@ -357,27 +283,17 @@ func TestFetchProfilerStatus_DecodesRollingTraceCapability(t *testing.T) {
 	defer server.Close()
 
 	status, err := fetchProfilerStatus(context.Background(), server.URL)
-	if err != nil {
-		t.Fatalf("fetchProfilerStatus returned error: %v", err)
-	}
-	if status == nil {
-		t.Fatal("status should not be nil")
-	}
-	if !status.RollingTrace.Enabled {
-		t.Fatal("rolling trace should be enabled")
-	}
-	if status.RollingTrace.DownloadPath != profiler.RollingTracePath {
-		t.Fatalf("download path = %q, want %q", status.RollingTrace.DownloadPath, profiler.RollingTracePath)
-	}
+	require.NoError(t, err, "fetchProfilerStatus returned error: %v", err)
+	require.NotNil(t, status, "status should not be nil")
+	require.True(t, status.RollingTrace.Enabled, "rolling trace should be enabled")
+	require.Equal(t, profiler.RollingTracePath, status.RollingTrace.DownloadPath, "download path = %q, want %q", status.RollingTrace.DownloadPath, profiler.RollingTracePath)
 }
 
 func TestLoadResult_ZeroDuration(t *testing.T) {
 	t.Parallel()
 
 	result := &loadResult{}
-	if result.requestsPerSecond() != 0 {
-		t.Error("requestsPerSecond should be 0 when duration is 0")
-	}
+	assert.EqualValues(t, 0, result.requestsPerSecond(), "requestsPerSecond should be 0 when duration is 0")
 }
 
 func TestWriteLoadTestReport(t *testing.T) {
@@ -402,21 +318,11 @@ func TestWriteLoadTestReport(t *testing.T) {
 
 	report := buffer.String()
 
-	if !strings.Contains(report, "LOAD TEST REPORT") {
-		t.Error("report should contain header")
-	}
-	if !strings.Contains(report, "Complete requests:      10000") {
-		t.Error("report should contain total requests")
-	}
-	if !strings.Contains(report, "Failed requests:        5") {
-		t.Error("report should contain failed requests")
-	}
-	if !strings.Contains(report, "Requests per second:") {
-		t.Error("report should contain request/s")
-	}
-	if !strings.Contains(report, "50%") {
-		t.Error("report should contain percentiles")
-	}
+	assert.Contains(t, report, "LOAD TEST REPORT", "report should contain header")
+	assert.Contains(t, report, "Complete requests:      10000", "report should contain total requests")
+	assert.Contains(t, report, "Failed requests:        5", "report should contain failed requests")
+	assert.Contains(t, report, "Requests per second:", "report should contain request/s")
+	assert.Contains(t, report, "50%", "report should contain percentiles")
 }
 
 func createSyntheticProfile(t *testing.T) []byte {
@@ -466,9 +372,8 @@ func createSyntheticProfile(t *testing.T) []byte {
 	}
 
 	var buffer bytes.Buffer
-	if err := prof.Write(&buffer); err != nil {
-		t.Fatalf("failed to write synthetic profile: %v", err)
-	}
+	err := prof.Write(&buffer)
+	require.NoError(t, err, "failed to write synthetic profile: %v", err)
 	return buffer.Bytes()
 }
 
@@ -485,24 +390,14 @@ func TestGenerateProfileReport_ByFunction(t *testing.T) {
 		topN:         10,
 	}, 0)
 
-	if err != nil {
-		t.Fatalf("generateProfileReport failed: %v", err)
-	}
+	require.NoError(t, err, "generateProfileReport failed: %v", err)
 
 	report := buffer.String()
 
-	if !strings.Contains(report, "allocs (alloc_space)") {
-		t.Error("report should contain section title")
-	}
-	if !strings.Contains(report, "FuncA") {
-		t.Error("report should contain FuncA")
-	}
-	if !strings.Contains(report, "FuncB") {
-		t.Error("report should contain FuncB")
-	}
-	if !strings.Contains(report, "flat") {
-		t.Error("report should contain header row")
-	}
+	assert.Contains(t, report, "allocs (alloc_space)", "report should contain section title")
+	assert.Contains(t, report, "FuncA", "report should contain FuncA")
+	assert.Contains(t, report, "FuncB", "report should contain FuncB")
+	assert.Contains(t, report, "flat", "report should contain header row")
 }
 
 func TestGenerateProfileReport_ByLine(t *testing.T) {
@@ -518,18 +413,12 @@ func TestGenerateProfileReport_ByLine(t *testing.T) {
 		topN:         10,
 	}, 0)
 
-	if err != nil {
-		t.Fatalf("generateProfileReport failed: %v", err)
-	}
+	require.NoError(t, err, "generateProfileReport failed: %v", err)
 
 	report := buffer.String()
 
-	if !strings.Contains(report, "/source/pkg/a.go:42") {
-		t.Error("report should contain FuncA file:line")
-	}
-	if !strings.Contains(report, "/source/pkg/b.go:100") {
-		t.Error("report should contain FuncB file:line")
-	}
+	assert.Contains(t, report, "/source/pkg/a.go:42", "report should contain FuncA file:line")
+	assert.Contains(t, report, "/source/pkg/b.go:100", "report should contain FuncB file:line")
 }
 
 func TestGenerateProfileReport_FocusFilter(t *testing.T) {
@@ -548,15 +437,11 @@ func TestGenerateProfileReport_FocusFilter(t *testing.T) {
 		topN:         10,
 	}, 0)
 
-	if err != nil {
-		t.Fatalf("generateProfileReport failed: %v", err)
-	}
+	require.NoError(t, err, "generateProfileReport failed: %v", err)
 
 	report := buffer.String()
 
-	if !strings.Contains(report, "FuncA") {
-		t.Error("report should contain FuncA (matches focus)")
-	}
+	assert.Contains(t, report, "FuncA", "report should contain FuncA (matches focus)")
 }
 
 func TestGenerateProfileReport_InvalidSampleIndex(t *testing.T) {
@@ -571,9 +456,7 @@ func TestGenerateProfileReport_InvalidSampleIndex(t *testing.T) {
 		topN:         10,
 	}, 0)
 
-	if err == nil {
-		t.Error("expected error for out-of-range sample index")
-	}
+	assert.Error(t, err, "expected error for out-of-range sample index")
 }
 
 func TestGenerateProfileReport_InvalidData(t *testing.T) {
@@ -586,9 +469,7 @@ func TestGenerateProfileReport_InvalidData(t *testing.T) {
 		topN:         10,
 	}, 0)
 
-	if err == nil {
-		t.Error("expected error for invalid pprof data")
-	}
+	assert.Error(t, err, "expected error for invalid pprof data")
 }
 
 func TestGenerateProfileReport_PerRequestColumn(t *testing.T) {
@@ -604,18 +485,12 @@ func TestGenerateProfileReport_PerRequestColumn(t *testing.T) {
 		topN:         10,
 	}, 100)
 
-	if err != nil {
-		t.Fatalf("generateProfileReport failed: %v", err)
-	}
+	require.NoError(t, err, "generateProfileReport failed: %v", err)
 
 	report := buffer.String()
 
-	if !strings.Contains(report, "flat/request") {
-		t.Error("report should contain flat/request header when totalRequests > 0")
-	}
-	if !strings.Contains(report, "FuncA") {
-		t.Error("report should contain FuncA")
-	}
+	assert.Contains(t, report, "flat/request", "report should contain flat/request header when totalRequests > 0")
+	assert.Contains(t, report, "FuncA", "report should contain FuncA")
 }
 
 func TestProfileFormatBytes(t *testing.T) {
@@ -635,9 +510,7 @@ func TestProfileFormatBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		got := profileFormatBytes(tt.input)
-		if got != tt.expected {
-			t.Errorf("profileFormatBytes(%d) = %q, want %q", tt.input, got, tt.expected)
-		}
+		assert.Equal(t, tt.expected, got, "profileFormatBytes(%d) = %q, want %q", tt.input, got, tt.expected)
 	}
 }
 
@@ -657,18 +530,15 @@ func TestProfileFormatDuration(t *testing.T) {
 
 	for _, tt := range tests {
 		got := profileFormatDuration(tt.input)
-		if got != tt.expected {
-			t.Errorf("profileFormatDuration(%d) = %q, want %q", tt.input, got, tt.expected)
-		}
+		assert.Equal(t, tt.expected, got, "profileFormatDuration(%d) = %q, want %q", tt.input, got, tt.expected)
 	}
 }
 
 func TestProfileFormatCount(t *testing.T) {
 	t.Parallel()
 
-	if got := profileFormatCount(42); got != "42" {
-		t.Errorf("profileFormatCount(42) = %q, want %q", got, "42")
-	}
+	got := profileFormatCount(42)
+	assert.Equal(t, "42", got, "profileFormatCount(42) = %q, want %q", got, "42")
 }
 
 func TestBuildProfileSpecs(t *testing.T) {
@@ -677,20 +547,14 @@ func TestBuildProfileSpecs(t *testing.T) {
 	flags := &profileFlags{topN: 40}
 	specs := buildProfileSpecs(flags, nil)
 
-	if len(specs) != 5 {
-		t.Fatalf("expected 5 profile specs, got %d", len(specs))
-	}
+	require.Len(t, specs, 5, "expected 5 profile specs, got %d", len(specs))
 
 	expectedNames := []string{"cpu", "allocs", "heap", "mutex", "block"}
 	for i, spec := range specs {
-		if spec.name != expectedNames[i] {
-			t.Errorf("spec[%d].name = %q, want %q", i, spec.name, expectedNames[i])
-		}
+		assert.Equal(t, expectedNames[i], spec.name, "spec[%d].name = %q, want %q", i, spec.name, expectedNames[i])
 	}
 
-	if len(specs[1].reports) != 2 {
-		t.Errorf("allocs spec should have 2 reports, got %d", len(specs[1].reports))
-	}
+	assert.Len(t, specs[1].reports, 2, "allocs spec should have 2 reports, got %d", len(specs[1].reports))
 }
 
 func TestProfileUsage(t *testing.T) {
@@ -700,67 +564,46 @@ func TestProfileUsage(t *testing.T) {
 	profileUsage(&buffer)
 
 	output := buffer.String()
-	if !strings.Contains(output, "piko profile") {
-		t.Error("usage should mention 'piko profile'")
-	}
-	if !strings.Contains(output, "--pprof-port") {
-		t.Error("usage should mention --pprof-port flag")
-	}
-	if !strings.Contains(output, "--concurrency") {
-		t.Error("usage should mention --concurrency flag")
-	}
-	if !strings.Contains(output, "--header") {
-		t.Error("usage should mention --header flag")
-	}
-	if !strings.Contains(output, "--tui") {
-		t.Error("usage should mention --tui flag")
-	}
+	assert.Contains(t, output, "piko profile", "usage should mention 'piko profile'")
+	assert.Contains(t, output, "--pprof-port", "usage should mention --pprof-port flag")
+	assert.Contains(t, output, "--concurrency", "usage should mention --concurrency flag")
+	assert.Contains(t, output, "--header", "usage should mention --header flag")
+	assert.Contains(t, output, "--tui", "usage should mention --tui flag")
 }
 
 func TestHeaderFlag_Set(t *testing.T) {
 	t.Parallel()
 
 	var h headerFlag
-	if err := h.Set("Authorization: Bearer token123"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if err := h.Set("X-Custom: value"); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	err := h.Set("Authorization: Bearer token123")
+	require.NoError(t, err, "unexpected error: %v", err)
+	err = h.Set("X-Custom: value")
+	require.NoError(t, err, "unexpected error: %v", err)
 
-	if h.headers["Authorization"] != "Bearer token123" {
-		t.Errorf("Authorization = %q, want %q", h.headers["Authorization"], "Bearer token123")
-	}
-	if h.headers["X-Custom"] != "value" {
-		t.Errorf("X-Custom = %q, want %q", h.headers["X-Custom"], "value")
-	}
+	assert.Equal(t, "Bearer token123", h.headers["Authorization"], "Authorization = %q, want %q", h.headers["Authorization"], "Bearer token123")
+	assert.Equal(t, "value", h.headers["X-Custom"], "X-Custom = %q, want %q", h.headers["X-Custom"], "value")
 }
 
 func TestHeaderFlag_SetInvalid(t *testing.T) {
 	t.Parallel()
 
 	var h headerFlag
-	if err := h.Set("no-colon-here"); err == nil {
-		t.Error("expected error for header without colon")
-	}
-	if err := h.Set(": no-name"); err == nil {
-		t.Error("expected error for header with empty name")
-	}
+	err := h.Set("no-colon-here")
+	assert.Error(t, err, "expected error for header without colon")
+	err = h.Set(": no-name")
+	assert.Error(t, err, "expected error for header with empty name")
 }
 
 func TestHeaderFlag_String(t *testing.T) {
 	t.Parallel()
 
 	var h headerFlag
-	if s := h.String(); s != "" {
-		t.Errorf("empty headerFlag.String() = %q, want empty", s)
-	}
+	s := h.String()
+	assert.Empty(t, s, "empty headerFlag.String() = %q, want empty", s)
 
 	_ = h.Set("X-Test: hello")
-	s := h.String()
-	if !strings.Contains(s, "X-Test: hello") {
-		t.Errorf("headerFlag.String() = %q, want to contain %q", s, "X-Test: hello")
-	}
+	s = h.String()
+	assert.Contains(t, s, "X-Test: hello", "headerFlag.String() = %q, want to contain %q", s, "X-Test: hello")
 }
 
 func TestParseProfileFlags_Headers(t *testing.T) {
@@ -774,19 +617,11 @@ func TestParseProfileFlags_Headers(t *testing.T) {
 		"http://localhost:8080/",
 	}, &stderr)
 
-	if !ok {
-		t.Fatalf("parseProfileFlags failed: %s", stderr.String())
-	}
+	require.True(t, ok, "parseProfileFlags failed: %s", stderr.String())
 
-	if flags.headers.headers["Authorization"] != "Bearer abc" {
-		t.Errorf("Authorization header = %q, want %q", flags.headers.headers["Authorization"], "Bearer abc")
-	}
-	if flags.headers.headers["X-Custom"] != "val" {
-		t.Errorf("X-Custom header = %q, want %q", flags.headers.headers["X-Custom"], "val")
-	}
-	if flags.cookie != "session=xyz" {
-		t.Errorf("cookie = %q, want %q", flags.cookie, "session=xyz")
-	}
+	assert.Equal(t, "Bearer abc", flags.headers.headers["Authorization"], "Authorization header = %q, want %q", flags.headers.headers["Authorization"], "Bearer abc")
+	assert.Equal(t, "val", flags.headers.headers["X-Custom"], "X-Custom header = %q, want %q", flags.headers.headers["X-Custom"], "val")
+	assert.Equal(t, "session=xyz", flags.cookie, "cookie = %q, want %q", flags.cookie, "session=xyz")
 }
 
 func TestParseProfileFlags_TUI(t *testing.T) {
@@ -798,13 +633,9 @@ func TestParseProfileFlags_TUI(t *testing.T) {
 		"http://localhost:8080/",
 	}, &stderr)
 
-	if !ok {
-		t.Fatalf("parseProfileFlags failed: %s", stderr.String())
-	}
+	require.True(t, ok, "parseProfileFlags failed: %s", stderr.String())
 
-	if !flags.tui {
-		t.Error("tui flag should be true")
-	}
+	assert.True(t, flags.tui, "tui flag should be true")
 }
 
 func TestMergedHeaders_CookieAndHeaders(t *testing.T) {
@@ -822,15 +653,9 @@ func TestMergedHeaders_CookieAndHeaders(t *testing.T) {
 
 	h := flags.mergedHeaders()
 
-	if h["Cookie"] != "session=abc" {
-		t.Errorf("Cookie = %q, want %q", h["Cookie"], "session=abc")
-	}
-	if h["Authorization"] != "Bearer token" {
-		t.Errorf("Authorization = %q, want %q", h["Authorization"], "Bearer token")
-	}
-	if h["X-Custom"] != "val" {
-		t.Errorf("X-Custom = %q, want %q", h["X-Custom"], "val")
-	}
+	assert.Equal(t, "session=abc", h["Cookie"], "Cookie = %q, want %q", h["Cookie"], "session=abc")
+	assert.Equal(t, "Bearer token", h["Authorization"], "Authorization = %q, want %q", h["Authorization"], "Bearer token")
+	assert.Equal(t, "val", h["X-Custom"], "X-Custom = %q, want %q", h["X-Custom"], "val")
 }
 
 func TestMergedHeaders_NoCookie(t *testing.T) {
@@ -839,9 +664,8 @@ func TestMergedHeaders_NoCookie(t *testing.T) {
 	flags := &profileFlags{}
 	h := flags.mergedHeaders()
 
-	if _, hasCookie := h["Cookie"]; hasCookie {
-		t.Error("should not have Cookie header when cookie is empty")
-	}
+	_, hasCookie := h["Cookie"]
+	assert.False(t, hasCookie, "should not have Cookie header when cookie is empty")
 }
 
 func TestWriteProfileStats(t *testing.T) {
@@ -856,37 +680,22 @@ func TestWriteProfileStats(t *testing.T) {
 
 	directory := t.TempDir()
 	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatalf("creating sandbox: %v", err)
-	}
+	require.NoError(t, err, "creating sandbox: %v", err)
 	defer func() { _ = sandbox.Close() }()
 
-	if err := writeProfileStats(sandbox, "cpu.pprof.stats", result, 200); err != nil {
-		t.Fatalf("writeProfileStats failed: %v", err)
-	}
+	err = writeProfileStats(sandbox, "cpu.pprof.stats", result, 200)
+	require.NoError(t, err, "writeProfileStats failed: %v", err)
 
 	data, err := os.ReadFile(filepath.Join(directory, "cpu.pprof.stats"))
-	if err != nil {
-		t.Fatalf("reading stats file: %v", err)
-	}
+	require.NoError(t, err, "reading stats file: %v", err)
 
 	content := string(data)
 
-	if !strings.Contains(content, "total_requests:     50000") {
-		t.Error("stats should contain total_requests")
-	}
-	if !strings.Contains(content, "failed_requests:    12") {
-		t.Error("stats should contain failed_requests")
-	}
-	if !strings.Contains(content, "concurrency:        200") {
-		t.Error("stats should contain concurrency")
-	}
-	if !strings.Contains(content, "requests_per_sec:") {
-		t.Error("stats should contain requests_per_sec")
-	}
-	if !strings.Contains(content, "bytes_received:     524288000") {
-		t.Error("stats should contain bytes_received")
-	}
+	assert.Contains(t, content, "total_requests:     50000", "stats should contain total_requests")
+	assert.Contains(t, content, "failed_requests:    12", "stats should contain failed_requests")
+	assert.Contains(t, content, "concurrency:        200", "stats should contain concurrency")
+	assert.Contains(t, content, "requests_per_sec:", "stats should contain requests_per_sec")
+	assert.Contains(t, content, "bytes_received:     524288000", "stats should contain bytes_received")
 }
 
 func TestProfileTUIModel_Init(t *testing.T) {
@@ -899,16 +708,10 @@ func TestProfileTUIModel_Init(t *testing.T) {
 
 	model := newProfileTUIModel("http://localhost/", 30, metricsCh, goroutineCh, phaseCh, doneCh)
 
-	if model.targetURL != "http://localhost/" {
-		t.Errorf("targetURL = %q, want %q", model.targetURL, "http://localhost/")
-	}
-	if len(model.phases) != 6 {
-		t.Errorf("phases count = %d, want 6", len(model.phases))
-	}
+	assert.Equal(t, "http://localhost/", model.targetURL, "targetURL = %q, want %q", model.targetURL, "http://localhost/")
+	assert.Len(t, model.phases, 6, "phases count = %d, want 6", len(model.phases))
 	for _, p := range model.phases {
-		if model.phaseStatus[p] != phasePending {
-			t.Errorf("phase %q should be pending", p)
-		}
+		assert.Equal(t, phasePending, model.phaseStatus[p], "phase %q should be pending", p)
 	}
 }
 
@@ -924,24 +727,14 @@ func TestProfileTUIModel_PhaseUpdate(t *testing.T) {
 
 	updated, _ := model.Update(phaseMessage{name: "cpu", status: phaseActive})
 	m, ok := updated.(*profileTUIModel)
-	if !ok {
-		t.Fatal("unexpected model type")
-	}
-	if m.activePhase != "cpu" {
-		t.Errorf("activePhase = %q, want %q", m.activePhase, "cpu")
-	}
-	if m.phaseStatus["cpu"] != phaseActive {
-		t.Error("cpu phase should be active")
-	}
+	require.True(t, ok, "unexpected model type")
+	assert.Equal(t, "cpu", m.activePhase, "activePhase = %q, want %q", m.activePhase, "cpu")
+	assert.Equal(t, phaseActive, m.phaseStatus["cpu"], "cpu phase should be active")
 
 	updated, _ = m.Update(phaseMessage{name: "cpu", status: phaseDone})
 	m, ok = updated.(*profileTUIModel)
-	if !ok {
-		t.Fatal("unexpected model type")
-	}
-	if m.phaseStatus["cpu"] != phaseDone {
-		t.Error("cpu phase should be done")
-	}
+	require.True(t, ok, "unexpected model type")
+	assert.Equal(t, phaseDone, m.phaseStatus["cpu"], "cpu phase should be done")
 }
 
 func TestProfileTUIModel_MetricsTick(t *testing.T) {
@@ -959,31 +752,15 @@ func TestProfileTUIModel_MetricsTick(t *testing.T) {
 
 	updated, _ := model.Update(profileTickMessage(time.Now()))
 	m, ok := updated.(*profileTUIModel)
-	if !ok {
-		t.Fatal("unexpected model type")
-	}
+	require.True(t, ok, "unexpected model type")
 
-	if m.currentRPS != 1200 {
-		t.Errorf("currentRPS = %f, want 1200", m.currentRPS)
-	}
-	if m.totalRequests != 200 {
-		t.Errorf("totalRequests = %d, want 200", m.totalRequests)
-	}
-	if m.rpsHistory.Len() != 2 {
-		t.Errorf("rpsHistory.Len() = %d, want 2", m.rpsHistory.Len())
-	}
-	if m.p50Ms != 2.5 {
-		t.Errorf("p50Ms = %f, want 2.5", m.p50Ms)
-	}
-	if m.p80Ms != 3.5 {
-		t.Errorf("p80Ms = %f, want 3.5", m.p80Ms)
-	}
-	if m.p99Ms != 7.0 {
-		t.Errorf("p99Ms = %f, want 7.0", m.p99Ms)
-	}
-	if m.p100Ms != 9.0 {
-		t.Errorf("p100Ms = %f, want 9.0", m.p100Ms)
-	}
+	assert.EqualValues(t, 1200, m.currentRPS, "currentRPS = %f, want 1200", m.currentRPS)
+	assert.EqualValues(t, 200, m.totalRequests, "totalRequests = %d, want 200", m.totalRequests)
+	assert.Equal(t, 2, m.rpsHistory.Len(), "rpsHistory.Len() = %d, want 2", m.rpsHistory.Len())
+	assert.Equal(t, 2.5, m.p50Ms, "p50Ms = %f, want 2.5", m.p50Ms)
+	assert.Equal(t, 3.5, m.p80Ms, "p80Ms = %f, want 3.5", m.p80Ms)
+	assert.Equal(t, 7.0, m.p99Ms, "p99Ms = %f, want 7.0", m.p99Ms)
+	assert.Equal(t, 9.0, m.p100Ms, "p100Ms = %f, want 9.0", m.p100Ms)
 }
 
 func TestLatencyPercentileMs(t *testing.T) {
@@ -1002,19 +779,15 @@ func TestLatencyPercentileMs(t *testing.T) {
 		10 * time.Millisecond,
 	}
 
-	if p50 := latencyPercentileMs(sorted, 50); p50 != 6.0 {
-		t.Errorf("p50 = %f, want 6.0", p50)
-	}
-	if p99 := latencyPercentileMs(sorted, 99); p99 != 10.0 {
-		t.Errorf("p99 = %f, want 10.0", p99)
-	}
-	if p100 := latencyPercentileMs(sorted, 100); p100 != 10.0 {
-		t.Errorf("p100 = %f, want 10.0", p100)
-	}
+	p50 := latencyPercentileMs(sorted, 50)
+	assert.Equal(t, 6.0, p50, "p50 = %f, want 6.0", p50)
+	p99 := latencyPercentileMs(sorted, 99)
+	assert.Equal(t, 10.0, p99, "p99 = %f, want 10.0", p99)
+	p100 := latencyPercentileMs(sorted, 100)
+	assert.Equal(t, 10.0, p100, "p100 = %f, want 10.0", p100)
 
-	if p := latencyPercentileMs(nil, 50); p != 0 {
-		t.Errorf("empty p50 = %f, want 0", p)
-	}
+	p := latencyPercentileMs(nil, 50)
+	assert.EqualValues(t, 0, p, "empty p50 = %f, want 0", p)
 }
 
 func createSyntheticHeapProfile(t *testing.T, allocObjects, allocSpace int64) []byte {
@@ -1048,9 +821,8 @@ func createSyntheticHeapProfile(t *testing.T, allocObjects, allocSpace int64) []
 	}
 
 	var buffer bytes.Buffer
-	if err := prof.Write(&buffer); err != nil {
-		t.Fatalf("failed to write synthetic heap profile: %v", err)
-	}
+	err := prof.Write(&buffer)
+	require.NoError(t, err, "failed to write synthetic heap profile: %v", err)
 	return buffer.Bytes()
 }
 
@@ -1061,14 +833,10 @@ func TestComputeDeltaProfile(t *testing.T) {
 	after := createSyntheticHeapProfile(t, 1500, 1536*1024)
 
 	deltaData, err := computeDeltaProfile(before, after)
-	if err != nil {
-		t.Fatalf("computeDeltaProfile failed: %v", err)
-	}
+	require.NoError(t, err, "computeDeltaProfile failed: %v", err)
 
 	prof, err := profile.ParseData(deltaData)
-	if err != nil {
-		t.Fatalf("parsing delta profile: %v", err)
-	}
+	require.NoError(t, err, "parsing delta profile: %v", err)
 
 	var totalObjects, totalSpace int64
 	for _, s := range prof.Sample {
@@ -1076,13 +844,9 @@ func TestComputeDeltaProfile(t *testing.T) {
 		totalSpace += s.Value[1]
 	}
 
-	if totalObjects != 500 {
-		t.Errorf("delta alloc_objects = %d, want 500", totalObjects)
-	}
+	assert.EqualValues(t, 500, totalObjects, "delta alloc_objects = %d, want 500", totalObjects)
 	expectedSpace := int64(512 * 1024)
-	if totalSpace != expectedSpace {
-		t.Errorf("delta alloc_space = %d, want %d", totalSpace, expectedSpace)
-	}
+	assert.Equal(t, expectedSpace, totalSpace, "delta alloc_space = %d, want %d", totalSpace, expectedSpace)
 }
 
 func TestComputeDeltaProfile_InvalidData(t *testing.T) {
@@ -1090,12 +854,10 @@ func TestComputeDeltaProfile_InvalidData(t *testing.T) {
 
 	valid := createSyntheticHeapProfile(t, 100, 1024)
 
-	if _, err := computeDeltaProfile([]byte("bad"), valid); err == nil {
-		t.Error("expected error for invalid before data")
-	}
-	if _, err := computeDeltaProfile(valid, []byte("bad")); err == nil {
-		t.Error("expected error for invalid after data")
-	}
+	_, err := computeDeltaProfile([]byte("bad"), valid)
+	assert.Error(t, err, "expected error for invalid before data")
+	_, err = computeDeltaProfile(valid, []byte("bad"))
+	assert.Error(t, err, "expected error for invalid after data")
 }
 
 func TestWriteAllocChurnSummary(t *testing.T) {
@@ -1105,29 +867,18 @@ func TestWriteAllocChurnSummary(t *testing.T) {
 	after := createSyntheticHeapProfile(t, 6000, 6*1024*1024)
 
 	deltaData, err := computeDeltaProfile(before, after)
-	if err != nil {
-		t.Fatalf("computeDeltaProfile failed: %v", err)
-	}
+	require.NoError(t, err, "computeDeltaProfile failed: %v", err)
 
 	var buffer bytes.Buffer
-	if err := writeAllocChurnSummary(&buffer, deltaData, 1000); err != nil {
-		t.Fatalf("writeAllocChurnSummary failed: %v", err)
-	}
+	err = writeAllocChurnSummary(&buffer, deltaData, 1000)
+	require.NoError(t, err, "writeAllocChurnSummary failed: %v", err)
 
 	output := buffer.String()
 
-	if !strings.Contains(output, "ALLOCATION CHURN") {
-		t.Error("summary should contain header")
-	}
-	if !strings.Contains(output, "5000") {
-		t.Error("summary should contain delta alloc_objects (5000)")
-	}
-	if !strings.Contains(output, "Requests during load: 1000") {
-		t.Error("summary should contain request count")
-	}
-	if !strings.Contains(output, "/request") {
-		t.Error("summary should contain per-request stats")
-	}
+	assert.Contains(t, output, "ALLOCATION CHURN", "summary should contain header")
+	assert.Contains(t, output, "5000", "summary should contain delta alloc_objects (5000)")
+	assert.Contains(t, output, "Requests during load: 1000", "summary should contain request count")
+	assert.Contains(t, output, "/request", "summary should contain per-request stats")
 }
 
 func TestBuildProfileSpecs_AllocsDelta(t *testing.T) {
@@ -1143,17 +894,11 @@ func TestBuildProfileSpecs_AllocsDelta(t *testing.T) {
 			break
 		}
 	}
-	if allocsSpec == nil {
-		t.Fatal("allocs spec not found")
-	}
-	if !allocsSpec.delta {
-		t.Error("allocs spec should have delta=true")
-	}
+	require.NotNil(t, allocsSpec, "allocs spec not found")
+	assert.True(t, allocsSpec.delta, "allocs spec should have delta=true")
 
 	for _, spec := range specs {
-		if spec.name == "heap" && spec.delta {
-			t.Error("heap spec should not have delta=true")
-		}
+		assert.False(t, spec.name == "heap" && spec.delta, "heap spec should not have delta=true")
 	}
 }
 
@@ -1183,10 +928,7 @@ func TestProfileUnitFormatter(t *testing.T) {
 			t.Parallel()
 			formatter := profileUnitFormatter(tt.typeName, tt.unit)
 			result := formatter(tt.input)
-			if !strings.Contains(result, tt.wantSub) {
-				t.Errorf("profileUnitFormatter(%q, %q)(%d) = %q, want substring %q",
-					tt.typeName, tt.unit, tt.input, result, tt.wantSub)
-			}
+			assert.Contains(t, result, tt.wantSub, "profileUnitFormatter(%q, %q)(%d) = %q, want substring %q", tt.typeName, tt.unit, tt.input, result, tt.wantSub)
 		})
 	}
 }
@@ -1195,9 +937,7 @@ func TestPct_ZeroDenominator(t *testing.T) {
 	t.Parallel()
 
 	result := pct(100, 0)
-	if result != 0 {
-		t.Errorf("pct(100, 0) = %f, want 0", result)
-	}
+	assert.EqualValues(t, 0, result, "pct(100, 0) = %f, want 0", result)
 }
 
 func newMockPprofServer(t *testing.T) (*httptest.Server, string) {
@@ -1285,17 +1025,11 @@ func TestFetchProfile(t *testing.T) {
 
 			data, err := fetchProfile(context.Background(), server.URL, "test", tt.duration)
 			if tt.wantErr {
-				if err == nil {
-					t.Error("expected error, got nil")
-				}
+				assert.Error(t, err, "expected error, got nil")
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if tt.wantNonZero && len(data) == 0 {
-				t.Error("expected non-empty data")
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
+			assert.False(t, tt.wantNonZero && len(data) == 0, "expected non-empty data")
 		})
 	}
 }
@@ -1313,9 +1047,7 @@ func TestFetchProfile_CancelledContext(t *testing.T) {
 	cancel(fmt.Errorf("test cancellation"))
 
 	_, err := fetchProfile(ctx, server.URL, "test", 0)
-	if err == nil {
-		t.Error("expected error from cancelled context")
-	}
+	assert.Error(t, err, "expected error from cancelled context")
 }
 
 func TestFetchProfileData(t *testing.T) {
@@ -1336,12 +1068,8 @@ func TestFetchProfileData(t *testing.T) {
 
 		spec := profileSpec{name: "cpu", endpoint: "profile", durationBased: true}
 		data, err := fetchProfileData(context.Background(), spec, server.URL, 1)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(data) == 0 {
-			t.Error("expected non-empty data")
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.NotEmpty(t, data, "expected non-empty data")
 	})
 
 	t.Run("delta routing", func(t *testing.T) {
@@ -1355,15 +1083,9 @@ func TestFetchProfileData(t *testing.T) {
 
 		spec := profileSpec{name: "allocs", endpoint: "heap", delta: true}
 		data, err := fetchProfileData(context.Background(), spec, server.URL, 1)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(data) == 0 {
-			t.Error("expected non-empty data from delta")
-		}
-		if callCount.Load() < 2 {
-			t.Error("delta should call fetchProfile at least twice (before + after)")
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.NotEmpty(t, data, "expected non-empty data from delta")
+		assert.False(t, callCount.Load() < 2, "delta should call fetchProfile at least twice (before + after)")
 	})
 
 	t.Run("non-duration non-delta", func(t *testing.T) {
@@ -1375,12 +1097,8 @@ func TestFetchProfileData(t *testing.T) {
 
 		spec := profileSpec{name: "heap", endpoint: "heap"}
 		data, err := fetchProfileData(context.Background(), spec, server.URL, 1)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(data) == 0 {
-			t.Error("expected non-empty data")
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.NotEmpty(t, data, "expected non-empty data")
 	})
 
 	t.Run("context cancel during delta wait", func(t *testing.T) {
@@ -1399,9 +1117,7 @@ func TestFetchProfileData(t *testing.T) {
 
 		spec := profileSpec{name: "allocs", endpoint: "heap", delta: true}
 		_, err := fetchProfileData(ctx, spec, server.URL, 30)
-		if err == nil {
-			t.Error("expected error from cancelled context during delta wait")
-		}
+		assert.Error(t, err, "expected error from cancelled context during delta wait")
 	})
 }
 
@@ -1456,18 +1172,14 @@ func TestFetchGoroutineCount(t *testing.T) {
 			t.Cleanup(server.Close)
 
 			got := fetchGoroutineCount(context.Background(), server.URL)
-			if got != tt.want {
-				t.Errorf("fetchGoroutineCount() = %d, want %d", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got, "fetchGoroutineCount() = %d, want %d", got, tt.want)
 		})
 	}
 
 	t.Run("0 on unreachable server", func(t *testing.T) {
 		t.Parallel()
 		got := fetchGoroutineCount(context.Background(), "http://127.0.0.1:0")
-		if got != 0 {
-			t.Errorf("fetchGoroutineCount() = %d, want 0", got)
-		}
+		assert.Equal(t, 0, got, "fetchGoroutineCount() = %d, want 0", got)
 	})
 }
 
@@ -1480,24 +1192,16 @@ func TestSnapshotGoroutines(t *testing.T) {
 		_, pprofBase := newMockPprofServer(t)
 		directory := t.TempDir()
 		sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
-		if err != nil {
-			t.Fatalf("sandbox: %v", err)
-		}
+		require.NoError(t, err, "sandbox: %v", err)
 		defer func() { _ = sandbox.Close() }()
 
 		var stdout, stderr bytes.Buffer
 		snapshotGoroutines(context.Background(), &stdout, &stderr, pprofBase, "baseline", sandbox)
 
 		content, err := os.ReadFile(filepath.Join(directory, "baseline.goroutines.txt"))
-		if err != nil {
-			t.Fatalf("expected goroutine snapshot file: %v", err)
-		}
-		if len(content) == 0 {
-			t.Error("expected non-empty goroutine snapshot")
-		}
-		if !strings.Contains(stdout.String(), "Goroutine snapshot") {
-			t.Error("expected stdout to mention goroutine snapshot")
-		}
+		require.NoError(t, err, "expected goroutine snapshot file: %v", err)
+		assert.NotEmpty(t, content, "expected non-empty goroutine snapshot")
+		assert.Contains(t, stdout.String(), "Goroutine snapshot", "expected stdout to mention goroutine snapshot")
 	})
 
 	t.Run("handles non-200 for debug=2", func(t *testing.T) {
@@ -1517,17 +1221,13 @@ func TestSnapshotGoroutines(t *testing.T) {
 
 		directory := t.TempDir()
 		sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
-		if err != nil {
-			t.Fatalf("sandbox: %v", err)
-		}
+		require.NoError(t, err, "sandbox: %v", err)
 		defer func() { _ = sandbox.Close() }()
 
 		var stdout, stderr bytes.Buffer
 		snapshotGoroutines(context.Background(), &stdout, &stderr, server.URL+"/debug/pprof", "test", sandbox)
 
-		if !strings.Contains(stderr.String(), "Warning") {
-			t.Error("expected warning in stderr")
-		}
+		assert.Contains(t, stderr.String(), "Warning", "expected warning in stderr")
 	})
 }
 
@@ -1553,12 +1253,8 @@ func TestRunLoad(t *testing.T) {
 			maxRequests: 20,
 		})
 
-		if result.totalRequests < 20 {
-			t.Errorf("totalRequests = %d, want >= 20", result.totalRequests)
-		}
-		if result.failedRequests != 0 {
-			t.Errorf("failedRequests = %d, want 0", result.failedRequests)
-		}
+		assert.False(t, result.totalRequests < 20, "totalRequests = %d, want >= 20", result.totalRequests)
+		assert.EqualValues(t, 0, result.failedRequests, "failedRequests = %d, want 0", result.failedRequests)
 	})
 
 	t.Run("non-2xx failure counting", func(t *testing.T) {
@@ -1574,9 +1270,7 @@ func TestRunLoad(t *testing.T) {
 			maxRequests: 10,
 		})
 
-		if result.failedRequests < 10 {
-			t.Errorf("failedRequests = %d, want >= 10", result.failedRequests)
-		}
+		assert.False(t, result.failedRequests < 10, "failedRequests = %d, want >= 10", result.failedRequests)
 	})
 
 	t.Run("respects maxRequests", func(t *testing.T) {
@@ -1589,9 +1283,7 @@ func TestRunLoad(t *testing.T) {
 			maxRequests: 50,
 		})
 
-		if result.totalRequests < 50 {
-			t.Errorf("totalRequests = %d, want >= 50", result.totalRequests)
-		}
+		assert.False(t, result.totalRequests < 50, "totalRequests = %d, want >= 50", result.totalRequests)
 	})
 }
 
@@ -1613,9 +1305,7 @@ func TestRunLoad_ContextCancellation(t *testing.T) {
 		maxRequests: 0,
 	})
 
-	if result.totalRequests == 0 {
-		t.Error("expected some requests to complete before cancellation")
-	}
+	assert.NotEqual(t, 0, result.totalRequests, "expected some requests to complete before cancellation")
 }
 
 func TestRunLoad_ErrorRecording(t *testing.T) {
@@ -1641,20 +1331,12 @@ func TestRunLoad_ErrorRecording(t *testing.T) {
 		records = append(records, record)
 	}
 
-	if len(records) == 0 {
-		t.Fatal("expected error records")
-	}
+	require.NotEmpty(t, records, "expected error records")
 
 	record := records[0]
-	if record.Phase != "test-phase" {
-		t.Errorf("Phase = %q, want %q", record.Phase, "test-phase")
-	}
-	if record.Kind != "status" {
-		t.Errorf("Kind = %q, want %q", record.Kind, "status")
-	}
-	if record.StatusCode != http.StatusTeapot {
-		t.Errorf("StatusCode = %d, want %d", record.StatusCode, http.StatusTeapot)
-	}
+	assert.Equal(t, "test-phase", record.Phase, "Phase = %q, want %q", record.Phase, "test-phase")
+	assert.Equal(t, "status", record.Kind, "Kind = %q, want %q", record.Kind, "status")
+	assert.Equal(t, http.StatusTeapot, record.StatusCode, "StatusCode = %d, want %d", record.StatusCode, http.StatusTeapot)
 }
 
 func TestRunLoad_HeadersPassed(t *testing.T) {
@@ -1675,9 +1357,7 @@ func TestRunLoad_HeadersPassed(t *testing.T) {
 	})
 
 	got, ok := captured.Load().(string)
-	if !ok || got != "Bearer test-token" {
-		t.Errorf("Authorization header = %q, want %q", got, "Bearer test-token")
-	}
+	assert.False(t, !ok || got != "Bearer test-token", "Authorization header = %q, want %q", got, "Bearer test-token")
 }
 
 func TestEmitLiveMetrics(t *testing.T) {
@@ -1717,17 +1397,11 @@ func TestEmitLiveMetrics(t *testing.T) {
 
 	select {
 	case message := <-metricsChannel:
-		if message.total != 100 {
-			t.Errorf("total = %d, want 100", message.total)
-		}
-		if message.failed != 5 {
-			t.Errorf("failed = %d, want 5", message.failed)
-		}
-		if message.bytesReceived != 50000 {
-			t.Errorf("bytesReceived = %d, want 50000", message.bytesReceived)
-		}
+		assert.EqualValues(t, 100, message.total, "total = %d, want 100", message.total)
+		assert.EqualValues(t, 5, message.failed, "failed = %d, want 5", message.failed)
+		assert.EqualValues(t, 50000, message.bytesReceived, "bytesReceived = %d, want 50000", message.bytesReceived)
 	case <-timer.C:
-		t.Fatal("timed out waiting for metrics message")
+		require.Fail(t, "timed out waiting for metrics message")
 	}
 }
 
@@ -1760,7 +1434,7 @@ func TestEmitLiveMetrics_StopsOnCancel(t *testing.T) {
 	case <-done:
 
 	case <-timer.C:
-		t.Fatal("emitLiveMetrics did not stop after context cancellation")
+		require.Fail(t, "emitLiveMetrics did not stop after context cancellation")
 	}
 }
 
@@ -1771,9 +1445,7 @@ func TestWriteErrorLog(t *testing.T) {
 		t.Parallel()
 		directory := t.TempDir()
 		sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
-		if err != nil {
-			t.Fatalf("sandbox: %v", err)
-		}
+		require.NoError(t, err, "sandbox: %v", err)
 		defer func() { _ = sandbox.Close() }()
 
 		errorChannel := make(chan loadErrorRecord, 10)
@@ -1781,52 +1453,37 @@ func TestWriteErrorLog(t *testing.T) {
 		errorChannel <- loadErrorRecord{Time: "2026-01-01T00:00:01Z", Phase: "cpu", Kind: "transport", Error: "connection refused"}
 		close(errorChannel)
 
-		if err := writeErrorLog(errorChannel, sandbox); err != nil {
-			t.Fatalf("writeErrorLog error: %v", err)
-		}
+		err = writeErrorLog(errorChannel, sandbox)
+		require.NoError(t, err, "writeErrorLog error: %v", err)
 
 		data, err := os.ReadFile(filepath.Join(directory, "errors.jsonl"))
-		if err != nil {
-			t.Fatalf("read errors.jsonl: %v", err)
-		}
+		require.NoError(t, err, "read errors.jsonl: %v", err)
 
 		lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-		if len(lines) != 2 {
-			t.Fatalf("expected 2 lines, got %d", len(lines))
-		}
+		require.Len(t, lines, 2, "expected 2 lines, got %d", len(lines))
 
 		var record loadErrorRecord
-		if err := json.Unmarshal([]byte(lines[0]), &record); err != nil {
-			t.Fatalf("unmarshal first line: %v", err)
-		}
-		if record.StatusCode != 500 {
-			t.Errorf("StatusCode = %d, want 500", record.StatusCode)
-		}
+		err = json.Unmarshal([]byte(lines[0]), &record)
+		require.NoError(t, err, "unmarshal first line: %v", err)
+		assert.Equal(t, 500, record.StatusCode, "StatusCode = %d, want 500", record.StatusCode)
 	})
 
 	t.Run("empty channel produces empty file", func(t *testing.T) {
 		t.Parallel()
 		directory := t.TempDir()
 		sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
-		if err != nil {
-			t.Fatalf("sandbox: %v", err)
-		}
+		require.NoError(t, err, "sandbox: %v", err)
 		defer func() { _ = sandbox.Close() }()
 
 		errorChannel := make(chan loadErrorRecord)
 		close(errorChannel)
 
-		if err := writeErrorLog(errorChannel, sandbox); err != nil {
-			t.Fatalf("writeErrorLog error: %v", err)
-		}
+		err = writeErrorLog(errorChannel, sandbox)
+		require.NoError(t, err, "writeErrorLog error: %v", err)
 
 		data, err := os.ReadFile(filepath.Join(directory, "errors.jsonl"))
-		if err != nil {
-			t.Fatalf("read errors.jsonl: %v", err)
-		}
-		if len(data) != 0 {
-			t.Errorf("expected empty file, got %d bytes", len(data))
-		}
+		require.NoError(t, err, "read errors.jsonl: %v", err)
+		assert.Empty(t, data, "expected empty file, got %d bytes", len(data))
 	})
 }
 
@@ -1840,9 +1497,7 @@ func TestProfileTUIModel_Init_ReturnsBatchCmd(t *testing.T) {
 
 	model := newProfileTUIModel("http://test", 30, metricsCh, goroutineCh, phaseCh, doneCh)
 	command := model.Init()
-	if command == nil {
-		t.Error("Init() returned nil command, expected batch")
-	}
+	assert.NotNil(t, command, "Init() returned nil command, expected batch")
 }
 
 func TestProfileTUIModel_Update(t *testing.T) {
@@ -1858,12 +1513,8 @@ func TestProfileTUIModel_Update(t *testing.T) {
 			message: tea.WindowSizeMsg{Width: 120, Height: 40},
 			checkFunc: func(t *testing.T, m *profileTUIModel, _ tea.Cmd) {
 				t.Helper()
-				if m.width != 120 {
-					t.Errorf("width = %d, want 120", m.width)
-				}
-				if m.height != 40 {
-					t.Errorf("height = %d, want 40", m.height)
-				}
+				assert.Equal(t, 120, m.width, "width = %d, want 120", m.width)
+				assert.Equal(t, 40, m.height, "height = %d, want 40", m.height)
 			},
 		},
 		{
@@ -1871,12 +1522,8 @@ func TestProfileTUIModel_Update(t *testing.T) {
 			message: phaseMessage{name: "cpu", status: phaseActive},
 			checkFunc: func(t *testing.T, m *profileTUIModel, _ tea.Cmd) {
 				t.Helper()
-				if m.activePhase != "cpu" {
-					t.Errorf("activePhase = %q, want %q", m.activePhase, "cpu")
-				}
-				if m.phaseStatus["cpu"] != phaseActive {
-					t.Error("expected cpu phase to be active")
-				}
+				assert.Equal(t, "cpu", m.activePhase, "activePhase = %q, want %q", m.activePhase, "cpu")
+				assert.Equal(t, phaseActive, m.phaseStatus["cpu"], "expected cpu phase to be active")
 			},
 		},
 		{
@@ -1884,9 +1531,7 @@ func TestProfileTUIModel_Update(t *testing.T) {
 			message: phaseMessage{name: "cpu", status: phaseDone},
 			checkFunc: func(t *testing.T, m *profileTUIModel, _ tea.Cmd) {
 				t.Helper()
-				if m.phaseStatus["cpu"] != phaseDone {
-					t.Error("expected cpu phase to be done")
-				}
+				assert.Equal(t, phaseDone, m.phaseStatus["cpu"], "expected cpu phase to be done")
 			},
 		},
 		{
@@ -1894,12 +1539,8 @@ func TestProfileTUIModel_Update(t *testing.T) {
 			message: profileDoneMessage{err: nil},
 			checkFunc: func(t *testing.T, m *profileTUIModel, _ tea.Cmd) {
 				t.Helper()
-				if !m.done {
-					t.Error("expected done=true")
-				}
-				if m.resultErr != nil {
-					t.Errorf("resultErr = %v, want nil", m.resultErr)
-				}
+				assert.True(t, m.done, "expected done=true")
+				assert.NoError(t, m.resultErr, "resultErr = %v, want nil", m.resultErr)
 			},
 		},
 		{
@@ -1907,12 +1548,8 @@ func TestProfileTUIModel_Update(t *testing.T) {
 			message: profileDoneMessage{err: fmt.Errorf("pipeline failed")},
 			checkFunc: func(t *testing.T, m *profileTUIModel, _ tea.Cmd) {
 				t.Helper()
-				if !m.done {
-					t.Error("expected done=true")
-				}
-				if m.resultErr == nil {
-					t.Error("expected non-nil resultErr")
-				}
+				assert.True(t, m.done, "expected done=true")
+				assert.Error(t, m.resultErr, "expected non-nil resultErr")
 			},
 		},
 		{
@@ -1920,9 +1557,7 @@ func TestProfileTUIModel_Update(t *testing.T) {
 			message: "some unknown message",
 			checkFunc: func(t *testing.T, _ *profileTUIModel, command tea.Cmd) {
 				t.Helper()
-				if command != nil {
-					t.Error("expected nil command for unknown message")
-				}
+				assert.Nil(t, command, "expected nil command for unknown message")
 			},
 		},
 	}
@@ -1957,15 +1592,9 @@ func TestProfileTUIModel_Update_TickDrainsChannels(t *testing.T) {
 
 	model.Update(profileTickMessage(time.Now()))
 
-	if model.totalRequests != 500 {
-		t.Errorf("totalRequests = %d, want 500", model.totalRequests)
-	}
-	if model.failedRequests != 10 {
-		t.Errorf("failedRequests = %d, want 10", model.failedRequests)
-	}
-	if model.goroutineCount != 77 {
-		t.Errorf("goroutineCount = %d, want 77", model.goroutineCount)
-	}
+	assert.EqualValues(t, 500, model.totalRequests, "totalRequests = %d, want 500", model.totalRequests)
+	assert.EqualValues(t, 10, model.failedRequests, "failedRequests = %d, want 10", model.failedRequests)
+	assert.Equal(t, 77, model.goroutineCount, "goroutineCount = %d, want 77", model.goroutineCount)
 }
 
 func TestProfileTUIModel_View(t *testing.T) {
@@ -2022,9 +1651,7 @@ func TestProfileTUIModel_View(t *testing.T) {
 			tt.setup(&model)
 
 			view := model.View()
-			if !strings.Contains(view.Content, tt.wantIn) {
-				t.Errorf("View() body does not contain %q", tt.wantIn)
-			}
+			assert.Contains(t, view.Content, tt.wantIn, "View() body does not contain %q", tt.wantIn)
 		})
 	}
 }
@@ -2038,18 +1665,12 @@ func TestListenPhase(t *testing.T) {
 		phaseChannel <- phaseMessage{name: "cpu", status: phaseActive}
 
 		command := listenPhase(phaseChannel)
-		if command == nil {
-			t.Fatal("expected non-nil command")
-		}
+		require.NotNil(t, command, "expected non-nil command")
 
 		message := command()
 		pm, ok := message.(phaseMessage)
-		if !ok {
-			t.Fatalf("expected phaseMessage, got %T", message)
-		}
-		if pm.name != "cpu" {
-			t.Errorf("name = %q, want %q", pm.name, "cpu")
-		}
+		require.True(t, ok, "expected phaseMessage, got %T", message)
+		assert.Equal(t, "cpu", pm.name, "name = %q, want %q", pm.name, "cpu")
 	})
 
 	t.Run("closed channel returns nil", func(t *testing.T) {
@@ -2059,9 +1680,7 @@ func TestListenPhase(t *testing.T) {
 
 		command := listenPhase(phaseChannel)
 		message := command()
-		if message != nil {
-			t.Errorf("expected nil from closed channel, got %T", message)
-		}
+		assert.Nil(t, message, "expected nil from closed channel, got %T", message)
 	})
 }
 
@@ -2076,12 +1695,8 @@ func TestListenDone(t *testing.T) {
 		command := listenDone(doneChannel)
 		message := command()
 		dm, ok := message.(profileDoneMessage)
-		if !ok {
-			t.Fatalf("expected profileDoneMessage, got %T", message)
-		}
-		if dm.err == nil {
-			t.Error("expected non-nil error")
-		}
+		require.True(t, ok, "expected profileDoneMessage, got %T", message)
+		assert.Error(t, dm.err, "expected non-nil error")
 	})
 
 	t.Run("closed channel returns empty message", func(t *testing.T) {
@@ -2092,12 +1707,8 @@ func TestListenDone(t *testing.T) {
 		command := listenDone(doneChannel)
 		message := command()
 		dm, ok := message.(profileDoneMessage)
-		if !ok {
-			t.Fatalf("expected profileDoneMessage, got %T", message)
-		}
-		if dm.err != nil {
-			t.Errorf("expected nil error from closed channel, got %v", dm.err)
-		}
+		require.True(t, ok, "expected profileDoneMessage, got %T", message)
+		assert.NoError(t, dm.err, "expected nil error from closed channel, got %v", dm.err)
 	})
 }
 
@@ -2121,11 +1732,9 @@ func TestPollGoroutineCount(t *testing.T) {
 
 	select {
 	case message := <-goroutineChannel:
-		if message.count == 0 {
-			t.Error("expected non-zero goroutine count")
-		}
+		assert.NotEqual(t, 0, message.count, "expected non-zero goroutine count")
 	case <-timer.C:
-		t.Fatal("timed out waiting for goroutine count")
+		require.Fail(t, "timed out waiting for goroutine count")
 	}
 }
 
@@ -2151,7 +1760,7 @@ func TestPollGoroutineCount_StopsOnCancel(t *testing.T) {
 	case <-done:
 
 	case <-timer.C:
-		t.Fatal("pollGoroutineCount did not stop after context cancellation")
+		require.Fail(t, "pollGoroutineCount did not stop after context cancellation")
 	}
 }
 
@@ -2168,11 +1777,9 @@ func TestEmitPhase(t *testing.T) {
 
 		select {
 		case message := <-phaseCh:
-			if message.name != "cpu" || message.status != phaseActive {
-				t.Errorf("got phase{%q, %d}, want {cpu, active}", message.name, message.status)
-			}
+			assert.False(t, message.name != "cpu" || message.status != phaseActive, "got phase{%q, %d}, want {cpu, active}", message.name, message.status)
 		default:
-			t.Error("expected message on phaseCh")
+			assert.Fail(t, "expected message on phaseCh")
 		}
 	})
 
@@ -2196,21 +1803,11 @@ func TestBuildLoadConfig(t *testing.T) {
 		}
 		lc := pipeline.buildLoadConfig("baseline", errorCh)
 
-		if lc.url != "http://localhost:8080" {
-			t.Errorf("url = %q", lc.url)
-		}
-		if lc.concurrency != 50 {
-			t.Errorf("concurrency = %d", lc.concurrency)
-		}
-		if lc.metricsInterval != 0 {
-			t.Errorf("metricsInterval = %v, want 0", lc.metricsInterval)
-		}
-		if lc.metricsCh != nil {
-			t.Error("metricsCh should be nil without TUI")
-		}
-		if lc.phase != "baseline" {
-			t.Errorf("phase = %q, want baseline", lc.phase)
-		}
+		assert.Equal(t, "http://localhost:8080", lc.url, "url = %q", lc.url)
+		assert.Equal(t, 50, lc.concurrency, "concurrency = %d", lc.concurrency)
+		assert.EqualValues(t, 0, lc.metricsInterval, "metricsInterval = %v, want 0", lc.metricsInterval)
+		assert.Nil(t, lc.metricsCh, "metricsCh should be nil without TUI")
+		assert.Equal(t, "baseline", lc.phase, "phase = %q, want baseline", lc.phase)
 	})
 
 	t.Run("with TUI", func(t *testing.T) {
@@ -2224,12 +1821,8 @@ func TestBuildLoadConfig(t *testing.T) {
 		}
 		lc := pipeline.buildLoadConfig("cpu", errorCh)
 
-		if lc.metricsInterval != 200*time.Millisecond {
-			t.Errorf("metricsInterval = %v, want 200ms", lc.metricsInterval)
-		}
-		if lc.metricsCh == nil {
-			t.Error("metricsCh should be set with TUI")
-		}
+		assert.Equal(t, 200*time.Millisecond, lc.metricsInterval, "metricsInterval = %v, want 200ms", lc.metricsInterval)
+		assert.NotNil(t, lc.metricsCh, "metricsCh should be set with TUI")
 	})
 }
 
@@ -2246,9 +1839,7 @@ func TestRunPipeline_Integration(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
 	factory, err := safedisk.NewCLIFactory(directory)
-	if err != nil {
-		t.Fatalf("NewCLIFactory error: %v", err)
-	}
+	require.NoError(t, err, "NewCLIFactory error: %v", err)
 
 	flags := &profileFlags{
 		concurrency: 2,
@@ -2268,9 +1859,7 @@ func TestRunPipeline_Integration(t *testing.T) {
 		stderr:    &stderr,
 	})
 
-	if err != nil {
-		t.Fatalf("runPipeline error: %v\nstderr: %s", err, stderr.String())
-	}
+	require.NoError(t, err, "runPipeline error: %v\nstderr: %s", err, stderr.String())
 
 	expectedFiles := []string{
 		"live_performance_report.txt",
@@ -2284,9 +1873,8 @@ func TestRunPipeline_Integration(t *testing.T) {
 
 	for _, f := range expectedFiles {
 		path := filepath.Join(directory, f)
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			t.Errorf("expected file %s to exist", f)
-		}
+		_, err := os.Stat(path)
+		assert.False(t, os.IsNotExist(err), "expected file %s to exist", f)
 	}
 }
 
@@ -2304,9 +1892,7 @@ func TestRunPipeline_InterruptSkipsPhases(t *testing.T) {
 	cancel(fmt.Errorf("interrupted"))
 
 	factory, err := safedisk.NewCLIFactory(directory)
-	if err != nil {
-		t.Fatalf("NewCLIFactory error: %v", err)
-	}
+	require.NoError(t, err, "NewCLIFactory error: %v", err)
 
 	var stdout, stderr bytes.Buffer
 	flags := &profileFlags{
@@ -2327,13 +1913,9 @@ func TestRunPipeline_InterruptSkipsPhases(t *testing.T) {
 		interrupt: interruptCtx,
 	})
 
-	if err != nil {
-		t.Fatalf("runPipeline error: %v", err)
-	}
+	require.NoError(t, err, "runPipeline error: %v", err)
 
-	if !strings.Contains(stdout.String(), "Interrupted") {
-		t.Error("expected 'Interrupted' in stdout")
-	}
+	assert.Contains(t, stdout.String(), "Interrupted", "expected 'Interrupted' in stdout")
 }
 
 func TestCapturePhase_Integration(t *testing.T) {
@@ -2347,15 +1929,11 @@ func TestCapturePhase_Integration(t *testing.T) {
 	directory := t.TempDir()
 
 	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatalf("sandbox: %v", err)
-	}
+	require.NoError(t, err, "sandbox: %v", err)
 	defer func() { _ = sandbox.Close() }()
 
 	reportFile, err := sandbox.Create("test_report.txt")
-	if err != nil {
-		t.Fatalf("create report: %v", err)
-	}
+	require.NoError(t, err, "create report: %v", err)
 	defer func() { _ = reportFile.Close() }()
 
 	flags := &profileFlags{
@@ -2384,14 +1962,11 @@ func TestCapturePhase_Integration(t *testing.T) {
 	}
 
 	captureErr := capturePhase(context.Background(), pipeline, reportFile, spec, sandbox, errorCh)
-	if captureErr != nil {
-		t.Fatalf("capturePhase error: %v", captureErr)
-	}
+	require.NoError(t, captureErr, "capturePhase error: %v", captureErr)
 
 	pprofPath := filepath.Join(directory, "cpu.pprof")
-	if _, err := os.Stat(pprofPath); os.IsNotExist(err) {
-		t.Error("expected cpu.pprof to exist")
-	}
+	_, err = os.Stat(pprofPath)
+	assert.False(t, os.IsNotExist(err), "expected cpu.pprof to exist")
 }
 
 var (

@@ -91,7 +91,12 @@ func (b *IngestBuilder) FromFS(fsys fs.FS, patterns ...string) *IngestBuilder {
 //
 // Returns *IngestBuilder which allows method chaining.
 func (b *IngestBuilder) FromDirectory(path string, patterns ...string) *IngestBuilder {
-	return b.FromFS(os.DirFS(path), patterns...)
+	b.FromFS(os.DirFS(path), patterns...)
+
+	if s, ok := b.loader.(sourceSetter); ok {
+		s.setSource(path)
+	}
+	return b
 }
 
 // Transform appends a transformation function to the pipeline. Transforms are applied in

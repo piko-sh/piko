@@ -23,6 +23,7 @@ package daemon_domain
 // exist, this service generates it lazily on first request.
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"fmt"
@@ -418,7 +419,14 @@ func (g *onDemandVariantGeneratorImpl) storeVariant(
 		return nil, fmt.Errorf("renaming blob to final storage key: %w", err)
 	}
 
-	newVariant := g.buildVariantRecord(profileName, finalStorageKey, profile, finalHash, byteCount)
+	var sourceContentHash string
+	if sourceVariant := g.findSourceVariant(artefact); sourceVariant != nil {
+		sourceContentHash = sourceVariant.ContentHash
+	}
+	newVariant, err := g.buildVariantRecord(profileName, finalStorageKey, profile, finalHash, byteCount, sourceContentHash)
+	if err != nil {
+		return nil, fmt.Errorf("building variant record: %w", err)
+	}
 	return g.addVariantToRegistry(ctx, blobStore, artefact.ID, finalStorageKey, &newVariant, span)
 }
 
@@ -510,12 +518,16 @@ func (*onDemandVariantGeneratorImpl) renameBlobToFinal(
 // Takes byteCount (int64) which specifies the file size in bytes.
 //
 // Returns registry_dto.Variant which contains the complete variant metadata.
+// Returns error when the variant transform cannot be fingerprinted, so an
+// unfingerprintable variant is never persisted (a stale variant with an empty fingerprint
+// would never be selected and would be regenerated on every request).
 func (g *onDemandVariantGeneratorImpl) buildVariantRecord(
 	profileName, storageKey string,
 	profile *ParsedImageProfile,
 	finalHash []byte,
 	byteCount int64,
-) registry_dto.Variant {
+	sourceContentHash string,
+) (registry_dto.Variant, error) {
 	extension := g.getExtensionForFormat(profile.Format)
 
 	var tags registry_dto.Tags
@@ -523,6 +535,12 @@ func (g *onDemandVariantGeneratorImpl) buildVariantRecord(
 	tags.Set(registry_dto.TagType, "image-variant")
 	tags.SetByName("storageBackendId", g.config.StorageBackendID)
 	tags.SetByName("fileExtension", extension)
+
+	transform := g.buildTransform(profile, sourceContentHash)
+	inputFingerprint, err := transform.Fingerprint()
+	if err != nil {
+		return registry_dto.Variant{}, fmt.Errorf("fingerprinting variant %q: %w", profileName, err)
+	}
 
 	return registry_dto.Variant{
 		MetadataTags:     tags,
@@ -535,6 +553,41 @@ func (g *onDemandVariantGeneratorImpl) buildVariantRecord(
 		ContentHash:      fmt.Sprintf("%x", finalHash),
 		Chunks:           nil,
 		SizeBytes:        byteCount,
+
+		Origin:           registry_dto.VariantOriginRuntime,
+		Producer:         registry_dto.ProducerRuntime,
+		Kind:             registry_dto.KindDerived,
+		Transform:        transform,
+		InputFingerprint: inputFingerprint,
+	}, nil
+}
+
+// buildTransform describes how an on-demand variant was derived from the source, so its
+// validity can be checked at read time against the current source.
+//
+// The parameters are the ones actually applied by the transform (width, format, and the
+// effective quality), fingerprinted alongside the source content hash and the
+// image-transform capability version, so a change to any of them invalidates the variant.
+//
+// Takes profile (*ParsedImageProfile) which is the requested transform.
+// Takes sourceContentHash (string) which is the parent source's content hash at
+// derivation.
+//
+// Returns registry_dto.VariantTransform which is the derivation recipe.
+func (g *onDemandVariantGeneratorImpl) buildTransform(profile *ParsedImageProfile, sourceContentHash string) registry_dto.VariantTransform {
+	quality := cmp.Or(profile.Quality, g.config.DefaultQuality)
+
+	var params registry_dto.ProfileParams
+	params.SetByName("width", strconv.Itoa(profile.Width))
+	params.SetByName("format", profile.Format)
+	params.SetByName("quality", strconv.Itoa(quality))
+
+	return registry_dto.VariantTransform{
+		ParentVariantID:   "source",
+		ParentContentHash: sourceContentHash,
+		CapabilityName:    string(capabilities_dto.CapabilityImageTransform),
+		CapabilityVersion: capabilities_dto.Version(capabilities_dto.CapabilityImageTransform),
+		Params:            params,
 	}
 }
 

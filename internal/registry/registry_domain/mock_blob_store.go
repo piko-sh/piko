@@ -22,6 +22,7 @@ import (
 	"context"
 	"io"
 	"sync/atomic"
+	"time"
 )
 
 // MockBlobStore is a test double for BlobStore where nil function fields return zero
@@ -38,6 +39,9 @@ type MockBlobStore struct {
 
 	// DeleteFunc is the function called by Delete.
 	DeleteFunc func(ctx context.Context, key string) error
+
+	// StatKeyFunc is the function called by StatKey.
+	StatKeyFunc func(ctx context.Context, key string) (time.Time, error)
 
 	// RenameFunc is the function called by Rename.
 	RenameFunc func(ctx context.Context, tempKey string, key string) error
@@ -72,7 +76,6 @@ type MockBlobStore struct {
 
 // Put writes blob data under the given key.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the blob to write.
 // Takes data (io.Reader) which provides the blob data to store.
 //
@@ -87,7 +90,6 @@ func (m *MockBlobStore) Put(ctx context.Context, key string, data io.Reader) err
 
 // Get retrieves blob data by key.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the blob to retrieve.
 //
 // Returns (io.ReadCloser, error), or (nil, nil) if GetFunc is nil.
@@ -101,7 +103,6 @@ func (m *MockBlobStore) Get(ctx context.Context, key string) (io.ReadCloser, err
 
 // RangeGet retrieves a byte range of blob data.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the blob to read from.
 // Takes offset (int64) which is the byte position to start reading from.
 // Takes length (int64) which is the number of bytes to read.
@@ -117,7 +118,6 @@ func (m *MockBlobStore) RangeGet(ctx context.Context, key string, offset int64, 
 
 // Delete removes a blob by key.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the blob to delete.
 //
 // Returns error, or nil if DeleteFunc is nil.
@@ -129,9 +129,25 @@ func (m *MockBlobStore) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
+// StatKey returns the blob's last modification time.
+//
+// A nil StatKeyFunc yields the zero time, which reads as arbitrarily old, so age-guarded
+// deletion paths behave as they did before the guard existed.
+//
+// Takes key (string) which identifies the blob to stat.
+//
+// Returns time.Time which is the blob's last modification time, or the zero time when
+// StatKeyFunc is nil.
+// Returns error when StatKeyFunc returns one, or nil when it is nil.
+func (m *MockBlobStore) StatKey(ctx context.Context, key string) (time.Time, error) {
+	if m.StatKeyFunc != nil {
+		return m.StatKeyFunc(ctx, key)
+	}
+	return time.Time{}, nil
+}
+
 // Rename moves a blob from tempKey to key.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes tempKey (string) which is the current storage key of the blob.
 // Takes key (string) which is the new storage key for the blob.
 //
@@ -146,7 +162,6 @@ func (m *MockBlobStore) Rename(ctx context.Context, tempKey string, key string) 
 
 // Exists checks whether a blob exists.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes key (string) which identifies the blob to check.
 //
 // Returns (bool, error), or (false, nil) if ExistsFunc is nil.
@@ -159,8 +174,6 @@ func (m *MockBlobStore) Exists(ctx context.Context, key string) (bool, error) {
 }
 
 // ListKeys returns all storage keys in the blob store.
-//
-// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 //
 // Returns ([]string, error), or (nil, nil) if ListKeysFunc is nil.
 func (m *MockBlobStore) ListKeys(ctx context.Context) ([]string, error) {

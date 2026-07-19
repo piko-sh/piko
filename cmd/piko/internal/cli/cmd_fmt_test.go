@@ -25,6 +25,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -50,12 +52,8 @@ func TestReadFileContent(t *testing.T) {
 
 		opener := newMockSandboxOpener(mock)
 		content, err := readFileContent("/tmp/test/hello.pk", opener)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if string(content) != "hello world" {
-			t.Errorf("got %q, want %q", string(content), "hello world")
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, "hello world", string(content), "got %q, want %q", string(content), "hello world")
 	})
 
 	t.Run("file not found", func(t *testing.T) {
@@ -64,24 +62,16 @@ func TestReadFileContent(t *testing.T) {
 
 		opener := newMockSandboxOpener(mock)
 		_, err := readFileContent("/tmp/test/missing.pk", opener)
-		if err == nil {
-			t.Fatal("expected error for missing file, got nil")
-		}
-		if !strings.Contains(err.Error(), "file not found") {
-			t.Errorf("expected 'file not found' error, got: %v", err)
-		}
+		require.Error(t, err, "expected error for missing file, got nil")
+		assert.Contains(t, err.Error(), "file not found", "expected 'file not found' error, got: %v", err)
 	})
 
 	t.Run("sandbox creation failure", func(t *testing.T) {
 		t.Parallel()
 		opener := newFailingSandboxOpener(errors.New("sandbox failed"))
 		_, err := readFileContent("/tmp/test/hello.pk", opener)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "sandbox") {
-			t.Errorf("expected sandbox error, got: %v", err)
-		}
+		require.Error(t, err, "expected error, got nil")
+		assert.Contains(t, err.Error(), "sandbox", "expected sandbox error, got: %v", err)
 	})
 }
 
@@ -92,27 +82,17 @@ func TestOutputCheckMode(t *testing.T) {
 		t.Parallel()
 		var buffer bytes.Buffer
 		err := outputCheckMode(&buffer, "test.pk", true)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.Contains(buffer.String(), "needs formatting") {
-			t.Errorf("expected 'needs formatting' message, got: %q", buffer.String())
-		}
-		if !strings.Contains(buffer.String(), "test.pk") {
-			t.Errorf("expected path in output, got: %q", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Contains(t, buffer.String(), "needs formatting", "expected 'needs formatting' message, got: %q", buffer.String())
+		assert.Contains(t, buffer.String(), "test.pk", "expected path in output, got: %q", buffer.String())
 	})
 
 	t.Run("unchanged prints nothing", func(t *testing.T) {
 		t.Parallel()
 		var buffer bytes.Buffer
 		err := outputCheckMode(&buffer, "test.pk", false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if buffer.Len() != 0 {
-			t.Errorf("expected no output for unchanged file, got: %q", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 0, buffer.Len(), "expected no output for unchanged file, got: %q", buffer.String())
 	})
 }
 
@@ -123,27 +103,17 @@ func TestOutputDryRunMode(t *testing.T) {
 		t.Parallel()
 		var buffer bytes.Buffer
 		err := outputDryRunMode(&buffer, "test.pk", true)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.Contains(buffer.String(), "Would format:") {
-			t.Errorf("expected 'Would format:' message, got: %q", buffer.String())
-		}
-		if !strings.Contains(buffer.String(), "test.pk") {
-			t.Errorf("expected path in output, got: %q", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Contains(t, buffer.String(), "Would format:", "expected 'Would format:' message, got: %q", buffer.String())
+		assert.Contains(t, buffer.String(), "test.pk", "expected path in output, got: %q", buffer.String())
 	})
 
 	t.Run("unchanged prints nothing", func(t *testing.T) {
 		t.Parallel()
 		var buffer bytes.Buffer
 		err := outputDryRunMode(&buffer, "test.pk", false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if buffer.Len() != 0 {
-			t.Errorf("expected no output for unchanged file, got: %q", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 0, buffer.Len(), "expected no output for unchanged file, got: %q", buffer.String())
 	})
 }
 
@@ -154,25 +124,17 @@ func TestOutputListMode(t *testing.T) {
 		t.Parallel()
 		var buffer bytes.Buffer
 		err := outputListMode(&buffer, "test.pk", true)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
 		output := strings.TrimSpace(buffer.String())
-		if output != "test.pk" {
-			t.Errorf("expected %q, got %q", "test.pk", output)
-		}
+		assert.Equal(t, "test.pk", output, "expected %q, got %q", "test.pk", output)
 	})
 
 	t.Run("unchanged prints nothing", func(t *testing.T) {
 		t.Parallel()
 		var buffer bytes.Buffer
 		err := outputListMode(&buffer, "test.pk", false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if buffer.Len() != 0 {
-			t.Errorf("expected no output for unchanged file, got: %q", buffer.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 0, buffer.Len(), "expected no output for unchanged file, got: %q", buffer.String())
 	})
 }
 
@@ -186,15 +148,9 @@ func TestOutputWriteMode(t *testing.T) {
 			stdout: &stdout,
 		}
 		err := outputWriteMode(stats, "/tmp/test/hello.pk", []byte("content"), false)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if stats.formatted != 0 {
-			t.Errorf("expected formatted=0, got %d", stats.formatted)
-		}
-		if stdout.Len() != 0 {
-			t.Errorf("expected no output for unchanged file, got: %q", stdout.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 0, stats.formatted, "expected formatted=0, got %d", stats.formatted)
+		assert.Equal(t, 0, stdout.Len(), "expected no output for unchanged file, got: %q", stdout.String())
 	})
 
 	t.Run("changed writes file", func(t *testing.T) {
@@ -207,15 +163,9 @@ func TestOutputWriteMode(t *testing.T) {
 		}
 		formatted := []byte("formatted content")
 		err := outputWriteMode(stats, "/tmp/test/hello.pk", formatted, true)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if stats.formatted != 1 {
-			t.Errorf("expected formatted=1, got %d", stats.formatted)
-		}
-		if !strings.Contains(stdout.String(), "Formatted:") {
-			t.Errorf("expected 'Formatted:' message, got: %q", stdout.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 1, stats.formatted, "expected formatted=1, got %d", stats.formatted)
+		assert.Contains(t, stdout.String(), "Formatted:", "expected 'Formatted:' message, got: %q", stdout.String())
 	})
 
 	t.Run("sandbox creation failure", func(t *testing.T) {
@@ -226,12 +176,8 @@ func TestOutputWriteMode(t *testing.T) {
 			stdout:     &stdout,
 		}
 		err := outputWriteMode(stats, "/tmp/test/hello.pk", []byte("content"), true)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "write sandbox") {
-			t.Errorf("expected write sandbox error, got: %v", err)
-		}
+		require.Error(t, err, "expected error, got nil")
+		assert.Contains(t, err.Error(), "write sandbox", "expected write sandbox error, got: %v", err)
 	})
 }
 
@@ -256,15 +202,9 @@ func TestProcessFile(t *testing.T) {
 		}
 		flags := &formatFlags{write: true}
 		err := processFile(context.Background(), stats, "/tmp/test/hello.pk", flags)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if stats.total != 1 {
-			t.Errorf("expected total=1, got %d", stats.total)
-		}
-		if stats.needsFormatting != 0 {
-			t.Errorf("expected needsFormatting=0, got %d", stats.needsFormatting)
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 1, stats.total, "expected total=1, got %d", stats.total)
+		assert.Equal(t, 0, stats.needsFormatting, "expected needsFormatting=0, got %d", stats.needsFormatting)
 	})
 
 	t.Run("changed file in check mode", func(t *testing.T) {
@@ -285,15 +225,9 @@ func TestProcessFile(t *testing.T) {
 		}
 		flags := &formatFlags{check: true}
 		err := processFile(context.Background(), stats, "/tmp/test/hello.pk", flags)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if stats.needsFormatting != 1 {
-			t.Errorf("expected needsFormatting=1, got %d", stats.needsFormatting)
-		}
-		if !strings.Contains(stdout.String(), "needs formatting") {
-			t.Errorf("expected 'needs formatting' message, got: %q", stdout.String())
-		}
+		require.NoError(t, err, "unexpected error: %v", err)
+		assert.Equal(t, 1, stats.needsFormatting, "expected needsFormatting=1, got %d", stats.needsFormatting)
+		assert.Contains(t, stdout.String(), "needs formatting", "expected 'needs formatting' message, got: %q", stdout.String())
 	})
 
 	t.Run("format error", func(t *testing.T) {
@@ -314,12 +248,8 @@ func TestProcessFile(t *testing.T) {
 		}
 		flags := &formatFlags{write: true}
 		err := processFile(context.Background(), stats, "/tmp/test/hello.pk", flags)
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-		if !strings.Contains(err.Error(), "formatting") {
-			t.Errorf("expected formatting error, got: %v", err)
-		}
+		require.Error(t, err, "expected error, got nil")
+		assert.Contains(t, err.Error(), "formatting", "expected formatting error, got: %v", err)
 	})
 }
 
@@ -332,9 +262,7 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 0}
 		flags := &formatFlags{}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 0 {
-			t.Errorf("expected exit code 0, got %d", got)
-		}
+		assert.Equal(t, 0, got, "expected exit code 0, got %d", got)
 	})
 
 	t.Run("check mode with needs formatting returns 1", func(t *testing.T) {
@@ -343,9 +271,7 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 3, needsFormatting: 2}
 		flags := &formatFlags{check: true}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 1 {
-			t.Errorf("expected exit code 1, got %d", got)
-		}
+		assert.Equal(t, 1, got, "expected exit code 1, got %d", got)
 	})
 
 	t.Run("check mode all formatted returns current", func(t *testing.T) {
@@ -354,9 +280,7 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 3, needsFormatting: 0}
 		flags := &formatFlags{check: true}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 0 {
-			t.Errorf("expected exit code 0, got %d", got)
-		}
+		assert.Equal(t, 0, got, "expected exit code 0, got %d", got)
 	})
 
 	t.Run("dry run prints summary", func(t *testing.T) {
@@ -365,12 +289,8 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 5, needsFormatting: 3}
 		flags := &formatFlags{dryRun: true}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 0 {
-			t.Errorf("expected exit code 0, got %d", got)
-		}
-		if !strings.Contains(stdout.String(), "Dry run complete") {
-			t.Errorf("expected dry run summary, got: %q", stdout.String())
-		}
+		assert.Equal(t, 0, got, "expected exit code 0, got %d", got)
+		assert.Contains(t, stdout.String(), "Dry run complete", "expected dry run summary, got: %q", stdout.String())
 	})
 
 	t.Run("list mode with needs formatting returns 1", func(t *testing.T) {
@@ -379,9 +299,7 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 5, needsFormatting: 2}
 		flags := &formatFlags{list: true}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 1 {
-			t.Errorf("expected exit code 1, got %d", got)
-		}
+		assert.Equal(t, 1, got, "expected exit code 1, got %d", got)
 	})
 
 	t.Run("list mode with no changes returns current", func(t *testing.T) {
@@ -390,9 +308,7 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 5, needsFormatting: 0}
 		flags := &formatFlags{list: true}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 0 {
-			t.Errorf("expected exit code 0, got %d", got)
-		}
+		assert.Equal(t, 0, got, "expected exit code 0, got %d", got)
 	})
 
 	t.Run("write mode with errors returns 1", func(t *testing.T) {
@@ -401,9 +317,7 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 5, formatted: 3, errors: 2}
 		flags := &formatFlags{write: true}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 1 {
-			t.Errorf("expected exit code 1, got %d", got)
-		}
+		assert.Equal(t, 1, got, "expected exit code 1, got %d", got)
 	})
 
 	t.Run("write mode no errors returns current", func(t *testing.T) {
@@ -412,9 +326,7 @@ func TestPrintSummaryAndGetExitCode(t *testing.T) {
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, total: 5, formatted: 5, errors: 0}
 		flags := &formatFlags{write: true}
 		got := printSummaryAndGetExitCode(stats, flags, 0)
-		if got != 0 {
-			t.Errorf("expected exit code 0, got %d", got)
-		}
+		assert.Equal(t, 0, got, "expected exit code 0, got %d", got)
 	})
 }
 
@@ -426,12 +338,8 @@ func TestPrintCheckSummary(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, needsFormatting: 3}
 		got := printCheckSummary(stats, 0)
-		if got != 1 {
-			t.Errorf("expected exit code 1, got %d", got)
-		}
-		if !strings.Contains(stderr.String(), "Check failed") {
-			t.Errorf("expected 'Check failed' in stderr, got: %q", stderr.String())
-		}
+		assert.Equal(t, 1, got, "expected exit code 1, got %d", got)
+		assert.Contains(t, stderr.String(), "Check failed", "expected 'Check failed' in stderr, got: %q", stderr.String())
 	})
 
 	t.Run("all formatted returns current", func(t *testing.T) {
@@ -439,12 +347,8 @@ func TestPrintCheckSummary(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, needsFormatting: 0}
 		got := printCheckSummary(stats, 0)
-		if got != 0 {
-			t.Errorf("expected exit code 0, got %d", got)
-		}
-		if !strings.Contains(stdout.String(), "properly formatted") {
-			t.Errorf("expected 'properly formatted' message, got: %q", stdout.String())
-		}
+		assert.Equal(t, 0, got, "expected exit code 0, got %d", got)
+		assert.Contains(t, stdout.String(), "properly formatted", "expected 'properly formatted' message, got: %q", stdout.String())
 	})
 }
 
@@ -456,12 +360,8 @@ func TestPrintWriteSummary(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, formatted: 3, errors: 2}
 		got := printWriteSummary(stats, 0)
-		if got != 1 {
-			t.Errorf("expected exit code 1, got %d", got)
-		}
-		if !strings.Contains(stderr.String(), "Errors:") {
-			t.Errorf("expected 'Errors:' in stderr, got: %q", stderr.String())
-		}
+		assert.Equal(t, 1, got, "expected exit code 1, got %d", got)
+		assert.Contains(t, stderr.String(), "Errors:", "expected 'Errors:' in stderr, got: %q", stderr.String())
 	})
 
 	t.Run("no errors returns current", func(t *testing.T) {
@@ -469,12 +369,8 @@ func TestPrintWriteSummary(t *testing.T) {
 		var stdout, stderr bytes.Buffer
 		stats := &Statistics{stdout: &stdout, stderr: &stderr, formatted: 5, errors: 0}
 		got := printWriteSummary(stats, 0)
-		if got != 0 {
-			t.Errorf("expected exit code 0, got %d", got)
-		}
-		if !strings.Contains(stdout.String(), "Formatted") {
-			t.Errorf("expected 'Formatted' message, got: %q", stdout.String())
-		}
+		assert.Equal(t, 0, got, "expected exit code 0, got %d", got)
+		assert.Contains(t, stdout.String(), "Formatted", "expected 'Formatted' message, got: %q", stdout.String())
 	})
 }
 
@@ -497,8 +393,6 @@ func TestFmtUsage(t *testing.T) {
 	}
 
 	for _, want := range expectedStrings {
-		if !strings.Contains(output, want) {
-			t.Errorf("usage output missing %q\nfull output:\n%s", want, output)
-		}
+		assert.Contains(t, output, want, "usage output missing %q\nfull output:\n%s", want, output)
 	}
 }

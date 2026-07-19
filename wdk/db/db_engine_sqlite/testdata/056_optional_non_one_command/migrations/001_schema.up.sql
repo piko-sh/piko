@@ -1,0 +1,5 @@
+CREATE TABLE events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL,
+    payload TEXT
+);

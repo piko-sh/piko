@@ -162,19 +162,22 @@ func (b *prodDaemonBuilder) buildTemplater(ctx context.Context) error {
 	defaultLocale := deref(b.c.serverConfig.I18nDefaultLocale, "en")
 	compiledRunner := templater_adapters.NewCompiledManifestRunner(b.store, b.i18nService, defaultLocale)
 
-	astCacheService, err := b.bootstrapASTCacheService(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to bootstrap AST cache service for production: %w", err)
+	runner := compiledRunner
+	if astCacheService, cacheErr := b.bootstrapASTCacheService(ctx); cacheErr != nil {
+		l.Warn("AST cache unavailable; serving without it (templates recompile per render). Mount a writable .piko to enable caching.",
+			logger_domain.Error(cacheErr))
+	} else {
+		shutdown.Register(b.c.GetAppContext(), "ASTCacheService", func(ctx context.Context) error {
+			astCacheService.Shutdown(ctx)
+			return nil
+		})
+		b.cachingRunner = templater_adapters.NewCachingManifestRunner(compiledRunner, astCacheService)
+		runner = b.cachingRunner
+		l.Internal("AST Caching decorator enabled for the manifest runner.")
 	}
-	shutdown.Register(b.c.GetAppContext(), "ASTCacheService", func(ctx context.Context) error {
-		astCacheService.Shutdown(ctx)
-		return nil
-	})
-	b.cachingRunner = templater_adapters.NewCachingManifestRunner(compiledRunner, astCacheService)
-	l.Internal("AST Caching decorator enabled for the manifest runner.")
 
-	b.templaterService = templater_domain.NewTemplaterService(b.cachingRunner, templater_adapters.NewDrivenRenderer(b.renderer), b.i18nService)
-	b.c.SetEmailTemplateService(templater_domain.NewEmailTemplateService(b.cachingRunner, templater_adapters.NewDrivenRenderer(b.renderer)))
+	b.templaterService = templater_domain.NewTemplaterService(runner, templater_adapters.NewDrivenRenderer(b.renderer), b.i18nService)
+	b.c.SetEmailTemplateService(templater_domain.NewEmailTemplateService(runner, templater_adapters.NewDrivenRenderer(b.renderer)))
 	fontEntries := []layouter_dto.FontEntry{
 		{Family: fonts.NotoSansFamilyName, Weight: fontWeightNormal, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansRegularTTF},
 		{Family: fonts.NotoSansFamilyName, Weight: fontWeightBold, Style: int(layouter_domain.FontStyleNormal), Data: fonts.NotoSansBoldTTF},
@@ -187,7 +190,7 @@ func (b *prodDaemonBuilder) buildTemplater(ctx context.Context) error {
 	svgData := driven_svgwriter.NewRegistrySVGDataAdapter(b.c.GetRenderRegistry(), driven_svgwriter.NewDataURISVGDataAdapter())
 	imageResolver := driven_svgwriter.NewSVGImageResolver(&layouter_adapters.MockImageResolver{}, svgData)
 	b.c.SetPdfWriterService(pdfwriter_domain.NewPdfWriterService(
-		pdfwriter_adapters.NewTemplateRunnerAdapter(b.cachingRunner),
+		pdfwriter_adapters.NewTemplateRunnerAdapter(runner),
 		pdfwriter_adapters.NewLayouterAdapter(fontMetrics, imageResolver),
 		fontEntries,
 		nil,
@@ -275,9 +278,6 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 
 // bootstrapASTCacheService creates the AST cache service based on config. The AST cache
 // improves performance by storing the parsed component tree.
-//
-// Takes ctx (context.Context) which is the parent context for background worker
-// goroutines.
 //
 // Returns ast_domain.ASTCacheService which is the configured cache service.
 // Returns error when the cache service cannot be created.

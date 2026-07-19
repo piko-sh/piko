@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -45,9 +46,8 @@ func TestNewService_DefaultsToFallbackSignalNotifier(t *testing.T) {
 
 	service := mustBuildDaemonService(t, deps)
 
-	if service.signalNotifier == nil {
-		t.Error("Expected signalNotifier to be set to fallback when nil provided")
-	}
+	assert.NotNil(t, service.signalNotifier,
+		"Expected signalNotifier to be set to fallback when nil provided")
 }
 
 func TestNewService_UsesProvidedSignalNotifier(t *testing.T) {
@@ -61,9 +61,8 @@ func TestNewService_UsesProvidedSignalNotifier(t *testing.T) {
 
 	service := mustBuildDaemonService(t, deps)
 
-	if service.signalNotifier != mockNotifier {
-		t.Error("Expected service to use provided signal notifier")
-	}
+	assert.Same(t, mockNotifier, service.signalNotifier,
+		"Expected service to use provided signal notifier")
 }
 
 func TestNewService_InitialisesStopChannel(t *testing.T) {
@@ -73,9 +72,7 @@ func TestNewService_InitialisesStopChannel(t *testing.T) {
 
 	service := mustBuildDaemonService(t, deps)
 
-	if service.stopChan == nil {
-		t.Error("Expected stopChan to be initialised")
-	}
+	assert.NotNil(t, service.stopChan, "Expected stopChan to be initialised")
 }
 
 func TestStop_ClosesStopChannel(t *testing.T) {
@@ -87,15 +84,13 @@ func TestStop_ClosesStopChannel(t *testing.T) {
 
 	err := service.Stop(context.Background())
 
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err, "Unexpected error")
 
 	select {
 	case <-service.stopChan:
 
 	default:
-		t.Error("Expected stopChan to be closed")
+		assert.Fail(t, "Expected stopChan to be closed")
 	}
 }
 
@@ -110,9 +105,9 @@ func TestStop_IsIdempotent(t *testing.T) {
 	err2 := service.Stop(context.Background())
 	err3 := service.Stop(context.Background())
 
-	if err1 != nil || err2 != nil || err3 != nil {
-		t.Error("Expected Stop to be idempotent without errors")
-	}
+	assert.NoError(t, err1, "Expected Stop to be idempotent without errors")
+	assert.NoError(t, err2, "Expected Stop to be idempotent without errors")
+	assert.NoError(t, err3, "Expected Stop to be idempotent without errors")
 }
 
 func TestStop_CallsServerShutdown(t *testing.T) {
@@ -132,9 +127,7 @@ func TestStop_CallsServerShutdown(t *testing.T) {
 
 	_ = service.Stop(context.Background())
 
-	if mockServer.ShutdownCallCount.Load() == 0 {
-		t.Error("Expected server Shutdown to be called")
-	}
+	assert.Positive(t, mockServer.ShutdownCallCount.Load(), "Expected server Shutdown to be called")
 }
 
 func TestHandleBuildNotifications_IgnoresNilResult(t *testing.T) {
@@ -155,9 +148,8 @@ func TestHandleBuildNotifications_IgnoresNilResult(t *testing.T) {
 
 	service.processNotification(context.Background(), &notification)
 
-	if mockSEO.GenerateArtefactsCallCount.Load() != 0 {
-		t.Error("Expected GenerateArtefacts NOT to be called for nil result")
-	}
+	assert.Zero(t, mockSEO.GenerateArtefactsCallCount.Load(),
+		"Expected GenerateArtefacts NOT to be called for nil result")
 }
 
 func TestProcessSEOArtefacts_Skips_WhenSEOServiceNil(t *testing.T) {
@@ -203,9 +195,8 @@ func TestSubscribeToCoordinator_SubscribesToCoordinator(t *testing.T) {
 
 	_ = service.subscribeToCoordinator(ctx)
 
-	if mockCoordinator.SubscribeCallCount.Load() == 0 {
-		t.Error("Expected Subscribe to be called on coordinator")
-	}
+	assert.Positive(t, mockCoordinator.SubscribeCallCount.Load(),
+		"Expected Subscribe to be called on coordinator")
 }
 
 func TestProcessNotification_CallsSEO_WhenResultPresent(t *testing.T) {
@@ -236,7 +227,7 @@ func TestProcessNotification_CallsSEO_WhenResultPresent(t *testing.T) {
 	case <-done:
 
 	case <-time.After(time.Second):
-		t.Error("processNotification did not call SEO service")
+		assert.Fail(t, "processNotification did not call SEO service")
 	}
 }
 
@@ -263,7 +254,7 @@ func TestProcessSEOArtefacts_CallsService_WhenPresent(t *testing.T) {
 	case <-done:
 
 	case <-time.After(time.Second):
-		t.Error("processSEOArtefacts did not call SEO service")
+		assert.Fail(t, "processSEOArtefacts did not call SEO service")
 	}
 }
 
@@ -290,7 +281,7 @@ func TestProcessSEOArtefacts_HandlesError_WhenServiceFails(t *testing.T) {
 	case <-done:
 
 	case <-time.After(time.Second):
-		t.Error("processSEOArtefacts goroutine did not complete")
+		assert.Fail(t, "processSEOArtefacts goroutine did not complete")
 	}
 }
 
@@ -322,7 +313,7 @@ func TestHandleBuildNotifications_StopsOnContextDone(t *testing.T) {
 	case <-done:
 
 	case <-time.After(time.Second):
-		t.Error("handleBuildNotifications did not exit on context cancellation")
+		assert.Fail(t, "handleBuildNotifications did not exit on context cancellation")
 	}
 }
 
@@ -354,7 +345,7 @@ func TestHandleBuildNotifications_StopsOnChannelClose(t *testing.T) {
 	case <-done:
 
 	case <-time.After(time.Second):
-		t.Error("handleBuildNotifications did not exit on channel close")
+		assert.Fail(t, "handleBuildNotifications did not exit on channel close")
 	}
 }
 
@@ -372,9 +363,7 @@ func TestGetHandler_ReturnsFinalRouter(t *testing.T) {
 	service := mustBuildDaemonService(t, deps)
 
 	handler := service.GetHandler()
-	if handler == nil {
-		t.Fatal("expected non-nil handler")
-	}
+	require.NotNil(t, handler, "expected non-nil handler")
 }
 
 func TestRunDev_GracefulShutdown(t *testing.T) {
@@ -388,7 +377,7 @@ func TestRunDev_GracefulShutdown(t *testing.T) {
 		case <-mockServer.shutdownCh:
 			return http.ErrServerClosed
 		case <-time.After(15 * time.Second):
-			t.Error("ListenAndServeFunc: shutdown channel never closed within 15s")
+			assert.Fail(t, "ListenAndServeFunc: shutdown channel never closed within 15s")
 			return http.ErrServerClosed
 		}
 	}
@@ -410,7 +399,7 @@ func TestRunDev_GracefulShutdown(t *testing.T) {
 	select {
 	case <-notifier.AwaitNotifyContext():
 	case <-time.After(10 * time.Second):
-		t.Fatal("timed out waiting for NotifyContext to be called")
+		require.Fail(t, "timed out waiting for NotifyContext to be called")
 	}
 
 	notifier.Trigger()
@@ -419,7 +408,7 @@ func TestRunDev_GracefulShutdown(t *testing.T) {
 	case err := <-done:
 		require.NoError(t, err, "expected nil error on graceful shutdown")
 	case <-time.After(15 * time.Second):
-		t.Fatal("RunDev did not return after signal trigger")
+		require.Fail(t, "RunDev did not return after signal trigger")
 	}
 }
 
@@ -451,11 +440,9 @@ func TestRunDev_ServerError(t *testing.T) {
 
 	select {
 	case err := <-done:
-		if !errors.Is(err, serverErr) {
-			t.Errorf("expected server error, got %v", err)
-		}
+		assert.ErrorIs(t, err, serverErr, "expected server error")
 	case <-time.After(5 * time.Second):
-		t.Fatal("RunDev did not return after server error")
+		require.Fail(t, "RunDev did not return after server error")
 	}
 }
 
@@ -490,18 +477,17 @@ func TestRunDev_SubscribesToCoordinator(t *testing.T) {
 		done <- service.RunDev(context.Background())
 	}()
 
-	if !waitForCondition(2*time.Second, func() bool {
+	subscribed := waitForCondition(2*time.Second, func() bool {
 		return mockCoordinator.SubscribeCallCount.Load() > 0
-	}) {
-		t.Fatal("timed out waiting for Subscribe to be called on coordinator")
-	}
+	})
+	require.True(t, subscribed, "timed out waiting for Subscribe to be called on coordinator")
 
 	notifier.Trigger()
 
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Fatal("RunDev did not return")
+		require.Fail(t, "RunDev did not return")
 	}
 }
 
@@ -538,18 +524,16 @@ func TestRunProd_GracefulShutdown(t *testing.T) {
 	select {
 	case <-notifier.AwaitNotifyContext():
 	case <-time.After(10 * time.Second):
-		t.Fatal("timed out waiting for NotifyContext to be called")
+		require.Fail(t, "timed out waiting for NotifyContext to be called")
 	}
 
 	notifier.Trigger()
 
 	select {
 	case err := <-done:
-		if err != nil {
-			t.Errorf("expected nil error on graceful shutdown, got %v", err)
-		}
+		assert.NoError(t, err, "expected nil error on graceful shutdown")
 	case <-time.After(5 * time.Second):
-		t.Fatal("RunProd did not return after signal trigger")
+		require.Fail(t, "RunProd did not return after signal trigger")
 	}
 }
 
@@ -581,11 +565,9 @@ func TestRunProd_ServerError(t *testing.T) {
 
 	select {
 	case err := <-done:
-		if !errors.Is(err, serverErr) {
-			t.Errorf("expected server error, got %v", err)
-		}
+		assert.ErrorIs(t, err, serverErr, "expected server error")
 	case <-time.After(5 * time.Second):
-		t.Fatal("RunProd did not return after server error")
+		require.Fail(t, "RunProd did not return after server error")
 	}
 }
 
@@ -622,7 +604,7 @@ func TestRunProd_DisablesWatchMode(t *testing.T) {
 	select {
 	case <-notifier.AwaitNotifyContext():
 	case <-time.After(30 * time.Second):
-		t.Fatal("timed out waiting for NotifyContext to be called")
+		require.Fail(t, "timed out waiting for NotifyContext to be called")
 	}
 
 	notifier.Trigger()
@@ -630,12 +612,10 @@ func TestRunProd_DisablesWatchMode(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(30 * time.Second):
-		t.Fatal("RunProd did not return")
+		require.Fail(t, "RunProd did not return")
 	}
 
-	if watchMode {
-		t.Error("expected WatchMode to be disabled in prod mode")
-	}
+	assert.False(t, watchMode, "expected WatchMode to be disabled in prod mode")
 }
 
 func TestLaunchDaemonProcess_ReturnsErrChan(t *testing.T) {
@@ -656,15 +636,13 @@ func TestLaunchDaemonProcess_ReturnsErrChan(t *testing.T) {
 	service := mustBuildDaemonService(t, deps)
 
 	errChan := service.launchDaemonProcess(context.Background())
-	if errChan == nil {
-		t.Fatal("expected non-nil error channel")
-	}
+	require.NotNil(t, errChan, "expected non-nil error channel")
 
 	select {
 	case <-errChan:
 
 	case <-time.After(5 * time.Second):
-		t.Fatal("error channel was not closed")
+		require.Fail(t, "error channel was not closed")
 	}
 }
 
@@ -691,11 +669,9 @@ func TestLaunchDaemonProcess_PropagatesServerError(t *testing.T) {
 
 	select {
 	case err := <-errChan:
-		if !errors.Is(err, serverErr) {
-			t.Errorf("expected server error, got %v", err)
-		}
+		assert.ErrorIs(t, err, serverErr, "expected server error")
 	case <-time.After(5 * time.Second):
-		t.Fatal("did not receive error from channel")
+		require.Fail(t, "did not receive error from channel")
 	}
 }
 
@@ -719,9 +695,7 @@ func TestAwaitShutdownDev_ContextCancelled(t *testing.T) {
 	cancel(fmt.Errorf("test: simulating cancelled context"))
 	wg.Wait()
 
-	if result != nil {
-		t.Errorf("expected nil error on context cancellation, got %v", result)
-	}
+	assert.NoError(t, result, "expected nil error on context cancellation")
 }
 
 func TestAwaitShutdownDev_ServerError(t *testing.T) {
@@ -737,9 +711,7 @@ func TestAwaitShutdownDev_ServerError(t *testing.T) {
 
 	result := service.awaitShutdownDev(context.Background(), getNoopSpan(), serverErrChan)
 
-	if !errors.Is(result, serverErr) {
-		t.Errorf("expected server error, got %v", result)
-	}
+	assert.ErrorIs(t, result, serverErr, "expected server error")
 }
 
 func TestMockSignalNotifier_WasTriggered(t *testing.T) {
@@ -747,16 +719,12 @@ func TestMockSignalNotifier_WasTriggered(t *testing.T) {
 
 	notifier := NewMockSignalNotifier()
 
-	if notifier.WasTriggered() {
-		t.Error("expected WasTriggered=false before trigger")
-	}
+	assert.False(t, notifier.WasTriggered(), "expected WasTriggered=false before trigger")
 
 	notifier.NotifyContext(context.Background())
 	notifier.Trigger()
 
-	if !notifier.WasTriggered() {
-		t.Error("expected WasTriggered=true after trigger")
-	}
+	assert.True(t, notifier.WasTriggered(), "expected WasTriggered=true after trigger")
 }
 
 func TestMockSignalNotifier_Reset(t *testing.T) {
@@ -768,9 +736,7 @@ func TestMockSignalNotifier_Reset(t *testing.T) {
 	notifier.Trigger()
 	notifier.Reset()
 
-	if notifier.WasTriggered() {
-		t.Error("expected WasTriggered=false after reset")
-	}
+	assert.False(t, notifier.WasTriggered(), "expected WasTriggered=false after reset")
 }
 
 func TestStop_StopsOrchestratorService(t *testing.T) {
@@ -786,9 +752,8 @@ func TestStop_StopsOrchestratorService(t *testing.T) {
 
 	_ = service.Stop(context.Background())
 
-	if mockOrchestrator.StopCallCount.Load() == 0 {
-		t.Error("expected orchestrator Stop() to be called")
-	}
+	assert.Positive(t, mockOrchestrator.StopCallCount.Load(),
+		"expected orchestrator Stop() to be called")
 }
 
 func TestNewService_DefaultsSEOSemaphoreCapacity(t *testing.T) {
@@ -798,13 +763,9 @@ func TestNewService_DefaultsSEOSemaphoreCapacity(t *testing.T) {
 
 	service := mustBuildDaemonService(t, deps)
 
-	if service.seoSemaphore == nil {
-		t.Fatal("expected SEO semaphore to be initialised")
-	}
+	require.NotNil(t, service.seoSemaphore, "expected SEO semaphore to be initialised")
 
-	if cap(service.seoSemaphore) <= 0 {
-		t.Errorf("expected positive default semaphore capacity, got %d", cap(service.seoSemaphore))
-	}
+	assert.Positive(t, cap(service.seoSemaphore), "expected positive default semaphore capacity")
 }
 
 func TestNewService_HonoursMaxConcurrentSEOJobsConfig(t *testing.T) {
@@ -819,9 +780,7 @@ func TestNewService_HonoursMaxConcurrentSEOJobsConfig(t *testing.T) {
 
 	service := mustBuildDaemonService(t, deps)
 
-	if got := cap(service.seoSemaphore); got != 3 {
-		t.Errorf("expected semaphore capacity 3, got %d", got)
-	}
+	assert.Equal(t, 3, cap(service.seoSemaphore), "expected semaphore capacity 3")
 }
 
 func TestProcessSEOArtefacts_BoundsConcurrencyToSemaphoreCapacity(t *testing.T) {
@@ -869,29 +828,25 @@ func TestProcessSEOArtefacts_BoundsConcurrencyToSemaphoreCapacity(t *testing.T) 
 		}
 	}()
 
-	if !waitForCondition(2*time.Second, func() bool {
+	filled := waitForCondition(2*time.Second, func() bool {
 		return inFlight.Load() >= int64(slots)
-	}) {
-		t.Fatal("timed out waiting for semaphore to fill")
-	}
+	})
+	require.True(t, filled, "timed out waiting for semaphore to fill")
 
 	close(release)
 
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Fatal("processSEOArtefacts loop did not return")
+		require.Fail(t, "processSEOArtefacts loop did not return")
 	}
 
 	service.seoWg.Wait()
 
-	if got := peak.Load(); got > int64(slots) {
-		t.Errorf("expected peak in-flight <= %d, got %d", slots, got)
-	}
+	assert.LessOrEqualf(t, peak.Load(), int64(slots), "expected peak in-flight <= %d", slots)
 
-	if calls := mockSEO.GenerateArtefactsCallCount.Load(); calls != burst {
-		t.Errorf("expected %d generate calls, got %d", burst, calls)
-	}
+	assert.Equalf(t, int64(burst), mockSEO.GenerateArtefactsCallCount.Load(),
+		"expected %d generate calls", burst)
 }
 
 func TestProcessSEOArtefacts_SkipsWhenSEOContextCancelled(t *testing.T) {
@@ -921,7 +876,6 @@ func TestProcessSEOArtefacts_SkipsWhenSEOContextCancelled(t *testing.T) {
 
 	service.releaseSEOSlot()
 
-	if calls := mockSEO.GenerateArtefactsCallCount.Load(); calls != 0 {
-		t.Errorf("expected GenerateArtefacts NOT to be called when context cancelled, got %d", calls)
-	}
+	assert.Zero(t, mockSEO.GenerateArtefactsCallCount.Load(),
+		"expected GenerateArtefacts NOT to be called when context cancelled")
 }

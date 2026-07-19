@@ -2,7 +2,11 @@
 
 package db
 
-import "context"
+import (
+	"context"
+	"database/sql"
+	"errors"
+)
 
 const findartefactbyvariantstoragekey = `SELECT artefact_id
 FROM variant
@@ -13,13 +17,16 @@ type FindArtefactByVariantStorageKeyRow struct {
 	ArtefactID string `json:"artefact_id"`
 }
 
-func (queries *Queries) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (FindArtefactByVariantStorageKeyRow, error) {
+func (queries *Queries) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (FindArtefactByVariantStorageKeyRow, bool, error) {
 	var row FindArtefactByVariantStorageKeyRow
 	err := queries.reader.QueryRowContext(ctx, findartefactbyvariantstoragekey, storageKey).Scan(&row.ArtefactID)
-	if err != nil {
-		return FindArtefactByVariantStorageKeyRow{}, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return FindArtefactByVariantStorageKeyRow{}, false, nil
 	}
-	return row, nil
+	if err != nil {
+		return FindArtefactByVariantStorageKeyRow{}, false, err
+	}
+	return row, true, nil
 }
 
 const findartefactidsbytag = `SELECT DISTINCT artefact_id

@@ -227,7 +227,7 @@ func assertInfoEntry(t *testing.T, entries []provider_domain.InfoEntry, key, exp
 			return
 		}
 	}
-	t.Errorf("expected entry with key %q not found", key)
+	assert.Failf(t, "info entry missing", "expected entry with key %q not found", key)
 }
 
 type mockHealthChecker struct {

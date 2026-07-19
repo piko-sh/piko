@@ -26,6 +26,13 @@ import (
 	fbs "piko.sh/piko/internal/registry/registry_schema/registry_schema_gen"
 )
 
+const (
+	// maxFBVectorPrealloc bounds how many elements a decoded FlatBuffers vector
+	// preallocates, so a corrupt buffer declaring a huge length cannot force a large upfront
+	// allocation.
+	maxFBVectorPrealloc = 65536
+)
+
 // ParseArtefactMeta converts a FlatBuffer byte slice to a registry DTO.
 //
 // Takes data ([]byte) which contains the serialised FlatBuffer data.
@@ -36,10 +43,16 @@ import (
 // SAFETY: The returned DTO contains strings that reference 'data' directly via
 // mem.String. Go's GC keeps 'data' alive through these string references. The caller must
 // not modify 'data' while the DTO is in use.
-func ParseArtefactMeta(data []byte) *registry_dto.ArtefactMeta {
+func ParseArtefactMeta(data []byte) (artefact *registry_dto.ArtefactMeta) {
 	if len(data) == 0 {
 		return nil
 	}
+
+	defer func() {
+		if recover() != nil {
+			artefact = nil
+		}
+	}()
 
 	fb := fbs.GetRootAsArtefactMetaFB(data, 0)
 	return convertArtefactMetaFB(fb)
@@ -61,18 +74,18 @@ func convertArtefactMetaFB(fb *fbs.ArtefactMetaFB) *registry_dto.ArtefactMeta {
 
 	variantCount := fb.VariantsLength()
 	if variantCount > 0 {
-		art.ActualVariants = make([]registry_dto.Variant, variantCount)
+		art.ActualVariants = make([]registry_dto.Variant, 0, min(variantCount, maxFBVectorPrealloc))
 		var variantFB fbs.VariantFB
 		for i := range variantCount {
 			if fb.Variants(&variantFB, i) {
-				art.ActualVariants[i] = convertVariantFB(&variantFB)
+				art.ActualVariants = append(art.ActualVariants, convertVariantFB(&variantFB))
 			}
 		}
 	}
 
 	profileCount := fb.ProfilesLength()
 	if profileCount > 0 {
-		art.DesiredProfiles = make([]registry_dto.NamedProfile, 0, profileCount)
+		art.DesiredProfiles = make([]registry_dto.NamedProfile, 0, min(profileCount, maxFBVectorPrealloc))
 		var profileFB fbs.DesiredProfileFB
 		for i := range profileCount {
 			if fb.Profiles(&profileFB, i) {
@@ -101,6 +114,14 @@ func convertVariantFB(fb *fbs.VariantFB) registry_dto.Variant {
 		Status:           registry_dto.VariantStatus(mem.String(fb.Status())),
 		ContentHash:      mem.String(fb.ContentHash()),
 		CreatedAt:        time.Unix(fb.CreatedAt(), 0),
+		Origin:           registry_dto.VariantOrigin(mem.String(fb.Origin())),
+		BuildRelease:     mem.String(fb.BuildRelease()),
+		BuildHash:        mem.String(fb.BuildHash()),
+		InputFingerprint: mem.String(fb.InputFingerprint()),
+		SRIHash:          mem.String(fb.SriHash()),
+		Producer:         producerFromFB(fb.Producer()),
+		Kind:             kindFromFB(fb.Kind()),
+		Transform:        convertVariantTransformFB(fb),
 	}
 
 	tagCount := fb.MetadataTagsLength()
@@ -115,16 +136,51 @@ func convertVariantFB(fb *fbs.VariantFB) registry_dto.Variant {
 
 	chunkCount := fb.ChunksLength()
 	if chunkCount > 0 {
-		v.Chunks = make([]registry_dto.VariantChunk, chunkCount)
+		v.Chunks = make([]registry_dto.VariantChunk, 0, min(chunkCount, maxFBVectorPrealloc))
 		var chunkFB fbs.VariantChunkFB
 		for i := range chunkCount {
 			if fb.Chunks(&chunkFB, i) {
-				v.Chunks[i] = convertVariantChunkFB(&chunkFB)
+				v.Chunks = append(v.Chunks, convertVariantChunkFB(&chunkFB))
 			}
 		}
 	}
 
 	return v
+}
+
+// convertVariantTransformFB reads a variant's derivation recipe back from FlatBuffers.
+//
+// It returns the zero transform when the variant carries none (a source variant), so a
+// source's transform round-trips as empty rather than as a partly populated struct.
+//
+// Takes fb (*fbs.VariantFB) which is the variant to read the transform from.
+//
+// Returns registry_dto.VariantTransform which is the derivation recipe, or the zero
+// value.
+func convertVariantTransformFB(fb *fbs.VariantFB) registry_dto.VariantTransform {
+	var transformFB fbs.VariantTransformFB
+	if fb.Transform(&transformFB) == nil {
+		return registry_dto.VariantTransform{}
+	}
+
+	transform := registry_dto.VariantTransform{
+		ParentVariantID:   mem.String(transformFB.ParentVariantId()),
+		ParentContentHash: mem.String(transformFB.ParentContentHash()),
+		CapabilityName:    mem.String(transformFB.CapabilityName()),
+		CapabilityVersion: transformFB.CapabilityVersion(),
+	}
+
+	paramCount := transformFB.ParamsLength()
+	if paramCount > 0 {
+		var kvFB fbs.KeyValueFB
+		for i := range paramCount {
+			if transformFB.Params(&kvFB, i) {
+				transform.Params.SetByName(mem.String(kvFB.Key()), mem.String(kvFB.Value()))
+			}
+		}
+	}
+
+	return transform
 }
 
 // convertVariantChunkFB converts a FlatBuffers variant chunk to a DTO.
@@ -192,4 +248,33 @@ func convertDesiredProfileFB(fb *fbs.DesiredProfileFB) registry_dto.NamedProfile
 	}
 
 	return np
+}
+
+// producerFromFB reinterprets a FlatBuffers int8 producer enum as its DTO counterpart.
+// The two enums share the value set {0, 1, 2}, so a valid producer always fits; a
+// negative value, only reachable from a corrupt buffer, becomes the unknown producer
+// rather than wrapping to a large unrelated one.
+//
+// Takes producer (fbs.VariantProducerFB) which is the FlatBuffers producer enum.
+//
+// Returns registry_dto.VariantProducer which is the DTO producer enum.
+func producerFromFB(producer fbs.VariantProducerFB) registry_dto.VariantProducer {
+	if producer < 0 {
+		return registry_dto.ProducerUnknown
+	}
+	return registry_dto.VariantProducer(producer)
+}
+
+// kindFromFB reinterprets a FlatBuffers int8 kind enum as its DTO counterpart. The two
+// enums share the value set {0, 1, 2}, so a valid kind always fits; a negative value,
+// only reachable from a corrupt buffer, becomes the unknown kind rather than wrapping.
+//
+// Takes kind (fbs.VariantKindFB) which is the FlatBuffers kind enum.
+//
+// Returns registry_dto.VariantKind which is the DTO kind enum.
+func kindFromFB(kind fbs.VariantKindFB) registry_dto.VariantKind {
+	if kind < 0 {
+		return registry_dto.KindUnknown
+	}
+	return registry_dto.VariantKind(kind)
 }

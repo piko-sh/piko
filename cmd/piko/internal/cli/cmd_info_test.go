@@ -22,9 +22,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
@@ -151,9 +152,7 @@ func TestInfoSystem(t *testing.T) {
 
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -209,16 +208,12 @@ func TestInfoBuild(t *testing.T) {
 			output := buffer.String()
 
 			if tc.wantNone {
-				if output != "" {
-					t.Errorf("expected no output for nil build, got:\n%s", output)
-				}
+				assert.Empty(t, output, "expected no output for nil build, got:\n%s", output)
 				return
 			}
 
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -264,16 +259,12 @@ func TestInfoRuntime(t *testing.T) {
 			output := buffer.String()
 
 			if tc.wantNone {
-				if output != "" {
-					t.Errorf("expected no output for nil runtime, got:\n%s", output)
-				}
+				assert.Empty(t, output, "expected no output for nil runtime, got:\n%s", output)
 				return
 			}
 
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -330,16 +321,12 @@ func TestInfoMemory(t *testing.T) {
 			output := buffer.String()
 
 			if tc.wantNone {
-				if output != "" {
-					t.Errorf("expected no output for nil memory, got:\n%s", output)
-				}
+				assert.Empty(t, output, "expected no output for nil memory, got:\n%s", output)
 				return
 			}
 
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -402,16 +389,12 @@ func TestInfoGC(t *testing.T) {
 			output := buffer.String()
 
 			if tc.wantNone {
-				if output != "" {
-					t.Errorf("expected no output for nil GC, got:\n%s", output)
-				}
+				assert.Empty(t, output, "expected no output for nil GC, got:\n%s", output)
 				return
 			}
 
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -470,16 +453,12 @@ func TestInfoProcess(t *testing.T) {
 			output := buffer.String()
 
 			if tc.wantNone {
-				if output != "" {
-					t.Errorf("expected no output for nil process, got:\n%s", output)
-				}
+				assert.Empty(t, output, "expected no output for nil process, got:\n%s", output)
 				return
 			}
 
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -543,9 +522,7 @@ func TestInfoOverview(t *testing.T) {
 
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -633,18 +610,12 @@ func TestRunInfo(t *testing.T) {
 
 			err := runInfo(context.Background(), cc, tc.arguments)
 
-			if tc.wantErr && err == nil {
-				t.Fatal("expected error, got nil")
-			}
-			if !tc.wantErr && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.False(t, tc.wantErr && err == nil, "expected error, got nil")
+			require.False(t, !tc.wantErr && err != nil, "unexpected error: %v", err)
 
 			output := stdout.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -663,7 +634,5 @@ func TestRunInfoError(t *testing.T) {
 
 	cc, _, _ := newTestCC(conn)
 	err := runInfo(context.Background(), cc, nil)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
+	require.Error(t, err, "expected error, got nil")
 }

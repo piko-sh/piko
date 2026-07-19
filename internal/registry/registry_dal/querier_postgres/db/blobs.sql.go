@@ -2,12 +2,17 @@
 
 package db
 
-import "context"
+import (
+	"context"
+	"database/sql"
+	"errors"
+)
 
 const decrementblobrefcount = `UPDATE registry_blob_reference
 SET ref_count = ref_count - 1,
     last_referenced_at = $1
 WHERE storage_key = $2
+  AND ref_count > 0
 RETURNING ref_count;`
 
 type DecrementBlobRefCountParams struct {
@@ -18,16 +23,19 @@ type DecrementBlobRefCountRow struct {
 	RefCount int32 `json:"ref_count"`
 }
 
-func (queries *Queries) DecrementBlobRefCount(ctx context.Context, params DecrementBlobRefCountParams) (DecrementBlobRefCountRow, error) {
+func (queries *Queries) DecrementBlobRefCount(ctx context.Context, params DecrementBlobRefCountParams) (DecrementBlobRefCountRow, bool, error) {
 	var row DecrementBlobRefCountRow
 	err := queries.writer.QueryRowContext(ctx, decrementblobrefcount, params.LastReferencedAt, params.StorageKey).Scan(&row.RefCount)
-	if err != nil {
-		return DecrementBlobRefCountRow{}, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return DecrementBlobRefCountRow{}, false, nil
 	}
-	return row, nil
+	if err != nil {
+		return DecrementBlobRefCountRow{}, false, err
+	}
+	return row, true, nil
 }
 
-const deleteblobreferenceifzero = `DELETE FROM registry_blob_reference WHERE storage_key = $1 AND ref_count = 0;`
+const deleteblobreferenceifzero = `DELETE FROM registry_blob_reference WHERE storage_key = $1 AND ref_count <= 0;`
 
 func (queries *Queries) DeleteBlobReferenceIfZero(ctx context.Context, storageKey string) error {
 	_, err := queries.writer.ExecContext(ctx, deleteblobreferenceifzero, storageKey)
@@ -40,13 +48,16 @@ type GetBlobRefCountRow struct {
 	RefCount int32 `json:"ref_count"`
 }
 
-func (queries *Queries) GetBlobRefCount(ctx context.Context, storageKey string) (GetBlobRefCountRow, error) {
+func (queries *Queries) GetBlobRefCount(ctx context.Context, storageKey string) (GetBlobRefCountRow, bool, error) {
 	var row GetBlobRefCountRow
 	err := queries.reader.QueryRowContext(ctx, getblobrefcount, storageKey).Scan(&row.RefCount)
-	if err != nil {
-		return GetBlobRefCountRow{}, err
+	if errors.Is(err, sql.ErrNoRows) {
+		return GetBlobRefCountRow{}, false, nil
 	}
-	return row, nil
+	if err != nil {
+		return GetBlobRefCountRow{}, false, err
+	}
+	return row, true, nil
 }
 
 const incrementblobrefcount = `INSERT INTO registry_blob_reference (storage_key, storage_backend_id, content_hash, size_bytes, mime_type, ref_count, created_at, last_referenced_at)

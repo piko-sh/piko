@@ -15,9 +15,9 @@ You're just a few steps away from running your application.
 Before you can run the server, you need to run the Piko generator. This command compiles your `.pk` and `.pkc` files into optimised Go packages and JavaScript assets.
 
 ```bash
-go run ./cmd/generator/main.go all
+piko generate
 ```
-*You only need to run this once initially. The development server will handle re-builds for you after this.*
+*You only need to run this once initially. The development server will handle re-builds for you after this. (Without the piko CLI, `go run ./cmd/generator/main.go all` is equivalent.)*
 
 ### 2. Start the development server
 
@@ -37,11 +37,13 @@ Navigate to this URL in your browser. You should see the "Welcome to Piko" page.
 
 -   **`air`**: Starts the development server with live reloading. This is your primary command for development. It automatically re-runs the generator and rebuilds your main application when you save a file.
 
--   **`go run ./cmd/generator/main.go all`**: Manually runs the Piko asset generator. You'll need to run this as part of your build process for production deployments.
+-   **`piko generate`**: Manually runs the Piko asset generator (equivalent to `go run ./cmd/generator/main.go all`).
 
--   **`go run ./cmd/main/main.go`**: Starts the Piko web server without the live-reloading wrapper.
+-   **`piko build`**: Generates assets and compiles a self-contained production binary to `bin/app` (the manifest, pages, collections, blobs, and registry snapshot are embedded). Use `--no-embed` for a binary that serves `dist/` and `.piko/` from disk instead.
 
--   **`go run ./cmd/main/main.go prod`**: Starts the Piko web server in production mode.
+-   **`piko dev`**: Generates assets and starts the dev server without the live-reloading wrapper.
+
+-   **`go run ./cmd/main/main.go prod`**: Starts the Piko web server in production mode from files on disk.
 
 -   **`piko fmt -w -r .`**: Formats all `.pk` template files in your project.
 

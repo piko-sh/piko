@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 )
@@ -42,18 +44,12 @@ func TestStringKeyCodec_RoundTrip(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			encoded, err := codec.EncodeKey(tc.key)
-			if err != nil {
-				t.Fatalf("EncodeKey failed: %v", err)
-			}
+			require.NoError(t, err, "EncodeKey failed")
 
 			decoded, err := codec.DecodeKey(encoded)
-			if err != nil {
-				t.Fatalf("DecodeKey failed: %v", err)
-			}
+			require.NoError(t, err, "DecodeKey failed")
 
-			if decoded != tc.key {
-				t.Errorf("round-trip failed: got %q, want %q", decoded, tc.key)
-			}
+			assert.Equal(t, tc.key, decoded, "round-trip failed: got %q, want %q", decoded, tc.key)
 		})
 	}
 }
@@ -122,32 +118,22 @@ func TestArtefactMetaCodec_RoundTrip(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			encoded, err := codec.EncodeValue(tc.artefact)
-			if err != nil {
-				t.Fatalf("EncodeValue failed: %v", err)
-			}
+			require.NoError(t, err, "EncodeValue failed")
 
 			decoded, err := codec.DecodeValue(encoded)
-			if err != nil {
-				t.Fatalf("DecodeValue failed: %v", err)
-			}
+			require.NoError(t, err, "DecodeValue failed")
 
-			if decoded.ID != tc.artefact.ID {
-				t.Errorf("ID mismatch: got %q, want %q", decoded.ID, tc.artefact.ID)
-			}
-			if decoded.SourcePath != tc.artefact.SourcePath {
-				t.Errorf("SourcePath mismatch: got %q, want %q", decoded.SourcePath, tc.artefact.SourcePath)
-			}
-			if decoded.Status != tc.artefact.Status {
-				t.Errorf("Status mismatch: got %v, want %v", decoded.Status, tc.artefact.Status)
-			}
-			if len(decoded.ActualVariants) != len(tc.artefact.ActualVariants) {
-				t.Errorf("ActualVariants length mismatch: got %d, want %d",
-					len(decoded.ActualVariants), len(tc.artefact.ActualVariants))
-			}
-			if len(decoded.DesiredProfiles) != len(tc.artefact.DesiredProfiles) {
-				t.Errorf("DesiredProfiles length mismatch: got %d, want %d",
-					len(decoded.DesiredProfiles), len(tc.artefact.DesiredProfiles))
-			}
+			assert.Equal(t, tc.artefact.ID, decoded.ID, "ID mismatch: got %q, want %q", decoded.ID, tc.artefact.ID)
+			assert.Equal(t, tc.artefact.SourcePath, decoded.SourcePath,
+				"SourcePath mismatch: got %q, want %q", decoded.SourcePath, tc.artefact.SourcePath)
+			assert.Equal(t, tc.artefact.Status, decoded.Status,
+				"Status mismatch: got %v, want %v", decoded.Status, tc.artefact.Status)
+			assert.Len(t, decoded.ActualVariants, len(tc.artefact.ActualVariants),
+				"ActualVariants length mismatch: got %d, want %d",
+				len(decoded.ActualVariants), len(tc.artefact.ActualVariants))
+			assert.Len(t, decoded.DesiredProfiles, len(tc.artefact.DesiredProfiles),
+				"DesiredProfiles length mismatch: got %d, want %d",
+				len(decoded.DesiredProfiles), len(tc.artefact.DesiredProfiles))
 		})
 	}
 }
@@ -156,18 +142,12 @@ func TestArtefactMetaCodec_NilArtefact(t *testing.T) {
 	codec := ArtefactMetaCodec{}
 
 	encoded, err := codec.EncodeValue(nil)
-	if err != nil {
-		t.Fatalf("EncodeValue(nil) failed: %v", err)
-	}
+	require.NoError(t, err, "EncodeValue(nil) failed")
 
 	decoded, err := codec.DecodeValue(encoded)
-	if err != nil {
-		t.Fatalf("DecodeValue failed: %v", err)
-	}
+	require.NoError(t, err, "DecodeValue failed")
 
-	if decoded == nil {
-		t.Error("decoded should not be nil for null JSON")
-	}
+	assert.NotNil(t, decoded, "decoded should not be nil for null JSON")
 }
 
 func TestTaskCodec_RoundTrip(t *testing.T) {
@@ -246,38 +226,26 @@ func TestTaskCodec_RoundTrip(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			encoded, err := codec.EncodeValue(tc.task)
-			if err != nil {
-				t.Fatalf("EncodeValue failed: %v", err)
-			}
+			require.NoError(t, err, "EncodeValue failed")
 
 			decoded, err := codec.DecodeValue(encoded)
-			if err != nil {
-				t.Fatalf("DecodeValue failed: %v", err)
-			}
+			require.NoError(t, err, "DecodeValue failed")
 
-			if decoded.ID != tc.task.ID {
-				t.Errorf("ID mismatch: got %q, want %q", decoded.ID, tc.task.ID)
-			}
-			if decoded.WorkflowID != tc.task.WorkflowID {
-				t.Errorf("WorkflowID mismatch: got %q, want %q", decoded.WorkflowID, tc.task.WorkflowID)
-			}
-			if decoded.Executor != tc.task.Executor {
-				t.Errorf("Executor mismatch: got %q, want %q", decoded.Executor, tc.task.Executor)
-			}
-			if decoded.Status != tc.task.Status {
-				t.Errorf("Status mismatch: got %v, want %v", decoded.Status, tc.task.Status)
-			}
-			if decoded.Attempt != tc.task.Attempt {
-				t.Errorf("Attempt mismatch: got %d, want %d", decoded.Attempt, tc.task.Attempt)
-			}
-			if decoded.DeduplicationKey != tc.task.DeduplicationKey {
-				t.Errorf("DeduplicationKey mismatch: got %q, want %q",
-					decoded.DeduplicationKey, tc.task.DeduplicationKey)
-			}
-			if decoded.Config.Priority != tc.task.Config.Priority {
-				t.Errorf("Config.Priority mismatch: got %v, want %v",
-					decoded.Config.Priority, tc.task.Config.Priority)
-			}
+			assert.Equal(t, tc.task.ID, decoded.ID, "ID mismatch: got %q, want %q", decoded.ID, tc.task.ID)
+			assert.Equal(t, tc.task.WorkflowID, decoded.WorkflowID,
+				"WorkflowID mismatch: got %q, want %q", decoded.WorkflowID, tc.task.WorkflowID)
+			assert.Equal(t, tc.task.Executor, decoded.Executor,
+				"Executor mismatch: got %q, want %q", decoded.Executor, tc.task.Executor)
+			assert.Equal(t, tc.task.Status, decoded.Status,
+				"Status mismatch: got %v, want %v", decoded.Status, tc.task.Status)
+			assert.Equal(t, tc.task.Attempt, decoded.Attempt,
+				"Attempt mismatch: got %d, want %d", decoded.Attempt, tc.task.Attempt)
+			assert.Equal(t, tc.task.DeduplicationKey, decoded.DeduplicationKey,
+				"DeduplicationKey mismatch: got %q, want %q",
+				decoded.DeduplicationKey, tc.task.DeduplicationKey)
+			assert.Equal(t, tc.task.Config.Priority, decoded.Config.Priority,
+				"Config.Priority mismatch: got %v, want %v",
+				decoded.Config.Priority, tc.task.Config.Priority)
 		})
 	}
 }
@@ -286,34 +254,24 @@ func TestTaskCodec_NilTask(t *testing.T) {
 	codec := TaskCodec{}
 
 	encoded, err := codec.EncodeValue(nil)
-	if err != nil {
-		t.Fatalf("EncodeValue(nil) failed: %v", err)
-	}
+	require.NoError(t, err, "EncodeValue(nil) failed")
 
 	decoded, err := codec.DecodeValue(encoded)
-	if err != nil {
-		t.Fatalf("DecodeValue failed: %v", err)
-	}
+	require.NoError(t, err, "DecodeValue failed")
 
-	if decoded == nil {
-		t.Error("decoded should not be nil for null JSON")
-	}
+	assert.NotNil(t, decoded, "decoded should not be nil for null JSON")
 }
 
 func TestTaskCodec_InvalidJSON(t *testing.T) {
 	codec := TaskCodec{}
 
 	_, err := codec.DecodeValue([]byte("not valid json"))
-	if err == nil {
-		t.Error("DecodeValue should fail for invalid JSON")
-	}
+	assert.Error(t, err, "DecodeValue should fail for invalid JSON")
 }
 
 func TestArtefactMetaCodec_InvalidJSON(t *testing.T) {
 	codec := ArtefactMetaCodec{}
 
 	_, err := codec.DecodeValue([]byte("not valid json"))
-	if err == nil {
-		t.Error("DecodeValue should fail for invalid JSON")
-	}
+	assert.Error(t, err, "DecodeValue should fail for invalid JSON")
 }

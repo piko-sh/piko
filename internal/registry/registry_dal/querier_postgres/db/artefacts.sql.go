@@ -2,45 +2,116 @@
 
 package db
 
-import "context"
+import (
+	"context"
+	"database/sql"
+	"errors"
+)
 
-const deleteartefact = `DELETE FROM registry_artefact WHERE id = $1;`
+const deleteartefact = `DELETE FROM registry_artefact WHERE id = $1 AND release_id = '';`
 
 func (queries *Queries) DeleteArtefact(ctx context.Context, id string) error {
 	_, err := queries.writer.ExecContext(ctx, deleteartefact, id)
 	return err
 }
 
-const getartefact = `SELECT id, source_path, created_at, updated_at, data_fbs
+const deleteartefactlayer = `DELETE FROM registry_artefact WHERE id = $1 AND release_id = $2;`
+
+type DeleteArtefactLayerParams struct {
+	ID        string
+	ReleaseID string
+}
+
+func (queries *Queries) DeleteArtefactLayer(ctx context.Context, params DeleteArtefactLayerParams) error {
+	_, err := queries.writer.ExecContext(ctx, deleteartefactlayer, params.ID, params.ReleaseID)
+	return err
+}
+
+const deleteartefactlayersforrelease = `DELETE FROM registry_artefact WHERE release_id = $1;`
+
+func (queries *Queries) DeleteArtefactLayersForRelease(ctx context.Context, releaseID string) error {
+	_, err := queries.writer.ExecContext(ctx, deleteartefactlayersforrelease, releaseID)
+	return err
+}
+
+const getartefact = `SELECT release_id, source_path, created_at, updated_at, data_fbs
 FROM registry_artefact
-WHERE id = $1;`
+WHERE id = $1
+ORDER BY release_id;`
 
 type GetArtefactRow struct {
-	ID         string `json:"id"`
+	ReleaseID  string `json:"release_id"`
 	SourcePath string `json:"source_path"`
 	CreatedAt  int64  `json:"created_at"`
 	UpdatedAt  int64  `json:"updated_at"`
 	DataFbs    []byte `json:"data_fbs"`
 }
 
-func (queries *Queries) GetArtefact(ctx context.Context, id string) (GetArtefactRow, error) {
-	var row GetArtefactRow
-	err := queries.reader.QueryRowContext(ctx, getartefact, id).Scan(&row.ID, &row.SourcePath, &row.CreatedAt, &row.UpdatedAt, &row.DataFbs)
+func (queries *Queries) GetArtefact(ctx context.Context, id string) ([]GetArtefactRow, error) {
+	rows, err := queries.reader.QueryContext(ctx, getartefact, id)
 	if err != nil {
-		return GetArtefactRow{}, err
+		return nil, err
 	}
-	return row, nil
+	defer rows.Close()
+	var results []GetArtefactRow
+	for rows.Next() {
+		var row GetArtefactRow
+		if err := rows.Scan(&row.ReleaseID, &row.SourcePath, &row.CreatedAt, &row.UpdatedAt, &row.DataFbs); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
-const getmultipleartefacts = `SELECT id, source_path, created_at, updated_at, data_fbs
+const getartefactforupdate = `SELECT release_id, source_path, created_at, updated_at, data_fbs
 FROM registry_artefact
-WHERE id IN ($1);`
+WHERE id = $1
+ORDER BY release_id
+FOR UPDATE;`
+
+type GetArtefactForUpdateRow struct {
+	ReleaseID  string `json:"release_id"`
+	SourcePath string `json:"source_path"`
+	CreatedAt  int64  `json:"created_at"`
+	UpdatedAt  int64  `json:"updated_at"`
+	DataFbs    []byte `json:"data_fbs"`
+}
+
+func (queries *Queries) GetArtefactForUpdate(ctx context.Context, id string) ([]GetArtefactForUpdateRow, error) {
+	rows, err := queries.writer.QueryContext(ctx, getartefactforupdate, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []GetArtefactForUpdateRow
+	for rows.Next() {
+		var row GetArtefactForUpdateRow
+		if err := rows.Scan(&row.ReleaseID, &row.SourcePath, &row.CreatedAt, &row.UpdatedAt, &row.DataFbs); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+const getmultipleartefacts = `SELECT id, release_id, source_path, created_at, updated_at, data_fbs
+FROM registry_artefact
+WHERE id IN ($1)
+ORDER BY id, release_id;`
 
 type GetMultipleArtefactsParams struct {
 	IDs []string
 }
 type GetMultipleArtefactsRow struct {
 	ID         string `json:"id"`
+	ReleaseID  string `json:"release_id"`
 	SourcePath string `json:"source_path"`
 	CreatedAt  int64  `json:"created_at"`
 	UpdatedAt  int64  `json:"updated_at"`
@@ -64,7 +135,7 @@ func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMult
 	var results []GetMultipleArtefactsRow
 	for rows.Next() {
 		var row GetMultipleArtefactsRow
-		if err := rows.Scan(&row.ID, &row.SourcePath, &row.CreatedAt, &row.UpdatedAt, &row.DataFbs); err != nil {
+		if err := rows.Scan(&row.ID, &row.ReleaseID, &row.SourcePath, &row.CreatedAt, &row.UpdatedAt, &row.DataFbs); err != nil {
 			return nil, err
 		}
 		results = append(results, row)
@@ -75,7 +146,36 @@ func (queries *Queries) GetMultipleArtefacts(ctx context.Context, params GetMult
 	return results, nil
 }
 
-const listallartefactids = `SELECT id FROM registry_artefact;`
+const insertartefactlayerifabsent = `INSERT INTO registry_artefact (id, release_id, source_path, created_at, updated_at, data_fbs)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT(id, release_id) DO NOTHING
+RETURNING id;`
+
+type InsertArtefactLayerIfAbsentParams struct {
+	ID         string
+	ReleaseID  string
+	SourcePath string
+	CreatedAt  int64
+	UpdatedAt  int64
+	DataFbs    []byte
+}
+type InsertArtefactLayerIfAbsentRow struct {
+	ID string `json:"id"`
+}
+
+func (queries *Queries) InsertArtefactLayerIfAbsent(ctx context.Context, params InsertArtefactLayerIfAbsentParams) (InsertArtefactLayerIfAbsentRow, bool, error) {
+	var row InsertArtefactLayerIfAbsentRow
+	err := queries.writer.QueryRowContext(ctx, insertartefactlayerifabsent, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs).Scan(&row.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return InsertArtefactLayerIfAbsentRow{}, false, nil
+	}
+	if err != nil {
+		return InsertArtefactLayerIfAbsentRow{}, false, err
+	}
+	return row, true, nil
+}
+
+const listallartefactids = `SELECT DISTINCT id FROM registry_artefact;`
 
 type ListAllArtefactIDsRow struct {
 	ID string `json:"id"`
@@ -101,15 +201,46 @@ func (queries *Queries) ListAllArtefactIDs(ctx context.Context) ([]ListAllArtefa
 	return results, nil
 }
 
-const upsertartefact = `INSERT INTO registry_artefact (id, source_path, created_at, updated_at, data_fbs)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT(id) DO UPDATE SET
+const reclaimartefactlayersforrelease = `DELETE FROM registry_artefact
+WHERE release_id = $1
+RETURNING id, release_id, data_fbs;`
+
+type ReclaimArtefactLayersForReleaseRow struct {
+	ID        string `json:"id"`
+	ReleaseID string `json:"release_id"`
+	DataFbs   []byte `json:"data_fbs"`
+}
+
+func (queries *Queries) ReclaimArtefactLayersForRelease(ctx context.Context, releaseID string) ([]ReclaimArtefactLayersForReleaseRow, error) {
+	rows, err := queries.writer.QueryContext(ctx, reclaimartefactlayersforrelease, releaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var results []ReclaimArtefactLayersForReleaseRow
+	for rows.Next() {
+		var row ReclaimArtefactLayersForReleaseRow
+		if err := rows.Scan(&row.ID, &row.ReleaseID, &row.DataFbs); err != nil {
+			return nil, err
+		}
+		results = append(results, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+const upsertartefact = `INSERT INTO registry_artefact (id, release_id, source_path, created_at, updated_at, data_fbs)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT(id, release_id) DO UPDATE SET
   source_path = EXCLUDED.source_path,
   updated_at = EXCLUDED.updated_at,
   data_fbs = EXCLUDED.data_fbs;`
 
 type UpsertArtefactParams struct {
 	ID         string
+	ReleaseID  string
 	SourcePath string
 	CreatedAt  int64
 	UpdatedAt  int64
@@ -117,6 +248,6 @@ type UpsertArtefactParams struct {
 }
 
 func (queries *Queries) UpsertArtefact(ctx context.Context, params UpsertArtefactParams) error {
-	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.ID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs)
+	_, err := queries.writer.ExecContext(ctx, upsertartefact, params.ID, params.ReleaseID, params.SourcePath, params.CreatedAt, params.UpdatedAt, params.DataFbs)
 	return err
 }

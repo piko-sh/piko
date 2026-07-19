@@ -53,6 +53,14 @@ func main() {
 			os.Exit(cli.RunBytecode(os.Args[2:]))
 		case "profile":
 			os.Exit(cli.RunProfile(os.Args[2:]))
+		case "generate":
+			os.Exit(cli.RunGenerate(os.Args[2:]))
+		case "build":
+			os.Exit(cli.RunBuild(os.Args[2:]))
+		case "dev":
+			os.Exit(cli.RunDev(os.Args[2:]))
+		case "dev-i":
+			os.Exit(cli.RunDevInterpreted(os.Args[2:]))
 		case "get", "describe", "info", "watch", "diagnostics", "tui", "profiling", "watchdog":
 			os.Exit(cli.RunCommand(subcommand, os.Args[2:]))
 		case "version", "--version":
@@ -122,6 +130,10 @@ Usage:
 func printUsageCommands() {
 	_, _ = fmt.Fprint(os.Stderr, `Project Commands:
   new           Create a new Piko project (interactive wizard)
+  generate      Generate assets and the manifest (go run ./cmd/generator all)
+  build         Generate then compile a self-contained production binary (--no-embed for file-based)
+  dev           Generate then run the dev server
+  dev-i         Generate then run the dev server in interpreted mode
   fmt           Format Piko template files (.pk)
   extract       Extract Go package symbols for the bytecode interpreter
   inspect       Inspect FlatBuffers binary files (manifest, i18n, collection, search, bytecode)

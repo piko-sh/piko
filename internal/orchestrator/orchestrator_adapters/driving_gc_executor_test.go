@@ -100,6 +100,48 @@ func TestGCExecutor_Hints_DeletesBlobs(t *testing.T) {
 	assert.Equal(t, []string{"source/abc.pkc", "generated/def.js"}, deletedKeys)
 }
 
+func TestGCExecutor_Hints_SkipsReReferencedBlob(t *testing.T) {
+	t.Parallel()
+
+	blobStore := &registry_domain.MockBlobStore{}
+	var deletedKeys []string
+	blobStore.DeleteFunc = func(_ context.Context, key string) error {
+		deletedKeys = append(deletedKeys, key)
+		return nil
+	}
+
+	registry := &registry_domain.MockRegistryService{
+		PopGCHintsFunc: func(_ context.Context, _ int) ([]registry_dto.GCHint, error) {
+			return []registry_dto.GCHint{
+				{BackendID: "local_disk_cache", StorageKey: "still-referenced"},
+				{BackendID: "local_disk_cache", StorageKey: "truly-orphaned"},
+			}, nil
+		},
+		GetBlobStoreFunc: func(_ string) (registry_domain.BlobStore, error) {
+			return blobStore, nil
+		},
+		GetBlobRefCountFunc: func(_ context.Context, storageKey string) (int, error) {
+			if storageKey == "still-referenced" {
+				return 1, nil
+			}
+			return 0, nil
+		},
+	}
+
+	orcService := &orchestrator_domain.MockOrchestratorService{}
+	executor := NewGCExecutor(registry, orcService)
+
+	result, err := executor.Execute(context.Background(), map[string]any{
+		"mode":               "hints",
+		"batch_size":         100,
+		"reschedule_seconds": 30,
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, result["deleted_count"], "only the truly-orphaned blob is deleted")
+	assert.Equal(t, []string{"truly-orphaned"}, deletedKeys, "a blob referenced again since its hint must not be deleted")
+}
+
 func TestGCExecutor_Hints_EmptyBatch(t *testing.T) {
 	t.Parallel()
 
@@ -151,15 +193,18 @@ func TestGCExecutor_Hints_FullBatch_ReschedulesImmediately(t *testing.T) {
 
 	executor := NewGCExecutor(registry, orcService)
 
+	before := time.Now()
 	_, err := executor.Execute(context.Background(), map[string]any{
 		"mode":               "hints",
 		"batch_size":         batchSize,
 		"reschedule_seconds": 300,
 	})
+	after := time.Now()
 
 	require.NoError(t, err)
 
-	assert.WithinDuration(t, time.Now(), scheduledAt, 1*time.Second)
+	assert.False(t, scheduledAt.Before(before), "a full batch must reschedule immediately, not after the configured delay")
+	assert.False(t, scheduledAt.After(after), "an immediate reschedule cannot be in the future")
 }
 
 func TestGCExecutor_Hints_DeleteError_ContinuesProcessing(t *testing.T) {
@@ -489,4 +534,92 @@ func TestGCExecutor_Reschedule_SetsDeduplicationKey(t *testing.T) {
 	assert.Equal(t, "blob.gc.hints", scheduledTask.DeduplicationKey)
 	assert.Equal(t, orchestrator_domain.PriorityLow, scheduledTask.Config.Priority)
 	assert.Equal(t, ExecutorNameBlobGC, scheduledTask.Executor)
+}
+
+type agelessBlobStore struct {
+	registry_domain.BlobStore
+}
+
+func TestGCExecutor_Orphans_SparesYoungBlobs(t *testing.T) {
+	t.Parallel()
+
+	blobStore := &registry_domain.MockBlobStore{
+		ListKeysFunc: func(_ context.Context) ([]string, error) {
+			return []string{"source/young-orphan.pkc", "source/old-orphan.pkc"}, nil
+		},
+		StatKeyFunc: func(_ context.Context, key string) (time.Time, error) {
+			if key == "source/young-orphan.pkc" {
+				return time.Now(), nil
+			}
+			return time.Now().Add(-2 * time.Hour), nil
+		},
+	}
+	var deletedKeys []string
+	blobStore.DeleteFunc = func(_ context.Context, key string) error {
+		deletedKeys = append(deletedKeys, key)
+		return nil
+	}
+
+	registry := &registry_domain.MockRegistryService{
+		ListAllArtefactIDsFunc: func(_ context.Context) ([]string, error) {
+			return nil, nil
+		},
+		GetMultipleArtefactsFunc: func(_ context.Context, _ []string) ([]*registry_dto.ArtefactMeta, error) {
+			return nil, nil
+		},
+		ListBlobStoreIDsFunc: func() []string {
+			return []string{"local_disk_cache"}
+		},
+		GetBlobStoreFunc: func(_ string) (registry_domain.BlobStore, error) {
+			return blobStore, nil
+		},
+	}
+	executor := NewGCExecutor(registry, &orchestrator_domain.MockOrchestratorService{})
+
+	result, err := executor.Execute(context.Background(), map[string]any{"mode": "orphans"})
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, result["deleted_count"], "only the old orphan is deleted")
+	assert.Equal(t, []string{"source/old-orphan.pkc"}, deletedKeys, "a freshly written blob must be spared: its metadata commit may still be in flight")
+}
+
+func TestGCExecutor_Orphans_TwoScanGraceWithoutModificationTimes(t *testing.T) {
+	t.Parallel()
+
+	inner := &registry_domain.MockBlobStore{
+		ListKeysFunc: func(_ context.Context) ([]string, error) {
+			return []string{"source/orphan.pkc"}, nil
+		},
+	}
+	var deletedKeys []string
+	inner.DeleteFunc = func(_ context.Context, key string) error {
+		deletedKeys = append(deletedKeys, key)
+		return nil
+	}
+	blobStore := &agelessBlobStore{BlobStore: inner}
+
+	registry := &registry_domain.MockRegistryService{
+		ListAllArtefactIDsFunc: func(_ context.Context) ([]string, error) {
+			return nil, nil
+		},
+		GetMultipleArtefactsFunc: func(_ context.Context, _ []string) ([]*registry_dto.ArtefactMeta, error) {
+			return nil, nil
+		},
+		ListBlobStoreIDsFunc: func() []string {
+			return []string{"local_disk_cache"}
+		},
+		GetBlobStoreFunc: func(_ string) (registry_domain.BlobStore, error) {
+			return blobStore, nil
+		},
+	}
+	executor := NewGCExecutor(registry, &orchestrator_domain.MockOrchestratorService{})
+
+	first, err := executor.Execute(context.Background(), map[string]any{"mode": "orphans"})
+	require.NoError(t, err)
+	assert.Equal(t, 0, first["deleted_count"], "the first scan only records the candidate")
+	assert.Empty(t, deletedKeys, "no deletion may happen on first sight without a modification time")
+
+	second, err := executor.Execute(context.Background(), map[string]any{"mode": "orphans"})
+	require.NoError(t, err)
+	assert.Equal(t, 0, second["deleted_count"], "a second scan inside the grace window still spares the candidate")
 }

@@ -23,9 +23,10 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/safeerror"
 )
@@ -63,9 +64,7 @@ func TestNewSSEStream(t *testing.T) {
 		done := make(chan struct{})
 		stream := NewSSEStream(w, done, "")
 
-		if stream == nil {
-			t.Fatal("expected non-nil SSEStream")
-		}
+		require.NotNil(t, stream, "expected non-nil SSEStream")
 	})
 
 	t.Run("NotFlusher", func(t *testing.T) {
@@ -75,9 +74,7 @@ func TestNewSSEStream(t *testing.T) {
 		done := make(chan struct{})
 		stream := NewSSEStream(w, done, "")
 
-		if stream != nil {
-			t.Error("expected nil SSEStream for non-flusher writer")
-		}
+		assert.Nil(t, stream, "expected nil SSEStream for non-flusher writer")
 	})
 }
 
@@ -90,20 +87,12 @@ func TestSSEStreamSend(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.Send("update", map[string]string{"key": "value"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, "event: update\n") {
-			t.Errorf("expected 'event: update' in output, got %q", output)
-		}
-		if !strings.Contains(output, `data: {"key":"value"}`) {
-			t.Errorf("expected JSON data in output, got %q", output)
-		}
-		if w.flushCount != 1 {
-			t.Errorf("expected 1 flush, got %d", w.flushCount)
-		}
+		assert.Contains(t, output, "event: update\n", "expected 'event: update' in output")
+		assert.Contains(t, output, `data: {"key":"value"}`, "expected JSON data in output")
+		assert.Equal(t, 1, w.flushCount, "expected 1 flush")
 	})
 
 	t.Run("ClientDisconnected", func(t *testing.T) {
@@ -115,12 +104,8 @@ func TestSSEStreamSend(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.Send("update", "data")
-		if err == nil {
-			t.Error("expected error for disconnected client")
-		}
-		if !errors.Is(err, errClientDisconnected) {
-			t.Errorf("expected errClientDisconnected, got %v", err)
-		}
+		assert.Error(t, err, "expected error for disconnected client")
+		assert.ErrorIs(t, err, errClientDisconnected, "expected errClientDisconnected")
 	})
 
 	t.Run("MarshalError", func(t *testing.T) {
@@ -131,12 +116,8 @@ func TestSSEStreamSend(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.Send("update", func() {})
-		if err == nil {
-			t.Error("expected error for non-marshallable data")
-		}
-		if !strings.Contains(err.Error(), "encoding SSE data") {
-			t.Errorf("expected 'encoding SSE data' error, got %v", err)
-		}
+		require.Error(t, err, "expected error for non-marshallable data")
+		assert.ErrorContains(t, err, "encoding SSE data", "expected 'encoding SSE data' error")
 	})
 
 	t.Run("WriteError", func(t *testing.T) {
@@ -147,12 +128,8 @@ func TestSSEStreamSend(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.Send("update", "data")
-		if err == nil {
-			t.Error("expected error for write failure")
-		}
-		if !strings.Contains(err.Error(), "writing SSE event") {
-			t.Errorf("expected 'writing SSE event' error, got %v", err)
-		}
+		require.Error(t, err, "expected error for write failure")
+		assert.ErrorContains(t, err, "writing SSE event", "expected 'writing SSE event' error")
 	})
 }
 
@@ -165,20 +142,12 @@ func TestSSEStreamSendData(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendData(map[string]int{"count": 42})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if strings.Contains(output, "event:") {
-			t.Errorf("expected no event type in output, got %q", output)
-		}
-		if !strings.Contains(output, `data: {"count":42}`) {
-			t.Errorf("expected JSON data in output, got %q", output)
-		}
-		if w.flushCount != 1 {
-			t.Errorf("expected 1 flush, got %d", w.flushCount)
-		}
+		assert.NotContains(t, output, "event:", "expected no event type in output")
+		assert.Contains(t, output, `data: {"count":42}`, "expected JSON data in output")
+		assert.Equal(t, 1, w.flushCount, "expected 1 flush")
 	})
 
 	t.Run("ClientDisconnected", func(t *testing.T) {
@@ -190,9 +159,7 @@ func TestSSEStreamSendData(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendData("data")
-		if err == nil {
-			t.Error("expected error for disconnected client")
-		}
+		assert.Error(t, err, "expected error for disconnected client")
 	})
 
 	t.Run("WriteError", func(t *testing.T) {
@@ -203,12 +170,8 @@ func TestSSEStreamSendData(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendData("data")
-		if err == nil {
-			t.Error("expected error for write failure")
-		}
-		if !strings.Contains(err.Error(), "writing SSE data") {
-			t.Errorf("expected 'writing SSE data' error, got %v", err)
-		}
+		require.Error(t, err, "expected error for write failure")
+		assert.ErrorContains(t, err, "writing SSE data", "expected 'writing SSE data' error")
 	})
 }
 
@@ -221,14 +184,10 @@ func TestSSEStreamSendComplete(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendComplete(map[string]string{"status": "done"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, "event: complete\n") {
-			t.Errorf("expected 'event: complete' in output, got %q", output)
-		}
+		assert.Contains(t, output, "event: complete\n", "expected 'event: complete' in output")
 	})
 }
 
@@ -242,17 +201,11 @@ func TestSSEStreamSendError(t *testing.T) {
 		stream.SetDevelopmentMode(true)
 
 		err := stream.SendError(errors.New("something went wrong"))
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, "event: error\n") {
-			t.Errorf("expected 'event: error' in output, got %q", output)
-		}
-		if !strings.Contains(output, "something went wrong") {
-			t.Errorf("expected error message in output, got %q", output)
-		}
+		assert.Contains(t, output, "event: error\n", "expected 'event: error' in output")
+		assert.Contains(t, output, "something went wrong", "expected error message in output")
 	})
 }
 
@@ -265,20 +218,12 @@ func TestSendError_ProductionRedactsErrorText(t *testing.T) {
 
 	rawMessage := "internal database connection refused at host db-prod-7"
 	err := stream.SendError(errors.New(rawMessage))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := w.writer.String()
-	if strings.Contains(output, rawMessage) {
-		t.Errorf("expected raw error to be redacted in production, got %q", output)
-	}
-	if !strings.Contains(output, "An internal error occurred") {
-		t.Errorf("expected production placeholder message, got %q", output)
-	}
-	if !strings.Contains(output, "event: error\n") {
-		t.Errorf("expected 'event: error' in output, got %q", output)
-	}
+	assert.NotContains(t, output, rawMessage, "expected raw error to be redacted in production")
+	assert.Contains(t, output, "An internal error occurred", "expected production placeholder message")
+	assert.Contains(t, output, "event: error\n", "expected 'event: error' in output")
 }
 
 func TestSendError_DevelopmentExposesErrorText(t *testing.T) {
@@ -291,14 +236,10 @@ func TestSendError_DevelopmentExposesErrorText(t *testing.T) {
 
 	rawMessage := "internal database connection refused at host db-prod-7"
 	err := stream.SendError(errors.New(rawMessage))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
 	output := w.writer.String()
-	if !strings.Contains(output, rawMessage) {
-		t.Errorf("expected raw error visible in development, got %q", output)
-	}
+	assert.Contains(t, output, rawMessage, "expected raw error visible in development")
 }
 
 func TestSendError_ProductionPropagatesSafeMessage(t *testing.T) {
@@ -309,17 +250,11 @@ func TestSendError_ProductionPropagatesSafeMessage(t *testing.T) {
 	stream := NewSSEStream(w, done, "")
 
 	safeErr := safeerror.NewError("user-facing summary", errors.New("internal: connection pool exhausted"))
-	if err := stream.SendError(safeErr); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, stream.SendError(safeErr))
 
 	output := w.writer.String()
-	if !strings.Contains(output, "user-facing summary") {
-		t.Errorf("expected safe message in output, got %q", output)
-	}
-	if strings.Contains(output, "connection pool exhausted") {
-		t.Errorf("expected internal cause to be redacted, got %q", output)
-	}
+	assert.Contains(t, output, "user-facing summary", "expected safe message in output")
+	assert.NotContains(t, output, "connection pool exhausted", "expected internal cause to be redacted")
 }
 
 func TestSetDevelopmentModeFromContext_HonoursPikoRequestCtx(t *testing.T) {
@@ -336,12 +271,8 @@ func TestSetDevelopmentModeFromContext_HonoursPikoRequestCtx(t *testing.T) {
 		ctx := daemon_dto.WithPikoRequestCtx(context.Background(), pctx)
 		stream.SetDevelopmentModeFromContext(ctx)
 
-		if err := stream.SendError(errors.New("verbose internal detail")); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.Contains(w.writer.String(), "verbose internal detail") {
-			t.Errorf("expected dev message visible, got %q", w.writer.String())
-		}
+		require.NoError(t, stream.SendError(errors.New("verbose internal detail")))
+		assert.Contains(t, w.writer.String(), "verbose internal detail", "expected dev message visible")
 	})
 
 	t.Run("NoCarrierFallsBackToProduction", func(t *testing.T) {
@@ -352,12 +283,9 @@ func TestSetDevelopmentModeFromContext_HonoursPikoRequestCtx(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 		stream.SetDevelopmentModeFromContext(context.Background())
 
-		if err := stream.SendError(errors.New("verbose internal detail")); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if strings.Contains(w.writer.String(), "verbose internal detail") {
-			t.Errorf("expected raw detail redacted with no carrier, got %q", w.writer.String())
-		}
+		require.NoError(t, stream.SendError(errors.New("verbose internal detail")))
+		assert.NotContains(t, w.writer.String(), "verbose internal detail",
+			"expected raw detail redacted with no carrier")
 	})
 }
 
@@ -370,17 +298,11 @@ func TestSSEStreamSendHeartbeat(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendHeartbeat()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, ": heartbeat\n\n") {
-			t.Errorf("expected heartbeat comment in output, got %q", output)
-		}
-		if w.flushCount != 1 {
-			t.Errorf("expected 1 flush, got %d", w.flushCount)
-		}
+		assert.Contains(t, output, ": heartbeat\n\n", "expected heartbeat comment in output")
+		assert.Equal(t, 1, w.flushCount, "expected 1 flush")
 	})
 
 	t.Run("ClientDisconnected", func(t *testing.T) {
@@ -392,9 +314,7 @@ func TestSSEStreamSendHeartbeat(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendHeartbeat()
-		if err == nil {
-			t.Error("expected error for disconnected client")
-		}
+		assert.Error(t, err, "expected error for disconnected client")
 	})
 }
 
@@ -407,13 +327,11 @@ func TestSSEStreamDone(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		doneChannel := stream.Done()
-		if doneChannel == nil {
-			t.Fatal("expected non-nil done channel")
-		}
+		require.NotNil(t, doneChannel, "expected non-nil done channel")
 
 		select {
 		case <-doneChannel:
-			t.Error("expected channel to be open")
+			assert.Fail(t, "expected channel to be open")
 		default:
 
 		}
@@ -432,7 +350,7 @@ func TestSSEStreamDone(t *testing.T) {
 		case <-doneChannel:
 
 		default:
-			t.Error("expected channel to be closed")
+			assert.Fail(t, "expected channel to be closed")
 		}
 	})
 }
@@ -447,17 +365,11 @@ func TestSSEStreamEnableEventIDs(t *testing.T) {
 		stream.EnableEventIDs()
 
 		err := stream.Send("update", map[string]string{"key": "value"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 1\n") {
-			t.Errorf("expected 'id: 1' in output, got %q", output)
-		}
-		if !strings.Contains(output, "event: update\n") {
-			t.Errorf("expected 'event: update' in output, got %q", output)
-		}
+		assert.Contains(t, output, "id: 1\n", "expected 'id: 1' in output")
+		assert.Contains(t, output, "event: update\n", "expected 'event: update' in output")
 	})
 
 	t.Run("SendOmitsIDWhenNotEnabled", func(t *testing.T) {
@@ -468,14 +380,10 @@ func TestSSEStreamEnableEventIDs(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.Send("update", map[string]string{"key": "value"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if strings.Contains(output, "id:") {
-			t.Errorf("expected no 'id:' in output when IDs not enabled, got %q", output)
-		}
+		assert.NotContains(t, output, "id:", "expected no 'id:' in output when IDs not enabled")
 	})
 
 	t.Run("IDsAutoIncrement", func(t *testing.T) {
@@ -488,21 +396,13 @@ func TestSSEStreamEnableEventIDs(t *testing.T) {
 
 		for i := 1; i <= 3; i++ {
 			err := stream.Send("update", map[string]int{"n": i})
-			if err != nil {
-				t.Fatalf("unexpected error on send %d: %v", i, err)
-			}
+			require.NoErrorf(t, err, "unexpected error on send %d", i)
 		}
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 1\n") {
-			t.Errorf("expected 'id: 1' in output, got %q", output)
-		}
-		if !strings.Contains(output, "id: 2\n") {
-			t.Errorf("expected 'id: 2' in output, got %q", output)
-		}
-		if !strings.Contains(output, "id: 3\n") {
-			t.Errorf("expected 'id: 3' in output, got %q", output)
-		}
+		assert.Contains(t, output, "id: 1\n", "expected 'id: 1' in output")
+		assert.Contains(t, output, "id: 2\n", "expected 'id: 2' in output")
+		assert.Contains(t, output, "id: 3\n", "expected 'id: 3' in output")
 	})
 }
 
@@ -516,17 +416,11 @@ func TestSSEStreamEventIDsWithSendData(t *testing.T) {
 		stream.EnableEventIDs()
 
 		err := stream.SendData(map[string]string{"key": "value"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 1\n") {
-			t.Errorf("expected 'id: 1' in output, got %q", output)
-		}
-		if !strings.Contains(output, `data: {"key":"value"}`) {
-			t.Errorf("expected JSON data in output, got %q", output)
-		}
+		assert.Contains(t, output, "id: 1\n", "expected 'id: 1' in output")
+		assert.Contains(t, output, `data: {"key":"value"}`, "expected JSON data in output")
 	})
 
 	t.Run("SendDataOmitsIDWhenNotEnabled", func(t *testing.T) {
@@ -537,14 +431,10 @@ func TestSSEStreamEventIDsWithSendData(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendData(map[string]string{"key": "value"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if strings.Contains(output, "id:") {
-			t.Errorf("expected no 'id:' in output when IDs not enabled, got %q", output)
-		}
+		assert.NotContains(t, output, "id:", "expected no 'id:' in output when IDs not enabled")
 	})
 }
 
@@ -558,17 +448,11 @@ func TestSSEStreamEventIDsWithSendComplete(t *testing.T) {
 		stream.EnableEventIDs()
 
 		err := stream.SendComplete(map[string]string{"status": "done"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 1\n") {
-			t.Errorf("expected 'id: 1' in output, got %q", output)
-		}
-		if !strings.Contains(output, "event: complete\n") {
-			t.Errorf("expected 'event: complete' in output, got %q", output)
-		}
+		assert.Contains(t, output, "id: 1\n", "expected 'id: 1' in output")
+		assert.Contains(t, output, "event: complete\n", "expected 'event: complete' in output")
 	})
 }
 
@@ -582,30 +466,18 @@ func TestSSEStreamEventIDsAutoIncrement(t *testing.T) {
 		stream.EnableEventIDs()
 
 		err := stream.Send("update", map[string]string{"step": "first"})
-		if err != nil {
-			t.Fatalf("unexpected error on Send: %v", err)
-		}
+		require.NoError(t, err, "unexpected error on Send")
 
 		err = stream.SendData(map[string]string{"step": "second"})
-		if err != nil {
-			t.Fatalf("unexpected error on SendData: %v", err)
-		}
+		require.NoError(t, err, "unexpected error on SendData")
 
 		err = stream.Send("update", map[string]string{"step": "third"})
-		if err != nil {
-			t.Fatalf("unexpected error on second Send: %v", err)
-		}
+		require.NoError(t, err, "unexpected error on second Send")
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 1\n") {
-			t.Errorf("expected 'id: 1' in output, got %q", output)
-		}
-		if !strings.Contains(output, "id: 2\n") {
-			t.Errorf("expected 'id: 2' in output, got %q", output)
-		}
-		if !strings.Contains(output, "id: 3\n") {
-			t.Errorf("expected 'id: 3' in output, got %q", output)
-		}
+		assert.Contains(t, output, "id: 1\n", "expected 'id: 1' in output")
+		assert.Contains(t, output, "id: 2\n", "expected 'id: 2' in output")
+		assert.Contains(t, output, "id: 3\n", "expected 'id: 3' in output")
 	})
 }
 
@@ -617,9 +489,7 @@ func TestSSEStreamLastEventID(t *testing.T) {
 		done := make(chan struct{})
 		stream := NewSSEStream(w, done, "")
 
-		if got := stream.LastEventID(); got != "" {
-			t.Errorf("expected empty LastEventID, got %q", got)
-		}
+		assert.Empty(t, stream.LastEventID(), "expected empty LastEventID")
 	})
 
 	t.Run("ReturnsInjectedValue", func(t *testing.T) {
@@ -629,9 +499,7 @@ func TestSSEStreamLastEventID(t *testing.T) {
 		done := make(chan struct{})
 		stream := NewSSEStream(w, done, "42")
 
-		if got := stream.LastEventID(); got != "42" {
-			t.Errorf("expected LastEventID %q, got %q", "42", got)
-		}
+		assert.Equal(t, "42", stream.LastEventID(), "expected LastEventID")
 	})
 }
 
@@ -645,17 +513,11 @@ func TestSSEStreamHeartbeatNoID(t *testing.T) {
 		stream.EnableEventIDs()
 
 		err := stream.SendHeartbeat()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if strings.Contains(output, "id:") {
-			t.Errorf("expected no 'id:' in heartbeat output, got %q", output)
-		}
-		if !strings.Contains(output, ": heartbeat\n\n") {
-			t.Errorf("expected heartbeat comment in output, got %q", output)
-		}
+		assert.NotContains(t, output, "id:", "expected no 'id:' in heartbeat output")
+		assert.Contains(t, output, ": heartbeat\n\n", "expected heartbeat comment in output")
 	})
 
 	t.Run("NextSendAfterHeartbeatGetsCorrectID", func(t *testing.T) {
@@ -667,27 +529,17 @@ func TestSSEStreamHeartbeatNoID(t *testing.T) {
 		stream.EnableEventIDs()
 
 		err := stream.Send("update", "first")
-		if err != nil {
-			t.Fatalf("unexpected error on first Send: %v", err)
-		}
+		require.NoError(t, err, "unexpected error on first Send")
 
 		err = stream.SendHeartbeat()
-		if err != nil {
-			t.Fatalf("unexpected error on SendHeartbeat: %v", err)
-		}
+		require.NoError(t, err, "unexpected error on SendHeartbeat")
 
 		err = stream.Send("update", "second")
-		if err != nil {
-			t.Fatalf("unexpected error on second Send: %v", err)
-		}
+		require.NoError(t, err, "unexpected error on second Send")
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 1\n") {
-			t.Errorf("expected 'id: 1' in output, got %q", output)
-		}
-		if !strings.Contains(output, "id: 2\n") {
-			t.Errorf("expected 'id: 2' in output, got %q", output)
-		}
+		assert.Contains(t, output, "id: 1\n", "expected 'id: 1' in output")
+		assert.Contains(t, output, "id: 2\n", "expected 'id: 2' in output")
 	})
 }
 
@@ -700,23 +552,13 @@ func TestSSEStreamSendWithID(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendWithID("42", "chat", map[string]string{"text": "hello"})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		require.NoError(t, err)
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 42\n") {
-			t.Errorf("expected 'id: 42' in output, got %q", output)
-		}
-		if !strings.Contains(output, "event: chat\n") {
-			t.Errorf("expected 'event: chat' in output, got %q", output)
-		}
-		if !strings.Contains(output, `"text":"hello"`) {
-			t.Errorf("expected JSON data in output, got %q", output)
-		}
-		if w.flushCount == 0 {
-			t.Error("expected Flush to be called")
-		}
+		assert.Contains(t, output, "id: 42\n", "expected 'id: 42' in output")
+		assert.Contains(t, output, "event: chat\n", "expected 'event: chat' in output")
+		assert.Contains(t, output, `"text":"hello"`, "expected JSON data in output")
+		assert.Positive(t, w.flushCount, "expected Flush to be called")
 	})
 
 	t.Run("DoesNotAffectAutoIncrementingIDs", func(t *testing.T) {
@@ -732,12 +574,8 @@ func TestSSEStreamSendWithID(t *testing.T) {
 		_ = stream.Send("chat", "msg2")
 
 		output := w.writer.String()
-		if !strings.Contains(output, "id: 100\n") {
-			t.Errorf("expected 'id: 100' in output, got %q", output)
-		}
-		if !strings.Contains(output, "id: 1\n") {
-			t.Errorf("expected 'id: 1' in output, got %q", output)
-		}
+		assert.Contains(t, output, "id: 100\n", "expected 'id: 100' in output")
+		assert.Contains(t, output, "id: 1\n", "expected 'id: 1' in output")
 	})
 
 	t.Run("ReturnsErrorOnClientDisconnect", func(t *testing.T) {
@@ -749,8 +587,6 @@ func TestSSEStreamSendWithID(t *testing.T) {
 		stream := NewSSEStream(w, done, "")
 
 		err := stream.SendWithID("1", "chat", "message")
-		if err == nil {
-			t.Fatal("expected error for disconnected client")
-		}
+		require.Error(t, err, "expected error for disconnected client")
 	})
 }

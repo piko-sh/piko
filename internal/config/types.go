@@ -23,8 +23,8 @@ import (
 )
 
 // PathsConfig holds all file system and URL path settings for the project.
-// Framework-internal paths (PikoInternalPath, RegistryPath, compiled target dirs, etc.)
-// are defined as constants in internal_paths.go and are not user-configurable.
+// Framework-internal paths (PikoInternalPath, compiled target dirs, etc.) are defined as
+// constants in internal_paths.go and are not user-configurable.
 type PathsConfig struct {
 	// BaseDir is the root directory of the website project.
 	BaseDir *string `json:"baseDir" yaml:"baseDir" default:"." env:"PIKO_BASE_DIR" flag:"baseDir" usage:"Root directory of the website project." validate:"required"`

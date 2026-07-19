@@ -174,6 +174,21 @@ func (*pgxStrategy) ExecResultImport(tracker *emitter_shared.ImportTracker) {
 	tracker.AddImport(importPgconn)
 }
 
+// NoRowsSentinel returns pgx.ErrNoRows, the no-rows sentinel a pgx QueryRow scan returns.
+//
+// Returns ast.Expr which is the pgx.ErrNoRows selector.
+func (*pgxStrategy) NoRowsSentinel() ast.Expr {
+	return goastutil.SelectorExpr(identPgx, "ErrNoRows")
+}
+
+// NoRowsImport adds the pgx import path to the import tracker.
+//
+// Takes tracker (*emitter_shared.ImportTracker) which collects the imports required by
+// the emitted source.
+func (*pgxStrategy) NoRowsImport(tracker *emitter_shared.ImportTracker) {
+	tracker.AddImport(importPgx)
+}
+
 // BuildExecRowsBody constructs the :execrows body for pgx where
 // pgconn.CommandTag.RowsAffected() returns int64 directly (no error).
 //

@@ -31,9 +31,17 @@ my-app/
 
 `cmd/generator/main.go` produces the template and asset manifests. `cmd/main/main.go` is the HTTP server.
 
+## The short version
+
+```bash
+piko build
+```
+
+`piko build` runs the generator, then compiles a **self-contained** binary to `bin/app`: the compiled manifest, pages, collections, asset blobs, storage, and the registry snapshot are embedded (via the `piko_embed` build tag), so the binary serves with no `dist/` or `.piko/` beside it. Pass `--no-embed` for a binary that reads both from disk instead. The steps below describe what happens under the hood and the manual equivalents.
+
 ## Step 1: Generate assets
 
-Build and run the generator first. The generator compiles every `.pk` template, processes assets, and emits a manifest the server reads at startup.
+Build and run the generator first. The generator compiles every `.pk` template, processes assets, emits a manifest the server reads at startup, and emits the embedded runtime payload (`dist/embed/` plus `dist/embed_gen.go`).
 
 ```bash
 go build -o bin/generator cmd/generator/main.go
@@ -51,17 +59,20 @@ bin/generator all
 
 ## Step 2: Build the server binary
 
-Build a statically linked, stripped binary:
+Build a statically linked, stripped, self-contained binary:
 
 ```bash
 CGO_ENABLED=0 go build \
+  -tags piko_embed \
   -ldflags="-s -w" \
   -o bin/app \
-  cmd/main/main.go
+  ./cmd/main
 ```
 
+- `-tags piko_embed` compiles the generated embedded runtime payload into the binary, making it self-contained. Omit the tag for a binary that serves `dist/` and `.piko/` from disk. Always regenerate (step 1) before a tagged build so the payload matches the sources.
 - `CGO_ENABLED=0` produces a static binary with no C dependencies. Use this unless you are linking a CGO-only SQLite driver.
 - `-ldflags="-s -w"` strips debug symbols and DWARF information for a smaller binary.
+- Development builds (`go run ./cmd/main dev`, `go test`) never carry the payload: the generated file is excluded without the tag, and even a tagged binary run in dev mode serves from files.
 
 ## Step 3: Configure the application
 
@@ -176,22 +187,24 @@ COPY . .
 
 ENV CGO_ENABLED=0
 ENV GOOS=linux
-RUN go build -o bin/generator cmd/generator/main.go
+RUN go build -o bin/generator ./cmd/generator
 RUN bin/generator all
-RUN go build -ldflags="-s -w" -o bin/app cmd/main/main.go
+RUN go build -tags piko_embed -ldflags="-s -w" -o bin/app ./cmd/main
 
 # Runtime stage
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /app
 
 COPY --from=build /app/bin/app /app/app
-COPY --from=build /app/.piko /app/.piko
-COPY --from=build /app/.out /app/.out
 
 CMD ["/app/app", "prod"]
 ```
 
-The `distroless/static:nonroot` base image keeps the container small and runs as a non-root user by default.
+The `distroless/static:nonroot` base image keeps the container small and runs as a non-root user by default. Because the binary is self-contained (the `piko_embed` tag embeds the manifest, pages, collections, blobs, storage, and the registry snapshot), the runtime stage copies nothing else and runs with a read-only root filesystem out of the box. If your project serves raw static files from a top-level `assets/` directory (favicons, images), copy that with `--chown=nonroot:nonroot`.
+
+For a **file-based image** instead, build without the tag and copy `dist/` and `.piko/` with `--chown=nonroot:nonroot`: the default runtime opens read-write sandboxes under `.piko` at boot (blob storage, upload tmp, the AST cache, and the WAL persistence for the in-memory registry), the build stage runs as root with restrictive modes, and a read-only `.piko` mount fails at the WAL open. Prune the regenerable `.piko/cache`, `.piko/logs`, and `.piko/tmp` in the build stage first.
+
+Whichever image you build, anything written inside the container at runtime is ephemeral and lost on restart or rollout. Send runtime writes to a configured backend instead: register `storage_provider_s3` (or another external provider) for the bytes and a shared Postgres registry for the metadata. A shared backend also lets two releases run side by side during a canary or rolling deploy; see [how to canary and rolling deploys](canary-and-rolling-deploys.md) for that flow.
 
 ### Kubernetes
 
@@ -268,6 +281,8 @@ For vertical scaling inside one instance, tune `GOMAXPROCS`, database connection
 - [Configuration philosophy](../../explanation/about-configuration.md).
 - [How to TLS](tls.md).
 - [How to monitoring](monitoring.md).
+- [How to canary and rolling deploys](canary-and-rolling-deploys.md).
 - [How to troubleshooting deployment](troubleshooting.md).
+- [About single-binary deployment](../../explanation/about-single-binary-deployment.md).
 - [CLI reference](../../reference/cli.md).
 - [Bootstrap options reference](../../reference/bootstrap-options.md).

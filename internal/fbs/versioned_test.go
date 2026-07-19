@@ -19,35 +19,28 @@
 package fbs
 
 import (
-	"bytes"
 	"crypto/sha256"
-	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestComputeSchemaHash(t *testing.T) {
 	content := []byte("table FooFB { id: int32; }")
 	hash := ComputeSchemaHash(content)
 
-	expected := sha256.Sum256(content)
-	if hash != expected {
-		t.Errorf("hash mismatch: got %x, want %x", hash, expected)
-	}
+	expected := SchemaHash(sha256.Sum256(content))
+	assert.Equalf(t, expected, hash, "hash mismatch: got %x, want %x", hash, expected)
 
 	content2 := []byte("table BarFB { id: int32; }")
 	hash2 := ComputeSchemaHash(content2)
-	if hash == hash2 {
-		t.Error("different content produced same hash")
-	}
+	assert.NotEqual(t, hash2, hash, "different content produced same hash")
 }
 
 func TestPackedSize(t *testing.T) {
-	if got := PackedSize(0); got != hashSize {
-		t.Errorf("PackedSize(0) = %d, want %d", got, hashSize)
-	}
-	if got := PackedSize(100); got != hashSize+100 {
-		t.Errorf("PackedSize(100) = %d, want %d", got, hashSize+100)
-	}
+	assert.Equalf(t, hashSize, PackedSize(0), "PackedSize(0) = %d, want %d", PackedSize(0), hashSize)
+	assert.Equalf(t, hashSize+100, PackedSize(100), "PackedSize(100) = %d, want %d", PackedSize(100), hashSize+100)
 }
 
 func TestPackAndUnpack(t *testing.T) {
@@ -58,31 +51,19 @@ func TestPackAndUnpack(t *testing.T) {
 	dst := make([]byte, PackedSize(len(payload)))
 	n := Pack(dst, hash, payload)
 
-	if n != len(dst) {
-		t.Errorf("Pack returned %d, want %d", n, len(dst))
-	}
+	assert.Equalf(t, len(dst), n, "Pack returned %d, want %d", n, len(dst))
 
 	var storedHash SchemaHash
 	copy(storedHash[:], dst[:hashSize])
-	if storedHash != hash {
-		t.Error("stored hash doesn't match")
-	}
+	assert.Equal(t, hash, storedHash, "stored hash doesn't match")
 
-	if !bytes.Equal(dst[hashSize:], payload) {
-		t.Error("stored payload doesn't match")
-	}
+	assert.Equal(t, payload, dst[hashSize:], "stored payload doesn't match")
 
 	extracted, err := Unpack(hash, dst)
-	if err != nil {
-		t.Fatalf("Unpack failed: %v", err)
-	}
-	if !bytes.Equal(extracted, payload) {
-		t.Error("extracted payload doesn't match original")
-	}
+	require.NoErrorf(t, err, "Unpack failed: %v", err)
+	assert.Equal(t, payload, extracted, "extracted payload doesn't match original")
 
-	if &extracted[0] != &dst[hashSize] {
-		t.Error("Unpack should return zero-copy slice")
-	}
+	assert.True(t, &extracted[0] == &dst[hashSize], "Unpack should return zero-copy slice")
 }
 
 func TestPackAlloc(t *testing.T) {
@@ -92,17 +73,11 @@ func TestPackAlloc(t *testing.T) {
 
 	packed := PackAlloc(hash, payload)
 
-	if len(packed) != PackedSize(len(payload)) {
-		t.Errorf("PackAlloc length = %d, want %d", len(packed), PackedSize(len(payload)))
-	}
+	assert.Lenf(t, packed, PackedSize(len(payload)), "PackAlloc length = %d, want %d", len(packed), PackedSize(len(payload)))
 
 	extracted, err := Unpack(hash, packed)
-	if err != nil {
-		t.Fatalf("Unpack failed: %v", err)
-	}
-	if !bytes.Equal(extracted, payload) {
-		t.Error("roundtrip failed")
-	}
+	require.NoErrorf(t, err, "Unpack failed: %v", err)
+	assert.Equal(t, payload, extracted, "roundtrip failed")
 }
 
 func TestUnpackErrors(t *testing.T) {
@@ -112,16 +87,12 @@ func TestUnpackErrors(t *testing.T) {
 	t.Run("data too short", func(t *testing.T) {
 		shortData := make([]byte, hashSize-1)
 		_, err := Unpack(hash, shortData)
-		if !errors.Is(err, errDataTooShort) {
-			t.Errorf("got %v, want errDataTooShort", err)
-		}
+		assert.ErrorIsf(t, err, errDataTooShort, "got %v, want errDataTooShort", err)
 	})
 
 	t.Run("empty data", func(t *testing.T) {
 		_, err := Unpack(hash, nil)
-		if !errors.Is(err, errDataTooShort) {
-			t.Errorf("got %v, want errDataTooShort", err)
-		}
+		assert.ErrorIsf(t, err, errDataTooShort, "got %v, want errDataTooShort", err)
 	})
 
 	t.Run("hash mismatch", func(t *testing.T) {
@@ -130,9 +101,7 @@ func TestUnpackErrors(t *testing.T) {
 
 		packed := PackAlloc(hash, []byte{0x01, 0x02})
 		_, err := Unpack(differentHash, packed)
-		if !errors.Is(err, ErrSchemaVersionMismatch) {
-			t.Errorf("got %v, want ErrSchemaVersionMismatch", err)
-		}
+		assert.ErrorIsf(t, err, ErrSchemaVersionMismatch, "got %v, want ErrSchemaVersionMismatch", err)
 	})
 
 	t.Run("corrupted hash", func(t *testing.T) {
@@ -140,9 +109,7 @@ func TestUnpackErrors(t *testing.T) {
 		packed[0] ^= 0xFF
 
 		_, err := Unpack(hash, packed)
-		if !errors.Is(err, ErrSchemaVersionMismatch) {
-			t.Errorf("got %v, want ErrSchemaVersionMismatch", err)
-		}
+		assert.ErrorIsf(t, err, ErrSchemaVersionMismatch, "got %v, want ErrSchemaVersionMismatch", err)
 	})
 }
 
@@ -153,18 +120,12 @@ func TestValidateHash(t *testing.T) {
 
 	packed := PackAlloc(hash, payload)
 
-	if !ValidateHash(hash, packed) {
-		t.Error("ValidateHash returned false for valid data")
-	}
+	assert.True(t, ValidateHash(hash, packed), "ValidateHash returned false for valid data")
 
 	differentHash := ComputeSchemaHash([]byte("different"))
-	if ValidateHash(differentHash, packed) {
-		t.Error("ValidateHash returned true for wrong hash")
-	}
+	assert.False(t, ValidateHash(differentHash, packed), "ValidateHash returned true for wrong hash")
 
-	if ValidateHash(hash, make([]byte, hashSize-1)) {
-		t.Error("ValidateHash returned true for short data")
-	}
+	assert.False(t, ValidateHash(hash, make([]byte, hashSize-1)), "ValidateHash returned true for short data")
 }
 
 func Test_extractHash(t *testing.T) {
@@ -175,15 +136,11 @@ func Test_extractHash(t *testing.T) {
 	packed := PackAlloc(hash, payload)
 	extracted := extractHash(packed)
 
-	if extracted != hash {
-		t.Errorf("extractHash mismatch: got %x, want %x", extracted, hash)
-	}
+	assert.Equalf(t, hash, extracted, "extractHash mismatch: got %x, want %x", extracted, hash)
 
 	shortData := make([]byte, hashSize-1)
 	zeroHash := extractHash(shortData)
-	if zeroHash != (SchemaHash{}) {
-		t.Error("extractHash should return zero hash for short data")
-	}
+	assert.Equal(t, SchemaHash{}, zeroHash, "extractHash should return zero hash for short data")
 }
 
 func BenchmarkPack(b *testing.B) {

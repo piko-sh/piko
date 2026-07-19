@@ -4,17 +4,27 @@ package db
 
 import "context"
 
-const deletevarianttagsforartefact = `DELETE FROM variant_tag WHERE artefact_id = ?;`
+const deletevarianttagsforartefact = `DELETE FROM variant_tag WHERE artefact_id = ? AND release_id = ?;`
 
-func (queries *Queries) DeleteVariantTagsForArtefact(ctx context.Context, artefactID string) error {
-	_, err := queries.writer.ExecContext(ctx, deletevarianttagsforartefact, artefactID)
+type DeleteVariantTagsForArtefactParams struct {
+	ArtefactID string
+	ReleaseID  string
+}
+
+func (queries *Queries) DeleteVariantTagsForArtefact(ctx context.Context, params DeleteVariantTagsForArtefactParams) error {
+	_, err := queries.writer.ExecContext(ctx, deletevarianttagsforartefact, params.ArtefactID, params.ReleaseID)
 	return err
 }
 
-const deletevariantsforartefact = `DELETE FROM variant WHERE artefact_id = ?;`
+const deletevariantsforartefact = `DELETE FROM variant WHERE artefact_id = ? AND release_id = ?;`
 
-func (queries *Queries) DeleteVariantsForArtefact(ctx context.Context, artefactID string) error {
-	_, err := queries.writer.ExecContext(ctx, deletevariantsforartefact, artefactID)
+type DeleteVariantsForArtefactParams struct {
+	ArtefactID string
+	ReleaseID  string
+}
+
+func (queries *Queries) DeleteVariantsForArtefact(ctx context.Context, params DeleteVariantsForArtefactParams) error {
+	_, err := queries.writer.ExecContext(ctx, deletevariantsforartefact, params.ArtefactID, params.ReleaseID)
 	return err
 }
 
@@ -203,11 +213,12 @@ func (queries *Queries) GetVariantsForArtefactIDs(ctx context.Context, params Ge
 	return results, nil
 }
 
-const insertvariant = `INSERT INTO variant (artefact_id, variant_id, storage_key, storage_backend_id, mime_type, size_bytes, status, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);`
+const insertvariant = `INSERT INTO variant (artefact_id, release_id, variant_id, storage_key, storage_backend_id, mime_type, size_bytes, status, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`
 
 type InsertVariantParams struct {
 	ArtefactID       string
+	ReleaseID        string
 	VariantID        string
 	StorageKey       string
 	StorageBackendID string
@@ -218,21 +229,22 @@ type InsertVariantParams struct {
 }
 
 func (queries *Queries) InsertVariant(ctx context.Context, params InsertVariantParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertvariant, params.ArtefactID, params.VariantID, params.StorageKey, params.StorageBackendID, params.MimeType, params.SizeBytes, params.Status, params.CreatedAt)
+	_, err := queries.writer.ExecContext(ctx, insertvariant, params.ArtefactID, params.ReleaseID, params.VariantID, params.StorageKey, params.StorageBackendID, params.MimeType, params.SizeBytes, params.Status, params.CreatedAt)
 	return err
 }
 
-const insertvarianttag = `INSERT INTO variant_tag (artefact_id, variant_id, tag_key, tag_value)
-VALUES (?, ?, ?, ?);`
+const insertvarianttag = `INSERT INTO variant_tag (artefact_id, release_id, variant_id, tag_key, tag_value)
+VALUES (?, ?, ?, ?, ?);`
 
 type InsertVariantTagParams struct {
 	ArtefactID string
+	ReleaseID  string
 	VariantID  string
 	TagKey     string
 	TagValue   string
 }
 
 func (queries *Queries) InsertVariantTag(ctx context.Context, params InsertVariantTagParams) error {
-	_, err := queries.writer.ExecContext(ctx, insertvarianttag, params.ArtefactID, params.VariantID, params.TagKey, params.TagValue)
+	_, err := queries.writer.ExecContext(ctx, insertvarianttag, params.ArtefactID, params.ReleaseID, params.VariantID, params.TagKey, params.TagValue)
 	return err
 }

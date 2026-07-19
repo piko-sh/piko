@@ -10,8 +10,8 @@ FROM registry_desired_profile
 WHERE artefact_id IN ($1);
 
 -- piko.query(name: InsertDesiredProfile, command: exec)
-INSERT INTO registry_desired_profile (artefact_id, name, capability_name, priority, params_json, tags_json, depends_on_json)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
+INSERT INTO registry_desired_profile (artefact_id, release_id, name, capability_name, priority, params_json, tags_json, depends_on_json)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- piko.query(name: DeleteDesiredProfilesForArtefact, command: exec)
-DELETE FROM registry_desired_profile WHERE artefact_id = $1;
+DELETE FROM registry_desired_profile WHERE artefact_id = $1 AND release_id = $2;

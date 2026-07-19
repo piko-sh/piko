@@ -328,6 +328,45 @@ func TestEmitQueriesManyReads(t *testing.T) {
 	assert.NotContains(t, source, "pikoClickHouseFormat")
 }
 
+func TestEmitQueriesOptionalOne(t *testing.T) {
+	emitter := NewClickHouseEmitter()
+	queries := []*querier_dto.AnalysedQuery{
+		{
+			Name:     "GetEvent",
+			SQL:      "SELECT host_id, kind FROM events WHERE id = ?",
+			Command:  querier_dto.QueryCommandOne,
+			Optional: true,
+			Filename: "events.sql",
+			Parameters: []querier_dto.QueryParameter{
+				{Name: "id", Number: 1, SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"}},
+			},
+			OutputColumns: []querier_dto.OutputColumn{
+				{Name: "host_id", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "String"}},
+				{Name: "kind", SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "String"}},
+			},
+		},
+	}
+
+	files, err := emitter.EmitQueries("testpkg", queries, defaultMappings())
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+
+	queryFile := findFile(t, files, "events.sql.go")
+	source := string(queryFile.Content)
+	requireValidGo(t, queryFile.Name, source)
+
+	assert.Contains(t, source, "sql.ErrNoRows",
+		"ClickHouse optional one query must test the database/sql no-rows sentinel")
+	assert.Contains(t, source, `"database/sql"`,
+		"ClickHouse optional one query must import database/sql for sql.ErrNoRows")
+	assert.Contains(t, source, "errors.Is",
+		"optional one query must distinguish no rows from a real error via errors.Is")
+	assert.Contains(t, source, "(GetEventRow, bool, error)",
+		"optional one query must widen the return signature to (row, bool, error)")
+
+	requireTypeChecks(t, files)
+}
+
 func TestEmitModelsDelegates(t *testing.T) {
 	emitter := NewClickHouseEmitter()
 	catalogue := &querier_dto.Catalogue{

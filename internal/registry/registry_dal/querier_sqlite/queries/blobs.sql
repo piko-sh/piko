@@ -6,15 +6,16 @@ ON CONFLICT(storage_key) DO UPDATE SET
   last_referenced_at = excluded.last_referenced_at
 RETURNING ref_count;
 
--- piko.query(name: DecrementBlobRefCount, command: one)
+-- piko.query(name: DecrementBlobRefCount, command: one, optional: true)
 UPDATE blob_reference
 SET ref_count = ref_count - 1,
     last_referenced_at = ?
 WHERE storage_key = ?
+  AND ref_count > 0
 RETURNING ref_count;
 
--- piko.query(name: GetBlobRefCount, command: one)
+-- piko.query(name: GetBlobRefCount, command: one, optional: true)
 SELECT ref_count FROM blob_reference WHERE storage_key = ?;
 
 -- piko.query(name: DeleteBlobReferenceIfZero, command: exec)
-DELETE FROM blob_reference WHERE storage_key = ? AND ref_count = 0;
+DELETE FROM blob_reference WHERE storage_key = ? AND ref_count <= 0;

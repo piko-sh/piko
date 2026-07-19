@@ -153,8 +153,85 @@ func (rcv *VariantFB) ChunksLength() int {
 	return 0
 }
 
+func (rcv *VariantFB) Origin() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *VariantFB) BuildRelease() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *VariantFB) BuildHash() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *VariantFB) InputFingerprint() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *VariantFB) SriHash() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *VariantFB) Producer() VariantProducerFB {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return VariantProducerFB(rcv._tab.GetInt8(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *VariantFB) MutateProducer(n VariantProducerFB) bool {
+	return rcv._tab.MutateInt8Slot(34, int8(n))
+}
+
+func (rcv *VariantFB) Kind() VariantKindFB {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	if o != 0 {
+		return VariantKindFB(rcv._tab.GetInt8(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *VariantFB) MutateKind(n VariantKindFB) bool {
+	return rcv._tab.MutateInt8Slot(36, int8(n))
+}
+
+func (rcv *VariantFB) Transform(obj *VariantTransformFB) *VariantTransformFB {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		x := rcv._tab.Indirect(o + rcv._tab.Pos)
+		if obj == nil {
+			obj = new(VariantTransformFB)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
+	}
+	return nil
+}
+
 func VariantFBStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(18)
 }
 func VariantFBAddVariantId(builder *flatbuffers.Builder, variantId flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(variantId), 0)
@@ -191,6 +268,30 @@ func VariantFBAddChunks(builder *flatbuffers.Builder, chunks flatbuffers.UOffset
 }
 func VariantFBStartChunksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func VariantFBAddOrigin(builder *flatbuffers.Builder, origin flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(origin), 0)
+}
+func VariantFBAddBuildRelease(builder *flatbuffers.Builder, buildRelease flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(buildRelease), 0)
+}
+func VariantFBAddBuildHash(builder *flatbuffers.Builder, buildHash flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(buildHash), 0)
+}
+func VariantFBAddInputFingerprint(builder *flatbuffers.Builder, inputFingerprint flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(13, flatbuffers.UOffsetT(inputFingerprint), 0)
+}
+func VariantFBAddSriHash(builder *flatbuffers.Builder, sriHash flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(sriHash), 0)
+}
+func VariantFBAddProducer(builder *flatbuffers.Builder, producer VariantProducerFB) {
+	builder.PrependInt8Slot(15, int8(producer), 0)
+}
+func VariantFBAddKind(builder *flatbuffers.Builder, kind VariantKindFB) {
+	builder.PrependInt8Slot(16, int8(kind), 0)
+}
+func VariantFBAddTransform(builder *flatbuffers.Builder, transform flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(transform), 0)
 }
 func VariantFBEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

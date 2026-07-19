@@ -53,9 +53,7 @@ func TestNewWatermillEventBus_WithComponents(t *testing.T) {
 	require.NotNil(t, bus)
 
 	web, ok := bus.(*watermillEventBus)
-	if !ok {
-		t.Fatal("expected *watermillEventBus")
-	}
+	require.True(t, ok, "expected *watermillEventBus")
 	assert.Equal(t, router, web.Router())
 	assert.Nil(t, web.Publisher())
 	assert.Nil(t, web.Subscriber())
@@ -303,9 +301,9 @@ func TestWatermillEventBus_ProcessMessage_RejectsOversize(t *testing.T) {
 	select {
 	case <-wmMessage.Acked():
 	case <-wmMessage.Nacked():
-		t.Fatal("oversize payload should be Acked-and-dropped, not Nacked: retrying an oversize payload would just flood the bus")
+		require.FailNow(t, "oversize payload should be Acked-and-dropped, not Nacked: retrying an oversize payload would just flood the bus")
 	default:
-		t.Fatal("expected Ack signal")
+		require.FailNow(t, "expected Ack signal")
 	}
 }
 
@@ -328,12 +326,12 @@ func TestWatermillEventBus_CreateChannelMessageHandler_AcksOversize(t *testing.T
 	select {
 	case <-wmMessage.Acked():
 	default:
-		t.Fatal("expected oversize message to be Acked to drain the queue")
+		require.FailNow(t, "expected oversize message to be Acked to drain the queue")
 	}
 
 	select {
 	case <-outputChan:
-		t.Fatal("oversize message must not reach the subscriber channel")
+		require.FailNow(t, "oversize message must not reach the subscriber channel")
 	default:
 	}
 }
@@ -358,7 +356,7 @@ func TestWatermillMonitor_RecoversFromPanic(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(time.Second):
-		t.Fatal("monitor goroutine did not return; panic recovery may have leaked a hang")
+		require.FailNow(t, "monitor goroutine did not return; panic recovery may have leaked a hang")
 	}
 }
 

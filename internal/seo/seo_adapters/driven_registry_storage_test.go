@@ -112,6 +112,10 @@ func (*mockRegistryService) PopGCHints(_ context.Context, _ int) ([]registry_dto
 	return nil, nil
 }
 
+func (*mockRegistryService) GetBlobRefCount(_ context.Context, _ string) (int, error) {
+	return 0, nil
+}
+
 func (*mockRegistryService) ArtefactEventsPublished() int64 {
 	return 0
 }

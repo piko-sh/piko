@@ -24,10 +24,13 @@ import (
 	"log/slog"
 	"sync"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/bootstrap"
+	"piko.sh/piko/internal/bootstrap/embedregistry"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/pikotest/pikotest_dto"
 	"piko.sh/piko/internal/shutdown"
@@ -225,5 +228,36 @@ func TestGetErrorContext(t *testing.T) {
 		assert.Equal(t, 404, result.StatusCode)
 		assert.Equal(t, "page not found", result.Message)
 		assert.Equal(t, "/missing", result.OriginalPath)
+	})
+}
+
+func TestWithEmbeddedDefaults(t *testing.T) {
+	embedregistry.Reset()
+	t.Cleanup(embedregistry.Reset)
+
+	userOption := func(*bootstrap.Container) {}
+	base := []bootstrap.Option{userOption}
+
+	t.Run("prod without a registered payload leaves options untouched", func(t *testing.T) {
+		result := withEmbeddedDefaults(RunModeProd, base)
+		assert.Len(t, result, 1, "no defaults may be prepended when nothing registered")
+	})
+
+	embedregistry.Register(t.Context(), fstest.MapFS{}, []byte("manifest"))
+
+	t.Run("prod with a registered payload prepends both embed options", func(t *testing.T) {
+		result := withEmbeddedDefaults(RunModeProd, base)
+		assert.Len(t, result, 3, "the embedded folder and manifest options must be prepended together")
+	})
+
+	t.Run("dev modes never pick the payload up", func(t *testing.T) {
+		assert.Len(t, withEmbeddedDefaults(RunModeDev, base), 1, "dev must keep serving from files")
+		assert.Len(t, withEmbeddedDefaults(RunModeDevInterpreted, base), 1, "dev-i must keep serving from files")
+	})
+
+	t.Run("user options are applied after the prepended defaults", func(t *testing.T) {
+		result := withEmbeddedDefaults(RunModeProd, []bootstrap.Option{bootstrap.WithoutEmbeddedRuntime()})
+		container := bootstrap.NewContainer(result...)
+		assert.False(t, container.IsEmbeddedMode(), "an explicit WithoutEmbeddedRuntime must override the prepended default")
 	})
 }

@@ -82,6 +82,7 @@ import (
 	"piko.sh/piko/internal/profiler"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/security/security_domain"
@@ -146,8 +147,10 @@ type RegistryMetadataCacheConfig struct {
 // unexported to prevent direct modification; configure via Options passed to
 // NewContainer.
 type Container struct {
-	// emailErr holds any error from email service setup.
-	emailErr error
+	// embeddedPikoFS holds the embedded .piko filesystem. When set, the container serves
+	// runtime data from this filesystem instead of disk, enabling single-binary deployments
+	// for static sites.
+	embeddedPikoFS fs.FS
 
 	// llmErr holds any error from creating the LLM service.
 	llmErr error
@@ -163,6 +166,17 @@ type Container struct {
 
 	// registryMetaStore stores registry metadata and is closed on shutdown.
 	registryMetaStore registry_domain.MetadataStore
+
+	// registryReleaseOverlay is the layer-aware writable overlay used for release publish,
+	// heartbeat, and retire. It differs from registryMetaStore on an embedded deploy, where
+	// the meta store is a union that does not expose the ReleasePublisher capability the
+	// release lifecycle needs; release operations must always go to the overlay directly.
+	registryReleaseOverlay registry_domain.MetadataStore
+
+	// registryBlobOverlay is the writable shared blob provider layered over the embedded
+	// base, retained so release publish can replicate the base's bytes into the shared
+	// store; nil when no writable shared blob store is configured.
+	registryBlobOverlay storage_domain.StorageProviderPort
 
 	// registryMetaCache stores cached metadata for the registry service.
 	registryMetaCache registry_domain.MetadataCache
@@ -448,19 +462,17 @@ type Container struct {
 	// metricsExporter holds the metrics exporter (e.g., Prometheus). Nil when disabled.
 	metricsExporter monitoring_domain.MetricsExporter
 
-	// extraSpanProcessors holds additional OTEL span processors registered via
-	// WithSpanProcessor, appended to the tracer provider during OTEL setup alongside the
-	// monitoring service's own processor.
-	extraSpanProcessors []monitoring_domain.SpanProcessor
+	// seoURLProvider supplies additional sitemap URLs at build time, in-process; nil means
+	// no extra build-time URLs.
+	seoURLProvider seo_domain.SitemapURLProvider
 
 	// queryObserver receives a QueryObservation after each instrumented database statement
 	// (registered via WithQueryObserver). Nil when no observer was registered.
 	queryObserver monitoring_domain.QueryObserver
 
-	// readinessInfoKeyFilter reports whether a provider info key is sensitive and must be
-	// dropped before readiness info egresses off-box (registered via
-	// WithReadinessInfoKeyFilter). Nil when the built-in default filter applies.
-	readinessInfoKeyFilter func(string) bool
+	// spamdetectFeedbackStore holds a deferred feedback store applied when the spam
+	// detection service is lazily created.
+	spamdetectFeedbackStore spamdetect_domain.FeedbackStore
 
 	// orchestratorInspector holds the orchestrator inspector for monitoring; nil when not
 	// available.
@@ -494,12 +506,19 @@ type Container struct {
 	// markdownParser holds the user-provided markdown parser implementation.
 	markdownParser markdown_domain.MarkdownParserPort
 
-	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is set.
-	cspBuilder *security_domain.CSPBuilder
+	// emailErr holds any error from email service setup.
+	emailErr error
 
-	// onServerBound is an optional callback invoked after the main HTTP server binds to a
-	// port. Used to print the startup banner with the actual port.
-	onServerBound func(address string)
+	// dbRegistrations maps names to database registration configs. Populated by AddDatabase
+	// and consumed lazily by GetDatabaseService.
+	dbRegistrations map[string]*DatabaseRegistration
+
+	// iAmACatPerson swaps the large pixel-art mascot for the small ASCII art version. nil
+	// means not set (defaults to false).
+	iAmACatPerson *bool
+
+	// rateLimiter is the centralised rate limiter shared across all domains.
+	rateLimiter *ratelimiter_domain.Limiter
 
 	// querierDBService holds the querier database service for named SQL connections and
 	// migrations.
@@ -509,16 +528,28 @@ type Container struct {
 	// profiling is disabled.
 	generatorProfilingConfig *profiler.Config
 
-	// rateLimiter is the centralised rate limiter shared across all domains.
-	rateLimiter *ratelimiter_domain.Limiter
+	// onServerBound is an optional callback invoked after the main HTTP server binds to a
+	// port. Used to print the startup banner with the actual port.
+	onServerBound func(address string)
+
+	// sriEnabled controls whether Subresource Integrity (SRI) hashes are added to script and
+	// link tags. Nil means use the default (enabled).
+	sriEnabled *bool
+
+	// authGuardConfig controls route-level authentication enforcement. Nil means no route
+	// protection middleware is installed.
+	authGuardConfig *daemon_dto.AuthGuardConfig
+
+	// autoMemoryLimitFunc is called during bootstrap to configure GOMEMLIMIT based on the
+	// container's cgroup memory limit. Nil means disabled.
+	autoMemoryLimitFunc func() (int64, error)
 
 	// dbProvider stores the otter persistence provider for the default in-memory backend.
 	// Only used when no SQL database is registered via AddDatabase.
 	dbProvider *persistence.Provider
 
-	// dbRegistrations maps names to database registration configs. Populated by AddDatabase
-	// and consumed lazily by GetDatabaseService.
-	dbRegistrations map[string]*DatabaseRegistration
+	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is set.
+	cspBuilder *security_domain.CSPBuilder
 
 	// storageProviders maps names to storage provider instances for data storage.
 	storageProviders map[string]storage_domain.StorageProviderPort
@@ -563,9 +594,10 @@ type Container struct {
 	// captchaProviders maps provider names to their captcha handlers.
 	captchaProviders map[string]captcha_domain.CaptchaProvider
 
-	// spamdetectFeedbackStore holds a deferred feedback store applied when the spam
-	// detection service is lazily created.
-	spamdetectFeedbackStore spamdetect_domain.FeedbackStore
+	// readinessInfoKeyFilter reports whether a provider info key is sensitive and must be
+	// dropped before readiness info egresses off-box (registered via
+	// WithReadinessInfoKeyFilter). Nil when the built-in default filter applies.
+	readinessInfoKeyFilter func(string) bool
 
 	// spamdetectDetectors maps detector names to their spam detection handlers.
 	spamdetectDetectors map[string]spamdetect_domain.Detector
@@ -595,13 +627,9 @@ type Container struct {
 	// from the daemon run mode.
 	seoProductionMode *bool
 
-	// seoURLProvider supplies additional sitemap URLs at build time, in-process; nil means
-	// no extra build-time URLs.
-	seoURLProvider seo_domain.SitemapURLProvider
-
-	// routeSources enumerate the concrete URLs for pages bound to a p-route-source
-	// directive; registered via WithRouteSource and composable across calls.
-	routeSources []seo_domain.RouteSource
+	// compilerDebugLogsEnabled overrides the default for compiler debug log files. nil means
+	// use the constant default (true).
+	compilerDebugLogsEnabled *bool
 
 	// assetsConfigOverride holds asset profiles and responsive image settings; nil uses an
 	// empty config (no profiles).
@@ -643,25 +671,30 @@ type Container struct {
 	// set (defaults to true).
 	startupBannerEnabled *bool
 
-	// iAmACatPerson swaps the large pixel-art mascot for the small ASCII art version. nil
-	// means not set (defaults to false).
-	iAmACatPerson *bool
+	// defaultVideoTranscoder is the name of the transcoder to use as the default.
+	defaultVideoTranscoder string
 
-	// compilerDebugLogsEnabled overrides the default for compiler debug log files. nil means
-	// use the constant default (true).
-	compilerDebugLogsEnabled *bool
+	// storagePresignBaseURL is the base URL for presigned storage URLs. This is needed for
+	// headless CMS setups where the frontend runs on a different host from the storage
+	// service.
+	storagePresignBaseURL string
 
-	// autoMemoryLimitFunc is called during bootstrap to configure GOMEMLIMIT based on the
-	// container's cgroup memory limit. Nil means disabled.
-	autoMemoryLimitFunc func() (int64, error)
+	// cssResetCSS holds the resolved CSS reset content for PK files. When empty, no CSS
+	// reset is included in the generated theme CSS.
+	cssResetCSS string
 
-	// authGuardConfig controls route-level authentication enforcement. Nil means no route
-	// protection middleware is installed.
-	authGuardConfig *daemon_dto.AuthGuardConfig
+	// releaseIDOverride sets the release identifier stamped on build-origin registry
+	// variants during generation.
+	//
+	// When empty the release defaults to the VCS revision. An explicit identifier lets
+	// deploys tag releases (canary, A/B) independently of the commit, so coexisting releases
+	// are distinguishable.
+	releaseIDOverride string
 
-	// sriEnabled controls whether Subresource Integrity (SRI) hashes are added to script and
-	// link tags. Nil means use the default (enabled).
-	sriEnabled *bool
+	// moduleNameOverride supplies the Go module name when no go.mod is readable at runtime
+	// (single-binary / distroless deploys), so the favicon "@/" alias still resolves. Used
+	// only as a fallback when the resolver finds no go.mod.
+	moduleNameOverride string
 
 	// crossOriginResourcePolicy overrides the default CORP header value. Empty means use the
 	// config default ("same-origin").
@@ -705,10 +738,10 @@ type Container struct {
 	// storageDefaultProvider is the name of the default storage provider.
 	storageDefaultProvider string
 
-	// storagePresignBaseURL is the base URL for presigned storage URLs. This is needed for
-	// headless CMS setups where the frontend runs on a different host from the storage
-	// service.
-	storagePresignBaseURL string
+	// crashOutputPath is the file path the Go runtime should mirror crash output to via
+	// runtime/debug.SetCrashOutput; empty disables the feature and the default behaviour
+	// stays in place.
+	crashOutputPath string
 
 	// storagePublicBaseURL is the base URL for public storage URLs, making them absolute
 	// when set or relative when empty, needed for headless CMS setups where the frontend
@@ -719,21 +752,26 @@ type Container struct {
 	// first registered transformer becomes the default.
 	defaultImageTransformer string
 
-	// defaultVideoTranscoder is the name of the transcoder to use as the default.
-	defaultVideoTranscoder string
-
-	// crashOutputPath is the file path the Go runtime should mirror crash output to via
-	// runtime/debug.SetCrashOutput; empty disables the feature and the default behaviour
-	// stays in place.
-	crashOutputPath string
-
-	// cssResetCSS holds the resolved CSS reset content for PK files. When empty, no CSS
-	// reset is included in the generated theme CSS.
-	cssResetCSS string
-
 	// websiteConfig holds the user-facing website metadata supplied via WithWebsiteConfig.
 	// Empty when no override is set.
 	websiteConfig config.WebsiteConfig
+
+	// registryReleaseSeed is the build seed published as a release layer after the blob
+	// stores are built; nil when this deployment publishes nothing.
+	registryReleaseSeed []*registry_dto.ArtefactMeta
+
+	// routeSources enumerate the concrete URLs for pages bound to a p-route-source
+	// directive; registered via WithRouteSource and composable across calls.
+	routeSources []seo_domain.RouteSource
+
+	// frontendModules stores the registered frontend modules and their settings.
+	frontendModules []daemon_frontend.ModuleEntry
+
+	// customHealthProbes stores health probes provided by the application for custom checks.
+	customHealthProbes []healthprobe_domain.Probe
+
+	// cssTreeShakingSafelist lists CSS class names preserved during tree-shaking.
+	cssTreeShakingSafelist []string
 
 	// analyticsCollectors holds user-registered backend analytics collectors. Empty means no
 	// analytics middleware is installed.
@@ -743,25 +781,34 @@ type Container struct {
 	// Reporting-Endpoints header.
 	reportingEndpoints []config.ReportingEndpoint
 
-	// frontendModules stores the registered frontend modules and their settings.
-	frontendModules []daemon_frontend.ModuleEntry
+	// embeddedManifest holds the compiled dist/manifest.bin bytes. When set, the manifest is
+	// served from memory instead of read from disk, completing the single-binary story (the
+	// manifest lives in dist/, outside .piko).
+	embeddedManifest []byte
 
 	// configResolvers holds the resolvers that process configuration during bootstrap.
 	configResolvers []config_domain.Resolver
 
-	// customHealthProbes stores health probes provided by the application for custom checks.
-	customHealthProbes []healthprobe_domain.Probe
+	// extraSpanProcessors holds additional OTEL span processors registered via
+	// WithSpanProcessor, appended to the tracer provider during OTEL setup alongside the
+	// monitoring service's own processor.
+	extraSpanProcessors []monitoring_domain.SpanProcessor
 
 	// externalComponents holds component definitions added via WithComponents.
 	externalComponents []component_dto.ComponentDefinition
-
-	// cssTreeShakingSafelist lists CSS class names preserved during tree-shaking.
-	cssTreeShakingSafelist []string
 
 	// serverConfig holds the resolved server configuration. It is populated during bootstrap
 	// by merging configServerOverrides (set by With* options) with struct-tag defaults via
 	// config_domain.Load.
 	serverConfig ServerConfig
+
+	// embedScope selects how much of the runtime payload generation copies into the embed
+	// package. Zero value is EmbedAll.
+	embedScope EmbedScope
+
+	// actionResponseCacheMaxBytesOverride is the operator-supplied byte cap on the
+	// action-response cache.
+	actionResponseCacheMaxBytesOverride uint64
 
 	// csrfTokenMaxAge overrides the default CSRF token maximum age when positive.
 	csrfTokenMaxAge time.Duration
@@ -774,12 +821,11 @@ type Container struct {
 	// hybrid-collections cache.
 	hybridCacheMaxBytesOverride uint64
 
-	// actionResponseCacheMaxBytesOverride is the operator-supplied byte cap on the
-	// action-response cache.
-	actionResponseCacheMaxBytesOverride uint64
+	// capabilityOnce guards single initialisation of the capability service.
+	capabilityOnce sync.Once
 
-	// renderRegOnce guards single initialisation of the render registry.
-	renderRegOnce sync.Once
+	// storageOnce guards single initialisation of the storage service.
+	storageOnce sync.Once
 
 	// videoOnce guards single initialisation of the video service.
 	videoOnce sync.Once
@@ -799,8 +845,8 @@ type Container struct {
 	// registryOnce guards single initialisation of the registry service.
 	registryOnce sync.Once
 
-	// capabilityOnce guards single initialisation of the capability service.
-	capabilityOnce sync.Once
+	// componentRegistryOnce guards single initialisation of the component registry.
+	componentRegistryOnce sync.Once
 
 	// orchestratorOnce guards single initialisation of the orchestrator service.
 	orchestratorOnce sync.Once
@@ -850,8 +896,8 @@ type Container struct {
 	// annotatorOnce guards single initialisation of the annotator service.
 	annotatorOnce sync.Once
 
-	// storageOnce guards single initialisation of the storage service.
-	storageOnce sync.Once
+	// renderRegOnce guards single initialisation of the render registry.
+	renderRegOnce sync.Once
 
 	// seoOnce guards single initialisation of the SEO service.
 	seoOnce sync.Once
@@ -886,12 +932,12 @@ type Container struct {
 	// rateLimiterOnce guards single initialisation of the centralised rate limiter.
 	rateLimiterOnce sync.Once
 
-	// componentRegistryOnce guards single initialisation of the component registry.
-	componentRegistryOnce sync.Once
+	// experimentalPrerendering enables static HTML prerendering at generation time.
+	experimentalPrerendering bool
 
-	// cspPolicyStringSet tracks whether SetCSPPolicyString was called. This tells apart "not
-	// set" from "set to empty string".
-	cspPolicyStringSet bool
+	// devWidgetEnabled controls whether the dev tools overlay widget is rendered on pages in
+	// dev mode.
+	devWidgetEnabled bool
 
 	// hasEmailDispatcher indicates whether an email dispatcher has been set up.
 	hasEmailDispatcher bool
@@ -905,16 +951,21 @@ type Container struct {
 	// cssTreeShaking enables CSS tree-shaking during scaffold generation.
 	cssTreeShaking bool
 
-	// experimentalPrerendering enables static HTML prerendering at generation time.
-	experimentalPrerendering bool
-
-	// experimentalCommentStripping removes HTML comments from generated output.
-	experimentalCommentStripping bool
-
 	// experimentalDwarfLineDirectives enables valid DWARF //line directives in generated
 	// code. When false (default), directives use "// line" (with a space) which the Go
 	// compiler treats as a plain comment.
 	experimentalDwarfLineDirectives bool
+
+	// isBuildTime is set during BuildProject (generation).
+	//
+	// While set, the registry and orchestrator metadata stores route to the local otter/file
+	// DAL regardless of any registered SQL database, so generation never opens a DB
+	// connection (CI has none). The SQL codegen path is unaffected.
+	isBuildTime bool
+
+	// cspPolicyStringSet tracks whether SetCSPPolicyString was called. This tells apart "not
+	// set" from "set to empty string".
+	cspPolicyStringSet bool
 
 	// formatGeneratedCode runs go/format.Source on generated code so it is gofmt-canonical.
 	formatGeneratedCode bool
@@ -927,9 +978,8 @@ type Container struct {
 	// slower but always stable as a fallback.
 	useStandardLoader bool
 
-	// devWidgetEnabled controls whether the dev tools overlay widget is rendered on pages in
-	// dev mode.
-	devWidgetEnabled bool
+	// experimentalCommentStripping removes HTML comments from generated output.
+	experimentalCommentStripping bool
 
 	// devHotreloadEnabled controls whether the SSE hot-reload JS module is loaded in dev
 	// mode to trigger automatic page refreshes on rebuild.
@@ -1037,6 +1087,12 @@ func (c *Container) IsDevWidgetEnabled() bool { return c.devWidgetEnabled }
 //
 // Returns bool which is true when automatic page refresh should be active in dev mode.
 func (c *Container) IsDevHotreloadEnabled() bool { return c.devHotreloadEnabled }
+
+// IsEmbeddedMode reports whether the container is configured with an embedded .piko
+// folder for single-binary deployments.
+//
+// Returns bool which is true when the container serves data from an embedded filesystem.
+func (c *Container) IsEmbeddedMode() bool { return c.embeddedPikoFS != nil }
 
 // SetOnServerBound stores a callback to invoke when the main HTTP server binds to a port.
 //
@@ -1549,6 +1605,19 @@ func (c *Container) StartGeneratorProfiling() func() {
 			logger_domain.String("output_dir", generatorProfilingConfig.OutputDir),
 		)
 	}
+}
+
+// registryBlobsReadOnly reports whether registry blob storage resolves to the read-only
+// embedded filesystem.
+//
+// True for an embedded boot with no writable storage provider registered (embeddedPikoFS
+// is set). This mirrors getRegistryBlobProvider's fall-through to the embedded fs.FS.
+// On-demand variant generation cannot persist in that case, so callers skip it and fall
+// back to the baked source asset.
+//
+// Returns bool which is true when registry blob writes would fail (read-only).
+func (c *Container) registryBlobsReadOnly() bool {
+	return c.embeddedPikoFS != nil && len(c.storageProviders) == 0
 }
 
 // applyAutoMemoryLimit calls the configured auto memory limit function to set GOMEMLIMIT

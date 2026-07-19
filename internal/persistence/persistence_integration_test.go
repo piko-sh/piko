@@ -32,6 +32,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/wal/wal_domain"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,9 +42,7 @@ func TestIntegration_PersistenceRecovery(t *testing.T) {
 	}
 
 	tempDir, err := os.MkdirTemp("", "piko-persistence-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp directory: %v", err)
-	}
+	require.NoError(t, err, "failed to create temp directory")
 	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	ctx := context.Background()
@@ -92,19 +91,13 @@ func TestIntegration_PersistenceRecovery(t *testing.T) {
 			},
 		})
 
-		if err := provider.Connect(ctx); err != nil {
-			t.Fatalf("Connect failed: %v", err)
-		}
+		require.NoError(t, provider.Connect(ctx), "Connect failed")
 
 		registryFactory, err := provider.RegistryDALFactory()
-		if err != nil {
-			t.Fatalf("RegistryDALFactory failed: %v", err)
-		}
+		require.NoError(t, err, "RegistryDALFactory failed")
 
 		registryDAL, err := registryFactory.NewRegistryDAL()
-		if err != nil {
-			t.Fatalf("NewRegistryDAL failed: %v", err)
-		}
+		require.NoError(t, err, "NewRegistryDAL failed")
 
 		dal, ok := registryDAL.(registry_dal.RegistryDAL)
 		require.True(t, ok)
@@ -114,29 +107,19 @@ func TestIntegration_PersistenceRecovery(t *testing.T) {
 				Artefact: testArtefact,
 			},
 		})
-		if err != nil {
-			t.Fatalf("AtomicUpdate failed: %v", err)
-		}
+		require.NoError(t, err, "AtomicUpdate failed")
 
 		orchestratorFactory, err := provider.OrchestratorDALFactory()
-		if err != nil {
-			t.Fatalf("OrchestratorDALFactory failed: %v", err)
-		}
+		require.NoError(t, err, "OrchestratorDALFactory failed")
 
 		orchestratorDAL, err := orchestratorFactory.NewOrchestratorDAL()
-		if err != nil {
-			t.Fatalf("NewOrchestratorDAL failed: %v", err)
-		}
+		require.NoError(t, err, "NewOrchestratorDAL failed")
 
 		orchDAL, ok := orchestratorDAL.(orchestrator_dal.OrchestratorDAL)
 		require.True(t, ok)
-		if err := orchDAL.CreateTask(ctx, testTask); err != nil {
-			t.Fatalf("CreateTask failed: %v", err)
-		}
+		require.NoError(t, orchDAL.CreateTask(ctx, testTask), "CreateTask failed")
 
-		if err := provider.Close(ctx); err != nil {
-			t.Fatalf("Close failed: %v", err)
-		}
+		require.NoError(t, provider.Close(ctx), "Close failed")
 	}()
 
 	func() {
@@ -151,63 +134,43 @@ func TestIntegration_PersistenceRecovery(t *testing.T) {
 			},
 		})
 
-		if err := provider.Connect(ctx); err != nil {
-			t.Fatalf("Connect (recovery) failed: %v", err)
-		}
+		require.NoError(t, provider.Connect(ctx), "Connect (recovery) failed")
 		defer func() { _ = provider.Close(ctx) }()
 
 		registryFactory, err := provider.RegistryDALFactory()
-		if err != nil {
-			t.Fatalf("RegistryDALFactory (recovery) failed: %v", err)
-		}
+		require.NoError(t, err, "RegistryDALFactory (recovery) failed")
 
 		registryDAL, err := registryFactory.NewRegistryDAL()
-		if err != nil {
-			t.Fatalf("NewRegistryDAL (recovery) failed: %v", err)
-		}
+		require.NoError(t, err, "NewRegistryDAL (recovery) failed")
 
 		dal, ok := registryDAL.(registry_dal.RegistryDAL)
 		require.True(t, ok)
 		recovered, err := dal.GetArtefact(ctx, testArtefact.ID)
-		if err != nil {
-			t.Fatalf("GetArtefact failed: %v", err)
-		}
+		require.NoError(t, err, "GetArtefact failed")
 
-		if recovered.ID != testArtefact.ID {
-			t.Errorf("artefact ID mismatch: got %q, want %q", recovered.ID, testArtefact.ID)
-		}
-		if recovered.SourcePath != testArtefact.SourcePath {
-			t.Errorf("artefact SourcePath mismatch: got %q, want %q", recovered.SourcePath, testArtefact.SourcePath)
-		}
-		if len(recovered.ActualVariants) != len(testArtefact.ActualVariants) {
-			t.Errorf("artefact ActualVariants length mismatch: got %d, want %d",
-				len(recovered.ActualVariants), len(testArtefact.ActualVariants))
-		}
+		assert.Equal(t, testArtefact.ID, recovered.ID,
+			"artefact ID mismatch: got %q, want %q", recovered.ID, testArtefact.ID)
+		assert.Equal(t, testArtefact.SourcePath, recovered.SourcePath,
+			"artefact SourcePath mismatch: got %q, want %q", recovered.SourcePath, testArtefact.SourcePath)
+		assert.Len(t, recovered.ActualVariants, len(testArtefact.ActualVariants),
+			"artefact ActualVariants length mismatch: got %d, want %d",
+			len(recovered.ActualVariants), len(testArtefact.ActualVariants))
 
 		foundByKey, err := dal.FindArtefactByVariantStorageKey(ctx, "storage/variant-1.webp")
-		if err != nil {
-			t.Fatalf("FindArtefactByVariantStorageKey failed: %v", err)
-		}
-		if foundByKey.ID != testArtefact.ID {
-			t.Errorf("artefact found by storage key mismatch: got %q, want %q", foundByKey.ID, testArtefact.ID)
-		}
+		require.NoError(t, err, "FindArtefactByVariantStorageKey failed")
+		assert.Equal(t, testArtefact.ID, foundByKey.ID,
+			"artefact found by storage key mismatch: got %q, want %q", foundByKey.ID, testArtefact.ID)
 
 		orchestratorFactory, err := provider.OrchestratorDALFactory()
-		if err != nil {
-			t.Fatalf("OrchestratorDALFactory (recovery) failed: %v", err)
-		}
+		require.NoError(t, err, "OrchestratorDALFactory (recovery) failed")
 
 		orchestratorDAL, err := orchestratorFactory.NewOrchestratorDAL()
-		if err != nil {
-			t.Fatalf("NewOrchestratorDAL (recovery) failed: %v", err)
-		}
+		require.NoError(t, err, "NewOrchestratorDAL (recovery) failed")
 
 		orchDAL, ok := orchestratorDAL.(orchestrator_dal.OrchestratorDAL)
 		require.True(t, ok)
 		tasks, err := orchDAL.FetchAndMarkDueTasks(ctx, orchestrator_domain.PriorityNormal, 10)
-		if err != nil {
-			t.Fatalf("FetchAndMarkDueTasks failed: %v", err)
-		}
+		require.NoError(t, err, "FetchAndMarkDueTasks failed")
 
 		var foundTask *orchestrator_domain.Task
 		for _, task := range tasks {
@@ -218,12 +181,10 @@ func TestIntegration_PersistenceRecovery(t *testing.T) {
 		}
 
 		require.NotNil(t, foundTask, "task not recovered from WAL")
-		if foundTask.WorkflowID != testTask.WorkflowID {
-			t.Errorf("task WorkflowID mismatch: got %q, want %q", foundTask.WorkflowID, testTask.WorkflowID)
-		}
-		if foundTask.Executor != testTask.Executor {
-			t.Errorf("task Executor mismatch: got %q, want %q", foundTask.Executor, testTask.Executor)
-		}
+		assert.Equal(t, testTask.WorkflowID, foundTask.WorkflowID,
+			"task WorkflowID mismatch: got %q, want %q", foundTask.WorkflowID, testTask.WorkflowID)
+		assert.Equal(t, testTask.Executor, foundTask.Executor,
+			"task Executor mismatch: got %q, want %q", foundTask.Executor, testTask.Executor)
 	}()
 }
 
@@ -239,20 +200,14 @@ func TestIntegration_PersistenceDisabled(t *testing.T) {
 		OrchestratorCapacity: 1000,
 	})
 
-	if err := provider.Connect(ctx); err != nil {
-		t.Fatalf("Connect failed: %v", err)
-	}
+	require.NoError(t, provider.Connect(ctx), "Connect failed")
 	defer func() { _ = provider.Close(ctx) }()
 
 	registryFactory, err := provider.RegistryDALFactory()
-	if err != nil {
-		t.Fatalf("RegistryDALFactory failed: %v", err)
-	}
+	require.NoError(t, err, "RegistryDALFactory failed")
 
 	registryDAL, err := registryFactory.NewRegistryDAL()
-	if err != nil {
-		t.Fatalf("NewRegistryDAL failed: %v", err)
-	}
+	require.NoError(t, err, "NewRegistryDAL failed")
 
 	dal, ok := registryDAL.(registry_dal.RegistryDAL)
 	require.True(t, ok)
@@ -269,18 +224,13 @@ func TestIntegration_PersistenceDisabled(t *testing.T) {
 	err = dal.AtomicUpdate(ctx, []registry_dto.AtomicAction{
 		{Type: registry_dto.ActionTypeUpsertArtefact, Artefact: testArtefact},
 	})
-	if err != nil {
-		t.Fatalf("AtomicUpdate failed: %v", err)
-	}
+	require.NoError(t, err, "AtomicUpdate failed")
 
 	recovered, err := dal.GetArtefact(ctx, testArtefact.ID)
-	if err != nil {
-		t.Fatalf("GetArtefact failed: %v", err)
-	}
+	require.NoError(t, err, "GetArtefact failed")
 
-	if recovered.ID != testArtefact.ID {
-		t.Errorf("artefact ID mismatch: got %q, want %q", recovered.ID, testArtefact.ID)
-	}
+	assert.Equal(t, testArtefact.ID, recovered.ID,
+		"artefact ID mismatch: got %q, want %q", recovered.ID, testArtefact.ID)
 }
 
 func TestIntegration_SearchAfterRecovery(t *testing.T) {
@@ -289,9 +239,7 @@ func TestIntegration_SearchAfterRecovery(t *testing.T) {
 	}
 
 	tempDir, err := os.MkdirTemp("", "piko-search-recovery-test-*")
-	if err != nil {
-		t.Fatalf("failed to create temp directory: %v", err)
-	}
+	require.NoError(t, err, "failed to create temp directory")
 	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	ctx := context.Background()
@@ -332,9 +280,7 @@ func TestIntegration_SearchAfterRecovery(t *testing.T) {
 			},
 		})
 
-		if err := provider.Connect(ctx); err != nil {
-			t.Fatalf("Connect failed: %v", err)
-		}
+		require.NoError(t, provider.Connect(ctx), "Connect failed")
 
 		registryFactory, err := provider.RegistryDALFactory()
 		require.NoError(t, err)
@@ -346,19 +292,13 @@ func TestIntegration_SearchAfterRecovery(t *testing.T) {
 		err = dal.AtomicUpdate(ctx, []registry_dto.AtomicAction{
 			{Type: registry_dto.ActionTypeUpsertArtefact, Artefact: testArtefact},
 		})
-		if err != nil {
-			t.Fatalf("AtomicUpdate failed: %v", err)
-		}
+		require.NoError(t, err, "AtomicUpdate failed")
 
 		results, err := dal.SearchArtefacts(ctx, registry_domain.SearchQuery{
 			SimpleTagQuery: map[string]string{"format": "webp"},
 		})
-		if err != nil {
-			t.Fatalf("SearchArtefacts before close failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Fatalf("expected 1 result before close, got %d", len(results))
-		}
+		require.NoError(t, err, "SearchArtefacts before close failed")
+		require.Len(t, results, 1, "expected 1 result before close, got %d", len(results))
 
 		_ = provider.Close(ctx)
 	}()
@@ -375,9 +315,7 @@ func TestIntegration_SearchAfterRecovery(t *testing.T) {
 			},
 		})
 
-		if err := provider.Connect(ctx); err != nil {
-			t.Fatalf("Connect (recovery) failed: %v", err)
-		}
+		require.NoError(t, provider.Connect(ctx), "Connect (recovery) failed")
 		defer func() { _ = provider.Close(ctx) }()
 
 		registryFactory, err := provider.RegistryDALFactory()
@@ -390,24 +328,15 @@ func TestIntegration_SearchAfterRecovery(t *testing.T) {
 		results, err := dal.SearchArtefacts(ctx, registry_domain.SearchQuery{
 			SimpleTagQuery: map[string]string{"format": "webp"},
 		})
-		if err != nil {
-			t.Fatalf("SearchArtefacts after recovery failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Fatalf("expected 1 result after recovery, got %d", len(results))
-		}
-		if results[0].ID != testArtefact.ID {
-			t.Errorf("wrong artefact found: got %q, want %q", results[0].ID, testArtefact.ID)
-		}
+		require.NoError(t, err, "SearchArtefacts after recovery failed")
+		require.Len(t, results, 1, "expected 1 result after recovery, got %d", len(results))
+		assert.Equal(t, testArtefact.ID, results[0].ID,
+			"wrong artefact found: got %q, want %q", results[0].ID, testArtefact.ID)
 
 		results, err = dal.SearchArtefacts(ctx, registry_domain.SearchQuery{
 			SimpleTagQuery: map[string]string{"width": "800"},
 		})
-		if err != nil {
-			t.Fatalf("SearchArtefacts by width failed: %v", err)
-		}
-		if len(results) != 1 {
-			t.Fatalf("expected 1 result for width search, got %d", len(results))
-		}
+		require.NoError(t, err, "SearchArtefacts by width failed")
+		require.Len(t, results, 1, "expected 1 result for width search, got %d", len(results))
 	}()
 }

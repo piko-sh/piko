@@ -21,14 +21,15 @@ package registry_dto
 import (
 	"maps"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTags_GetSetSystem(t *testing.T) {
 	var tags Tags
 	tags.Set(TagType, "source")
-	if got := tags.Get(TagType); got != "source" {
-		t.Errorf("Get(TagType) = %q, want %q", got, "source")
-	}
+	assert.Equal(t, "source", tags.Get(TagType))
 }
 
 func TestTags_GetByName_System(t *testing.T) {
@@ -36,9 +37,8 @@ func TestTags_GetByName_System(t *testing.T) {
 	tags.Set(TagMimeType, "image/png")
 
 	value, ok := tags.GetByName("mimeType")
-	if !ok || value != "image/png" {
-		t.Errorf("GetByName(mimeType) = %q, %v; want %q, true", value, ok, "image/png")
-	}
+	assert.True(t, ok)
+	assert.Equal(t, "image/png", value)
 }
 
 func TestTags_GetByName_Custom(t *testing.T) {
@@ -46,17 +46,15 @@ func TestTags_GetByName_Custom(t *testing.T) {
 	tags.SetByName("x-custom", "hello")
 
 	value, ok := tags.GetByName("x-custom")
-	if !ok || value != "hello" {
-		t.Errorf("GetByName(x-custom) = %q, %v; want %q, true", value, ok, "hello")
-	}
+	assert.True(t, ok)
+	assert.Equal(t, "hello", value)
 }
 
 func TestTags_GetByName_Missing(t *testing.T) {
 	var tags Tags
 	value, ok := tags.GetByName("nonexistent")
-	if ok || value != "" {
-		t.Errorf("GetByName(nonexistent) = %q, %v; want empty, false", value, ok)
-	}
+	assert.False(t, ok)
+	assert.Empty(t, value)
 }
 
 func TestTags_SetByName_SystemAndCustom(t *testing.T) {
@@ -64,44 +62,31 @@ func TestTags_SetByName_SystemAndCustom(t *testing.T) {
 	tags.SetByName("type", "minified")
 	tags.SetByName("x-extra", "data")
 
-	if got := tags.Get(TagType); got != "minified" {
-		t.Errorf("system tag via SetByName: got %q, want %q", got, "minified")
-	}
+	assert.Equal(t, "minified", tags.Get(TagType), "system tag via SetByName")
 	value, ok := tags.GetByName("x-extra")
-	if !ok || value != "data" {
-		t.Errorf("custom tag via SetByName: got %q, %v", value, ok)
-	}
+	assert.True(t, ok, "custom tag via SetByName")
+	assert.Equal(t, "data", value, "custom tag via SetByName")
 }
 
 func TestTags_Len(t *testing.T) {
 	var tags Tags
-	if tags.Len() != 0 {
-		t.Errorf("Len() on empty = %d, want 0", tags.Len())
-	}
+	assert.Equal(t, 0, tags.Len(), "Len() on empty should be 0")
 
 	tags.Set(TagEtag, "abc123")
 	tags.SetByName("custom", "val")
-	if tags.Len() != 2 {
-		t.Errorf("Len() = %d, want 2", tags.Len())
-	}
+	assert.Equal(t, 2, tags.Len())
 }
 
 func TestTags_IsEmpty(t *testing.T) {
 	var tags Tags
-	if !tags.IsEmpty() {
-		t.Error("new Tags should be empty")
-	}
+	assert.True(t, tags.IsEmpty(), "new Tags should be empty")
 
 	tags.Set(TagHash, "sha256:abc")
-	if tags.IsEmpty() {
-		t.Error("Tags with system tag should not be empty")
-	}
+	assert.False(t, tags.IsEmpty(), "Tags with system tag should not be empty")
 
 	var tags2 Tags
 	tags2.SetByName("custom", "val")
-	if tags2.IsEmpty() {
-		t.Error("Tags with custom tag should not be empty")
-	}
+	assert.False(t, tags2.IsEmpty(), "Tags with custom tag should not be empty")
 }
 
 func TestTags_All(t *testing.T) {
@@ -111,12 +96,8 @@ func TestTags_All(t *testing.T) {
 
 	got := maps.Collect(tags.All())
 
-	if got["format"] != "webp" {
-		t.Errorf("All() missing system tag: %v", got)
-	}
-	if got["custom"] != "val" {
-		t.Errorf("All() missing custom tag: %v", got)
-	}
+	assert.Equal(t, "webp", got["format"], "All() missing system tag")
+	assert.Equal(t, "val", got["custom"], "All() missing custom tag")
 }
 
 func TestTags_Clone(t *testing.T) {
@@ -125,19 +106,14 @@ func TestTags_Clone(t *testing.T) {
 	tags.SetByName("custom", "val")
 
 	clone := tags.Clone()
-	if clone.Get(TagWidth) != "800" {
-		t.Error("Clone missing system tag")
-	}
+	assert.Equal(t, "800", clone.Get(TagWidth), "Clone missing system tag")
 	v, ok := clone.GetByName("custom")
-	if !ok || v != "val" {
-		t.Error("Clone missing custom tag")
-	}
+	assert.True(t, ok, "Clone missing custom tag")
+	assert.Equal(t, "val", v, "Clone missing custom tag")
 
 	tags.SetByName("custom", "changed")
 	v2, _ := clone.GetByName("custom")
-	if v2 != "val" {
-		t.Error("Clone was mutated by original")
-	}
+	assert.Equal(t, "val", v2, "Clone was mutated by original")
 }
 
 func TestTags_ToMap(t *testing.T) {
@@ -146,12 +122,8 @@ func TestTags_ToMap(t *testing.T) {
 	tags.SetByName("extra", "data")
 
 	m := tags.ToMap()
-	if m["height"] != "600" {
-		t.Error("ToMap() missing system tag")
-	}
-	if m["extra"] != "data" {
-		t.Error("ToMap() missing custom tag")
-	}
+	assert.Equal(t, "600", m["height"], "ToMap() missing system tag")
+	assert.Equal(t, "data", m["extra"], "ToMap() missing custom tag")
 }
 
 func TestTags_JSON(t *testing.T) {
@@ -160,49 +132,33 @@ func TestTags_JSON(t *testing.T) {
 	tags.SetByName("custom", "val")
 
 	data, err := tags.MarshalJSON()
-	if err != nil {
-		t.Fatalf("MarshalJSON: %v", err)
-	}
+	require.NoError(t, err, "MarshalJSON")
 
 	var tags2 Tags
-	if err := tags2.UnmarshalJSON(data); err != nil {
-		t.Fatalf("UnmarshalJSON: %v", err)
-	}
-	if tags2.Get(TagType) != "source" {
-		t.Error("round-trip: missing system tag")
-	}
+	require.NoError(t, tags2.UnmarshalJSON(data), "UnmarshalJSON")
+	assert.Equal(t, "source", tags2.Get(TagType), "round-trip: missing system tag")
 	v, ok := tags2.GetByName("custom")
-	if !ok || v != "val" {
-		t.Error("round-trip: missing custom tag")
-	}
+	assert.True(t, ok, "round-trip: missing custom tag")
+	assert.Equal(t, "val", v, "round-trip: missing custom tag")
 }
 
 func TestTags_UnmarshalJSON_Invalid(t *testing.T) {
 	var tags Tags
-	if err := tags.UnmarshalJSON([]byte(`not json`)); err == nil {
-		t.Error("expected error for invalid JSON")
-	}
+	assert.Error(t, tags.UnmarshalJSON([]byte(`not json`)), "expected error for invalid JSON")
 }
 
 func TestTagKeyName(t *testing.T) {
-	if got := tagKeyName(TagType); got != "type" {
-		t.Errorf("tagKeyName(TagType) = %q, want %q", got, "type")
-	}
-	if got := tagKeyName(tagKeyCount + 1); got != "" {
-		t.Errorf("tagKeyName(invalid) = %q, want empty", got)
-	}
+	assert.Equal(t, "type", tagKeyName(TagType))
+	assert.Empty(t, tagKeyName(tagKeyCount+1), "tagKeyName(invalid) should be empty")
 }
 
 func TestLookupTagKey(t *testing.T) {
 	key, ok := lookupTagKey("etag")
-	if !ok || key != TagEtag {
-		t.Errorf("lookupTagKey(etag) = %v, %v; want TagEtag, true", key, ok)
-	}
+	assert.True(t, ok)
+	assert.Equal(t, TagEtag, key)
 
 	_, ok = lookupTagKey("nonexistent")
-	if ok {
-		t.Error("lookupTagKey(nonexistent) should return false")
-	}
+	assert.False(t, ok, "lookupTagKey(nonexistent) should return false")
 }
 
 func TestTagsFromMap(t *testing.T) {
@@ -211,11 +167,8 @@ func TestTagsFromMap(t *testing.T) {
 		"custom": "val",
 	}
 	tags := TagsFromMap(m)
-	if tags.Get(TagType) != "component-js" {
-		t.Error("TagsFromMap: missing system tag")
-	}
+	assert.Equal(t, "component-js", tags.Get(TagType), "TagsFromMap: missing system tag")
 	v, ok := tags.GetByName("custom")
-	if !ok || v != "val" {
-		t.Error("TagsFromMap: missing custom tag")
-	}
+	assert.True(t, ok, "TagsFromMap: missing custom tag")
+	assert.Equal(t, "val", v, "TagsFromMap: missing custom tag")
 }

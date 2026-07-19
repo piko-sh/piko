@@ -25,8 +25,10 @@ import (
 	"testing"
 
 	"github.com/google/flatbuffers/go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/generator/generator_schema"
 	"piko.sh/piko/internal/generator/generator_schema/generator_schema_gen"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -39,9 +41,8 @@ func TestNewFlatBufferManifestProvider(t *testing.T) {
 	provider := NewFlatBufferManifestProvider("/test/path/manifest.bin")
 	require.NotNil(t, provider, "NewFlatBufferManifestProvider returned nil")
 
-	if provider.manifestFileName != "manifest.bin" {
-		t.Errorf("Expected manifestFileName 'manifest.bin', got: %s", provider.manifestFileName)
-	}
+	assert.Equal(t, "manifest.bin", provider.manifestFileName,
+		"Expected manifestFileName 'manifest.bin', got: %s", provider.manifestFileName)
 }
 
 func TestLoad_EmptyManifest(t *testing.T) {
@@ -62,28 +63,18 @@ func TestLoad_EmptyManifest(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, manifest, relPath)
-	if err != nil {
-		t.Fatalf("Failed to create test manifest: %v", err)
-	}
+	require.NoError(t, err, "Failed to create test manifest")
 
 	provider := NewFlatBufferManifestProvider(absPath)
 	loaded, err := provider.Load(ctx)
 
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
+	require.NoError(t, err, "Load failed")
 
 	require.NotNil(t, loaded, "Load returned nil manifest")
 
-	if len(loaded.Pages) != 0 {
-		t.Error("Pages should be empty or nil")
-	}
-	if len(loaded.Partials) != 0 {
-		t.Error("Partials should be empty or nil")
-	}
-	if len(loaded.Emails) != 0 {
-		t.Error("Emails should be empty or nil")
-	}
+	assert.Empty(t, loaded.Pages, "Pages should be empty or nil")
+	assert.Empty(t, loaded.Partials, "Partials should be empty or nil")
+	assert.Empty(t, loaded.Emails, "Emails should be empty or nil")
 }
 
 func TestLoad_WithPages(t *testing.T) {
@@ -125,93 +116,49 @@ func TestLoad_WithPages(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, original, relPath)
-	if err != nil {
-		t.Fatalf("Failed to create test manifest: %v", err)
-	}
+	require.NoError(t, err, "Failed to create test manifest")
 
 	provider := NewFlatBufferManifestProvider(absPath)
 	loaded, err := provider.Load(ctx)
 
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
+	require.NoError(t, err, "Load failed")
 
-	if len(loaded.Pages) != 1 {
-		t.Errorf("Expected 1 page, got %d", len(loaded.Pages))
-	}
+	assert.Len(t, loaded.Pages, 1, "Expected 1 page, got %d", len(loaded.Pages))
 
 	page, exists := loaded.Pages["pages/home.pk"]
-	if !exists {
-		t.Fatal("Expected page 'pages/home.pk' not found")
-	}
+	require.True(t, exists, "Expected page 'pages/home.pk' not found")
 
-	if page.PackagePath != "test.com/dist/pages/home" {
-		t.Errorf("PackagePath mismatch: got %s", page.PackagePath)
-	}
-	if page.OriginalSourcePath != "pages/home.pk" {
-		t.Errorf("OriginalSourcePath mismatch: got %s", page.OriginalSourcePath)
-	}
-	if page.I18nStrategy != "prefix" {
-		t.Errorf("I18nStrategy mismatch: got %s", page.I18nStrategy)
-	}
-	if page.StyleBlock != ".home { color: red; }" {
-		t.Errorf("StyleBlock mismatch: got %s", page.StyleBlock)
-	}
-	if !page.HasCachePolicy {
-		t.Error("HasCachePolicy should be true")
-	}
-	if page.CachePolicyFuncName != "CachePolicy" {
-		t.Errorf("CachePolicyFuncName mismatch: got %s", page.CachePolicyFuncName)
-	}
-	if !page.HasMiddleware {
-		t.Error("HasMiddleware should be true")
-	}
-	if page.MiddlewareFuncName != "Middlewares" {
-		t.Errorf("MiddlewareFuncName mismatch: got %s", page.MiddlewareFuncName)
-	}
-	if !page.HasSupportedLocales {
-		t.Error("HasSupportedLocales should be true")
-	}
-	if page.SupportedLocalesFuncName != "SupportedLocales" {
-		t.Errorf("SupportedLocalesFuncName mismatch: got %s", page.SupportedLocalesFuncName)
-	}
-	if !page.HasPreview {
-		t.Error("HasPreview should be true")
-	}
+	assert.Equal(t, "test.com/dist/pages/home", page.PackagePath, "PackagePath mismatch: got %s", page.PackagePath)
+	assert.Equal(t, "pages/home.pk", page.OriginalSourcePath,
+		"OriginalSourcePath mismatch: got %s", page.OriginalSourcePath)
+	assert.Equal(t, "prefix", page.I18nStrategy, "I18nStrategy mismatch: got %s", page.I18nStrategy)
+	assert.Equal(t, ".home { color: red; }", page.StyleBlock, "StyleBlock mismatch: got %s", page.StyleBlock)
+	assert.True(t, page.HasCachePolicy, "HasCachePolicy should be true")
+	assert.Equal(t, "CachePolicy", page.CachePolicyFuncName,
+		"CachePolicyFuncName mismatch: got %s", page.CachePolicyFuncName)
+	assert.True(t, page.HasMiddleware, "HasMiddleware should be true")
+	assert.Equal(t, "Middlewares", page.MiddlewareFuncName,
+		"MiddlewareFuncName mismatch: got %s", page.MiddlewareFuncName)
+	assert.True(t, page.HasSupportedLocales, "HasSupportedLocales should be true")
+	assert.Equal(t, "SupportedLocales", page.SupportedLocalesFuncName,
+		"SupportedLocalesFuncName mismatch: got %s", page.SupportedLocalesFuncName)
+	assert.True(t, page.HasPreview, "HasPreview should be true")
 
-	if len(page.RoutePatterns) != 2 {
-		t.Errorf("Expected 2 route patterns, got %d", len(page.RoutePatterns))
-	}
-	if page.RoutePatterns["en"] != "/home" {
-		t.Errorf("English route mismatch: got %s", page.RoutePatterns["en"])
-	}
-	if page.RoutePatterns["fr"] != "/accueil" {
-		t.Errorf("French route mismatch: got %s", page.RoutePatterns["fr"])
-	}
+	assert.Len(t, page.RoutePatterns, 2, "Expected 2 route patterns, got %d", len(page.RoutePatterns))
+	assert.Equal(t, "/home", page.RoutePatterns["en"], "English route mismatch: got %s", page.RoutePatterns["en"])
+	assert.Equal(t, "/accueil", page.RoutePatterns["fr"], "French route mismatch: got %s", page.RoutePatterns["fr"])
 
-	if len(page.AssetRefs) != 1 {
-		t.Errorf("Expected 1 asset ref, got %d", len(page.AssetRefs))
-	}
-	if page.AssetRefs[0].Kind != "image" {
-		t.Errorf("AssetRef kind mismatch: got %s", page.AssetRefs[0].Kind)
-	}
-	if page.AssetRefs[0].Path != "/img/logo.svg" {
-		t.Errorf("AssetRef path mismatch: got %s", page.AssetRefs[0].Path)
-	}
+	assert.Len(t, page.AssetRefs, 1, "Expected 1 asset ref, got %d", len(page.AssetRefs))
+	assert.Equal(t, "image", page.AssetRefs[0].Kind, "AssetRef kind mismatch: got %s", page.AssetRefs[0].Kind)
+	assert.Equal(t, "/img/logo.svg", page.AssetRefs[0].Path, "AssetRef path mismatch: got %s", page.AssetRefs[0].Path)
 
-	if len(page.CustomTags) != 2 {
-		t.Errorf("Expected 2 custom tags, got %d", len(page.CustomTags))
-	}
+	assert.Len(t, page.CustomTags, 2, "Expected 2 custom tags, got %d", len(page.CustomTags))
 
-	if len(page.LocalTranslations) != 2 {
-		t.Errorf("Expected 2 locales in translations, got %d", len(page.LocalTranslations))
-	}
-	if page.LocalTranslations["en"]["greeting"] != "Hello" {
-		t.Errorf("English greeting mismatch: got %s", page.LocalTranslations["en"]["greeting"])
-	}
-	if page.LocalTranslations["fr"]["farewell"] != "Au revoir" {
-		t.Errorf("French farewell mismatch: got %s", page.LocalTranslations["fr"]["farewell"])
-	}
+	assert.Len(t, page.LocalTranslations, 2, "Expected 2 locales in translations, got %d", len(page.LocalTranslations))
+	assert.Equal(t, "Hello", page.LocalTranslations["en"]["greeting"],
+		"English greeting mismatch: got %s", page.LocalTranslations["en"]["greeting"])
+	assert.Equal(t, "Au revoir", page.LocalTranslations["fr"]["farewell"],
+		"French farewell mismatch: got %s", page.LocalTranslations["fr"]["farewell"])
 }
 
 func TestLoad_WithPartials(t *testing.T) {
@@ -241,41 +188,26 @@ func TestLoad_WithPartials(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, original, relPath)
-	if err != nil {
-		t.Fatalf("Failed to create test manifest: %v", err)
-	}
+	require.NoError(t, err, "Failed to create test manifest")
 
 	provider := NewFlatBufferManifestProvider(absPath)
 	loaded, err := provider.Load(ctx)
 
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
+	require.NoError(t, err, "Load failed")
 
-	if len(loaded.Partials) != 1 {
-		t.Errorf("Expected 1 partial, got %d", len(loaded.Partials))
-	}
+	assert.Len(t, loaded.Partials, 1, "Expected 1 partial, got %d", len(loaded.Partials))
 
 	partial, exists := loaded.Partials["partials/card.pk"]
-	if !exists {
-		t.Fatal("Expected partial 'partials/card.pk' not found")
-	}
+	require.True(t, exists, "Expected partial 'partials/card.pk' not found")
 
-	if partial.PackagePath != "test.com/dist/partials/card" {
-		t.Errorf("PackagePath mismatch: got %s", partial.PackagePath)
-	}
-	if partial.PartialName != "partials-card" {
-		t.Errorf("PartialName mismatch: got %s", partial.PartialName)
-	}
-	if partial.PartialSrc != "/_piko/partial/partials-card" {
-		t.Errorf("PartialSrc mismatch: got %s", partial.PartialSrc)
-	}
-	if partial.RoutePattern != "/_piko/partial/partials-card" {
-		t.Errorf("RoutePattern mismatch: got %s", partial.RoutePattern)
-	}
-	if partial.StyleBlock != ".card { padding: 1rem; }" {
-		t.Errorf("StyleBlock mismatch: got %s", partial.StyleBlock)
-	}
+	assert.Equal(t, "test.com/dist/partials/card", partial.PackagePath,
+		"PackagePath mismatch: got %s", partial.PackagePath)
+	assert.Equal(t, "partials-card", partial.PartialName, "PartialName mismatch: got %s", partial.PartialName)
+	assert.Equal(t, "/_piko/partial/partials-card", partial.PartialSrc,
+		"PartialSrc mismatch: got %s", partial.PartialSrc)
+	assert.Equal(t, "/_piko/partial/partials-card", partial.RoutePattern,
+		"RoutePattern mismatch: got %s", partial.RoutePattern)
+	assert.Equal(t, ".card { padding: 1rem; }", partial.StyleBlock, "StyleBlock mismatch: got %s", partial.StyleBlock)
 }
 
 func TestLoad_WithEmails(t *testing.T) {
@@ -307,45 +239,28 @@ func TestLoad_WithEmails(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, original, relPath)
-	if err != nil {
-		t.Fatalf("Failed to create test manifest: %v", err)
-	}
+	require.NoError(t, err, "Failed to create test manifest")
 
 	provider := NewFlatBufferManifestProvider(absPath)
 	loaded, err := provider.Load(ctx)
 
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
+	require.NoError(t, err, "Load failed")
 
-	if len(loaded.Emails) != 1 {
-		t.Errorf("Expected 1 email, got %d", len(loaded.Emails))
-	}
+	assert.Len(t, loaded.Emails, 1, "Expected 1 email, got %d", len(loaded.Emails))
 
 	email, exists := loaded.Emails["emails/welcome.pk"]
-	if !exists {
-		t.Fatal("Expected email 'emails/welcome.pk' not found")
-	}
+	require.True(t, exists, "Expected email 'emails/welcome.pk' not found")
 
-	if email.PackagePath != "test.com/dist/emails/welcome" {
-		t.Errorf("PackagePath mismatch: got %s", email.PackagePath)
-	}
-	if email.OriginalSourcePath != "emails/welcome.pk" {
-		t.Errorf("OriginalSourcePath mismatch: got %s", email.OriginalSourcePath)
-	}
-	if email.StyleBlock != "table { border-collapse: collapse; }" {
-		t.Errorf("StyleBlock mismatch: got %s", email.StyleBlock)
-	}
-	if !email.HasSupportedLocales {
-		t.Error("HasSupportedLocales should be true")
-	}
+	assert.Equal(t, "test.com/dist/emails/welcome", email.PackagePath, "PackagePath mismatch: got %s", email.PackagePath)
+	assert.Equal(t, "emails/welcome.pk", email.OriginalSourcePath,
+		"OriginalSourcePath mismatch: got %s", email.OriginalSourcePath)
+	assert.Equal(t, "table { border-collapse: collapse; }", email.StyleBlock,
+		"StyleBlock mismatch: got %s", email.StyleBlock)
+	assert.True(t, email.HasSupportedLocales, "HasSupportedLocales should be true")
 
-	if len(email.LocalTranslations) != 2 {
-		t.Errorf("Expected 2 locales in translations, got %d", len(email.LocalTranslations))
-	}
-	if email.LocalTranslations["en"]["subject"] != "Welcome" {
-		t.Errorf("English subject mismatch: got %s", email.LocalTranslations["en"]["subject"])
-	}
+	assert.Len(t, email.LocalTranslations, 2, "Expected 2 locales in translations, got %d", len(email.LocalTranslations))
+	assert.Equal(t, "Welcome", email.LocalTranslations["en"]["subject"],
+		"English subject mismatch: got %s", email.LocalTranslations["en"]["subject"])
 }
 
 func TestLoad_WithErrorPages(t *testing.T) {
@@ -397,67 +312,39 @@ func TestLoad_WithErrorPages(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, original, relPath)
-	if err != nil {
-		t.Fatalf("Failed to create test manifest: %v", err)
-	}
+	require.NoError(t, err, "Failed to create test manifest")
 
 	provider := NewFlatBufferManifestProvider(absPath)
 	loaded, err := provider.Load(ctx)
 
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
+	require.NoError(t, err, "Load failed")
 
-	if len(loaded.ErrorPages) != 4 {
-		t.Errorf("Expected 4 error pages, got %d", len(loaded.ErrorPages))
-	}
+	assert.Len(t, loaded.ErrorPages, 4, "Expected 4 error pages, got %d", len(loaded.ErrorPages))
 
 	ep404, exists := loaded.ErrorPages["pages/!404.pk"]
-	if !exists {
-		t.Fatal("Expected error page 'pages/!404.pk' not found")
-	}
-	if ep404.PackagePath != "test.com/dist/partials/pages_404_abc123" {
-		t.Errorf("PackagePath mismatch: got %s", ep404.PackagePath)
-	}
-	if ep404.ScopePath != "/" {
-		t.Errorf("ScopePath mismatch: got %s", ep404.ScopePath)
-	}
-	if ep404.StatusCode != 404 {
-		t.Errorf("StatusCode mismatch: got %d", ep404.StatusCode)
-	}
-	if ep404.StyleBlock != ".error-404 { color: red; }" {
-		t.Errorf("StyleBlock mismatch: got %s", ep404.StyleBlock)
-	}
-	if len(ep404.JSArtefactIDs) != 1 {
-		t.Errorf("Expected 1 JS artefact ID, got %d", len(ep404.JSArtefactIDs))
-	}
-	if len(ep404.CustomTags) != 1 {
-		t.Errorf("Expected 1 custom tag, got %d", len(ep404.CustomTags))
-	}
+	require.True(t, exists, "Expected error page 'pages/!404.pk' not found")
+	assert.Equal(t, "test.com/dist/partials/pages_404_abc123", ep404.PackagePath,
+		"PackagePath mismatch: got %s", ep404.PackagePath)
+	assert.Equal(t, "/", ep404.ScopePath, "ScopePath mismatch: got %s", ep404.ScopePath)
+	assert.Equal(t, 404, ep404.StatusCode, "StatusCode mismatch: got %d", ep404.StatusCode)
+	assert.Equal(t, ".error-404 { color: red; }", ep404.StyleBlock, "StyleBlock mismatch: got %s", ep404.StyleBlock)
+	assert.Len(t, ep404.JSArtefactIDs, 1, "Expected 1 JS artefact ID, got %d", len(ep404.JSArtefactIDs))
+	assert.Len(t, ep404.CustomTags, 1, "Expected 1 custom tag, got %d", len(ep404.CustomTags))
 
 	ep500, exists := loaded.ErrorPages["pages/app/!500.pk"]
-	if !exists {
-		t.Fatal("Expected error page 'pages/app/!500.pk' not found")
-	}
-	if ep500.ScopePath != "/app/" {
-		t.Errorf("Scoped ScopePath mismatch: got %s", ep500.ScopePath)
-	}
+	require.True(t, exists, "Expected error page 'pages/app/!500.pk' not found")
+	assert.Equal(t, "/app/", ep500.ScopePath, "Scoped ScopePath mismatch: got %s", ep500.ScopePath)
 
 	epRange, exists := loaded.ErrorPages["pages/!400-499.pk"]
-	if !exists {
-		t.Fatal("Expected error page 'pages/!400-499.pk' not found")
-	}
-	if epRange.StatusCodeMin != 400 || epRange.StatusCodeMax != 499 {
-		t.Errorf("Range mismatch: got %d-%d", epRange.StatusCodeMin, epRange.StatusCodeMax)
-	}
+	require.True(t, exists, "Expected error page 'pages/!400-499.pk' not found")
+	assert.Equal(t, 400, epRange.StatusCodeMin,
+		"Range mismatch: got %d-%d", epRange.StatusCodeMin, epRange.StatusCodeMax)
+	assert.Equal(t, 499, epRange.StatusCodeMax,
+		"Range mismatch: got %d-%d", epRange.StatusCodeMin, epRange.StatusCodeMax)
 
 	epCatchAll, exists := loaded.ErrorPages["pages/!error.pk"]
-	if !exists {
-		t.Fatal("Expected error page 'pages/!error.pk' not found")
-	}
-	if !epCatchAll.IsCatchAll {
-		t.Error("IsCatchAll should be true")
-	}
+	require.True(t, exists, "Expected error page 'pages/!error.pk' not found")
+	assert.True(t, epCatchAll.IsCatchAll, "IsCatchAll should be true")
 }
 
 func TestLoad_FileNotFound(t *testing.T) {
@@ -467,13 +354,10 @@ func TestLoad_FileNotFound(t *testing.T) {
 	provider := NewFlatBufferManifestProvider("/nonexistent/manifest.bin")
 
 	_, err := provider.Load(ctx)
-	if err == nil {
-		t.Error("Expected error for nonexistent file")
-	}
+	assert.Error(t, err, "Expected error for nonexistent file")
 
-	if err != nil && !os.IsNotExist(err) && err.Error() == "" {
-		t.Error("Error should indicate file not found")
-	}
+	assert.False(t, err != nil && !os.IsNotExist(err) && err.Error() == "",
+		"Error should indicate file not found")
 }
 
 func TestLoad_EmptyPath(t *testing.T) {
@@ -483,9 +367,7 @@ func TestLoad_EmptyPath(t *testing.T) {
 	provider := NewFlatBufferManifestProvider("")
 
 	_, err := provider.Load(ctx)
-	if err == nil {
-		t.Error("Expected error for empty path")
-	}
+	assert.Error(t, err, "Expected error for empty path")
 }
 
 func TestLoad_CorruptFile(t *testing.T) {
@@ -496,18 +378,32 @@ func TestLoad_CorruptFile(t *testing.T) {
 
 	invalidData := make([]byte, 8)
 	err := os.WriteFile(tempFile, invalidData, 0644)
-	if err != nil {
-		t.Fatalf("Failed to create corrupt file: %v", err)
-	}
+	require.NoError(t, err, "Failed to create corrupt file")
 
 	provider := NewFlatBufferManifestProvider(tempFile)
 	manifest, err := provider.Load(ctx)
 
-	if err == nil && manifest == nil {
-		t.Error("Expected either error or non-nil manifest")
+	assert.False(t, err == nil && manifest == nil, "Expected either error or non-nil manifest")
+	assert.False(t, err != nil && manifest != nil, "If error occurred, manifest should be nil")
+}
+
+func TestLoad_FromBytes_CorruptPayloadFailsLoud(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	cases := map[string][]byte{
+		"empty payload":   generator_schema.Pack(nil),
+		"short payload":   generator_schema.Pack([]byte{0x01, 0x02}),
+		"garbage payload": generator_schema.Pack([]byte{0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00}),
 	}
-	if err != nil && manifest != nil {
-		t.Error("If error occurred, manifest should be nil")
+	for name, blob := range cases {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			provider := NewFlatBufferManifestProviderFromBytes(blob)
+			manifest, err := provider.Load(ctx)
+			require.Error(t, err, "expected a fail-loud error, got manifest=%v", manifest)
+			assert.Nil(t, manifest, "manifest must be nil on error, got %v", manifest)
+		})
 	}
 }
 
@@ -572,64 +468,44 @@ func TestRoundTrip(t *testing.T) {
 
 	emitter := NewFlatBufferManifestEmitter(sandbox)
 	err := emitter.EmitCode(ctx, original, relPath)
-	if err != nil {
-		t.Fatalf("Failed to emit manifest: %v", err)
-	}
+	require.NoError(t, err, "Failed to emit manifest")
 
 	provider := NewFlatBufferManifestProvider(absPath)
 	loaded, err := provider.Load(ctx)
-	if err != nil {
-		t.Fatalf("Failed to load manifest: %v", err)
-	}
+	require.NoError(t, err, "Failed to load manifest")
 
-	if len(loaded.Pages) != len(original.Pages) {
-		t.Errorf("Page count mismatch: expected %d, got %d", len(original.Pages), len(loaded.Pages))
-	}
-	if len(loaded.Partials) != len(original.Partials) {
-		t.Errorf("Partial count mismatch: expected %d, got %d", len(original.Partials), len(loaded.Partials))
-	}
-	if len(loaded.Emails) != len(original.Emails) {
-		t.Errorf("Email count mismatch: expected %d, got %d", len(original.Emails), len(loaded.Emails))
-	}
-	if len(loaded.ErrorPages) != len(original.ErrorPages) {
-		t.Errorf("ErrorPage count mismatch: expected %d, got %d", len(original.ErrorPages), len(loaded.ErrorPages))
-	}
+	assert.Len(t, loaded.Pages, len(original.Pages),
+		"Page count mismatch: expected %d, got %d", len(original.Pages), len(loaded.Pages))
+	assert.Len(t, loaded.Partials, len(original.Partials),
+		"Partial count mismatch: expected %d, got %d", len(original.Partials), len(loaded.Partials))
+	assert.Len(t, loaded.Emails, len(original.Emails),
+		"Email count mismatch: expected %d, got %d", len(original.Emails), len(loaded.Emails))
+	assert.Len(t, loaded.ErrorPages, len(original.ErrorPages),
+		"ErrorPage count mismatch: expected %d, got %d", len(original.ErrorPages), len(loaded.ErrorPages))
 
 	loadedPage := loaded.Pages["pages/test.pk"]
 	originalPage := original.Pages["pages/test.pk"]
-	if loadedPage.PackagePath != originalPage.PackagePath {
-		t.Errorf("Page PackagePath mismatch")
-	}
-	if len(loadedPage.AssetRefs) != len(originalPage.AssetRefs) {
-		t.Errorf("AssetRefs count mismatch")
-	}
-	if len(loadedPage.CustomTags) != len(originalPage.CustomTags) {
-		t.Errorf("CustomTags count mismatch")
-	}
+	assert.Equal(t, originalPage.PackagePath, loadedPage.PackagePath, "Page PackagePath mismatch")
+	assert.Len(t, loadedPage.AssetRefs, len(originalPage.AssetRefs), "AssetRefs count mismatch")
+	assert.Len(t, loadedPage.CustomTags, len(originalPage.CustomTags), "CustomTags count mismatch")
 
 	loadedPartial := loaded.Partials["partials/widget.pk"]
 	originalPartial := original.Partials["partials/widget.pk"]
-	if loadedPartial.PartialName != originalPartial.PartialName {
-		t.Errorf("Partial name mismatch")
-	}
+	assert.Equal(t, originalPartial.PartialName, loadedPartial.PartialName, "Partial name mismatch")
 
 	loadedEmail := loaded.Emails["emails/newsletter.pk"]
 	originalEmail := original.Emails["emails/newsletter.pk"]
-	if loadedEmail.HasSupportedLocales != originalEmail.HasSupportedLocales {
-		t.Errorf("Email HasSupportedLocales mismatch")
-	}
+	assert.Equal(t, originalEmail.HasSupportedLocales, loadedEmail.HasSupportedLocales,
+		"Email HasSupportedLocales mismatch")
 
 	loadedErrorPage := loaded.ErrorPages["pages/!404.pk"]
 	originalErrorPage := original.ErrorPages["pages/!404.pk"]
-	if loadedErrorPage.PackagePath != originalErrorPage.PackagePath {
-		t.Errorf("ErrorPage PackagePath mismatch: got %s", loadedErrorPage.PackagePath)
-	}
-	if loadedErrorPage.StatusCode != originalErrorPage.StatusCode {
-		t.Errorf("ErrorPage StatusCode mismatch: got %d", loadedErrorPage.StatusCode)
-	}
-	if loadedErrorPage.ScopePath != originalErrorPage.ScopePath {
-		t.Errorf("ErrorPage ScopePath mismatch: got %s", loadedErrorPage.ScopePath)
-	}
+	assert.Equal(t, originalErrorPage.PackagePath, loadedErrorPage.PackagePath,
+		"ErrorPage PackagePath mismatch: got %s", loadedErrorPage.PackagePath)
+	assert.Equal(t, originalErrorPage.StatusCode, loadedErrorPage.StatusCode,
+		"ErrorPage StatusCode mismatch: got %d", loadedErrorPage.StatusCode)
+	assert.Equal(t, originalErrorPage.ScopePath, loadedErrorPage.ScopePath,
+		"ErrorPage ScopePath mismatch: got %s", loadedErrorPage.ScopePath)
 }
 
 func TestUnpackManifest(t *testing.T) {
@@ -660,15 +536,9 @@ func TestUnpackManifest(t *testing.T) {
 
 	require.NotNil(t, manifest, "unpackManifest returned nil")
 
-	if len(manifest.Pages) != 0 {
-		t.Error("Pages should be empty or nil")
-	}
-	if len(manifest.Partials) != 0 {
-		t.Error("Partials should be empty or nil")
-	}
-	if len(manifest.Emails) != 0 {
-		t.Error("Emails should be empty or nil")
-	}
+	assert.Empty(t, manifest.Pages, "Pages should be empty or nil")
+	assert.Empty(t, manifest.Partials, "Partials should be empty or nil")
+	assert.Empty(t, manifest.Emails, "Emails should be empty or nil")
 }
 
 func TestUnpackSlice(t *testing.T) {
@@ -708,16 +578,10 @@ func TestUnpackSlice(t *testing.T) {
 	fbPage := generator_schema_gen.GetRootAsManifestPageEntryFB(data, 0)
 	unpackedRefs := unpackSlice(fbPage.AssetRefsLength(), fbPage.AssetRefs, unpackAssetRef)
 
-	if len(unpackedRefs) != 2 {
-		t.Errorf("Expected 2 asset refs, got %d", len(unpackedRefs))
-	}
+	assert.Len(t, unpackedRefs, 2, "Expected 2 asset refs, got %d", len(unpackedRefs))
 
-	if unpackedRefs[0].Kind != "image" {
-		t.Errorf("First ref kind mismatch: got %s", unpackedRefs[0].Kind)
-	}
-	if unpackedRefs[1].Kind != "script" {
-		t.Errorf("Second ref kind mismatch: got %s", unpackedRefs[1].Kind)
-	}
+	assert.Equal(t, "image", unpackedRefs[0].Kind, "First ref kind mismatch: got %s", unpackedRefs[0].Kind)
+	assert.Equal(t, "script", unpackedRefs[1].Kind, "Second ref kind mismatch: got %s", unpackedRefs[1].Kind)
 }
 
 func TestUnpackStringSlice(t *testing.T) {
@@ -749,11 +613,7 @@ func TestUnpackStringSlice(t *testing.T) {
 	fbPage := generator_schema_gen.GetRootAsManifestPageEntryFB(data, 0)
 	unpacked := unpackStringSlice(fbPage.CustomTagsLength(), fbPage.CustomTags)
 
-	if len(unpacked) != 3 {
-		t.Errorf("Expected 3 strings, got %d", len(unpacked))
-	}
+	assert.Len(t, unpacked, 3, "Expected 3 strings, got %d", len(unpacked))
 
-	if unpacked[0] != "tag1" {
-		t.Errorf("First string mismatch: got %s", unpacked[0])
-	}
+	assert.Equal(t, "tag1", unpacked[0], "First string mismatch: got %s", unpacked[0])
 }

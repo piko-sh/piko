@@ -20,28 +20,21 @@ package wizard
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitialModel(t *testing.T) {
 	t.Parallel()
 
 	m := InitialModel()
-	if m.Step != StepProjectName {
-		t.Errorf("Step = %d, want StepProjectName (%d)", m.Step, StepProjectName)
-	}
-	if m.Done {
-		t.Error("Done should be false")
-	}
-	if m.Aborted {
-		t.Error("Aborted should be false")
-	}
-	if len(m.Inputs) != 1 {
-		t.Errorf("len(Inputs) = %d, want 1", len(m.Inputs))
-	}
+	assert.Equalf(t, StepProjectName, m.Step, "Step = %d, want StepProjectName (%d)", m.Step, StepProjectName)
+	assert.False(t, m.Done, "Done should be false")
+	assert.False(t, m.Aborted, "Aborted should be false")
+	assert.Lenf(t, m.Inputs, 1, "len(Inputs) = %d, want 1", len(m.Inputs))
 }
 
 func TestUpdate_CtrlC_Aborts(t *testing.T) {
@@ -52,9 +45,7 @@ func TestUpdate_CtrlC_Aborts(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if !model.Aborted {
-		t.Error("Aborted should be true after Ctrl+C")
-	}
+	assert.True(t, model.Aborted, "Aborted should be true after Ctrl+C")
 }
 
 func TestUpdate_Esc_Aborts(t *testing.T) {
@@ -65,9 +56,7 @@ func TestUpdate_Esc_Aborts(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if !model.Aborted {
-		t.Error("Aborted should be true after Esc")
-	}
+	assert.True(t, model.Aborted, "Aborted should be true after Esc")
 }
 
 func TestUpdate_ProjectName_Enter(t *testing.T) {
@@ -81,15 +70,9 @@ func TestUpdate_ProjectName_Enter(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Step != StepDestination {
-		t.Errorf("Step = %d, want StepDestination (%d)", model.Step, StepDestination)
-	}
-	if model.Config.ProjectName != "my-app" {
-		t.Errorf("ProjectName = %q, want %q", model.Config.ProjectName, "my-app")
-	}
-	if len(model.Choices) != 2 {
-		t.Errorf("len(Choices) = %d, want 2", len(model.Choices))
-	}
+	assert.Equalf(t, StepDestination, model.Step, "Step = %d, want StepDestination (%d)", model.Step, StepDestination)
+	assert.Equalf(t, "my-app", model.Config.ProjectName, "ProjectName = %q, want %q", model.Config.ProjectName, "my-app")
+	assert.Lenf(t, model.Choices, 2, "len(Choices) = %d, want 2", len(model.Choices))
 }
 
 func TestUpdate_ProjectName_EmptyUsesPlaceholder(t *testing.T) {
@@ -101,9 +84,7 @@ func TestUpdate_ProjectName_EmptyUsesPlaceholder(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Config.ProjectName != "my-piko-app" {
-		t.Errorf("ProjectName = %q, want placeholder %q", model.Config.ProjectName, "my-piko-app")
-	}
+	assert.Equalf(t, "my-piko-app", model.Config.ProjectName, "ProjectName = %q, want placeholder %q", model.Config.ProjectName, "my-piko-app")
 }
 
 func TestUpdate_Destination_NewFolder(t *testing.T) {
@@ -119,12 +100,8 @@ func TestUpdate_Destination_NewFolder(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Step != StepModulePath {
-		t.Errorf("Step = %d, want StepModulePath (%d)", model.Step, StepModulePath)
-	}
-	if model.Config.DestinationPath != "test-proj" {
-		t.Errorf("DestinationPath = %q, want %q", model.Config.DestinationPath, "test-proj")
-	}
+	assert.Equalf(t, StepModulePath, model.Step, "Step = %d, want StepModulePath (%d)", model.Step, StepModulePath)
+	assert.Equalf(t, "test-proj", model.Config.DestinationPath, "DestinationPath = %q, want %q", model.Config.DestinationPath, "test-proj")
 }
 
 func TestUpdate_Destination_CurrentFolder(t *testing.T) {
@@ -140,9 +117,7 @@ func TestUpdate_Destination_CurrentFolder(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Config.DestinationPath != "." {
-		t.Errorf("DestinationPath = %q, want %q", model.Config.DestinationPath, ".")
-	}
+	assert.Equalf(t, ".", model.Config.DestinationPath, "DestinationPath = %q, want %q", model.Config.DestinationPath, ".")
 }
 
 func TestUpdate_DestinationNavigation(t *testing.T) {
@@ -175,9 +150,7 @@ func TestUpdate_DestinationNavigation(t *testing.T) {
 			result, _ := m.Update(message)
 			model := toModel(t, result)
 
-			if model.Cursor != tc.wantPos {
-				t.Errorf("Cursor = %d, want %d", model.Cursor, tc.wantPos)
-			}
+			assert.Equalf(t, tc.wantPos, model.Cursor, "Cursor = %d, want %d", model.Cursor, tc.wantPos)
 		})
 	}
 }
@@ -197,18 +170,10 @@ func TestUpdate_ModulePath_Enter(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Step != StepFeatures {
-		t.Errorf("Step = %d, want StepFeatures (%d)", model.Step, StepFeatures)
-	}
-	if model.Config.ModuleName != "github.com/user/test-proj" {
-		t.Errorf("ModuleName = %q, want %q", model.Config.ModuleName, "github.com/user/test-proj")
-	}
-	if len(model.Choices) == 0 {
-		t.Error("Choices should be populated for features step")
-	}
-	if len(model.Selected) != len(model.Choices) {
-		t.Errorf("Selected length = %d, want %d", len(model.Selected), len(model.Choices))
-	}
+	assert.Equalf(t, StepFeatures, model.Step, "Step = %d, want StepFeatures (%d)", model.Step, StepFeatures)
+	assert.Equalf(t, "github.com/user/test-proj", model.Config.ModuleName, "ModuleName = %q, want %q", model.Config.ModuleName, "github.com/user/test-proj")
+	assert.NotEmpty(t, model.Choices, "Choices should be populated for features step")
+	assert.Lenf(t, model.Selected, len(model.Choices), "Selected length = %d, want %d", len(model.Selected), len(model.Choices))
 }
 
 func TestUpdate_ModulePath_EmptyUsesPlaceholder(t *testing.T) {
@@ -226,9 +191,7 @@ func TestUpdate_ModulePath_EmptyUsesPlaceholder(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Config.ModuleName != "test-proj" {
-		t.Errorf("ModuleName = %q, want placeholder %q", model.Config.ModuleName, "test-proj")
-	}
+	assert.Equalf(t, "test-proj", model.Config.ModuleName, "ModuleName = %q, want placeholder %q", model.Config.ModuleName, "test-proj")
 }
 
 func TestUpdate_Features_Toggle(t *testing.T) {
@@ -247,15 +210,11 @@ func TestUpdate_Features_Toggle(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if !model.Selected[0] {
-		t.Error("Selected[0] should be true after space toggle")
-	}
+	assert.True(t, model.Selected[0], "Selected[0] should be true after space toggle")
 
 	result, _ = model.Update(message)
 	model = toModel(t, result)
-	if model.Selected[0] {
-		t.Error("Selected[0] should be false after second toggle")
-	}
+	assert.False(t, model.Selected[0], "Selected[0] should be false after second toggle")
 }
 
 func TestUpdate_Features_Enter(t *testing.T) {
@@ -279,21 +238,11 @@ func TestUpdate_Features_Enter(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Step != StepScaffolding {
-		t.Errorf("Step = %d, want StepScaffolding (%d)", model.Step, StepScaffolding)
-	}
-	if !model.Config.EnableValidator {
-		t.Error("EnableValidator should be true when selected")
-	}
-	if !model.Config.EnableAgents {
-		t.Error("EnableAgents should be true when selected")
-	}
-	if model.Config.EnableSonicJSON {
-		t.Error("EnableSonicJSON should be false when not selected")
-	}
-	if !model.Config.EnableInterpreted {
-		t.Error("EnableInterpreted should be true when selected")
-	}
+	assert.Equalf(t, StepScaffolding, model.Step, "Step = %d, want StepScaffolding (%d)", model.Step, StepScaffolding)
+	assert.True(t, model.Config.EnableValidator, "EnableValidator should be true when selected")
+	assert.True(t, model.Config.EnableAgents, "EnableAgents should be true when selected")
+	assert.False(t, model.Config.EnableSonicJSON, "EnableSonicJSON should be false when not selected")
+	assert.True(t, model.Config.EnableInterpreted, "EnableInterpreted should be true when selected")
 }
 
 func TestUpdate_Features_EnterTogglesCheckbox(t *testing.T) {
@@ -314,12 +263,8 @@ func TestUpdate_Features_EnterTogglesCheckbox(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Step != StepFeatures {
-		t.Errorf("Step = %d, want StepFeatures (%d) - enter on checkbox should toggle, not advance", model.Step, StepFeatures)
-	}
-	if !model.Selected[0] {
-		t.Error("Selected[0] should be true after enter toggle")
-	}
+	assert.Equalf(t, StepFeatures, model.Step, "Step = %d, want StepFeatures (%d) - enter on checkbox should toggle, not advance", model.Step, StepFeatures)
+	assert.True(t, model.Selected[0], "Selected[0] should be true after enter toggle")
 }
 
 func TestUpdate_Features_AgentsOnly(t *testing.T) {
@@ -343,18 +288,10 @@ func TestUpdate_Features_AgentsOnly(t *testing.T) {
 	result, _ := m.Update(message)
 	model := toModel(t, result)
 
-	if model.Config.EnableValidator {
-		t.Error("EnableValidator should be false when not selected")
-	}
-	if !model.Config.EnableAgents {
-		t.Error("EnableAgents should be true when selected")
-	}
-	if model.Config.EnableSonicJSON {
-		t.Error("EnableSonicJSON should be false when not selected")
-	}
-	if model.Config.EnableInterpreted {
-		t.Error("EnableInterpreted should be false when not selected")
-	}
+	assert.False(t, model.Config.EnableValidator, "EnableValidator should be false when not selected")
+	assert.True(t, model.Config.EnableAgents, "EnableAgents should be true when selected")
+	assert.False(t, model.Config.EnableSonicJSON, "EnableSonicJSON should be false when not selected")
+	assert.False(t, model.Config.EnableInterpreted, "EnableInterpreted should be false when not selected")
 }
 
 func TestUpdate_ErrorMessage(t *testing.T) {
@@ -365,12 +302,8 @@ func TestUpdate_ErrorMessage(t *testing.T) {
 	result, _ := m.Update(errMessage{err: testErr})
 	model := toModel(t, result)
 
-	if model.Err == nil {
-		t.Fatal("Err should not be nil")
-	}
-	if model.Err.Error() != "scaffold failed" {
-		t.Errorf("Err = %v, want %q", model.Err, "scaffold failed")
-	}
+	require.Error(t, model.Err, "Err should not be nil")
+	assert.EqualErrorf(t, model.Err, "scaffold failed", "Err = %v, want %q", model.Err, "scaffold failed")
 }
 
 func TestUpdate_ScaffoldDoneMessage(t *testing.T) {
@@ -383,9 +316,7 @@ func TestUpdate_ScaffoldDoneMessage(t *testing.T) {
 	result, _ := m.Update(scaffoldDoneMessage{})
 	model := toModel(t, result)
 
-	if model.Step != StepTidying {
-		t.Errorf("Step = %d, want StepTidying (%d)", model.Step, StepTidying)
-	}
+	assert.Equalf(t, StepTidying, model.Step, "Step = %d, want StepTidying (%d)", model.Step, StepTidying)
 }
 
 func TestUpdate_TidyDoneMessage(t *testing.T) {
@@ -397,12 +328,8 @@ func TestUpdate_TidyDoneMessage(t *testing.T) {
 	result, _ := m.Update(tidyDoneMessage{})
 	model := toModel(t, result)
 
-	if !model.Done {
-		t.Error("Done should be true")
-	}
-	if model.Step != StepFinished {
-		t.Errorf("Step = %d, want StepFinished (%d)", model.Step, StepFinished)
-	}
+	assert.True(t, model.Done, "Done should be true")
+	assert.Equalf(t, StepFinished, model.Step, "Step = %d, want StepFinished (%d)", model.Step, StepFinished)
 }
 
 func TestView_EachStep(t *testing.T) {
@@ -463,9 +390,7 @@ func TestView_EachStep(t *testing.T) {
 				tc.setup(&m)
 			}
 			view := m.View()
-			if !strings.Contains(view.Content, tc.mustHave) {
-				t.Errorf("View() should contain %q, got:\n%s", tc.mustHave, view.Content)
-			}
+			assert.Containsf(t, view.Content, tc.mustHave, "View() should contain %q, got:\n%s", tc.mustHave, view.Content)
 		})
 	}
 }
@@ -477,17 +402,12 @@ func TestView_Error(t *testing.T) {
 	m.Err = errors.New("something broke")
 	view := m.View()
 
-	if !strings.Contains(view.Content, "something broke") {
-		t.Errorf("View() should show error, got:\n%s", view.Content)
-	}
+	assert.Containsf(t, view.Content, "something broke", "View() should show error, got:\n%s", view.Content)
 }
 
 func toModel(t *testing.T, m tea.Model) Model {
 	t.Helper()
 	v, ok := m.(*Model)
-	if !ok {
-		t.Fatalf("unexpected tea.Model type: %T", m)
-		return Model{}
-	}
+	require.Truef(t, ok, "unexpected tea.Model type: %T", m)
 	return *v
 }

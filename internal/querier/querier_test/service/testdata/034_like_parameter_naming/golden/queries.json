@@ -98,7 +98,8 @@
       "Slices": null,
       "DynamicOrderByColumns": null,
       "ParamOverrides": null,
-      "DynamicRuntime": false
+      "DynamicRuntime": false,
+      "Optional": false
     },
     "Line": 1,
     "Command": 1,
@@ -106,7 +107,8 @@
     "DynamicRuntime": false,
     "ReadOnly": false,
     "BaseQueryHasWhereClause": false,
-    "CountSQLWrapped": false
+    "CountSQLWrapped": false,
+    "Optional": false
   },
   {
     "InsertTable": "",
@@ -181,7 +183,8 @@
       "Slices": null,
       "DynamicOrderByColumns": null,
       "ParamOverrides": null,
-      "DynamicRuntime": false
+      "DynamicRuntime": false,
+      "Optional": false
     },
     "Line": 1,
     "Command": 1,
@@ -189,7 +192,8 @@
     "DynamicRuntime": false,
     "ReadOnly": false,
     "BaseQueryHasWhereClause": false,
-    "CountSQLWrapped": false
+    "CountSQLWrapped": false,
+    "Optional": false
   },
   {
     "InsertTable": "",
@@ -264,7 +268,8 @@
       "Slices": null,
       "DynamicOrderByColumns": null,
       "ParamOverrides": null,
-      "DynamicRuntime": false
+      "DynamicRuntime": false,
+      "Optional": false
     },
     "Line": 1,
     "Command": 1,
@@ -272,6 +277,7 @@
     "DynamicRuntime": false,
     "ReadOnly": false,
     "BaseQueryHasWhereClause": false,
-    "CountSQLWrapped": false
+    "CountSQLWrapped": false,
+    "Optional": false
   }
 ]

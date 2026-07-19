@@ -45,6 +45,8 @@ type Option = piko.Option
 // this so the shared configuration lives in one place.
 func baseOptions() []Option {
 	return []Option{
+		// WithModuleName pins the Go module path for @/ alias resolution.
+		piko.WithModuleName("{{ .ModuleName }}"),
 {{- if .EnableSonicJSON }}
 		piko.WithJSONProvider(sonicjson.New()),
 {{- end }}

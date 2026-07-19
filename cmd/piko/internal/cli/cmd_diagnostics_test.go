@@ -22,9 +22,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/cmd/piko/internal/tui"
 )
 
@@ -97,15 +98,11 @@ func TestDiagnosticJSONResult(t *testing.T) {
 			t.Parallel()
 
 			data, err := json.Marshal(tc.result)
-			if err != nil {
-				t.Fatalf("json.Marshal: %v", err)
-			}
+			require.NoError(t, err, "json.Marshal: %v", err)
 
 			output := string(data)
 			for _, want := range tc.wantKeys {
-				if !contains(output, want) {
-					t.Errorf("JSON missing %q\nfull JSON:\n%s", want, output)
-				}
+				assert.True(t, contains(output, want), "JSON missing %q\nfull JSON:\n%s", want, output)
 			}
 		})
 	}
@@ -124,15 +121,11 @@ func TestDiagnosticJSONOmitEmpty(t *testing.T) {
 	}
 
 	data, err := json.Marshal(result)
-	if err != nil {
-		t.Fatalf("json.Marshal: %v", err)
-	}
+	require.NoError(t, err, "json.Marshal: %v", err)
 
 	output := string(data)
 
-	if contains(output, `"error"`) {
-		t.Errorf("expected top-level error to be omitted, got:\n%s", output)
-	}
+	assert.False(t, contains(output, `"error"`), "expected top-level error to be omitted, got:\n%s", output)
 }
 
 func TestFormatDiagnosticResult(t *testing.T) {
@@ -248,18 +241,12 @@ func TestFormatDiagnosticResult(t *testing.T) {
 			p := NewPrinter(&buffer, tc.format, true, false)
 			err := formatDiagnosticResult(tc.result, p, &buffer)
 
-			if tc.wantErr && err == nil {
-				t.Fatal("expected error, got nil")
-			}
-			if !tc.wantErr && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.False(t, tc.wantErr && err == nil, "expected error, got nil")
+			require.False(t, !tc.wantErr && err != nil, "unexpected error: %v", err)
 
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}

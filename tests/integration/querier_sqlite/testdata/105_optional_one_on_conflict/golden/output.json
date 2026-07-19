@@ -1,0 +1,7 @@
+{
+  "first_email": "a@b.com",
+  "first_ok": true,
+  "second_email": "",
+  "second_err_nil": true,
+  "second_ok": false
+}

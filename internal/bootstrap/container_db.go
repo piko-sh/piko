@@ -23,7 +23,9 @@ package bootstrap
 
 import (
 	"context"
+	"path/filepath"
 
+	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/persistence"
 	"piko.sh/piko/internal/shutdown"
@@ -41,12 +43,18 @@ func (c *Container) getOtterProvider() (*persistence.Provider, error) {
 		_, l := logger_domain.From(c.GetAppContext(), log)
 		l.Internal("Initialising otter persistence with WAL")
 
+		walDir := filepath.Join(
+			deref(c.serverConfig.Paths.BaseDir, "."),
+			config.PikoInternalPath,
+			"wal", "persistence",
+		)
+
 		provider := persistence.NewProvider(persistence.Config{
 			RegistryCapacity:     100_000,
 			OrchestratorCapacity: 100_000,
 			Persistence: &persistence.PersistenceProviderConfig{
 				Enabled:           true,
-				WALDir:            ".piko/wal/persistence",
+				WALDir:            walDir,
 				SyncMode:          wal_domain.SyncModeBatched,
 				SnapshotThreshold: 10_000,
 			},
@@ -74,6 +82,21 @@ func (c *Container) getOtterProvider() (*persistence.Provider, error) {
 	}
 
 	return c.dbProvider, nil
+}
+
+// FlushPersistenceSnapshot writes a durable snapshot of the otter persistence provider
+// when one is active.
+//
+// A no-op when persistence is backed by a SQL database or was never initialised. Called
+// at the end of generation so a single-binary build produces the snapshot.piko seed the
+// embedded reader loads.
+//
+// Returns error when the snapshot flush fails.
+func (c *Container) FlushPersistenceSnapshot(ctx context.Context) error {
+	if c.dbProvider == nil {
+		return nil
+	}
+	return c.dbProvider.Checkpoint(ctx)
 }
 
 // createOtterRegistryDAL creates a registry DAL from the otter provider.

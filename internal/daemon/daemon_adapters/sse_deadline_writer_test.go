@@ -24,6 +24,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 type recordingResponseWriter struct {
@@ -53,24 +55,18 @@ func TestSSEDeadlineWriter_AppliesDeadlineBeforeEachWrite(t *testing.T) {
 	recorder := &recordingResponseWriter{ResponseWriter: httptest.NewRecorder()}
 	writer := newSSEDeadlineWriter(recorder, 5*time.Second)
 
-	if _, err := writer.Write([]byte("event: foo\n\n")); err != nil {
-		t.Fatalf("first write returned error: %v", err)
-	}
-	if _, err := writer.Write([]byte("event: bar\n\n")); err != nil {
-		t.Fatalf("second write returned error: %v", err)
-	}
+	_, err := writer.Write([]byte("event: foo\n\n"))
+	require.NoError(t, err, "first write returned error")
+	_, err = writer.Write([]byte("event: bar\n\n"))
+	require.NoError(t, err, "second write returned error")
 
-	if calls := recorder.deadlineCalls.Load(); calls != 2 {
-		t.Fatalf("expected SetWriteDeadline to be called twice, got %d", calls)
-	}
+	require.Equal(t, int64(2), recorder.deadlineCalls.Load(), "expected SetWriteDeadline to be called twice")
 
 	now := time.Now()
-	if recorder.lastDeadline.Before(now.Add(4 * time.Second)) {
-		t.Fatalf("expected deadline at least 4s in the future, got %v", recorder.lastDeadline.Sub(now))
-	}
-	if recorder.lastDeadline.After(now.Add(6 * time.Second)) {
-		t.Fatalf("expected deadline within 6s of now, got %v", recorder.lastDeadline.Sub(now))
-	}
+	require.Falsef(t, recorder.lastDeadline.Before(now.Add(4*time.Second)),
+		"expected deadline at least 4s in the future, got %v", recorder.lastDeadline.Sub(now))
+	require.Falsef(t, recorder.lastDeadline.After(now.Add(6*time.Second)),
+		"expected deadline within 6s of now, got %v", recorder.lastDeadline.Sub(now))
 }
 
 func TestSSEDeadlineWriter_FlushesViaController(t *testing.T) {
@@ -80,14 +76,10 @@ func TestSSEDeadlineWriter_FlushesViaController(t *testing.T) {
 	writer := newSSEDeadlineWriter(recorder, 100*time.Millisecond)
 
 	flusher, ok := writer.(http.Flusher)
-	if !ok {
-		t.Fatal("expected wrapped writer to implement http.Flusher")
-	}
+	require.True(t, ok, "expected wrapped writer to implement http.Flusher")
 	flusher.Flush()
 
-	if recorder.flushCalls.Load() == 0 {
-		t.Fatal("expected Flush to reach the underlying writer")
-	}
+	require.NotZero(t, recorder.flushCalls.Load(), "expected Flush to reach the underlying writer")
 }
 
 func TestSSEDeadlineWriter_NonPositiveTimeoutIsPassthrough(t *testing.T) {
@@ -96,7 +88,5 @@ func TestSSEDeadlineWriter_NonPositiveTimeoutIsPassthrough(t *testing.T) {
 	recorder := &recordingResponseWriter{ResponseWriter: httptest.NewRecorder()}
 	writer := newSSEDeadlineWriter(recorder, 0)
 
-	if writer != http.ResponseWriter(recorder) {
-		t.Fatal("expected zero timeout to return the writer unchanged")
-	}
+	require.Same(t, recorder, writer, "expected zero timeout to return the writer unchanged")
 }

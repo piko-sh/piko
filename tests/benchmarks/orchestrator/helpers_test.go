@@ -168,6 +168,7 @@ func (f *FakeRegistry) UpsertArtefact(ctx context.Context, artefactID string, so
 					VariantID:        "source-variant",
 					StorageBackendID: storageBackendID,
 					StorageKey:       key,
+					ContentHash:      "0000000000000000000000000000000000000000000000000000000000000001",
 				},
 			},
 			DesiredProfiles: desiredProfiles,
@@ -232,6 +233,10 @@ func (f *FakeRegistry) GetVariantData(_ context.Context, variant *registry_dto.V
 
 func (f *FakeRegistry) GetBlobStore(id string) (registry_domain.BlobStore, error) {
 	return f.blobStore, nil
+}
+
+func (f *FakeRegistry) GetBlobRefCount(_ context.Context, _ string) (int, error) {
+	return 0, nil
 }
 
 func (f *FakeRegistry) DeleteArtefact(ctx context.Context, artefactID string) error {

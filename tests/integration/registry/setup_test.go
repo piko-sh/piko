@@ -18,7 +18,7 @@
 
 //go:build integration
 
-package registry_test_test
+package registry_test
 
 import (
 	"context"
@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
@@ -38,11 +39,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_disk"
 	"piko.sh/piko/internal/storage/storage_adapters/registry_blob_adapter"
-	"piko.sh/piko/internal/testutil/leakcheck"
 	"piko.sh/piko/tests/testutil"
-	"piko.sh/piko/wdk/logger"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type spyMetadataStore struct {
@@ -251,9 +248,4 @@ func loadFixture(t *testing.T, db *sql.DB, fixtureName string) {
 	default:
 		t.Fatalf("unknown fixture: %s", fixtureName)
 	}
-}
-
-func TestMain(m *testing.M) {
-	logger.AddPrettyOutput()
-	leakcheck.VerifyTestMain(m)
 }

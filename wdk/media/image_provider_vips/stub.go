@@ -46,12 +46,24 @@ type Config struct {
 // the "vips" tag. All methods return errors.
 type Provider struct{}
 
-var _ media.ImageTransformerPort = (*Provider)(nil)
+var (
+	_ media.ImageTransformerPort = (*Provider)(nil)
 
-// errNotAvailable is returned by all stub methods.
-var errNotAvailable = errors.New(
-	"image_provider_vips: not available (built without -tags vips; install libvips and rebuild with -tags vips)",
+	// errNotAvailable is returned by all stub methods.
+	errNotAvailable = errors.New(
+		"image_provider_vips: not available (built without -tags vips; install libvips and rebuild with -tags vips)",
+	)
 )
+
+// NewProvider returns an error when built without the "vips" tag.
+//
+// Takes config (Config) which is ignored in the stub.
+//
+// Returns *Provider which is nil.
+// Returns error when built without the vips build tag.
+func NewProvider(_ Config) (*Provider, error) {
+	return nil, errNotAvailable
+}
 
 // Close is a no-op in the stub.
 //
@@ -91,14 +103,4 @@ func (*Provider) GetSupportedModifiers() []string {
 // Returns error when built without the vips build tag.
 func (*Provider) GetDimensions(_ context.Context, _ io.Reader) (width int, height int, err error) {
 	return 0, 0, errNotAvailable
-}
-
-// NewProvider returns an error when built without the "vips" tag.
-//
-// Takes config (Config) which is ignored in the stub.
-//
-// Returns *Provider which is nil.
-// Returns error when built without the vips build tag.
-func NewProvider(_ Config) (*Provider, error) {
-	return nil, errNotAvailable
 }

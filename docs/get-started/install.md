@@ -65,9 +65,10 @@ air
 Without Air:
 
 ```bash
-go run ./cmd/generator/main.go all
-go run ./cmd/main/main.go dev
+piko dev
 ```
+
+`piko dev` is a piko CLI command that generates assets then starts the server; the manual equivalent is `go run ./cmd/generator/main.go all` followed by `go run ./cmd/main/main.go dev`. Do not confuse it with the `dev` run mode below, which is the argument your compiled project binary reads.
 
 Either form listens on `http://localhost:8080` (or the next free port). Open that URL in a browser to confirm the server is up.
 

@@ -1,0 +1,3 @@
+{
+  "description": "optional: true set on a command:many SELECT. The optional flag applies only to a static command:one, so a single Q047 error is emitted rejecting the misuse."
+}

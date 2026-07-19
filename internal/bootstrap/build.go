@@ -870,6 +870,8 @@ func BuildProject(
 	runMode string,
 	c *Container,
 ) error {
+	c.isBuildTime = true
+
 	if cleanup := c.StartGeneratorProfiling(); cleanup != nil {
 		defer cleanup()
 	}

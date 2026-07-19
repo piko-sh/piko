@@ -88,10 +88,11 @@ type CompilationLogStoreOption func(*CompilationLogStore)
 
 // NewCompilationLogStore creates a new compilation log store.
 //
-// When file logging is enabled, it tries to create the log directory.
+// When file logging is enabled, it tries to create the log directory. An uncreatable log
+// directory (a read-only filesystem, the normal state of an embedded single-binary
+// container) downgrades to in-memory-only logging with a warning rather than failing
+// construction: the file log is a debug convenience and must never block a boot.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request ID
-// propagation.
 // Takes enabled (bool) which controls whether file logging is active.
 // Takes logDir (string) which specifies the folder for log files.
 // Takes minLogLevel (slog.Level) which sets the lowest log level to record.
@@ -99,8 +100,9 @@ type CompilationLogStoreOption func(*CompilationLogStore)
 // WithLogStoreSandbox for testing.
 //
 // Returns *CompilationLogStore which is the configured log store ready for use.
-// Returns error when the log directory cannot be created.
+// Returns error when an explicitly supplied sandbox fails.
 func NewCompilationLogStore(ctx context.Context, enabled bool, logDir string, minLogLevel slog.Level, opts ...CompilationLogStoreOption) (*CompilationLogStore, error) {
+	ctx, l := logger_domain.From(ctx, log)
 	store := &CompilationLogStore{
 		buffers:     make(map[string]*bytes.Buffer),
 		closers:     make([]io.Closer, 0),
@@ -116,7 +118,12 @@ func NewCompilationLogStore(ctx context.Context, enabled bool, logDir string, mi
 
 	if enabled && logDir != "" {
 		if err := store.ensureLogDir(ctx, logDir); err != nil {
-			return nil, err
+			if store.sandbox != nil {
+				return nil, err
+			}
+			l.Warn("Compilation log directory unavailable; keeping logs in memory only",
+				logger_domain.String("logDir", logDir), logger_domain.Error(err))
+			store.enabled = false
 		}
 	}
 
@@ -127,8 +134,6 @@ func NewCompilationLogStore(ctx context.Context, enabled bool, logDir string, mi
 // from the main application logger and writes to both an in-memory buffer and, if
 // enabled, a log file.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background rotation
-// goroutine for file-based session logs.
 // Takes entryPointPath (string) which identifies the compilation entry point.
 // Takes relativePath (string) which specifies the component's relative path.
 //
@@ -235,7 +240,6 @@ func (s *CompilationLogStore) Shutdown(ctx context.Context) {
 
 // ensureLogDir creates the log directory using the configured or temporary sandbox.
 //
-// Takes ctx (context.Context) which carries logging context.
 // Takes logDir (string) which specifies the directory to create.
 //
 // Returns error when the directory cannot be created.

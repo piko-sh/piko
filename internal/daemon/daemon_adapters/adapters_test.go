@@ -249,7 +249,7 @@ func Test_osSignalNotifier_NotifyContext_ReturnsValidContext(t *testing.T) {
 
 	select {
 	case <-ctx.Done():
-		t.Error("Context should not be cancelled initially")
+		assert.Fail(t, "Context should not be cancelled initially")
 	default:
 
 	}
@@ -269,7 +269,7 @@ func Test_osSignalNotifier_NotifyContext_CancelWorksImmediately(t *testing.T) {
 	case <-ctx.Done():
 
 	case <-time.After(100 * time.Millisecond):
-		t.Error("Context should be cancelled after calling cancel()")
+		assert.Fail(t, "Context should be cancelled after calling cancel()")
 	}
 }
 
@@ -469,7 +469,7 @@ func TestHTTPConstants_HaveExpectedValues(t *testing.T) {
 func TestNewHTTPRouterBuilder_ReturnsNotNil(t *testing.T) {
 	t.Parallel()
 
-	builder := NewHTTPRouterBuilder(nil)
+	builder := NewHTTPRouterBuilder(nil, "")
 
 	require.NotNil(t, builder, "Builder should not be nil")
 }

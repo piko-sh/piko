@@ -183,6 +183,23 @@ func (*chStrategy) ExecResultReturnType() ast.Expr {
 // ExecResultImport is unreachable (:execresult rejected) and adds no import.
 func (*chStrategy) ExecResultImport(_ *emitter_shared.ImportTracker) {}
 
+// NoRowsSentinel returns sql.ErrNoRows. The clickhouse-go native driver's Row.Scan
+// returns the database/sql sentinel on a zero-row result, so an optional command:one
+// query file imports "database/sql" solely for this comparison.
+//
+// Returns ast.Expr which is the sql.ErrNoRows expression.
+func (*chStrategy) NoRowsSentinel() ast.Expr {
+	return goastutil.SelectorExpr("sql", "ErrNoRows")
+}
+
+// NoRowsImport adds "database/sql" to the import tracker for the sql.ErrNoRows
+// comparison.
+//
+// Takes tracker (*emitter_shared.ImportTracker) which accumulates imports.
+func (*chStrategy) NoRowsImport(tracker *emitter_shared.ImportTracker) {
+	tracker.AddImport("database/sql")
+}
+
 // BuildExecRowsBody is unreachable: :execrows is rejected in EmitQueries before the
 // shared builder dispatches. It returns a benign `return 0, nil` body so the interface is
 // satisfied without risking a panic.

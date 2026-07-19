@@ -21,6 +21,9 @@ package cli
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommands_AllRegistered(t *testing.T) {
@@ -29,9 +32,8 @@ func TestCommands_AllRegistered(t *testing.T) {
 	expectedCommands := []string{"get", "describe", "info", "watch", "diagnostics", "tui"}
 
 	for _, name := range expectedCommands {
-		if _, ok := commands[name]; !ok {
-			t.Errorf("expected command %q to be registered", name)
-		}
+		_, ok := commands[name]
+		assert.True(t, ok, "expected command %q to be registered", name)
 	}
 }
 
@@ -54,12 +56,8 @@ func TestCommands_NeedsConnection(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			command, ok := commands[tc.name]
-			if !ok {
-				t.Fatalf("command %q not found", tc.name)
-			}
-			if command.needsConnection != tc.needsConnection {
-				t.Errorf("command %q needsConnection = %v, want %v", tc.name, command.needsConnection, tc.needsConnection)
-			}
+			require.True(t, ok, "command %q not found", tc.name)
+			assert.Equal(t, tc.needsConnection, command.needsConnection, "command %q needsConnection = %v, want %v", tc.name, command.needsConnection, tc.needsConnection)
 		})
 	}
 }
@@ -70,10 +68,7 @@ func TestRunCommandWithIO_UnknownCommand(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	exitCode := RunCommandWithIO("nonexistent", nil, &stdout, &stderr)
 
-	if exitCode != 1 {
-		t.Errorf("exit code = %d, want 1", exitCode)
-	}
-	if got := stderr.String(); got == "" {
-		t.Error("expected error output on stderr")
-	}
+	assert.Equal(t, 1, exitCode, "exit code = %d, want 1", exitCode)
+	got := stderr.String()
+	assert.NotEmpty(t, got, "expected error output on stderr")
 }

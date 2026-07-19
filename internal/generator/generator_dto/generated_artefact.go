@@ -28,6 +28,9 @@ const (
 	// is active (used by the LSP inspector), while keeping them included during normal
 	// builds where the tag is absent.
 	AnalysisBuildConstraint = "//go:build !piko_analysis\n\n"
+
+	// EmbedBuildConstraint is the build constraint for the embedded runtime payload.
+	EmbedBuildConstraint = "//go:build piko_embed && !piko_analysis\n\n"
 )
 
 // GeneratedArtefact represents the complete output of the compilation pipeline for a

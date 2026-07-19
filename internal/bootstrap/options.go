@@ -20,6 +20,7 @@ package bootstrap
 
 import (
 	"context"
+	"io/fs"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -1788,5 +1789,95 @@ func WithBackendAnalytics(collectors ...analytics_domain.Collector) Option {
 func WithAuthGuard(authGuardConfig daemon_dto.AuthGuardConfig) Option {
 	return func(c *Container) {
 		c.authGuardConfig = &authGuardConfig
+	}
+}
+
+// WithEmbeddedPikoFolder configures the container to serve all runtime data from the
+// given embedded filesystem, enabling single-binary deployments for static sites.
+//
+// Takes fsys (fs.FS) which contains the .piko directory contents.
+//
+// Returns Option which configures the container for embedded operation.
+func WithEmbeddedPikoFolder(fsys fs.FS) Option {
+	return func(c *Container) {
+		if fsys == nil {
+			_, l := logger_domain.From(c.GetAppContext(), log)
+			l.Error("WithEmbeddedPikoFolder called with nil filesystem, embedded mode will not be active")
+			return
+		}
+		c.embeddedPikoFS = fsys
+	}
+}
+
+// WithEmbeddedManifest configures the container to load the compiled manifest from
+// in-memory bytes (typically an //go:embed of dist/manifest.bin) instead of reading
+// dist/manifest.bin from disk. Pair it with WithEmbeddedPikoFolder for a fully
+// single-binary deployment, since the manifest lives in dist/, outside the embedded .piko
+// tree.
+//
+// Takes data ([]byte) which is the raw FlatBuffers manifest content.
+//
+// Returns Option which configures the container to serve the embedded manifest.
+func WithEmbeddedManifest(data []byte) Option {
+	return func(c *Container) {
+		c.embeddedManifest = data
+	}
+}
+
+// WithEmbedScope selects how much of the runtime payload generation copies into the embed
+// package that `piko build` compiles into the binary. EmbedAll (the default) embeds the
+// whole payload; EmbedSourceOnly is reserved and currently fails generation loudly rather
+// than silently embedding everything.
+//
+// Takes scope (EmbedScope) which is the payload scope.
+//
+// Returns Option which sets the scope for generation.
+func WithEmbedScope(scope EmbedScope) Option {
+	return func(c *Container) {
+		c.embedScope = scope
+	}
+}
+
+// WithoutEmbeddedRuntime disables the automatic embedded-runtime pickup for a binary
+// built with the piko_embed tag, so a production run serves from dist/ and .piko/ on disk
+// even though the payload is compiled in. It exists for operators who ship one tagged
+// binary but want file-based serving in a particular environment.
+//
+// Returns Option which clears any embedded runtime the build registered.
+func WithoutEmbeddedRuntime() Option {
+	return func(c *Container) {
+		c.embeddedPikoFS = nil
+		c.embeddedManifest = nil
+	}
+}
+
+// WithModuleName sets the Go module name explicitly, used as a fallback for "@/" alias
+// resolution (e.g. favicon Src paths) when no go.mod is readable at runtime.
+//
+// That is the case for single-binary and distroless deployments, where the resolver
+// cannot derive the module name from a go.mod on disk.
+//
+// Takes name (string) which is the Go module path (e.g. "github.com/me/app").
+//
+// Returns Option which sets the fallback module name.
+func WithModuleName(name string) Option {
+	return func(c *Container) {
+		c.moduleNameOverride = name
+	}
+}
+
+// WithReleaseID sets the release identifier stamped on build-origin registry variants
+// during generation.
+//
+// When unset the release defaults to the build's VCS revision. Set it to tag releases
+// independently of the commit (e.g. a canary or A/B rollout) so coexisting releases on a
+// shared backend remain distinguishable and a retired release can be garbage-collected.
+//
+// Takes id (string) which is the release identifier.
+//
+// Returns Option which sets the release identifier.
+func WithReleaseID(id string) Option {
+	return func(c *Container) {
+		c.releaseIDOverride = id
 	}
 }

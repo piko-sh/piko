@@ -207,9 +207,6 @@ type MetadataCache interface {
 
 	// Close releases resources held by this object.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
-	//
 	// Returns error when the close operation fails.
 	Close(ctx context.Context) error
 }
@@ -406,6 +403,16 @@ type RegistryService interface {
 	// Returns []registry_dto.GCHint which contains the retrieved hints.
 	// Returns error when the hints cannot be retrieved.
 	PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint, error)
+
+	// GetBlobRefCount returns the current reference count for a blob. Garbage collection
+	// uses it to confirm a hinted blob is still unreferenced immediately before deleting it,
+	// so a hint outraced by a new reference does not delete live bytes.
+	//
+	// Takes storageKey (string) which identifies the blob.
+	//
+	// Returns int which is the blob's current reference count.
+	// Returns error when the lookup fails.
+	GetBlobRefCount(ctx context.Context, storageKey string) (int, error)
 
 	// ListBlobStoreIDs returns the identifiers of all registered blob storage backends. Used
 	// by garbage collection to enumerate backends for orphan scanning.

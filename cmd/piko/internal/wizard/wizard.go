@@ -457,7 +457,7 @@ func Run() int {
 		fmt.Printf("%d. Run 'go mod tidy' to fetch dependencies.\n", step)
 		step++
 	}
-	fmt.Printf("%d. Run 'go run ./cmd/generator/main.go all' to build your assets for the first time.\n", step)
+	fmt.Printf("%d. Run 'piko generate' to build your assets for the first time.\n", step)
 	step++
 	fmt.Printf("%d. Run 'air' to start the development server with live reloading.\n", step)
 	fmt.Println("\nHappy coding!")

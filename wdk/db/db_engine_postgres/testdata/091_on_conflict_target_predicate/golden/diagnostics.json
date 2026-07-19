@@ -1,7 +1,7 @@
 [
   {
     "Filename": "insert_do_nothing.sql",
-    "Message": "query \"InsertEventDoNothing\" uses command \"one\" with ON CONFLICT DO NOTHING and RETURNING; a conflict skips the insert so RETURNING yields no row and the call returns sql.ErrNoRows. Use command \"exec\"/\"execrows\", or handle errors.Is(err, sql.ErrNoRows).",
+    "Message": "query \"InsertEventDoNothing\" uses command \"one\" with ON CONFLICT DO NOTHING and RETURNING; a conflict skips the insert so RETURNING yields no row and the call returns the driver no-rows sentinel (sql.ErrNoRows, or pgx.ErrNoRows for native pgx). Add optional: true to return (row, false, nil), use command \"exec\"/\"execrows\", or handle errors.Is with that sentinel.",
     "Code": "Q046",
     "Suggestion": "",
     "Line": 1,

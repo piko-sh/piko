@@ -224,12 +224,16 @@ func (op *routerOperation) resolveServices(ctx context.Context) error {
 		return fmt.Errorf("failed to get capability service for router: %w", err)
 	}
 
-	op.variantGenerator = daemon_domain.NewOnDemandVariantGenerator(
-		op.registryService,
-		op.capabilityService,
-		daemon_domain.DefaultOnDemandGeneratorConfig(),
-	)
-	l.Internal("On-demand variant generator initialised successfully")
+	if op.container.registryBlobsReadOnly() {
+		l.Internal("Registry blobs are read-only (embedded, no writable storage); on-demand variant generation disabled, unbaked variants fall back to the source asset")
+	} else {
+		op.variantGenerator = daemon_domain.NewOnDemandVariantGenerator(
+			op.registryService,
+			op.capabilityService,
+			daemon_domain.DefaultOnDemandGeneratorConfig(),
+		)
+		l.Internal("On-demand variant generator initialised successfully")
+	}
 
 	op.renderRegistry = op.container.GetRenderRegistry()
 	op.csrfService = op.container.GetCSRFService()
@@ -280,7 +284,8 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 		&op.container.websiteConfig,
 	)
 
-	builder := daemon_adapters.NewHTTPRouterBuilder(artefactMetaCache)
+	instanceRelease, _ := buildReleaseIdentity(op.container.releaseIDOverride)
+	builder := daemon_adapters.NewHTTPRouterBuilder(artefactMetaCache, instanceRelease)
 	finalRouter, err := builder.BuildRouter(
 		op.buildRouterConfig(ctx),
 		daemon_domain.RouterDependencies{
@@ -358,7 +363,10 @@ func (op *routerOperation) createCacheMiddleware(ctx context.Context) *daemon_ad
 	_, l := logger_domain.From(ctx, log)
 
 	cacheMiddleware := daemon_adapters.NewCacheMiddleware(
-		daemon_adapters.CacheMiddlewareConfig{CacheWriteConcurrency: 5},
+		daemon_adapters.CacheMiddlewareConfig{
+			CacheWriteConcurrency: 5,
+			PersistenceDisabled:   op.container.registryBlobsReadOnly(),
+		},
 		op.store,
 		op.registryService,
 		op.capabilityService,
@@ -656,13 +664,21 @@ func mergeProviderCSPDomains(builder *security_domain.CSPBuilder, requirements *
 // createManifestProvider selects the correct manifest loading adapter based on
 // configuration.
 //
-// Takes ctx (context.Context) which carries the application context for logging.
 // Takes c (*Container) which provides configuration and sandbox creation.
 //
 // Returns generator_domain.ManifestProviderPort which is the selected manifest loader.
 // Returns error when the manifest format is not recognised.
 func createManifestProvider(ctx context.Context, c *Container) (generator_domain.ManifestProviderPort, error) {
 	_, l := logger_domain.From(ctx, log)
+
+	if len(c.embeddedManifest) > 0 {
+		l.Internal("Loading component manifest from embedded bytes (embedded mode)")
+		return generator_adapters.NewFlatBufferManifestProviderFromBytes(c.embeddedManifest), nil
+	}
+
+	if c.embeddedPikoFS != nil {
+		return nil, errors.New("WithEmbeddedPikoFolder requires WithEmbeddedManifest: the compiled manifest (dist/manifest.bin) lives outside the embedded .piko tree and must be embedded separately")
+	}
 
 	serverConfig := c.serverConfig
 

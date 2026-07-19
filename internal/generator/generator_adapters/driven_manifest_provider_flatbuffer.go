@@ -48,6 +48,10 @@ type FlatBufferManifestProvider struct {
 
 	// manifestFileName is the path to the manifest file within the sandbox.
 	manifestFileName string
+
+	// data, when non-nil, holds the manifest bytes directly, for example from an //go:embed
+	// of dist/manifest.bin.
+	data []byte
 }
 
 var (
@@ -95,6 +99,18 @@ func NewFlatBufferManifestProvider(manifestPath string, opts ...FlatBufferManife
 	return p
 }
 
+// NewFlatBufferManifestProviderFromBytes creates a provider that reads the manifest from
+// in-memory bytes (typically an //go:embed of dist/manifest.bin) rather than from disk.
+// This is used for single-binary deployments where no manifest file exists on the
+// filesystem.
+//
+// Takes data ([]byte) which is the raw FlatBuffers manifest content.
+//
+// Returns *FlatBufferManifestProvider which serves the embedded manifest.
+func NewFlatBufferManifestProviderFromBytes(data []byte) *FlatBufferManifestProvider {
+	return &FlatBufferManifestProvider{data: data}
+}
+
 // Load reads the binary manifest file from disk, performs a zero-copy parse using
 // FlatBuffers, and unpacks the data into the Manifest DTO.
 //
@@ -107,6 +123,10 @@ func NewFlatBufferManifestProvider(manifestPath string, opts ...FlatBufferManife
 // SAFETY: The returned Manifest contains strings that reference the file data directly
 // via mem.String. Go's GC keeps the data alive through these string references.
 func (p *FlatBufferManifestProvider) Load(_ context.Context) (*generator_dto.Manifest, error) {
+	if len(p.data) > 0 {
+		return parseFlatBufferManifest(p.data, "embedded manifest")
+	}
+
 	if p.manifestFileName == "" {
 		return nil, errors.New("FlatBuffers manifest provider requires a valid file path")
 	}
@@ -123,20 +143,41 @@ func (p *FlatBufferManifestProvider) Load(_ context.Context) (*generator_dto.Man
 		return nil, fmt.Errorf("failed to read manifest file %s: %w", p.manifestFileName, err)
 	}
 
+	return parseFlatBufferManifest(data, p.manifestFileName)
+}
+
+// parseFlatBufferManifest unpacks raw FlatBuffers manifest bytes into the Manifest DTO.
+//
+// Takes data ([]byte) which is the raw FlatBuffers manifest content to unpack.
+// Takes source (string) which names the origin and is used only in error messages.
+//
+// Returns *generator_dto.Manifest which holds the unpacked manifest.
+// Returns error when the bytes cannot be unpacked or are corrupt.
+//
+// SAFETY: The returned Manifest contains strings that reference data directly via
+// mem.String, so the backing bytes must stay alive for the manifest's lifetime. Go's GC
+// keeps embedded ([]byte) and file data alive through these references.
+func parseFlatBufferManifest(data []byte, source string) (manifest *generator_dto.Manifest, err error) {
 	payload, err := generator_schema.Unpack(data)
 	if err != nil {
 		if errors.Is(err, fbs.ErrSchemaVersionMismatch) {
-			return nil, fmt.Errorf("manifest schema version mismatch at %s (recompile required): %w", p.manifestFileName, errManifestSchemaVersionMismatch)
+			return nil, fmt.Errorf("manifest schema version mismatch at %s (recompile required): %w", source, errManifestSchemaVersionMismatch)
 		}
-		return nil, fmt.Errorf("failed to unpack versioned manifest at %s: %w", p.manifestFileName, err)
+		return nil, fmt.Errorf("failed to unpack versioned manifest at %s: %w", source, err)
 	}
 
-	fbManifest := gen_fb.GetRootAsManifestFB(payload, 0)
-	if fbManifest == nil {
-		return nil, fmt.Errorf("failed to parse corrupt manifest file at %s", p.manifestFileName)
+	const minRootSize = 4
+	if len(payload) < minRootSize {
+		return nil, fmt.Errorf("failed to parse corrupt manifest at %s: payload too short (%d bytes)", source, len(payload))
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			manifest = nil
+			err = fmt.Errorf("failed to parse corrupt manifest at %s: %v", source, r)
+		}
+	}()
 
-	return unpackManifest(fbManifest), nil
+	return unpackManifest(gen_fb.GetRootAsManifestFB(payload, 0)), nil
 }
 
 // WithFlatBufferManifestFactory sets the sandbox factory for the FlatBuffer manifest

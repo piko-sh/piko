@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -64,11 +63,9 @@ func TestStartHTTPServers_StartsMainServer(t *testing.T) {
 	case <-serverStarted:
 
 	case err := <-errChan:
-		if err != nil {
-			t.Errorf("Unexpected error: %v", err)
-		}
+		assert.NoError(t, err, "Unexpected error")
 	case <-ctx.Done():
-		t.Error("Timeout waiting for server to start")
+		assert.Fail(t, "Timeout waiting for server to start")
 	}
 }
 
@@ -116,9 +113,7 @@ func TestStartHTTPServers_StartsHealthServer_WhenConfigured(t *testing.T) {
 		case <-healthServerStarted:
 			healthStarted = true
 		case <-timeout:
-			if !healthStarted {
-				t.Error("Health server was not started")
-			}
+			assert.True(t, healthStarted, "Health server was not started")
 			return
 		}
 	}
@@ -134,7 +129,7 @@ func TestStartHTTPServers_SkipsHealthServer_WhenNotConfigured(t *testing.T) {
 	}
 	mockHealthServer := &MockServerAdapter{
 		ListenAndServeFunc: func(_ string, _ http.Handler) error {
-			t.Error("Health server should not be started")
+			assert.Fail(t, "Health server should not be started")
 			return http.ErrServerClosed
 		},
 	}
@@ -189,9 +184,7 @@ func TestStartServer_UsesConfiguredPort(t *testing.T) {
 
 	_ = service.startServer(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
 
-	if usedAddress != ":9999" {
-		t.Errorf("Expected address ':9999', got %q", usedAddress)
-	}
+	assert.Equal(t, ":9999", usedAddress, "Expected address ':9999'")
 }
 
 func TestStartServer_RetriesOnPortInUse_WhenAutoNextPortEnabled(t *testing.T) {
@@ -228,17 +221,13 @@ func TestStartServer_RetriesOnPortInUse_WhenAutoNextPortEnabled(t *testing.T) {
 
 	err := service.startServer(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
 
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+	assert.NoError(t, err, "Unexpected error")
 
 	mu.Lock()
 	finalAttempts := attempts
 	mu.Unlock()
 
-	if finalAttempts < 3 {
-		t.Errorf("Expected at least 3 attempts, got %d", finalAttempts)
-	}
+	assert.GreaterOrEqual(t, finalAttempts, 3, "Expected at least 3 attempts")
 }
 
 func TestStartServer_FailsImmediately_WhenAutoNextPortDisabled(t *testing.T) {
@@ -264,9 +253,7 @@ func TestStartServer_FailsImmediately_WhenAutoNextPortDisabled(t *testing.T) {
 
 	err := service.startServer(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
 
-	if err == nil {
-		t.Error("Expected error when port in use and AutoNextPort disabled")
-	}
+	assert.Error(t, err, "Expected error when port in use and AutoNextPort disabled")
 }
 
 func TestStartServer_ReturnsError_AfterMaxRetries(t *testing.T) {
@@ -292,9 +279,7 @@ func TestStartServer_ReturnsError_AfterMaxRetries(t *testing.T) {
 
 	err := service.startServer(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
 
-	if err == nil {
-		t.Error("Expected error after max retries")
-	}
+	assert.Error(t, err, "Expected error after max retries")
 }
 
 func TestStartServer_ReturnsNil_OnGracefulShutdown(t *testing.T) {
@@ -316,9 +301,7 @@ func TestStartServer_ReturnsNil_OnGracefulShutdown(t *testing.T) {
 
 	err := service.startServer(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
 
-	if err != nil {
-		t.Errorf("Expected nil error on graceful shutdown, got %v", err)
-	}
+	assert.NoError(t, err, "Expected nil error on graceful shutdown")
 }
 
 func TestStartServer_ReturnsError_OnInvalidPort(t *testing.T) {
@@ -339,9 +322,7 @@ func TestStartServer_ReturnsError_OnInvalidPort(t *testing.T) {
 
 	err := service.startServer(context.Background(), http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }))
 
-	if err == nil {
-		t.Error("Expected error for invalid port")
-	}
+	assert.Error(t, err, "Expected error for invalid port")
 }
 
 func TestStartHealthServer_StartsOnConfiguredAddress(t *testing.T) {
@@ -369,9 +350,7 @@ func TestStartHealthServer_StartsOnConfiguredAddress(t *testing.T) {
 
 	_ = service.startHealthServer(context.Background())
 
-	if usedAddress != "0.0.0.0:9090" {
-		t.Errorf("Expected address '0.0.0.0:9090', got %q", usedAddress)
-	}
+	assert.Equal(t, "0.0.0.0:9090", usedAddress, "Expected address '0.0.0.0:9090'")
 }
 
 func TestStartHealthServer_ReturnsNil_OnGracefulShutdown(t *testing.T) {
@@ -393,9 +372,7 @@ func TestStartHealthServer_ReturnsNil_OnGracefulShutdown(t *testing.T) {
 
 	err := service.startHealthServer(context.Background())
 
-	if err != nil {
-		t.Errorf("Expected nil error on graceful shutdown, got %v", err)
-	}
+	assert.NoError(t, err, "Expected nil error on graceful shutdown")
 }
 
 func TestStartHealthServer_ReturnsError_OnFailure(t *testing.T) {
@@ -418,9 +395,7 @@ func TestStartHealthServer_ReturnsError_OnFailure(t *testing.T) {
 
 	err := service.startHealthServer(context.Background())
 
-	if err == nil {
-		t.Error("Expected error on health server failure")
-	}
+	assert.Error(t, err, "Expected error on health server failure")
 }
 
 func TestWaitForShutdown_ReturnsNil_OnContextDone(t *testing.T) {
@@ -443,9 +418,7 @@ func TestWaitForShutdown_ReturnsNil_OnContextDone(t *testing.T) {
 	cancel(fmt.Errorf("test: simulating cancelled context"))
 	wg.Wait()
 
-	if result != nil {
-		t.Errorf("Expected nil error, got %v", result)
-	}
+	assert.NoError(t, result, "Expected nil error")
 }
 
 func TestWaitForShutdown_ReturnsError_OnServerError(t *testing.T) {
@@ -462,9 +435,7 @@ func TestWaitForShutdown_ReturnsError_OnServerError(t *testing.T) {
 
 	result := service.waitForShutdown(context.Background(), getNoopSpan(), serverErrChan)
 
-	if !errors.Is(result, serverErr) {
-		t.Errorf("Expected server error, got %v", result)
-	}
+	assert.ErrorIs(t, result, serverErr, "Expected server error")
 }
 
 func TestWaitForShutdown_ReturnsNil_OnStopChan(t *testing.T) {
@@ -486,9 +457,7 @@ func TestWaitForShutdown_ReturnsNil_OnStopChan(t *testing.T) {
 	close(service.stopChan)
 	wg.Wait()
 
-	if result != nil {
-		t.Errorf("Expected nil error, got %v", result)
-	}
+	assert.NoError(t, result, "Expected nil error")
 }
 
 func TestShutdown_ShutsDownMainServer(t *testing.T) {
@@ -504,9 +473,8 @@ func TestShutdown_ShutsDownMainServer(t *testing.T) {
 
 	_ = service.shutdown(context.Background())
 
-	if mockServer.ShutdownCallCount.Load() == 0 {
-		t.Error("Expected Shutdown to be called on main server")
-	}
+	assert.Positive(t, mockServer.ShutdownCallCount.Load(),
+		"Expected Shutdown to be called on main server")
 }
 
 func TestShutdown_ShutsDownHealthServer(t *testing.T) {
@@ -522,9 +490,8 @@ func TestShutdown_ShutsDownHealthServer(t *testing.T) {
 
 	_ = service.shutdown(context.Background())
 
-	if mockHealthServer.ShutdownCallCount.Load() == 0 {
-		t.Error("Expected Shutdown to be called on health server")
-	}
+	assert.Positive(t, mockHealthServer.ShutdownCallCount.Load(),
+		"Expected Shutdown to be called on health server")
 }
 
 func TestShutdown_ReturnsMainServerError(t *testing.T) {
@@ -545,9 +512,7 @@ func TestShutdown_ReturnsMainServerError(t *testing.T) {
 
 	err := service.shutdown(context.Background())
 
-	if !errors.Is(err, shutdownErr) {
-		t.Errorf("Expected main server error, got %v", err)
-	}
+	assert.ErrorIs(t, err, shutdownErr, "Expected main server error")
 }
 
 func TestShutdown_ReturnsNil_OnSuccess(t *testing.T) {
@@ -573,9 +538,7 @@ func TestShutdown_ReturnsNil_OnSuccess(t *testing.T) {
 
 	err := service.shutdown(context.Background())
 
-	if err != nil {
-		t.Errorf("Expected nil error, got %v", err)
-	}
+	assert.NoError(t, err, "Expected nil error")
 }
 
 func TestShouldStartHealthServer_ReturnsTrue_WhenFullyConfigured(t *testing.T) {
@@ -593,9 +556,7 @@ func TestShouldStartHealthServer_ReturnsTrue_WhenFullyConfigured(t *testing.T) {
 
 	result := service.shouldStartHealthServer()
 
-	if !result {
-		t.Error("Expected true when health server fully configured")
-	}
+	assert.True(t, result, "Expected true when health server fully configured")
 }
 
 func TestShouldStartHealthServer_ReturnsFalse_WhenDisabled(t *testing.T) {
@@ -616,9 +577,7 @@ func TestShouldStartHealthServer_ReturnsFalse_WhenDisabled(t *testing.T) {
 
 	result := service.shouldStartHealthServer()
 
-	if result {
-		t.Error("Expected false when health probe disabled")
-	}
+	assert.False(t, result, "Expected false when health probe disabled")
 }
 
 func TestShouldStartHealthServer_ReturnsFalse_WhenServerNil(t *testing.T) {
@@ -634,9 +593,7 @@ func TestShouldStartHealthServer_ReturnsFalse_WhenServerNil(t *testing.T) {
 
 	result := service.shouldStartHealthServer()
 
-	if result {
-		t.Error("Expected false when health server is nil")
-	}
+	assert.False(t, result, "Expected false when health server is nil")
 }
 
 func TestShouldStartHealthServer_ReturnsFalse_WhenRouterNil(t *testing.T) {
@@ -654,9 +611,7 @@ func TestShouldStartHealthServer_ReturnsFalse_WhenRouterNil(t *testing.T) {
 
 	result := service.shouldStartHealthServer()
 
-	if result {
-		t.Error("Expected false when health router is nil")
-	}
+	assert.False(t, result, "Expected false when health router is nil")
 }
 
 func TestHandleServerError_ReturnsNil_ForNilError(t *testing.T) {
@@ -666,9 +621,7 @@ func TestHandleServerError_ReturnsNil_ForNilError(t *testing.T) {
 
 	result := service.handleServerError(context.Background(), getNoopSpan(), nil)
 
-	if result != nil {
-		t.Errorf("Expected nil for nil error, got %v", result)
-	}
+	assert.NoError(t, result, "Expected nil for nil error")
 }
 
 func TestHandleServerError_ReturnsNil_ForServerClosed(t *testing.T) {
@@ -678,9 +631,7 @@ func TestHandleServerError_ReturnsNil_ForServerClosed(t *testing.T) {
 
 	result := service.handleServerError(context.Background(), getNoopSpan(), http.ErrServerClosed)
 
-	if result != nil {
-		t.Errorf("Expected nil for ErrServerClosed, got %v", result)
-	}
+	assert.NoError(t, result, "Expected nil for ErrServerClosed")
 }
 
 func TestHandleServerError_ReturnsError_ForOtherErrors(t *testing.T) {
@@ -691,9 +642,7 @@ func TestHandleServerError_ReturnsError_ForOtherErrors(t *testing.T) {
 
 	result := service.handleServerError(context.Background(), getNoopSpan(), otherErr)
 
-	if !errors.Is(result, otherErr) {
-		t.Errorf("Expected error to be passed through, got %v", result)
-	}
+	assert.ErrorIs(t, result, otherErr, "Expected error to be passed through")
 }
 
 func newPortInUseError() error {
@@ -715,9 +664,7 @@ func mustBuildDaemonService(t *testing.T, deps *DaemonServiceDeps) *daemonServic
 
 	service := NewService(context.Background(), deps)
 	ds, ok := service.(*daemonService)
-	if !ok {
-		t.Fatalf("expected *daemonService, got %T", service)
-	}
+	require.Truef(t, ok, "expected *daemonService, got %T", service)
 	return ds
 }
 
@@ -730,9 +677,7 @@ func TestExtractTraceContext_ExtractsHeadersToCarrier(t *testing.T) {
 
 	ctx := extractTraceContext(request)
 
-	if ctx == nil {
-		t.Error("extractTraceContext returned nil context")
-	}
+	assert.NotNil(t, ctx, "extractTraceContext returned nil context")
 }
 
 func TestExtractTraceContext_HandlesEmptyHeaders(t *testing.T) {
@@ -742,9 +687,7 @@ func TestExtractTraceContext_HandlesEmptyHeaders(t *testing.T) {
 
 	ctx := extractTraceContext(request)
 
-	if ctx == nil {
-		t.Error("extractTraceContext returned nil context for empty headers")
-	}
+	assert.NotNil(t, ctx, "extractTraceContext returned nil context for empty headers")
 }
 
 func TestExtractTraceContext_HandlesMultiValueHeaders(t *testing.T) {
@@ -756,9 +699,7 @@ func TestExtractTraceContext_HandlesMultiValueHeaders(t *testing.T) {
 
 	ctx := extractTraceContext(request)
 
-	if ctx == nil {
-		t.Error("extractTraceContext returned nil context")
-	}
+	assert.NotNil(t, ctx, "extractTraceContext returned nil context")
 }
 
 func TestCreateTracingHandler_WrapsRouter(t *testing.T) {
@@ -781,9 +722,7 @@ func TestCreateTracingHandler_WrapsRouter(t *testing.T) {
 
 	handler.ServeHTTP(rr, request)
 
-	if !routerCalled {
-		t.Error("createTracingHandler should call the final router")
-	}
+	assert.True(t, routerCalled, "createTracingHandler should call the final router")
 }
 
 func TestCreateTracingHandler_PassesContextToRouter(t *testing.T) {
@@ -806,9 +745,7 @@ func TestCreateTracingHandler_PassesContextToRouter(t *testing.T) {
 
 	handler.ServeHTTP(rr, request)
 
-	if receivedCtx == nil {
-		t.Error("createTracingHandler should pass context to router")
-	}
+	assert.NotNil(t, receivedCtx, "createTracingHandler should pass context to router")
 }
 
 type mockResponseWriter struct {
@@ -837,9 +774,7 @@ func TestHandleServerListenResult_Success_ReturnsNil(t *testing.T) {
 
 	err := service.handleServerListenResult(context.Background(), getNoopSpan(), nil, ":8080", true, 1, serverKindMain)
 
-	if err != nil {
-		t.Errorf("handleServerListenResult should return nil on success, got %v", err)
-	}
+	assert.NoError(t, err, "handleServerListenResult should return nil on success")
 }
 
 func TestHandleServerListenResult_ServerClosed_ReturnsNil(t *testing.T) {
@@ -849,9 +784,7 @@ func TestHandleServerListenResult_ServerClosed_ReturnsNil(t *testing.T) {
 
 	err := service.handleServerListenResult(context.Background(), getNoopSpan(), http.ErrServerClosed, ":8080", true, 1, serverKindMain)
 
-	if err != nil {
-		t.Errorf("handleServerListenResult should return nil for ErrServerClosed, got %v", err)
-	}
+	assert.NoError(t, err, "handleServerListenResult should return nil for ErrServerClosed")
 }
 
 func TestHandleServerListenResult_PortInUse_WithAutoNext_ReturnsContinueRetry(t *testing.T) {
@@ -862,9 +795,8 @@ func TestHandleServerListenResult_PortInUse_WithAutoNext_ReturnsContinueRetry(t 
 	portErr := newPortInUseError()
 	err := service.handleServerListenResult(context.Background(), getNoopSpan(), portErr, ":8080", true, 1, serverKindMain)
 
-	if !errors.Is(err, errContinueRetry) {
-		t.Errorf("handleServerListenResult should return errContinueRetry when port in use with autoNextPort, got %v", err)
-	}
+	assert.ErrorIs(t, err, errContinueRetry,
+		"handleServerListenResult should return errContinueRetry when port in use with autoNextPort")
 }
 
 func TestHandleServerListenResult_PortInUse_WithoutAutoNext_ReturnsError(t *testing.T) {
@@ -875,9 +807,7 @@ func TestHandleServerListenResult_PortInUse_WithoutAutoNext_ReturnsError(t *test
 	portErr := newPortInUseError()
 	err := service.handleServerListenResult(context.Background(), getNoopSpan(), portErr, ":8080", false, 1, serverKindMain)
 
-	if err == nil {
-		t.Error("handleServerListenResult should return error when port in use without autoNextPort")
-	}
+	assert.Error(t, err, "handleServerListenResult should return error when port in use without autoNextPort")
 }
 
 func TestHandleServerListenResult_OtherError_ReturnsError(t *testing.T) {
@@ -888,9 +818,7 @@ func TestHandleServerListenResult_OtherError_ReturnsError(t *testing.T) {
 	otherErr := errors.New("some other error")
 	err := service.handleServerListenResult(context.Background(), getNoopSpan(), otherErr, ":8080", true, 1, serverKindMain)
 
-	if !errors.Is(err, otherErr) {
-		t.Errorf("handleServerListenResult should return the original error, got %v", err)
-	}
+	assert.ErrorIs(t, err, otherErr, "handleServerListenResult should return the original error")
 }
 
 func TestRunDaemonMain_GracefulShutdown(t *testing.T) {
@@ -912,9 +840,7 @@ func TestRunDaemonMain_GracefulShutdown(t *testing.T) {
 
 	err := service.runDaemonMain(context.Background())
 
-	if err != nil {
-		t.Errorf("expected nil error on graceful shutdown, got %v", err)
-	}
+	assert.NoError(t, err, "expected nil error on graceful shutdown")
 }
 
 func TestRunDaemonMain_PropagatesServerError(t *testing.T) {
@@ -937,9 +863,7 @@ func TestRunDaemonMain_PropagatesServerError(t *testing.T) {
 
 	err := service.runDaemonMain(context.Background())
 
-	if !errors.Is(err, serverErr) {
-		t.Errorf("expected server error, got %v", err)
-	}
+	assert.ErrorIs(t, err, serverErr, "expected server error")
 }
 
 func TestRunDaemonMain_StopsOnStopChan(t *testing.T) {
@@ -975,11 +899,9 @@ func TestRunDaemonMain_StopsOnStopChan(t *testing.T) {
 
 	select {
 	case err := <-done:
-		if err != nil {
-			t.Errorf("expected nil error on stop, got %v", err)
-		}
+		assert.NoError(t, err, "expected nil error on stop")
 	case <-time.After(5 * time.Second):
-		t.Fatal("runDaemonMain did not return after stopChan close")
+		require.Fail(t, "runDaemonMain did not return after stopChan close")
 	}
 }
 
@@ -990,15 +912,9 @@ func TestReportNoHealthPortAvailable_ReturnsError(t *testing.T) {
 
 	err := service.reportNoHealthPortAvailable(context.Background(), getNoopSpan(), 9090)
 
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "health server") {
-		t.Errorf("expected error to mention 'health server', got %q", err.Error())
-	}
-	if !strings.Contains(err.Error(), "9090") {
-		t.Errorf("expected error to mention port 9090, got %q", err.Error())
-	}
+	require.Error(t, err, "expected error")
+	assert.ErrorContains(t, err, "health server", "expected error to mention 'health server'")
+	assert.ErrorContains(t, err, "9090", "expected error to mention port 9090")
 }
 
 func TestReportNoPortAvailable_ReturnsError(t *testing.T) {
@@ -1008,12 +924,8 @@ func TestReportNoPortAvailable_ReturnsError(t *testing.T) {
 
 	err := service.reportNoPortAvailable(context.Background(), getNoopSpan(), 8080)
 
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "8080") {
-		t.Errorf("expected error to mention port 8080, got %q", err.Error())
-	}
+	require.Error(t, err, "expected error")
+	assert.ErrorContains(t, err, "8080", "expected error to mention port 8080")
 }
 
 func TestStartHealthServer_ReturnsError_OnInvalidPort(t *testing.T) {
@@ -1034,9 +946,7 @@ func TestStartHealthServer_ReturnsError_OnInvalidPort(t *testing.T) {
 
 	err := service.startHealthServer(context.Background())
 
-	if err == nil {
-		t.Error("expected error for invalid health port")
-	}
+	assert.Error(t, err, "expected error for invalid health port")
 }
 
 func TestStartHealthServer_RetriesOnPortInUse_WhenAutoNextPortEnabled(t *testing.T) {
@@ -1072,17 +982,13 @@ func TestStartHealthServer_RetriesOnPortInUse_WhenAutoNextPortEnabled(t *testing
 
 	err := service.startHealthServer(context.Background())
 
-	if err != nil {
-		t.Errorf("expected nil error after retry, got %v", err)
-	}
+	assert.NoError(t, err, "expected nil error after retry")
 
 	mu.Lock()
 	finalAttempts := attempts
 	mu.Unlock()
 
-	if finalAttempts < 3 {
-		t.Errorf("expected at least 3 attempts, got %d", finalAttempts)
-	}
+	assert.GreaterOrEqual(t, finalAttempts, 3, "expected at least 3 attempts")
 }
 
 func TestHandleServerPortInUse_HealthServerKind(t *testing.T) {
@@ -1093,18 +999,13 @@ func TestHandleServerPortInUse_HealthServerKind(t *testing.T) {
 
 	err := service.handleServerPortInUse(context.Background(), getNoopSpan(), portErr, "127.0.0.1:9090", true, 0, serverKindHealth)
 
-	if !errors.Is(err, errContinueRetry) {
-		t.Errorf("expected errContinueRetry, got %v", err)
-	}
+	assert.ErrorIs(t, err, errContinueRetry, "expected errContinueRetry")
 
 	err = service.handleServerPortInUse(context.Background(), getNoopSpan(), portErr, "127.0.0.1:9090", false, 0, serverKindHealth)
 
-	if err == nil {
-		t.Error("expected error when autoNextPort is disabled")
-	}
-	if errors.Is(err, errContinueRetry) {
-		t.Error("should not return errContinueRetry when autoNextPort is disabled")
-	}
+	assert.Error(t, err, "expected error when autoNextPort is disabled")
+	assert.NotErrorIs(t, err, errContinueRetry,
+		"should not return errContinueRetry when autoNextPort is disabled")
 }
 
 func TestShutdownServers_BothFail_ReturnsMainError(t *testing.T) {
@@ -1133,9 +1034,7 @@ func TestShutdownServers_BothFail_ReturnsMainError(t *testing.T) {
 
 	err := service.shutdown(context.Background())
 
-	if !errors.Is(err, mainErr) {
-		t.Errorf("expected main server error, got %v", err)
-	}
+	assert.ErrorIs(t, err, mainErr, "expected main server error")
 }
 
 func TestShutdown_ReturnsHealthServerError_WhenMainSucceeds(t *testing.T) {
@@ -1163,9 +1062,7 @@ func TestShutdown_ReturnsHealthServerError_WhenMainSucceeds(t *testing.T) {
 
 	err := service.shutdown(context.Background())
 
-	if !errors.Is(err, healthErr) {
-		t.Errorf("expected health server error, got %v", err)
-	}
+	assert.ErrorIs(t, err, healthErr, "expected health server error")
 }
 
 func TestHandleServerListenResult_HealthKind_Success(t *testing.T) {
@@ -1175,9 +1072,7 @@ func TestHandleServerListenResult_HealthKind_Success(t *testing.T) {
 
 	err := service.handleServerListenResult(context.Background(), getNoopSpan(), http.ErrServerClosed, "127.0.0.1:9090", false, 0, serverKindHealth)
 
-	if err != nil {
-		t.Errorf("expected nil for health server graceful close, got %v", err)
-	}
+	assert.NoError(t, err, "expected nil for health server graceful close")
 }
 
 func TestHandleServerListenResult_HealthKind_OtherError(t *testing.T) {
@@ -1188,9 +1083,7 @@ func TestHandleServerListenResult_HealthKind_OtherError(t *testing.T) {
 
 	err := service.handleServerListenResult(context.Background(), getNoopSpan(), otherErr, "127.0.0.1:9090", false, 0, serverKindHealth)
 
-	if !errors.Is(err, otherErr) {
-		t.Errorf("expected original error, got %v", err)
-	}
+	assert.ErrorIs(t, err, otherErr, "expected original error")
 }
 
 func TestStartMainServer_GracefulShutdown(t *testing.T) {
@@ -1212,9 +1105,7 @@ func TestStartMainServer_GracefulShutdown(t *testing.T) {
 
 	err := service.startMainServer(context.Background())
 
-	if err != nil {
-		t.Errorf("expected nil error on graceful shutdown, got %v", err)
-	}
+	assert.NoError(t, err, "expected nil error on graceful shutdown")
 }
 
 func TestStartMainServer_PropagatesError(t *testing.T) {
@@ -1237,9 +1128,7 @@ func TestStartMainServer_PropagatesError(t *testing.T) {
 
 	err := service.startMainServer(context.Background())
 
-	if !errors.Is(err, serverErr) {
-		t.Errorf("expected server error, got %v", err)
-	}
+	assert.ErrorIs(t, err, serverErr, "expected server error")
 }
 
 func TestStartMainServer_WithTLS_SkipsH2C(t *testing.T) {
@@ -1266,14 +1155,10 @@ func TestStartMainServer_WithTLS_SkipsH2C(t *testing.T) {
 
 	_ = service.startMainServer(context.Background())
 
-	if receivedHandler == nil {
-		t.Fatal("expected handler to be set")
-	}
+	require.NotNil(t, receivedHandler, "expected handler to be set")
 
 	handlerType := fmt.Sprintf("%T", receivedHandler)
-	if strings.Contains(handlerType, "h2c") {
-		t.Errorf("expected non-h2c handler when TLS is enabled, got %s", handlerType)
-	}
+	assert.NotContains(t, handlerType, "h2c", "expected non-h2c handler when TLS is enabled")
 }
 
 func TestShutdown_SignalsDrainBeforeShuttingDown(t *testing.T) {
@@ -1290,9 +1175,8 @@ func TestShutdown_SignalsDrainBeforeShuttingDown(t *testing.T) {
 	drainSignaller := &MockDrainSignaller{}
 	mockServer := &MockServerAdapter{
 		ShutdownFunc: func(_ context.Context) error {
-			if drainSignaller.SignalDrainCallCount.Load() == 0 {
-				t.Error("Expected drain to be signalled before main server shutdown")
-			}
+			assert.Positive(t, drainSignaller.SignalDrainCallCount.Load(),
+				"Expected drain to be signalled before main server shutdown")
 			record("main_shutdown")
 			return nil
 		},
@@ -1467,12 +1351,8 @@ func TestStartMainServer_WithoutTLS_UsesH2C(t *testing.T) {
 
 	_ = service.startMainServer(context.Background())
 
-	if receivedHandler == nil {
-		t.Fatal("expected handler to be set")
-	}
+	require.NotNil(t, receivedHandler, "expected handler to be set")
 
 	handlerType := fmt.Sprintf("%T", receivedHandler)
-	if !strings.Contains(handlerType, "h2c") {
-		t.Errorf("expected h2c handler when TLS is off, got %s", handlerType)
-	}
+	assert.Contains(t, handlerType, "h2c", "expected h2c handler when TLS is off")
 }

@@ -114,7 +114,7 @@ func TestCompilerExecutor_BlobSizeTracking(t *testing.T) {
 		"artefactID":         artefactID,
 		"sourceVariantID":    "source-variant",
 		"desiredProfileName": "compiled_js",
-		"capabilityToRun":    "compile",
+		"capabilityToRun":    "compile-component",
 		"taskID":             "test-task-123",
 		"capabilityParams":   map[string]string{},
 	}

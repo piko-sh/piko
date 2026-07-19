@@ -9,7 +9,7 @@ SELECT DISTINCT artefact_id
 FROM registry_variant_tag
 WHERE tag_key = $1 AND tag_value IN ($2);
 
--- piko.query(name: FindArtefactByVariantStorageKey, command: one)
+-- piko.query(name: FindArtefactByVariantStorageKey, command: one, optional: true)
 SELECT artefact_id
 FROM registry_variant
 WHERE storage_key = $1

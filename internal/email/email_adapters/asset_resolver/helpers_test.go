@@ -112,6 +112,10 @@ func (*mockRegistryService) ListBlobStoreIDs() []string {
 	return nil
 }
 
+func (*mockRegistryService) GetBlobRefCount(_ context.Context, _ string) (int, error) {
+	return 0, nil
+}
+
 func makeVariant(variantID string, mimeType string, tags registry_dto.Tags) registry_dto.Variant {
 	return registry_dto.Variant{
 		VariantID:    variantID,

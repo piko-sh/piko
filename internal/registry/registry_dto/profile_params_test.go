@@ -21,15 +21,16 @@ package registry_dto
 import (
 	"maps"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProfileParams_GetSetKnown(t *testing.T) {
 	var p ProfileParams
 	p.Set(ParamWidth, "800")
 
-	if got := p.Get(ParamWidth); got != "800" {
-		t.Errorf("Get(ParamWidth) = %q, want %q", got, "800")
-	}
+	assert.Equal(t, "800", p.Get(ParamWidth))
 }
 
 func TestProfileParams_GetByName_Known(t *testing.T) {
@@ -37,9 +38,8 @@ func TestProfileParams_GetByName_Known(t *testing.T) {
 	p.Set(ParamFormat, "webp")
 
 	value, ok := p.GetByName("format")
-	if !ok || value != "webp" {
-		t.Errorf("GetByName(format) = %q, %v; want %q, true", value, ok, "webp")
-	}
+	assert.True(t, ok)
+	assert.Equal(t, "webp", value)
 }
 
 func TestProfileParams_GetByName_Custom(t *testing.T) {
@@ -47,17 +47,15 @@ func TestProfileParams_GetByName_Custom(t *testing.T) {
 	p.SetByName("custom-key", "custom-val")
 
 	value, ok := p.GetByName("custom-key")
-	if !ok || value != "custom-val" {
-		t.Errorf("GetByName(custom-key) = %q, %v; want %q, true", value, ok, "custom-val")
-	}
+	assert.True(t, ok)
+	assert.Equal(t, "custom-val", value)
 }
 
 func TestProfileParams_GetByName_Missing(t *testing.T) {
 	var p ProfileParams
 	value, ok := p.GetByName("nonexistent")
-	if ok || value != "" {
-		t.Errorf("GetByName(nonexistent) = %q, %v; want empty, false", value, ok)
-	}
+	assert.False(t, ok)
+	assert.Empty(t, value)
 }
 
 func TestProfileParams_SetByName_KnownAndCustom(t *testing.T) {
@@ -65,44 +63,31 @@ func TestProfileParams_SetByName_KnownAndCustom(t *testing.T) {
 	p.SetByName("width", "1920")
 	p.SetByName("my-param", "hello")
 
-	if got := p.Get(ParamWidth); got != "1920" {
-		t.Errorf("known param via SetByName: got %q, want %q", got, "1920")
-	}
+	assert.Equal(t, "1920", p.Get(ParamWidth), "known param via SetByName")
 	value, ok := p.GetByName("my-param")
-	if !ok || value != "hello" {
-		t.Errorf("custom param via SetByName: got %q, %v", value, ok)
-	}
+	assert.True(t, ok, "custom param via SetByName")
+	assert.Equal(t, "hello", value, "custom param via SetByName")
 }
 
 func TestProfileParams_Len(t *testing.T) {
 	var p ProfileParams
-	if p.Len() != 0 {
-		t.Errorf("Len() on empty = %d, want 0", p.Len())
-	}
+	assert.Equal(t, 0, p.Len(), "Len() on empty should be 0")
 
 	p.Set(ParamWidth, "100")
 	p.SetByName("extra", "val")
-	if p.Len() != 2 {
-		t.Errorf("Len() = %d, want 2", p.Len())
-	}
+	assert.Equal(t, 2, p.Len())
 }
 
 func TestProfileParams_IsEmpty(t *testing.T) {
 	var p ProfileParams
-	if !p.IsEmpty() {
-		t.Error("new ProfileParams should be empty")
-	}
+	assert.True(t, p.IsEmpty(), "new ProfileParams should be empty")
 
 	p.Set(ParamCodec, "h264")
-	if p.IsEmpty() {
-		t.Error("ProfileParams with known param should not be empty")
-	}
+	assert.False(t, p.IsEmpty(), "ProfileParams with known param should not be empty")
 
 	var p2 ProfileParams
 	p2.SetByName("custom", "val")
-	if p2.IsEmpty() {
-		t.Error("ProfileParams with custom param should not be empty")
-	}
+	assert.False(t, p2.IsEmpty(), "ProfileParams with custom param should not be empty")
 }
 
 func TestProfileParams_All(t *testing.T) {
@@ -112,12 +97,8 @@ func TestProfileParams_All(t *testing.T) {
 
 	got := maps.Collect(p.All())
 
-	if got["width"] != "800" {
-		t.Errorf("All() missing known param: %v", got)
-	}
-	if got["custom"] != "val" {
-		t.Errorf("All() missing custom param: %v", got)
-	}
+	assert.Equal(t, "800", got["width"], "All() missing known param")
+	assert.Equal(t, "val", got["custom"], "All() missing custom param")
 }
 
 func TestProfileParams_Clone(t *testing.T) {
@@ -126,19 +107,14 @@ func TestProfileParams_Clone(t *testing.T) {
 	p.SetByName("custom", "val")
 
 	clone := p.Clone()
-	if clone.Get(ParamHeight) != "600" {
-		t.Error("Clone missing known param")
-	}
+	assert.Equal(t, "600", clone.Get(ParamHeight), "Clone missing known param")
 	v, ok := clone.GetByName("custom")
-	if !ok || v != "val" {
-		t.Error("Clone missing custom param")
-	}
+	assert.True(t, ok, "Clone missing custom param")
+	assert.Equal(t, "val", v, "Clone missing custom param")
 
 	p.SetByName("custom", "changed")
 	v2, _ := clone.GetByName("custom")
-	if v2 != "val" {
-		t.Error("Clone was mutated by original")
-	}
+	assert.Equal(t, "val", v2, "Clone was mutated by original")
 }
 
 func TestProfileParams_ToMap(t *testing.T) {
@@ -147,12 +123,8 @@ func TestProfileParams_ToMap(t *testing.T) {
 	p.SetByName("extra", "data")
 
 	m := p.ToMap()
-	if m["format"] != "avif" {
-		t.Errorf("ToMap() missing known param")
-	}
-	if m["extra"] != "data" {
-		t.Errorf("ToMap() missing custom param")
-	}
+	assert.Equal(t, "avif", m["format"], "ToMap() missing known param")
+	assert.Equal(t, "data", m["extra"], "ToMap() missing custom param")
 }
 
 func TestProfileParams_JSON(t *testing.T) {
@@ -161,49 +133,33 @@ func TestProfileParams_JSON(t *testing.T) {
 	p.SetByName("custom", "val")
 
 	data, err := p.MarshalJSON()
-	if err != nil {
-		t.Fatalf("MarshalJSON: %v", err)
-	}
+	require.NoError(t, err, "MarshalJSON")
 
 	var p2 ProfileParams
-	if err := p2.UnmarshalJSON(data); err != nil {
-		t.Fatalf("UnmarshalJSON: %v", err)
-	}
-	if p2.Get(ParamWidth) != "1024" {
-		t.Error("round-trip: missing known param")
-	}
+	require.NoError(t, p2.UnmarshalJSON(data), "UnmarshalJSON")
+	assert.Equal(t, "1024", p2.Get(ParamWidth), "round-trip: missing known param")
 	v, ok := p2.GetByName("custom")
-	if !ok || v != "val" {
-		t.Error("round-trip: missing custom param")
-	}
+	assert.True(t, ok, "round-trip: missing custom param")
+	assert.Equal(t, "val", v, "round-trip: missing custom param")
 }
 
 func TestProfileParams_UnmarshalJSON_Invalid(t *testing.T) {
 	var p ProfileParams
-	if err := p.UnmarshalJSON([]byte(`{invalid`)); err == nil {
-		t.Error("expected error for invalid JSON")
-	}
+	assert.Error(t, p.UnmarshalJSON([]byte(`{invalid`)), "expected error for invalid JSON")
 }
 
 func TestParamKeyName(t *testing.T) {
-	if got := paramKeyName(ParamWidth); got != "width" {
-		t.Errorf("paramKeyName(ParamWidth) = %q, want %q", got, "width")
-	}
-	if got := paramKeyName(paramKeyCount + 1); got != "" {
-		t.Errorf("paramKeyName(invalid) = %q, want empty", got)
-	}
+	assert.Equal(t, "width", paramKeyName(ParamWidth))
+	assert.Empty(t, paramKeyName(paramKeyCount+1), "paramKeyName(invalid) should be empty")
 }
 
 func TestLookupParamKey(t *testing.T) {
 	key, ok := lookupParamKey("codec")
-	if !ok || key != ParamCodec {
-		t.Errorf("lookupParamKey(codec) = %v, %v; want ParamCodec, true", key, ok)
-	}
+	assert.True(t, ok)
+	assert.Equal(t, ParamCodec, key)
 
 	_, ok = lookupParamKey("nonexistent")
-	if ok {
-		t.Error("lookupParamKey(nonexistent) should return false")
-	}
+	assert.False(t, ok, "lookupParamKey(nonexistent) should return false")
 }
 
 func TestProfileParamsFromMap(t *testing.T) {
@@ -212,11 +168,8 @@ func TestProfileParamsFromMap(t *testing.T) {
 		"custom": "val",
 	}
 	p := ProfileParamsFromMap(m)
-	if p.Get(ParamWidth) != "640" {
-		t.Error("ProfileParamsFromMap: missing known param")
-	}
+	assert.Equal(t, "640", p.Get(ParamWidth), "ProfileParamsFromMap: missing known param")
 	v, ok := p.GetByName("custom")
-	if !ok || v != "val" {
-		t.Error("ProfileParamsFromMap: missing custom param")
-	}
+	assert.True(t, ok, "ProfileParamsFromMap: missing custom param")
+	assert.Equal(t, "val", v, "ProfileParamsFromMap: missing custom param")
 }

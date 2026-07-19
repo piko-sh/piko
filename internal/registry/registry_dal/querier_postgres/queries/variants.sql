@@ -10,18 +10,18 @@ FROM registry_variant
 WHERE artefact_id IN ($1);
 
 -- piko.query(name: InsertVariant, command: exec)
-INSERT INTO registry_variant (artefact_id, variant_id, storage_key, storage_backend_id, mime_type, size_bytes, status, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+INSERT INTO registry_variant (artefact_id, release_id, variant_id, storage_key, storage_backend_id, mime_type, size_bytes, status, created_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- piko.query(name: DeleteVariantsForArtefact, command: exec)
-DELETE FROM registry_variant WHERE artefact_id = $1;
+DELETE FROM registry_variant WHERE artefact_id = $1 AND release_id = $2;
 
 -- piko.query(name: InsertVariantTag, command: exec)
-INSERT INTO registry_variant_tag (artefact_id, variant_id, tag_key, tag_value)
-VALUES ($1, $2, $3, $4);
+INSERT INTO registry_variant_tag (artefact_id, release_id, variant_id, tag_key, tag_value)
+VALUES ($1, $2, $3, $4, $5);
 
 -- piko.query(name: DeleteVariantTagsForArtefact, command: exec)
-DELETE FROM registry_variant_tag WHERE artefact_id = $1;
+DELETE FROM registry_variant_tag WHERE artefact_id = $1 AND release_id = $2;
 
 -- piko.query(name: GetAllTagsForArtefact, command: many)
 SELECT variant_id, tag_key, tag_value

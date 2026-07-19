@@ -1699,6 +1699,58 @@ func TestAddVariant_WithChunks(t *testing.T) {
 	})
 }
 
+func TestAddVariant_DefaultVariantOrigin(t *testing.T) {
+	const artefactID = "asset.css"
+	existing := &registry_dto.ArtefactMeta{ID: artefactID}
+
+	addVariant := func(t *testing.T, serviceDefault, variantOrigin registry_dto.VariantOrigin) registry_dto.Variant {
+		t.Helper()
+		metaStore := &registry_domain.MockMetadataStore{}
+		blobStores := map[string]registry_domain.BlobStore{"local": &registry_domain.MockBlobStore{}}
+		service := registry_domain.NewRegistryService(
+			metaStore, blobStores, &registry_domain.MockEventBus{}, nil,
+			registry_domain.WithDefaultVariantOrigin(serviceDefault),
+		)
+		metaStore.GetArtefactFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			return existing, nil
+		}
+		metaStore.IncrementBlobRefCountFunc = func(_ context.Context, _ registry_domain.BlobReference) (int, error) {
+			return 1, nil
+		}
+		metaStore.AtomicUpdateFunc = func(_ context.Context, _ []registry_dto.AtomicAction) error { return nil }
+
+		newVariant := &registry_dto.Variant{
+			VariantID:        "min",
+			StorageKey:       "build/min.css",
+			StorageBackendID: "local",
+			MimeType:         "text/css",
+			SizeBytes:        128,
+			ContentHash:      "minhash",
+			Status:           registry_dto.VariantStatusReady,
+			Origin:           variantOrigin,
+		}
+		artefact, err := service.AddVariant(context.Background(), artefactID, newVariant)
+		require.NoError(t, err)
+		require.NotNil(t, artefact)
+		v := registry_domain.FindVariantByID(artefact.ActualVariants, "min")
+		require.NotNil(t, v)
+		return *v
+	}
+
+	t.Run("stamps build default when unset", func(t *testing.T) {
+		v := addVariant(t, registry_dto.VariantOriginBuild, "")
+		assert.Equal(t, registry_dto.VariantOriginBuild, v.Origin)
+	})
+	t.Run("stamps runtime default when unset", func(t *testing.T) {
+		v := addVariant(t, registry_dto.VariantOriginRuntime, "")
+		assert.Equal(t, registry_dto.VariantOriginRuntime, v.Origin)
+	})
+	t.Run("preserves explicit origin over the default", func(t *testing.T) {
+		v := addVariant(t, registry_dto.VariantOriginBuild, registry_dto.VariantOriginRuntime)
+		assert.Equal(t, registry_dto.VariantOriginRuntime, v.Origin)
+	})
+}
+
 func TestAddVariant_ReplaceVariantWithChunks(t *testing.T) {
 	artefactID := "video.mp4"
 

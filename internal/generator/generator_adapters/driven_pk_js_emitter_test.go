@@ -21,9 +21,10 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -152,49 +153,34 @@ const user: User = { name: "Alice" };
 			mock, lastArtefactID, lastSourcePath, lastContent, _, lastDesiredProfiles := newCapturingRegistryMock(false)
 			emitter := generator_adapters.NewPKJSEmitter(mock)
 			artefactID, err := emitter.EmitJS(ctx, tc.source, tc.pagePath, "", "", false)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if artefactID != tc.expectedArtefactID {
-				t.Errorf("expected artefact ID %q, got %q", tc.expectedArtefactID, artefactID)
-			}
+			require.NoError(t, err, "unexpected error")
+			assert.Equal(t, tc.expectedArtefactID, artefactID,
+				"expected artefact ID %q, got %q", tc.expectedArtefactID, artefactID)
 			if tc.expectEmpty {
-				if mock.UpsertArtefactCallCount.Load() != 0 {
-					t.Error("expected no registry call for empty source")
-				}
+				assert.Equal(t, int64(0), mock.UpsertArtefactCallCount.Load(),
+					"expected no registry call for empty source")
 				return
 			}
-			if mock.UpsertArtefactCallCount.Load() != 1 {
-				t.Errorf("expected 1 registry call, got %d", mock.UpsertArtefactCallCount.Load())
-			}
-			if *lastArtefactID != tc.expectedArtefactID {
-				t.Errorf("expected stored artefact ID %q, got %q", tc.expectedArtefactID, *lastArtefactID)
-			}
-			if *lastSourcePath != tc.expectedSourcePath {
-				t.Errorf("expected stored source path %q, got %q", tc.expectedSourcePath, *lastSourcePath)
-			}
+			assert.Equal(t, int64(1), mock.UpsertArtefactCallCount.Load(),
+				"expected 1 registry call, got %d", mock.UpsertArtefactCallCount.Load())
+			assert.Equal(t, tc.expectedArtefactID, *lastArtefactID,
+				"expected stored artefact ID %q, got %q", tc.expectedArtefactID, *lastArtefactID)
+			assert.Equal(t, tc.expectedSourcePath, *lastSourcePath,
+				"expected stored source path %q, got %q", tc.expectedSourcePath, *lastSourcePath)
 			for _, s := range tc.checkContains {
-				if !strings.Contains(*lastContent, s) {
-					t.Errorf("expected content to contain %q, got:\n%s", s, *lastContent)
-				}
+				assert.Contains(t, *lastContent, s,
+					"expected content to contain %q, got:\n%s", s, *lastContent)
 			}
 			for _, s := range tc.checkExcludes {
-				if strings.Contains(*lastContent, s) {
-					t.Errorf("expected content NOT to contain %q, got:\n%s", s, *lastContent)
-				}
+				assert.NotContains(t, *lastContent, s,
+					"expected content NOT to contain %q, got:\n%s", s, *lastContent)
 			}
 			if *lastDesiredProfiles == nil {
-				t.Error("expected desired profiles to be set")
+				assert.Fail(t, "expected desired profiles to be set")
 			} else {
-				if !hasProfileNamed(*lastDesiredProfiles, "minified") {
-					t.Error("expected 'minified' profile")
-				}
-				if !hasProfileNamed(*lastDesiredProfiles, "gzip") {
-					t.Error("expected 'gzip' profile")
-				}
-				if !hasProfileNamed(*lastDesiredProfiles, "br") {
-					t.Error("expected 'br' profile")
-				}
+				assert.True(t, hasProfileNamed(*lastDesiredProfiles, "minified"), "expected 'minified' profile")
+				assert.True(t, hasProfileNamed(*lastDesiredProfiles, "gzip"), "expected 'gzip' profile")
+				assert.True(t, hasProfileNamed(*lastDesiredProfiles, "br"), "expected 'br' profile")
 			}
 		})
 	}
@@ -206,12 +192,9 @@ func TestPKJSEmitter_EmitJS_SyntaxError(t *testing.T) {
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
 	_, err := emitter.EmitJS(ctx, "const x = {{{", "pages/broken", "", "", false)
-	if err == nil {
-		t.Error("expected error for syntax error, got nil")
-	}
-	if mock.UpsertArtefactCallCount.Load() != 0 {
-		t.Error("registry should not be called on transpile error")
-	}
+	assert.Error(t, err, "expected error for syntax error, got nil")
+	assert.Equal(t, int64(0), mock.UpsertArtefactCallCount.Load(),
+		"registry should not be called on transpile error")
 }
 func TestPKJSEmitter_EmitJS_RegistryError(t *testing.T) {
 	t.Parallel()
@@ -220,9 +203,7 @@ func TestPKJSEmitter_EmitJS_RegistryError(t *testing.T) {
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
 	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", "", false)
-	if err == nil {
-		t.Error("expected error when registry fails, got nil")
-	}
+	assert.Error(t, err, "expected error when registry fails, got nil")
 }
 func TestPKJSEmitter_EmitJS_NilRegistry(t *testing.T) {
 	t.Parallel()
@@ -230,12 +211,8 @@ func TestPKJSEmitter_EmitJS_NilRegistry(t *testing.T) {
 	emitter := generator_adapters.NewPKJSEmitter(nil)
 	ctx := context.Background()
 	artefactID, err := emitter.EmitJS(ctx, "const x = 1;", "pages/test", "", "", false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if artefactID != "" {
-		t.Errorf("expected empty artefact ID with nil registry, got %q", artefactID)
-	}
+	require.NoError(t, err, "unexpected error")
+	assert.Empty(t, artefactID, "expected empty artefact ID with nil registry, got %q", artefactID)
 }
 func TestPKJSEmitter_ProfilesPriorityNeed(t *testing.T) {
 	t.Parallel()
@@ -244,16 +221,11 @@ func TestPKJSEmitter_ProfilesPriorityNeed(t *testing.T) {
 	emitter := generator_adapters.NewPKJSEmitter(mock)
 	ctx := context.Background()
 	_, err := emitter.EmitJS(ctx, "const x = 1;", "pages/checkout", "", "", false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error")
 	minifiedProfile, ok := getProfileByName(*lastDesiredProfiles, "minified")
-	if !ok {
-		t.Fatal("expected 'minified' profile")
-	}
-	if minifiedProfile.Priority != registry_dto.PriorityNeed {
-		t.Errorf("expected minified profile to have PriorityNeed, got %v", minifiedProfile.Priority)
-	}
+	require.True(t, ok, "expected 'minified' profile")
+	assert.Equal(t, registry_dto.PriorityNeed, minifiedProfile.Priority,
+		"expected minified profile to have PriorityNeed, got %v", minifiedProfile.Priority)
 }
 
 func TestPKJSEmitter_EmitJS_ModuleAliasRewriting(t *testing.T) {
@@ -268,16 +240,12 @@ const el = document.querySelector('.output');
 if (el) { el.textContent = greet("World"); }`
 
 	_, err := emitter.EmitJS(ctx, source, "pages/test", "github.com/org/repo", "", false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error")
 
-	if !strings.Contains(*lastContent, `"/_piko/assets/github.com/org/repo/lib/greeting.js"`) {
-		t.Errorf("expected @/ import to be rewritten to served asset path, got:\n%s", *lastContent)
-	}
-	if strings.Contains(*lastContent, `@/lib/greeting`) {
-		t.Errorf("expected @/ alias to be removed from output, got:\n%s", *lastContent)
-	}
+	assert.Contains(t, *lastContent, `"/_piko/assets/github.com/org/repo/lib/greeting.js"`,
+		"expected @/ import to be rewritten to served asset path, got:\n%s", *lastContent)
+	assert.NotContains(t, *lastContent, `@/lib/greeting`,
+		"expected @/ alias to be removed from output, got:\n%s", *lastContent)
 }
 
 func TestPKJSEmitter_EmitJS_TSExtensionRewriting(t *testing.T) {
@@ -291,16 +259,12 @@ func TestPKJSEmitter_EmitJS_TSExtensionRewriting(t *testing.T) {
 console.log(helper());`
 
 	_, err := emitter.EmitJS(ctx, source, "pages/test", "", "", false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err, "unexpected error")
 
-	if !strings.Contains(*lastContent, `"./utils.js"`) {
-		t.Errorf("expected .ts import to be rewritten to .js, got:\n%s", *lastContent)
-	}
-	if strings.Contains(*lastContent, `"./utils.ts"`) {
-		t.Errorf("expected .ts extension to be removed from output, got:\n%s", *lastContent)
-	}
+	assert.Contains(t, *lastContent, `"./utils.js"`,
+		"expected .ts import to be rewritten to .js, got:\n%s", *lastContent)
+	assert.NotContains(t, *lastContent, `"./utils.ts"`,
+		"expected .ts extension to be removed from output, got:\n%s", *lastContent)
 }
 
 func hasProfileNamed(profiles []registry_dto.NamedProfile, name string) bool {

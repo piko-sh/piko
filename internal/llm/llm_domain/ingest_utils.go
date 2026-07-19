@@ -34,6 +34,10 @@ type FSLoader struct {
 	// fsys is the file system used to read files matching the patterns.
 	fsys fs.FS
 
+	// source is the human-readable origin (e.g. directory path) this loader was created
+	// from.
+	source string
+
 	// patterns contains the glob patterns used to match files for loading.
 	patterns []string
 }
@@ -69,7 +73,7 @@ func (l *FSLoader) Load(ctx context.Context) ([]Document, error) {
 	for _, pattern := range l.patterns {
 		matches, err := fs.Glob(l.fsys, pattern)
 		if err != nil {
-			return nil, fmt.Errorf("globbing pattern %q: %w", pattern, err)
+			return nil, fmt.Errorf("globbing pattern %q in %q: %w", pattern, sourceOrDot(l.source), err)
 		}
 
 		for _, match := range matches {
@@ -107,6 +111,11 @@ func (l *FSLoader) Load(ctx context.Context) ([]Document, error) {
 	return docs, nil
 }
 
+// setSource records the human-readable origin the loader was created from.
+//
+// Takes source (string) which is the origin used to name errors.
+func (l *FSLoader) setSource(source string) { l.source = source }
+
 // RecursiveFSLoader loads documents by walking a file system tree recursively. Unlike
 // FSLoader which uses fs.Glob (single-level matching), this loader traverses all
 // subdirectories to find files whose names match the patterns.
@@ -114,8 +123,36 @@ type RecursiveFSLoader struct {
 	// fsys is the file system to walk recursively.
 	fsys fs.FS
 
+	// source is the human-readable origin (e.g. directory path) this loader was created
+	// from.
+	source string
+
 	// patterns contains the glob patterns matched against file names.
 	patterns []string
+}
+
+// sourceSetter lets a loader record the human-readable source it was created from.
+//
+// Recording the source (e.g. a directory path) lets a walk or glob error name that source
+// instead of the fs.FS-relative ".".
+type sourceSetter interface {
+	// setSource records the human-readable origin the loader was created from.
+	setSource(source string)
+}
+
+// sourceOrDot returns the configured source, or "." when none was set.
+//
+// A source can be absent when the loader was built directly from an fs.FS with no path
+// identity.
+//
+// Takes source (string) which is the configured source, possibly empty.
+//
+// Returns string which is source, or "." when source is empty.
+func sourceOrDot(source string) string {
+	if source == "" {
+		return "."
+	}
+	return source
 }
 
 // NewRecursiveFSLoader creates a new RecursiveFSLoader with the given file system and
@@ -169,7 +206,7 @@ func (l *RecursiveFSLoader) Load(ctx context.Context) ([]Document, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("walking file system: %w", err)
+		return nil, fmt.Errorf("walking documentation source %q: %w", sourceOrDot(l.source), err)
 	}
 
 	if len(skipped) > 0 {
@@ -177,6 +214,13 @@ func (l *RecursiveFSLoader) Load(ctx context.Context) ([]Document, error) {
 	}
 
 	return docs, nil
+}
+
+// setSource records the human-readable origin the loader was created from.
+//
+// Takes source (string) which is the origin used to name errors.
+func (l *RecursiveFSLoader) setSource(source string) {
+	l.source = source
 }
 
 // matchesAnyPattern reports whether the file at path matches any of the configured glob

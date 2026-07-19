@@ -66,8 +66,6 @@ var (
 // NewASTCacheService creates and sets up the full caching stack based on the given
 // configuration.
 //
-// Takes ctx (context.Context) which is the parent context for background worker
-// goroutines.
 // Takes config (ASTCacheConfig) which specifies the cache settings including L1 capacity,
 // TTL, and L2 base directory.
 //
@@ -95,6 +93,7 @@ func NewASTCacheService(ctx context.Context, config ASTCacheConfig) (*ASTCacheSe
 
 	l2Cache, err := newFbsFileCache(fbsFileCacheConfig{Ctx: ctx, BaseDir: config.L2CacheBaseDir})
 	if err != nil {
+		l1Cache.StopAllGoroutines()
 		return nil, fmt.Errorf("failed to create L2 file cache: %w", err)
 	}
 

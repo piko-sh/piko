@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"piko.sh/piko/internal/cache/cache_domain"
@@ -36,9 +37,8 @@ import (
 )
 
 const (
-	// maxTransactionTimeout is the maximum duration a RunAtomic transaction may hold before
-	// being cancelled.
-	maxTransactionTimeout = 30 * time.Second
+	// defaultMaxTransactionTimeout is the default ceiling on a RunAtomic transaction.
+	defaultMaxTransactionTimeout = 5 * time.Minute
 
 	// defaultGCHintLimit is the default number of GC hints to fetch at once.
 	defaultGCHintLimit = 100
@@ -46,6 +46,11 @@ const (
 	// maxGCHintLimit bounds a single PopGCHints call so the paired DeleteGCHints delete
 	// stays within the tightest dialect bind-variable cap.
 	maxGCHintLimit = 999
+
+	// maxArtefactIDsPerQuery caps how many artefact IDs are bound into one
+	// GetMultipleArtefacts query, so a larger request is split into several statements and
+	// never exceeds the tightest dialect bind-variable cap.
+	maxArtefactIDsPerQuery = 900
 
 	// logKeyDurationMs is the log field key for operation duration in milliseconds.
 	logKeyDurationMs = "durationMs"
@@ -71,6 +76,8 @@ var (
 	_ registry_domain.MetadataStore = (*core)(nil)
 
 	_ registry_domain.RegistryInspector = (*core)(nil)
+
+	_ registry_domain.ArtefactLocker = (*core)(nil)
 )
 
 // core is the dialect-agnostic registry DAL. It satisfies RegistryDALWithTx,
@@ -90,23 +97,50 @@ type core struct {
 	// mock for deterministic tests.
 	clock clock.Clock
 
+	// maxTransactionTimeout bounds how long a RunAtomic transaction may hold before it is
+	// cancelled. It defaults to defaultMaxTransactionTimeout.
+	maxTransactionTimeout time.Duration
+
 	// inTransaction is true when this core is a transaction-scoped clone created by
 	// withTransaction. It prevents nested transactions.
 	inTransaction bool
 }
+
+// Option configures a core DAL at construction.
+type Option func(*core)
 
 // New creates a registry DAL backed by the given database connection and dialect driver.
 //
 // Takes database (*sql.DB) which provides the database connection for transactions and
 // health checks.
 // Takes driver (Driver) which performs the dialect-specific generated-query calls.
+// Takes options (...Option) which override construction defaults.
 //
 // Returns registry_dal.RegistryDALWithTx which is the configured DAL ready for use.
-func New(database *sql.DB, driver Driver) registry_dal.RegistryDALWithTx {
-	return &core{
-		sqlDB:  database,
-		driver: driver,
-		clock:  clock.RealClock(),
+func New(database *sql.DB, driver Driver, options ...Option) registry_dal.RegistryDALWithTx {
+	c := &core{
+		sqlDB:                 database,
+		driver:                driver,
+		clock:                 clock.RealClock(),
+		maxTransactionTimeout: defaultMaxTransactionTimeout,
+	}
+	for _, option := range options {
+		option(c)
+	}
+	return c
+}
+
+// WithMaxTransactionTimeout sets the ceiling on how long a RunAtomic transaction may hold
+// before it is cancelled. A non-positive duration leaves the default in place.
+//
+// Takes timeout (time.Duration) which is the transaction ceiling.
+//
+// Returns Option which applies the timeout.
+func WithMaxTransactionTimeout(timeout time.Duration) Option {
+	return func(c *core) {
+		if timeout > 0 {
+			c.maxTransactionTimeout = timeout
+		}
 	}
 }
 
@@ -142,8 +176,12 @@ func (c *core) RunAtomic(ctx context.Context, fn func(ctx context.Context, trans
 		return cache_domain.ErrNestedTransactionUnsupported
 	}
 
-	ctx, cancel := context.WithTimeoutCause(ctx, maxTransactionTimeout,
-		fmt.Errorf("transaction exceeded maximum duration of %s", maxTransactionTimeout))
+	timeout := c.maxTransactionTimeout
+	if timeout <= 0 {
+		timeout = defaultMaxTransactionTimeout
+	}
+	ctx, cancel := context.WithTimeoutCause(ctx, timeout,
+		fmt.Errorf("transaction exceeded maximum duration of %s", timeout))
 	defer cancel()
 
 	return c.withTransaction(ctx, func(ctx context.Context, transactionDAL registry_dal.RegistryDAL) error {
@@ -173,17 +211,17 @@ func (c *core) GetArtefact(ctx context.Context, artefactID string) (*registry_dt
 
 	startTime := time.Now()
 
-	dataFbs, err := c.driver.GetArtefactData(ctx, artefactID)
+	layers, err := c.driver.GetArtefactLayers(ctx, artefactID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			l.Trace("Artefact not found", logger_domain.String("artefactID", artefactID))
-			return nil, registry_domain.ErrArtefactNotFound
-		}
 		l.ReportError(span, err, "Failed to get artefact")
 		return nil, fmt.Errorf("failed to get artefact '%s': %w", artefactID, err)
 	}
+	if len(layers) == 0 {
+		l.Trace("Artefact not found", logger_domain.String("artefactID", artefactID))
+		return nil, registry_domain.ErrArtefactNotFound
+	}
 
-	artefact := registry_schema.ParseArtefactMeta(dataFbs)
+	artefact := mergeArtefactLayers(ctx, artefactID, layers)
 	if artefact == nil {
 		return nil, fmt.Errorf("failed to parse artefact '%s': corrupted or empty data", artefactID)
 	}
@@ -195,6 +233,90 @@ func (c *core) GetArtefact(ctx context.Context, artefactID string) (*registry_dt
 		logger_domain.Int("profileCount", len(artefact.DesiredProfiles)))
 
 	return artefact, nil
+}
+
+// GetArtefactForUpdate retrieves an artefact like GetArtefact but takes a row-level lock
+// for the enclosing transaction (Postgres FOR UPDATE; SQLite serialises via its
+// single-writer transaction), so a concurrent read-modify-write on the same artefact
+// blocks instead of racing into a lost update. Use it inside a RunAtomic for any
+// read-merge-write.
+//
+// Takes artefactID (string) which identifies the artefact to lock and load.
+//
+// Returns *registry_dto.ArtefactMeta, or ErrArtefactNotFound when absent.
+func (c *core) GetArtefactForUpdate(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
+	layers, err := c.driver.GetArtefactLayersForUpdate(ctx, artefactID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get artefact '%s' for update: %w", artefactID, err)
+	}
+	if len(layers) == 0 {
+		return nil, registry_domain.ErrArtefactNotFound
+	}
+
+	parsed, dropped := parseArtefactLayers(ctx, artefactID, layers)
+	if dropped > 0 {
+		return nil, fmt.Errorf(
+			"refusing to read artefact '%s' for update: %d of %d layers failed to parse and a "+
+				"read-modify-write over partial layers would persist the loss",
+			artefactID, dropped, len(layers))
+	}
+	if len(parsed) == 0 {
+		return nil, fmt.Errorf("failed to parse artefact '%s': corrupted or empty data", artefactID)
+	}
+
+	return registry_dto.MergeLayers(nil, parsed), nil
+}
+
+// parseArtefactLayers parses each layer and stamps its release id onto the result.
+//
+// The stamp lets the merge see true layer identity: the payload format never serialises
+// the release, which makes the release_id column the single source of truth. Each layer
+// that fails to parse is logged at Warn with the artefact and release it belonged to,
+// because a silently dropped layer degrades reads to a partial artefact with zero
+// observability.
+//
+// Takes artefactID (string) which identifies the artefact, for logging.
+// Takes layers ([]ArtefactLayerData) which are the tagged per-layer payloads.
+//
+// Returns []*registry_dto.ArtefactMeta which are the parsed, release-stamped layers.
+// Returns int which is the number of unparseable layers dropped.
+func parseArtefactLayers(ctx context.Context, artefactID string, layers []ArtefactLayerData) ([]*registry_dto.ArtefactMeta, int) {
+	_, l := logger_domain.From(ctx, log)
+	parsed := make([]*registry_dto.ArtefactMeta, 0, len(layers))
+	dropped := 0
+	for _, layer := range layers {
+		artefact := registry_schema.ParseArtefactMeta(layer.Data)
+		if artefact == nil {
+			dropped++
+			l.Warn("Dropping artefact layer whose payload failed to parse",
+				logger_domain.String("artefactID", artefactID),
+				logger_domain.String("release", layer.ReleaseID))
+			continue
+		}
+		artefact.ReleaseID = layer.ReleaseID
+		parsed = append(parsed, artefact)
+	}
+	return parsed, dropped
+}
+
+// mergeArtefactLayers parses every tagged layer and merges them into one artefact.
+//
+// A caller sees the union of every release's view. Layers arrive in release id order (the
+// queries ORDER BY release_id), so the runtime layer is deterministically the primary
+// that scalars and desired profiles scaffold from; unparseable layers are dropped with a
+// warning and the rest still serve.
+//
+// Takes artefactID (string) which identifies the artefact, for logging.
+// Takes layers ([]ArtefactLayerData) which are the tagged per-layer payloads.
+//
+// Returns *registry_dto.ArtefactMeta which is the merged artefact, or nil when no layer
+// parses.
+func mergeArtefactLayers(ctx context.Context, artefactID string, layers []ArtefactLayerData) *registry_dto.ArtefactMeta {
+	parsed, _ := parseArtefactLayers(ctx, artefactID, layers)
+	if len(parsed) == 0 {
+		return nil
+	}
+	return registry_dto.MergeLayers(nil, parsed)
 }
 
 // GetMultipleArtefacts retrieves multiple artefacts by their IDs.
@@ -209,16 +331,21 @@ func (c *core) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) (
 		return []*registry_dto.ArtefactMeta{}, nil
 	}
 
-	blobs, err := c.driver.GetMultipleArtefactsData(ctx, artefactIDs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get multiple artefacts: %w", err)
+	layersByID := make(map[string][]ArtefactLayerData, len(artefactIDs))
+	for batch := range slices.Chunk(artefactIDs, maxArtefactIDsPerQuery) {
+		layerData, err := c.driver.GetMultipleArtefactLayers(ctx, batch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get multiple artefacts: %w", err)
+		}
+		for _, layer := range layerData {
+			layersByID[layer.ID] = append(layersByID[layer.ID], layer)
+		}
 	}
 
-	artefactMap := make(map[string]*registry_dto.ArtefactMeta, len(blobs))
-	for i := range blobs {
-		artefact := registry_schema.ParseArtefactMeta(blobs[i])
-		if artefact != nil {
-			artefactMap[artefact.ID] = artefact
+	artefactMap := make(map[string]*registry_dto.ArtefactMeta, len(layersByID))
+	for id, layers := range layersByID {
+		if artefact := mergeArtefactLayers(ctx, id, layers); artefact != nil {
+			artefactMap[id] = artefact
 		}
 	}
 
@@ -339,12 +466,12 @@ func (c *core) SearchArtefactsByTagValues(ctx context.Context, tagKey string, ta
 // Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
 // Returns error when the artefact is not found or the query fails.
 func (c *core) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (*registry_dto.ArtefactMeta, error) {
-	artefactID, err := c.driver.FindArtefactIDByVariantStorageKey(ctx, storageKey)
+	artefactID, found, err := c.driver.FindArtefactIDByVariantStorageKey(ctx, storageKey)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, registry_domain.ErrArtefactNotFound
-		}
 		return nil, fmt.Errorf("failed to find artefact by storage key '%s': %w", storageKey, err)
+	}
+	if !found {
+		return nil, registry_domain.ErrArtefactNotFound
 	}
 	return c.GetArtefact(ctx, artefactID)
 }
@@ -497,8 +624,9 @@ func (c *core) IncrementBlobRefCount(ctx context.Context, blob registry_domain.B
 // Takes storageKey (string) which identifies the blob in storage.
 //
 // Returns int which is the new reference count after decrementing.
-// Returns bool which is true when the blob should be deleted (ref count is 0).
-// Returns error when the blob does not exist.
+// Returns bool which is true when the blob should be deleted (ref count reached zero).
+// Returns error which is ErrBlobReferenceNotFound when no positive-count row was
+// decremented.
 func (c *core) DecrementBlobRefCount(ctx context.Context, storageKey string) (int, bool, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "DAL.DecrementBlobRefCount",
@@ -507,18 +635,18 @@ func (c *core) DecrementBlobRefCount(ctx context.Context, storageKey string) (in
 	defer span.End()
 
 	now := c.clock.Now().UTC()
-	newRefCount, err := c.driver.DecrementBlobRefCount(ctx, storageKey, now.Unix())
+	newRefCount, found, err := c.driver.DecrementBlobRefCount(ctx, storageKey, now.Unix())
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			l.Warn("Attempted to decrement ref count for non-existent blob",
-				logger_domain.String(logKeyStorageKey, storageKey))
-			return 0, false, registry_domain.ErrBlobReferenceNotFound
-		}
 		l.ReportError(span, err, "Failed to decrement blob ref count")
 		return 0, false, fmt.Errorf("failed to decrement blob ref count for %s: %w", storageKey, err)
 	}
+	if !found {
+		l.Warn("Attempted to decrement ref count for non-existent blob",
+			logger_domain.String(logKeyStorageKey, storageKey))
+		return 0, false, registry_domain.ErrBlobReferenceNotFound
+	}
 
-	shouldDelete := newRefCount == 0
+	shouldDelete := newRefCount <= 0
 	l.Trace("Decremented blob ref count",
 		logger_domain.Int("newRefCount", newRefCount),
 		logger_domain.Bool("shouldDelete", shouldDelete),
@@ -549,15 +677,15 @@ func (c *core) GetBlobRefCount(ctx context.Context, storageKey string) (int, err
 	)
 	defer span.End()
 
-	refCount, err := c.driver.GetBlobRefCount(ctx, storageKey)
+	refCount, found, err := c.driver.GetBlobRefCount(ctx, storageKey)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			l.Trace("Blob reference not found, returning 0",
-				logger_domain.String(logKeyStorageKey, storageKey))
-			return 0, nil
-		}
 		l.ReportError(span, err, "Failed to get blob ref count")
 		return 0, fmt.Errorf("failed to get blob ref count for %s: %w", storageKey, err)
+	}
+	if !found {
+		l.Trace("Blob reference not found, returning 0",
+			logger_domain.String(logKeyStorageKey, storageKey))
+		return 0, nil
 	}
 
 	l.Trace("Retrieved blob ref count",
@@ -567,8 +695,190 @@ func (c *core) GetBlobRefCount(ctx context.Context, storageKey string) (int, err
 	return refCount, nil
 }
 
-// ListArtefactSummary returns artefact counts grouped by status. Status is stored inside
-// the FlatBuffer payload so all artefacts are fetched and aggregated in Go.
+// InsertArtefactLayerIfAbsent writes one immutable release layer of an artefact when
+// absent.
+//
+// It writes the layer keyed by (id, release_id) only when that key is not already
+// present, rebuilding that layer's projection rows only when a row was newly inserted. It
+// returns true when the layer was inserted, so the publish protocol increments blob
+// reference counts exactly once per newly published layer and is idempotent across nodes
+// racing to publish the same release: the loser's insert is a no-op and it references
+// nothing.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which is the whole-artefact layer to
+// publish.
+//
+// Returns bool which reports whether a layer row was newly inserted.
+// Returns error when the insert or a projection write fails.
+func (c *core) InsertArtefactLayerIfAbsent(ctx context.Context, artefact *registry_dto.ArtefactMeta) (bool, error) {
+	if artefact.ReleaseID == "" {
+		return false, fmt.Errorf("refusing to publish artefact '%s' as a layer with an empty release id: an unstamped layer would land on the runtime key", artefact.ID)
+	}
+
+	inserted := false
+	err := c.runInTransaction(ctx, func(ctx context.Context, driver Driver) error {
+		fbsData := registry_schema.BuildArtefactMeta(artefact)
+		ok, insertErr := driver.InsertArtefactLayerIfAbsent(ctx, UpsertArtefactParams{
+			ID:         artefact.ID,
+			ReleaseID:  artefact.ReleaseID,
+			SourcePath: artefact.SourcePath,
+			CreatedAt:  artefact.CreatedAt.Unix(),
+			UpdatedAt:  artefact.UpdatedAt.Unix(),
+			DataFbs:    fbsData,
+		})
+		if insertErr != nil {
+			return fmt.Errorf("inserting artefact layer '%s'/'%s': %w", artefact.ID, artefact.ReleaseID, insertErr)
+		}
+		if !ok {
+			return nil
+		}
+		inserted = true
+
+		if err := insertVariantsWithData(ctx, driver, artefact); err != nil {
+			return fmt.Errorf("inserting variants for published layer '%s': %w", artefact.ID, err)
+		}
+		return insertDesiredProfiles(ctx, driver, artefact)
+	})
+	return inserted, err
+}
+
+// DeleteArtefactLayersForRelease removes every artefact layer belonging to a release,
+// retiring it. Projection rows cascade via the composite foreign key.
+//
+// Takes releaseID (string) which identifies the release to retire.
+//
+// Returns error when the release id is empty or the delete fails.
+func (c *core) DeleteArtefactLayersForRelease(ctx context.Context, releaseID string) error {
+	if releaseID == "" {
+		return errors.New("refusing to delete artefact layers for an empty release id: an empty id matches the runtime layer and would erase it")
+	}
+	return c.driver.DeleteArtefactLayersForRelease(ctx, releaseID)
+}
+
+// ReclaimArtefactLayersForRelease deletes every artefact layer of a release and returns
+// the deleted layers parsed and release-stamped, so the caller can decrement the blob
+// references the deleted layers held. The delete-and-return is one statement, which
+// guarantees exactly one of two racing reapers observes the rows and decrements.
+//
+// Takes releaseID (string) which identifies the release to retire.
+//
+// Returns []*registry_dto.ArtefactMeta which are the deleted layers.
+// Returns error when the statement fails.
+func (c *core) ReclaimArtefactLayersForRelease(ctx context.Context, releaseID string) ([]*registry_dto.ArtefactMeta, error) {
+	if releaseID == "" {
+		return nil, errors.New("refusing to reclaim artefact layers for an empty release id: an empty id matches the runtime layer and would erase it")
+	}
+	layers, err := c.driver.ReclaimArtefactLayersForRelease(ctx, releaseID)
+	if err != nil {
+		return nil, fmt.Errorf("reclaiming artefact layers for release '%s': %w", releaseID, err)
+	}
+	parsed := make([]*registry_dto.ArtefactMeta, 0, len(layers))
+	for _, layer := range layers {
+		layerParsed, _ := parseArtefactLayers(ctx, layer.ID, []ArtefactLayerData{layer})
+		parsed = append(parsed, layerParsed...)
+	}
+	return parsed, nil
+}
+
+// ClaimRelease attempts to claim publishing rights for a release, returning true when
+// this caller won the claim (inserted the lease row).
+//
+// Takes releaseID (string) and publishDigest (string) which identify the release and its
+// payload, and firstSeenAt / heartbeatAt (int64) which stamp the initial lease.
+//
+// Returns bool which reports whether this caller won the claim.
+// Returns error when the claim query fails.
+func (c *core) ClaimRelease(ctx context.Context, releaseID, publishDigest string, firstSeenAt, heartbeatAt int64) (bool, error) {
+	return c.driver.ClaimRelease(ctx, ClaimReleaseParams{
+		ReleaseID:     releaseID,
+		PublishDigest: publishDigest,
+		FirstSeenAt:   firstSeenAt,
+		HeartbeatAt:   heartbeatAt,
+	})
+}
+
+// GetRelease returns a release lease and whether it exists.
+//
+// Takes releaseID (string) which identifies the release.
+//
+// Returns registry_domain.ReleaseLease which is the lease when found.
+// Returns bool which reports whether the release exists.
+// Returns error when the query fails.
+func (c *core) GetRelease(ctx context.Context, releaseID string) (registry_domain.ReleaseLease, bool, error) {
+	lease, ok, err := c.driver.GetRelease(ctx, releaseID)
+	if err != nil || !ok {
+		return registry_domain.ReleaseLease{}, ok, err
+	}
+	return registry_domain.ReleaseLease{
+		ReleaseID:     lease.ReleaseID,
+		PublishDigest: lease.PublishDigest,
+		State:         lease.State,
+		FirstSeenAt:   lease.FirstSeenAt,
+		PublishedAt:   lease.PublishedAt,
+		HeartbeatAt:   lease.HeartbeatAt,
+		RetiredAt:     lease.RetiredAt,
+	}, true, nil
+}
+
+// MarkReleasePublished flips a release lease to published and stamps its timestamps.
+//
+// Takes releaseID (string), publishedAt (int64) and heartbeatAt (int64).
+//
+// Returns error when the update fails.
+func (c *core) MarkReleasePublished(ctx context.Context, releaseID string, publishedAt, heartbeatAt int64) error {
+	return c.driver.MarkReleasePublished(ctx, releaseID, publishedAt, heartbeatAt)
+}
+
+// HeartbeatRelease advances a release's heartbeat when the new value is more recent. The
+// update is monotonic, so an out-of-order heartbeat cannot rewind a fresher one.
+//
+// Takes releaseID (string) and heartbeatAt (int64) which is the new heartbeat in Unix
+// seconds.
+//
+// Returns error when the update fails.
+func (c *core) HeartbeatRelease(ctx context.Context, releaseID string, heartbeatAt int64) error {
+	return c.driver.HeartbeatRelease(ctx, releaseID, heartbeatAt)
+}
+
+// ListExpiredReleases returns published releases whose heartbeat predates the cutoff,
+// excluding the caller's own release.
+//
+// Takes cutoff (int64) which is the stale-heartbeat threshold in Unix seconds, and
+// ownRelease (string) which is excluded from the result.
+//
+// Returns []string which are the expired release IDs.
+// Returns error when the query fails.
+func (c *core) ListExpiredReleases(ctx context.Context, cutoff int64, ownRelease string) ([]string, error) {
+	return c.driver.ListExpiredReleases(ctx, cutoff, ownRelease)
+}
+
+// DeleteReleaseLease removes a release lease row, so a retired release can be re-claimed
+// by a later deploy and a reaper's expiry listing converges instead of returning the
+// release forever.
+//
+// Takes releaseID (string) which identifies the release.
+//
+// Returns error when the delete fails.
+func (c *core) DeleteReleaseLease(ctx context.Context, releaseID string) error {
+	return c.driver.DeleteReleaseLease(ctx, releaseID)
+}
+
+// DeleteStalePublishingLease removes a publishing lease whose heartbeat predates
+// staleBefore, so a publish that died mid-flight can be re-claimed by another node.
+//
+// Takes releaseID (string) which identifies the release, and staleBefore (int64) which is
+// the staleness cutoff in Unix seconds.
+//
+// Returns error when the delete fails.
+func (c *core) DeleteStalePublishingLease(ctx context.Context, releaseID string, staleBefore int64) error {
+	return c.driver.DeleteStalePublishingLease(ctx, releaseID, staleBefore)
+}
+
+// ListArtefactSummary returns artefact counts grouped by status.
+//
+// Status is stored inside the FlatBuffer payload so all artefacts are fetched and
+// aggregated in Go. Layers of one artefact are deduplicated to the newest by UpdatedAt,
+// so a multi-release artefact counts once rather than once per layer.
 //
 // Returns []registry_domain.ArtefactSummary which contains one entry per status with its
 // count.
@@ -579,12 +889,20 @@ func (c *core) ListArtefactSummary(ctx context.Context) ([]registry_domain.Artef
 		return nil, fmt.Errorf("listing artefacts for summary: %w", err)
 	}
 
-	statusCounts := make(map[string]int64)
+	newestByID := make(map[string]*registry_dto.ArtefactMeta, len(blobs))
 	for i := range blobs {
 		artefact := registry_schema.ParseArtefactMeta(blobs[i])
 		if artefact == nil {
 			continue
 		}
+		existing, seen := newestByID[artefact.ID]
+		if !seen || artefact.UpdatedAt.After(existing.UpdatedAt) {
+			newestByID[artefact.ID] = artefact
+		}
+	}
+
+	statusCounts := make(map[string]int64)
+	for _, artefact := range newestByID {
 		statusCounts[string(artefact.Status)]++
 	}
 
@@ -622,9 +940,12 @@ func (c *core) ListVariantSummary(ctx context.Context) ([]registry_domain.Varian
 }
 
 // ListRecentArtefacts returns the most recently updated artefacts with variant counts and
-// total sizes.
+// total sizes. Layers of one artefact are deduplicated to the newest by UpdatedAt, so a
+// multi-release artefact appears once rather than once per layer.
 //
-// Takes limit (int) which specifies the maximum number of artefacts to return.
+// Takes limit (int) which caps the LAYER rows scanned, so after deduplication the result
+// may hold fewer than limit distinct artefacts; layers per artefact are few and this
+// listing feeds monitoring, not serving, so the imprecision is acceptable.
 //
 // Returns []registry_domain.ArtefactListItem which contains artefacts ordered by update
 // time descending.
@@ -635,13 +956,27 @@ func (c *core) ListRecentArtefacts(ctx context.Context, limit int) ([]registry_d
 		return nil, fmt.Errorf("listing recent artefacts: %w", err)
 	}
 
-	results := make([]registry_domain.ArtefactListItem, 0, len(blobs))
+	newestByID := make(map[string]*registry_dto.ArtefactMeta, len(blobs))
+	order := make([]string, 0, len(blobs))
 	for i := range blobs {
 		artefact := registry_schema.ParseArtefactMeta(blobs[i])
 		if artefact == nil {
 			continue
 		}
+		existing, seen := newestByID[artefact.ID]
+		if !seen {
+			order = append(order, artefact.ID)
+			newestByID[artefact.ID] = artefact
+			continue
+		}
+		if artefact.UpdatedAt.After(existing.UpdatedAt) {
+			newestByID[artefact.ID] = artefact
+		}
+	}
 
+	results := make([]registry_domain.ArtefactListItem, 0, len(order))
+	for _, id := range order {
+		artefact := newestByID[id]
 		var totalSize int64
 		for variantIndex := range artefact.ActualVariants {
 			totalSize += artefact.ActualVariants[variantIndex].SizeBytes
@@ -729,10 +1064,11 @@ func (c *core) withTransaction(ctx context.Context, operation func(ctx context.C
 	}()
 
 	txCore := &core{
-		sqlDB:         c.sqlDB,
-		driver:        c.driver.WithTx(tx),
-		clock:         c.clock,
-		inTransaction: true,
+		sqlDB:                 c.sqlDB,
+		driver:                c.driver.WithTx(tx),
+		clock:                 c.clock,
+		maxTransactionTimeout: c.maxTransactionTimeout,
+		inTransaction:         true,
 	}
 
 	if err := operation(ctx, txCore); err != nil {
@@ -832,10 +1168,19 @@ func processAtomicAction(
 //
 // Returns error when the database operation fails.
 func upsertArtefact(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) error {
+	if artefact.ReleaseID == "" {
+		stripped, err := stripReleaseProvidedRecords(ctx, driver, artefact)
+		if err != nil {
+			return err
+		}
+		artefact = stripped
+	}
+
 	fbsData := registry_schema.BuildArtefactMeta(artefact)
 
 	if err := driver.UpsertArtefact(ctx, UpsertArtefactParams{
 		ID:         artefact.ID,
+		ReleaseID:  artefact.ReleaseID,
 		SourcePath: artefact.SourcePath,
 		CreatedAt:  artefact.CreatedAt.Unix(),
 		UpdatedAt:  artefact.UpdatedAt.Unix(),
@@ -844,7 +1189,7 @@ func upsertArtefact(ctx context.Context, driver Driver, artefact *registry_dto.A
 		return fmt.Errorf("failed to upsert artefact: %w", err)
 	}
 
-	if err := deleteExistingArtefactData(ctx, driver, artefact); err != nil {
+	if err := deleteExistingArtefactData(ctx, driver, artefact.ID, artefact.ReleaseID); err != nil {
 		return fmt.Errorf("deleting existing artefact data for '%s': %w", artefact.ID, err)
 	}
 
@@ -853,6 +1198,41 @@ func upsertArtefact(ctx context.Context, driver Driver, artefact *registry_dto.A
 	}
 
 	return insertDesiredProfiles(ctx, driver, artefact)
+}
+
+// stripReleaseProvidedRecords reduces a runtime-layer write to its delta against the
+// published release layers.
+//
+// Takes driver (Driver) which provides transaction-scoped database access.
+// Takes artefact (*registry_dto.ArtefactMeta) which is the incoming runtime-layer
+// artefact.
+//
+// Returns *registry_dto.ArtefactMeta which is the delta to persist.
+// Returns error when the layer read fails or a non-runtime layer does not parse.
+func stripReleaseProvidedRecords(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) (*registry_dto.ArtefactMeta, error) {
+	layers, err := driver.GetArtefactLayersForUpdate(ctx, artefact.ID)
+	if err != nil {
+		return nil, fmt.Errorf("reading layers to strip runtime upsert for '%s': %w", artefact.ID, err)
+	}
+
+	nonRuntime := make([]ArtefactLayerData, 0, len(layers))
+	for _, layer := range layers {
+		if layer.ReleaseID != "" {
+			nonRuntime = append(nonRuntime, layer)
+		}
+	}
+	if len(nonRuntime) == 0 {
+		return artefact, nil
+	}
+
+	parsed, dropped := parseArtefactLayers(ctx, artefact.ID, nonRuntime)
+	if dropped > 0 {
+		return nil, fmt.Errorf("refusing runtime upsert for '%s': %d release layers failed to parse and a delta against partial layers would collapse them", artefact.ID, dropped)
+	}
+
+	releaseMerged := registry_dto.MergeLayers(nil, parsed)
+	delta, _ := registry_dto.ArtefactDelta(releaseMerged, artefact)
+	return delta, nil
 }
 
 // addGCHints stores garbage collection hints for the given storage keys.
@@ -874,30 +1254,28 @@ func addGCHints(ctx context.Context, driver Driver, hints []registry_dto.GCHint,
 	return nil
 }
 
-// deleteExistingArtefactData removes all existing data for an artefact before
+// deleteExistingArtefactData removes all existing projection rows for an artefact before
 // re-importing it.
 //
 // Takes driver (Driver) which provides database access.
-// Takes artefact (*registry_dto.ArtefactMeta) which identifies the artefact to clear.
+// Takes artefactID (string) which identifies the artefact to clear.
+// Takes releaseID (string) which scopes the clear to one layer.
 //
 // Returns error when any database deletion fails.
-func deleteExistingArtefactData(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) error {
-	if err := driver.DeleteVariantTagsForArtefact(ctx, artefact.ID); err != nil {
+func deleteExistingArtefactData(ctx context.Context, driver Driver, artefactID, releaseID string) error {
+	if err := driver.DeleteVariantTagsForArtefact(ctx, artefactID, releaseID); err != nil {
 		return fmt.Errorf("failed to delete old variant tags: %w", err)
 	}
 
-	for i := range artefact.ActualVariants {
-		variant := &artefact.ActualVariants[i]
-		if err := driver.DeleteChunksForVariant(ctx, artefact.ID, variant.VariantID); err != nil {
-			return fmt.Errorf("failed to delete old chunks for variant '%s': %w", variant.VariantID, err)
-		}
+	if err := driver.DeleteChunksForArtefact(ctx, artefactID, releaseID); err != nil {
+		return fmt.Errorf("failed to delete old chunks for artefact '%s': %w", artefactID, err)
 	}
 
-	if err := driver.DeleteVariantsForArtefact(ctx, artefact.ID); err != nil {
+	if err := driver.DeleteVariantsForArtefact(ctx, artefactID, releaseID); err != nil {
 		return fmt.Errorf("failed to delete old variants: %w", err)
 	}
 
-	if err := driver.DeleteDesiredProfilesForArtefact(ctx, artefact.ID); err != nil {
+	if err := driver.DeleteDesiredProfilesForArtefact(ctx, artefactID, releaseID); err != nil {
 		return fmt.Errorf("failed to delete old desired profiles: %w", err)
 	}
 
@@ -914,13 +1292,13 @@ func deleteExistingArtefactData(ctx context.Context, driver Driver, artefact *re
 func insertVariantsWithData(ctx context.Context, driver Driver, artefact *registry_dto.ArtefactMeta) error {
 	for i := range artefact.ActualVariants {
 		variant := &artefact.ActualVariants[i]
-		if err := insertVariant(ctx, driver, artefact.ID, variant); err != nil {
+		if err := insertVariant(ctx, driver, artefact.ID, artefact.ReleaseID, variant); err != nil {
 			return fmt.Errorf("inserting variant '%s': %w", variant.VariantID, err)
 		}
-		if err := insertVariantTags(ctx, driver, artefact.ID, variant); err != nil {
+		if err := insertVariantTags(ctx, driver, artefact.ID, artefact.ReleaseID, variant); err != nil {
 			return fmt.Errorf("inserting tags for variant '%s': %w", variant.VariantID, err)
 		}
-		if err := insertVariantChunks(ctx, driver, artefact.ID, variant); err != nil {
+		if err := insertVariantChunks(ctx, driver, artefact.ID, artefact.ReleaseID, variant); err != nil {
 			return fmt.Errorf("inserting chunks for variant '%s': %w", variant.VariantID, err)
 		}
 	}
@@ -934,9 +1312,10 @@ func insertVariantsWithData(ctx context.Context, driver Driver, artefact *regist
 // Takes variant (*registry_dto.Variant) which contains the variant data to store.
 //
 // Returns error when the database insert fails.
-func insertVariant(ctx context.Context, driver Driver, artefactID string, variant *registry_dto.Variant) error {
+func insertVariant(ctx context.Context, driver Driver, artefactID, releaseID string, variant *registry_dto.Variant) error {
 	return driver.InsertVariant(ctx, InsertVariantParams{
 		ArtefactID:       artefactID,
+		ReleaseID:        releaseID,
 		VariantID:        variant.VariantID,
 		StorageKey:       variant.StorageKey,
 		StorageBackendID: variant.StorageBackendID,
@@ -954,9 +1333,9 @@ func insertVariant(ctx context.Context, driver Driver, artefactID string, varian
 // Takes variant (*registry_dto.Variant) which contains the tags to insert.
 //
 // Returns error when a tag cannot be inserted.
-func insertVariantTags(ctx context.Context, driver Driver, artefactID string, variant *registry_dto.Variant) error {
+func insertVariantTags(ctx context.Context, driver Driver, artefactID, releaseID string, variant *registry_dto.Variant) error {
 	for key, value := range variant.MetadataTags.All() {
-		err := driver.InsertVariantTag(ctx, artefactID, variant.VariantID, key, value)
+		err := driver.InsertVariantTag(ctx, artefactID, releaseID, variant.VariantID, key, value)
 		if err != nil {
 			return fmt.Errorf("failed to insert tag for variant '%s': %w", variant.VariantID, err)
 		}
@@ -971,11 +1350,12 @@ func insertVariantTags(ctx context.Context, driver Driver, artefactID string, va
 // Takes variant (*registry_dto.Variant) which contains the chunks to insert.
 //
 // Returns error when a chunk cannot be inserted.
-func insertVariantChunks(ctx context.Context, driver Driver, artefactID string, variant *registry_dto.Variant) error {
+func insertVariantChunks(ctx context.Context, driver Driver, artefactID, releaseID string, variant *registry_dto.Variant) error {
 	for i := range variant.Chunks {
 		chunk := &variant.Chunks[i]
 		err := driver.InsertVariantChunk(ctx, InsertVariantChunkParams{
 			ArtefactID:       artefactID,
+			ReleaseID:        releaseID,
 			VariantID:        variant.VariantID,
 			ChunkID:          chunk.ChunkID,
 			StorageKey:       chunk.StorageKey,
@@ -1017,6 +1397,7 @@ func insertDesiredProfiles(ctx context.Context, driver Driver, artefact *registr
 		}
 		if err := driver.InsertDesiredProfile(ctx, InsertDesiredProfileParams{
 			ArtefactID:     artefact.ID,
+			ReleaseID:      artefact.ReleaseID,
 			Name:           desiredProfile.Name,
 			CapabilityName: desiredProfile.Profile.CapabilityName,
 			Priority:       string(desiredProfile.Profile.Priority),

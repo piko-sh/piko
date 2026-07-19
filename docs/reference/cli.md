@@ -25,6 +25,10 @@ Run `piko help` for a condensed list. Every subcommand accepts `--help` for its 
 | Command | Description |
 |---|---|
 | `piko new` | Create a new Piko project through the interactive wizard. |
+| `piko generate` | Generate assets and the manifest, equivalent to `go run ./cmd/generator all`. Accepts an optional mode argument: `all` (default), `manifest`, `assets`, or `sql`. |
+| `piko build` | Generate then compile a self-contained production binary. Flags: `--output`/`-o` (binary path, default `bin/app`), `--mode` (generate mode, default `all`), `--no-embed` (build a binary that serves `dist/` and `.piko/` from disk instead of embedding them). |
+| `piko dev` | Generate assets then run the development server, equivalent to `go run ./cmd/generator all && go run ./cmd/main dev`. |
+| `piko dev-i` | Generate assets then run the development server in interpreted mode, equivalent to `go run ./cmd/generator all && go run ./cmd/main dev-i`. Requires a project scaffolded with interpreted mode. |
 | `piko fmt` | Format `.pk` template files. Flags: `-w` (write, default `true`), `-r` (recurse), `-n` (dry run), `--check` (exit 1 if any files need formatting), `-l` (list files needing formatting). Accepts file or directory arguments. |
 | `piko extract <subcommand>` | Extract Go package symbols for the bytecode interpreter. Subcommands: `init` (write a starter `extract.yaml`), `discover` (find packages used by the project), `generate` (run extraction and emit the descriptor), `check` (verify the descriptor is up to date). Run `piko extract <subcommand> --help` for flags. |
 | `piko inspect <type> <file>` | Inspect FlatBuffers binary files. Types: `manifest`, `i18n`, `collection`, `search`, `bytecode`, `wal`. WAL-only flags: `--effective` (final state per key after replay), `--parse-values` (parse JSON string values into native objects). All types accept `--compact` for compact JSON. |
@@ -150,5 +154,5 @@ piko watchdog contention-diagnostic
 - [Watchdog API reference](watchdog-api.md) for the watchdog options and event types referenced by the `piko watchdog` subcommands.
 - [Health API reference](health-api.md) for the endpoints `piko get health` and `piko describe health` query.
 - [How to profiling](../how-to/profiling.md) for worked flows using `piko profile` and `piko profiling`.
-- [How to production build](../how-to/deployment/production-build.md) for the project generator (`go run ./cmd/generator/main.go all`) and `piko fmt` in a release pipeline.
+- [How to production build](../how-to/deployment/production-build.md) for `piko build` and `piko fmt` in a release pipeline.
 - Source: [`cmd/piko/`](https://github.com/piko-sh/piko/tree/master/cmd/piko).

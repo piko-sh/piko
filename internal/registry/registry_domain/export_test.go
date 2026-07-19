@@ -45,5 +45,5 @@ func CreateSourceVariant(
 		finalKey: finalKey,
 		mimeType: mimeType,
 	}
-	return buildSourceVariant(result, storageBackendID)
+	return buildSourceVariant(result, storageBackendID, registry_dto.VariantOriginBuild)
 }

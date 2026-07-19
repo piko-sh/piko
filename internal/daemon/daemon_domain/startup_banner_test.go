@@ -23,6 +23,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildStartupBannerInfo(t *testing.T) {
@@ -37,24 +39,12 @@ func TestBuildStartupBannerInfo(t *testing.T) {
 
 		info := BuildStartupBannerInfo(config, "dev", "1.0.0")
 
-		if info.Version != "1.0.0" {
-			t.Errorf("expected version '1.0.0', got %q", info.Version)
-		}
-		if info.Mode != "dev" {
-			t.Errorf("expected mode 'dev', got %q", info.Mode)
-		}
-		if info.ServerURL != "http://localhost:8080" {
-			t.Errorf("expected 'http://localhost:8080', got %q", info.ServerURL)
-		}
-		if info.HealthProbeURL != "" {
-			t.Errorf("expected empty health probe URL, got %q", info.HealthProbeURL)
-		}
-		if info.AutoPort {
-			t.Error("expected AutoPort=false")
-		}
-		if !info.ServerExposed {
-			t.Error("expected ServerExposed=true")
-		}
+		assert.Equal(t, "1.0.0", info.Version, "expected version '1.0.0'")
+		assert.Equal(t, "dev", info.Mode, "expected mode 'dev'")
+		assert.Equal(t, "http://localhost:8080", info.ServerURL, "expected 'http://localhost:8080'")
+		assert.Empty(t, info.HealthProbeURL, "expected empty health probe URL")
+		assert.False(t, info.AutoPort, "expected AutoPort=false")
+		assert.True(t, info.ServerExposed, "expected ServerExposed=true")
 	})
 
 	t.Run("WithHealthProbe", func(t *testing.T) {
@@ -71,18 +61,10 @@ func TestBuildStartupBannerInfo(t *testing.T) {
 
 		info := BuildStartupBannerInfo(config, "prod", "2.0.0")
 
-		if info.HealthProbeURL != "http://127.0.0.1:9090" {
-			t.Errorf("expected 'http://127.0.0.1:9090', got %q", info.HealthProbeURL)
-		}
-		if info.LivePath != "/live" {
-			t.Errorf("expected '/live', got %q", info.LivePath)
-		}
-		if info.ReadyPath != "/ready" {
-			t.Errorf("expected '/ready', got %q", info.ReadyPath)
-		}
-		if info.HealthExposed {
-			t.Error("expected HealthExposed=false for 127.0.0.1")
-		}
+		assert.Equal(t, "http://127.0.0.1:9090", info.HealthProbeURL, "expected 'http://127.0.0.1:9090'")
+		assert.Equal(t, "/live", info.LivePath, "expected '/live'")
+		assert.Equal(t, "/ready", info.ReadyPath, "expected '/ready'")
+		assert.False(t, info.HealthExposed, "expected HealthExposed=false for 127.0.0.1")
 	})
 
 	t.Run("HealthProbeDisabled", func(t *testing.T) {
@@ -97,9 +79,7 @@ func TestBuildStartupBannerInfo(t *testing.T) {
 
 		info := BuildStartupBannerInfo(config, "dev", "1.0.0")
 
-		if info.HealthProbeURL != "" {
-			t.Errorf("expected empty health probe URL when disabled, got %q", info.HealthProbeURL)
-		}
+		assert.Empty(t, info.HealthProbeURL, "expected empty health probe URL when disabled")
 	})
 
 	t.Run("AutoPort", func(t *testing.T) {
@@ -113,9 +93,7 @@ func TestBuildStartupBannerInfo(t *testing.T) {
 
 		info := BuildStartupBannerInfo(config, "dev", "1.0.0")
 
-		if !info.AutoPort {
-			t.Error("expected AutoPort=true")
-		}
+		assert.True(t, info.AutoPort, "expected AutoPort=true")
 	})
 
 	t.Run("HealthExposed", func(t *testing.T) {
@@ -132,57 +110,44 @@ func TestBuildStartupBannerInfo(t *testing.T) {
 
 		info := BuildStartupBannerInfo(config, "dev", "1.0.0")
 
-		if !info.HealthExposed {
-			t.Error("expected HealthExposed=true for 0.0.0.0")
-		}
+		assert.True(t, info.HealthExposed, "expected HealthExposed=true for 0.0.0.0")
 	})
 }
 
 func TestFormatMode(t *testing.T) {
 	t.Run("Dev", func(t *testing.T) {
 		t.Parallel()
-		if got := formatMode("dev"); got != "Development" {
-			t.Errorf("expected 'Development', got %q", got)
-		}
+		assert.Equal(t, "Development", formatMode("dev"), "expected 'Development'")
 	})
 
 	t.Run("DevInterpreted", func(t *testing.T) {
 		t.Parallel()
-		if got := formatMode("dev-i"); got != "Development (Interpreted)" {
-			t.Errorf("expected 'Development (Interpreted)', got %q", got)
-		}
+		assert.Equal(t, "Development (Interpreted)", formatMode("dev-i"),
+			"expected 'Development (Interpreted)'")
 	})
 
 	t.Run("Prod", func(t *testing.T) {
 		t.Parallel()
-		if got := formatMode("prod"); got != "Production" {
-			t.Errorf("expected 'Production', got %q", got)
-		}
+		assert.Equal(t, "Production", formatMode("prod"), "expected 'Production'")
 	})
 
 	t.Run("Unknown", func(t *testing.T) {
 		t.Parallel()
-		if got := formatMode("custom"); got != "custom" {
-			t.Errorf("expected 'custom' passthrough, got %q", got)
-		}
+		assert.Equal(t, "custom", formatMode("custom"), "expected 'custom' passthrough")
 	})
 }
 
 func TestStripANSI(t *testing.T) {
 	t.Run("PlainText", func(t *testing.T) {
 		t.Parallel()
-		if got := stripANSI("hello world"); got != "hello world" {
-			t.Errorf("expected 'hello world', got %q", got)
-		}
+		assert.Equal(t, "hello world", stripANSI("hello world"), "expected 'hello world'")
 	})
 
 	t.Run("WithColourCodes", func(t *testing.T) {
 		t.Parallel()
 		input := "\x1b[31mred\x1b[0m text"
 		got := stripANSI(input)
-		if got != "red text" {
-			t.Errorf("expected 'red text', got %q", got)
-		}
+		assert.Equal(t, "red text", got, "expected 'red text'")
 	})
 }
 
@@ -198,12 +163,8 @@ func TestBuildServerURL(t *testing.T) {
 		result := buildServerURL(info)
 		stripped := stripANSI(result)
 
-		if !strings.Contains(stripped, "http://localhost:8080") {
-			t.Errorf("expected URL in output, got %q", stripped)
-		}
-		if strings.Contains(stripped, "or next available") {
-			t.Error("did not expect auto-port suffix")
-		}
+		assert.Contains(t, stripped, "http://localhost:8080", "expected URL in output")
+		assert.NotContains(t, stripped, "or next available", "did not expect auto-port suffix")
 	})
 
 	t.Run("WithAutoPort", func(t *testing.T) {
@@ -217,9 +178,7 @@ func TestBuildServerURL(t *testing.T) {
 		result := buildServerURL(info)
 		stripped := stripANSI(result)
 
-		if !strings.Contains(stripped, "or next available") {
-			t.Errorf("expected auto-port suffix in output, got %q", stripped)
-		}
+		assert.Contains(t, stripped, "or next available", "expected auto-port suffix in output")
 	})
 }
 
@@ -230,9 +189,7 @@ func TestBuildServerLine(t *testing.T) {
 		result := buildServerLine("http://localhost:8080", false)
 		stripped := stripANSI(result)
 
-		if !strings.Contains(stripped, "Server:") {
-			t.Errorf("expected 'Server:' in output, got %q", stripped)
-		}
+		assert.Contains(t, stripped, "Server:", "expected 'Server:' in output")
 	})
 
 	t.Run("Exposed", func(t *testing.T) {
@@ -241,9 +198,7 @@ func TestBuildServerLine(t *testing.T) {
 		result := buildServerLine("http://localhost:8080", true)
 		stripped := stripANSI(result)
 
-		if !strings.Contains(stripped, "*") {
-			t.Errorf("expected star marker for exposed server, got %q", stripped)
-		}
+		assert.Contains(t, stripped, "*", "expected star marker for exposed server")
 	})
 }
 
@@ -255,9 +210,7 @@ func TestAppendHealthLines(t *testing.T) {
 		info := StartupBannerInfo{HealthProbeURL: ""}
 
 		result := appendHealthLines(lines, info)
-		if len(result) != 1 {
-			t.Errorf("expected 1 line, got %d", len(result))
-		}
+		assert.Len(t, result, 1, "expected 1 line")
 	})
 
 	t.Run("WithHealth", func(t *testing.T) {
@@ -272,9 +225,7 @@ func TestAppendHealthLines(t *testing.T) {
 		}
 
 		result := appendHealthLines(lines, info)
-		if len(result) != 5 {
-			t.Errorf("expected 5 lines (1 original + separator + 3 health), got %d", len(result))
-		}
+		assert.Len(t, result, 5, "expected 5 lines (1 original + separator + 3 health)")
 	})
 
 	t.Run("WithHealthExposed", func(t *testing.T) {
@@ -290,9 +241,7 @@ func TestAppendHealthLines(t *testing.T) {
 
 		result := appendHealthLines(lines, info)
 
-		if len(result) != 5 {
-			t.Errorf("expected 5 lines, got %d", len(result))
-		}
+		assert.Len(t, result, 5, "expected 5 lines")
 	})
 }
 
@@ -307,9 +256,7 @@ func TestAppendExposedFootnote(t *testing.T) {
 		}
 
 		result := appendExposedFootnote(lines, info)
-		if len(result) != 1 {
-			t.Errorf("expected 1 line, got %d", len(result))
-		}
+		assert.Len(t, result, 1, "expected 1 line")
 	})
 
 	t.Run("ServerExposed", func(t *testing.T) {
@@ -322,9 +269,7 @@ func TestAppendExposedFootnote(t *testing.T) {
 		}
 
 		result := appendExposedFootnote(lines, info)
-		if len(result) != 3 {
-			t.Errorf("expected 3 lines (1 original + empty + footnote), got %d", len(result))
-		}
+		assert.Len(t, result, 3, "expected 3 lines (1 original + empty + footnote)")
 	})
 
 	t.Run("HealthExposed", func(t *testing.T) {
@@ -337,9 +282,7 @@ func TestAppendExposedFootnote(t *testing.T) {
 		}
 
 		result := appendExposedFootnote(lines, info)
-		if len(result) != 3 {
-			t.Errorf("expected 3 lines (1 original + empty + footnote), got %d", len(result))
-		}
+		assert.Len(t, result, 3, "expected 3 lines (1 original + empty + footnote)")
 	})
 }
 
@@ -347,9 +290,7 @@ func TestCalculateMaxWidth(t *testing.T) {
 	t.Run("EmptySlice", func(t *testing.T) {
 		t.Parallel()
 
-		if got := calculateMaxWidth(nil); got != 0 {
-			t.Errorf("expected 0, got %d", got)
-		}
+		assert.Equal(t, 0, calculateMaxWidth(nil), "expected 0")
 	})
 
 	t.Run("WithANSI", func(t *testing.T) {
@@ -361,9 +302,7 @@ func TestCalculateMaxWidth(t *testing.T) {
 		}
 
 		got := calculateMaxWidth(lines)
-		if got != 16 {
-			t.Errorf("expected 16 (ignoring ANSI), got %d", got)
-		}
+		assert.Equal(t, 16, got, "expected 16 (ignoring ANSI)")
 	})
 
 	t.Run("MultiplePlainLines", func(t *testing.T) {
@@ -371,9 +310,7 @@ func TestCalculateMaxWidth(t *testing.T) {
 
 		lines := []string{"abc", "abcdef", "ab"}
 		got := calculateMaxWidth(lines)
-		if got != 6 {
-			t.Errorf("expected 6, got %d", got)
-		}
+		assert.Equal(t, 6, got, "expected 6")
 	})
 }
 
@@ -387,12 +324,8 @@ func TestPrintBannerBox(t *testing.T) {
 		printBannerBox(&buffer, lines)
 
 		output := buffer.String()
-		if !strings.Contains(output, "Hello") {
-			t.Error("expected 'Hello' in output")
-		}
-		if !strings.Contains(output, "World") {
-			t.Error("expected 'World' in output")
-		}
+		assert.Contains(t, output, "Hello", "expected 'Hello' in output")
+		assert.Contains(t, output, "World", "expected 'World' in output")
 	})
 }
 
@@ -478,23 +411,14 @@ func TestBuildBannerLines(t *testing.T) {
 
 		lines := buildBannerLines(info)
 
-		if len(lines) < 6 {
-			t.Errorf("expected at least 6 lines, got %d", len(lines))
-		}
+		assert.GreaterOrEqual(t, len(lines), 6, "expected at least 6 lines")
 
 		joined := stripANSI(strings.Join(lines, "\n"))
-		if !strings.Contains(joined, "Piko Website Development Kit") {
-			t.Error("expected 'Piko Website Development Kit' in banner")
-		}
-		if !strings.Contains(joined, "1.0.0") {
-			t.Error("expected version in banner")
-		}
-		if !strings.Contains(joined, "Mode:") {
-			t.Error("expected 'Mode:' in banner")
-		}
-		if !strings.Contains(joined, "Server:") {
-			t.Error("expected 'Server:' in banner")
-		}
+		assert.Contains(t, joined, "Piko Website Development Kit",
+			"expected 'Piko Website Development Kit' in banner")
+		assert.Contains(t, joined, "1.0.0", "expected version in banner")
+		assert.Contains(t, joined, "Mode:", "expected 'Mode:' in banner")
+		assert.Contains(t, joined, "Server:", "expected 'Server:' in banner")
 	})
 
 	t.Run("WithHealthProbe", func(t *testing.T) {
@@ -512,8 +436,6 @@ func TestBuildBannerLines(t *testing.T) {
 
 		lines := buildBannerLines(info)
 
-		if len(lines) < 9 {
-			t.Errorf("expected at least 9 lines with health, got %d", len(lines))
-		}
+		assert.GreaterOrEqual(t, len(lines), 9, "expected at least 9 lines with health")
 	})
 }

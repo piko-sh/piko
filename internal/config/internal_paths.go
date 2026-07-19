@@ -23,10 +23,6 @@ const (
 	// build artefacts.
 	PikoInternalPath = ".piko"
 
-	// RegistryPath is the directory within BaseDir for the build output registry (compiled
-	// manifests, pages, etc.).
-	RegistryPath = ".out"
-
 	// LibFilesystemPath is the path to internal library files served by the framework
 	// runtime.
 	LibFilesystemPath = "web/lib"

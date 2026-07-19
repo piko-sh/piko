@@ -68,6 +68,14 @@ func (*fakeRuntimeBuilderStrategy) ExecResultReturnType() ast.Expr {
 
 func (*fakeRuntimeBuilderStrategy) ExecResultImport(_ *ImportTracker) {}
 
+func (*fakeRuntimeBuilderStrategy) NoRowsSentinel() ast.Expr {
+	return goastutil.SelectorExpr("sql", "ErrNoRows")
+}
+
+func (*fakeRuntimeBuilderStrategy) NoRowsImport(tracker *ImportTracker) {
+	tracker.AddImport("database/sql")
+}
+
 func (*fakeRuntimeBuilderStrategy) BuildExecRowsBody(_ []ast.Expr, _ string) []ast.Stmt {
 	return nil
 }

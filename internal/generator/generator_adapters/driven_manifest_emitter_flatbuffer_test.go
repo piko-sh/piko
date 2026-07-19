@@ -25,6 +25,8 @@ import (
 	"testing"
 
 	"github.com/google/flatbuffers/go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/generator/generator_schema"
 	gen_fb "piko.sh/piko/internal/generator/generator_schema/generator_schema_gen"
@@ -36,18 +38,14 @@ import (
 func testSandbox(t *testing.T) safedisk.Sandbox {
 	t.Helper()
 	sandbox, err := safedisk.NewNoOpSandbox(t.TempDir(), safedisk.ModeReadWrite)
-	if err != nil {
-		t.Fatalf("failed to create test sandbox: %v", err)
-	}
+	require.NoError(t, err, "failed to create test sandbox")
 	t.Cleanup(func() { _ = sandbox.Close() })
 	return sandbox
 }
 
 func TestNewFlatBufferManifestEmitter(t *testing.T) {
 	emitter := NewFlatBufferManifestEmitter(testSandbox(t))
-	if emitter == nil {
-		t.Fatal("NewFlatBufferManifestEmitter returned nil")
-	}
+	require.NotNil(t, emitter, "NewFlatBufferManifestEmitter returned nil")
 
 	var _ = (any)(emitter)
 }
@@ -68,21 +66,14 @@ func TestEmitCode_EmptyManifest(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, manifest, relPath)
-	if err != nil {
-		t.Fatalf("EmitCode failed: %v", err)
-	}
+	require.NoError(t, err, "EmitCode failed")
 
-	if _, err := os.Stat(absPath); os.IsNotExist(err) {
-		t.Error("Expected manifest file to be created")
-	}
+	_, statErr := os.Stat(absPath)
+	assert.False(t, os.IsNotExist(statErr), "Expected manifest file to be created")
 
 	data, err := os.ReadFile(absPath)
-	if err != nil {
-		t.Fatalf("Failed to read generated file: %v", err)
-	}
-	if len(data) == 0 {
-		t.Error("Generated file should not be empty")
-	}
+	require.NoError(t, err, "Failed to read generated file")
+	assert.NotEmpty(t, data, "Generated file should not be empty")
 }
 
 func TestEmitCode_WithPages(t *testing.T) {
@@ -121,28 +112,18 @@ func TestEmitCode_WithPages(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, manifest, relPath)
-	if err != nil {
-		t.Fatalf("EmitCode failed: %v", err)
-	}
+	require.NoError(t, err, "EmitCode failed")
 
 	data, err := os.ReadFile(absPath)
-	if err != nil {
-		t.Fatalf("Failed to read generated file: %v", err)
-	}
+	require.NoError(t, err, "Failed to read generated file")
 
 	payload, err := generator_schema.Unpack(data)
-	if err != nil {
-		t.Fatalf("Failed to unpack versioned data: %v", err)
-	}
+	require.NoError(t, err, "Failed to unpack versioned data")
 
 	fbManifest := gen_fb.GetRootAsManifestFB(payload, 0)
-	if fbManifest == nil {
-		t.Fatal("Failed to parse generated FlatBuffers manifest")
-	}
+	require.NotNil(t, fbManifest, "Failed to parse generated FlatBuffers manifest")
 
-	if fbManifest.PagesLength() != 1 {
-		t.Errorf("Expected 1 page, got %d", fbManifest.PagesLength())
-	}
+	assert.Equal(t, 1, fbManifest.PagesLength(), "Expected 1 page, got %d", fbManifest.PagesLength())
 }
 
 func TestEmitCode_WithPartials(t *testing.T) {
@@ -170,28 +151,18 @@ func TestEmitCode_WithPartials(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, manifest, relPath)
-	if err != nil {
-		t.Fatalf("EmitCode failed: %v", err)
-	}
+	require.NoError(t, err, "EmitCode failed")
 
 	data, err := os.ReadFile(absPath)
-	if err != nil {
-		t.Fatalf("Failed to read generated file: %v", err)
-	}
+	require.NoError(t, err, "Failed to read generated file")
 
 	payload, err := generator_schema.Unpack(data)
-	if err != nil {
-		t.Fatalf("Failed to unpack versioned data: %v", err)
-	}
+	require.NoError(t, err, "Failed to unpack versioned data")
 
 	fbManifest := gen_fb.GetRootAsManifestFB(payload, 0)
-	if fbManifest == nil {
-		t.Fatal("Failed to parse generated FlatBuffers manifest")
-	}
+	require.NotNil(t, fbManifest, "Failed to parse generated FlatBuffers manifest")
 
-	if fbManifest.PartialsLength() != 1 {
-		t.Errorf("Expected 1 partial, got %d", fbManifest.PartialsLength())
-	}
+	assert.Equal(t, 1, fbManifest.PartialsLength(), "Expected 1 partial, got %d", fbManifest.PartialsLength())
 }
 
 func TestEmitCode_WithEmails(t *testing.T) {
@@ -220,28 +191,18 @@ func TestEmitCode_WithEmails(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, manifest, relPath)
-	if err != nil {
-		t.Fatalf("EmitCode failed: %v", err)
-	}
+	require.NoError(t, err, "EmitCode failed")
 
 	data, err := os.ReadFile(absPath)
-	if err != nil {
-		t.Fatalf("Failed to read generated file: %v", err)
-	}
+	require.NoError(t, err, "Failed to read generated file")
 
 	payload, err := generator_schema.Unpack(data)
-	if err != nil {
-		t.Fatalf("Failed to unpack versioned data: %v", err)
-	}
+	require.NoError(t, err, "Failed to unpack versioned data")
 
 	fbManifest := gen_fb.GetRootAsManifestFB(payload, 0)
-	if fbManifest == nil {
-		t.Fatal("Failed to parse generated FlatBuffers manifest")
-	}
+	require.NotNil(t, fbManifest, "Failed to parse generated FlatBuffers manifest")
 
-	if fbManifest.EmailsLength() != 1 {
-		t.Errorf("Expected 1 email, got %d", fbManifest.EmailsLength())
-	}
+	assert.Equal(t, 1, fbManifest.EmailsLength(), "Expected 1 email, got %d", fbManifest.EmailsLength())
 }
 
 func TestEmitCode_WithErrorPages(t *testing.T) {
@@ -271,28 +232,19 @@ func TestEmitCode_WithErrorPages(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, manifest, relPath)
-	if err != nil {
-		t.Fatalf("EmitCode failed: %v", err)
-	}
+	require.NoError(t, err, "EmitCode failed")
 
 	data, err := os.ReadFile(absPath)
-	if err != nil {
-		t.Fatalf("Failed to read generated file: %v", err)
-	}
+	require.NoError(t, err, "Failed to read generated file")
 
 	payload, err := generator_schema.Unpack(data)
-	if err != nil {
-		t.Fatalf("Failed to unpack versioned data: %v", err)
-	}
+	require.NoError(t, err, "Failed to unpack versioned data")
 
 	fbManifest := gen_fb.GetRootAsManifestFB(payload, 0)
-	if fbManifest == nil {
-		t.Fatal("Failed to parse generated FlatBuffers manifest")
-	}
+	require.NotNil(t, fbManifest, "Failed to parse generated FlatBuffers manifest")
 
-	if fbManifest.ErrorPagesLength() != 1 {
-		t.Errorf("Expected 1 error page, got %d", fbManifest.ErrorPagesLength())
-	}
+	assert.Equal(t, 1, fbManifest.ErrorPagesLength(),
+		"Expected 1 error page, got %d", fbManifest.ErrorPagesLength())
 }
 
 func TestPackManifest(t *testing.T) {
@@ -310,21 +262,15 @@ func TestPackManifest(t *testing.T) {
 	}
 
 	rootOffset := packManifest(builder, manifest)
-	if rootOffset == 0 {
-		t.Error("packManifest returned zero offset")
-	}
+	assert.NotZero(t, rootOffset, "packManifest returned zero offset")
 
 	builder.Finish(rootOffset)
 	data := builder.FinishedBytes()
 
 	fbManifest := gen_fb.GetRootAsManifestFB(data, 0)
-	if fbManifest == nil {
-		t.Fatal("Failed to parse packed manifest")
-	}
+	require.NotNil(t, fbManifest, "Failed to parse packed manifest")
 
-	if fbManifest.PagesLength() != 1 {
-		t.Errorf("Expected 1 page, got %d", fbManifest.PagesLength())
-	}
+	assert.Equal(t, 1, fbManifest.PagesLength(), "Expected 1 page, got %d", fbManifest.PagesLength())
 }
 
 func TestPackPageEntry(t *testing.T) {
@@ -352,9 +298,7 @@ func TestPackPageEntry(t *testing.T) {
 	}
 
 	offset := packPageEntry(builder, entry)
-	if offset == 0 {
-		t.Error("packPageEntry returned zero offset")
-	}
+	assert.NotZero(t, offset, "packPageEntry returned zero offset")
 
 	builder2 := flatbuffers.NewBuilder(initialBuilderSize)
 	entryOffset := packPageEntry(builder2, entry)
@@ -365,9 +309,7 @@ func TestPackPageEntry(t *testing.T) {
 	gen_fb.PageEntryMapItemFBAddValue(builder2, entryOffset)
 	itemOffset := gen_fb.PageEntryMapItemFBEnd(builder2)
 
-	if itemOffset == 0 {
-		t.Error("Failed to create page entry map item")
-	}
+	assert.NotZero(t, itemOffset, "Failed to create page entry map item")
 }
 
 func TestPackPartialEntry(t *testing.T) {
@@ -383,9 +325,7 @@ func TestPackPartialEntry(t *testing.T) {
 	}
 
 	offset := packPartialEntry(builder, entry)
-	if offset == 0 {
-		t.Error("packPartialEntry returned zero offset")
-	}
+	assert.NotZero(t, offset, "packPartialEntry returned zero offset")
 }
 
 func TestPackEmailEntry(t *testing.T) {
@@ -403,9 +343,7 @@ func TestPackEmailEntry(t *testing.T) {
 	}
 
 	offset := packEmailEntry(builder, entry)
-	if offset == 0 {
-		t.Error("packEmailEntry returned zero offset")
-	}
+	assert.NotZero(t, offset, "packEmailEntry returned zero offset")
 }
 
 func TestPackErrorPageEntry(t *testing.T) {
@@ -424,9 +362,7 @@ func TestPackErrorPageEntry(t *testing.T) {
 	}
 
 	offset := packErrorPageEntry(builder, entry)
-	if offset == 0 {
-		t.Error("packErrorPageEntry returned zero offset")
-	}
+	assert.NotZero(t, offset, "packErrorPageEntry returned zero offset")
 }
 
 func TestPackAssetRef(t *testing.T) {
@@ -438,9 +374,7 @@ func TestPackAssetRef(t *testing.T) {
 	}
 
 	offset := packAssetRef(builder, ref)
-	if offset == 0 {
-		t.Error("packAssetRef returned zero offset")
-	}
+	assert.NotZero(t, offset, "packAssetRef returned zero offset")
 }
 
 func TestPackRoutePatterns(t *testing.T) {
@@ -482,12 +416,8 @@ func TestPackRoutePatterns(t *testing.T) {
 			builder := flatbuffers.NewBuilder(initialBuilderSize)
 			offset := packRoutePatterns(builder, tt.patterns)
 
-			if tt.wantZero && offset != 0 {
-				t.Error("Expected zero offset for empty/nil patterns")
-			}
-			if !tt.wantZero && offset == 0 {
-				t.Error("Expected non-zero offset for valid patterns")
-			}
+			assert.False(t, tt.wantZero && offset != 0, "Expected zero offset for empty/nil patterns")
+			assert.False(t, !tt.wantZero && offset == 0, "Expected non-zero offset for valid patterns")
 		})
 	}
 }
@@ -530,12 +460,8 @@ func TestPackLocaleTranslations(t *testing.T) {
 			builder := flatbuffers.NewBuilder(initialBuilderSize)
 			offset := packLocaleTranslations(builder, tt.translations)
 
-			if tt.wantZero && offset != 0 {
-				t.Error("Expected zero offset for empty/nil translations")
-			}
-			if !tt.wantZero && offset == 0 {
-				t.Error("Expected non-zero offset for valid translations")
-			}
+			assert.False(t, tt.wantZero && offset != 0, "Expected zero offset for empty/nil translations")
+			assert.False(t, !tt.wantZero && offset == 0, "Expected non-zero offset for valid translations")
 		})
 	}
 }
@@ -573,12 +499,8 @@ func TestPackStringSlice(t *testing.T) {
 			builder := flatbuffers.NewBuilder(initialBuilderSize)
 			offset := packStringSlice(builder, tt.slice)
 
-			if tt.wantZero && offset != 0 {
-				t.Error("Expected zero offset for empty/nil slice")
-			}
-			if !tt.wantZero && offset == 0 {
-				t.Error("Expected non-zero offset for valid slice")
-			}
+			assert.False(t, tt.wantZero && offset != 0, "Expected zero offset for empty/nil slice")
+			assert.False(t, !tt.wantZero && offset == 0, "Expected non-zero offset for valid slice")
 		})
 	}
 }
@@ -621,12 +543,8 @@ func TestPackSlice(t *testing.T) {
 			builder := flatbuffers.NewBuilder(initialBuilderSize)
 			offset := packSlice(builder, tt.refs, packAssetRef)
 
-			if tt.wantZero && offset != 0 {
-				t.Error("Expected zero offset for empty/nil slice")
-			}
-			if !tt.wantZero && offset == 0 {
-				t.Error("Expected non-zero offset for valid slice")
-			}
+			assert.False(t, tt.wantZero && offset != 0, "Expected zero offset for empty/nil slice")
+			assert.False(t, !tt.wantZero && offset == 0, "Expected non-zero offset for valid slice")
 		})
 	}
 }
@@ -679,12 +597,8 @@ func TestPackMap(t *testing.T) {
 
 			offset := packMap(builder, tt.m, packer)
 
-			if tt.wantZero && offset != 0 {
-				t.Error("Expected zero offset for empty/nil map")
-			}
-			if !tt.wantZero && offset == 0 {
-				t.Error("Expected non-zero offset for valid map")
-			}
+			assert.False(t, tt.wantZero && offset != 0, "Expected zero offset for empty/nil map")
+			assert.False(t, !tt.wantZero && offset == 0, "Expected non-zero offset for valid map")
 		})
 	}
 }
@@ -702,9 +616,7 @@ func TestEmitCode_InvalidPath(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(ctx, manifest, invalidPath)
-	if err == nil {
-		t.Error("Expected error for invalid output path")
-	}
+	assert.Error(t, err, "Expected error for invalid output path")
 }
 
 func TestEmitCode_AtomicWriteError(t *testing.T) {
@@ -776,9 +688,7 @@ func TestEmitCode_AtomicWriteError(t *testing.T) {
 
 			err := emitter.EmitCode(context.Background(), manifest, "output/manifest.bin")
 
-			if err == nil {
-				t.Errorf("expected error for %s, got nil", tc.name)
-			}
+			assert.Error(t, err, "expected error for %s, got nil", tc.name)
 		})
 	}
 }
@@ -802,17 +712,11 @@ func TestEmitCode_WithMockSandbox_Success(t *testing.T) {
 	}
 
 	err := emitter.EmitCode(context.Background(), manifest, "manifest.bin")
-	if err != nil {
-		t.Errorf("EmitCode failed: %v", err)
-	}
+	assert.NoError(t, err, "EmitCode failed")
 
 	data, err := mockSandbox.ReadFile("manifest.bin")
-	if err != nil {
-		t.Errorf("Failed to read manifest: %v", err)
-	}
-	if len(data) == 0 {
-		t.Error("Manifest should not be empty")
-	}
+	assert.NoError(t, err, "Failed to read manifest")
+	assert.NotEmpty(t, data, "Manifest should not be empty")
 }
 
 func TestDeterministicOutput(t *testing.T) {
@@ -845,14 +749,11 @@ func TestDeterministicOutput(t *testing.T) {
 	builder2.Finish(root2)
 	bytes2 := builder2.FinishedBytes()
 
-	if len(bytes1) != len(bytes2) {
-		t.Errorf("Output lengths differ: %d vs %d", len(bytes1), len(bytes2))
-	}
+	assert.Equal(t, len(bytes1), len(bytes2), "Output lengths differ: %d vs %d", len(bytes1), len(bytes2))
 
 	fb1 := gen_fb.GetRootAsManifestFB(bytes1, 0)
 	fb2 := gen_fb.GetRootAsManifestFB(bytes2, 0)
 
-	if fb1.PagesLength() != fb2.PagesLength() {
-		t.Errorf("Page counts differ: %d vs %d", fb1.PagesLength(), fb2.PagesLength())
-	}
+	assert.Equal(t, fb1.PagesLength(), fb2.PagesLength(),
+		"Page counts differ: %d vs %d", fb1.PagesLength(), fb2.PagesLength())
 }

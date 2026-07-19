@@ -39,6 +39,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
+	orchestrator_otter "piko.sh/piko/internal/orchestrator/orchestrator_dal/otter"
 	orchestrator_querier_postgres "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_postgres"
 	orchestrator_querier_sqlite "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_sqlite"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
@@ -323,11 +324,11 @@ func (c *Container) setupOrchestratorBridge(orcService orchestrator.Service, reg
 	return bridge, nil
 }
 
-// startOrchestratorBackground starts the orchestrator service in a background goroutine.
+// startOrchestratorBackground starts the orchestrator service in the background.
 //
 // Takes orcService (orchestrator.Service) which is the orchestrator to start.
 //
-// Safe for concurrent use. The spawned goroutine runs until shutdown.
+// Concurrency: safe for concurrent use; the spawned goroutine runs until shutdown.
 func (c *Container) startOrchestratorBackground(orcService orchestrator.Service) {
 	go orcService.Run(c.GetAppContext())
 	shutdown.Register(c.GetAppContext(), "Orchestrator", func(_ context.Context) error { orcService.Stop(); return nil })
@@ -361,15 +362,6 @@ func (c *Container) ScheduleGCTasks() {
 	hintsTask.DeduplicationKey = "blob.gc.hints"
 	hintsTask.Config.Priority = orchestrator_domain.PriorityLow
 	_, _ = orcService.Schedule(ctx, hintsTask, time.Now().Add(10*time.Second))
-
-	orphansTask := orchestrator_domain.NewTask(orchestrator_adapters.ExecutorNameBlobGC, map[string]any{
-		"mode":               "orphans",
-		"batch_size":         100,
-		"reschedule_seconds": 3600,
-	})
-	orphansTask.DeduplicationKey = "blob.gc.orphans"
-	orphansTask.Config.Priority = orchestrator_domain.PriorityLow
-	_, _ = orcService.Schedule(ctx, orphansTask, time.Now().Add(60*time.Second))
 }
 
 // createOrchestratorTaskStore creates the task store, using the querier-based DAL adapter
@@ -379,6 +371,10 @@ func (c *Container) ScheduleGCTasks() {
 // Returns orchestrator_domain.TaskStore which is the configured task store.
 // Returns error when the factory or database connection fails.
 func (c *Container) createOrchestratorTaskStore() (orchestrator_domain.TaskStore, error) {
+	if c.isBuildTime {
+		return c.createProviderOrchestratorDAL()
+	}
+
 	if c.dbRegistrations != nil {
 		if _, registered := c.dbRegistrations[DatabaseNameOrchestrator]; registered {
 			return c.createQuerierOrchestratorDAL()
@@ -421,6 +417,10 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 // Returns orchestrator_domain.TaskStore which is the otter-backed task store.
 // Returns error when the otter DAL cannot be created or does not implement TaskStore.
 func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskStore, error) {
+	if c.embeddedPikoFS != nil {
+		return c.createEmbeddedOrchestratorDAL()
+	}
+
 	dalAny, err := c.createOtterOrchestratorDAL()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create otter orchestrator DAL: %w", err)
@@ -432,6 +432,36 @@ func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskSto
 	}
 
 	if inspector, ok := dalAny.(orchestrator_domain.OrchestratorInspector); ok {
+		c.orchestratorInspector = inspector
+	}
+
+	return dal, nil
+}
+
+// createEmbeddedOrchestratorDAL creates a fresh in-memory otter task store for a
+// single-binary deploy.
+//
+// Returns orchestrator_domain.TaskStore which is the fresh in-memory task store.
+// Returns error when the DAL cannot be created or does not implement TaskStore.
+func (c *Container) createEmbeddedOrchestratorDAL() (orchestrator_domain.TaskStore, error) {
+	_, l := logger_domain.From(c.GetAppContext(), log)
+	l.Internal("Creating a fresh in-memory orchestrator DAL for embedded mode (task state is never embedded)")
+
+	dalAny, otterErr := orchestrator_otter.NewOtterDAL(orchestrator_otter.Config{})
+	if otterErr != nil {
+		return nil, fmt.Errorf("creating embedded orchestrator DAL: %w", otterErr)
+	}
+
+	dal, ok := dalAny.(orchestrator_domain.TaskStore)
+	if !ok {
+		return nil, errors.New("otter orchestrator DAL does not implement TaskStore")
+	}
+
+	if rebuilder, ok := dalAny.(interface{ RebuildIndexes(context.Context) }); ok {
+		rebuilder.RebuildIndexes(c.GetAppContext())
+	}
+
+	if inspector, isInspector := dalAny.(orchestrator_domain.OrchestratorInspector); isInspector {
 		c.orchestratorInspector = inspector
 	}
 

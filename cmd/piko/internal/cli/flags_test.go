@@ -21,6 +21,8 @@ package cli
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseGlobalFlags_Defaults(t *testing.T) {
@@ -28,24 +30,12 @@ func TestParseGlobalFlags_Defaults(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{})
 
-	if opts.Endpoint != defaultEndpoint {
-		t.Errorf("Endpoint = %q, want %q", opts.Endpoint, defaultEndpoint)
-	}
-	if opts.Output != defaultOutputFormat {
-		t.Errorf("Output = %q, want %q", opts.Output, defaultOutputFormat)
-	}
-	if opts.Timeout != defaultTimeout {
-		t.Errorf("Timeout = %v, want %v", opts.Timeout, defaultTimeout)
-	}
-	if opts.NoColour {
-		t.Error("NoColour should be false by default")
-	}
-	if opts.NoHeaders {
-		t.Error("NoHeaders should be false by default")
-	}
-	if len(remaining) != 0 {
-		t.Errorf("remaining = %v, want empty", remaining)
-	}
+	assert.Equal(t, defaultEndpoint, opts.Endpoint, "Endpoint = %q, want %q", opts.Endpoint, defaultEndpoint)
+	assert.Equal(t, defaultOutputFormat, opts.Output, "Output = %q, want %q", opts.Output, defaultOutputFormat)
+	assert.Equal(t, defaultTimeout, opts.Timeout, "Timeout = %v, want %v", opts.Timeout, defaultTimeout)
+	assert.False(t, opts.NoColour, "NoColour should be false by default")
+	assert.False(t, opts.NoHeaders, "NoHeaders should be false by default")
+	assert.Empty(t, remaining, "remaining = %v, want empty", remaining)
 }
 
 func TestParseGlobalFlags_LongFlags(t *testing.T) {
@@ -59,21 +49,11 @@ func TestParseGlobalFlags_LongFlags(t *testing.T) {
 		"health",
 	})
 
-	if opts.Endpoint != "localhost:1234" {
-		t.Errorf("Endpoint = %q, want %q", opts.Endpoint, "localhost:1234")
-	}
-	if opts.Output != "json" {
-		t.Errorf("Output = %q, want %q", opts.Output, "json")
-	}
-	if opts.Timeout != 10*time.Second {
-		t.Errorf("Timeout = %v, want %v", opts.Timeout, 10*time.Second)
-	}
-	if !opts.NoColour {
-		t.Error("NoColour should be true")
-	}
-	if len(remaining) != 1 || remaining[0] != "health" {
-		t.Errorf("remaining = %v, want [health]", remaining)
-	}
+	assert.Equal(t, "localhost:1234", opts.Endpoint, "Endpoint = %q, want %q", opts.Endpoint, "localhost:1234")
+	assert.Equal(t, "json", opts.Output, "Output = %q, want %q", opts.Output, "json")
+	assert.Equal(t, 10*time.Second, opts.Timeout, "Timeout = %v, want %v", opts.Timeout, 10*time.Second)
+	assert.True(t, opts.NoColour, "NoColour should be true")
+	assert.False(t, len(remaining) != 1 || remaining[0] != "health", "remaining = %v, want [health]", remaining)
 }
 
 func TestParseGlobalFlags_ShortFlags(t *testing.T) {
@@ -86,18 +66,10 @@ func TestParseGlobalFlags_ShortFlags(t *testing.T) {
 		"tasks",
 	})
 
-	if opts.Endpoint != "10.0.0.1:9091" {
-		t.Errorf("Endpoint = %q, want %q", opts.Endpoint, "10.0.0.1:9091")
-	}
-	if opts.Output != "json" {
-		t.Errorf("Output = %q, want %q", opts.Output, "json")
-	}
-	if opts.Timeout != 3*time.Second {
-		t.Errorf("Timeout = %v, want %v", opts.Timeout, 3*time.Second)
-	}
-	if len(remaining) != 1 || remaining[0] != "tasks" {
-		t.Errorf("remaining = %v, want [tasks]", remaining)
-	}
+	assert.Equal(t, "10.0.0.1:9091", opts.Endpoint, "Endpoint = %q, want %q", opts.Endpoint, "10.0.0.1:9091")
+	assert.Equal(t, "json", opts.Output, "Output = %q, want %q", opts.Output, "json")
+	assert.Equal(t, 3*time.Second, opts.Timeout, "Timeout = %v, want %v", opts.Timeout, 3*time.Second)
+	assert.False(t, len(remaining) != 1 || remaining[0] != "tasks", "remaining = %v, want [tasks]", remaining)
 }
 
 func TestParseGlobalFlags_RemainingArgs(t *testing.T) {
@@ -105,9 +77,7 @@ func TestParseGlobalFlags_RemainingArgs(t *testing.T) {
 
 	_, remaining := parseGlobalFlags([]string{"health", "--verbose"})
 
-	if len(remaining) != 2 {
-		t.Errorf("remaining has %d elements, want 2", len(remaining))
-	}
+	assert.Len(t, remaining, 2, "remaining has %d elements, want 2", len(remaining))
 }
 
 func TestParseGlobalFlags_Raw(t *testing.T) {
@@ -115,9 +85,7 @@ func TestParseGlobalFlags_Raw(t *testing.T) {
 
 	opts, _ := parseGlobalFlags([]string{"--raw", "health"})
 
-	if !opts.NoColour {
-		t.Error("NoColour should be true when --raw is set")
-	}
+	assert.True(t, opts.NoColour, "NoColour should be true when --raw is set")
 }
 
 func TestParseGlobalFlags_Wide(t *testing.T) {
@@ -125,9 +93,7 @@ func TestParseGlobalFlags_Wide(t *testing.T) {
 
 	opts, _ := parseGlobalFlags([]string{"-o", "wide", "health"})
 
-	if opts.Output != "wide" {
-		t.Errorf("Output = %q, want %q", opts.Output, "wide")
-	}
+	assert.Equal(t, "wide", opts.Output, "Output = %q, want %q", opts.Output, "wide")
 }
 
 func TestParseGlobalFlags_NoHeaders(t *testing.T) {
@@ -135,9 +101,7 @@ func TestParseGlobalFlags_NoHeaders(t *testing.T) {
 
 	opts, _ := parseGlobalFlags([]string{"--no-headers", "health"})
 
-	if !opts.NoHeaders {
-		t.Error("NoHeaders should be true when --no-headers is set")
-	}
+	assert.True(t, opts.NoHeaders, "NoHeaders should be true when --no-headers is set")
 }
 
 func TestParseGlobalFlags_InterspersedOutput(t *testing.T) {
@@ -145,12 +109,8 @@ func TestParseGlobalFlags_InterspersedOutput(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{"health", "-o", "wide"})
 
-	if opts.Output != "wide" {
-		t.Errorf("Output = %q, want %q", opts.Output, "wide")
-	}
-	if len(remaining) != 1 || remaining[0] != "health" {
-		t.Errorf("remaining = %v, want [health]", remaining)
-	}
+	assert.Equal(t, "wide", opts.Output, "Output = %q, want %q", opts.Output, "wide")
+	assert.False(t, len(remaining) != 1 || remaining[0] != "health", "remaining = %v, want [health]", remaining)
 }
 
 func TestParseGlobalFlags_InterspersedJSON(t *testing.T) {
@@ -158,12 +118,8 @@ func TestParseGlobalFlags_InterspersedJSON(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{"health", "Liveness", "-o", "json"})
 
-	if opts.Output != "json" {
-		t.Errorf("Output = %q, want %q", opts.Output, "json")
-	}
-	if len(remaining) != 2 || remaining[0] != "health" || remaining[1] != "Liveness" {
-		t.Errorf("remaining = %v, want [health Liveness]", remaining)
-	}
+	assert.Equal(t, "json", opts.Output, "Output = %q, want %q", opts.Output, "json")
+	assert.False(t, len(remaining) != 2 || remaining[0] != "health" || remaining[1] != "Liveness", "remaining = %v, want [health Liveness]", remaining)
 }
 
 func TestParseGlobalFlags_InterspersedBoolFlags(t *testing.T) {
@@ -171,15 +127,9 @@ func TestParseGlobalFlags_InterspersedBoolFlags(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{"health", "--raw", "--no-headers"})
 
-	if !opts.NoColour {
-		t.Error("NoColour should be true")
-	}
-	if !opts.NoHeaders {
-		t.Error("NoHeaders should be true")
-	}
-	if len(remaining) != 1 || remaining[0] != "health" {
-		t.Errorf("remaining = %v, want [health]", remaining)
-	}
+	assert.True(t, opts.NoColour, "NoColour should be true")
+	assert.True(t, opts.NoHeaders, "NoHeaders should be true")
+	assert.False(t, len(remaining) != 1 || remaining[0] != "health", "remaining = %v, want [health]", remaining)
 }
 
 func TestParseGlobalFlags_EqualsSyntax(t *testing.T) {
@@ -187,12 +137,8 @@ func TestParseGlobalFlags_EqualsSyntax(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{"health", "-o=json"})
 
-	if opts.Output != "json" {
-		t.Errorf("Output = %q, want %q", opts.Output, "json")
-	}
-	if len(remaining) != 1 || remaining[0] != "health" {
-		t.Errorf("remaining = %v, want [health]", remaining)
-	}
+	assert.Equal(t, "json", opts.Output, "Output = %q, want %q", opts.Output, "json")
+	assert.False(t, len(remaining) != 1 || remaining[0] != "health", "remaining = %v, want [health]", remaining)
 }
 
 func TestParseGlobalFlags_UnknownFlagsPassThrough(t *testing.T) {
@@ -200,9 +146,7 @@ func TestParseGlobalFlags_UnknownFlagsPassThrough(t *testing.T) {
 
 	_, remaining := parseGlobalFlags([]string{"health", "--verbose", "--errors"})
 
-	if len(remaining) != 3 {
-		t.Errorf("remaining has %d elements, want 3 (all unknown flags pass through)", len(remaining))
-	}
+	assert.Len(t, remaining, 3, "remaining has %d elements, want 3 (all unknown flags pass through)", len(remaining))
 }
 
 func TestSeparateGlobalFlags(t *testing.T) {
@@ -227,12 +171,8 @@ func TestSeparateGlobalFlags(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			global, remaining := separateGlobalFlags(tc.arguments)
-			if len(global) != tc.wantGlobalCount {
-				t.Errorf("global flags = %v (len %d), want len %d", global, len(global), tc.wantGlobalCount)
-			}
-			if len(remaining) != tc.wantRemainCount {
-				t.Errorf("remaining = %v (len %d), want len %d", remaining, len(remaining), tc.wantRemainCount)
-			}
+			assert.Len(t, global, tc.wantGlobalCount, "global flags = %v (len %d), want len %d", global, len(global), tc.wantGlobalCount)
+			assert.Len(t, remaining, tc.wantRemainCount, "remaining = %v (len %d), want len %d", remaining, len(remaining), tc.wantRemainCount)
 		})
 	}
 }
@@ -256,9 +196,7 @@ func TestParseGlobalFlags_Limit(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			opts, _ := parseGlobalFlags(tc.arguments)
-			if opts.Limit != tc.expected {
-				t.Errorf("Limit = %d, want %d", opts.Limit, tc.expected)
-			}
+			assert.Equal(t, tc.expected, opts.Limit, "Limit = %d, want %d", opts.Limit, tc.expected)
 		})
 	}
 }
@@ -268,12 +206,8 @@ func TestParseGlobalFlags_Certs(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{"--certs", "/path/to/certs", "health"})
 
-	if opts.CertsDir != "/path/to/certs" {
-		t.Errorf("CertsDir = %q, want %q", opts.CertsDir, "/path/to/certs")
-	}
-	if len(remaining) != 1 || remaining[0] != "health" {
-		t.Errorf("remaining = %v, want [health]", remaining)
-	}
+	assert.Equal(t, "/path/to/certs", opts.CertsDir, "CertsDir = %q, want %q", opts.CertsDir, "/path/to/certs")
+	assert.False(t, len(remaining) != 1 || remaining[0] != "health", "remaining = %v, want [health]", remaining)
 }
 
 func TestParseGlobalFlags_CertsInterspersed(t *testing.T) {
@@ -281,12 +215,8 @@ func TestParseGlobalFlags_CertsInterspersed(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{"diagnostics", "--certs", "/certs"})
 
-	if opts.CertsDir != "/certs" {
-		t.Errorf("CertsDir = %q, want %q", opts.CertsDir, "/certs")
-	}
-	if len(remaining) != 1 || remaining[0] != "diagnostics" {
-		t.Errorf("remaining = %v, want [diagnostics]", remaining)
-	}
+	assert.Equal(t, "/certs", opts.CertsDir, "CertsDir = %q, want %q", opts.CertsDir, "/certs")
+	assert.False(t, len(remaining) != 1 || remaining[0] != "diagnostics", "remaining = %v, want [diagnostics]", remaining)
 }
 
 func TestParseGlobalFlags_CertsEquals(t *testing.T) {
@@ -294,12 +224,8 @@ func TestParseGlobalFlags_CertsEquals(t *testing.T) {
 
 	opts, remaining := parseGlobalFlags([]string{"health", "--certs=/my/certs"})
 
-	if opts.CertsDir != "/my/certs" {
-		t.Errorf("CertsDir = %q, want %q", opts.CertsDir, "/my/certs")
-	}
-	if len(remaining) != 1 || remaining[0] != "health" {
-		t.Errorf("remaining = %v, want [health]", remaining)
-	}
+	assert.Equal(t, "/my/certs", opts.CertsDir, "CertsDir = %q, want %q", opts.CertsDir, "/my/certs")
+	assert.False(t, len(remaining) != 1 || remaining[0] != "health", "remaining = %v, want [health]", remaining)
 }
 
 func TestParseGlobalFlags_CertsDefault_Empty(t *testing.T) {
@@ -307,7 +233,5 @@ func TestParseGlobalFlags_CertsDefault_Empty(t *testing.T) {
 
 	opts, _ := parseGlobalFlags([]string{"health"})
 
-	if opts.CertsDir != "" {
-		t.Errorf("CertsDir = %q, want empty", opts.CertsDir)
-	}
+	assert.Empty(t, opts.CertsDir, "CertsDir = %q, want empty", opts.CertsDir)
 }

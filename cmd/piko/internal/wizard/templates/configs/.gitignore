@@ -1,6 +1,8 @@
 # Piko framework temporary directories
 .piko/
 .out/
+dist/embed/
+dist/embed_gen.go
 
 # Live-reloading tool (Air) temporary files
 tmp/

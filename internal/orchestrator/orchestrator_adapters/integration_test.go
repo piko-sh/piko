@@ -427,7 +427,7 @@ func TestListen_HandlerBased(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("Listen did not return after context cancellation")
+		require.FailNow(t, "Listen did not return after context cancellation")
 	}
 
 	for _, topic := range registry_domain.ArtefactTopics {
@@ -455,7 +455,7 @@ func TestListen_ChannelBased(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("Listen did not return after context cancellation")
+		require.FailNow(t, "Listen did not return after context cancellation")
 	}
 }
 
@@ -483,7 +483,7 @@ func TestStartListening_HandlerBased(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("wait did not return after context cancellation")
+		require.FailNow(t, "wait did not return after context cancellation")
 	}
 }
 
@@ -511,7 +511,7 @@ func TestStartListening_ChannelBased(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		t.Fatal("wait did not return after context cancellation")
+		require.FailNow(t, "wait did not return after context cancellation")
 	}
 }
 
@@ -607,7 +607,7 @@ func TestCompilerExecutor_Execute_Success(t *testing.T) {
 					},
 				},
 				ActualVariants: []registry_dto.Variant{
-					{VariantID: "source", Status: registry_dto.VariantStatusReady, StorageKey: "images/photo.jpg"},
+					{VariantID: "source", Status: registry_dto.VariantStatusReady, StorageKey: "images/photo.jpg", ContentHash: "0000000000000000000000000000000000000000000000000000000000000001"},
 				},
 			}, nil
 		},
@@ -632,7 +632,7 @@ func TestCompilerExecutor_Execute_Success(t *testing.T) {
 		"artefactID":         "art-1",
 		"sourceVariantID":    "source",
 		"desiredProfileName": "thumb",
-		"capabilityToRun":    "resize",
+		"capabilityToRun":    "image-transform",
 		"taskID":             "task-1",
 		"capabilityParams":   map[string]string{"width": "100"},
 	}
@@ -1008,7 +1008,7 @@ func TestCompilerExecutor_Execute_AddVariantFails(t *testing.T) {
 					}},
 				},
 				ActualVariants: []registry_dto.Variant{
-					{VariantID: "source", Status: registry_dto.VariantStatusReady},
+					{VariantID: "source", Status: registry_dto.VariantStatusReady, ContentHash: "0000000000000000000000000000000000000000000000000000000000000001"},
 				},
 			}, nil
 		},
@@ -1036,7 +1036,7 @@ func TestCompilerExecutor_Execute_AddVariantFails(t *testing.T) {
 		"artefactID":         "art-1",
 		"sourceVariantID":    "source",
 		"desiredProfileName": "thumb",
-		"capabilityToRun":    "resize",
+		"capabilityToRun":    "image-transform",
 		"taskID":             "task-1",
 	}
 

@@ -63,6 +63,14 @@ type MethodStrategy interface {
 	// "database/sql"; pgx adds the pgconn import.
 	ExecResultImport(tracker *ImportTracker)
 
+	// NoRowsSentinel returns the driver's no-rows sentinel error AST for optional
+	// command:one methods.
+	NoRowsSentinel() ast.Expr
+
+	// NoRowsImport adds the import that NoRowsSentinel depends on. database/sql adds
+	// "database/sql"; pgx adds the pgx import.
+	NoRowsImport(tracker *ImportTracker)
+
 	// BuildExecRowsBody constructs the method body for :execrows commands. This differs
 	// because sql.Result.RowsAffected() returns (int64, error) while
 	// pgconn.CommandTag.RowsAffected() returns int64 directly.

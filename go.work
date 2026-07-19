@@ -30,6 +30,7 @@ use (
 	./tests/integration/querier_sqlite
 	./tests/integration/querier_sqlite_cgo
 	./tests/integration/registry
+	./tests/integration/release
 	./tests/integration/storage
 	./tests/integration/testutil
 	./tests/integration/wasm_runner
@@ -193,6 +194,7 @@ replace (
 	piko.sh/piko/tests/integration/querier_sqlite v0.0.0 => ./tests/integration/querier_sqlite
 	piko.sh/piko/tests/integration/querier_sqlite_cgo v0.0.0 => ./tests/integration/querier_sqlite_cgo
 	piko.sh/piko/tests/integration/registry v0.0.0 => ./tests/integration/registry
+	piko.sh/piko/tests/integration/release v0.0.0 => ./tests/integration/release
 	piko.sh/piko/tests/integration/storage v0.0.0 => ./tests/integration/storage
 	piko.sh/piko/tests/integration/testutil v0.0.0 => ./tests/integration/testutil
 	piko.sh/piko/tests/integration/wasm_runner v0.0.0 => ./tests/integration/wasm_runner

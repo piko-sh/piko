@@ -385,9 +385,10 @@ For the full SEO surface see [bootstrap options reference](../reference/bootstra
 ## Step 7: Build the production binary
 
 ```bash
-go run ./cmd/generator/main.go all
-CGO_ENABLED=0 go build -o myblog ./cmd/main
+piko build -o myblog
 ```
+
+`piko build` runs the generator, then compiles the binary with the `piko_embed` build tag so the manifest, pages, and assets are embedded. The manual equivalent is `go run ./cmd/generator/main.go all` followed by `CGO_ENABLED=0 go build -tags piko_embed -o myblog ./cmd/main`; without the tag the binary reads `dist/` and `.piko/` from disk instead.
 
 The binary is self-contained. Copy it to the server and run:
 

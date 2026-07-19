@@ -723,17 +723,14 @@ func (c *Container) createDefaultTypeInspectorManager() {
 		return
 	}
 
+	var provider inspector_domain.TypeDataProvider
 	cacheSandbox, err := c.createSandbox("type-inspector-cache", cacheDir, safedisk.ModeReadWrite)
 	if err != nil {
-		c.typeInspectorBuilderErr = fmt.Errorf("creating cache sandbox: %w", err)
-		return
-	}
-
-	var provider inspector_domain.TypeDataProvider
-	if c.typeDataProvider != nil {
+		l.Warn("Type inspector disk cache unavailable (read-only filesystem?); continuing without it, so type inspection recomputes instead of caching",
+			logger_domain.String("cacheDir", cacheDir), logger_domain.Error(err))
+	} else if c.typeDataProvider != nil {
 		provider = c.typeDataProvider(cacheSandbox)
 	} else {
-		var err error
 		provider, err = createTypeDataProviderFromConfig(cacheSandbox)
 		if err != nil {
 			c.typeInspectorBuilderErr = fmt.Errorf("creating type data provider: %w", err)
@@ -748,6 +745,10 @@ func (c *Container) createDefaultTypeInspectorManager() {
 		c.typeInspectorBuilderErr = fmt.Errorf("could not detect Go module for type inspector: %w", err)
 		return
 	}
+	builderOptions := make([]inspector_domain.TypeBuilderOption, 0, 1)
+	if provider != nil {
+		builderOptions = append(builderOptions, inspector_domain.WithProvider(provider))
+	}
 	c.typeInspectorBuilder = inspector_domain.NewTypeBuilder(
 		inspector_dto.Config{
 			BaseDir:            deref(serverConfig.Paths.BaseDir, "."),
@@ -756,7 +757,7 @@ func (c *Container) createDefaultTypeInspectorManager() {
 			UseStandardLoader:  c.useStandardLoader,
 			TolerateTypeErrors: true,
 		},
-		inspector_domain.WithProvider(provider),
+		builderOptions...,
 	)
 }
 

@@ -227,6 +227,53 @@ func TestPgxEmitQueriesOne(t *testing.T) {
 	assert.Contains(t, source, "Scan")
 }
 
+func TestPgxEmitQueriesOptionalOne(t *testing.T) {
+	emitter := NewPgxEmitter()
+	queries := []*querier_dto.AnalysedQuery{
+		{
+			Name:     "get_user",
+			SQL:      "SELECT id, name FROM users WHERE id = $1",
+			Command:  querier_dto.QueryCommandOne,
+			Optional: true,
+			Filename: "users.sql",
+			Parameters: []querier_dto.QueryParameter{
+				{
+					Name:    "id",
+					Number:  1,
+					SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
+				},
+			},
+			OutputColumns: []querier_dto.OutputColumn{
+				{
+					Name:    "id",
+					SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
+				},
+				{
+					Name:    "name",
+					SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
+				},
+			},
+		},
+	}
+
+	files, err := emitter.EmitQueries("testpkg", queries, defaultMappings())
+	require.NoError(t, err)
+	require.NotEmpty(t, files)
+
+	source := string(files[0].Content)
+
+	requireValidGo(t, "users.sql.go", source)
+
+	assert.Contains(t, source, "pgx.ErrNoRows",
+		"pgx optional one query must test the pgx no-rows sentinel")
+	assert.Contains(t, source, "errors.Is",
+		"optional one query must distinguish no rows from a real error via errors.Is")
+	assert.Contains(t, source, "(get_userRow, bool, error)",
+		"optional one query must widen the return signature to (row, bool, error)")
+
+	requireTypeChecks(t, files)
+}
+
 func TestPgxEmitQueriesMany(t *testing.T) {
 	emitter := NewPgxEmitter()
 	queries := []*querier_dto.AnalysedQuery{

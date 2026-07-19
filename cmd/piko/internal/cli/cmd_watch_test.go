@@ -24,10 +24,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
@@ -51,9 +52,7 @@ func TestIsStreamDone(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := isStreamDone(tc.err)
-			if got != tc.want {
-				t.Errorf("isStreamDone(%v) = %v, want %v", tc.err, got, tc.want)
-			}
+			assert.Equal(t, tc.want, got, "isStreamDone(%v) = %v, want %v", tc.err, got, tc.want)
 		})
 	}
 }
@@ -66,9 +65,7 @@ func TestClearScreen(t *testing.T) {
 
 	want := "\033[H\033[2J"
 	got := buffer.String()
-	if got != want {
-		t.Errorf("clearScreen() wrote %q, want %q", got, want)
-	}
+	assert.Equal(t, want, got, "clearScreen() wrote %q, want %q", got, want)
 }
 
 func TestWatchHealth(t *testing.T) {
@@ -113,14 +110,10 @@ func TestWatchHealth(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.format, true, false)
 			err := watchHealth(context.Background(), conn, &buffer, p, time.Second)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -179,14 +172,10 @@ func TestWatchTasks(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.format, true, false)
 			err := watchTasks(context.Background(), conn, &buffer, p, time.Second)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -245,14 +234,10 @@ func TestWatchArtefacts(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.format, true, false)
 			err := watchArtefacts(context.Background(), conn, &buffer, p, time.Second)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -308,14 +293,10 @@ func TestWatchMetrics(t *testing.T) {
 			var buffer bytes.Buffer
 			p := NewPrinter(&buffer, tc.format, true, false)
 			err := watchMetrics(context.Background(), conn, &buffer, p, time.Second)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err, "unexpected error: %v", err)
 			output := buffer.String()
 			for _, want := range tc.wantAll {
-				if !strings.Contains(output, want) {
-					t.Errorf("output missing %q\nfull output:\n%s", want, output)
-				}
+				assert.Contains(t, output, want, "output missing %q\nfull output:\n%s", want, output)
 			}
 		})
 	}
@@ -335,12 +316,8 @@ func TestWatchHealthError(t *testing.T) {
 	var buffer bytes.Buffer
 	p := NewPrinter(&buffer, "table", true, false)
 	err := watchHealth(context.Background(), conn, &buffer, p, time.Second)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !strings.Contains(err.Error(), "connection refused") {
-		t.Errorf("error = %q, want it to contain %q", err.Error(), "connection refused")
-	}
+	require.Error(t, err, "expected error, got nil")
+	assert.Contains(t, err.Error(), "connection refused", "error = %q, want it to contain %q", err.Error(), "connection refused")
 }
 
 func TestRunWatchMissingResource(t *testing.T) {
@@ -350,12 +327,8 @@ func TestRunWatchMissingResource(t *testing.T) {
 	cc, _, _ := newTestCC(conn)
 
 	err := runWatch(context.Background(), cc, nil)
-	if err == nil {
-		t.Fatal("expected error for missing resource, got nil")
-	}
-	if !strings.Contains(err.Error(), "missing resource type") {
-		t.Errorf("error = %q, want it to contain %q", err.Error(), "missing resource type")
-	}
+	require.Error(t, err, "expected error for missing resource, got nil")
+	assert.Contains(t, err.Error(), "missing resource type", "error = %q, want it to contain %q", err.Error(), "missing resource type")
 }
 
 func TestRunWatchUnknownResource(t *testing.T) {
@@ -365,12 +338,8 @@ func TestRunWatchUnknownResource(t *testing.T) {
 	cc, _, _ := newTestCC(conn)
 
 	err := runWatch(context.Background(), cc, []string{"nonexistent"})
-	if err == nil {
-		t.Fatal("expected error for unknown resource, got nil")
-	}
-	if !strings.Contains(err.Error(), "unknown resource") {
-		t.Errorf("error = %q, want it to contain %q", err.Error(), "unknown resource")
-	}
+	require.Error(t, err, "expected error for unknown resource, got nil")
+	assert.Contains(t, err.Error(), "unknown resource", "error = %q, want it to contain %q", err.Error(), "unknown resource")
 }
 
 func TestRunWatchInvalidFormat(t *testing.T) {
@@ -387,10 +356,6 @@ func TestRunWatchInvalidFormat(t *testing.T) {
 	cc.Opts.Output = "text"
 
 	err := runWatch(context.Background(), cc, []string{"health"})
-	if err == nil {
-		t.Fatal("expected error for invalid format, got nil")
-	}
-	if !strings.Contains(err.Error(), "text") {
-		t.Errorf("error = %q, want it to mention the invalid format %q", err.Error(), "text")
-	}
+	require.Error(t, err, "expected error for invalid format, got nil")
+	assert.Contains(t, err.Error(), "text", "error = %q, want it to mention the invalid format %q", err.Error(), "text")
 }
