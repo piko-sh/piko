@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/codes"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	clockpkg "piko.sh/piko/wdk/clock"
 )

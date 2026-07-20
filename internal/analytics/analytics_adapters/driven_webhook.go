@@ -32,7 +32,7 @@ import (
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/retry"

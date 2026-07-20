@@ -30,7 +30,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"

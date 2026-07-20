@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/storage/storage_dto"

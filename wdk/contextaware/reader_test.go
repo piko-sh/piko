@@ -26,7 +26,7 @@ import (
 	"io"
 	"testing"
 
-	"piko.sh/piko/internal/contextaware"
+	"piko.sh/piko/wdk/contextaware"
 )
 
 func TestNewReader_DelegatesToUnderlying(t *testing.T) {

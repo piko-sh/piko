@@ -30,7 +30,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/safeconv"

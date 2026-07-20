@@ -24,7 +24,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
 )

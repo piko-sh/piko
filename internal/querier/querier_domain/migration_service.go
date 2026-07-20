@@ -25,7 +25,7 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )

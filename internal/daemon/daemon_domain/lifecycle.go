@@ -35,7 +35,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/netutil"
 

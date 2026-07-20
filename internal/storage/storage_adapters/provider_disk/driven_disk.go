@@ -34,7 +34,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"piko.sh/piko/internal/contextaware"
+	"piko.sh/piko/wdk/contextaware"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"

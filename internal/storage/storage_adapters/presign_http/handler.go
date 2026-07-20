@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/contextaware"
+	"piko.sh/piko/wdk/contextaware"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/storage/storage_domain"

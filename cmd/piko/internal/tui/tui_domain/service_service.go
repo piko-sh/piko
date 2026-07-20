@@ -28,7 +28,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"piko.sh/piko/cmd/piko/internal/tui/tui_dto"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

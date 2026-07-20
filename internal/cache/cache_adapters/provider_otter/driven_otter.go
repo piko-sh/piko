@@ -30,7 +30,7 @@ import (
 	"github.com/maypok86/otter/v2"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/wal/wal_domain"
 )

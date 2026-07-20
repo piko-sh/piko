@@ -35,7 +35,7 @@ import (
 	protocol "github.com/politepixels/golang-language-server"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/uri"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safeconv"
 )

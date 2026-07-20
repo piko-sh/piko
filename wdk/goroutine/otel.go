@@ -26,10 +26,10 @@ import (
 
 var (
 	// log is the package-level logger for the goroutine package.
-	log = logger_domain.GetLogger("piko/internal/goroutine")
+	log = logger_domain.GetLogger("piko/wdk/goroutine")
 
 	// meter is the OpenTelemetry meter for goroutine panic tracking.
-	meter = otel.Meter("piko/internal/goroutine")
+	meter = otel.Meter("piko/wdk/goroutine")
 
 	// PanicRecoveryCount tracks the total number of panics recovered across all goroutines.
 	// Each increment represents a goroutine that would have crashed the process without

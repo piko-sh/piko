@@ -29,7 +29,7 @@ import (
 	"github.com/valkey-io/valkey-go"
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
 )

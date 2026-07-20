@@ -35,7 +35,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"

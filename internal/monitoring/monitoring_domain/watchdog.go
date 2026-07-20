@@ -34,7 +34,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/safeconv"

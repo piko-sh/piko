@@ -34,7 +34,7 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"

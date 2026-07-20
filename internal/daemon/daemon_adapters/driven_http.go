@@ -41,7 +41,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"

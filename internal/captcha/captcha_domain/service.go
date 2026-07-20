@@ -32,7 +32,7 @@ import (
 
 	"github.com/sony/gobreaker/v2"
 	"piko.sh/piko/internal/captcha/captcha_dto"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/wdk/clock"

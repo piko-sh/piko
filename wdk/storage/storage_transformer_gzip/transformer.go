@@ -25,7 +25,7 @@ import (
 	"io"
 
 	"github.com/klauspost/compress/gzip"
-	"piko.sh/piko/internal/contextaware"
+	"piko.sh/piko/wdk/contextaware"
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/storage"
 )

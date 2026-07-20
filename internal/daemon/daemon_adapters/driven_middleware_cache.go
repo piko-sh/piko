@@ -38,7 +38,7 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_dto"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"

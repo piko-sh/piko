@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/internal/goroutine"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/clock"
 )
 
