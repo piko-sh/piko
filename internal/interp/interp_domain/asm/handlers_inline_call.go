@@ -19,7 +19,7 @@
 package asm
 
 import (
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // inlineCallHandlers returns the complete list of handler definitions for the inline call

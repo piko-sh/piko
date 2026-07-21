@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 )
 
 func TestNew(t *testing.T) {

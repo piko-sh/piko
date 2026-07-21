@@ -19,7 +19,7 @@
 package asm
 
 import (
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // Tier-1 inc/dec struct-field ASM lifts.

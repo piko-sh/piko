@@ -27,7 +27,7 @@ import (
 
 	"piko.sh/piko/internal/interp/interp_domain/asm"
 	interp_amd64 "piko.sh/piko/internal/interp/interp_domain/asm/asmgen_arch_amd64"
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 func TestProvidedOffsetsMatchLiveStructs(t *testing.T) {

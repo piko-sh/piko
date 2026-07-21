@@ -25,7 +25,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 )
 
 func TestGraph_ConcurrentInsertAndSearch(t *testing.T) {

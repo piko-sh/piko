@@ -23,7 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 func assertContainsAll(t *testing.T, output string, expected ...string) {

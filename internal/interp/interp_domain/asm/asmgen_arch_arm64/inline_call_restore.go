@@ -19,8 +19,8 @@
 package asmgen_arch_arm64
 
 import (
-	"piko.sh/piko/wdk/asmgen"
-	"piko.sh/piko/wdk/asmgen/asmarm64"
+	"piko.sh/asmgen"
+	"piko.sh/asmgen/asmarm64"
 )
 
 // emitARM64RestoreTypedSliceBanks restores typed-slice bank bases.

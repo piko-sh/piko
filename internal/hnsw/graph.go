@@ -23,7 +23,7 @@ import (
 	"math/rand/v2"
 	"sync"
 
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 	"piko.sh/piko/wdk/safeconv"
 )
 

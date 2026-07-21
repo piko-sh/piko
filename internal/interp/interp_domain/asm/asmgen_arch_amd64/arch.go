@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"strings"
 
-	"piko.sh/piko/wdk/asmgen"
-	"piko.sh/piko/wdk/asmgen/asmamd64"
-	core "piko.sh/piko/wdk/asmgen/asmgen_arch_amd64"
+	"piko.sh/asmgen"
+	"piko.sh/asmgen/asmamd64"
+	core "piko.sh/asmgen/asmgen_arch_amd64"
 )
 
 const (

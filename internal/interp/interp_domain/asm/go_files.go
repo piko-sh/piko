@@ -21,7 +21,7 @@ package asm
 import (
 	"strings"
 
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 const (

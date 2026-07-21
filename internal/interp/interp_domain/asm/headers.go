@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"strings"
 
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // DispatchContextOffsets carries DispatchContext field offsets baked into the generated

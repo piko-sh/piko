@@ -26,7 +26,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 )
 
 func benchRNG(seed int64) *rand.Rand {

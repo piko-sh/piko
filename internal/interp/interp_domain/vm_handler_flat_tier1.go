@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 )
 
 // handleFlatSubOpMathSin sets floats[B] = math.Sin(floats[C]).

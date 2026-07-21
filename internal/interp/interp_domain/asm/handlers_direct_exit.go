@@ -46,7 +46,7 @@ import (
 	"fmt"
 	"slices"
 
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // DirectExitHandlerSpec describes one direct-exit ASM stub.

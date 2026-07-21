@@ -19,7 +19,7 @@
 package asm
 
 import (
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // initialisationHandlers returns the complete list of handler definitions for the

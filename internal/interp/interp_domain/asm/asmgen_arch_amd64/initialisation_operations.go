@@ -21,8 +21,8 @@ package asmgen_arch_amd64
 import (
 	"fmt"
 
-	"piko.sh/piko/wdk/asmgen"
-	"piko.sh/piko/wdk/asmgen/asmamd64"
+	"piko.sh/asmgen"
+	"piko.sh/asmgen/asmamd64"
 )
 
 // amd64InitOps implements InitialisationOperationsPort for x86-64. Each method emits the

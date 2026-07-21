@@ -23,7 +23,7 @@ import (
 	"sync"
 
 	"piko.sh/piko/internal/hnsw"
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 )
 
 // VectorHit represents a single result from a vector similarity search.

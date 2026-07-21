@@ -19,7 +19,7 @@
 package asm
 
 import (
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // tier1UnaryHandlers returns the tier-1 ASM unary register handlers.

@@ -19,7 +19,7 @@
 package asm
 
 import (
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // tier2InPlaceHandlers returns the tier-2 in-place inc/dec handlers.

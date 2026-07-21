@@ -19,8 +19,8 @@
 package asmgen_arch_amd64
 
 import (
-	"piko.sh/piko/wdk/asmgen"
-	"piko.sh/piko/wdk/asmgen/asmamd64"
+	"piko.sh/asmgen"
+	"piko.sh/asmgen/asmamd64"
 )
 
 // LoadFromUintBank implements BytecodeArchPort. Loads CTX_UINTS_BASE into baseScratch,

@@ -19,7 +19,7 @@
 package asm
 
 import (
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // tier1ConversionHandlers returns the asmgen-generated tier-1 ASM handlers for

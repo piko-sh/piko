@@ -3,6 +3,11 @@ module piko.sh/piko
 go 1.26.0
 
 require (
+	piko.sh/asmgen v0.1.0
+	piko.sh/vectormaths v0.1.0
+)
+
+require (
 	github.com/ThreeDotsLabs/watermill v1.5.1
 	github.com/andybalholm/brotli v1.2.1
 	github.com/bojanz/currency v1.4.2

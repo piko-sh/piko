@@ -21,7 +21,7 @@ package interp_domain
 import (
 	"math"
 
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 )
 
 // simdReadSliceWithCount resolves a typed-bank slice and a count.

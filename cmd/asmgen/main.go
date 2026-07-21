@@ -22,21 +22,48 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 	"piko.sh/piko/wdk/safedisk"
 
 	"piko.sh/piko/internal/interp/interp_domain"
 	interp_asm "piko.sh/piko/internal/interp/interp_domain/asm"
 	interp_amd64 "piko.sh/piko/internal/interp/interp_domain/asm/asmgen_arch_amd64"
 	interp_arm64 "piko.sh/piko/internal/interp/interp_domain/asm/asmgen_arch_arm64"
-
-	vectormaths_asm "piko.sh/piko/internal/vectormaths/asm"
-	vectormaths_amd64 "piko.sh/piko/internal/vectormaths/asm/asmgen_arch_amd64"
-	vectormaths_arm64 "piko.sh/piko/internal/vectormaths/asm/asmgen_arch_arm64"
 )
+
+// generatedFileHeader is the copyright, licence, and banner block appended below the
+// generated-code marker at the top of every generated .s file.
+const generatedFileHeader = `// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.`
+
+// headerOptions returns the asmgen options that reproduce piko's generated-file header.
+// Generation and validation must use the same options so validation compares against
+// byte-identical output.
+//
+// Returns []asmgen.Option carrying the tool name and file header.
+func headerOptions() []asmgen.Option {
+	return []asmgen.Option{
+		asmgen.WithGeneratedByTool("cmd/asmgen"),
+		asmgen.WithFileHeader(generatedFileHeader),
+	}
+}
 
 // main parses flags and runs either assembly generation or validation.
 func main() {
@@ -141,25 +168,10 @@ func runGeneration() error {
 		interp_asm.FileGroups(),
 		interpHeaderFiles(),
 		interp_asm.GoFiles(),
+		headerOptions()...,
 	)
 	if err != nil {
 		return fmt.Errorf("generating interp dispatch files: %w", err)
-	}
-
-	vectormathsArchitectures := []vectormaths_asm.VectormathsArchitecturePort{
-		vectormaths_amd64.New(),
-		vectormaths_arm64.New(),
-	}
-
-	err = asmgen.GenerateFiles(
-		writer,
-		vectormathsArchitectures,
-		vectormaths_asm.FileGroups(),
-		nil,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("generating vectormaths files: %w", err)
 	}
 
 	fmt.Println("generated all assembly files")
@@ -189,27 +201,13 @@ func runValidation() error {
 		interp_asm.FileGroups(),
 		interpHeaderFiles(),
 		interp_asm.GoFiles(),
+		headerOptions()...,
 	)
 	if err != nil {
 		return fmt.Errorf("validating interp files: %w", err)
 	}
 
-	vectormathsArchitectures := []vectormaths_asm.VectormathsArchitecturePort{
-		vectormaths_amd64.New(),
-		vectormaths_arm64.New(),
-	}
-
-	vectormathsMismatches, err := asmgen.GenerateAndValidate(
-		vectormathsArchitectures,
-		vectormaths_asm.FileGroups(),
-		nil,
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("validating vectormaths files: %w", err)
-	}
-
-	allMismatches := slices.Concat(interpMismatches, vectormathsMismatches)
+	allMismatches := interpMismatches
 	if len(allMismatches) == 0 {
 		fmt.Println("all generated files match existing files")
 		return nil

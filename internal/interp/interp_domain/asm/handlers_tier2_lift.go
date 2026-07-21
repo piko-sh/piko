@@ -22,7 +22,7 @@ package asm
 import (
 	"slices"
 
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // Tier2HandlerShimSpec describes one ASM shim that wraps a Go tier-2 handler. The asmgen

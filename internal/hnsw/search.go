@@ -21,7 +21,7 @@ package hnsw
 import (
 	"math"
 
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 )
 
 // Search finds the topK nearest neighbours to the query vector.

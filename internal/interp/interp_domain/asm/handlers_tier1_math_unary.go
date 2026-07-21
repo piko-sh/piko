@@ -19,7 +19,7 @@
 package asm
 
 import (
-	"piko.sh/piko/wdk/asmgen"
+	"piko.sh/asmgen"
 )
 
 // tier1MathUnaryHandlers returns the tier-1 ASM handlers for pure-FPU math intrinsics.

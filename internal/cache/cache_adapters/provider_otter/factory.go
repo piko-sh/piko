@@ -28,7 +28,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/internal/vectormaths"
+	"piko.sh/vectormaths"
 	"piko.sh/piko/internal/wal/wal_adapters/driven_disk"
 	"piko.sh/piko/internal/wal/wal_domain"
 )
