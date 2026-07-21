@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/input"
+	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp/scripts"
 	"piko.sh/piko/wdk/json"
@@ -784,11 +785,22 @@ func Eval(ctx *ActionContext, selector, script string) error {
 		})
 	}
 
-	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil))
+	err := chromedp.Run(ctx.Ctx, chromedp.Evaluate(js, nil, AwaitPromise))
 	if err != nil {
 		return fmt.Errorf("evaluating script: %w", err)
 	}
 	return nil
+}
+
+// AwaitPromise makes an Evaluate resolve promises before returning, so async results 
+// and rejections behave exactly like their synchronous counterparts.
+//
+// Takes p (*runtime.EvaluateParams) which holds the evaluation parameters to adjust.
+//
+// Returns *runtime.EvaluateParams which holds the evaluation parameters with promise 
+// awaiting enabled.
+func AwaitPromise(p *runtime.EvaluateParams) *runtime.EvaluateParams {
+	return p.WithAwaitPromise(true)
 }
 
 // WaitForPartialReload waits for a Piko partial to finish loading.

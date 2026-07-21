@@ -791,7 +791,7 @@ func (p *Page) EvalReturn(js string) any {
 	start := time.Now()
 
 	var result any
-	err := chromedp.Run(p.incognitoPage.Ctx, chromedp.Evaluate(js, &result))
+	err := chromedp.Run(p.incognitoPage.Ctx, chromedp.Evaluate(js, &result, browser_provider_chromedp.AwaitPromise))
 	p.afterAction("EvalReturn", displayJS, err != nil, time.Since(start))
 	if err != nil {
 		p.t.Fatalf("EvalReturn() failed: %v", err)

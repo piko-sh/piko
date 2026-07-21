@@ -102,6 +102,7 @@ func DefaultChromeFlags() []ChromeFlag {
 		{Name: "mute-audio", Value: true},
 		{Name: "disable-component-update", Value: true},
 		{Name: "disable-domain-reliability", Value: true},
+		{Name: "autoplay-policy", Value: "no-user-gesture-required"},
 	}
 }
 
