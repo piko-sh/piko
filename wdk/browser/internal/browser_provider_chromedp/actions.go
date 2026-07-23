@@ -792,13 +792,13 @@ func Eval(ctx *ActionContext, selector, script string) error {
 	return nil
 }
 
-// AwaitPromise makes an Evaluate resolve promises before returning, so async results 
-// and rejections behave exactly like their synchronous counterparts.
+// AwaitPromise makes an Evaluate resolve promises before returning, so async results and
+// rejections behave exactly like their synchronous counterparts.
 //
 // Takes p (*runtime.EvaluateParams) which holds the evaluation parameters to adjust.
 //
-// Returns *runtime.EvaluateParams which holds the evaluation parameters with promise 
-// awaiting enabled.
+// Returns *runtime.EvaluateParams which holds the evaluation parameters with promise
+// resolution enabled.
 func AwaitPromise(p *runtime.EvaluateParams) *runtime.EvaluateParams {
 	return p.WithAwaitPromise(true)
 }

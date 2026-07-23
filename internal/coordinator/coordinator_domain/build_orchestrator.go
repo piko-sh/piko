@@ -48,7 +48,7 @@ const (
 // Takes opts (...BuildOption) which configures the build behaviour.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which contains the build result, either
-// from cache or a fresh build.
+// from cache or a fresh build, or nil when there are no entry points to build.
 // Returns error when the hash calculation or build fails.
 func (s *coordinatorService) GetOrBuildProject(
 	ctx context.Context,
@@ -58,6 +58,11 @@ func (s *coordinatorService) GetOrBuildProject(
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "CoordinatorService.GetOrBuildProject")
 	defer span.End()
+
+	if len(entryPoints) == 0 {
+		l.Trace("Skipping build with no entry points")
+		return nil, nil
+	}
 
 	buildOpts := applyBuildOptions(opts)
 	s.setLastBuildRequest(ctx, entryPoints, buildOpts)

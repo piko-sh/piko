@@ -22,9 +22,9 @@ import (
 	"context"
 	"time"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/healthprobe/healthprobe_domain"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

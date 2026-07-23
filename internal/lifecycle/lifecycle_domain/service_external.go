@@ -38,7 +38,7 @@ import (
 // Returns map[string]string which maps absolute directory paths to their original module
 // paths (needed for artefact ID computation during seeding).
 func (ls *lifecycleService) resolveExternalComponentDirs(ctx context.Context) map[string]string {
-	if ls.resolver == nil || len(ls.externalComponents) == 0 {
+	if ls.resolver == nil || len(ls.externalComponents) == 0 || ls.productionMode {
 		return nil
 	}
 
@@ -203,6 +203,10 @@ type externalAssetPair struct {
 //
 // Returns []externalAssetPair which contains the unique pairs.
 func (ls *lifecycleService) collectExternalAssetPairs(ctx context.Context) []externalAssetPair {
+	if ls.resolver == nil || ls.productionMode {
+		return nil
+	}
+
 	type assetKey struct{ moduleBase, assetPath string }
 	seen := make(map[assetKey]struct{})
 	var pairs []externalAssetPair

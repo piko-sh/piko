@@ -90,9 +90,6 @@ func (c *Container) GetRegistryService() (registry_domain.RegistryService, error
 //
 // Sets c.registryErr and returns early when the database provider is not available, the
 // database type is not supported, or blob storage setup fails.
-//
-// Concurrency: invoked once under registryOnce; spawns publishReleaseLayer on a goroutine
-// when a release overlay and seed are present.
 func (c *Container) createDefaultRegistryService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default RegistryService...")

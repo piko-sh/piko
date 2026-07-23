@@ -49,6 +49,28 @@ func noopSpan() trace.Span {
 	return span
 }
 
+func TestGetOrBuildProject_NoEntryPoints(t *testing.T) {
+	t.Parallel()
+
+	annotator := &mockAnnotator{ResultToReturn: &annotator_dto.ProjectAnnotationResult{}}
+	cache := newMockCache()
+	introspectionCache := newMockIntrospectionCache()
+	fsReader := &mockFSReader{Files: make(map[string][]byte)}
+	resolver := &resolver_domain.MockResolver{
+		GetBaseDirFunc:    func() string { return "/project" },
+		GetModuleNameFunc: func() string { return "test-module" },
+	}
+	service := newCoordinatorService(annotator, cache, introspectionCache, fsReader, resolver, applyCoordinatorOptions())
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+
+	result, err := service.GetOrBuildProject(ctx, nil)
+
+	require.NoError(t, err)
+	assert.Nil(t, result, "an empty entry-point set must short-circuit to a nil result without enqueuing a build")
+}
+
 func TestWithMaxBuildWaitDuration(t *testing.T) {
 	t.Parallel()
 

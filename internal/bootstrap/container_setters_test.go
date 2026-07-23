@@ -100,6 +100,19 @@ func TestSetGetMetricsExporter(t *testing.T) {
 	assert.Same(t, exporter, c.GetMetricsExporter())
 }
 
+func TestIsProductionMode(t *testing.T) {
+	t.Parallel()
+	c := NewContainer()
+
+	assert.False(t, c.isProductionMode(), "should be false before the run mode is recorded")
+
+	c.SetSEOProductionMode(true)
+	assert.True(t, c.isProductionMode(), "should be true after recording a production run")
+
+	c.SetSEOProductionMode(false)
+	assert.False(t, c.isProductionMode(), "should be false after recording a non-production run")
+}
+
 func TestSetGetMonitoringService(t *testing.T) {
 	t.Parallel()
 	c := NewContainer()

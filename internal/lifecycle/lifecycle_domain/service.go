@@ -177,6 +177,10 @@ type lifecycleService struct {
 
 	// stopOnce guards single execution of Stop.
 	stopOnce sync.Once
+
+	// productionMode reports whether this is a compiled production run, in which external
+	// component source is not present and re-seeding it from disk is redundant.
+	productionMode bool
 }
 
 // LifecycleServiceDeps contains all dependencies needed to create a LifecycleService.
@@ -244,6 +248,10 @@ type LifecycleServiceDeps struct {
 	// WebsiteConfig provides theme/font/favicon metadata for the lifecycle service's theme
 	// rebuild step.
 	WebsiteConfig config.WebsiteConfig
+
+	// ProductionMode reports whether this is a compiled production run, which skips
+	// re-seeding external components from source that is not present in the image.
+	ProductionMode bool
 }
 
 // Start begins the lifecycle management: file watching and build notification handling.
@@ -292,7 +300,9 @@ func (ls *lifecycleService) Start(ctx context.Context) error {
 		go ls.handleBuildNotifications(ctx, notifications)
 		l.Internal("Subscribed to build notifications")
 
-		ls.registerInitialStyleDeps(ctx, entrypoints)
+		if len(entrypoints) > 0 {
+			ls.registerInitialStyleDeps(ctx, entrypoints)
+		}
 	}
 
 	span.SetStatus(codes.Ok, "Lifecycle service started")
@@ -1004,6 +1014,7 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 		pathsConfig:             deps.PathsConfig,
 		websiteConfig:           deps.WebsiteConfig,
 		watcherAdapter:          deps.WatcherAdapter,
+		productionMode:          deps.ProductionMode,
 		registryService:         deps.RegistryService,
 		coordinatorService:      deps.CoordinatorService,
 		resolver:                deps.Resolver,

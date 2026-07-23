@@ -145,9 +145,11 @@ func optionalMisuseDiagnostic(context *diagnosticContext) *querier_dto.SourceErr
 }
 
 // optionalMisuseReason returns a reason when optional: true is set where the flag has no
-// meaning, or an empty string when optional is unset or valid. The flag applies only to a
-// static command:one, where a zero row becomes (row, false, nil); any other command, or a
-// dynamic runtime builder or dynamic predicate parameters, is rejected.
+// meaning, or an empty string when optional is unset or valid.
+//
+// The flag applies only to a static command:one, where a zero row becomes (row, false,
+// nil); any other command, or a dynamic runtime builder or dynamic predicate parameters,
+// is rejected.
 //
 // Takes query (*querier_dto.AnalysedQuery) whose command and dynamic flags are inspected.
 //

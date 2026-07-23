@@ -563,7 +563,9 @@ func createSVGBulkLoader(
 
 			artefacts, err := registryService.GetMultipleArtefacts(ctx, artefactIDs)
 			if err != nil {
-				svgLoaderErrorCount.Add(ctx, 1)
+				if !isContextCancellation(err) {
+					svgLoaderErrorCount.Add(ctx, 1)
+				}
 				return nil, fmt.Errorf("fetching SVG artefacts: %w", err)
 			}
 
@@ -761,6 +763,16 @@ func createCaches(
 	return componentCache, svgCache
 }
 
+// isContextCancellation reports whether err reflects request-context cancellation or a
+// deadline being exceeded rather than a genuine loader failure.
+//
+// Takes err (error) which is the error to classify.
+//
+// Returns bool which is true when err wraps context.Canceled or context.DeadlineExceeded.
+func isContextCancellation(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
 // getCacheWithFastPath combines an empty-key guard, a cache fast path, and the slow path
 // into a single generic helper. It avoids tracing and loader allocation overhead on cache
 // hits.
@@ -842,7 +854,11 @@ func getCacheSlow[T any](
 
 	if err != nil {
 		var zero T
-		if !errors.Is(err, otter.ErrNotFound) {
+		switch {
+		case errors.Is(err, otter.ErrNotFound):
+		case isContextCancellation(err):
+			l.Trace("Cache load cancelled", logger_domain.String("span", config.spanName))
+		default:
 			l.ReportError(span, err, config.errorMessage)
 			config.errorCounter.Add(ctx, 1)
 		}

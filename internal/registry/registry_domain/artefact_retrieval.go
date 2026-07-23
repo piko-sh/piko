@@ -203,7 +203,11 @@ func (s *registryService) loadMultipleFromStoreWithoutCache(
 
 	artefacts, err := s.metaStore.GetMultipleArtefacts(ctx, artefactIDs)
 	if err != nil {
-		l.ReportError(span, err, "Failed to retrieve multiple artefacts")
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			l.Trace("Multiple artefact retrieval cancelled", logger_domain.String("error", err.Error()))
+		} else {
+			l.ReportError(span, err, "Failed to retrieve multiple artefacts")
+		}
 		return nil, fmt.Errorf("retrieving multiple artefacts from store: %w", err)
 	}
 	return artefacts, nil

@@ -215,6 +215,7 @@ func (d *driver) FindArtefactIDsByTagValues(ctx context.Context, tagKey string, 
 // Takes storageKey (string) which is the variant storage key to look up.
 //
 // Returns string which is the owning artefact ID.
+// Returns bool which is false when no variant references the storage key.
 // Returns error when the query fails.
 func (d *driver) FindArtefactIDByVariantStorageKey(ctx context.Context, storageKey string) (string, bool, error) {
 	row, found, err := d.queries.FindArtefactByVariantStorageKey(ctx, storageKey)
@@ -269,6 +270,8 @@ func (d *driver) IncrementBlobRefCount(ctx context.Context, params dalcore.Incre
 // Takes lastReferencedAt (int64) which is the Unix timestamp to record on the blob.
 //
 // Returns int which is the blob's new reference count.
+// Returns bool which is false when no row was decremented (the blob is absent or its
+// count is already zero).
 // Returns error when the query fails.
 func (d *driver) DecrementBlobRefCount(ctx context.Context, storageKey string, lastReferencedAt int64) (int, bool, error) {
 	row, found, err := d.queries.DecrementBlobRefCount(ctx, registry_db.DecrementBlobRefCountParams{
@@ -296,6 +299,7 @@ func (d *driver) DeleteBlobReferenceIfZero(ctx context.Context, storageKey strin
 // Takes storageKey (string) which identifies the blob to inspect.
 //
 // Returns int which is the blob's current reference count.
+// Returns bool which is false when no reference record exists for the key.
 // Returns error when the query fails.
 func (d *driver) GetBlobRefCount(ctx context.Context, storageKey string) (int, bool, error) {
 	row, found, err := d.queries.GetBlobRefCount(ctx, storageKey)

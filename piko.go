@@ -41,7 +41,6 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/email/email_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
@@ -51,6 +50,7 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/email/email_provider_mock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/safedisk"
 )

@@ -111,6 +111,7 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 		Clock:                   clk,
 		WebsiteConfig:           c.websiteConfig,
 		WatcherAdapter:          config.WatcherAdapter,
+		ProductionMode:          c.isProductionMode(),
 		RouterManager:           config.RouterManager,
 		TemplaterService:        config.TemplaterService,
 		InterpretedOrchestrator: config.InterpretedOrchestrator,
@@ -118,8 +119,6 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 		DevEventNotifier:        config.DevEventNotifier,
 		ComponentRegistry:       c.GetComponentRegistry(),
 		ExternalComponents:      c.externalComponents,
-		AssetPipeline:           nil,
-		FileSystem:              nil,
 	}
 
 	if captchaService, captchaErr := c.GetCaptchaService(); captchaErr == nil {

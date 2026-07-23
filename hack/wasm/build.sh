@@ -86,16 +86,27 @@ compile_wasm() {
     fi
 }
 
-# optimise_wasm runs wasm-opt to shrink the binary.
-# Falls back gracefully if wasm-opt is not installed.
+# degraded_build_allowed reports whether the build may proceed with a degraded (unoptimised
+# or uncompressed) WASM artefact. It is off by default so release builds fail loudly rather
+# than silently shipping a bloated binary, and is enabled for local development by exporting
+# PIKO_WASM_ALLOW_DEGRADED=1.
+degraded_build_allowed() {
+    [[ "${PIKO_WASM_ALLOW_DEGRADED:-0}" == "1" ]]
+}
+
+# optimise_wasm runs wasm-opt to shrink the binary. A missing or failing wasm-opt is fatal
+# unless PIKO_WASM_ALLOW_DEGRADED=1, so a release build never silently ships the raw binary.
 optimise_wasm() {
     piko::log::header "Optimising WASM Binary"
 
     if ! command -v wasm-opt &>/dev/null; then
-        piko::log::warn "wasm-opt not found - skipping optimisation"
+        if degraded_build_allowed; then
+            piko::log::warn "wasm-opt not found - shipping unoptimised binary (PIKO_WASM_ALLOW_DEGRADED=1)"
+            cp "$WASM_RAW" "$WASM_FINAL"
+            return
+        fi
         piko::log::info "Install binaryen for wasm-opt: https://github.com/WebAssembly/binaryen"
-        cp "$WASM_RAW" "$WASM_FINAL"
-        return
+        piko::log::fatal "wasm-opt not found - refusing to ship an unoptimised WASM binary (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
 
     piko::log::info "Running wasm-opt -Oz..."
@@ -108,14 +119,17 @@ optimise_wasm() {
         report_size "Optimised WASM" "$WASM_OPT"
         cp "$WASM_OPT" "$WASM_FINAL"
         piko::log::success "WASM binary optimised"
-    else
-        piko::log::warn "wasm-opt failed - using unoptimised binary"
+    elif degraded_build_allowed; then
+        piko::log::warn "wasm-opt failed - shipping unoptimised binary (PIKO_WASM_ALLOW_DEGRADED=1)"
         cp "$WASM_RAW" "$WASM_FINAL"
+    else
+        piko::log::fatal "wasm-opt failed - refusing to ship an unoptimised WASM binary (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
 }
 
-# compress_wasm creates gzip and brotli compressed variants.
-# Brotli is skipped gracefully if brotli is not installed.
+# compress_wasm creates gzip and brotli compressed variants. A missing or failing gzip or
+# brotli is fatal unless PIKO_WASM_ALLOW_DEGRADED=1, because serving the wasm without a
+# precompressed variant is a real transfer-size regression.
 compress_wasm() {
     piko::log::header "Compressing WASM Binary"
 
@@ -123,22 +137,29 @@ compress_wasm() {
     if gzip -9 -k -f "$WASM_FINAL"; then
         report_size "gzip" "${WASM_FINAL}.gz"
         piko::log::success "gzip compression complete"
+    elif degraded_build_allowed; then
+        piko::log::warn "gzip compression failed (PIKO_WASM_ALLOW_DEGRADED=1)"
     else
-        piko::log::warn "gzip compression failed"
+        piko::log::fatal "gzip compression failed (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
 
     if ! command -v brotli &>/dev/null; then
-        piko::log::warn "brotli not found - skipping brotli compression"
+        if degraded_build_allowed; then
+            piko::log::warn "brotli not found - skipping brotli compression (PIKO_WASM_ALLOW_DEGRADED=1)"
+            return
+        fi
         piko::log::info "Install brotli: sudo apt install brotli (or brew install brotli)"
-        return
+        piko::log::fatal "brotli not found - refusing to ship without a brotli variant (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
 
     piko::log::info "Creating brotli compressed variant..."
     if brotli -9 -k -f "$WASM_FINAL"; then
         report_size "brotli" "${WASM_FINAL}.br"
         piko::log::success "brotli compression complete"
+    elif degraded_build_allowed; then
+        piko::log::warn "brotli compression failed (PIKO_WASM_ALLOW_DEGRADED=1)"
     else
-        piko::log::warn "brotli compression failed"
+        piko::log::fatal "brotli compression failed (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
 }
 
@@ -157,8 +178,11 @@ copy_wasm_exec() {
     fi
 
     if [[ -z "$wasm_exec" ]]; then
-        piko::log::warn "wasm_exec.js not found in GOROOT ($goroot)"
-        return
+        if degraded_build_allowed; then
+            piko::log::warn "wasm_exec.js not found in GOROOT ($goroot) - skipping (PIKO_WASM_ALLOW_DEGRADED=1)"
+            return
+        fi
+        piko::log::fatal "wasm_exec.js not found in GOROOT ($goroot) - required to load the WASM runtime (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
 
     rm -f "$WASM_OUT_DIR/wasm_exec.js" "$WASM_OUT_DIR/wasm_exec.js.gz" "$WASM_OUT_DIR/wasm_exec.js.br"
@@ -169,11 +193,26 @@ copy_wasm_exec() {
     piko::log::info "Compressing wasm_exec.js..."
     if gzip -9 -k -f "$WASM_OUT_DIR/wasm_exec.js"; then
         report_size "wasm_exec.js gzip" "$WASM_OUT_DIR/wasm_exec.js.gz"
+    elif degraded_build_allowed; then
+        piko::log::warn "wasm_exec.js gzip compression failed (PIKO_WASM_ALLOW_DEGRADED=1)"
+    else
+        piko::log::fatal "wasm_exec.js gzip compression failed (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
-    if command -v brotli &>/dev/null; then
-        if brotli -9 -k -f "$WASM_OUT_DIR/wasm_exec.js"; then
-            report_size "wasm_exec.js brotli" "$WASM_OUT_DIR/wasm_exec.js.br"
+
+    if ! command -v brotli &>/dev/null; then
+        if degraded_build_allowed; then
+            piko::log::warn "brotli not found - skipping wasm_exec.js brotli compression (PIKO_WASM_ALLOW_DEGRADED=1)"
+            return
         fi
+        piko::log::fatal "brotli not found - refusing to ship without a wasm_exec.js brotli variant (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
+    fi
+
+    if brotli -9 -k -f "$WASM_OUT_DIR/wasm_exec.js"; then
+        report_size "wasm_exec.js brotli" "$WASM_OUT_DIR/wasm_exec.js.br"
+    elif degraded_build_allowed; then
+        piko::log::warn "wasm_exec.js brotli compression failed (PIKO_WASM_ALLOW_DEGRADED=1)"
+    else
+        piko::log::fatal "wasm_exec.js brotli compression failed (set PIKO_WASM_ALLOW_DEGRADED=1 to override for local development)"
     fi
 }
 

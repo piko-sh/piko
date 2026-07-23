@@ -214,10 +214,12 @@ func buildOneMethodScanStatements(rowTypeName string, queryRowCall ast.Expr, sca
 }
 
 // BuildOptionalOneMethod constructs an optional :one query method using QueryRow + Scan
-// that returns (row, bool, error). A zero-row result yields (zeroRow, false, nil) rather
-// than the driver no-rows sentinel, so a legitimately empty match is an ordinary outcome
-// the caller distinguishes by the bool instead of an error it must special-case. It is
-// emitted for a command:one query whose header sets optional: true.
+// that returns (row, bool, error).
+//
+// A zero-row result yields (zeroRow, false, nil) rather than the driver no-rows sentinel,
+// so a legitimately empty match is an ordinary outcome the caller distinguishes by the
+// bool instead of an error it must special-case. It is emitted for a command:one query
+// whose header sets optional: true.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.

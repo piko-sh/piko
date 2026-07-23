@@ -1620,6 +1620,16 @@ func (c *Container) registryBlobsReadOnly() bool {
 	return c.embeddedPikoFS != nil && len(c.storageProviders) == 0
 }
 
+// isProductionMode reports whether the container is running a compiled production build
+// (runMode "prod"), as recorded by SetSEOProductionMode. It gates runtime work that is
+// redundant in a compiled deployment, such as re-seeding external components from source
+// that is not shipped in the production image.
+//
+// Returns bool which is true for a production run.
+func (c *Container) isProductionMode() bool {
+	return c.seoProductionMode != nil && *c.seoProductionMode
+}
+
 // applyAutoMemoryLimit calls the configured auto memory limit function to set GOMEMLIMIT
 // based on the container's cgroup memory limit.
 //

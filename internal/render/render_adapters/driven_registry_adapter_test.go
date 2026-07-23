@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -31,6 +32,14 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 )
+
+type cancellingRegistryService struct {
+	registry_domain.RegistryService
+}
+
+func (cancellingRegistryService) GetMultipleArtefacts(context.Context, []string) ([]*registry_dto.ArtefactMeta, error) {
+	return nil, context.Canceled
+}
 
 func TestApplyConfigDefaults_NilConfig_ReturnsDefaults(t *testing.T) {
 	t.Parallel()
@@ -87,6 +96,54 @@ func TestApplyConfigDefaults_PartialValues_FillsMissing(t *testing.T) {
 	assert.Equal(t, defaultComponentCacheTTLMinutes*time.Minute, result.ComponentCacheTTL)
 	assert.Equal(t, defaultSVGCacheCapacity, result.SVGCacheCapacity)
 	assert.Equal(t, 15*time.Minute, result.SVGCacheTTL)
+}
+
+func TestIsContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "context canceled", err: context.Canceled, want: true},
+		{name: "deadline exceeded", err: context.DeadlineExceeded, want: true},
+		{name: "wrapped cancellation", err: fmt.Errorf("fetching SVG artefacts: %w", context.Canceled), want: true},
+		{name: "genuine error", err: errors.New("store unavailable"), want: false},
+		{name: "nil error", err: nil, want: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.want, isContextCancellation(tc.err))
+		})
+	}
+}
+
+func TestGetAssetRawSVG_ContextCancelled_WrapsCancellation(t *testing.T) {
+	t.Parallel()
+
+	config := &DataLoaderAdapterConfig{
+		ComponentCacheCapacity: 10,
+		ComponentCacheTTL:      time.Minute,
+		SVGCacheCapacity:       10,
+		SVGCacheTTL:            time.Minute,
+	}
+	_, svgCache := createCaches(config)
+	defer svgCache.StopAllGoroutines()
+
+	adapter := &DataLoaderRegistryAdapter{
+		svgCache:      svgCache,
+		svgBulkLoader: createSVGBulkLoader(cancellingRegistryService{}),
+	}
+
+	result, err := adapter.GetAssetRawSVG(t.Context(), "asset-1")
+
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 func TestGetComponentMetadata_EmptyType_ReturnsError(t *testing.T) {

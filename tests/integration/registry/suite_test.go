@@ -32,14 +32,14 @@ import (
 )
 
 type Config struct {
-	NewStore func(t *testing.T) registry_domain.MetadataStore
-	SupportsArtefactLocker bool
-	SupportsRegistryInspector bool
-	SupportsRollback bool
+	NewStore                           func(t *testing.T) registry_domain.MetadataStore
+	SupportsArtefactLocker             bool
+	SupportsRegistryInspector          bool
+	SupportsRollback                   bool
 	SupportsNestedTransactionRejection bool
-	SupportsGCHints bool
-	SupportsSRIHashPersistence bool
-	SupportsReleasePublisher bool
+	SupportsGCHints                    bool
+	SupportsSRIHashPersistence         bool
+	SupportsReleasePublisher           bool
 }
 
 func RunStoreSuite(t *testing.T, config Config) {

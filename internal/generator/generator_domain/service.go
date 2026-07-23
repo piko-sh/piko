@@ -370,7 +370,7 @@ func (s *generatorService) EmitProject(
 	ctx, span, l := log.Span(ctx, "GeneratorService.EmitProject")
 	defer span.End()
 
-	if len(projectResult.ComponentResults) == 0 {
+	if projectResult == nil || len(projectResult.ComponentResults) == 0 {
 		l.Internal("No components found in the project, nothing to generate.")
 		return []*generator_dto.GeneratedArtefact{}, &generator_dto.Manifest{}, nil
 	}

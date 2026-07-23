@@ -49,7 +49,7 @@ import (
 )
 
 var (
-	seedTime = time.Unix(1_700_000_000, 0).UTC()
+	seedTime              = time.Unix(1_700_000_000, 0).UTC()
 	postgresSchemaCounter atomic.Int64
 )
 
