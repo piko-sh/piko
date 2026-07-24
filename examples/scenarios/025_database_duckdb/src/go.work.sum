@@ -170,3 +170,7 @@ modernc.org/strutil v1.2.0 h1:agBi9dp1I+eOnxXeiZawM8F4LawKv4NzGWSaLfyeNZA=
 modernc.org/strutil v1.2.0/go.mod h1:/mdcBmfOibveCTBxUl5B5l6W+TTH1FXPLHZE6bTosX0=
 modernc.org/token v1.1.0 h1:Xl7Ap9dKaEs5kLoOQeQmPWevfnk/DM5qcLcYlA8ys6Y=
 modernc.org/token v1.1.0/go.mod h1:UGzOrNV1mAFSEB63lOFHIpNRUVMvYTc6yu1SMY/XTDM=
+piko.sh/asmgen v0.1.0 h1:2/Lg8s98sI2t+BqyJPI/2tuozTs3PRqiS06j21pGU5I=
+piko.sh/asmgen v0.1.0/go.mod h1:h7RiEB1cHZVOKf+NKK/R+qyJHwSfgc2IFj8Qm2AUOF0=
+piko.sh/vectormaths v0.1.0 h1:+tyYDQ2jQiDL3fW6CixZtF8t34/KV5zXM6CVLyfdWQE=
+piko.sh/vectormaths v0.1.0/go.mod h1:zlk/lyiw/rweTRxm4wxVRzqP/alU9mQhs9zJuuA07e0=
