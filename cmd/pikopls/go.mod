@@ -11,8 +11,8 @@ require (
 	go.opentelemetry.io/otel v1.42.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/sync v0.20.0
-	piko.sh/piko v0.0.0
-	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0
+	piko.sh/piko v0.0.0-alpha.33
+	piko.sh/piko/wdk/json/json_provider_sonic v0.0.0-alpha.33
 )
 
 require (
