@@ -32,7 +32,7 @@ RUN go build -o "bin/generator" cmd/generator/main.go
 RUN bin/generator all
 
 RUN VERSION="${APP_VERSION:-$(cat /proc/sys/kernel/random/uuid)}" && \
-    VERSION="${VERSION// /_}" && \
+    VERSION="$(printf '%s' "$VERSION" | tr ' ' '_')" && \
     CGO_ENABLED=0 go build -tags piko_embed \
     -ldflags="-s -w -X main.Version=${VERSION}" \
     -o bin/my-app \
