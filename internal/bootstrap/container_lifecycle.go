@@ -112,6 +112,7 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 		WebsiteConfig:           c.websiteConfig,
 		WatcherAdapter:          config.WatcherAdapter,
 		ProductionMode:          c.isProductionMode(),
+		RegistryBlobsReadOnly:   c.registryBlobsReadOnly(),
 		RouterManager:           config.RouterManager,
 		TemplaterService:        config.TemplaterService,
 		InterpretedOrchestrator: config.InterpretedOrchestrator,

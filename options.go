@@ -3025,6 +3025,23 @@ func WithReleaseID(id string) Option {
 	return bootstrap.WithReleaseID(id)
 }
 
+// WithInMemoryRuntimeStore enables a bounded in-memory registry blob overlay.
+//
+// It suits a single-binary deploy with an embedded read-only base but no configured
+// object store, so assets rendered or derived after the release persist in memory and
+// serve unioned over the baked-in ones instead of failing read-only. The overlay is
+// ephemeral and bounded, evicting the least-useful blobs once the budget is exceeded and
+// losing its contents on restart, so configure a disk or object-store provider when
+// durability matters.
+//
+// Takes maxBytes (int64) which is the byte budget for stored blob data; a value of zero
+// or less uses the built-in default.
+//
+// Returns Option which enables the bounded in-memory runtime blob store.
+func WithInMemoryRuntimeStore(maxBytes int64) Option {
+	return bootstrap.WithInMemoryRuntimeStore(maxBytes)
+}
+
 // CaptchaOptions groups the captcha provider's per-deployment settings. The provider
 // implementation itself is selected via WithDefaultCaptchaProvider and registered via
 // WithCaptchaProvider.

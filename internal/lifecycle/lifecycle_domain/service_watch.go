@@ -30,10 +30,10 @@ import (
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // watchLoop processes file change events from the watcher channel until the context is
@@ -354,6 +354,12 @@ func (ls *lifecycleService) clearComponentCacheIfNeeded(fec fileEventContext) {
 // operation.
 func (ls *lifecycleService) upsertAssetArtefact(fec fileEventContext) {
 	ctx, l := logger_domain.From(fec.ctx, log)
+
+	if ls.registryBlobsReadOnly {
+		l.Trace("Registry blobs are read-only; skipping asset upsert (served from the embedded base)",
+			logger_domain.String(fieldPath, fec.relPath))
+		return
+	}
 
 	file, err := ls.fs.Open(fec.event.Path)
 	if err != nil {

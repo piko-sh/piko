@@ -396,6 +396,10 @@ type blobUploadResult struct {
 
 	// size is the blob size in bytes.
 	size int64
+
+	// reused reports that the blob's content was already present in the store, so no
+	// temporary blob was written and there is nothing to finalise.
+	reused bool
 }
 
 // incrementBlobRefCount increases the reference count for a blob.
@@ -510,14 +514,18 @@ func (s *registryService) processBlobUpdate(
 	if oldStorageKey == upload.finalKey {
 		l.Trace("Source content unchanged (hash is identical), skipping blob update.",
 			logger_domain.String(logKeyStorageKey, upload.finalKey))
-		_ = blobStore.Delete(ctx, upload.tempKey)
+		if !upload.reused {
+			_ = blobStore.Delete(ctx, upload.tempKey)
+		}
 		return existingArtefact.ActualVariants, nil
 	}
 
-	if err := finaliseBlobStorage(ctx, blobStore, upload.tempKey, upload.finalKey); err != nil {
-		l.Error("Failed to finalise blob storage", logger_domain.Error(err))
-		_ = blobStore.Delete(ctx, upload.tempKey)
-		return nil, fmt.Errorf("finalising blob storage for %q: %w", sourcePath, err)
+	if !upload.reused {
+		if err := finaliseBlobStorage(ctx, blobStore, upload.tempKey, upload.finalKey); err != nil {
+			l.Error("Failed to finalise blob storage", logger_domain.Error(err))
+			_ = blobStore.Delete(ctx, upload.tempKey)
+			return nil, fmt.Errorf("finalising blob storage for %q: %w", sourcePath, err)
+		}
 	}
 
 	if err := s.incrementBlobRefCount(ctx, store, upload, storageBackendID); err != nil {
@@ -1173,7 +1181,13 @@ func detectMimeType(sourcePath string) string {
 	return "application/octet-stream"
 }
 
-// uploadTempBlob uploads source data to a temporary location and computes its hash.
+// uploadTempBlob stores source data and computes its content hash, returning the keys and
+// hashes needed to finalise the blob.
+//
+// A seekable source is hashed first and skipped entirely when its content is already
+// stored, avoiding a redundant temporary write on every restart for content already baked
+// into the embedded base; every other source is streamed to a temporary key while it is
+// hashed in one pass.
 //
 // Takes blobStore (BlobStore) which provides storage for the blob data.
 // Takes sourceData (io.Reader) which supplies the data to upload.
@@ -1181,15 +1195,94 @@ func detectMimeType(sourcePath string) string {
 // extraction.
 // Takes mimeType (string) which specifies the content type of the blob.
 //
-// Returns *blobUploadResult which contains the temporary key, hash, size, final key, and
-// MIME type.
-// Returns error when the blob cannot be saved to the store.
+// Returns *blobUploadResult which contains the temporary key, hash, size, final key, MIME
+// type, and whether the content was already present.
+// Returns error when the blob cannot be hashed or saved to the store.
 func uploadTempBlob(
 	ctx context.Context,
 	blobStore BlobStore,
 	sourceData io.Reader,
 	sourcePath string,
 	mimeType string,
+) (*blobUploadResult, error) {
+	extension := filepath.Ext(sourcePath)
+	if seeker, ok := sourceData.(io.ReadSeeker); ok {
+		return uploadSeekableBlob(ctx, blobStore, seeker, extension, mimeType)
+	}
+	return uploadStreamingBlob(ctx, blobStore, sourceData, extension, mimeType)
+}
+
+// uploadSeekableBlob hashes a seekable source and, when the resulting content is already
+// in the store, returns a reused result without writing anything; otherwise it rewinds
+// and writes the source to a temporary key.
+//
+// Takes blobStore (BlobStore) which provides storage for the blob data.
+// Takes source (io.ReadSeeker) which supplies the rewindable data to upload.
+// Takes extension (string) which is the final key's file extension.
+// Takes mimeType (string) which specifies the content type of the blob.
+//
+// Returns *blobUploadResult which describes the blob and whether it was reused.
+// Returns error when hashing, rewinding, or writing fails.
+func uploadSeekableBlob(
+	ctx context.Context,
+	blobStore BlobStore,
+	source io.ReadSeeker,
+	extension, mimeType string,
+) (*blobUploadResult, error) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	contentHash, sriHash, size, err := hashSource(source)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := source.Seek(0, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("rewinding source blob: %w", err)
+	}
+
+	result := &blobUploadResult{
+		tempKey:  "",
+		hash:     contentHash,
+		sriHash:  sriHash,
+		finalKey: fmt.Sprintf("source/%s%s", contentHash, extension),
+		mimeType: mimeType,
+		size:     size,
+		reused:   false,
+	}
+
+	exists, existsErr := blobStore.Exists(ctx, result.finalKey)
+	if existsErr != nil {
+		l.Warn("Failed to check for an existing blob before upload, will write it",
+			logger_domain.Error(existsErr), logger_domain.String(logKeyStorageKey, result.finalKey))
+	} else if exists {
+		result.reused = true
+		registryServiceBlobDeduplicationHitCount.Add(ctx, 1)
+		return result, nil
+	}
+
+	tempKey := "tmp/" + uuid.NewString()
+	if err := blobStore.Put(ctx, tempKey, source); err != nil {
+		return nil, fmt.Errorf("failed to save source blob: %w", err)
+	}
+	result.tempKey = tempKey
+	return result, nil
+}
+
+// uploadStreamingBlob writes a non-seekable source to a temporary key while hashing it in
+// a single pass, since such a source cannot be rewound to check for an existing copy
+// first.
+//
+// Takes blobStore (BlobStore) which provides storage for the blob data.
+// Takes sourceData (io.Reader) which supplies the data to upload.
+// Takes extension (string) which is the final key's file extension.
+// Takes mimeType (string) which specifies the content type of the blob.
+//
+// Returns *blobUploadResult which describes the written blob.
+// Returns error when a hasher cannot be obtained or the store write fails.
+func uploadStreamingBlob(
+	ctx context.Context,
+	blobStore BlobStore,
+	sourceData io.Reader,
+	extension, mimeType string,
 ) (*blobUploadResult, error) {
 	tempKey := "tmp/" + uuid.NewString()
 
@@ -1224,10 +1317,45 @@ func uploadTempBlob(
 		tempKey:  tempKey,
 		hash:     contentHash,
 		sriHash:  sriHash,
-		size:     counter.total,
-		finalKey: fmt.Sprintf("source/%s%s", contentHash, filepath.Ext(sourcePath)),
+		finalKey: fmt.Sprintf("source/%s%s", contentHash, extension),
 		mimeType: mimeType,
+		size:     counter.total,
+		reused:   false,
 	}, nil
+}
+
+// hashSource reads a source to completion, returning its content hash, Subresource
+// Integrity hash, and byte size without writing it anywhere. The caller rewinds a
+// seekable source before reading it a second time.
+//
+// Takes source (io.Reader) which supplies the data to hash.
+//
+// Returns contentHash (string) which is the hex-encoded SHA-256 of the content.
+// Returns sriHash (string) which is the "sha384-<base64>" Subresource Integrity hash.
+// Returns size (int64) which is the number of bytes read.
+// Returns error when a hasher cannot be obtained or the source cannot be read.
+func hashSource(source io.Reader) (contentHash string, sriHash string, size int64, err error) {
+	sha256Hasher, ok := sha256Pool.Get().(hash.Hash)
+	if !ok {
+		return "", "", 0, errors.New("sha256Pool returned unexpected type")
+	}
+	defer sha256Pool.Put(sha256Hasher)
+	sha384Hasher, ok := sha384Pool.Get().(hash.Hash)
+	if !ok {
+		return "", "", 0, errors.New("sha384Pool returned unexpected type")
+	}
+	defer sha384Pool.Put(sha384Hasher)
+	sha256Hasher.Reset()
+	sha384Hasher.Reset()
+
+	counter := &writeCounter{}
+	if _, copyErr := io.Copy(io.MultiWriter(sha256Hasher, sha384Hasher, counter), source); copyErr != nil {
+		return "", "", 0, fmt.Errorf("hashing source blob: %w", copyErr)
+	}
+
+	contentHash = fmt.Sprintf("%x", sha256Hasher.Sum(nil))
+	sriHash = "sha384-" + base64.StdEncoding.EncodeToString(sha384Hasher.Sum(nil))
+	return contentHash, sriHash, counter.total, nil
 }
 
 // finaliseBlobStorage moves a temporary blob to its final storage location. If a copy

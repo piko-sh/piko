@@ -2549,6 +2549,10 @@ func TestAggregateState(t *testing.T) {
 	}
 }
 
+type nonSeekableReader struct {
+	io.Reader
+}
+
 func TestRegistryService_UpsertArtefact_LifecycleErrors(t *testing.T) {
 	artefactID := "test-artefact"
 	sourcePath := "path/to/source.js"
@@ -2600,7 +2604,7 @@ func TestRegistryService_UpsertArtefact_LifecycleErrors(t *testing.T) {
 		require.NotNil(t, artefact)
 	})
 
-	t.Run("Blob deduplication hit deletes temp", func(t *testing.T) {
+	t.Run("Seekable blob deduplication hit skips the write", func(t *testing.T) {
 		f := setupTest()
 		f.metaStore.GetArtefactFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
 			return nil, registry_domain.ErrArtefactNotFound
@@ -2619,8 +2623,33 @@ func TestRegistryService_UpsertArtefact_LifecycleErrors(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
+		assert.Equal(t, int64(0), f.blobStore.PutCallCount.Load(), "a seekable source found to already exist must not write a temporary blob")
 		assert.Equal(t, int64(0), f.blobStore.RenameCallCount.Load())
-		assert.True(t, f.blobStore.DeleteCallCount.Load() > 0)
+		assert.Equal(t, int64(0), f.blobStore.DeleteCallCount.Load(), "nothing is written, so nothing is deleted")
+	})
+
+	t.Run("Streaming blob deduplication hit deletes temp", func(t *testing.T) {
+		f := setupTest()
+		f.metaStore.GetArtefactFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			return nil, registry_domain.ErrArtefactNotFound
+		}
+		f.blobStore.PutFunc = func(_ context.Context, _ string, r io.Reader) error {
+			_, _ = io.Copy(io.Discard, r)
+			return nil
+		}
+		f.blobStore.ExistsFunc = func(_ context.Context, _ string) (bool, error) { return true, nil }
+		f.metaStore.IncrementBlobRefCountFunc = func(_ context.Context, _ registry_domain.BlobReference) (int, error) {
+			return 2, nil
+		}
+		f.metaStore.AtomicUpdateFunc = func(_ context.Context, _ []registry_dto.AtomicAction) error { return nil }
+
+		artefact, err := f.service.UpsertArtefact(f.testContext, artefactID, sourcePath, nonSeekableReader{strings.NewReader(sourceData)}, storageBackendID, desiredProfiles)
+
+		require.NoError(t, err)
+		require.NotNil(t, artefact)
+		assert.Positive(t, f.blobStore.PutCallCount.Load(), "a non-seekable source is streamed to a temporary blob")
+		assert.Equal(t, int64(0), f.blobStore.RenameCallCount.Load())
+		assert.Positive(t, f.blobStore.DeleteCallCount.Load(), "the temporary blob is deleted once the final blob is found to exist")
 	})
 
 	t.Run("Skips upsert when profiles match", func(t *testing.T) {

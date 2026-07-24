@@ -95,6 +95,25 @@ func NewServer(mode string, extras ...Option) *Server {
 			piko.WithDevHotreload(),
 		)
 	}
+
+	// A production single-binary build embeds the release assets as a
+	// read-only base. Without a writable overlay the runtime serves those
+	// baked-in assets read-only, which is fine for a purely static site. To
+	// persist assets rendered or derived after the release (and to keep an
+	// older release's assets servable during a rolling deploy), register a
+	// writable blob store as the registry "system" overlay and back
+	// .piko/blobs with a mounted volume for durability. Add the
+	// storage_provider_disk import and uncomment to enable:
+	//
+	// if mode == RunModeProd {
+	//     blobStore, err := storage_provider_disk.NewDiskProvider(
+	//         storage_provider_disk.Config{BaseDirectory: ".piko/blobs"})
+	//     if err != nil {
+	//         panic("failed to create registry blob storage provider: " + err.Error())
+	//     }
+	//     opts = append(opts, piko.WithSystemStorageProvider(blobStore))
+	// }
+
 	opts = append(opts, extras...)
 	return piko.New(opts...)
 }

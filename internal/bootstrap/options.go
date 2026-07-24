@@ -1881,3 +1881,16 @@ func WithReleaseID(id string) Option {
 		c.releaseIDOverride = id
 	}
 }
+
+// WithInMemoryRuntimeStore enables a bounded in-memory registry blob overlay.
+//
+// Takes maxBytes (int64) which is the byte budget for stored blob data; a value of zero
+// or less uses the built-in default.
+//
+// Returns Option which enables the bounded in-memory runtime blob store.
+func WithInMemoryRuntimeStore(maxBytes int64) Option {
+	return func(c *Container) {
+		c.inMemoryRuntimeStoreEnabled = true
+		c.inMemoryRuntimeStoreBytes = maxBytes
+	}
+}

@@ -31,7 +31,6 @@ import (
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/config"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/persistence"
 	"piko.sh/piko/internal/registry/registry_adapters"
@@ -48,10 +47,12 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_disk"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_fs"
+	"piko.sh/piko/internal/storage/storage_adapters/provider_memory"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_union"
 	"piko.sh/piko/internal/storage/storage_adapters/registry_blob_adapter"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -59,6 +60,10 @@ const (
 	// defaultRegistryCapacity is the default maximum number of registry artefacts to store
 	// in the embedded cache.
 	defaultRegistryCapacity = 100_000
+
+	// defaultInMemoryRuntimeStoreBytes is the byte budget for the in-memory registry blob
+	// overlay when WithInMemoryRuntimeStore is enabled without an explicit limit.
+	defaultInMemoryRuntimeStoreBytes int64 = 128 << 20
 
 	// registryReleaseHeartbeatInterval is how often a node advances its release's lease
 	// heartbeat so a reaper on a shared backend knows the release is still live.
@@ -784,6 +789,21 @@ func (c *Container) buildBlobOverlay(hasBase bool) (storage_domain.StorageProvid
 		return provider, nil
 	}
 
+	if c.inMemoryRuntimeStoreEnabled {
+		maxBytes := c.inMemoryRuntimeStoreBytes
+		if maxBytes <= 0 {
+			maxBytes = defaultInMemoryRuntimeStoreBytes
+		}
+		provider, err := provider_memory.New(provider_memory.Config{MaxBytes: maxBytes})
+		if err != nil {
+			return nil, fmt.Errorf("creating in-memory registry blob overlay: %w", err)
+		}
+		l.Internal("Using bounded in-memory registry blob overlay (ephemeral, evicts under pressure)",
+			logger_domain.Int64("maxBytes", maxBytes))
+		c.registerBlobOverlayShutdown(provider)
+		return provider, nil
+	}
+
 	if hasBase {
 		return nil, nil
 	}
@@ -801,7 +821,24 @@ func (c *Container) buildBlobOverlay(hasBase bool) (storage_domain.StorageProvid
 	if err != nil {
 		return nil, fmt.Errorf("failed to create built-in disk provider for blobs: %w", err)
 	}
+	c.registerBlobOverlayShutdown(diskProvider)
 	return diskProvider, nil
+}
+
+// registerBlobOverlayShutdown registers a shutdown handler that closes a
+// container-created blob overlay.
+//
+// Only overlays the container builds itself (the in-memory and disk providers) are
+// registered, so the in-memory overlay's cache goroutines are released on shutdown.
+// Caller-supplied providers are already closed by AddStorageProvider, so registering them
+// again would double close.
+//
+// Takes provider (storage_domain.StorageProviderPort) which is the container-created
+// overlay to close.
+func (c *Container) registerBlobOverlayShutdown(provider storage_domain.StorageProviderPort) {
+	shutdown.Register(c.GetAppContext(), "RegistryBlobOverlay", func(shutdownCtx context.Context) error {
+		return provider.Close(shutdownCtx)
+	})
 }
 
 // GetRenderRegistry returns the component render registry, creating it if necessary.

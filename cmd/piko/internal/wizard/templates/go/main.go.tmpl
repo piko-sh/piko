@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"{{ .ModuleName }}/internal"
+	"piko.sh/piko"
 	"piko.sh/piko/wdk/logger"
 
 {{- if .EnableInterpreted }}
@@ -14,6 +15,10 @@ import (
 	_ "{{ .ModuleName }}/dist"
 )
 
+// Version is the release identity stamped into the binary at build time via
+// -ldflags "-X main.Version=...".
+var Version string
+
 func main() {
 	logger.AddPrettyOutput() // Uses LOG_LEVEL env var, defaults to INFO
 
@@ -22,7 +27,12 @@ func main() {
 		command = os.Args[1]
 	}
 
-	ssr := internal.NewServer(command)
+	var extras []internal.Option
+	if Version != "" {
+		extras = append(extras, piko.WithReleaseID(Version))
+	}
+
+	ssr := internal.NewServer(command, extras...)
 
 {{- if .EnableInterpreted }}
 

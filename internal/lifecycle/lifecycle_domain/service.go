@@ -39,7 +39,6 @@ import (
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -47,6 +46,7 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -181,6 +181,11 @@ type lifecycleService struct {
 	// productionMode reports whether this is a compiled production run, in which external
 	// component source is not present and re-seeding it from disk is redundant.
 	productionMode bool
+
+	// registryBlobsReadOnly reports whether registry blob storage resolves to the read-only
+	// embedded base with no writable overlay. When true the initial seed skips artefact
+	// writes, since the content is already baked into the base and the writes would fail.
+	registryBlobsReadOnly bool
 }
 
 // LifecycleServiceDeps contains all dependencies needed to create a LifecycleService.
@@ -252,6 +257,11 @@ type LifecycleServiceDeps struct {
 	// ProductionMode reports whether this is a compiled production run, which skips
 	// re-seeding external components from source that is not present in the image.
 	ProductionMode bool
+
+	// RegistryBlobsReadOnly reports whether registry blob storage is the read-only embedded
+	// base with no writable overlay, so the initial seed skips artefact writes that would
+	// fail and serves the baked-in assets instead.
+	RegistryBlobsReadOnly bool
 }
 
 // Start begins the lifecycle management: file watching and build notification handling.
@@ -373,6 +383,13 @@ func (ls *lifecycleService) RunInitialTasks(ctx context.Context) error {
 	defer span.End()
 
 	l.Internal("Running initial tasks...")
+
+	if ls.registryBlobsReadOnly {
+		l.Warn("Registry blob storage is read-only (embedded build with no writable overlay); " +
+			"runtime asset writes are skipped and the baked-in release assets are served as-is. " +
+			"Register a writable blob store (piko.WithSystemStorageProvider) to persist assets " +
+			"rendered or derived after the release.")
+	}
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, initialTaskErrChanBuffer)
@@ -643,6 +660,11 @@ func (ls *lifecycleService) seedThemeArtefact(ctx context.Context) error {
 
 	l.Internal("Seeding theme.css artefact into registry...")
 
+	if ls.registryBlobsReadOnly {
+		l.Internal("Registry blobs are read-only; skipping theme.css re-seed (served from the embedded base)")
+		return nil
+	}
+
 	if ls.renderer == nil {
 		l.Internal("No renderer available, skipping theme artefact seeding")
 		return nil
@@ -675,6 +697,11 @@ func (ls *lifecycleService) seedThemeArtefact(ctx context.Context) error {
 func (ls *lifecycleService) seedCaptchaInitScripts(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "seedCaptchaInitScripts")
 	defer span.End()
+
+	if ls.registryBlobsReadOnly {
+		l.Internal("Registry blobs are read-only; skipping captcha init script re-seed (served from the embedded base)")
+		return nil
+	}
 
 	if ls.captchaService == nil || !ls.captchaService.IsEnabled() {
 		l.Internal("Captcha service not configured, skipping init script seeding")
@@ -1015,6 +1042,7 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 		websiteConfig:           deps.WebsiteConfig,
 		watcherAdapter:          deps.WatcherAdapter,
 		productionMode:          deps.ProductionMode,
+		registryBlobsReadOnly:   deps.RegistryBlobsReadOnly,
 		registryService:         deps.RegistryService,
 		coordinatorService:      deps.CoordinatorService,
 		resolver:                deps.Resolver,

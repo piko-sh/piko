@@ -821,6 +821,10 @@ type Container struct {
 	// hybrid-collections cache.
 	hybridCacheMaxBytesOverride uint64
 
+	// inMemoryRuntimeStoreBytes is the byte budget for the opt-in in-memory registry blob
+	// overlay, used only when inMemoryRuntimeStoreEnabled is set.
+	inMemoryRuntimeStoreBytes int64
+
 	// capabilityOnce guards single initialisation of the capability service.
 	capabilityOnce sync.Once
 
@@ -944,6 +948,10 @@ type Container struct {
 
 	// hasStorageDispatcher indicates whether a storage dispatcher has been set up.
 	hasStorageDispatcher bool
+
+	// inMemoryRuntimeStoreEnabled reports whether the opt-in bounded in-memory registry blob
+	// overlay is used when no other writable blob store is configured.
+	inMemoryRuntimeStoreEnabled bool
 
 	// hasNotificationDispatcher indicates whether a notification dispatcher has been set up.
 	hasNotificationDispatcher bool
@@ -1611,13 +1619,13 @@ func (c *Container) StartGeneratorProfiling() func() {
 // embedded filesystem.
 //
 // True for an embedded boot with no writable storage provider registered (embeddedPikoFS
-// is set). This mirrors getRegistryBlobProvider's fall-through to the embedded fs.FS.
-// On-demand variant generation cannot persist in that case, so callers skip it and fall
-// back to the baked source asset.
+// is set) and no in-memory runtime store enabled. This mirrors getRegistryBlobProvider's
+// fall-through to the embedded fs.FS. On-demand variant generation cannot persist in that
+// case, so callers skip it and fall back to the baked source asset.
 //
 // Returns bool which is true when registry blob writes would fail (read-only).
 func (c *Container) registryBlobsReadOnly() bool {
-	return c.embeddedPikoFS != nil && len(c.storageProviders) == 0
+	return c.embeddedPikoFS != nil && len(c.storageProviders) == 0 && !c.inMemoryRuntimeStoreEnabled
 }
 
 // isProductionMode reports whether the container is running a compiled production build

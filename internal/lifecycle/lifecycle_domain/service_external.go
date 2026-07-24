@@ -28,8 +28,8 @@ import (
 	"strings"
 	"sync"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // resolveExternalComponentDirs resolves unique ModulePath values from external component
@@ -89,6 +89,12 @@ func (ls *lifecycleService) resolveExternalComponentDirs(ctx context.Context) ma
 //
 // Takes limiter (chan struct{}) which controls concurrency.
 func (ls *lifecycleService) seedExternalComponentFiles(ctx context.Context, limiter chan struct{}) {
+	if ls.registryBlobsReadOnly {
+		_, l := logger_domain.From(ctx, log)
+		l.Internal("Registry blobs are read-only; skipping external component and asset seed (served from the embedded base)")
+		return
+	}
+
 	dirMap := ls.resolveExternalComponentDirs(ctx)
 	for absDir, modulePath := range dirMap {
 		if ctx.Err() != nil {
