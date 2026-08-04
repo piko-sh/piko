@@ -44,6 +44,7 @@ require (
 	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/tools v0.43.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	piko.sh/vectormaths v0.1.0 // indirect
 )
 
 // This replace directive is crucial for local testing, pointing to your project root.

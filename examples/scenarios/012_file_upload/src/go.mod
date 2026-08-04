@@ -107,6 +107,7 @@ require (
 	golang.org/x/tools v0.43.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	piko.sh/vectormaths v0.1.0 // indirect
 )
 
 replace piko.sh/piko => ../../../../

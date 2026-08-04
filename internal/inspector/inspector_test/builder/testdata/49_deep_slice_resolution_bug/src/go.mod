@@ -4,18 +4,6 @@ go 1.26.0
 
 require piko.sh/piko v0.0.0
 
-require (
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/klauspost/compress v1.18.5 // indirect
-	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel v1.43.0 // indirect
-	go.opentelemetry.io/otel/metric v1.43.0 // indirect
-	go.opentelemetry.io/otel/trace v1.43.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-)
-
 // These are transitive dependencies of piko, needed for `go mod tidy` to work.
 require (
 	github.com/bojanz/currency v1.4.2 // indirect
