@@ -162,6 +162,136 @@ describe('fragmentMorpher', () => {
         });
     });
 
+    describe('Duplicate Keys', () => {
+        const getKey = (node: Node) => {
+            if (node.nodeType === 1) {
+                const id = (node as HTMLElement).id;
+                return id ? id : null;
+            }
+            return null;
+        };
+        const opts = { getNodeKey: getKey };
+
+        it('should not duplicate nodes when several children share a key', () => {
+            setup('<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p><p id="uniq">D</p></div>');
+
+            fragmentMorpher(
+                fromEl,
+                '<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p><p id="uniq">D</p></div>',
+                opts
+            );
+
+            expect(fromEl.children.length).toBe(4);
+            expect([...fromEl.children].map(c => c.textContent)).toEqual(['A', 'B', 'C', 'D']);
+        });
+
+        it('should stay stable when morphed repeatedly with duplicate keys', () => {
+            setup('<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p></div>');
+
+            for (let i = 0; i < 3; i++) {
+                fragmentMorpher(fromEl, '<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p></div>', opts);
+            }
+
+            expect(fromEl.children.length).toBe(3);
+            expect([...fromEl.children].map(c => c.textContent)).toEqual(['A', 'B', 'C']);
+        });
+
+        it('should still shrink the list when duplicate-keyed children are removed', () => {
+            setup('<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p></div>');
+
+            fragmentMorpher(fromEl, '<div><p id="dup">A</p></div>', opts);
+
+            expect(fromEl.children.length).toBe(1);
+            expect(fromEl.children[0].textContent).toBe('A');
+        });
+
+        it('should preserve node identity across duplicate-keyed children', () => {
+            setup('<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p></div>');
+            const [a, b, c] = [...fromEl.children];
+
+            fragmentMorpher(fromEl, '<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p></div>', opts);
+
+            expect(fromEl.children[0]).toBe(a);
+            expect(fromEl.children[1]).toBe(b);
+            expect(fromEl.children[2]).toBe(c);
+        });
+
+        it('should not re-run lifecycle hooks for unchanged duplicate-keyed children', () => {
+            setup('<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p></div>');
+            const onNodeAdded = vi.fn();
+            const onNodeDiscarded = vi.fn();
+
+            fragmentMorpher(fromEl, '<div><p id="dup">A</p><p id="dup">B</p><p id="dup">C</p></div>', {
+                ...opts,
+                onNodeAdded,
+                onNodeDiscarded,
+            });
+
+            expect(onNodeAdded).not.toHaveBeenCalled();
+            expect(onNodeDiscarded).not.toHaveBeenCalled();
+        });
+
+        const duplicateWarningsFor = (calls: unknown[][], key: string) =>
+            calls.filter(([msg]) => typeof msg === 'string' && msg.includes(`duplicate key "${key}"`));
+
+        it('should warn once per duplicated key rather than on every morph', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            setup('<div><p id="dup">A</p><p id="dup">B</p></div>');
+
+            for (let i = 0; i < 3; i++) {
+                fragmentMorpher(fromEl, '<div><p id="dup">A</p><p id="dup">B</p></div>', opts);
+            }
+
+            expect(duplicateWarningsFor(warn.mock.calls, 'dup')).toHaveLength(1);
+            warn.mockRestore();
+        });
+
+        it('should report a given element only once even if several keys duplicate', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const markup = '<div><p id="x">A</p><p id="x">B</p><p id="y">C</p><p id="y">D</p></div>';
+            setup(markup);
+
+            fragmentMorpher(fromEl, markup, opts);
+
+            const allDuplicateWarnings = warn.mock.calls.filter(
+                ([msg]) => typeof msg === 'string' && msg.includes('duplicate key')
+            );
+            expect(allDuplicateWarnings).toHaveLength(1);
+            warn.mockRestore();
+        });
+
+        it('should warn separately for each element that duplicates the same key', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+            const markup = '<div><p id="dup">A</p><p id="dup">B</p></div>';
+            const firstHost = document.createElement('div');
+            firstHost.innerHTML = markup;
+            const secondHost = document.createElement('div');
+            secondHost.innerHTML = markup;
+            document.body.append(firstHost, secondHost);
+
+            fragmentMorpher(firstHost.firstChild as HTMLElement, markup, opts);
+            fragmentMorpher(secondHost.firstChild as HTMLElement, markup, opts);
+
+            expect(duplicateWarningsFor(warn.mock.calls, 'dup')).toHaveLength(2);
+
+            firstHost.remove();
+            secondHost.remove();
+            warn.mockRestore();
+        });
+
+        it('should keep live state on duplicate-keyed children that hold focus', () => {
+            setup('<div><input id="dup" value="A"><input id="dup" value="B"></div>');
+            const second = fromEl.children[1] as HTMLInputElement;
+            second.focus();
+
+            fragmentMorpher(fromEl, '<div><input id="dup" value="A"><input id="dup" value="B"></div>', opts);
+
+            expect(fromEl.children[1]).toBe(second);
+            expect(document.activeElement).toBe(second);
+        });
+    });
+
     describe('Mixed Keyed and Un-keyed Children', () => {
         const getKey = (node: Node) => {
             if (node.nodeType === 1) {
@@ -923,8 +1053,8 @@ describe('fragmentMorpher', () => {
             fragmentMorpher(fromEl, '<div style="color: blue; font-weight: bold;"></div>');
 
             expect(fromEl.style.color).toBe('blue');
-            expect(fromEl.style.fontSize).toBe(''); 
-            expect(fromEl.style.fontWeight).toBe('bold'); 
+            expect(fromEl.style.fontSize).toBe('');
+            expect(fromEl.style.fontWeight).toBe('bold');
         });
     });
 
@@ -1262,10 +1392,10 @@ describe('fragmentMorpher', () => {
         it('should handle refresh attributes with attribute changes only', () => {
             setup(`
                 <div pk-no-refresh>
-                    <button 
-                        id="btn1" 
-                        class="btn" 
-                        data-count="0" 
+                    <button
+                        id="btn1"
+                        class="btn"
+                        data-count="0"
                         aria-pressed="false"
                         pk-refresh
                     >
@@ -1276,10 +1406,10 @@ describe('fragmentMorpher', () => {
 
             fragmentMorpher(fromEl, `
                 <div pk-no-refresh>
-                    <button 
-                        id="btn1" 
-                        class="btn active" 
-                        data-count="1" 
+                    <button
+                        id="btn1"
+                        class="btn active"
+                        data-count="1"
                         aria-pressed="true"
                         pk-refresh
                     >

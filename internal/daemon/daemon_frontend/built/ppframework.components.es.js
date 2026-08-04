@@ -324,9 +324,6 @@ function combineStyles(staticStyle, dynamicStyle) {
 }
 const SVG_NS = "http://www.w3.org/2000/svg";
 const FOREIGN_OBJECT_TAG = "foreignobject";
-function isSvgParent(parent) {
-  return parent instanceof Element && parent.namespaceURI === SVG_NS && parent.localName.toLowerCase() !== FOREIGN_OBJECT_TAG;
-}
 const elementReplacements = /* @__PURE__ */ new WeakMap();
 function registerElementReplacement(originalElement, replacementElement, options) {
   const entry = {
@@ -985,6 +982,9 @@ function toggleListener(htmlElement, eventName, handler, add, listenerOptions) {
   } else if (typeof handler === "function") {
     htmlElement[method](eventName, handler, options);
   }
+}
+function isSvgParent(parent) {
+  return parent instanceof Element && parent.namespaceURI === SVG_NS && parent.localName.toLowerCase() !== FOREIGN_OBJECT_TAG;
 }
 function propertyToAttributeName(propertyName) {
   return propertyName.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);

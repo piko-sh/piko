@@ -31,6 +31,9 @@ const DOCUMENT_FRAGMENT_NODE = 11;
 /** Reference to the document object, undefined in non-browser environments. */
 const doc = typeof document === 'undefined' ? undefined : document;
 
+/** Parents already reported as having duplicate keys among their children. */
+const parentsWithReportedDuplicateKeys = new WeakSet<HTMLElement>();
+
 /**
  * Walk an inserted subtree and force-upgrade any custom elements within it.
  *
@@ -567,6 +570,25 @@ function isSignificantNode(node: Node): boolean {
 }
 
 /**
+ * Warn the first time two children of a parent claim the same key.
+ *
+ * @param parent - The element whose children collided.
+ * @param key - The duplicated key.
+ */
+function warnDuplicateKey(parent: HTMLElement, key: NonNullable<NodeKey>): void {
+    if (parentsWithReportedDuplicateKeys.has(parent)) {
+        return;
+    }
+    parentsWithReportedDuplicateKeys.add(parent);
+    console.warn(
+        `[fragmentMorpher] duplicate key "${key}" among sibling nodes. Morphing will pair ` +
+        `them by document order, but keys should be unique - check the p-key expression ` +
+        `for this list.`,
+        parent
+    );
+}
+
+/**
  * Build keyed and unkeyed maps from the existing children of an element,
  * skipping whitespace-only text nodes and non-standard node types.
  *
@@ -577,8 +599,8 @@ function isSignificantNode(node: Node): boolean {
 function buildFromNodeMaps(
     fromEl: HTMLElement,
     getNodeKey: (node: Node) => NodeKey
-): { fromNodesByKey: Map<NodeKey, Node>; unkeyedFromNodes: Node[] } {
-    const fromNodesByKey = new Map<NodeKey, Node>();
+): { fromNodesByKey: Map<NodeKey, Node[]>; unkeyedFromNodes: Node[] } {
+    const fromNodesByKey = new Map<NodeKey, Node[]>();
     const unkeyedFromNodes: Node[] = [];
 
     for (const child of Array.from(fromEl.childNodes)) {
@@ -586,10 +608,16 @@ function buildFromNodeMaps(
             continue;
         }
         const key = getNodeKey(child) as NodeKey;
-        if (key !== null) {
-            fromNodesByKey.set(key, child);
-        } else {
+        if (key === null) {
             unkeyedFromNodes.push(child);
+            continue;
+        }
+        const existing = fromNodesByKey.get(key);
+        if (existing) {
+            existing.push(child);
+            warnDuplicateKey(fromEl, key);
+        } else {
+            fromNodesByKey.set(key, [child]);
         }
     }
 
@@ -606,7 +634,7 @@ function buildFromNodeMaps(
  * @param options - The morph configuration options.
  */
 function discardUnmatchedNodes(
-    fromNodesByKey: Map<NodeKey, Node>,
+    fromNodesByKey: Map<NodeKey, Node[]>,
     unkeyedFromNodes: Node[],
     unkeyedFromIndex: number,
     skippedUnkeyed: Node[],
@@ -622,7 +650,7 @@ function discardUnmatchedNodes(
         }
     };
 
-    fromNodesByKey.forEach(discard);
+    fromNodesByKey.forEach(nodes => nodes.forEach(discard));
     for (const skipped of skippedUnkeyed) {
         discard(skipped);
     }
@@ -635,8 +663,8 @@ function discardUnmatchedNodes(
  * State tracked across the child-matching loop.
  */
 interface ChildMatchState {
-    /** The keyed from-node map. */
-    fromNodesByKey: Map<NodeKey, Node>;
+    /** The keyed from-nodes, in document order. */
+    fromNodesByKey: Map<NodeKey, Node[]>;
     /** The unkeyed from-nodes array. */
     unkeyedFromNodes: Node[];
     /** Current index into the unkeyed array. */
@@ -662,9 +690,12 @@ function findFromMatch(
     const toKey = getNodeKey(toChild) as NodeKey;
 
     if (toKey !== null) {
-        const match = state.fromNodesByKey.get(toKey);
-        if (match) {
-            state.fromNodesByKey.delete(toKey);
+        const matches = state.fromNodesByKey.get(toKey);
+        if (matches && matches.length > 0) {
+            const match = matches.shift() as Node;
+            if (matches.length === 0) {
+                state.fromNodesByKey.delete(toKey);
+            }
             return match;
         }
         return null;

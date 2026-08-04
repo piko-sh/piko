@@ -3,6 +3,7 @@ const TEXT_NODE = 3;
 const COMMENT_NODE = 8;
 const DOCUMENT_FRAGMENT_NODE = 11;
 const doc = typeof document === "undefined" ? void 0 : document;
+const parentsWithReportedDuplicateKeys = /* @__PURE__ */ new WeakSet();
 function upgradeCustomElements(node) {
   if (typeof customElements === "undefined" || typeof customElements.upgrade !== "function") {
     return;
@@ -260,6 +261,16 @@ function morphAttrs(fromEl, toEl, options) {
 function isSignificantNode(node) {
   return node.nodeType === ELEMENT_NODE || node.nodeType === TEXT_NODE || node.nodeType === COMMENT_NODE;
 }
+function warnDuplicateKey(parent, key) {
+  if (parentsWithReportedDuplicateKeys.has(parent)) {
+    return;
+  }
+  parentsWithReportedDuplicateKeys.add(parent);
+  console.warn(
+    `[fragmentMorpher] duplicate key "${key}" among sibling nodes. Morphing will pair them by document order, but keys should be unique - check the p-key expression for this list.`,
+    parent
+  );
+}
 function buildFromNodeMaps(fromEl, getNodeKey2) {
   const fromNodesByKey = /* @__PURE__ */ new Map();
   const unkeyedFromNodes = [];
@@ -268,10 +279,16 @@ function buildFromNodeMaps(fromEl, getNodeKey2) {
       continue;
     }
     const key = getNodeKey2(child);
-    if (key !== null) {
-      fromNodesByKey.set(key, child);
-    } else {
+    if (key === null) {
       unkeyedFromNodes.push(child);
+      continue;
+    }
+    const existing = fromNodesByKey.get(key);
+    if (existing) {
+      existing.push(child);
+      warnDuplicateKey(fromEl, key);
+    } else {
+      fromNodesByKey.set(key, [child]);
     }
   }
   return { fromNodesByKey, unkeyedFromNodes };
@@ -286,7 +303,7 @@ function discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, unkeyedFromInde
       options.onNodeDiscarded?.(nodeToDiscard);
     }
   };
-  fromNodesByKey.forEach(discard);
+  fromNodesByKey.forEach((nodes) => nodes.forEach(discard));
   for (const skipped of skippedUnkeyed) {
     discard(skipped);
   }
@@ -297,9 +314,12 @@ function discardUnmatchedNodes(fromNodesByKey, unkeyedFromNodes, unkeyedFromInde
 function findFromMatch(toChild, state, getNodeKey2) {
   const toKey = getNodeKey2(toChild);
   if (toKey !== null) {
-    const match = state.fromNodesByKey.get(toKey);
-    if (match) {
-      state.fromNodesByKey.delete(toKey);
+    const matches = state.fromNodesByKey.get(toKey);
+    if (matches && matches.length > 0) {
+      const match = matches.shift();
+      if (matches.length === 0) {
+        state.fromNodesByKey.delete(toKey);
+      }
       return match;
     }
     return null;
@@ -683,62 +703,6 @@ function partial(nameOrElement) {
 }
 const listeners = /* @__PURE__ */ new Map();
 const REACTIVE_RAW = /* @__PURE__ */ Symbol.for("piko.reactivity.rawTarget");
-function toRaw(value) {
-  const raw = value[REACTIVE_RAW];
-  return raw === void 0 ? value : raw;
-}
-function isPlainObject(value) {
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
-}
-function snapshot(value, seen) {
-  if (value === null || typeof value !== "object") {
-    return value;
-  }
-  const raw = toRaw(value);
-  if (seen.has(raw)) {
-    return seen.get(raw);
-  }
-  if (Array.isArray(raw)) {
-    const copy = [];
-    seen.set(raw, copy);
-    for (let index = 0; index < raw.length; index++) {
-      copy[index] = snapshot(raw[index], seen);
-    }
-    return copy;
-  }
-  if (raw instanceof Date) {
-    return new Date(raw.getTime());
-  }
-  if (raw instanceof RegExp) {
-    return new RegExp(raw.source, raw.flags);
-  }
-  if (raw instanceof Map) {
-    const copy = /* @__PURE__ */ new Map();
-    seen.set(raw, copy);
-    for (const [entryKey, entryValue] of raw) {
-      copy.set(snapshot(entryKey, seen), snapshot(entryValue, seen));
-    }
-    return copy;
-  }
-  if (raw instanceof Set) {
-    const copy = /* @__PURE__ */ new Set();
-    seen.set(raw, copy);
-    for (const entryValue of raw) {
-      copy.add(snapshot(entryValue, seen));
-    }
-    return copy;
-  }
-  if (isPlainObject(raw)) {
-    const copy = {};
-    seen.set(raw, copy);
-    for (const key of Object.keys(raw)) {
-      copy[key] = snapshot(raw[key], seen);
-    }
-    return copy;
-  }
-  return raw;
-}
 const bus = {
   /**
    * Emits an event to all listeners.
@@ -815,6 +779,62 @@ const bus = {
     }
   }
 };
+function toRaw(value) {
+  const raw = value[REACTIVE_RAW];
+  return raw === void 0 ? value : raw;
+}
+function isPlainObject(value) {
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+function snapshot(value, seen) {
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  const raw = toRaw(value);
+  if (seen.has(raw)) {
+    return seen.get(raw);
+  }
+  if (Array.isArray(raw)) {
+    const copy = [];
+    seen.set(raw, copy);
+    for (let index = 0; index < raw.length; index++) {
+      copy[index] = snapshot(raw[index], seen);
+    }
+    return copy;
+  }
+  if (raw instanceof Date) {
+    return new Date(raw.getTime());
+  }
+  if (raw instanceof RegExp) {
+    return new RegExp(raw.source, raw.flags);
+  }
+  if (raw instanceof Map) {
+    const copy = /* @__PURE__ */ new Map();
+    seen.set(raw, copy);
+    for (const [entryKey, entryValue] of raw) {
+      copy.set(snapshot(entryKey, seen), snapshot(entryValue, seen));
+    }
+    return copy;
+  }
+  if (raw instanceof Set) {
+    const copy = /* @__PURE__ */ new Set();
+    seen.set(raw, copy);
+    for (const entryValue of raw) {
+      copy.add(snapshot(entryValue, seen));
+    }
+    return copy;
+  }
+  if (isPlainObject(raw)) {
+    const copy = {};
+    seen.set(raw, copy);
+    for (const key of Object.keys(raw)) {
+      copy[key] = snapshot(raw[key], seen);
+    }
+    return copy;
+  }
+  return raw;
+}
 const navigationGuards = [];
 function parseQuery(search) {
   const params = new URLSearchParams(search);
