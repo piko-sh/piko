@@ -496,7 +496,7 @@ func (p *NATSProvider) createPublisher() (message.Publisher, error) {
 		pubConfig.JetStream = nats.JetStreamConfig{
 			Disabled:       false,
 			AutoProvision:  p.config.JetStream.AutoProvision,
-			TrackMsgId:     p.config.JetStream.TrackMessageID, //nolint:revive // external library naming
+			TrackMsgID:     p.config.JetStream.TrackMessageID,
 			PublishOptions: p.config.JetStream.PublishOptions,
 		}
 	} else {

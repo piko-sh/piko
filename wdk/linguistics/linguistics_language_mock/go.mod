@@ -10,4 +10,4 @@ require (
 	piko.sh/piko/wdk/linguistics/linguistics_stopwords_mock v0.0.0
 )
 
-require golang.org/x/text v0.35.0 // indirect
+require golang.org/x/text v0.40.0 // indirect

@@ -34,8 +34,8 @@ require (
 	github.com/kljensen/snowball v0.10.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_english v0.0.0 // indirect
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_french v0.0.0 // indirect

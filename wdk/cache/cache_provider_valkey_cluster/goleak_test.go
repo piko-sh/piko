@@ -27,6 +27,6 @@ import (
 
 func TestMain(m *testing.M) {
 	leakcheck.VerifyTestMain(m,
-		goleak.IgnoreAnyFunction("github.com/valkey-io/valkey-go.(*call).LazyDo.func1"),
+		goleak.IgnoreAnyFunction("github.com/valkey-io/valkey-go.(*call).DelayDo.func1"),
 	)
 }

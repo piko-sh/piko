@@ -23,7 +23,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dlclark/regexp2"
+	"github.com/dlclark/regexp2/v2"
 
 	"piko.sh/piko/internal/testutil/leakcheck"
 )

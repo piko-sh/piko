@@ -1,0 +1,2 @@
+go.lsp.dev/jsonrpc2
+go.lsp.dev/uri

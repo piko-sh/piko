@@ -28,6 +28,29 @@ if [[ -n "${_PIKO_GO_LOADED:-}" ]]; then
 fi
 readonly _PIKO_GO_LOADED=1
 
+# Newline-separated "module_path<TAB>absolute_dir" for every intra-repository
+# module. Built on first use by piko::go::ensure_module_index.
+PIKO_LOCAL_MODULE_INDEX=""
+
+# piko::go::ensure_module_index populates PIKO_LOCAL_MODULE_INDEX once per run.
+# Globals:
+#   PIKO_LOCAL_MODULE_INDEX - Set on first call
+piko::go::ensure_module_index() {
+    if [[ -n "${PIKO_LOCAL_MODULE_INDEX:-}" ]]; then
+        return 0
+    fi
+
+    if ! piko::util::verify_binary "jq" "brew install jq OR apt install jq"; then
+        piko::log::fatal "jq is required to read go.mod metadata."
+    fi
+
+    PIKO_LOCAL_MODULE_INDEX=$(piko::go::local_module_index "${PIKO_ROOT}")
+
+    if [[ -z "$PIKO_LOCAL_MODULE_INDEX" ]]; then
+        piko::log::fatal "Could not index any repository modules."
+    fi
+}
+
 # piko::go::module_name returns the Go module name from go.mod
 piko::go::module_name() {
     local dir="${1:-${PIKO_ROOT}}"
@@ -130,30 +153,236 @@ piko::go::tidy_module() {
 
     piko::log::info "Tidying module in: $(piko::util::relative_path "$dir")"
 
+    local original_mod original_sum="" had_sum="false"
+    local original_work_sum="" had_work_sum="false"
+    original_mod=$(cat "${dir}/go.mod")
+    if [[ -f "${dir}/go.sum" ]]; then
+        had_sum="true"
+        original_sum=$(cat "${dir}/go.sum")
+    fi
+    if [[ -f "${dir}/go.work.sum" ]]; then
+        had_work_sum="true"
+        original_work_sum=$(cat "${dir}/go.work.sum")
+    fi
+
+    local injected
+    injected=$(piko::go::_inject_local_replaces "$dir")
+
+    local status=0
+    (cd "$dir" && GOWORK=off go mod tidy) || status=1
+
+    piko::go::_drop_local_replaces "$dir" "$injected"
+    piko::go::_normalise_local_requires "$dir"
+
+    if [[ "$had_sum" != "true" ]]; then
+        rm -f "${dir}/go.sum"
+    fi
+
+    if [[ $status -ne 0 ]]; then
+        piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
+        return 1
+    fi
+
     if [[ "$verify_only" == "true" ]]; then
-        local original_mod original_sum
-        original_mod=$(cat "${dir}/go.mod")
-        original_sum=$(cat "${dir}/go.sum" 2>/dev/null || echo "")
-
-        (cd "$dir" && go mod tidy)
-
-        local after_mod after_sum
+        local after_mod after_sum=""
         after_mod=$(cat "${dir}/go.mod")
-        after_sum=$(cat "${dir}/go.sum" 2>/dev/null || echo "")
+        if [[ -f "${dir}/go.sum" ]]; then
+            after_sum=$(cat "${dir}/go.sum")
+        fi
 
         if [[ "$original_mod" != "$after_mod" ]] || [[ "$original_sum" != "$after_sum" ]]; then
             piko::log::error "go mod tidy would make changes in $(piko::util::relative_path "$dir")"
-            echo "$original_mod" >"${dir}/go.mod"
-            if [[ -n "$original_sum" ]]; then
-                echo "$original_sum" >"${dir}/go.sum"
-            fi
+            piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
             return 1
         fi
-    else
-        (cd "$dir" && rm -f go.sum && go mod tidy)
     fi
 
     return 0
+}
+
+# piko::go::local_module_index prints "module_path<TAB>absolute_dir" for every
+# module in this repository, so intra-repository requirements can be resolved to
+# a directory on disk. Modules outside go.work are included as well, such as the
+# build-constrained integration tests, because those must never be fetched from
+# a proxy either. Only the piko.sh namespace is indexed, which leaves out the
+# example fixtures that all share the module name "testmodule".
+# Arguments:
+#   $1 - Repository root (default: PIKO_ROOT)
+piko::go::local_module_index() {
+    local root="${1:-${PIKO_ROOT}}"
+
+    local mod_file
+    while IFS= read -r mod_file; do
+        [[ -z "$mod_file" ]] && continue
+
+        local module_dir
+        module_dir=$(cd "$(dirname "$mod_file")" 2>/dev/null && pwd) || continue
+
+        local module_path
+        module_path=$(go mod edit -json "${module_dir}/go.mod" | jq -r '.Module.Path')
+        [[ -z "$module_path" || "$module_path" == "null" ]] && continue
+
+        case "$module_path" in
+            piko.sh/*) ;;
+            *) continue ;;
+        esac
+
+        printf '%s\t%s\n' "$module_path" "$module_dir"
+    done < <(piko::util::find_go_modules "$root")
+}
+
+# piko::go::held_dependencies prints the module paths that must not be
+# upgraded, read from hack/go/upgrade-hold.txt.
+# Arguments:
+#   $1 - Repository root (default: PIKO_ROOT)
+piko::go::held_dependencies() {
+    local root="${1:-${PIKO_ROOT}}"
+    local hold_file="${root}/hack/go/upgrade-hold.txt"
+
+    [[ -f "$hold_file" ]] || return 0
+
+    grep -vE '^\s*(#|$)' "$hold_file" | tr -d '[:blank:]'
+}
+
+# piko::go::_module_requires prints a module's own requirements.
+# Reads go.mod directly rather than asking go list, because under a workspace
+# go list -m all reports the union of every module in the workspace.
+# Arguments:
+#   $1 - Directory containing go.mod
+#   $2 - "direct" to exclude indirect requirements, otherwise all
+piko::go::_module_requires() {
+    local dir="$1"
+    local which="${2:-all}"
+
+    if [[ "$which" == "direct" ]]; then
+        go mod edit -json "${dir}/go.mod" |
+            jq -r '(.Require // [])[] | select(.Indirect | not) | .Path'
+    else
+        go mod edit -json "${dir}/go.mod" | jq -r '(.Require // [])[].Path'
+    fi
+}
+
+# piko::go::_module_versions prints a module's direct requirements as
+# path@version, sorted.
+# Arguments:
+#   $1 - Directory containing go.mod
+piko::go::_module_versions() {
+    local dir="$1"
+
+    go mod edit -json "${dir}/go.mod" |
+        jq -r '(.Require // [])[] | select(.Indirect | not) | "\(.Path)@\(.Version)"' | sort
+}
+
+# piko::go::_inject_local_replaces adds replace directives pointing at sibling
+# modules on disk. go.work supplies these during builds, but go get and go mod
+# tidy ignore it, so without them both commands try to fetch intra-repository
+# requirements such as piko.sh/piko v0.0.0 from the proxy and fail.
+# Arguments:
+#   $1 - Directory containing go.mod
+# Globals:
+#   PIKO_LOCAL_MODULE_INDEX - Read
+# Outputs:
+#   The module paths that were injected, one per line
+piko::go::_inject_local_replaces() {
+    local dir="$1"
+
+    piko::go::ensure_module_index
+
+    local own_path existing
+    own_path=$(go mod edit -json "${dir}/go.mod" | jq -r '.Module.Path')
+    existing=$(go mod edit -json "${dir}/go.mod" | jq -r '(.Replace // [])[].Old.Path')
+
+    local edit_args=() injected=()
+    local module_path module_dir
+    while IFS=$'\t' read -r module_path module_dir; do
+        [[ -z "$module_path" ]] && continue
+        [[ "$module_path" == "$own_path" ]] && continue
+        grep -qxF "$module_path" <<<"$existing" && continue
+
+        edit_args+=("-replace=${module_path}=${module_dir}")
+        injected+=("$module_path")
+    done <<<"$PIKO_LOCAL_MODULE_INDEX"
+
+    if [[ ${#edit_args[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    (cd "$dir" && go mod edit "${edit_args[@]}")
+    printf '%s\n' "${injected[@]}"
+}
+
+# piko::go::_drop_local_replaces removes replace directives added by
+# piko::go::_inject_local_replaces, leaving any that the module already had.
+# Arguments:
+#   $1 - Directory containing go.mod
+#   $2 - Newline-separated module paths to drop
+piko::go::_drop_local_replaces() {
+    local dir="$1"
+    local injected_paths="$2"
+
+    [[ -z "$injected_paths" ]] && return 0
+
+    local edit_args=()
+    local injected_path
+    while IFS= read -r injected_path; do
+        [[ -z "$injected_path" ]] && continue
+        edit_args+=("-dropreplace=${injected_path}")
+    done <<<"$injected_paths"
+
+    if [[ ${#edit_args[@]} -gt 0 ]]; then
+        (cd "$dir" && go mod edit "${edit_args[@]}")
+    fi
+}
+
+# piko::go::_normalise_local_requires rewrites sibling requirements back to
+# v0.0.0. When go mod tidy adds a requirement on a module that is replaced by a
+# directory, it stamps the zero pseudo-version, which no longer resolves once
+# the replace directive is removed and go.work takes over again.
+# Arguments:
+#   $1 - Directory containing go.mod
+piko::go::_normalise_local_requires() {
+    local dir="$1"
+
+    local edit_args=()
+    local require_path
+    while IFS= read -r require_path; do
+        [[ -z "$require_path" ]] && continue
+        edit_args+=("-require=${require_path}@v0.0.0")
+    done < <(go mod edit -json "${dir}/go.mod" |
+        jq -r '(.Require // [])[] | select(.Version == "v0.0.0-00010101000000-000000000000") | .Path')
+
+    if [[ ${#edit_args[@]} -gt 0 ]]; then
+        (cd "$dir" && go mod edit "${edit_args[@]}")
+    fi
+}
+
+# piko::go::with_local_replaces runs a read-only command inside a module with
+# sibling replace directives materialised, then restores go.mod byte for byte.
+# Use this for tools that have to resolve the module graph but must not change it.
+# Arguments:
+#   $1 - Directory containing go.mod
+#   $@ - Command and arguments to run inside the module
+# Globals:
+#   PIKO_LOCAL_MODULE_INDEX - Read
+# Returns:
+#   The exit status of the command
+piko::go::with_local_replaces() {
+    local dir="$1"
+    shift
+
+    [[ -f "${dir}/go.mod" ]] || return 0
+
+    local original_mod
+    original_mod=$(cat "${dir}/go.mod")
+
+    piko::go::_inject_local_replaces "$dir" >/dev/null
+
+    local status=0
+    (cd "$dir" && GOWORK=off "$@") || status=$?
+
+    printf '%s\n' "$original_mod" >"${dir}/go.mod"
+
+    return "$status"
 }
 
 # piko::go::upgrade_module upgrades all direct dependencies in a module
@@ -161,6 +390,8 @@ piko::go::tidy_module() {
 # Arguments:
 #   $1 - Directory containing go.mod
 #   $2 - dry_run (true/false, default: false)
+# Globals:
+#   PIKO_LOCAL_MODULE_INDEX - Read
 # Outputs:
 #   Prints upgraded dependencies to stderr
 # Returns:
@@ -173,59 +404,54 @@ piko::go::upgrade_module() {
         return 0
     fi
 
-    local original_mod="" original_sum="" had_sum="false"
+    local original_mod original_sum="" had_sum="false"
     local original_work_sum="" had_work_sum="false"
-    if [[ "$dry_run" == "true" ]]; then
-        original_mod=$(cat "${dir}/go.mod")
-        if [[ -f "${dir}/go.sum" ]]; then
-            had_sum="true"
-            original_sum=$(cat "${dir}/go.sum")
-        fi
-        if [[ -f "${dir}/go.work.sum" ]]; then
-            had_work_sum="true"
-            original_work_sum=$(cat "${dir}/go.work.sum")
+    original_mod=$(cat "${dir}/go.mod")
+    if [[ -f "${dir}/go.sum" ]]; then
+        had_sum="true"
+        original_sum=$(cat "${dir}/go.sum")
+    fi
+    if [[ -f "${dir}/go.work.sum" ]]; then
+        had_work_sum="true"
+        original_work_sum=$(cat "${dir}/go.work.sum")
+    fi
+
+    local before
+    before=$(piko::go::_module_versions "$dir")
+
+    local injected
+    injected=$(piko::go::_inject_local_replaces "$dir")
+
+    local excluded external_deps
+    excluded=$(
+        cut -f1 <<<"$PIKO_LOCAL_MODULE_INDEX"
+        piko::go::held_dependencies
+    )
+    external_deps=$(piko::go::_module_requires "$dir" direct |
+        grep -vxF -f <(grep -v '^$' <<<"$excluded") || true)
+
+    local status=0
+    if [[ -n "$external_deps" ]]; then
+        if ! (cd "$dir" && GOWORK=off xargs go get -u <<<"$external_deps"); then
+            status=1
         fi
     fi
 
-    local has_internal_deps="false"
-    if grep -q 'piko\.sh/piko' "${dir}/go.mod" 2>/dev/null; then
-        has_internal_deps="true"
+    if [[ $status -eq 0 ]] && ! (cd "$dir" && GOWORK=off go mod tidy); then
+        status=1
     fi
 
-    local before after
-    before=$(cd "$dir" && go list -m -f '{{if not .Indirect}}{{.Path}}@{{.Version}}{{end}}' all 2>/dev/null | sort)
+    local after
+    after=$(piko::go::_module_versions "$dir")
 
-    if [[ "$has_internal_deps" == "true" ]]; then
-        local external_deps
-        external_deps=$(cd "$dir" && go list -m -f '{{if not .Indirect}}{{.Path}}{{end}}' all 2>/dev/null | grep -v '^piko\.sh/piko')
+    piko::go::_drop_local_replaces "$dir" "$injected"
+    piko::go::_normalise_local_requires "$dir"
 
-        if [[ -n "$external_deps" ]]; then
-            (cd "$dir" && echo "$external_deps" | xargs go get -u 2>/dev/null) || true
-        fi
-    else
-        if ! (cd "$dir" && go get -u ./... 2>/dev/null); then
-            if [[ "$dry_run" == "true" ]]; then
-                piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
-            fi
-            return 1
-        fi
-    fi
-
-    if [[ "$has_internal_deps" == "true" ]]; then
-        (cd "$dir" && go mod tidy 2>/dev/null) || true
-    else
-        if ! (cd "$dir" && go mod tidy 2>/dev/null); then
-            if [[ "$dry_run" == "true" ]]; then
-                piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
-            fi
-            return 1
-        fi
-    fi
-
-    after=$(cd "$dir" && go list -m -f '{{if not .Indirect}}{{.Path}}@{{.Version}}{{end}}' all 2>/dev/null | sort)
-
-    if [[ "$dry_run" == "true" ]]; then
+    if [[ "$dry_run" == "true" || $status -ne 0 ]]; then
         piko::go::_restore_mod_files "$dir" "$original_mod" "$original_sum" "$had_sum" "$original_work_sum" "$had_work_sum"
+        [[ $status -ne 0 ]] && return 1
+    elif [[ "$had_sum" != "true" ]]; then
+        rm -f "${dir}/go.sum"
     fi
 
     piko::go::_report_module_changes "$before" "$after"

@@ -43,6 +43,7 @@ MODULE_COUNT=0
 # Total number of available major version upgrades found.
 TOTAL_UPGRADES=0
 
+
 # validate_args parses the optional directory argument.
 # Globals:
 #   TARGET_DIR - Set
@@ -87,6 +88,34 @@ find_modules() {
     piko::log::info "Found $MODULE_COUNT go.mod file(s)"
 }
 
+# reject_held_upgrades drops gomajor lines for dependencies listed in
+# hack/go/upgrade-hold.txt, which are pinned on purpose and would otherwise be
+# reported on every run.
+# Arguments:
+#   $1 - gomajor output
+reject_held_upgrades() {
+    local output="$1"
+
+    [[ -z "$output" ]] && return 0
+
+    local held
+    held=$(piko::go::held_dependencies)
+
+    if [[ -z "$held" ]]; then
+        printf '%s\n' "$output"
+        return 0
+    fi
+
+    local line
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local module_path="${line%%:*}"
+        module_path="${module_path#"${module_path%%[![:space:]]*}"}"
+        grep -qxF "$module_path" <<<"$held" && continue
+        printf '%s\n' "$line"
+    done <<<"$output"
+}
+
 # check_modules runs gomajor list on each module and reports results.
 # Globals:
 #   MODULES - Read
@@ -101,7 +130,9 @@ check_modules() {
         mod_dir=$(dirname "$mod_file")
 
         local output
-        output=$(cd "$mod_dir" && gomajor list 2>/dev/null) || true
+        output=$(piko::go::with_local_replaces "$mod_dir" gomajor list 2>/dev/null) || true
+
+        output=$(reject_held_upgrades "$output")
 
         if [[ -n "$output" ]]; then
             piko::log::step "$current" "$MODULE_COUNT" "$(piko::util::relative_path "$mod_dir")"
@@ -144,6 +175,7 @@ main() {
     piko::log::info "Target: $TARGET_DIR"
     piko::log::footer
 
+    piko::go::ensure_module_index
     find_modules
     piko::log::blank
     check_modules

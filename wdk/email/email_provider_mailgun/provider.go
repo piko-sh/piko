@@ -26,7 +26,7 @@ import (
 	"io"
 	"time"
 
-	mailgun "github.com/mailgun/mailgun-go/v4"
+	mailgun "github.com/mailgun/mailgun-go/v5"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"piko.sh/piko/internal/email/email_domain"
@@ -146,9 +146,11 @@ func NewMailgunProvider(ctx context.Context, arguments MailgunProviderArgs, opts
 	contextLog := l.With(logger.String("method", "NewMailgunProvider"))
 	contextLog.Internal("Creating Mailgun provider")
 
-	mg := mailgun.NewMailgun(arguments.Domain, arguments.APIKey)
+	mg := mailgun.NewMailgun(arguments.APIKey)
 	if arguments.APIBase != "" {
-		mg.SetAPIBase(arguments.APIBase)
+		if err := mg.SetAPIBase(arguments.APIBase); err != nil {
+			return nil, fmt.Errorf("setting mailgun API base: %w", err)
+		}
 	}
 
 	defaultConfig := email_domain.ProviderRateLimitConfig{
@@ -193,7 +195,7 @@ func (p *MailgunProvider) Send(ctx context.Context, params *email_dto.SendParams
 	if err != nil {
 		return fmt.Errorf("building mailgun message: %w", err)
 	}
-	_, _, err = p.client.Send(ctx, message)
+	_, err = p.client.Send(ctx, message)
 
 	recordSendMetrics(ctx, startTime, err, metricSendTypeSingle)
 
@@ -261,15 +263,15 @@ func (*MailgunProvider) Close(_ context.Context) error {
 //
 // Takes params (*email_dto.SendParams) which contains the email details to convert.
 //
-// Returns *mailgun.Message which is the formatted message ready for the Mailgun API.
+// Returns *mailgun.PlainMessage which is the formatted message ready for the Mailgun API.
 // Returns error when provider options cannot be applied.
-func (p *MailgunProvider) buildMailgunMessage(params *email_dto.SendParams) (*mailgun.Message, error) {
+func (p *MailgunProvider) buildMailgunMessage(params *email_dto.SendParams) (*mailgun.PlainMessage, error) {
 	from := p.fromEmail
 	if params.From != nil {
 		from = *params.From
 	}
 
-	message := mailgun.NewMessage(from, params.Subject, params.BodyPlain, params.To...)
+	message := mailgun.NewMessage(p.domain, from, params.Subject, params.BodyPlain, params.To...)
 
 	if params.BodyHTML != "" {
 		message.SetHTML(params.BodyHTML)
@@ -339,9 +341,9 @@ func validateSendParams(params *email_dto.SendParams) error {
 
 // addRecipients adds CC and BCC recipients to the email message.
 //
-// Takes message (*mailgun.Message) which is the email to modify.
+// Takes message (*mailgun.PlainMessage) which is the email to modify.
 // Takes params (*email_dto.SendParams) which contains the CC and BCC lists.
-func addRecipients(message *mailgun.Message, params *email_dto.SendParams) {
+func addRecipients(message *mailgun.PlainMessage, params *email_dto.SendParams) {
 	for _, cc := range params.Cc {
 		message.AddCC(cc)
 	}
@@ -353,9 +355,9 @@ func addRecipients(message *mailgun.Message, params *email_dto.SendParams) {
 // addAttachments converts email attachments to Mailgun format and adds them to the
 // message.
 //
-// Takes message (*mailgun.Message) which receives the converted attachments.
+// Takes message (*mailgun.PlainMessage) which receives the converted attachments.
 // Takes attachments ([]email_dto.Attachment) which provides the attachments to convert.
-func addAttachments(message *mailgun.Message, attachments []email_dto.Attachment) {
+func addAttachments(message *mailgun.PlainMessage, attachments []email_dto.Attachment) {
 	for _, attachment := range attachments {
 		if attachment.ContentID != "" {
 			message.AddReaderInline(attachment.ContentID, io.NopCloser(bytes.NewReader(attachment.Content)))
@@ -367,11 +369,11 @@ func addAttachments(message *mailgun.Message, attachments []email_dto.Attachment
 
 // applyProviderOptions applies Mailgun-specific options to the message.
 //
-// Takes message (*mailgun.Message) which is the email to set up.
+// Takes message (*mailgun.PlainMessage) which is the email to set up.
 // Takes options (map[string]any) which holds provider-specific settings.
 //
 // Returns error when a provider option cannot be applied.
-func applyProviderOptions(message *mailgun.Message, options map[string]any) error {
+func applyProviderOptions(message *mailgun.PlainMessage, options map[string]any) error {
 	if options == nil {
 		return nil
 	}

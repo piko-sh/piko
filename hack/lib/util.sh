@@ -163,10 +163,34 @@ piko::util::find_go_modules() {
     local include_all="${2:-}"
 
     if [[ "$include_all" == "--all" ]]; then
-        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*"
+        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*" | piko::util::reject_ignored_paths
     else
-        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/testdata/*" -not -path "*/testdata-modules/*"
+        find "$dir" -name "go.mod" -type f -not -path "*/vendor/*" -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/testdata/*" -not -path "*/testdata-modules/*" | piko::util::reject_ignored_paths
     fi
+}
+
+# piko::util::reject_ignored_paths drops paths that git ignores, so that
+# scratch checkouts and vendored clones under tmp/ or plugins/ are never
+# treated as modules belonging to this repository.
+# Arguments:
+#   Reads newline-separated paths on stdin
+piko::util::reject_ignored_paths() {
+    local paths
+    paths=$(cat)
+
+    if [[ -z "$paths" ]]; then
+        return 0
+    fi
+
+    local ignored
+    ignored=$(git -C "${PIKO_ROOT}" check-ignore --stdin <<<"$paths" 2>/dev/null || true)
+
+    if [[ -z "$ignored" ]]; then
+        printf '%s\n' "$paths"
+        return 0
+    fi
+
+    grep -vxF -f <(printf '%s\n' "$ignored") <<<"$paths" || true
 }
 
 # piko::util::find_go_workspaces finds all go.work files under a directory

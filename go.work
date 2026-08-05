@@ -4,8 +4,8 @@ use (
 	.
 	./cmd/asmgen
 	./cmd/generate_dal
-	./cmd/pikopls
 	./cmd/piko
+	./cmd/pikopls
 	./cmd/stdlib-generator
 	./cmd/wasm
 	./tests/benchmarks/cross_language
@@ -168,8 +168,8 @@ replace (
 	piko.sh/piko v0.0.0 => .
 	piko.sh/piko/cmd/asmgen v0.0.0 => ./cmd/asmgen
 	piko.sh/piko/cmd/generate_dal v0.0.0 => ./cmd/generate_dal
-	piko.sh/piko/cmd/pikopls v0.0.0 => ./cmd/pikopls
 	piko.sh/piko/cmd/piko v0.0.0 => ./cmd/piko
+	piko.sh/piko/cmd/pikopls v0.0.0 => ./cmd/pikopls
 	piko.sh/piko/cmd/stdlib-generator v0.0.0 => ./cmd/stdlib-generator
 	piko.sh/piko/cmd/wasm v0.0.0 => ./cmd/wasm
 	piko.sh/piko/tests/benchmarks/cross_language v0.0.0 => ./tests/benchmarks/cross_language

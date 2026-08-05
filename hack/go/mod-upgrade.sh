@@ -45,6 +45,13 @@ MODULE_COUNT=0
 # Array of failed module paths.
 FAILED=()
 
+# init_module_index builds the lookup used to resolve intra-repository
+# requirements to directories on disk.
+init_module_index() {
+    piko::go::ensure_module_index
+    piko::log::info "Indexed $(echo "$PIKO_LOCAL_MODULE_INDEX" | wc -l) repository module(s)"
+}
+
 # validate_args parses flags and the optional directory argument.
 # Globals:
 #   TARGET_DIR - Set
@@ -187,7 +194,7 @@ tidy_modules() {
 
         piko::log::step "$current" "$MODULE_COUNT" "$(piko::util::relative_path "$mod_dir")"
 
-        if (cd "$mod_dir" && go mod tidy 2>/dev/null); then
+        if piko::go::tidy_module "$mod_dir"; then
             piko::log::success "Tidied: $(piko::util::relative_path "$mod_dir")"
         else
             piko::log::warn "Tidy failed: $(piko::util::relative_path "$mod_dir")"
@@ -236,6 +243,7 @@ main() {
     piko::log::info "Target: $TARGET_DIR"
     piko::log::footer
 
+    init_module_index
     find_modules
     piko::log::blank
     upgrade_modules
