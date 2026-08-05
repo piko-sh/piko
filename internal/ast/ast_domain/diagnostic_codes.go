@@ -130,4 +130,9 @@ const (
 	// CodeInternalParserError indicates an unexpected internal state in the parser. This
 	// should not normally fire.
 	CodeInternalParserError = "T030"
+
+	// CodeDuplicateAttribute indicates the same static attribute is written more than once
+	// on a single element. HTML keeps the first occurrence and silently discards the rest,
+	// so the later value never takes effect.
+	CodeDuplicateAttribute = "T031"
 )

@@ -808,3 +808,34 @@ func TestValidateHelperFunctions(t *testing.T) {
 		})
 	})
 }
+
+func TestValidateAST_DuplicateAttribute(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should warn when the same attribute is written twice", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<pp-input name="from_quantity" type="integer" name="digital.ranges[0].from"></pp-input>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assertHasValidationError(t, tree, Warning, "attribute is set more than once")
+	})
+
+	t.Run("should treat differing case as the same attribute", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<div CLASS="a" class="b"></div>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assertHasValidationError(t, tree, Warning, "attribute is set more than once")
+	})
+
+	t.Run("should not warn for distinct attributes", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<pp-input name="digital.ranges[0].from" type="integer" label="From"></pp-input>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assert.Empty(t, tree.Diagnostics)
+	})
+}

@@ -156,7 +156,12 @@ func validateAttributeConflicts(node *TemplateNode, tree *TemplateAST) {
 	staticAttrs := make(map[string]Location)
 	for i := range node.Attributes {
 		attr := &node.Attributes[i]
-		staticAttrs[strings.ToLower(attr.Name)] = attr.Location
+		name := strings.ToLower(attr.Name)
+		if _, duplicated := staticAttrs[name]; duplicated {
+			reportDuplicateAttribute(node, attr, tree)
+			continue
+		}
+		staticAttrs[name] = attr.Location
 	}
 
 	for attributeName, directive := range node.Binds {
@@ -185,6 +190,23 @@ func validateAttributeConflicts(node *TemplateNode, tree *TemplateAST) {
 			tree.Diagnostics = append(tree.Diagnostics, diagnostic)
 		}
 	}
+}
+
+// reportDuplicateAttribute records that an element writes the same static attribute more
+// than once.
+//
+// Takes node (*TemplateNode) which owns the attribute.
+// Takes attr (*HTMLAttribute) which is the repeated occurrence.
+// Takes tree (*TemplateAST) which receives the diagnostic.
+func reportDuplicateAttribute(node *TemplateNode, attr *HTMLAttribute, tree *TemplateAST) {
+	message := fmt.Sprintf(
+		"The '%s' attribute is set more than once on this element. HTML keeps the first "+
+			"occurrence and ignores the rest, so this value never applies. Remove the duplicate.",
+		attr.Name,
+	)
+	sourcePath := getNodeSourcePath(node, tree)
+	diagnostic := NewDiagnosticWithCode(Warning, message, attr.Name, CodeDuplicateAttribute, attr.NameLocation, sourcePath)
+	tree.Diagnostics = append(tree.Diagnostics, diagnostic)
 }
 
 // isMergedAttribute reports whether a dynamic binding for the named attribute is

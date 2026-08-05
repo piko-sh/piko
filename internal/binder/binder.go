@@ -332,25 +332,15 @@ func holdsNilValue(v StructValidator) bool {
 //
 // The validator's own error, not the guard's enriched wrapper, is what reaches the
 // FieldErrorReporter and the returned ValidationFailedError. A reporter that reads the
-// error's message would otherwise leak the guard's internal prefix into user-facing
-// field messages.
+// error's message would otherwise leak the guard's internal prefix into user-facing field
+// messages.
 //
-// Takes opts ([]Option) which are the per-call options to inspect.
+// Takes limits (binderOptions) which carry the already-resolved per-call settings.
 // Takes destination (any) which is the freshly bound struct pointer.
 //
 // Returns error when a constraint fails, or nil.
-func (b *ASTBinder) runValidation(ctx context.Context, opts []Option, destination any) error {
-	if len(opts) == 0 {
-		return nil
-	}
-
-	bindOpts := &BindOptions{}
-	for _, opt := range opts {
-		if opt != nil {
-			opt(bindOpts)
-		}
-	}
-	if bindOpts.Validate == nil || !*bindOpts.Validate {
+func (b *ASTBinder) runValidation(ctx context.Context, limits binderOptions, destination any) error {
+	if !limits.validate {
 		return nil
 	}
 
@@ -515,10 +505,11 @@ func (b *ASTBinder) MaxBindJSONBytes() int64 {
 //
 // Returns error as a MultiError containing all binding errors, or nil if successful.
 func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string][]string, opts ...Option) error {
-	if err := b.bindWithoutValidation(ctx, destination, source, opts...); err != nil {
+	limits, err := b.bindWithoutValidation(ctx, destination, source, opts...)
+	if err != nil {
 		return err
 	}
-	return b.runValidation(ctx, opts, destination)
+	return b.runValidation(ctx, limits, destination)
 }
 
 // bindWithoutValidation performs the binding pass alone, leaving validation to the
@@ -531,15 +522,17 @@ func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string
 // Takes source (map[string][]string) which provides the source data for binding.
 // Takes opts (...Option) which override global settings for this call.
 //
+// Returns binderOptions which are the resolved per-call settings, so the caller can run
+// validation without resolving the options again.
 // Returns error as a MultiError containing all binding errors, or nil.
 func (b *ASTBinder) bindWithoutValidation(
 	ctx context.Context,
 	destination any,
 	source map[string][]string,
 	opts ...Option,
-) error {
+) (binderOptions, error) {
 	if err := validateBindTarget(destination); err != nil {
-		return fmt.Errorf("validating bind target: %w", err)
+		return binderOptions{}, fmt.Errorf("validating bind target: %w", err)
 	}
 
 	limits := b.resolveLimits(opts)
@@ -548,7 +541,7 @@ func (b *ASTBinder) bindWithoutValidation(
 	v := reflect.ValueOf(destination).Elem()
 
 	if err := checkFieldCountLimit(source, limits.maxFieldCount); err != nil {
-		return fmt.Errorf("checking field count limit: %w", err)
+		return limits, fmt.Errorf("checking field count limit: %w", err)
 	}
 
 	structMeta := b.cache.get(v.Type(), limits.maxPathDepth)
@@ -556,9 +549,9 @@ func (b *ASTBinder) bindWithoutValidation(
 	multiErrors := b.bindFields(ctx, v, source, structMeta, limits)
 
 	if multiErrors != nil {
-		return multiErrors
+		return limits, multiErrors
 	}
-	return nil
+	return limits, nil
 }
 
 // BindMap populates the fields of the destination struct using data from a
@@ -579,11 +572,11 @@ func (b *ASTBinder) BindMap(ctx context.Context, destination any, source map[str
 	limits := b.resolveLimits(opts)
 	remaining, subtreeErrs := b.bindWholeSubtreeFields(destination, source, limits)
 	flattened := flattenMapToFormData(remaining)
-	bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
+	_, bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
 	if merged := mergeBindErrors(subtreeErrs, bindErr); merged != nil {
 		return merged
 	}
-	return b.runValidation(ctx, opts, destination)
+	return b.runValidation(ctx, limits, destination)
 }
 
 // BindJSON populates the fields of the destination struct from raw JSON bytes. It decodes
@@ -612,11 +605,11 @@ func (b *ASTBinder) BindJSON(ctx context.Context, destination any, source []byte
 	limits := b.resolveLimits(opts)
 	remaining, subtreeErrs := b.bindWholeSubtreeFieldsRaw(destination, rawFields, limits)
 	flattened := flattenMapToFormData(remaining)
-	bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
+	_, bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
 	if merged := mergeBindErrors(subtreeErrs, bindErr); merged != nil {
 		return merged
 	}
-	return b.runValidation(ctx, opts, destination)
+	return b.runValidation(ctx, limits, destination)
 }
 
 // RegisterConverter registers a custom function to convert string values to a specific
@@ -967,6 +960,9 @@ func (b *ASTBinder) resolveOptions(opts *BindOptions) binderOptions {
 	if opts.MaxSliceSize != nil {
 		limits.maxSliceSize = *opts.MaxSliceSize
 	}
+	if opts.Validate != nil {
+		limits.validate = *opts.Validate
+	}
 
 	return limits
 }
@@ -1201,6 +1197,9 @@ type binderOptions struct {
 
 	// ignoreUnknownKeys allows unknown field names to be silently ignored during binding.
 	ignoreUnknownKeys bool
+
+	// validate runs the configured struct validator once binding has succeeded.
+	validate bool
 }
 
 // sliceElementBudget caps the slice elements one bind call may materialise.
