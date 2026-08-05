@@ -33,6 +33,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"piko.sh/piko/internal/binder"
 	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
@@ -260,6 +261,55 @@ func buildBatchCaptchaResult(l logger_domain.Logger, name string, captchaErr err
 	}
 }
 
+// isRequestFault reports whether err describes the request rather than the server.
+//
+// A payload rejected by its `validate:"..."` tags, or one the binder could not convert,
+// is the input layer doing its job. Reporting it as a server error would attach a stack
+// trace and mark the span failed, which lets anyone drive the error rate and the log
+// volume by posting malformed forms. The generated wrapper has already logged the failure
+// at its source, with the parameter that caused it, so it is not reported again here
+// either.
+//
+// Takes err (error) which is the failure returned by an action invocation.
+//
+// Returns bool which is true when the request, not the server, is at fault.
+func isRequestFault(err error) bool {
+	if errors.Is(err, binder.ErrValidationFailed) {
+		return true
+	}
+
+	var bindErrors binder.MultiError
+	return errors.As(err, &bindErrors)
+}
+
+// fieldErrorsFor extracts per-field validation messages from err, whichever layer
+// produced them, so a failure raised by an action and one raised by the binder answer
+// with the same response body.
+//
+// The error itself is never replaced. Both sources already carry their own status and
+// safe message, and rewriting the error would override a status the action chose
+// deliberately and discard the context a developer needs.
+//
+// Takes err (error) which is the error returned by the action or its bind step.
+//
+// Returns map[string]string keyed by field name, or nil when err carries no field detail.
+func fieldErrorsFor(err error) map[string]string {
+	if validationErr, ok := errors.AsType[*daemon_dto.ValidationError](err); ok && len(validationErr.Fields) > 0 {
+		return validationErr.Fields
+	}
+
+	bindErr, ok := errors.AsType[*binder.ValidationFailedError](err)
+	if !ok || len(bindErr.Fields) == 0 {
+		return nil
+	}
+
+	fields := make(map[string]string, len(bindErr.Fields))
+	for name, messages := range bindErr.Fields {
+		fields[name] = strings.Join(messages, ", ")
+	}
+	return fields
+}
+
 // buildBatchErrorResult creates a BatchActionResult from an error.
 //
 // Takes name (string) which identifies the action that failed.
@@ -277,6 +327,7 @@ func (*ActionHandler) buildBatchErrorResult(name string, err error, developmentM
 			Status: actionErr.StatusCode(),
 			Error:  safeerror.ExtractSafeMessage(err, developmentMode),
 			Code:   actionErr.ErrorCode(),
+			Errors: fieldErrorsFor(err),
 		}
 	}
 
@@ -351,8 +402,8 @@ func (h *ActionHandler) handleActionError(w http.ResponseWriter, request *http.R
 			"message": safeerror.ExtractSafeMessage(err, developmentMode),
 		}
 
-		if ve, ok := errors.AsType[*daemon_dto.ValidationError](err); ok {
-			response["errors"] = ve.Fields
+		if fields := fieldErrorsFor(err); fields != nil {
+			response["errors"] = fields
 		}
 
 		if len(helpers) > 0 {

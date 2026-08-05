@@ -324,7 +324,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Column: 18,
 														},
 														DeclarationLocation: ast_domain.Location{
-															Line:   58,
+															Line:   24,
 															Column: 2,
 														},
 													},
@@ -353,7 +353,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														Column: 18,
 													},
 													DeclarationLocation: ast_domain.Location{
-														Line:   58,
+														Line:   24,
 														Column: 2,
 													},
 												},
@@ -380,7 +380,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													Column: 18,
 												},
 												DeclarationLocation: ast_domain.Location{
-													Line:   58,
+													Line:   24,
 													Column: 2,
 												},
 											},
@@ -402,7 +402,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													Column: 18,
 												},
 												DeclarationLocation: ast_domain.Location{
-													Line:   58,
+													Line:   24,
 													Column: 2,
 												},
 											},
@@ -425,7 +425,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 												Column: 18,
 											},
 											DeclarationLocation: ast_domain.Location{
-												Line:   58,
+												Line:   24,
 												Column: 2,
 											},
 										},
@@ -674,7 +674,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	Column: 54,
 																},
 																DeclarationLocation: ast_domain.Location{
-																	Line:   56,
+																	Line:   22,
 																	Column: 2,
 																},
 															},
@@ -703,7 +703,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																Column: 54,
 															},
 															DeclarationLocation: ast_domain.Location{
-																Line:   56,
+																Line:   22,
 																Column: 2,
 															},
 														},
@@ -726,7 +726,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Column: 54,
 														},
 														DeclarationLocation: ast_domain.Location{
-															Line:   56,
+															Line:   22,
 															Column: 2,
 														},
 													},
@@ -1002,7 +1002,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	Column: 36,
 																},
 																DeclarationLocation: ast_domain.Location{
-																	Line:   58,
+																	Line:   24,
 																	Column: 2,
 																},
 															},
@@ -1031,7 +1031,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																Column: 36,
 															},
 															DeclarationLocation: ast_domain.Location{
-																Line:   58,
+																Line:   24,
 																Column: 2,
 															},
 														},
@@ -1090,7 +1090,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Column: 36,
 														},
 														DeclarationLocation: ast_domain.Location{
-															Line:   56,
+															Line:   22,
 															Column: 2,
 														},
 													},
@@ -1119,7 +1119,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														Column: 36,
 													},
 													DeclarationLocation: ast_domain.Location{
-														Line:   56,
+														Line:   22,
 														Column: 2,
 													},
 												},
@@ -1142,7 +1142,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													Column: 36,
 												},
 												DeclarationLocation: ast_domain.Location{
-													Line:   56,
+													Line:   22,
 													Column: 2,
 												},
 											},
@@ -1354,7 +1354,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	Column: 46,
 																},
 																DeclarationLocation: ast_domain.Location{
-																	Line:   58,
+																	Line:   24,
 																	Column: 2,
 																},
 															},
@@ -1383,7 +1383,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																Column: 46,
 															},
 															DeclarationLocation: ast_domain.Location{
-																Line:   58,
+																Line:   24,
 																Column: 2,
 															},
 														},
@@ -1442,7 +1442,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Column: 46,
 														},
 														DeclarationLocation: ast_domain.Location{
-															Line:   56,
+															Line:   22,
 															Column: 2,
 														},
 													},
@@ -1471,7 +1471,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 														Column: 46,
 													},
 													DeclarationLocation: ast_domain.Location{
-														Line:   56,
+														Line:   22,
 														Column: 2,
 													},
 												},
@@ -1494,7 +1494,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 													Column: 46,
 												},
 												DeclarationLocation: ast_domain.Location{
-													Line:   56,
+													Line:   22,
 													Column: 2,
 												},
 											},

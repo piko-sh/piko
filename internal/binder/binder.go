@@ -25,13 +25,16 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"net/http"
 	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -70,6 +73,15 @@ const (
 	// straight into json.Unmarshal where memory and CPU costs scale with payload size.
 	DefaultMaxBindJSONBytes int64 = 4 << 20
 
+	// DefaultMaxFieldErrors caps how many per-field validation messages a bind reports. It
+	// sits far above any genuine form yet well below the field counts a hostile payload can
+	// reach, which would otherwise size a map, a response body and a log line.
+	DefaultMaxFieldErrors int64 = 1_000
+
+	// FieldErrorsTruncatedKey is the entry added to a field-error map that hit the cap, so a
+	// client can tell a trimmed list from a complete one.
+	FieldErrorsTruncatedKey = "_truncated"
+
 	// errFieldNotFound is the error message used when a struct field cannot be found.
 	errFieldNotFound = "field not found"
 
@@ -86,6 +98,10 @@ var (
 
 	// ErrSliceElementBudgetExhausted is returned when a bind would over-allocate.
 	ErrSliceElementBudgetExhausted = errors.New("slice element budget exhausted")
+
+	// ErrValidationFailed reports that a bound destination violated its `validate:"..."`
+	// tags. Callers can use errors.Is to detect this without importing the concrete type.
+	ErrValidationFailed = errors.New("validation failed")
 
 	// log is the package-level logger for the binder package.
 	log = logger_domain.GetLogger("piko/internal/binder")
@@ -154,6 +170,14 @@ type ASTBinder struct {
 	// with a safe ceiling.
 	maxBindJSONBytes atomic.Int64
 
+	// maxFieldErrors caps how many per-field validation messages a single bind reports. A
+	// value of 0 disables the cap; the constructor seeds it with DefaultMaxFieldErrors.
+	maxFieldErrors atomic.Int64
+
+	// structValidator validates bound destinations for calls that opt in via WithValidation.
+	// Nil until SetStructValidator is called, in which case validation is skipped entirely.
+	structValidator atomic.Pointer[StructValidator]
+
 	// hasConverters tracks whether any custom converters are registered. Used as a fast path
 	// to skip the map lookup when none exist.
 	hasConverters atomic.Bool
@@ -161,6 +185,258 @@ type ASTBinder struct {
 	// ignoreUnknownKeys controls whether unknown struct fields are skipped without error;
 	// false by default.
 	ignoreUnknownKeys atomic.Bool
+}
+
+// StructValidator validates a populated struct against its field tags. It matches the
+// interface the framework's validator providers implement, so the binder does not depend
+// on any particular validation library.
+type StructValidator interface {
+	// Struct validates s and returns an error describing every failed constraint.
+	Struct(s any) error
+}
+
+// FieldErrorReporter is an optional StructValidator extension that translates a
+// validation failure into per-field messages.
+//
+// Implementing it lets the HTTP layer answer with a 422 and a field-keyed message map
+// instead of a generic error, without the framework depending on any particular
+// validation library, since only the provider understands its own error type.
+type FieldErrorReporter interface {
+	// FieldErrors maps err to messages keyed by the destination's form field name.
+	//
+	// The key is the same name the input carries in the DOM, so the client can attach each
+	// message to the field that produced it.
+	//
+	// Takes err (error) which is an error previously returned by Struct.
+	// Takes destination (any) which is the struct that was validated, used to resolve Go
+	// field names to their bind and json names.
+	//
+	// Returns map[string][]string keyed by form field name, or nil when err did not
+	// originate from this validator.
+	FieldErrors(err error, destination any) map[string][]string
+}
+
+// ValidationFailedError reports that binding succeeded but the destination violated its
+// `validate:"..."` tags. It is distinct from a binding error so the HTTP layer can answer
+// with 422 rather than 500.
+//
+// It carries the status and safe message itself rather than relying on the HTTP layer to
+// recognise it, so a bind performed outside the action pipeline still answers 422 with a
+// message that discloses nothing about the failure's internals.
+type ValidationFailedError struct {
+	// Err is the underlying validator error.
+	Err error
+
+	// Fields holds per-field messages, keyed by form field name, when the validator could
+	// supply them. Nil when the validator could not attribute the failure to fields.
+	Fields map[string][]string
+}
+
+// Error implements the error interface.
+//
+// Returns string which describes the validation failure.
+func (e *ValidationFailedError) Error() string {
+	if e.Err == nil {
+		return "validating bound destination"
+	}
+	return "validating bound destination: " + e.Err.Error()
+}
+
+// Unwrap exposes the underlying validator error to errors.Is and errors.As.
+//
+// Returns error which is the validator's own error.
+func (e *ValidationFailedError) Unwrap() error {
+	return e.Err
+}
+
+// Is reports whether target is ErrValidationFailed, so callers can detect a constraint
+// failure without importing the concrete type.
+//
+// Takes target (error) which is the error being compared against.
+//
+// Returns bool which is true when target is the validation sentinel.
+func (*ValidationFailedError) Is(target error) bool {
+	return target == ErrValidationFailed
+}
+
+// SafeMessage implements the framework's user-facing error contract.
+//
+// Returns string which names the failure without disclosing constraint internals.
+func (*ValidationFailedError) SafeMessage() string {
+	return "validation failed"
+}
+
+// StatusCode reports the HTTP status a validation failure answers with.
+//
+// Returns int which is 422.
+func (*ValidationFailedError) StatusCode() int {
+	return http.StatusUnprocessableEntity
+}
+
+// ErrorCode reports the machine-readable code a validation failure answers with.
+//
+// Returns string which is the stable error code clients switch on.
+func (*ValidationFailedError) ErrorCode() string {
+	return "VALIDATION_FAILED"
+}
+
+// SetStructValidator installs the validator used by binds that opt in via WithValidation.
+// Passing nil disables validation.
+//
+// Takes v (StructValidator) which validates bound destinations.
+func (b *ASTBinder) SetStructValidator(v StructValidator) {
+	if v == nil || holdsNilValue(v) {
+		b.structValidator.Store(nil)
+		return
+	}
+	b.structValidator.Store(&v)
+}
+
+// loadStructValidator returns the configured validator, or nil when none is set.
+//
+// Returns StructValidator which validates bound destinations, or nil.
+func (b *ASTBinder) loadStructValidator() StructValidator {
+	if stored := b.structValidator.Load(); stored != nil {
+		return *stored
+	}
+	return nil
+}
+
+// holdsNilValue reports whether v carries a nil of a nilable kind. A plain v == nil check
+// misses a typed nil such as (*Validator)(nil) placed in an interface, which would
+// otherwise be stored and panic on the first Struct call.
+//
+// Takes v (StructValidator) which is the candidate validator.
+//
+// Returns bool which is true when v wraps a nil value.
+func holdsNilValue(v StructValidator) bool {
+	value := reflect.ValueOf(v)
+	switch value.Kind() {
+	case reflect.Pointer, reflect.Func, reflect.Map, reflect.Chan, reflect.Slice, reflect.Interface:
+		return value.IsNil()
+	default:
+		return !value.IsValid()
+	}
+}
+
+// runValidation validates destination when the call opted in and a validator is
+// configured. Callers must invoke this only once every binding pass has succeeded, so a
+// constraint never fires against a half-populated struct.
+//
+// The validator runs inside a panic guard. Validation libraries panic on a malformed tag
+// rather than returning an error, and a tag only reaches the library once a request binds
+// against it, so an application's typo would otherwise take down the request that found
+// it and, on the batch path, every sibling action with it. Such a panic describes the
+// application's own tags, so it surfaces as an internal error rather than a rejection of
+// the user's input.
+//
+// The validator's own error, not the guard's enriched wrapper, is what reaches the
+// FieldErrorReporter and the returned ValidationFailedError. A reporter that reads the
+// error's message would otherwise leak the guard's internal prefix into user-facing
+// field messages.
+//
+// Takes opts ([]Option) which are the per-call options to inspect.
+// Takes destination (any) which is the freshly bound struct pointer.
+//
+// Returns error when a constraint fails, or nil.
+func (b *ASTBinder) runValidation(ctx context.Context, opts []Option, destination any) error {
+	if len(opts) == 0 {
+		return nil
+	}
+
+	bindOpts := &BindOptions{}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(bindOpts)
+		}
+	}
+	if bindOpts.Validate == nil || !*bindOpts.Validate {
+		return nil
+	}
+
+	validator := b.loadStructValidator()
+	if validator == nil {
+		return nil
+	}
+
+	if !isValidatableStruct(destination) {
+		return nil
+	}
+
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("validating bound destination: %w", err)
+	}
+
+	var validatorErr error
+	err := goroutine.SafeCall(ctx, "binder.validate", func() error {
+		validatorErr = validator.Struct(destination)
+		return validatorErr
+	})
+	if err == nil {
+		return nil
+	}
+
+	if panicErr, ok := errors.AsType[*goroutine.PanicError](err); ok {
+		return fmt.Errorf("validator panicked, which points at a malformed validate tag rather than the payload: %w", panicErr)
+	}
+
+	reporter, ok := validator.(FieldErrorReporter)
+	if !ok {
+		return &ValidationFailedError{Err: validatorErr}
+	}
+
+	fields := reporter.FieldErrors(validatorErr, destination)
+	if fields == nil {
+		return fmt.Errorf("validating bound destination: %w", validatorErr)
+	}
+	return &ValidationFailedError{Err: validatorErr, Fields: b.capFieldErrors(fields)}
+}
+
+// capFieldErrors trims the reported messages to the configured ceiling.
+//
+// A hostile payload can fail one constraint per bound field, and the limits action inputs
+// bind under allow tens of thousands of them. Without a ceiling a single request turns
+// into a map, a response body and a log line of that cardinality.
+//
+// Takes fields (map[string][]string) which are the validator's per-field messages.
+//
+// Returns map[string][]string which holds at most the configured number of entries.
+func (b *ASTBinder) capFieldErrors(fields map[string][]string) map[string][]string {
+	limit := b.maxFieldErrors.Load()
+	if limit <= 0 || int64(len(fields)) <= limit {
+		return fields
+	}
+
+	capped := make(map[string][]string, limit+1)
+	for name, messages := range fields {
+		if int64(len(capped)) >= limit {
+			break
+		}
+		capped[name] = messages
+	}
+	capped[FieldErrorsTruncatedKey] = []string{
+		fmt.Sprintf("reporting %d of %d failed fields", limit, len(fields)),
+	}
+	return capped
+}
+
+// isValidatableStruct reports whether destination is something a struct validator can
+// accept. Action parameters are not always structs: a slice, map, sized integer or
+// time.Time bind through the same path, and handing one to the validator yields an error
+// about the destination rather than about the user's input.
+//
+// Takes destination (any) which is the freshly bound value.
+//
+// Returns bool which is true when destination resolves to a struct.
+func isValidatableStruct(destination any) bool {
+	value := reflect.ValueOf(destination)
+	for value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			return false
+		}
+		value = value.Elem()
+	}
+	return value.Kind() == reflect.Struct && value.Type() != reflect.TypeOf(time.Time{})
 }
 
 // NewASTBinder creates a new AST-powered binder with default settings.
@@ -184,6 +460,7 @@ func NewASTBinder() *ASTBinder {
 		maxFieldCount:     atomic.Int64{},
 		maxValueLength:    atomic.Int64{},
 		maxBindJSONBytes:  atomic.Int64{},
+		maxFieldErrors:    atomic.Int64{},
 	}
 	b.hasConverters.Store(false)
 	b.ignoreUnknownKeys.Store(false)
@@ -193,6 +470,7 @@ func NewASTBinder() *ASTBinder {
 	b.maxFieldCount.Store(defaultMaxFieldCount)
 	b.maxValueLength.Store(defaultMaxValueLength)
 	b.maxBindJSONBytes.Store(DefaultMaxBindJSONBytes)
+	b.maxFieldErrors.Store(DefaultMaxFieldErrors)
 	return b
 }
 
@@ -207,6 +485,18 @@ func (b *ASTBinder) SetMaxBindJSONBytes(maxBytes int64) {
 	b.maxBindJSONBytes.Store(maxBytes)
 }
 
+// SetMaxFieldErrors overrides how many per-field validation messages a bind reports. A
+// value of zero or below disables the cap (not recommended for attacker-influenced
+// input).
+//
+// Takes maxErrors (int64) which is the new ceiling on reported fields.
+func (b *ASTBinder) SetMaxFieldErrors(maxErrors int64) {
+	if maxErrors < 0 {
+		maxErrors = 0
+	}
+	b.maxFieldErrors.Store(maxErrors)
+}
+
 // MaxBindJSONBytes returns the active byte-size cap enforced by BindJSON.
 //
 // Returns int64 which is the current cap; a value of zero indicates no cap is enforced.
@@ -216,12 +506,38 @@ func (b *ASTBinder) MaxBindJSONBytes() int64 {
 
 // Bind populates the fields of the destination struct using data from the source map.
 //
+// When the call opts in via WithValidation and a validator is configured, the populated
+// destination is validated once binding has succeeded.
+//
 // Takes destination (any) which is the destination struct pointer to populate.
 // Takes source (map[string][]string) which provides the source data for binding.
 // Takes opts (...Option) which override global settings for this call.
 //
 // Returns error as a MultiError containing all binding errors, or nil if successful.
 func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string][]string, opts ...Option) error {
+	if err := b.bindWithoutValidation(ctx, destination, source, opts...); err != nil {
+		return err
+	}
+	return b.runValidation(ctx, opts, destination)
+}
+
+// bindWithoutValidation performs the binding pass alone, leaving validation to the
+// caller.
+//
+// BindMap and BindJSON bind in two passes, and a constraint must not be judged against
+// the struct until both have succeeded.
+//
+// Takes destination (any) which is the destination struct pointer to populate.
+// Takes source (map[string][]string) which provides the source data for binding.
+// Takes opts (...Option) which override global settings for this call.
+//
+// Returns error as a MultiError containing all binding errors, or nil.
+func (b *ASTBinder) bindWithoutValidation(
+	ctx context.Context,
+	destination any,
+	source map[string][]string,
+	opts ...Option,
+) error {
 	if err := validateBindTarget(destination); err != nil {
 		return fmt.Errorf("validating bind target: %w", err)
 	}
@@ -263,8 +579,11 @@ func (b *ASTBinder) BindMap(ctx context.Context, destination any, source map[str
 	limits := b.resolveLimits(opts)
 	remaining, subtreeErrs := b.bindWholeSubtreeFields(destination, source, limits)
 	flattened := flattenMapToFormData(remaining)
-	bindErr := b.Bind(ctx, destination, flattened, opts...)
-	return mergeBindErrors(subtreeErrs, bindErr)
+	bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
+	if merged := mergeBindErrors(subtreeErrs, bindErr); merged != nil {
+		return merged
+	}
+	return b.runValidation(ctx, opts, destination)
 }
 
 // BindJSON populates the fields of the destination struct from raw JSON bytes. It decodes
@@ -293,8 +612,11 @@ func (b *ASTBinder) BindJSON(ctx context.Context, destination any, source []byte
 	limits := b.resolveLimits(opts)
 	remaining, subtreeErrs := b.bindWholeSubtreeFieldsRaw(destination, rawFields, limits)
 	flattened := flattenMapToFormData(remaining)
-	bindErr := b.Bind(ctx, destination, flattened, opts...)
-	return mergeBindErrors(subtreeErrs, bindErr)
+	bindErr := b.bindWithoutValidation(ctx, destination, flattened, opts...)
+	if merged := mergeBindErrors(subtreeErrs, bindErr); merged != nil {
+		return merged
+	}
+	return b.runValidation(ctx, opts, destination)
 }
 
 // RegisterConverter registers a custom function to convert string values to a specific
@@ -935,6 +1257,24 @@ func (budget *sliceElementBudget) charge(elements int) error {
 // Returns *ASTBinder which is the shared binder instance.
 func GetBinder() *ASTBinder {
 	return getBinder()
+}
+
+// ActionInputSource selects the map an action input binds from, given the request's
+// decoded arguments and that input's parameter name.
+//
+// Takes arguments (map[string]any) which are the request's decoded arguments.
+// Takes key (string) which is the input's parameter name.
+//
+// Returns map[string]any which is the source to bind from.
+func ActionInputSource(arguments map[string]any, key string) map[string]any {
+	raw, present := arguments[key]
+	if !present {
+		return arguments
+	}
+	if nested, ok := raw.(map[string]any); ok {
+		return nested
+	}
+	return map[string]any{}
 }
 
 // accumulateError adds an error to the MultiError map.

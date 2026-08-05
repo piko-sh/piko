@@ -94,12 +94,19 @@ func (*mockEmailTemplateService) Render(
 // implementation.
 // Takes emailProviderName (string) which identifies the email provider for logging and
 // debugging.
+// Takes opts (...Option) which configure the container as the application does. Pass
+// WithValidator here to enforce the same `validate:"..."` tags the served application
+// enforces; without it a test accepts input production rejects.
 //
 // Returns *Container which provides access to services and cleanup methods. When the
 // in-memory event provider fails to initialise the container is returned in a degraded
 // state and subsequent calls to GetEventBus surface the underlying error.
-func InitialiseForTesting(mockEmailProvider email_domain.EmailProviderPort, emailProviderName string) *Container {
-	container := NewContainer()
+func InitialiseForTesting(
+	mockEmailProvider email_domain.EmailProviderPort,
+	emailProviderName string,
+	opts ...Option,
+) *Container {
+	container := NewContainer(opts...)
 
 	initialiseTestingRegistryService(container)
 	initialiseTestingEmailService(container, mockEmailProvider, emailProviderName)

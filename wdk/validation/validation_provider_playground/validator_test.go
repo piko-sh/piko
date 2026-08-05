@@ -19,6 +19,8 @@
 package validation_provider_playground
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/go-playground/validator/v10"
@@ -555,4 +557,97 @@ func TestUnderlying(t *testing.T) {
 		return true
 	})
 	assert.NoError(t, err)
+}
+
+func TestValidatorFieldErrors(t *testing.T) {
+	type target struct {
+		Name  string      `json:"name"  validate:"required,max=5"`
+		Price maths.Money `json:"price" validate:"money_not_negative"`
+	}
+
+	v := NewValidator()
+	err := v.Struct(target{Name: "far too long", Price: maths.NewMoneyFromInt(-1, "GBP")})
+	require.Error(t, err)
+
+	fields := v.FieldErrors(err, target{})
+	require.NotEmpty(t, fields)
+	assert.Contains(t, fields, "name")
+	assert.Contains(t, fields, "price")
+}
+
+func TestValidatorFieldErrorsIgnoresForeignErrors(t *testing.T) {
+	v := NewValidator()
+
+	assert.Nil(t, v.FieldErrors(errors.New("not from the validator"), struct{}{}))
+}
+
+func TestValidatorFieldErrorsNestedFormNames(t *testing.T) {
+	type contact struct {
+		ID string `json:"uuid" validate:"required"`
+	}
+	type customer struct {
+		CompanyName string    `json:"company_name" validate:"required,max=75"`
+		Contacts    []contact `json:"contacts"     validate:"omitempty,dive"`
+	}
+	type upsertInput struct {
+		Customer customer `json:"customer"`
+	}
+
+	v := NewValidator()
+	err := v.Struct(upsertInput{Customer: customer{
+		CompanyName: strings.Repeat("X", 100),
+		Contacts:    []contact{{ID: ""}},
+	}})
+	require.Error(t, err)
+
+	fields := v.FieldErrors(err, upsertInput{})
+	assert.Contains(t, fields, "customer.company_name")
+	assert.Contains(t, fields, "customer.contacts[0].uuid")
+}
+
+func TestValidatorFieldErrorsPrefersBindTag(t *testing.T) {
+	type target struct {
+		Name string `bind:"user_name" json:"userName" validate:"required"`
+	}
+
+	v := NewValidator()
+	err := v.Struct(target{})
+	require.Error(t, err)
+
+	fields := v.FieldErrors(err, target{})
+	assert.Contains(t, fields, "user_name",
+		"the key must be the name the binder accepts, so the client can attach the message")
+	assert.NotContains(t, fields, "userName")
+}
+
+func TestValidatorFieldErrorsFallsBackToGoName(t *testing.T) {
+	type target struct {
+		Name string `validate:"required"`
+	}
+
+	v := NewValidator()
+	err := v.Struct(target{})
+	require.Error(t, err)
+
+	assert.Contains(t, v.FieldErrors(err, target{}), "Name")
+}
+
+func TestValidatorFieldErrorsFlattensEmbeddedStructs(t *testing.T) {
+	type address struct {
+		City string `json:"city" validate:"required"`
+	}
+	type contact struct {
+		address
+		Email string `json:"email" validate:"required,email"`
+	}
+
+	v := NewValidator()
+	err := v.Struct(contact{})
+	require.Error(t, err)
+
+	fields := v.FieldErrors(err, contact{})
+	assert.Contains(t, fields, "city",
+		"the binder promotes embedded fields, so the key must carry no embedding segment")
+	assert.Contains(t, fields, "email")
+	assert.NotContains(t, fields, "address.city")
 }

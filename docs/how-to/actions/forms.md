@@ -77,7 +77,9 @@ func (a *UpsertAction) Call(input UpsertInput) (UpsertResponse, error) {
 }
 ```
 
-`ID` is a pointer so the caller can omit it to mean "create". The `validate:"required"` tags are metadata used by code generation and tooling. They do not run automatically before `Call`. Validate inside `Call` and return `piko.ValidationField` / `piko.NewValidationError` for field errors (see [Return field-level validation errors](#return-field-level-validation-errors) below).
+`ID` is a pointer so the caller can omit it to mean "create". The `validate:"required"` tags run automatically: the input is bound and validated before `Call`, and a failure answers `422` with a field-keyed `errors` map without `Call` ever running. Enforcement requires a validator, which you register with `piko.WithValidator`; without one the tags stay inert metadata.
+
+For the checks struct tags cannot express, such as "this email is already registered", validate inside `Call` and return `piko.ValidationField` / `piko.NewValidationError` (see [Return field-level validation errors](#return-field-level-validation-errors) below). Both routes produce the same response shape, so the client renders them identically.
 
 ### Alternative: Individual `Call` parameters
 

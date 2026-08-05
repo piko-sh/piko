@@ -587,7 +587,6 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 		CSPConfig:     buildCSPRuntimeConfig(b.c),
 		Deps: &daemon_domain.HTTPHandlerDependencies{
 			Templater: b.templaterService,
-			Validator: b.c.GetValidator(),
 		},
 		CSRFService:       b.csrfService,
 		SiteSettings:      &b.c.websiteConfig,

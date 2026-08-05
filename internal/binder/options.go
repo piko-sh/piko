@@ -52,10 +52,33 @@ type BindOptions struct {
 
 	// MaxValueLength sets the maximum length for bound values; nil uses the default.
 	MaxValueLength *int
+
+	// Validate controls whether the bound destination is handed to the configured struct
+	// validator once binding succeeds; nil means no validation.
+	Validate *bool
 }
 
 // Option is a function that configures BindOptions.
 type Option func(*BindOptions)
+
+// WithValidation returns an Option that runs the configured struct validator against the
+// destination after binding succeeds.
+//
+// Validation is opt-in per call rather than global because binding is also used for
+// partially-filled payloads. A form partial re-rendering mid-edit binds incomplete data
+// on every keystroke, and validating there would reject input the user is still typing.
+// Action inputs are the case where a complete, validated payload is expected.
+//
+// Has no effect unless a validator is configured (see SetStructValidator).
+//
+// Takes validate (bool) which specifies whether to validate after binding.
+//
+// Returns Option which configures post-bind validation.
+func WithValidation(validate bool) Option {
+	return func(opts *BindOptions) {
+		opts.Validate = new(validate)
+	}
+}
 
 // IgnoreUnknownKeys returns an Option that controls behaviour for unknown form fields in
 // the source data.

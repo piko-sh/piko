@@ -30,7 +30,8 @@ import {
     type RetryStreamConfig
 } from '@/pk/action';
 
-vi.mock('@/core/ActionExecutor', () => ({
+vi.mock('@/core/ActionExecutor', async importOriginal => ({
+    ...await importOriginal<typeof import('@/core/ActionExecutor')>(),
     callServerActionDirect: vi.fn()
 }));
 
@@ -798,7 +799,7 @@ describe('action (PK Action Descriptor)', () => {
             globalThis.fetch = originalFetch;
         });
 
-        it('should send correct JSON body structure with indexed args', async () => {
+        it('should marshal args exactly as a single action call does', async () => {
             let capturedBody: string | undefined;
             globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
                 capturedBody = init.body as string;
@@ -827,12 +828,30 @@ describe('action (PK Action Descriptor)', () => {
 
             const parsed = JSON.parse(capturedBody!);
             expect(parsed.actions).toEqual([
-                {name: 'user.Create', args: {0: 'Alice', 1: 30}},
-                {name: 'email.Send', args: {0: 'hello@example.com'}}
+                {name: 'user.Create', args: {args: {0: 'Alice', 1: 30}}},
+                {name: 'email.Send', args: {args: {0: 'hello@example.com'}}}
             ]);
 
             expect(result.success).toBe(true);
             expect(result.results).toHaveLength(2);
+        });
+
+        it('should spread a single object argument flat so the action receives its input', async () => {
+            let capturedBody: string | undefined;
+            globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+                capturedBody = init.body as string;
+                return new Response(JSON.stringify({
+                    results: [{name: 'customer.Upsert', status: 200, data: {id: 1}}],
+                    success: true
+                }), {status: 200, headers: {'Content-Type': 'application/json'}});
+            });
+
+            await batch(action('customer.Upsert', {input: {name: 'Alice'}}));
+
+            const parsed = JSON.parse(capturedBody!);
+            expect(parsed.actions).toEqual([
+                {name: 'customer.Upsert', args: {input: {name: 'Alice'}}}
+            ]);
         });
 
         it('should handle actions with no args', async () => {

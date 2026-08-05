@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-import {callServerActionDirect, type DirectCallResponse} from '@/core/ActionExecutor';
+import {callServerActionDirect, marshalActionArgs, type DirectCallResponse} from '@/core/ActionExecutor';
 
 /** HTTP status code for validation errors. */
 const HTTP_STATUS_UNPROCESSABLE = 422;
@@ -88,7 +88,7 @@ export interface ActionError {
     /** Error message. */
     message: string;
     /** Field-level validation errors. */
-    validationErrors?: Record<string, string[]>;
+    validationErrors?: Record<string, string | string[]>;
     /** Raw response data. */
     data?: unknown;
     /** Server-response helpers attached to error responses. */
@@ -108,7 +108,7 @@ export interface ActionError {
 export function createActionError(
     status: number,
     message: string,
-    validationErrors?: Record<string, string[]>,
+    validationErrors?: Record<string, string | string[]>,
     data?: unknown,
     helpers?: Array<{ name: string; args?: unknown[] }>
 ): ActionError & { isNetworkError: boolean; isValidationError: boolean; isAuthError: boolean } {
@@ -719,6 +719,8 @@ export interface BatchActionResult<T = unknown> {
     error?: string;
     /** Error code if failed. */
     code?: string;
+    /** Field-level validation errors, keyed by form field name. */
+    errors?: Record<string, string | string[]>;
 }
 
 /** Response from a batch action request. */
@@ -748,7 +750,7 @@ export async function batch<T extends unknown[]>(
         body: JSON.stringify({
             actions: actions.map(a => ({
                 name: a.action,
-                args: a.args?.reduce<Record<number, unknown>>((acc, val, i) => ({...acc, [i]: val}), {}) ?? {}
+                args: marshalActionArgs(a.args ?? [])
             }))
         })
     });

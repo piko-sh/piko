@@ -14,18 +14,9 @@ func invokeContactSend(ctx context.Context, action any, argsMap map[string]any) 
 	ctx, l := logger.From(ctx, log)
 	a := action.(*contact.SendAction)
 	var input contact.SendInput
-	if raw, ok := argsMap["input"]; ok {
-		if rawMap, ok := raw.(map[string]any); ok {
-			if err := pikobinder.BindMap(ctx, &input, rawMap, pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits()); err != nil {
-				l.Error("Failed to bind action parameter", logger.String("param", "input"), logger.Error(err))
-				return nil, err
-			}
-		}
-	} else if len(argsMap) > 0 {
-		if err := pikobinder.BindMap(ctx, &input, argsMap, pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits()); err != nil {
-			l.Error("Failed to bind action parameter from flat argsMap", logger.String("param", "input"), logger.Error(err))
-			return nil, err
-		}
+	if err := pikobinder.BindMap(ctx, &input, pikobinder.ActionInputSource(argsMap, "input"), pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits(), pikobinder.WithValidation(true)); err != nil {
+		l.Warn("Failed to bind action parameter", logger.String("param", "input"), logger.Error(err))
+		return nil, err
 	}
 	return a.Call(input)
 }

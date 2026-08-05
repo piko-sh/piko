@@ -26,6 +26,7 @@ import (
 	"maps"
 	"strings"
 
+	"piko.sh/piko/internal/binder"
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
@@ -784,6 +785,25 @@ func (c *Container) GetValidator() StructValidator {
 	return c.validator
 }
 
+// installStructValidator publishes the configured validator to the shared binder, so
+// binds that opt in via WithValidation enforce their `validate:"..."` tags.
+func (c *Container) installStructValidator() {
+	if globalContainer.Load() != c {
+		return
+	}
+
+	_, l := logger_domain.From(c.GetAppContext(), log)
+
+	validator := c.GetValidator()
+	binder.GetBinder().SetStructValidator(validator)
+
+	if validator == nil {
+		l.Warn("No struct validator configured; validate tags on action inputs are not enforced")
+		return
+	}
+	l.Internal("Struct validator installed into the shared binder.")
+}
+
 // SetValidator sets a custom validator implementation. This completely replaces any
 // previously configured validator.
 //
@@ -791,6 +811,10 @@ func (c *Container) GetValidator() StructValidator {
 func (c *Container) SetValidator(v StructValidator) {
 	c.validatorOverride = v
 	c.validator = v
+
+	if globalContainer.Load() == c {
+		binder.GetBinder().SetStructValidator(v)
+	}
 }
 
 // GetHealthProbeService returns the singleton HealthProbe service, creating it if needed.

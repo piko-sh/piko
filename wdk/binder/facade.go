@@ -114,6 +114,62 @@ func IgnoreUnknownKeys(ignore bool) Option {
 	return binder.IgnoreUnknownKeys(ignore)
 }
 
+// StructValidator validates a populated struct against its field tags.
+type StructValidator = binder.StructValidator
+
+// ValidationFailedError reports that binding succeeded but the destination violated its
+// `validate:"..."` tags. It answers 422 and carries per-field messages when the
+// configured validator could supply them.
+type ValidationFailedError = binder.ValidationFailedError
+
+// ErrValidationFailed reports that a bound destination violated its `validate:"..."`
+// tags. Use errors.Is against it to detect a validation failure from a Bind call that
+// opted in via WithValidation.
+var ErrValidationFailed = binder.ErrValidationFailed
+
+// WithValidation returns an Option that runs the configured struct validator against the
+// destination once binding succeeds, so `validate:"..."` tags are enforced.
+//
+// Validation is opt-in per call rather than global: binding is also used for
+// partially-filled payloads, such as a form partial re-rendering mid-edit, where
+// rejecting incomplete input would be wrong. Generated action wrappers set this because
+// an action input is expected to be complete.
+//
+// Has no effect unless a validator is configured, which piko.WithValidator does.
+//
+// Takes validate (bool) which specifies whether to validate after binding.
+//
+// Returns Option which configures post-bind validation for a Bind call.
+func WithValidation(validate bool) Option {
+	return binder.WithValidation(validate)
+}
+
+// SetStructValidator installs the validator used by Bind calls that opt in via
+// WithValidation. Passing nil disables validation.
+//
+// Applications do not normally call this: piko.WithValidator records the validator and
+// framework initialisation installs it here, before any request is served.
+//
+// Takes v (StructValidator) which validates bound destinations.
+func SetStructValidator(v StructValidator) {
+	binder.GetBinder().SetStructValidator(v)
+}
+
+// ActionInputSource selects the map an action input binds from, given the request's
+// decoded arguments and that input's parameter name. Generated action wrappers call it so
+// nested and flat payloads bind alike.
+//
+// It always returns a map, so the wrapper binds even when the payload is absent or
+// malformed and the input's `validate:"..."` tags still decide the outcome.
+//
+// Takes arguments (map[string]any) which are the request's decoded arguments.
+// Takes key (string) which is the input's parameter name.
+//
+// Returns map[string]any which is the source to bind from.
+func ActionInputSource(arguments map[string]any, key string) map[string]any {
+	return binder.ActionInputSource(arguments, key)
+}
+
 // WithMaxSliceSize returns an Option to set a per-call limit for slice growth. This
 // overrides the global limit for this specific Bind call.
 //

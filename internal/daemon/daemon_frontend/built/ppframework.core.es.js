@@ -3276,7 +3276,7 @@ function clearPreviousErrors(form) {
 function applyServerErrors(form, errors) {
   clearPreviousErrors(form);
   for (const [fieldName, messages] of Object.entries(errors)) {
-    const errorMessage = messages.join(", ");
+    const errorMessage = Array.isArray(messages) ? messages.join(", ") : String(messages);
     const fields = form.querySelectorAll(`[name="${fieldName}"]`);
     if (fields.length > 0) {
       fields.forEach((field) => {
@@ -3343,16 +3343,21 @@ async function executeWithRetry(actionName, args, method, actionToken, ephemeral
   }
   throw lastError;
 }
+function marshalActionArgs(args) {
+  const marshalled = {};
+  if (args.length === 0) {
+    return marshalled;
+  }
+  if (args.length === 1 && typeof args[0] === "object" && args[0] !== null) {
+    Object.assign(marshalled, args[0]);
+    return marshalled;
+  }
+  marshalled["args"] = args.map((value, index) => ({ [index]: value })).reduce((accumulator, entry) => ({ ...accumulator, ...entry }), {});
+  return marshalled;
+}
 function buildActionBody(args, ephemeralToken) {
   const headers = {};
-  const bodyData = {};
-  if (args.length > 0) {
-    if (args.length === 1 && typeof args[0] === "object" && args[0] !== null) {
-      Object.assign(bodyData, args[0]);
-    } else {
-      bodyData["args"] = args.map((v, i) => ({ [i]: v })).reduce((acc, b) => ({ ...acc, ...b }), {});
-    }
-  }
+  const bodyData = marshalActionArgs(args);
   if (ephemeralToken) {
     bodyData["_csrf_ephemeral_token"] = ephemeralToken;
   }
@@ -4328,6 +4333,26 @@ function registerActionFunction(name, actionFactory) {
 }
 function getActionFunction(name) {
   return actionFunctionRegistry.get(name);
+}
+async function batch(...actions) {
+  const response = await fetch("/_piko/actions/_batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      actions: actions.map((a) => ({
+        name: a.action,
+        args: marshalActionArgs(a.args ?? [])
+      }))
+    })
+  });
+  if (!response.ok) {
+    throw createActionError(
+      response.status,
+      `Batch request failed with status ${response.status}`
+    );
+  }
+  return response.json();
 }
 const LOADER_FADE_MS = 300;
 const PROGRESS_MIN = 0;
@@ -7037,6 +7062,7 @@ export {
   _initCleanupObserver,
   _registerLifecycle,
   _runPageCleanup,
+  batch,
   bus,
   createActionBuilder,
   getGlobalPageContext,

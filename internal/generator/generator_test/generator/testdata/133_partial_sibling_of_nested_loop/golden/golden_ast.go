@@ -418,7 +418,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 															Column: 28,
 														},
 														DeclarationLocation: ast_domain.Location{
-															Line:   40,
+															Line:   54,
 															Column: 2,
 														},
 													},
@@ -562,7 +562,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																	Column: 28,
 																},
 																DeclarationLocation: ast_domain.Location{
-																	Line:   40,
+																	Line:   54,
 																	Column: 2,
 																},
 															},
@@ -1012,7 +1012,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			Column: 28,
 																		},
 																		DeclarationLocation: ast_domain.Location{
-																			Line:   40,
+																			Line:   54,
 																			Column: 2,
 																		},
 																	},
@@ -1357,7 +1357,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					Column: 28,
 																				},
 																				DeclarationLocation: ast_domain.Location{
-																					Line:   40,
+																					Line:   54,
 																					Column: 2,
 																				},
 																			},
@@ -1586,7 +1586,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																			Column: 28,
 																		},
 																		DeclarationLocation: ast_domain.Location{
-																			Line:   40,
+																			Line:   54,
 																			Column: 2,
 																		},
 																	},
@@ -2478,7 +2478,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																					Column: 28,
 																				},
 																				DeclarationLocation: ast_domain.Location{
-																					Line:   40,
+																					Line:   54,
 																					Column: 2,
 																				},
 																			},
@@ -3144,7 +3144,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							Column: 28,
 																						},
 																						DeclarationLocation: ast_domain.Location{
-																							Line:   40,
+																							Line:   54,
 																							Column: 2,
 																						},
 																					},
@@ -3323,7 +3323,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																									Column: 28,
 																								},
 																								DeclarationLocation: ast_domain.Location{
-																									Line:   40,
+																									Line:   54,
 																									Column: 2,
 																								},
 																							},
@@ -3621,7 +3621,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							Column: 28,
 																						},
 																						DeclarationLocation: ast_domain.Location{
-																							Line:   40,
+																							Line:   54,
 																							Column: 2,
 																						},
 																					},
@@ -3923,7 +3923,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																									Column: 28,
 																								},
 																								DeclarationLocation: ast_domain.Location{
-																									Line:   40,
+																									Line:   54,
 																									Column: 2,
 																								},
 																							},
@@ -4221,7 +4221,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																							Column: 28,
 																						},
 																						DeclarationLocation: ast_domain.Location{
-																							Line:   40,
+																							Line:   54,
 																							Column: 2,
 																						},
 																					},
@@ -4400,7 +4400,7 @@ var GeneratedAST = func() *ast_domain.TemplateAST {
 																									Column: 28,
 																								},
 																								DeclarationLocation: ast_domain.Location{
-																									Line:   40,
+																									Line:   54,
 																									Column: 2,
 																								},
 																							},

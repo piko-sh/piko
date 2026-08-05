@@ -19,11 +19,23 @@
 package validation_provider_playground
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 
 	"piko.sh/piko/wdk/maths"
+)
+
+const (
+	// maxPointerDepth bounds how many pointer indirections a field name resolution follows.
+	maxPointerDepth = 16
+
+	// maxNamespaceSegments bounds how deep a validator namespace is walked when resolving a
+	// form field name. It sits far above any real form's nesting.
+	maxNamespaceSegments = 64
 )
 
 // Option configures the playground validator.
@@ -109,6 +121,210 @@ func NewValidator(opts ...Option) *Validator {
 // Returns error when any field fails its validation constraint.
 func (val *Validator) Struct(s any) error {
 	return val.v.Struct(s)
+}
+
+// FieldErrors translates a validation failure into per-field messages, so the HTTP layer
+// can answer with a 422 and a field-keyed map without knowing anything about
+// go-playground. It satisfies the framework's optional FieldErrorReporter interface.
+//
+// Takes err (error) which is an error previously returned by Struct.
+// Takes destination (any) which is the struct that was validated, used to resolve Go
+// field names to the names the payload carries.
+//
+// Returns map[string][]string keyed by form field name, or nil when err did not originate
+// here.
+func (*Validator) FieldErrors(err error, destination any) map[string][]string {
+	var validationErrors validator.ValidationErrors
+	if !errors.As(err, &validationErrors) {
+		return nil
+	}
+
+	destinationType := reflect.TypeOf(destination)
+	fields := make(map[string][]string, len(validationErrors))
+	for _, fieldErr := range validationErrors {
+		name := formFieldName(destinationType, fieldErr.Namespace())
+		fields[name] = append(fields[name], describeFieldError(fieldErr))
+	}
+	return fields
+}
+
+// formFieldName converts a validator namespace such as "UpsertInput.Customer.CompanyName"
+// into the name the form input actually carries, such as "customer.company_name", by
+// walking the destination's bind and json tags. It falls back to the namespace when the
+// path cannot be resolved, so a message is never lost.
+//
+// Takes destinationType (reflect.Type) which is the validated struct's type.
+// Takes namespace (string) which is the validator's dotted path to the failing field.
+//
+// Returns string which is the form field name.
+func formFieldName(destinationType reflect.Type, namespace string) string {
+	segments := strings.Split(namespace, ".")
+	if len(segments) < 2 || len(segments) > maxNamespaceSegments {
+		return namespace
+	}
+
+	current := derefType(destinationType)
+	names := make([]string, 0, len(segments)-1)
+	for _, segment := range segments[1:] {
+		fieldName, index := splitIndex(segment)
+
+		if current == nil || current.Kind() != reflect.Struct {
+			return namespace
+		}
+		field, found := current.FieldByName(fieldName)
+		if !found {
+			return namespace
+		}
+
+		current = derefType(elementType(field.Type))
+
+		if field.Anonymous && index == "" && current != nil && current.Kind() == reflect.Struct {
+			continue
+		}
+
+		name := bindFieldName(field)
+		if name == "-" {
+			return namespace
+		}
+		if index != "" {
+			name += "[" + index + "]"
+		}
+		names = append(names, name)
+	}
+
+	if len(names) == 0 {
+		return namespace
+	}
+
+	return strings.Join(names, ".")
+}
+
+// bindFieldName returns the name the binder accepts for a field: its bind tag when
+// present, otherwise its json tag, otherwise its Go name.
+//
+// The precedence mirrors the binder's own, so a field carrying both tags is reported
+// under the name the client actually submitted and the message can be attached to the
+// input that produced it.
+//
+// Takes field (reflect.StructField) which is the field to name.
+//
+// Returns string which is the name used in form and JSON payloads, or "-" when the field
+// is excluded from binding.
+func bindFieldName(field reflect.StructField) string {
+	for _, tagName := range []string{"bind", "json"} {
+		tag := field.Tag.Get(tagName)
+		if tag == "" {
+			continue
+		}
+		if tag == "-" {
+			return "-"
+		}
+		if name, _, _ := strings.Cut(tag, ","); name != "" {
+			return name
+		}
+	}
+	return field.Name
+}
+
+// splitIndex separates a namespace segment such as "Contacts[0]" into its field name and
+// index.
+//
+// Takes segment (string) which is one namespace segment.
+//
+// Returns string which is the field name.
+// Returns string which is the index, empty when the segment is not indexed.
+func splitIndex(segment string) (string, string) {
+	open := strings.IndexByte(segment, '[')
+	if open < 0 || !strings.HasSuffix(segment, "]") {
+		return segment, ""
+	}
+	return segment[:open], segment[open+1 : len(segment)-1]
+}
+
+// derefType unwraps pointer types.
+//
+// Takes t (reflect.Type) which may be a pointer.
+//
+// Returns reflect.Type which is the pointed-to type, or t unchanged.
+func derefType(t reflect.Type) reflect.Type {
+	for range maxPointerDepth {
+		if t == nil || t.Kind() != reflect.Ptr {
+			return t
+		}
+		t = t.Elem()
+	}
+	return nil
+}
+
+// elementType unwraps slice, array and map types to their element type so a namespace can
+// descend through collections.
+//
+// Takes t (reflect.Type) which may be a collection.
+//
+// Returns reflect.Type which is the element type, or t unchanged.
+func elementType(t reflect.Type) reflect.Type {
+	t = derefType(t)
+	if t == nil {
+		return nil
+	}
+	switch t.Kind() {
+	case reflect.Slice, reflect.Array, reflect.Map:
+		return t.Elem()
+	default:
+		return t
+	}
+}
+
+// describeFieldError renders a message for one failed constraint.
+//
+// The message is rendered next to the input that produced it, so it is phrased for the
+// person filling in the form rather than for the developer who wrote the tag. Tags with
+// no phrasing of their own, including any the application registered, fall back to naming
+// the constraint, which is still more use than nothing.
+//
+// Takes fieldErr (validator.FieldError) which describes the failure.
+//
+// Returns string which is the message for that field.
+func describeFieldError(fieldErr validator.FieldError) string {
+	param := fieldErr.Param()
+
+	switch fieldErr.Tag() {
+	case "required", "required_if", "required_with", "required_without":
+		return "This field is required"
+	case "email":
+		return "Enter a valid email address"
+	case "url", "uri":
+		return "Enter a valid URL"
+	case "min":
+		return fmt.Sprintf("Must be at least %s", param)
+	case "max":
+		return fmt.Sprintf("Must be no more than %s", param)
+	case "len":
+		return fmt.Sprintf("Must be exactly %s", param)
+	case "gte":
+		return fmt.Sprintf("Must be %s or more", param)
+	case "lte":
+		return fmt.Sprintf("Must be %s or less", param)
+	case "gt":
+		return fmt.Sprintf("Must be more than %s", param)
+	case "lt":
+		return fmt.Sprintf("Must be less than %s", param)
+	case "oneof":
+		return fmt.Sprintf("Must be one of: %s", strings.ReplaceAll(param, " ", ", "))
+	case "eqfield", "eqcsfield":
+		return "This field does not match"
+	case "numeric":
+		return "Enter a number"
+	case "alpha":
+		return "Use letters only"
+	case "alphanum":
+		return "Use letters and numbers only"
+	}
+
+	if param != "" {
+		return fmt.Sprintf("Failed the %s check (%s)", fieldErr.Tag(), param)
+	}
+	return fmt.Sprintf("Failed the %s check", fieldErr.Tag())
 }
 
 // Underlying returns the raw *validator.Validate instance for advanced use cases such as

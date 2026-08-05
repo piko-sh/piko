@@ -377,10 +377,13 @@ func GetSeedService(name string) (querier_domain.SeedServicePort, error) {
 	return container.GetQuerierSeedService(name)
 }
 
-// initialiseGlobalServices stores the container reference for global service access.
+// initialiseGlobalServices stores the container reference for global service access and
+// publishes the configured validator to the shared binder.
 //
-// Called after the container is fully set up. Safe to call more than once; only the first
-// call has any effect.
+// Every entry point routes through here, so installing the validator at this point is
+// what makes `validate:"..."` tags on action inputs behave the same under a served
+// application, a headless process and the test harness. Only the first container becomes
+// the global one, and only that container installs.
 //
 // Takes container (*Container) which is the fully set up service container to store for
 // global access.
@@ -388,6 +391,7 @@ func initialiseGlobalServices(container *Container) {
 	initialiseOnce.Do(func() {
 		globalContainer.Store(container)
 	})
+	container.installStructValidator()
 }
 
 // getContainer returns the global container.

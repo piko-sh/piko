@@ -52,7 +52,7 @@ interface ActionResponseData {
     /** Error message when the action fails. */
     error?: string;
     /** Validation errors keyed by field name. */
-    errors?: Record<string, string[]>;
+    errors?: Record<string, string | string[]>;
     /** Response payload data. */
     data?: unknown;
     /** Client-side helpers to execute after action completes. */
@@ -288,11 +288,11 @@ function clearPreviousErrors(form: HTMLElement): void {
  * @param form - The form element containing the fields.
  * @param errors - Validation errors keyed by field name.
  */
-function applyServerErrors(form: HTMLElement, errors: Record<string, string[]>): void {
+function applyServerErrors(form: HTMLElement, errors: Record<string, string | string[]>): void {
     clearPreviousErrors(form);
 
     for (const [fieldName, messages] of Object.entries(errors)) {
-        const errorMessage = messages.join(', ');
+        const errorMessage = Array.isArray(messages) ? messages.join(', ') : String(messages);
         const fields = form.querySelectorAll<HTMLElement>(`[name="${fieldName}"]`);
 
         if (fields.length > 0) {
@@ -455,6 +455,30 @@ interface ExecuteOptions {
 }
 
 /**
+ * Marshal action arguments into the shape the server binds from.
+ *
+ * @param args - The action arguments to marshal.
+ * @returns The argument object to send.
+ */
+export function marshalActionArgs(args: unknown[]): Record<string, unknown> {
+    const marshalled: Record<string, unknown> = {};
+
+    if (args.length === 0) {
+        return marshalled;
+    }
+
+    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+        Object.assign(marshalled, args[0] as Record<string, unknown>);
+        return marshalled;
+    }
+
+    marshalled['args'] = args
+        .map((value, index) => ({[index]: value}))
+        .reduce((accumulator, entry) => ({...accumulator, ...entry}), {});
+    return marshalled;
+}
+
+/**
  * Marshal action arguments and the ephemeral token into a request body.
  *
  * Detect File/Blob values and return FormData when files are present,
@@ -469,17 +493,7 @@ function buildActionBody(
     ephemeralToken: string | null
 ): {body: BodyInit; headers: HeadersInit} {
     const headers: HeadersInit = {};
-    const bodyData: Record<string, unknown> = {};
-
-    if (args.length > 0) {
-        if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
-            Object.assign(bodyData, args[0] as Record<string, unknown>);
-        } else {
-            bodyData['args'] = args
-                .map((v, i) => ({[i]: v}))
-                .reduce((acc, b) => ({...acc, ...b}), {});
-        }
-    }
+    const bodyData: Record<string, unknown> = marshalActionArgs(args);
 
     if (ephemeralToken) {
         bodyData['_csrf_ephemeral_token'] = ephemeralToken;

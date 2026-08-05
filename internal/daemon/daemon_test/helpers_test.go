@@ -44,10 +44,6 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
-type noopValidator struct{}
-
-func (*noopValidator) Struct(any) error { return nil }
-
 type TestHarness struct {
 	T                *testing.T
 	Router           *chi.Mux
@@ -60,7 +56,6 @@ type TestHarness struct {
 	RateLimitService *security_domain.MockRateLimitService
 	ServerConfig     *bootstrap.ServerConfig
 	SiteConfig       *config.WebsiteConfig
-	Validator        daemon_domain.StructValidator
 	CSPConfig        security_dto.CSPRuntimeConfig
 }
 
@@ -87,7 +82,6 @@ func NewTestHarness(t *testing.T) *TestHarness {
 		ServerConfig:     defaultServerConfig(),
 		SiteConfig:       defaultSiteConfig(),
 		CSPConfig:        security_dto.CSPRuntimeConfig{},
-		Validator:        &noopValidator{},
 	}
 }
 
@@ -135,7 +129,6 @@ func (h *TestHarness) DoPost(path string, body any) *httptest.ResponseRecorder {
 func (h *TestHarness) GetHTTPHandlerDependencies() *daemon_domain.HTTPHandlerDependencies {
 	return &daemon_domain.HTTPHandlerDependencies{
 		Templater: h.TemplaterService,
-		Validator: h.Validator,
 	}
 }
 

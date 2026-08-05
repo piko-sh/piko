@@ -338,7 +338,7 @@ func (e *ActionWrapperEmitter) buildStructParamExtraction(varName, jsonKey strin
 		return e.buildStructParamWithFileUploads(varName, jsonKey, typeSpec)
 	}
 	qualifiedType := wrapperQualifiedTypeName(typeSpec)
-	return e.buildJSONUnmarshalExtraction(varName, jsonKey, qualifiedType)
+	return e.buildStructBindExtraction(varName, jsonKey, qualifiedType)
 }
 
 // buildStructParamWithFileUploads extracts a struct parameter that contains
@@ -420,7 +420,7 @@ func (*ActionWrapperEmitter) buildIntConversion(varName, jsonKey, intType string
 //
 // Returns []ast.Stmt which contains the AST statements for the extraction.
 func (e *ActionWrapperEmitter) buildGenericParamExtraction(varName, jsonKey, goType string) []ast.Stmt {
-	return e.buildJSONUnmarshalExtraction(varName, jsonKey, goType)
+	return e.buildGuardedBindExtraction(varName, jsonKey, goType)
 }
 
 // buildFileUploadExtraction builds statements for extracting a single piko.FileUpload
@@ -540,16 +540,40 @@ func (*ActionWrapperEmitter) buildRawBodyExtraction(varName string) []ast.Stmt {
 	}
 }
 
-// buildJSONUnmarshalExtraction builds binder-based extraction with error handling.
-// Generates code that handles both nested JSON ({"input": {...}}) and flat form data
-// ({...}) using pikobinder.BindMap.
+// buildStructBindExtraction builds binder-based extraction for a struct parameter. It
+// generates a single pikobinder.BindMap call whose source comes from
+// pikobinder.ActionInputSource, which resolves nested JSON ({"input": {...}}) and flat
+// form data ({...}) alike.
 //
 // Takes varName (string) which specifies the variable name to store the result.
 // Takes jsonKey (string) which specifies the JSON key to extract.
 // Takes typeName (string) which specifies the Go type for binding.
 //
 // Returns []ast.Stmt which contains the generated AST statements.
-func (*ActionWrapperEmitter) buildJSONUnmarshalExtraction(varName, jsonKey, typeName string) []ast.Stmt {
+func (*ActionWrapperEmitter) buildStructBindExtraction(varName, jsonKey, typeName string) []ast.Stmt {
+	typeExpr := parseTypeExpr(typeName)
+
+	source := goastutil.CallExpr(
+		goastutil.SelectorExpr(actionBinderPackageAlias, "ActionInputSource"),
+		goastutil.CachedIdent(wrapperIdentArgsMap),
+		goastutil.StrLit(jsonKey),
+	)
+
+	return []ast.Stmt{
+		goastutil.VarDecl(varName, typeExpr),
+		buildBindMapStmt(source, varName, jsonKey, "Failed to bind action parameter"),
+	}
+}
+
+// buildGuardedBindExtraction builds binder-based extraction for a parameter that is not a
+// struct, such as a slice, a map or a sized integer.
+//
+// Takes varName (string) which specifies the variable name to store the result.
+// Takes jsonKey (string) which specifies the JSON key to extract.
+// Takes typeName (string) which specifies the Go type for binding.
+//
+// Returns []ast.Stmt which contains the generated AST statements.
+func (*ActionWrapperEmitter) buildGuardedBindExtraction(varName, jsonKey, typeName string) []ast.Stmt {
 	typeExpr := parseTypeExpr(typeName)
 
 	return []ast.Stmt{
@@ -560,14 +584,30 @@ func (*ActionWrapperEmitter) buildJSONUnmarshalExtraction(varName, jsonKey, type
 				goastutil.IndexExpr(goastutil.CachedIdent(wrapperIdentArgsMap), goastutil.StrLit(jsonKey)),
 			),
 			Cond: goastutil.CachedIdent(wrapperIdentOK),
-			Body: buildNestedBindBlock(varName, jsonKey),
+			Body: goastutil.BlockStmt(
+				&ast.IfStmt{
+					Init: goastutil.DefineStmtMulti(
+						[]string{"rawMap", wrapperIdentOK},
+						goastutil.TypeAssertExpr(
+							goastutil.CachedIdent("raw"),
+							goastutil.MapType(goastutil.CachedIdent("string"), goastutil.CachedIdent("any")),
+						),
+					),
+					Cond: goastutil.CachedIdent(wrapperIdentOK),
+					Body: goastutil.BlockStmt(
+						buildBindMapStmt(goastutil.CachedIdent("rawMap"), varName, jsonKey, "Failed to bind action parameter"),
+					),
+				},
+			),
 			Else: &ast.IfStmt{
 				Cond: &ast.BinaryExpr{
 					X:  goastutil.CallExpr(goastutil.CachedIdent("len"), goastutil.CachedIdent(wrapperIdentArgsMap)),
 					Op: token.GTR,
 					Y:  goastutil.IntLit(0),
 				},
-				Body: buildBindMapBlock(goastutil.CachedIdent(wrapperIdentArgsMap), varName, jsonKey, "Failed to bind action parameter from flat argsMap"),
+				Body: goastutil.BlockStmt(
+					buildBindMapStmt(goastutil.CachedIdent(wrapperIdentArgsMap), varName, jsonKey, "Failed to bind action parameter from flat argsMap"),
+				),
 			},
 		},
 	}
@@ -622,74 +662,57 @@ func parseTypeExpr(typeName string) ast.Expr {
 	return goastutil.CachedIdent(typeName)
 }
 
-// buildNestedBindBlock builds the AST for the nested key extraction path. It generates a
-// type assertion from any to map[string]any, then calls pikobinder.BindMap.
+// buildBindMapStmt builds the AST for binding a map[string]any to a struct.
 //
-// Takes varName (string) which is the name of the variable to bind into.
-// Takes jsonKey (string) which is the JSON key name for error logging.
-//
-// Returns *ast.BlockStmt which contains the type assertion and bind call.
-func buildNestedBindBlock(varName, jsonKey string) *ast.BlockStmt {
-	return goastutil.BlockStmt(
-		&ast.IfStmt{
-			Init: goastutil.DefineStmtMulti(
-				[]string{"rawMap", wrapperIdentOK},
-				goastutil.TypeAssertExpr(
-					goastutil.CachedIdent("raw"),
-					goastutil.MapType(goastutil.CachedIdent("string"), goastutil.CachedIdent("any")),
-				),
-			),
-			Cond: goastutil.CachedIdent(wrapperIdentOK),
-			Body: buildBindMapBlock(goastutil.CachedIdent("rawMap"), varName, jsonKey, "Failed to bind action parameter"),
-		},
-	)
-}
-
-// buildBindMapBlock builds the AST for binding a map[string]any to a struct.
+// The failure branch logs at warning level: every error it reports describes the
+// request's payload, whether a value would not convert or a `validate:"..."` tag rejected
+// it, and malformed input from a client is not a fault of the server.
 //
 // Takes sourceExpression (ast.Expr) which is the map expression to bind from.
 // Takes varName (string) which is the name of the variable to bind into.
 // Takes jsonKey (string) which is the JSON key name for error logging.
 // Takes errorContext (string) which is the context message for error logging.
 //
-// Returns *ast.BlockStmt which contains the bind call and error handling.
-func buildBindMapBlock(sourceExpression ast.Expr, varName, jsonKey, errorContext string) *ast.BlockStmt {
-	return goastutil.BlockStmt(
-		&ast.IfStmt{
-			Init: goastutil.DefineStmt(
-				"err",
+// Returns ast.Stmt which contains the bind call and error handling.
+func buildBindMapStmt(sourceExpression ast.Expr, varName, jsonKey, errorContext string) ast.Stmt {
+	return &ast.IfStmt{
+		Init: goastutil.DefineStmt(
+			"err",
+			goastutil.CallExpr(
+				goastutil.SelectorExpr(actionBinderPackageAlias, "BindMap"),
+				goastutil.CachedIdent("ctx"),
+				goastutil.AddressExpr(goastutil.CachedIdent(varName)),
+				sourceExpression,
 				goastutil.CallExpr(
-					goastutil.SelectorExpr(actionBinderPackageAlias, "BindMap"),
-					goastutil.CachedIdent("ctx"),
-					goastutil.AddressExpr(goastutil.CachedIdent(varName)),
-					sourceExpression,
-					goastutil.CallExpr(
-						goastutil.SelectorExpr(actionBinderPackageAlias, "IgnoreUnknownKeys"),
-						goastutil.CachedIdent("true"),
-					),
-					goastutil.CallExpr(
-						goastutil.SelectorExpr(actionBinderPackageAlias, "WithDocumentScaleLimits"),
-					),
+					goastutil.SelectorExpr(actionBinderPackageAlias, "IgnoreUnknownKeys"),
+					goastutil.CachedIdent("true"),
+				),
+				goastutil.CallExpr(
+					goastutil.SelectorExpr(actionBinderPackageAlias, "WithDocumentScaleLimits"),
+				),
+				goastutil.CallExpr(
+					goastutil.SelectorExpr(actionBinderPackageAlias, "WithValidation"),
+					goastutil.CachedIdent("true"),
 				),
 			),
-			Cond: &ast.BinaryExpr{
-				X:  goastutil.CachedIdent("err"),
-				Op: token.NEQ,
-				Y:  goastutil.CachedIdent("nil"),
-			},
-			Body: goastutil.BlockStmt(
-				goastutil.ExprStmt(
-					goastutil.CallExpr(
-						goastutil.SelectorExpr("l", "Error"),
-						goastutil.StrLit(errorContext),
-						goastutil.CallExpr(goastutil.SelectorExpr("logger", "String"), goastutil.StrLit("param"), goastutil.StrLit(jsonKey)),
-						goastutil.CallExpr(goastutil.SelectorExpr("logger", "Error"), goastutil.CachedIdent("err")),
-					),
-				),
-				goastutil.ReturnStmt(goastutil.CachedIdent("nil"), goastutil.CachedIdent("err")),
-			),
+		),
+		Cond: &ast.BinaryExpr{
+			X:  goastutil.CachedIdent("err"),
+			Op: token.NEQ,
+			Y:  goastutil.CachedIdent("nil"),
 		},
-	)
+		Body: goastutil.BlockStmt(
+			goastutil.ExprStmt(
+				goastutil.CallExpr(
+					goastutil.SelectorExpr("l", "Warn"),
+					goastutil.StrLit(errorContext),
+					goastutil.CallExpr(goastutil.SelectorExpr("logger", "String"), goastutil.StrLit("param"), goastutil.StrLit(jsonKey)),
+					goastutil.CallExpr(goastutil.SelectorExpr("logger", "Error"), goastutil.CachedIdent("err")),
+				),
+			),
+			goastutil.ReturnStmt(goastutil.CachedIdent("nil"), goastutil.CachedIdent("err")),
+		),
+	}
 }
 
 // buildZeroValueExpr builds the zero-value expression for a parameter type. This is used
@@ -808,19 +831,20 @@ func buildStructFileUploadFieldExtraction(varName, fieldName, jsonKey string, is
 }
 
 // buildFlatBindBlock binds the remaining flat args-map entries into the struct via
-// pikobinder.BindMap when any remain after file fields have been removed.
+// pikobinder.BindMap, once file fields have been removed.
+//
+// The bind is unconditional: an upload-only request leaves the args map empty, and the
+// struct's non-file fields must still face their `validate:"..."` tags.
 //
 // Takes varName (string) which is the struct variable name.
 // Takes jsonKey (string) which is the JSON key, used for binder error context.
 //
-// Returns ast.Stmt which guards the BindMap call behind a non-empty args-map check.
+// Returns ast.Stmt which is the BindMap call and its error handling.
 func buildFlatBindBlock(varName, jsonKey string) ast.Stmt {
-	return &ast.IfStmt{
-		Cond: &ast.BinaryExpr{
-			X:  goastutil.CallExpr(goastutil.CachedIdent("len"), goastutil.CachedIdent(wrapperIdentArgsMap)),
-			Op: token.GTR,
-			Y:  goastutil.IntLit(0),
-		},
-		Body: buildBindMapBlock(goastutil.CachedIdent(wrapperIdentArgsMap), varName, jsonKey, "Failed to bind action parameter from flat argsMap"),
-	}
+	return buildBindMapStmt(
+		goastutil.CachedIdent(wrapperIdentArgsMap),
+		varName,
+		jsonKey,
+		"Failed to bind action parameter from flat argsMap",
+	)
 }

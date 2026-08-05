@@ -1093,22 +1093,27 @@ func RunHeadless(opts ...Option) (*bootstrap.Container, error) {
 //   - Portable (no external dependencies)
 //   - Clean (no persistent state or files created)
 //
+// Takes opts (...Option) which configure the container exactly as the application does.
+// Pass the same WithValidator the application uses, otherwise `validate:"..."` tags stay
+// inert under test while the served application enforces them, and an action can pass its
+// tests yet answer 422 in production.
+//
 // Returns *bootstrap.Container which can be used to access services or for cleanup.
 //
 // Example usage:
 //
 //	func TestMain(m *testing.M) {
-//	    piko.InitialiseForTesting()
+//	    piko.InitialiseForTesting(piko.WithValidator(validation_provider_playground.NewValidator()))
 //	    os.Exit(m.Run())
 //	}
 //
 // This initialisation is lightweight and does not start the full daemon. It provides a
 // complete mocked Piko environment suitable for testing. Tests should defer cleanup of
 // any resources if needed.
-func InitialiseForTesting() *bootstrap.Container {
+func InitialiseForTesting(opts ...Option) *bootstrap.Container {
 	mockProvider := email_provider_mock.NewMockEmailProvider()
 
-	return bootstrap.InitialiseForTesting(mockProvider, email_dto.EmailNameDefault)
+	return bootstrap.InitialiseForTesting(mockProvider, email_dto.EmailNameDefault, opts...)
 }
 
 // performGlobalSetup sets up global services and registers custom modules.

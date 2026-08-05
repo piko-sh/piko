@@ -25,7 +25,7 @@ import '@/helpers/dispatchEvent';
 
 // Imported directly from source modules to avoid Rollup circular chunk warnings.
 import {_initCleanupObserver, _registerLifecycle, _runPageCleanup} from '@/pk/lifecycle';
-import {ActionBuilder, createActionBuilder, registerActionFunction} from '@/pk/action';
+import {ActionBuilder, batch, createActionBuilder, registerActionFunction} from '@/pk/action';
 import {getGlobalPageContext} from '@/services/PageContext';
 import {bus} from '@/pk/bus';
 import {piko} from '@/pk/namespace';
@@ -34,7 +34,7 @@ import {_createPKContext} from '@/pk/context';
 
 export {piko};
 
-export {ActionBuilder, createActionBuilder, registerActionFunction};
+export {ActionBuilder, batch, createActionBuilder, registerActionFunction};
 
 export {_registerLifecycle, _runPageCleanup, _initCleanupObserver};
 export {getGlobalPageContext};
@@ -45,6 +45,7 @@ export {_createPKContext};
 export type {
     PPHelper, PPFrameworkOptions, NavigateOptions, RemoteRenderOptions, PatchTarget, FetchResult
 } from '@/core';
+export type {BatchActionResult, BatchActionResponse} from '@/pk/action';
 export type {
     PartialHandle, ReloadOptions, ReloadGroupOptions, AutoRefreshOptions,
     CascadeNode, CascadeOptions, SSEOptions, SSESubscription,

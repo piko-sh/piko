@@ -36,12 +36,12 @@ import (
 	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -344,7 +344,9 @@ func (h *ActionHandler) handleHTTP(
 
 	result, err := entry.Invoke(ctx, action, arguments)
 	if err != nil {
-		l.ReportError(span, err, "Action execution failed")
+		if !isRequestFault(err) {
+			l.ReportError(span, err, "Action execution failed")
+		}
 		h.handleActionError(w, request, action, err)
 		h.recordSlowAction(ctx, entry.Name, startTime, slowThreshold)
 		return

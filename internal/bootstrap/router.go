@@ -278,7 +278,6 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 		op.deps.AppRouter,
 		&daemon_domain.HTTPHandlerDependencies{
 			Templater: op.templaterService,
-			Validator: op.container.GetValidator(),
 		},
 		op.store,
 		&op.container.websiteConfig,
@@ -401,7 +400,6 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 		Router: op.deps.AppRouter,
 		Deps: &daemon_domain.HTTPHandlerDependencies{
 			Templater: op.templaterService,
-			Validator: op.container.GetValidator(),
 		},
 		Store:               op.store,
 		CSRFService:         op.csrfService,

@@ -225,26 +225,15 @@ type RouterBuilder interface {
 	Close()
 }
 
-// StructValidator defines the minimal interface for struct validation. It is satisfied by
-// the playground validator from the validation_provider_playground WDK module.
-type StructValidator interface {
-	// Struct validates a struct's exposed fields based on validation tags.
-	//
-	// Takes s (any) which is the struct to validate.
-	//
-	// Returns error when any field fails its validation constraint.
-	Struct(s any) error
-}
-
-// HTTPHandlerDependencies contains shared dependencies required by HTTP handlers,
-// including the templating service and request validator.
+// HTTPHandlerDependencies contains shared dependencies required by HTTP handlers.
+//
+// Struct validation is not among them: `validate:"..."` tags are enforced by the binder
+// as each action input is bound, so a handler that binds an input receives an already
+// validated destination. The SSE transport is the exception, since it streams from the
+// action rather than invoking it with bound arguments and so binds nothing.
 type HTTPHandlerDependencies struct {
 	// Templater probes and renders pages and partials for HTTP requests.
 	Templater templater_domain.TemplaterService
-
-	// Validator checks action request data before processing. May be nil when no validator
-	// is configured.
-	Validator StructValidator
 }
 
 // BuildCacheInvalidator defines the contract for a service that holds a build cache which
