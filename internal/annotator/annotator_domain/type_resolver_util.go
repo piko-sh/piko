@@ -27,6 +27,8 @@ import (
 
 	goast "go/ast"
 
+	"path/filepath"
+
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/goastutil"
@@ -38,17 +40,18 @@ import (
 // original .pk file coordinates.
 //
 // Takes ctx (*AnalysisContext) which provides the current package path.
-// Takes virtualLocation (ast_domain.Location) which specifies the position in the virtual
-// file.
+// Takes declaringFilePath (string) which is the file the declaration was found in.
+// Takes virtualLocation (ast_domain.Location) which specifies the position in that file.
 //
 // Returns ast_domain.Location which contains the mapped position in the original file, or
-// the unchanged location if no mapping exists.
+// the unchanged location if no mapping applies.
 func (tr *TypeResolver) unmapVirtualLocationToOriginal(
 	ctx *AnalysisContext,
+	declaringFilePath string,
 	virtualLocation ast_domain.Location,
 ) ast_domain.Location {
-	vc, ok := tr.virtualModule.ComponentsByGoPath[ctx.CurrentGoFullPackagePath]
-	if !ok || vc == nil || vc.Source == nil || vc.Source.Script == nil {
+	vc := tr.componentForDeclaration(ctx, declaringFilePath)
+	if vc == nil || vc.Source == nil || vc.Source.Script == nil {
 		return virtualLocation
 	}
 
@@ -59,6 +62,46 @@ func (tr *TypeResolver) unmapVirtualLocationToOriginal(
 		Column: virtualLocation.Column,
 		Offset: 0,
 	}
+}
+
+// componentForDeclaration finds the component whose script block produced a declaration.
+//
+// Takes ctx (*AnalysisContext) which provides the current package path.
+// Takes declaringFilePath (string) which is the file the declaration was found in.
+//
+// Returns *annotator_dto.VirtualComponent which owns the declaration, or nil when no
+// component does.
+func (tr *TypeResolver) componentForDeclaration(
+	ctx *AnalysisContext,
+	declaringFilePath string,
+) *annotator_dto.VirtualComponent {
+	if tr.virtualModule == nil {
+		return nil
+	}
+	if declaringFilePath == "" {
+		return tr.virtualModule.ComponentsByGoPath[ctx.CurrentGoFullPackagePath]
+	}
+	return tr.virtualComponentsByFile()[filepath.ToSlash(declaringFilePath)]
+}
+
+// virtualComponentsByFile returns the components indexed by their virtual Go file path.
+//
+// The index is built once and reused, so tracing a declaration back to its component
+// stays a map lookup rather than a scan of every component per resolved symbol.
+//
+// Returns map[string]*annotator_dto.VirtualComponent keyed by virtual Go file path.
+func (tr *TypeResolver) virtualComponentsByFile() map[string]*annotator_dto.VirtualComponent {
+	tr.virtualFileIndexOnce.Do(func() {
+		index := make(map[string]*annotator_dto.VirtualComponent, len(tr.virtualModule.ComponentsByGoPath))
+		for _, component := range tr.virtualModule.ComponentsByGoPath {
+			if component == nil || component.VirtualGoFilePath == "" {
+				continue
+			}
+			index[filepath.ToSlash(component.VirtualGoFilePath)] = component
+		}
+		tr.componentsByVirtualFile = index
+	})
+	return tr.componentsByVirtualFile
 }
 
 // logAnn returns a string form of an annotation for logging.

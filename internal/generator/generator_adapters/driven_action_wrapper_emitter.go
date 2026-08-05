@@ -645,8 +645,7 @@ func buildNestedBindBlock(varName, jsonKey string) *ast.BlockStmt {
 	)
 }
 
-// buildBindMapBlock builds the AST for binding a map[string]any to a struct using
-// pikobinder.BindMap with IgnoreUnknownKeys(true).
+// buildBindMapBlock builds the AST for binding a map[string]any to a struct.
 //
 // Takes sourceExpression (ast.Expr) which is the map expression to bind from.
 // Takes varName (string) which is the name of the variable to bind into.
@@ -667,6 +666,9 @@ func buildBindMapBlock(sourceExpression ast.Expr, varName, jsonKey, errorContext
 					goastutil.CallExpr(
 						goastutil.SelectorExpr(actionBinderPackageAlias, "IgnoreUnknownKeys"),
 						goastutil.CachedIdent("true"),
+					),
+					goastutil.CallExpr(
+						goastutil.SelectorExpr(actionBinderPackageAlias, "WithDocumentScaleLimits"),
 					),
 				),
 			),

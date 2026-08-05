@@ -60,6 +60,7 @@ var (
 	csrfTokenRegex     = regexp.MustCompile(`(<meta name="csrf-token" content=")[^"]*(")`)
 	csrfEphemeralRegex = regexp.MustCompile(`(<meta name="csrf-ephemeral" content=")[^"]*(")`)
 	integrityRegex     = regexp.MustCompile(`(integrity=")sha384-[A-Za-z0-9+/=]+(")`)
+	testServerURLRegex = regexp.MustCompile(`(https?://)(?:localhost|127\.0\.0\.1)(?::\d+)?`)
 )
 
 type TemplaterTestSpec struct {
@@ -264,17 +265,18 @@ func loadTestSpec(t *testing.T, tc testCase) TemplaterTestSpec {
 	return spec
 }
 
-func normaliseCSRFTokens(data []byte) []byte {
+func normaliseVolatileValues(data []byte) []byte {
 	result := csrfTokenRegex.ReplaceAll(data, []byte(`${1}NORMALISED${2}`))
 	result = csrfEphemeralRegex.ReplaceAll(result, []byte(`${1}NORMALISED${2}`))
 	result = integrityRegex.ReplaceAll(result, []byte(`${1}sha384-NORMALISED${2}`))
+	result = testServerURLRegex.ReplaceAll(result, []byte(`${1}NORMALISED`))
 	return result
 }
 
 func assertGoldenFile(t *testing.T, goldenPath string, actualBytes []byte, msgAndArgs ...any) {
 	t.Helper()
 
-	normActual := normaliseCSRFTokens(actualBytes)
+	normActual := normaliseVolatileValues(actualBytes)
 
 	if *updateGoldenFiles {
 		require.NoError(t, os.MkdirAll(filepath.Dir(goldenPath), 0755))
@@ -283,7 +285,7 @@ func assertGoldenFile(t *testing.T, goldenPath string, actualBytes []byte, msgAn
 	expectedBytes, readErr := os.ReadFile(goldenPath)
 	require.NoError(t, readErr, "Failed to read golden file %s. Run with -update flag to create it.", goldenPath)
 
-	normExpected := normaliseCSRFTokens(expectedBytes)
+	normExpected := normaliseVolatileValues(expectedBytes)
 
 	if !bytes.Equal(normExpected, normActual) {
 		diffCmd := exec.Command("diff", "-u", goldenPath, "-")
@@ -412,4 +414,83 @@ func resetGlobalStateForTestIsolation() {
 	render_domain.ClearHTMLLinksCache()
 	caller.ResetFrameCache()
 	logger_domain.ResetCallerCache()
+}
+
+func TestNormaliseVolatileValues(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "csrf token",
+			input:    `<meta name="csrf-token" content="abc123">`,
+			expected: `<meta name="csrf-token" content="NORMALISED">`,
+		},
+		{
+			name:     "ephemeral csrf token",
+			input:    `<meta name="csrf-ephemeral" content="xyz789">`,
+			expected: `<meta name="csrf-ephemeral" content="NORMALISED">`,
+		},
+		{
+			name:     "subresource integrity hash",
+			input:    `<script integrity="sha384-AbC123+/=" src="/a.js"></script>`,
+			expected: `<script integrity="sha384-NORMALISED" src="/a.js"></script>`,
+		},
+		{
+			name:     "canonical link on an ephemeral port",
+			input:    `<link rel="canonical" href="http://localhost:36075/main">`,
+			expected: `<link rel="canonical" href="http://NORMALISED/main">`,
+		},
+		{
+			name:     "a different port normalises to the same value",
+			input:    `<link rel="canonical" href="http://localhost:41149/main">`,
+			expected: `<link rel="canonical" href="http://NORMALISED/main">`,
+		},
+		{
+			name:     "loopback address",
+			input:    `<link rel="canonical" href="http://127.0.0.1:8080/main">`,
+			expected: `<link rel="canonical" href="http://NORMALISED/main">`,
+		},
+		{
+			name:     "https base url keeps its scheme",
+			input:    `<link rel="canonical" href="https://localhost:8443/main">`,
+			expected: `<link rel="canonical" href="https://NORMALISED/main">`,
+		},
+		{
+			name:     "base url without a port",
+			input:    `<link rel="canonical" href="http://localhost/main">`,
+			expected: `<link rel="canonical" href="http://NORMALISED/main">`,
+		},
+		{
+			name:     "an external host is left alone",
+			input:    `<link rel="canonical" href="https://example.com/main">`,
+			expected: `<link rel="canonical" href="https://example.com/main">`,
+		},
+		{
+			name:     "a relative url is left alone",
+			input:    `<link rel="stylesheet" href="/theme.css">`,
+			expected: `<link rel="stylesheet" href="/theme.css">`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.expected, string(normaliseVolatileValues([]byte(testCase.input))))
+		})
+	}
+}
+
+func TestNormaliseVolatileValuesIsStableAcrossPorts(t *testing.T) {
+	t.Parallel()
+
+	template := `<link rel="canonical" href="http://localhost:%d/main">`
+	first := normaliseVolatileValues(fmt.Appendf(nil, template, 35573))
+	second := normaliseVolatileValues(fmt.Appendf(nil, template, 42869))
+
+	assert.Equal(t, string(first), string(second),
+		"two runs on different ephemeral ports must normalise to the same golden content")
 }

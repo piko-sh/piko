@@ -50,6 +50,21 @@ const (
 	// defaultMaxValueLength is the upper limit in bytes for field values.
 	defaultMaxValueLength = 65_536
 
+	// sliceElementBudgetFactor scales the slice element budget.
+	sliceElementBudgetFactor = 4
+
+	// minimumSliceElementBudget is the floor for the slice element budget.
+	//
+	// The floor lets a small source still fill a slice up to the default size limit.
+	minimumSliceElementBudget = defaultMaxSliceSize
+
+	// maxCachedPathExpressions bounds the parsed-path cache.
+	maxCachedPathExpressions = 4_096
+
+	// bindCancellationCheckInterval is how many fields are bound between cancellation
+	// checks.
+	bindCancellationCheckInterval = 256
+
 	// DefaultMaxBindJSONBytes caps the raw JSON payload size that BindJSON will decode. The
 	// cap protects callers from passing arbitrarily large attacker-controlled inputs
 	// straight into json.Unmarshal where memory and CPU costs scale with payload size.
@@ -68,6 +83,9 @@ var (
 	// configured maximum. Callers can use errors.Is to detect this condition without parsing
 	// the message.
 	ErrBindJSONTooLarge = errors.New("BindJSON input exceeds configured size limit")
+
+	// ErrSliceElementBudgetExhausted is returned when a bind would over-allocate.
+	ErrSliceElementBudgetExhausted = errors.New("slice element budget exhausted")
 
 	// log is the package-level logger for the binder package.
 	log = logger_domain.GetLogger("piko/internal/binder")
@@ -107,6 +125,11 @@ type ASTBinder struct {
 
 	// cache stores parsed struct metadata for faster repeated bindings.
 	cache binderCache
+
+	// astCacheEntries counts the entries in astCache so the cache can be bounded.
+	//
+	// Paths come from caller-supplied keys, which must not grow the cache without limit.
+	astCacheEntries atomic.Int64
 
 	// maxSliceSize limits the maximum allowed slice index; 0 means no limit.
 	maxSliceSize atomic.Int64
@@ -153,6 +176,7 @@ func NewASTBinder() *ASTBinder {
 		hasConverters:     atomic.Bool{},
 		cache:             binderCache{},
 		astCache:          sync.Map{},
+		astCacheEntries:   atomic.Int64{},
 		ignoreUnknownKeys: atomic.Bool{},
 		maxSliceSize:      atomic.Int64{},
 		maxPathDepth:      atomic.Int64{},
@@ -203,6 +227,7 @@ func (b *ASTBinder) Bind(ctx context.Context, destination any, source map[string
 	}
 
 	limits := b.resolveLimits(opts)
+	limits.sliceElements = newSliceElementBudget(source)
 
 	v := reflect.ValueOf(destination).Elem()
 
@@ -636,7 +661,15 @@ func (b *ASTBinder) resolveOptions(opts *BindOptions) binderOptions {
 func (b *ASTBinder) bindFields(ctx context.Context, v reflect.Value, src map[string][]string, structMeta *structInfo, limits binderOptions) MultiError {
 	var multiErrors MultiError
 
+	fieldsBound := 0
 	for path, values := range src {
+		fieldsBound++
+		if fieldsBound%bindCancellationCheckInterval == 0 {
+			if err := ctx.Err(); err != nil {
+				accumulateError(&multiErrors, path, fmt.Errorf("binding cancelled after %d fields: %w", fieldsBound, err))
+				return multiErrors
+			}
+		}
 		if err := b.bindPathValues(ctx, v, path, values, structMeta, limits); err != nil {
 			accumulateError(&multiErrors, path, err)
 		}
@@ -735,7 +768,7 @@ func (b *ASTBinder) bindValuesToSliceField(field reflect.Value, values []string,
 		if err := validateValueLength(path, value, limits.maxValueLength); err != nil {
 			return err
 		}
-		if err := growSliceToFitIndex(target, index, limits.maxSliceSize); err != nil {
+		if err := growSliceToFitIndex(target, index, limits.maxSliceSize, limits.sliceElements); err != nil {
 			return errSetField{err: err, path: path, field: path, fieldType: target.Type().String()}
 		}
 		if err := b.convertAndSet(target.Index(index), value, path, elementInfo); err != nil {
@@ -802,16 +835,31 @@ func (b *ASTBinder) getOrParseAST(ctx context.Context, path string) (ast_domain.
 		return nil, errInvalidPath{path: path, err: errors.New("path cannot contain operators, literals, or function calls")}
 	}
 
-	b.astCache.Store(path, parsed)
+	b.cachePathExpression(path, parsed)
 	return parsed, nil
+}
+
+// cachePathExpression stores a parsed path expression when the cache has room.
+//
+// Takes path (string) which is the path expression that was parsed.
+// Takes parsed (ast_domain.Expression) which is the parsed expression to cache.
+func (b *ASTBinder) cachePathExpression(path string, parsed ast_domain.Expression) {
+	if b.astCacheEntries.Load() >= maxCachedPathExpressions {
+		return
+	}
+
+	if _, loaded := b.astCache.LoadOrStore(path, parsed); !loaded {
+		b.astCacheEntries.Add(1)
+	}
 }
 
 // binderOptions holds DoS protection limits and binding settings for a single Bind call.
 // Values are loaded from atomics once at call start and passed through the stack to avoid
 // repeated atomic loads in recursive functions.
 type binderOptions struct {
-	// ignoreUnknownKeys allows unknown field names to be silently ignored during binding.
-	ignoreUnknownKeys bool
+	// sliceElements caps the total slice elements the call may materialise across every
+	// destination slice; nil applies no cap.
+	sliceElements *sliceElementBudget
 
 	// maxFieldCount is the maximum number of fields allowed. It provides protection against
 	// denial-of-service attacks.
@@ -828,6 +876,57 @@ type binderOptions struct {
 
 	// maxSliceSize is the largest allowed slice index; 0 means no limit.
 	maxSliceSize int
+
+	// ignoreUnknownKeys allows unknown field names to be silently ignored during binding.
+	ignoreUnknownKeys bool
+}
+
+// sliceElementBudget caps the slice elements one bind call may materialise.
+type sliceElementBudget struct {
+	// remaining counts the elements still available to the call.
+	remaining atomic.Int64
+
+	// total is the budget the call started with, retained for error messages.
+	total int64
+}
+
+// newSliceElementBudget builds the element budget for a bind call.
+//
+// Takes source (map[string][]string) which is the flattened source data for the call.
+//
+// Returns *sliceElementBudget which allows a multiple of the supplied value count, with a
+// floor so a small source can still fill a slice up to the default size limit.
+func newSliceElementBudget(source map[string][]string) *sliceElementBudget {
+	valueCount := 0
+	for _, values := range source {
+		valueCount += len(values)
+	}
+
+	total := max(int64(valueCount)*sliceElementBudgetFactor, minimumSliceElementBudget)
+
+	budget := &sliceElementBudget{remaining: atomic.Int64{}, total: total}
+	budget.remaining.Store(total)
+	return budget
+}
+
+// charge deducts materialised elements from the budget.
+//
+// Takes elements (int) which is the number of elements about to be allocated.
+//
+// Returns error wrapping ErrSliceElementBudgetExhausted when the allocation would exceed
+// what the call's source data justifies.
+func (budget *sliceElementBudget) charge(elements int) error {
+	if budget == nil || elements <= 0 {
+		return nil
+	}
+
+	if budget.remaining.Add(-int64(elements)) < 0 {
+		return fmt.Errorf(
+			"growing a slice by %d elements exceeds the %d elements this input allows: %w",
+			elements, budget.total, ErrSliceElementBudgetExhausted,
+		)
+	}
+	return nil
 }
 
 // GetBinder returns the shared binder instance used for data binding. The instance is

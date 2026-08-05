@@ -203,14 +203,28 @@ func (s *registryService) loadMultipleFromStoreWithoutCache(
 
 	artefacts, err := s.metaStore.GetMultipleArtefacts(ctx, artefactIDs)
 	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			l.Trace("Multiple artefact retrieval cancelled", logger_domain.String("error", err.Error()))
+		if isCallerCancellation(ctx, err) {
+			l.Trace("Multiple artefact retrieval cancelled", logger_domain.Error(err))
 		} else {
 			l.ReportError(span, err, "Failed to retrieve multiple artefacts")
 		}
 		return nil, fmt.Errorf("retrieving multiple artefacts from store: %w", err)
 	}
 	return artefacts, nil
+}
+
+// isCallerCancellation reports whether err reflects the caller's context ending rather
+// than a genuine store failure.
+//
+// Takes err (error) which is the error to classify.
+//
+// Returns bool which is true only when the caller's own context ended and err reflects
+// it.
+func isCallerCancellation(ctx context.Context, err error) bool {
+	if ctx.Err() == nil {
+		return false
+	}
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // loadMultipleWithCache loads artefacts using cache hits and fetches misses from the

@@ -658,12 +658,12 @@ func (ls *lifecycleService) seedThemeArtefact(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "seedThemeArtefact")
 	defer span.End()
 
-	l.Internal("Seeding theme.css artefact into registry...")
-
 	if ls.registryBlobsReadOnly {
 		l.Internal("Registry blobs are read-only; skipping theme.css re-seed (served from the embedded base)")
 		return nil
 	}
+
+	l.Internal("Seeding theme.css artefact into registry...")
 
 	if ls.renderer == nil {
 		l.Internal("No renderer available, skipping theme artefact seeding")
@@ -698,63 +698,77 @@ func (ls *lifecycleService) seedCaptchaInitScripts(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "seedCaptchaInitScripts")
 	defer span.End()
 
-	if ls.registryBlobsReadOnly {
-		l.Internal("Registry blobs are read-only; skipping captcha init script re-seed (served from the embedded base)")
-		return nil
-	}
-
 	if ls.captchaService == nil || !ls.captchaService.IsEnabled() {
 		l.Internal("Captcha service not configured, skipping init script seeding")
 		return nil
+	}
+
+	if ls.registryBlobsReadOnly {
+		l.Warn("Registry blob storage is read-only but captcha is enabled; the init script can only " +
+			"be served if the release already contains it. Register a writable blob store " +
+			"(piko.WithSystemStorageProvider) so captcha assets can be seeded at runtime.")
 	}
 
 	providers := ls.captchaService.ListProviders(ctx)
 	l.Internal("Seeding captcha init scripts", logger_domain.Int("provider_count", len(providers)))
 
 	for _, providerInfo := range providers {
-		provider, err := ls.captchaService.GetProviderByName(ctx, providerInfo.Name)
-		if err != nil {
-			l.Warn("Failed to resolve captcha provider for init script seeding",
-				logger_domain.String("provider", providerInfo.Name),
-				logger_domain.Error(err))
-			continue
-		}
-
-		requirements := provider.RenderRequirements()
-		if requirements.InitScript == nil || requirements.ServerSideToken {
-			continue
-		}
-
-		scriptContent, err := requirements.InitScript()
-		if err != nil {
-			l.Warn("Failed to get captcha init script content",
-				logger_domain.String("provider", providerInfo.Name),
-				logger_domain.Error(err))
-			continue
-		}
-
-		artefactID := fmt.Sprintf("captcha/init-%s.js", providerInfo.Name)
-		desiredProfiles := GetProfilesForFile(artefactID, ResolverModuleName(ls.resolver), nil)
-
-		_, err = ls.registryService.UpsertArtefact(
-			ctx,
-			artefactID,
-			artefactID,
-			bytes.NewReader([]byte(scriptContent)),
-			"local_disk_cache",
-			desiredProfiles,
-		)
-		if err != nil {
+		if err := ls.seedCaptchaInitScript(ctx, providerInfo.Name); err != nil {
 			span.RecordError(err)
-			return fmt.Errorf("seeding captcha init script %q: %w", artefactID, err)
+			return err
 		}
-
-		l.Internal("Seeded captcha init script",
-			logger_domain.String("artefact_id", artefactID),
-			logger_domain.Int("size_bytes", len(scriptContent)))
 	}
 
 	span.SetStatus(codes.Ok, "Captcha init scripts seeded")
+	return nil
+}
+
+// seedCaptchaInitScript registers one provider's init script as a registry artefact.
+//
+// Takes providerName (string) which identifies the captcha provider to seed.
+//
+// Returns error when the init script artefact cannot be written to the registry.
+func (ls *lifecycleService) seedCaptchaInitScript(ctx context.Context, providerName string) error {
+	ctx, l := logger_domain.From(ctx, log)
+
+	provider, err := ls.captchaService.GetProviderByName(ctx, providerName)
+	if err != nil {
+		l.Warn("Failed to resolve captcha provider for init script seeding",
+			logger_domain.String("provider", providerName),
+			logger_domain.Error(err))
+		return nil
+	}
+
+	requirements := provider.RenderRequirements()
+	if requirements.InitScript == nil || requirements.ServerSideToken {
+		return nil
+	}
+
+	scriptContent, err := requirements.InitScript()
+	if err != nil {
+		l.Warn("Failed to get captcha init script content",
+			logger_domain.String("provider", providerName),
+			logger_domain.Error(err))
+		return nil
+	}
+
+	artefactID := fmt.Sprintf("captcha/init-%s.js", providerName)
+	desiredProfiles := GetProfilesForFile(artefactID, ResolverModuleName(ls.resolver), nil)
+
+	if _, err := ls.registryService.UpsertArtefact(
+		ctx,
+		artefactID,
+		artefactID,
+		bytes.NewReader([]byte(scriptContent)),
+		"local_disk_cache",
+		desiredProfiles,
+	); err != nil {
+		return fmt.Errorf("seeding captcha init script %q: %w", artefactID, err)
+	}
+
+	l.Internal("Seeded captcha init script",
+		logger_domain.String("artefact_id", artefactID),
+		logger_domain.Int("size_bytes", len(scriptContent)))
 	return nil
 }
 

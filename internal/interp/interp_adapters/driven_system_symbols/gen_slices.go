@@ -1787,7 +1787,7 @@ func wrappedSlicesValues(s any) any {
 		return reflectSlicesValues(s)
 	}
 }
-func reflectMinMaxFuncFallback(x any, cmpArg func(p0 any, p1 any) int, takeMin bool) any {
+func reflectMinMaxFuncFallback(x any, cmpArg func(p0, p1 any) int, takeMin bool) any {
 	rv := reflect.ValueOf(x)
 	if rv.Kind() != reflect.Slice || rv.Len() == 0 {
 		panic(fmt.Sprintf("slices.Min/MaxFunc: unsupported type %T or empty slice", x))
@@ -1802,7 +1802,7 @@ func reflectMinMaxFuncFallback(x any, cmpArg func(p0 any, p1 any) int, takeMin b
 	}
 	return best
 }
-func reflectSortFuncFallback(x any, cmpArg func(p0 any, p1 any) int) {
+func reflectSortFuncFallback(x any, cmpArg func(p0, p1 any) int) {
 	rv := reflect.ValueOf(x)
 	if rv.Kind() != reflect.Slice {
 		panic(fmt.Sprintf("slices.SortFunc: unsupported type %T", x))

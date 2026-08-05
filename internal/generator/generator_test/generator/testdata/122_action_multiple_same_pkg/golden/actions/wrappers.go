@@ -16,13 +16,13 @@ func invokeEmailContact(ctx context.Context, action any, argsMap map[string]any)
 	var input email.ContactInput
 	if raw, ok := argsMap["input"]; ok {
 		if rawMap, ok := raw.(map[string]any); ok {
-			if err := pikobinder.BindMap(ctx, &input, rawMap, pikobinder.IgnoreUnknownKeys(true)); err != nil {
+			if err := pikobinder.BindMap(ctx, &input, rawMap, pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits()); err != nil {
 				l.Error("Failed to bind action parameter", logger.String("param", "input"), logger.Error(err))
 				return nil, err
 			}
 		}
 	} else if len(argsMap) > 0 {
-		if err := pikobinder.BindMap(ctx, &input, argsMap, pikobinder.IgnoreUnknownKeys(true)); err != nil {
+		if err := pikobinder.BindMap(ctx, &input, argsMap, pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits()); err != nil {
 			l.Error("Failed to bind action parameter from flat argsMap", logger.String("param", "input"), logger.Error(err))
 			return nil, err
 		}
@@ -35,13 +35,13 @@ func invokeEmailSubscribe(ctx context.Context, action any, argsMap map[string]an
 	var input email.SubscribeInput
 	if raw, ok := argsMap["input"]; ok {
 		if rawMap, ok := raw.(map[string]any); ok {
-			if err := pikobinder.BindMap(ctx, &input, rawMap, pikobinder.IgnoreUnknownKeys(true)); err != nil {
+			if err := pikobinder.BindMap(ctx, &input, rawMap, pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits()); err != nil {
 				l.Error("Failed to bind action parameter", logger.String("param", "input"), logger.Error(err))
 				return nil, err
 			}
 		}
 	} else if len(argsMap) > 0 {
-		if err := pikobinder.BindMap(ctx, &input, argsMap, pikobinder.IgnoreUnknownKeys(true)); err != nil {
+		if err := pikobinder.BindMap(ctx, &input, argsMap, pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits()); err != nil {
 			l.Error("Failed to bind action parameter from flat argsMap", logger.String("param", "input"), logger.Error(err))
 			return nil, err
 		}

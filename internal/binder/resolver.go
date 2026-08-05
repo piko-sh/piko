@@ -164,7 +164,7 @@ func (b *ASTBinder) resolveIndexExpression(currentVal reflect.Value, node *ast_d
 
 	switch sliceOrMapVal.Kind() {
 	case reflect.Slice:
-		return resolveSliceIndex(sliceOrMapVal, node, fullPath, "sliceElement", limits.maxSliceSize)
+		return resolveSliceIndex(sliceOrMapVal, node, fullPath, "sliceElement", limits)
 	case reflect.Map:
 		return resolveMapIndex(sliceOrMapVal, node, fullPath)
 	case reflect.Struct:
@@ -305,12 +305,13 @@ func findFieldByName(currentVal reflect.Value, name, fullPath string) (reflect.V
 // Takes node (*ast_domain.IndexExpression) which contains the index expression.
 // Takes fullPath (string) which is the path for error messages.
 // Takes fieldName (string) which is the field name for error messages.
-// Takes maxSliceSize (int) which limits slice growth to prevent memory issues.
+// Takes limits (binderOptions) which supply the per-slice size ceiling and the call's
+// element budget.
 //
 // Returns reflect.Value which is the element at the given index.
 // Returns error when the index is not an integer literal, is negative, or exceeds the
 // maximum slice size.
-func resolveSliceIndex(sliceVal reflect.Value, node *ast_domain.IndexExpression, fullPath string, fieldName string, maxSliceSize int) (reflect.Value, error) {
+func resolveSliceIndex(sliceVal reflect.Value, node *ast_domain.IndexExpression, fullPath string, fieldName string, limits binderOptions) (reflect.Value, error) {
 	indexLit, ok := node.Index.(*ast_domain.IntegerLiteral)
 	if !ok {
 		return reflect.Value{}, errInvalidPath{path: fullPath, err: errors.New("slice index must be an integer literal")}
@@ -321,7 +322,7 @@ func resolveSliceIndex(sliceVal reflect.Value, node *ast_domain.IndexExpression,
 		return reflect.Value{}, errInvalidPath{path: fullPath, err: errors.New("slice index cannot be negative")}
 	}
 
-	if err := growSliceToFitIndex(sliceVal, index, maxSliceSize); err != nil {
+	if err := growSliceToFitIndex(sliceVal, index, limits.maxSliceSize, limits.sliceElements); err != nil {
 		return reflect.Value{}, errSetField{err: err, path: fullPath, field: fieldName, fieldType: ""}
 	}
 

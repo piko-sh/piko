@@ -25,8 +25,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/component/component_dto"
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
+	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
@@ -51,10 +54,26 @@ func TestInitialSeed_SkipsWritesWhenRegistryBlobsReadOnly(t *testing.T) {
 
 	assert.NoError(t, ls.seedThemeArtefact(t.Context()),
 		"theme re-seed must be a clean no-op when registry blobs are read-only")
-	assert.NoError(t, ls.seedCaptchaInitScripts(t.Context()),
-		"captcha re-seed must be a clean no-op when registry blobs are read-only")
 	assert.Empty(t, registry.upsertedArtefacts,
 		"read-only registry blobs must skip every initial-seed artefact write and serve the baked-in base")
+}
+
+func TestSeedCaptchaInitScripts_StillRunsWhenRegistryBlobsReadOnly(t *testing.T) {
+	t.Parallel()
+
+	registry := &mockTrackingRegistryService{}
+	captcha := &stubEnabledCaptchaService{}
+	ls := &lifecycleService{
+		registryBlobsReadOnly: true,
+		registryService:       registry,
+		captchaService:        captcha,
+	}
+
+	require.NoError(t, ls.seedCaptchaInitScripts(t.Context()))
+
+	assert.True(t, captcha.listProvidersCalled,
+		"captcha init scripts come from runtime configuration rather than the release, so a "+
+			"read-only base must not silently skip seeding them")
 }
 
 func TestSeedExternalComponentFiles_SkippedWhenRegistryBlobsReadOnly(t *testing.T) {
@@ -79,4 +98,16 @@ func TestSeedExternalComponentFiles_SkippedWhenRegistryBlobsReadOnly(t *testing.
 
 	assert.False(t, resolverCalled,
 		"read-only registry blobs must skip the external component and asset seed before resolving modules")
+}
+
+type stubEnabledCaptchaService struct {
+	captcha_domain.CaptchaServicePort
+	listProvidersCalled bool
+}
+
+func (*stubEnabledCaptchaService) IsEnabled() bool { return true }
+
+func (s *stubEnabledCaptchaService) ListProviders(_ context.Context) []provider_domain.ProviderInfo {
+	s.listProvidersCalled = true
+	return nil
 }

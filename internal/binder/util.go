@@ -126,17 +126,23 @@ func fieldByIndexSafe(v reflect.Value, index []int) reflect.Value {
 	return v
 }
 
-// growSliceToFitIndex makes sure a slice has enough space for a given index. It checks
-// the maxSize limit to stop the slice from growing too large.
+// growSliceToFitIndex makes sure a slice can hold a given index.
 //
 // Takes sliceVal (reflect.Value) which is the slice to grow.
 // Takes index (int) which is the index that must be reachable.
 // Takes maxSize (int) which is the largest allowed size (0 means no limit).
+// Takes budget (*sliceElementBudget) which caps the elements the whole call may
+// materialise; nil applies no budget.
 //
-// Returns error when sliceVal is not a slice or index is beyond maxSize.
-func growSliceToFitIndex(sliceVal reflect.Value, index int, maxSize int) error {
+// Returns error when sliceVal is not a slice, index is beyond maxSize, or the growth
+// would exhaust the call's element budget.
+func growSliceToFitIndex(sliceVal reflect.Value, index int, maxSize int, budget *sliceElementBudget) error {
 	if sliceVal.Kind() != reflect.Slice {
 		return errors.New("value is not a slice")
+	}
+
+	if index < 0 {
+		return fmt.Errorf("slice index %d is negative", index)
 	}
 
 	if maxSize > 0 && index >= maxSize {
@@ -148,8 +154,14 @@ func growSliceToFitIndex(sliceVal reflect.Value, index int, maxSize int) error {
 	}
 
 	if index >= sliceVal.Cap() {
-		newCap := index + 1
-		newSlice := reflect.MakeSlice(sliceVal.Type(), newCap, newCap)
+		newCapacity := index + 1
+		if doubled := sliceVal.Cap() * 2; doubled > newCapacity {
+			newCapacity = doubled
+		}
+		if err := budget.charge(newCapacity - sliceVal.Cap()); err != nil {
+			return err
+		}
+		newSlice := reflect.MakeSlice(sliceVal.Type(), newCapacity, newCapacity)
 		reflect.Copy(newSlice, sliceVal)
 		sliceVal.Set(newSlice)
 	}

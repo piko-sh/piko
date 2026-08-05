@@ -133,6 +133,8 @@ optimise_wasm() {
 compress_wasm() {
     piko::log::header "Compressing WASM Binary"
 
+    rm -f "${WASM_FINAL}.gz" "${WASM_FINAL}.br"
+
     piko::log::info "Creating gzip compressed variant..."
     if gzip -9 -k -f "$WASM_FINAL"; then
         report_size "gzip" "${WASM_FINAL}.gz"

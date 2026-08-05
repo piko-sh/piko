@@ -35,7 +35,9 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-const testRepository = "registry"
+const (
+	testRepository = "registry"
+)
 
 func newTestProvider(t *testing.T, maxBytes int64) *Provider {
 	t.Helper()
@@ -607,7 +609,8 @@ func TestPutMany(t *testing.T) {
 
 func TestPutManyRecordsOversizedFailure(t *testing.T) {
 	t.Parallel()
-	provider := newTestProvider(t, 100)
+
+	provider := newTestProvider(t, 400)
 
 	result, err := provider.PutMany(context.Background(), &storage_dto.PutManyParams{
 		TransformConfig: nil,
@@ -683,4 +686,115 @@ func TestKeysAreIsolatedByRepository(t *testing.T) {
 
 	assert.Equal(t, "from a", string(fromA))
 	assert.Equal(t, "from b", string(fromB))
+}
+
+func TestPutRejectsNilReader(t *testing.T) {
+	t.Parallel()
+	provider := newTestProvider(t, 1<<20)
+
+	err := provider.Put(context.Background(), &storage_dto.PutParams{
+		Reader:               nil,
+		MultipartConfig:      nil,
+		TransformConfig:      nil,
+		Metadata:             nil,
+		Key:                  "absent",
+		ContentType:          "text/plain",
+		HashAlgorithm:        "",
+		ExpectedHash:         "",
+		Repository:           testRepository,
+		Size:                 0,
+		UseContentAddressing: false,
+	})
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrNilReader)
+}
+
+func TestPutStopsOnCancelledContext(t *testing.T) {
+	t.Parallel()
+	provider := newTestProvider(t, 1<<20)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := provider.Put(ctx, &storage_dto.PutParams{
+		Reader:               strings.NewReader("content"),
+		MultipartConfig:      nil,
+		TransformConfig:      nil,
+		Metadata:             nil,
+		Key:                  "cancelled",
+		ContentType:          "text/plain",
+		HashAlgorithm:        "",
+		ExpectedHash:         "",
+		Repository:           testRepository,
+		Size:                 7,
+		UseContentAddressing: false,
+	})
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestPutRejectsDeclaredSizeBeyondBudget(t *testing.T) {
+	t.Parallel()
+	provider := newTestProvider(t, 1_000)
+
+	err := provider.Put(context.Background(), &storage_dto.PutParams{
+		Reader:               strings.NewReader("small body but a large declared size"),
+		MultipartConfig:      nil,
+		TransformConfig:      nil,
+		Metadata:             nil,
+		Key:                  "declared",
+		ContentType:          "text/plain",
+		HashAlgorithm:        "",
+		ExpectedHash:         "",
+		Repository:           testRepository,
+		Size:                 10_000,
+		UseContentAddressing: false,
+	})
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrObjectTooLarge)
+}
+
+func TestRenameKeepsSourceWhenDestinationCannotFit(t *testing.T) {
+	t.Parallel()
+
+	provider := newTestProvider(t, 200)
+	putObject(t, provider, testRepository, "a", "text/plain", nil, []byte("payload"))
+
+	longKey := "source/" + strings.Repeat("b", 64)
+	err := provider.Rename(context.Background(), testRepository, "a", longKey)
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrObjectTooLarge)
+
+	got := getObject(t, provider, storage_dto.GetParams{
+		ByteRange: nil, TransformConfig: nil, Key: "a", Repository: testRepository,
+	})
+	assert.Equal(t, "payload", string(got), "the source must survive a rejected rename")
+}
+
+func TestCopyRejectsDestinationBeyondBudget(t *testing.T) {
+	t.Parallel()
+	provider := newTestProvider(t, 200)
+	putObject(t, provider, testRepository, "a", "text/plain", nil, []byte("payload"))
+
+	longKey := "source/" + strings.Repeat("b", 64)
+	err := provider.Copy(context.Background(), testRepository, "a", longKey)
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrObjectTooLarge)
+}
+
+func TestPutChargesRetainedCapacityForSmallObjects(t *testing.T) {
+	t.Parallel()
+	provider := newTestProvider(t, 1<<20)
+
+	putObject(t, provider, testRepository, "tiny", "text/plain", nil, []byte("x"))
+
+	metadata, ok := provider.GetProviderMetadata()["weightedSize"].(uint64)
+	require.True(t, ok, "weightedSize must be reported as a uint64")
+	assert.Less(t, metadata, uint64(512),
+		"a one-byte object must not retain the read buffer's spare capacity")
 }

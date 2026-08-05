@@ -18,6 +18,20 @@
 
 package binder
 
+const (
+	// DocumentMaxFieldCount is the field ceiling applied by WithDocumentScaleLimits.
+	DocumentMaxFieldCount = 100_000
+
+	// DocumentMaxSliceSize is the per-slice element ceiling applied by
+	// WithDocumentScaleLimits.
+	DocumentMaxSliceSize = 50_000
+
+	// DocumentMaxValueLength is the per-value byte ceiling applied by
+	// WithDocumentScaleLimits, sized for an embedded document field such as inline markup or
+	// a data URI.
+	DocumentMaxValueLength = 4 << 20
+)
+
 // BindOptions holds settings for a single Bind call. Each field is a pointer so that nil
 // means "not set" and a zero value means "set to zero".
 type BindOptions struct {
@@ -103,6 +117,19 @@ func WithMaxPathLength(length int) Option {
 func WithMaxFieldCount(count int) Option {
 	return func(opts *BindOptions) {
 		opts.MaxFieldCount = &count
+	}
+}
+
+// WithDocumentScaleLimits returns an Option that raises the width limits to document
+// scale in one step.
+//
+// Returns Option which raises the field count, slice size, and value length limits to
+// document scale.
+func WithDocumentScaleLimits() Option {
+	return func(opts *BindOptions) {
+		opts.MaxFieldCount = new(DocumentMaxFieldCount)
+		opts.MaxSliceSize = new(DocumentMaxSliceSize)
+		opts.MaxValueLength = new(DocumentMaxValueLength)
 	}
 }
 

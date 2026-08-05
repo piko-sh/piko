@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,17 @@ const (
 	// maxPageCreationRetries is the number of times to retry creating an incognito page if
 	// the page fails health checks.
 	maxPageCreationRetries = 3
+
+	// executablePermissionBits selects the owner, group, and other execute bits.
+	executablePermissionBits = 0o111
+)
+
+var (
+	// ErrChromePathNotAbsolute is returned for a relative browser executable path.
+	ErrChromePathNotAbsolute = errors.New("browser executable path must be absolute")
+
+	// ErrChromePathNotExecutable is returned for a path that cannot be run.
+	ErrChromePathNotExecutable = errors.New("browser executable is not an executable file")
 )
 
 // Browser wraps a chromedp browser instance and manages its lifecycle. It implements
@@ -78,6 +90,9 @@ type ChromeFlag struct {
 
 // BrowserOptions holds settings for creating a browser instance.
 type BrowserOptions struct {
+	// ChromePath is the browser executable to launch.
+	ChromePath string
+
 	// ChromeFlags overrides the default Chrome flags when non-nil, with each flag passed to
 	// Chrome via --name=value; when nil, DefaultChromeFlags is used.
 	ChromeFlags []ChromeFlag
@@ -179,6 +194,32 @@ func (ip *IncognitoPage) CloseContext() error {
 	return nil
 }
 
+// validateChromePath checks a caller-supplied browser executable before it reaches the
+// process allocator.
+//
+// Takes chromePath (string) which is the configured browser executable path.
+//
+// Returns error when the path is relative, missing, or not an executable file.
+func validateChromePath(chromePath string) error {
+	if chromePath == "" {
+		return nil
+	}
+
+	if !filepath.IsAbs(chromePath) {
+		return fmt.Errorf("browser executable %q: %w", chromePath, ErrChromePathNotAbsolute)
+	}
+
+	info, err := os.Stat(chromePath)
+	if err != nil {
+		return fmt.Errorf("stating browser executable %q: %w", chromePath, err)
+	}
+	if !info.Mode().IsRegular() || info.Mode().Perm()&executablePermissionBits == 0 {
+		return fmt.Errorf("browser executable %q: %w", chromePath, ErrChromePathNotExecutable)
+	}
+
+	return nil
+}
+
 // NewBrowser creates a new browser instance.
 //
 // Takes opts (BrowserOptions) which specifies the browser settings.
@@ -186,6 +227,10 @@ func (ip *IncognitoPage) CloseContext() error {
 // Returns *Browser which is the configured browser ready for use.
 // Returns error when the browser fails to start.
 func NewBrowser(opts BrowserOptions) (*Browser, error) {
+	if err := validateChromePath(opts.ChromePath); err != nil {
+		return nil, err
+	}
+
 	userDataDir, err := os.MkdirTemp("", "piko-chromedp-*")
 	if err != nil {
 		return nil, fmt.Errorf("creating browser temp directory: %w", err)
@@ -214,12 +259,16 @@ func NewBrowser(opts BrowserOptions) (*Browser, error) {
 	if opts.IgnoreCertErrors {
 		allocatorOpts = append(allocatorOpts, chromedp.Flag("ignore-certificate-errors", true))
 	}
+	if opts.ChromePath != "" {
+		allocatorOpts = append(allocatorOpts, chromedp.ExecPath(opts.ChromePath))
+	}
 
 	allocatorCtx, allocatorCancel := chromedp.NewExecAllocator(context.Background(), allocatorOpts...)
 
 	browserCtx, browserCancel := chromedp.NewContext(allocatorCtx)
 
 	if err := chromedp.Run(browserCtx); err != nil {
+		browserCancel()
 		allocatorCancel()
 		_ = os.RemoveAll(userDataDir)
 		return nil, fmt.Errorf("starting browser: %w", err)

@@ -131,7 +131,7 @@ func (b *ASTBinder) handleIndexExprNode(currentVal reflect.Value, node *ast_doma
 
 	switch baseVal.Kind() {
 	case reflect.Slice:
-		return b.handleSliceIndexExpr(baseVal, node, valueToSet, fullPath, limits.maxSliceSize)
+		return b.handleSliceIndexExpr(baseVal, node, valueToSet, fullPath, limits)
 	case reflect.Map:
 		return b.handleMapIndexExpr(baseVal, node, valueToSet, fullPath)
 	case reflect.Struct:
@@ -147,10 +147,11 @@ func (b *ASTBinder) handleIndexExprNode(currentVal reflect.Value, node *ast_doma
 // Takes node (*ast_domain.IndexExpression) which contains the index expression.
 // Takes valueToSet (string) which is the value to assign to the element.
 // Takes fullPath (string) which is the path for error reporting.
-// Takes maxSliceSize (int) which limits slice expansion.
+// Takes limits (binderOptions) which supply the per-slice size ceiling and the call's
+// element budget.
 //
 // Returns error when the slice cannot be indexed or the element cannot be set.
-func (b *ASTBinder) handleSliceIndexExpr(sliceVal reflect.Value, node *ast_domain.IndexExpression, valueToSet string, fullPath string, maxSliceSize int) error {
+func (b *ASTBinder) handleSliceIndexExpr(sliceVal reflect.Value, node *ast_domain.IndexExpression, valueToSet string, fullPath string, limits binderOptions) error {
 	if !sliceVal.CanSet() && !sliceVal.CanAddr() {
 		return errInvalidPath{
 			path: fullPath,
@@ -158,7 +159,7 @@ func (b *ASTBinder) handleSliceIndexExpr(sliceVal reflect.Value, node *ast_domai
 		}
 	}
 
-	element, err := resolveSliceIndex(sliceVal, node, fullPath, "sliceElement", maxSliceSize)
+	element, err := resolveSliceIndex(sliceVal, node, fullPath, "sliceElement", limits)
 	if err != nil {
 		return fmt.Errorf("resolving slice index for %q: %w", fullPath, err)
 	}
@@ -458,7 +459,7 @@ func (b *ASTBinder) setByASTWithMapSupport(
 
 	switch fieldVal.Kind() {
 	case reflect.Slice:
-		element, err := resolveSliceIndex(fieldVal, indexExpr, fullPath, "sliceElement", limits.maxSliceSize)
+		element, err := resolveSliceIndex(fieldVal, indexExpr, fullPath, "sliceElement", limits)
 		if err != nil {
 			return fmt.Errorf("resolving slice index in map support for %q: %w", fullPath, err)
 		}

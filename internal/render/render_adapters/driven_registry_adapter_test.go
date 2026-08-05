@@ -101,23 +101,38 @@ func TestApplyConfigDefaults_PartialValues_FillsMissing(t *testing.T) {
 func TestIsContextCancellation(t *testing.T) {
 	t.Parallel()
 
+	cancelledContext, cancel := context.WithCancel(context.Background())
+	cancel()
+
 	tests := []struct {
 		name string
+		ctx  context.Context
 		err  error
 		want bool
 	}{
-		{name: "context canceled", err: context.Canceled, want: true},
-		{name: "deadline exceeded", err: context.DeadlineExceeded, want: true},
-		{name: "wrapped cancellation", err: fmt.Errorf("fetching SVG artefacts: %w", context.Canceled), want: true},
-		{name: "genuine error", err: errors.New("store unavailable"), want: false},
-		{name: "nil error", err: nil, want: false},
+		{name: "context canceled", ctx: cancelledContext, err: context.Canceled, want: true},
+		{name: "deadline exceeded", ctx: cancelledContext, err: context.DeadlineExceeded, want: true},
+		{
+			name: "wrapped cancellation",
+			ctx:  cancelledContext,
+			err:  fmt.Errorf("fetching SVG artefacts: %w", context.Canceled),
+			want: true,
+		},
+		{name: "genuine error", ctx: cancelledContext, err: errors.New("store unavailable"), want: false},
+		{name: "nil error", ctx: cancelledContext, err: nil, want: false},
+		{
+			name: "store deadline on a live context is a real failure",
+			ctx:  context.Background(),
+			err:  fmt.Errorf("transaction timed out: %w", context.DeadlineExceeded),
+			want: false,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.want, isContextCancellation(tc.err))
+			assert.Equal(t, tc.want, isContextCancellation(tc.ctx, tc.err))
 		})
 	}
 }

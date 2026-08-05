@@ -426,8 +426,19 @@ func conditionalIsPartialOwnRoot(node *ast_domain.TemplateNode) bool {
 	if node.GoAnnotations == nil || node.GoAnnotations.PartialInfo == nil {
 		return false
 	}
-	d := governingConditional(node)
-	return d != nil && d.GoAnnotations != nil && d.GoAnnotations.OriginalPackageAlias == nil
+
+	directive := governingConditional(node)
+	if directive == nil || directive.GoAnnotations == nil {
+		return false
+	}
+
+	directiveSourcePath := directive.GoAnnotations.OriginalSourcePath
+	nodeSourcePath := node.GoAnnotations.OriginalSourcePath
+	if directiveSourcePath == nil || nodeSourcePath == nil {
+		return false
+	}
+
+	return *directiveSourcePath == *nodeSourcePath
 }
 
 // conditionalGuardInfo records, per invocation key, whether any occurrence sits under a

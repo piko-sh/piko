@@ -28,6 +28,7 @@ import (
 	"fmt"
 	goast "go/ast"
 	"strings"
+	"sync"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -97,6 +98,13 @@ type TypeResolver struct {
 	// collectionService handles collection calls such as GetCollection; nil means collection
 	// features are turned off.
 	collectionService CollectionServicePort
+
+	// componentsByVirtualFile indexes components by their virtual Go file path, so a
+	// declaration can be traced back to the component whose script block produced it.
+	componentsByVirtualFile map[string]*annotator_dto.VirtualComponent
+
+	// virtualFileIndexOnce guards building componentsByVirtualFile on first use.
+	virtualFileIndexOnce sync.Once
 }
 
 // packageMemberAnnotationParams holds parameters for creating package member annotations.
@@ -143,9 +151,11 @@ func NewTypeResolver(
 	collectionService CollectionServicePort,
 ) *TypeResolver {
 	return &TypeResolver{
-		inspector:         inspector,
-		virtualModule:     virtualModule,
-		collectionService: collectionService,
+		inspector:               inspector,
+		virtualModule:           virtualModule,
+		collectionService:       collectionService,
+		componentsByVirtualFile: nil,
+		virtualFileIndexOnce:    sync.Once{},
 	}
 }
 

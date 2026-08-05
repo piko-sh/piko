@@ -454,7 +454,7 @@ func TestUnmapVirtualLocationToOriginal(t *testing.T) {
 		}
 		virtualLocation := ast_domain.Location{Line: 10, Column: 5, Offset: 100}
 
-		result := tr.unmapVirtualLocationToOriginal(ctx, virtualLocation)
+		result := tr.unmapVirtualLocationToOriginal(ctx, "", virtualLocation)
 
 		assert.Equal(t, virtualLocation, result)
 	})
@@ -484,7 +484,7 @@ func TestUnmapVirtualLocationToOriginal(t *testing.T) {
 		}
 		virtualLocation := ast_domain.Location{Line: 10, Column: 5, Offset: 100}
 
-		result := tr.unmapVirtualLocationToOriginal(ctx, virtualLocation)
+		result := tr.unmapVirtualLocationToOriginal(ctx, "", virtualLocation)
 
 		assert.Equal(t, virtualLocation, result)
 	})
@@ -516,7 +516,7 @@ func TestUnmapVirtualLocationToOriginal(t *testing.T) {
 		}
 		virtualLocation := ast_domain.Location{Line: 10, Column: 5, Offset: 100}
 
-		result := tr.unmapVirtualLocationToOriginal(ctx, virtualLocation)
+		result := tr.unmapVirtualLocationToOriginal(ctx, "", virtualLocation)
 
 		assert.Equal(t, virtualLocation, result)
 	})
@@ -554,7 +554,7 @@ func TestUnmapVirtualLocationToOriginal(t *testing.T) {
 		}
 		virtualLocation := ast_domain.Location{Line: 10, Column: 7, Offset: 100}
 
-		result := tr.unmapVirtualLocationToOriginal(ctx, virtualLocation)
+		result := tr.unmapVirtualLocationToOriginal(ctx, "", virtualLocation)
 
 		assert.Equal(t, 14, result.Line)
 		assert.Equal(t, 7, result.Column)

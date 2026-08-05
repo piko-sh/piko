@@ -144,6 +144,14 @@ func WithMaxPathLength(length int) Option {
 	return binder.WithMaxPathLength(length)
 }
 
+// WithDocumentScaleLimits returns an Option that raises the width limits to document
+// scale in one step, covering field count, slice size, and value length.
+//
+// Returns Option which raises the width limits to document scale.
+func WithDocumentScaleLimits() Option {
+	return binder.WithDocumentScaleLimits()
+}
+
 // WithMaxFieldCount returns an Option to set a per-call limit for field count. This
 // overrides the global limit for this specific Bind call.
 //

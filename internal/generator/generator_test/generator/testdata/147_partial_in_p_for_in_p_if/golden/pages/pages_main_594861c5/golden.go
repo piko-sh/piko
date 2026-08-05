@@ -94,13 +94,7 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 		// line partials/badge.pk:24:19
 		if loopIter_1 != nil {
 			for __pikoLoopIdx, _ := range loopIter_1 {
-				props_badge_label_state_config_title_8156891d := partials_badge_63370d86.Props{Label: func() string {
-					if pageData.Config == nil {
-						diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Cannot access property 'Title' because 'state.Config' is nil", "R003", "pages/main.pk", "state.Config.Title", 1, 1)
-						return ""
-					}
-					return pageData.Config.Title
-				}()}
+				props_badge_label_state_config_title_8156891d := partials_badge_63370d86.Props{Label: pageData.Config.Title}
 				partials_badge_63370d86Data_badge_label_state_config_title_8156891d, partials_badge_63370d86Meta_badge_label_state_config_title_8156891d, partials_badge_63370d86Err_badge_label_state_config_title_8156891d := partials_badge_63370d86.Render(r, props_badge_label_state_config_title_8156891d)
 				if partials_badge_63370d86Err_badge_label_state_config_title_8156891d != nil {
 					diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Error, partials_badge_63370d86Err_badge_label_state_config_title_8156891d.Error(), "R002", "", "Partial Render() error for partials_badge_63370d86", 0, 0)

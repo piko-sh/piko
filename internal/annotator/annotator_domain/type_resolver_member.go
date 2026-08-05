@@ -392,7 +392,7 @@ func (tr *TypeResolver) buildFieldAnnotation(
 	}
 
 	virtualLocation := ast_domain.Location{Line: fieldInfo.DefinitionLine, Column: fieldInfo.DefinitionColumn, Offset: 0}
-	originalDefLocation := tr.unmapVirtualLocationToOriginal(analysisContext, virtualLocation)
+	originalDefLocation := tr.unmapVirtualLocationToOriginal(analysisContext, fieldInfo.DefiningFilePath, virtualLocation)
 
 	finalAnnotation := newAnnotationFull(resolvedTypeInfo, &analysisContext.SFCSourcePath, stringability)
 	finalAnnotation.ParentTypeName = &fieldInfo.ParentTypeName
@@ -616,7 +616,7 @@ func (tr *TypeResolver) buildMethodAnnotation(
 		Offset: 0,
 	}
 
-	originalDefLocation := tr.unmapVirtualLocationToOriginal(ctx, virtualLocation)
+	originalDefLocation := tr.unmapVirtualLocationToOriginal(ctx, methodInfo.DefinitionFilePath, virtualLocation)
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
 		DynamicCollectionInfo:   nil,

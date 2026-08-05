@@ -195,7 +195,7 @@ func TestGrowSliceToFitIndex(t *testing.T) {
 	t.Run("does nothing if index is within length", func(t *testing.T) {
 		s := make([]int, 5)
 		v := reflect.ValueOf(&s).Elem()
-		err := growSliceToFitIndex(v, 4, 1_000)
+		err := growSliceToFitIndex(v, 4, 1_000, nil)
 		require.NoError(t, err)
 		assert.Len(t, s, 5)
 		assert.Equal(t, 5, cap(s))
@@ -204,7 +204,7 @@ func TestGrowSliceToFitIndex(t *testing.T) {
 	t.Run("expands length if index is within capacity", func(t *testing.T) {
 		s := make([]int, 2, 5)
 		v := reflect.ValueOf(&s).Elem()
-		err := growSliceToFitIndex(v, 4, 1_000)
+		err := growSliceToFitIndex(v, 4, 1_000, nil)
 		require.NoError(t, err)
 		assert.Len(t, s, 5)
 		assert.Equal(t, 5, cap(s))
@@ -213,7 +213,7 @@ func TestGrowSliceToFitIndex(t *testing.T) {
 	t.Run("expands capacity and length if index is out of capacity", func(t *testing.T) {
 		s := make([]int, 2, 3)
 		v := reflect.ValueOf(&s).Elem()
-		err := growSliceToFitIndex(v, 10, 1_000)
+		err := growSliceToFitIndex(v, 10, 1_000, nil)
 		require.NoError(t, err)
 		assert.Len(t, s, 11)
 		assert.Equal(t, 11, cap(s))
@@ -222,9 +222,43 @@ func TestGrowSliceToFitIndex(t *testing.T) {
 	t.Run("returns error if not a slice", func(t *testing.T) {
 		var i int
 		v := reflect.ValueOf(&i).Elem()
-		err := growSliceToFitIndex(v, 1, 1_000)
+		err := growSliceToFitIndex(v, 1, 1_000, nil)
 		require.Error(t, err)
 		assert.Equal(t, "value is not a slice", err.Error())
+	})
+
+	t.Run("rejects a negative index", func(t *testing.T) {
+		s := make([]int, 2)
+		v := reflect.ValueOf(&s).Elem()
+		err := growSliceToFitIndex(v, -1, 1_000, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "negative")
+	})
+
+	t.Run("charges growth against the element budget", func(t *testing.T) {
+		budget := newSliceElementBudget(map[string][]string{"items[500]": {"1"}})
+
+		s := make([]int, 0)
+		v := reflect.ValueOf(&s).Elem()
+		require.NoError(t, growSliceToFitIndex(v, 500, 100_000, budget))
+
+		other := make([]int, 0)
+		otherValue := reflect.ValueOf(&other).Elem()
+		err := growSliceToFitIndex(otherValue, 900, 100_000, budget)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrSliceElementBudgetExhausted)
+	})
+
+	t.Run("grows capacity geometrically so ascending fills stay linear", func(t *testing.T) {
+		s := make([]int, 0)
+		v := reflect.ValueOf(&s).Elem()
+
+		for index := range 64 {
+			require.NoError(t, growSliceToFitIndex(v, index, 1_000, nil))
+		}
+
+		assert.Len(t, s, 64)
+		assert.GreaterOrEqual(t, cap(s), 64)
 	})
 }
 

@@ -49,6 +49,23 @@ func (m MultiError) Error() string {
 // Returns string which is a generic validation failure message.
 func (MultiError) SafeMessage() string { return "validation failed" }
 
+// Unwrap exposes the per-field errors so errors.Is and errors.As reach the sentinels
+// underneath, which lets a caller detect a cancelled bind or an exhausted budget without
+// parsing the message.
+//
+// Returns []error which contains every per-field error, in map iteration order.
+func (m MultiError) Unwrap() []error {
+	if len(m) == 0 {
+		return nil
+	}
+
+	unwrapped := make([]error, 0, len(m))
+	for _, err := range m {
+		unwrapped = append(unwrapped, err)
+	}
+	return unwrapped
+}
+
 // errInvalidTarget is returned when the destination for binding is not a pointer to a
 // struct.
 type errInvalidTarget struct {
@@ -92,6 +109,11 @@ func (e errInvalidPath) Error() string {
 // Returns string which is a generic binding failure message.
 func (errInvalidPath) SafeMessage() string { return "invalid form data" }
 
+// Unwrap exposes the underlying cause so errors.Is and errors.As can match it.
+//
+// Returns error which is the cause of the path being rejected.
+func (e errInvalidPath) Unwrap() error { return e.err }
+
 // errSetField is returned when a value cannot be converted or set on a struct field.
 type errSetField struct {
 	// err is the underlying error from the failed field assignment.
@@ -119,3 +141,8 @@ func (e errSetField) Error() string {
 //
 // Returns string which is a generic binding failure message.
 func (errSetField) SafeMessage() string { return "invalid form data" }
+
+// Unwrap exposes the underlying cause so errors.Is and errors.As can match it.
+//
+// Returns error which is the cause of the field assignment failing.
+func (e errSetField) Unwrap() error { return e.err }

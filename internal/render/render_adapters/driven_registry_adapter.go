@@ -563,7 +563,7 @@ func createSVGBulkLoader(
 
 			artefacts, err := registryService.GetMultipleArtefacts(ctx, artefactIDs)
 			if err != nil {
-				if !isContextCancellation(err) {
+				if !isContextCancellation(ctx, err) {
 					svgLoaderErrorCount.Add(ctx, 1)
 				}
 				return nil, fmt.Errorf("fetching SVG artefacts: %w", err)
@@ -676,8 +676,7 @@ func processSVGsParallel(
 	g := new(errgroup.Group)
 	g.SetLimit(runtime.GOMAXPROCS(0))
 
-	for _, id := range artefactIDs {
-		artefactID := id
+	for _, artefactID := range artefactIDs {
 		g.Go(func() error {
 			artefact, found := artefactMap[artefactID]
 			if !found {
@@ -763,13 +762,17 @@ func createCaches(
 	return componentCache, svgCache
 }
 
-// isContextCancellation reports whether err reflects request-context cancellation or a
-// deadline being exceeded rather than a genuine loader failure.
+// isContextCancellation reports whether err reflects the caller's context ending rather
+// than a genuine loader failure.
 //
 // Takes err (error) which is the error to classify.
 //
-// Returns bool which is true when err wraps context.Canceled or context.DeadlineExceeded.
-func isContextCancellation(err error) bool {
+// Returns bool which is true only when the caller's own context ended and err reflects
+// it.
+func isContextCancellation(ctx context.Context, err error) bool {
+	if ctx.Err() == nil {
+		return false
+	}
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
@@ -856,8 +859,8 @@ func getCacheSlow[T any](
 		var zero T
 		switch {
 		case errors.Is(err, otter.ErrNotFound):
-		case isContextCancellation(err):
-			l.Trace("Cache load cancelled", logger_domain.String("span", config.spanName))
+		case isContextCancellation(ctx, err):
+			l.Trace("Cache load cancelled", logger_domain.Error(err))
 		default:
 			l.ReportError(span, err, config.errorMessage)
 			config.errorCounter.Add(ctx, 1)

@@ -22,11 +22,14 @@
 // carries an embedded read-only base but has no configured object store.
 //
 // Writes succeed up to a configured byte budget. When the budget is exceeded, otter's
-// S3-FIFO eviction policy removes the least useful blobs to make room. Storage is
-// therefore ephemeral and best-effort: anything evicted or lost on restart is gone, so
+// adaptive W-TinyLFU eviction policy removes the least useful blobs to make room. Storage
+// is therefore ephemeral and best-effort: anything evicted or lost on restart is gone, so
 // the provider is deliberately not durable. The registry it overlays is
 // content-addressed, which makes this trade-off acceptable for transient writes.
 //
 // All operations are safe for concurrent use; concurrency is provided by the underlying
-// otter cache.
+// otter cache. Rename and Copy are read-modify-write sequences rather than atomic ones,
+// so a rename racing a write to the same source key can lose the newly written object.
+// The content-addressed registry writes each key once, which is why that is acceptable
+// here.
 package provider_memory

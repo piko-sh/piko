@@ -28,6 +28,7 @@ import (
 	"io"
 	"maps"
 	"math"
+	"slices"
 	"time"
 
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
@@ -36,6 +37,8 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
+	"piko.sh/piko/wdk/contextaware"
+	"piko.sh/piko/wdk/safeconv"
 )
 
 const (
@@ -46,10 +49,11 @@ const (
 	// NUL byte is used because it cannot appear in a repository name or object key.
 	keySeparator = "\x00"
 
-	// entryOverheadBytes is a fixed per-entry allowance added to every object's footprint so
-	// that an object with empty data still carries a positive weight. Without it a flood of
-	// zero-byte objects would accumulate unbounded against a byte-only budget.
-	entryOverheadBytes int64 = 64
+	// entryOverheadBytes is the fixed allowance added to every object's footprint.
+	entryOverheadBytes int64 = 160
+
+	// metadataEntryOverheadBytes is the allowance charged per metadata pair.
+	metadataEntryOverheadBytes int64 = 48
 )
 
 var (
@@ -68,6 +72,9 @@ var (
 
 	// ErrInvalidMaxBytes is returned by New when the configured byte budget is not positive.
 	ErrInvalidMaxBytes = errors.New("maximum byte budget must be positive")
+
+	// ErrNilReader is returned by Put when the parameters carry no reader.
+	ErrNilReader = errors.New("reader cannot be nil for put operation")
 )
 
 // storedObject holds a single blob and its metadata inside the cache.
@@ -162,16 +169,28 @@ func (p *Provider) GetProviderMetadata() map[string]any {
 // Put stores an object, reading its content from the supplied reader up to the byte
 // budget.
 //
-// Reads are bounded by io.LimitReader to protect against unbounded input. An object whose
-// size exceeds the configured budget is rejected because it could never fit.
+// Reads are bounded by io.LimitReader and observe cancellation, so neither an unbounded
+// nor a stalled source can hold the call open. An object whose size exceeds the
+// configured budget is rejected because it could never fit, and a declared size beyond
+// the budget is refused before any bytes are buffered.
 //
 // Takes params (*storage_dto.PutParams) which specifies the repository, key, reader,
 // content type, and metadata for the object.
 //
-// Returns error when the reader fails, the object exceeds the byte budget, or the cache
-// write fails.
+// Returns error when the reader is nil or fails, the context is cancelled, the object
+// exceeds the byte budget, or the cache write fails.
 func (p *Provider) Put(ctx context.Context, params *storage_dto.PutParams) error {
-	data, err := io.ReadAll(io.LimitReader(params.Reader, p.readLimit()))
+	if params.Reader == nil {
+		return fmt.Errorf("storing object %q: %w", params.Key, ErrNilReader)
+	}
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("storing object %q: %w", params.Key, err)
+	}
+	if params.Size > 0 && params.Size > p.maxBytes {
+		return fmt.Errorf("object %q declares %d bytes against a budget of %d bytes: %w", params.Key, params.Size, p.maxBytes, ErrObjectTooLarge)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(contextaware.NewReader(ctx, params.Reader), p.readLimit()))
 	if err != nil {
 		return fmt.Errorf("memory storage provider failed to read object %q: %w", params.Key, err)
 	}
@@ -180,13 +199,12 @@ func (p *Provider) Put(ctx context.Context, params *storage_dto.PutParams) error
 	storedValue := &storedObject{
 		lastModified: time.Now(),
 		contentType:  params.ContentType,
+		data:         slices.Clip(data),
 		metadata:     maps.Clone(params.Metadata),
-		data:         data,
 	}
 
-	footprint := entryFootprint(key, storedValue)
-	if footprint > p.maxBytes || footprint > math.MaxUint32 {
-		return fmt.Errorf("object %q of %d bytes cannot fit budget of %d bytes: %w", params.Key, footprint, p.maxBytes, ErrObjectTooLarge)
+	if err := p.checkFootprint(params.Key, key, storedValue); err != nil {
+		return err
 	}
 
 	if err := p.cache.Set(ctx, key, storedValue); err != nil {
@@ -293,8 +311,8 @@ func (p *Provider) Remove(ctx context.Context, params storage_dto.GetParams) err
 // Takes oldKey (string) which is the current object key.
 // Takes newKey (string) which is the destination object key.
 //
-// Returns error when the source object is absent, has been evicted, or a cache operation
-// fails.
+// Returns error when the source object is absent, has been evicted, the destination
+// cannot fit the budget, or a cache operation fails.
 func (p *Provider) Rename(ctx context.Context, repo string, oldKey, newKey string) error {
 	oldCompositeKey := compositeKey(repo, oldKey)
 	storedValue, found, err := p.cache.GetIfPresent(ctx, oldCompositeKey)
@@ -305,8 +323,16 @@ func (p *Provider) Rename(ctx context.Context, repo string, oldKey, newKey strin
 		return fmt.Errorf("rename source object %q in repository %q: %w", oldKey, repo, ErrObjectNotFound)
 	}
 
-	if err := p.cache.Set(ctx, compositeKey(repo, newKey), storedValue); err != nil {
+	newCompositeKey := compositeKey(repo, newKey)
+	if err := p.checkFootprint(newKey, newCompositeKey, storedValue); err != nil {
+		return fmt.Errorf("renaming %q to %q: %w", oldKey, newKey, err)
+	}
+
+	if err := p.cache.Set(ctx, newCompositeKey, storedValue); err != nil {
 		return fmt.Errorf("rename failed to write destination object %q: %w", newKey, err)
+	}
+	if _, stored, checkErr := p.cache.GetIfPresent(ctx, newCompositeKey); checkErr != nil || !stored {
+		return fmt.Errorf("rename destination object %q was not retained: %w", newKey, errors.Join(checkErr, ErrObjectNotFound))
 	}
 	if err := p.cache.Invalidate(ctx, oldCompositeKey); err != nil {
 		return fmt.Errorf("rename failed to remove source object %q: %w", oldKey, err)
@@ -430,7 +456,8 @@ func (*Provider) SupportsPresignedURLs() bool {
 // upload.
 //
 // Returns *storage_dto.BatchResult which reports per-object success and failure.
-// Returns error which is always nil; individual failures are recorded in the result.
+// Returns error when the context is cancelled part way through; individual object
+// failures are recorded in the result rather than returned.
 func (p *Provider) PutMany(ctx context.Context, params *storage_dto.PutManyParams) (*storage_dto.BatchResult, error) {
 	startTime := time.Now()
 	result := &storage_dto.BatchResult{
@@ -485,7 +512,8 @@ func (p *Provider) PutMany(ctx context.Context, params *storage_dto.PutManyParam
 // delete.
 //
 // Returns *storage_dto.BatchResult which reports per-object success and failure.
-// Returns error which is always nil; individual failures are recorded in the result.
+// Returns error when the context is cancelled part way through; individual object
+// failures are recorded in the result rather than returned.
 func (p *Provider) RemoveMany(ctx context.Context, params storage_dto.RemoveManyParams) (*storage_dto.BatchResult, error) {
 	startTime := time.Now()
 	result := &storage_dto.BatchResult{
@@ -526,6 +554,25 @@ func (p *Provider) RemoveMany(ctx context.Context, params storage_dto.RemoveMany
 	return result, nil
 }
 
+// checkFootprint rejects an object that cannot be admitted within the byte budget.
+//
+// The backing cache silently discards an entry whose weight exceeds the maximum, so every
+// write path checks the footprint first rather than reporting success for an object that
+// was never stored.
+//
+// Takes objectKey (string) which is the caller-facing key used in the error message.
+// Takes key (string) which is the composite cache key charged to the object.
+// Takes value (*storedObject) which is the object about to be written.
+//
+// Returns error wrapping ErrObjectTooLarge when the object cannot fit the budget.
+func (p *Provider) checkFootprint(objectKey, key string, value *storedObject) error {
+	footprint := entryFootprint(key, value)
+	if footprint > p.maxBytes || footprint > math.MaxUint32 {
+		return fmt.Errorf("object %q of %d bytes cannot fit budget of %d bytes: %w", objectKey, footprint, p.maxBytes, ErrObjectTooLarge)
+	}
+	return nil
+}
+
 // copyInternal stores a fresh copy of the source object at the destination.
 //
 // Takes sourceRepository (string) which holds the source object.
@@ -550,7 +597,13 @@ func (p *Provider) copyInternal(ctx context.Context, sourceRepository, sourceKey
 		metadata:     maps.Clone(storedValue.metadata),
 		data:         bytes.Clone(storedValue.data),
 	}
-	if err := p.cache.Set(ctx, compositeKey(destinationRepository, destinationKey), destinationValue); err != nil {
+
+	destinationCompositeKey := compositeKey(destinationRepository, destinationKey)
+	if err := p.checkFootprint(destinationKey, destinationCompositeKey, destinationValue); err != nil {
+		return fmt.Errorf("copying %q to %q: %w", sourceKey, destinationKey, err)
+	}
+
+	if err := p.cache.Set(ctx, destinationCompositeKey, destinationValue); err != nil {
 		return fmt.Errorf("copy failed to write destination object %q: %w", destinationKey, err)
 	}
 	return nil
@@ -580,18 +633,19 @@ func compositeKey(repository, key string) string {
 
 // entryFootprint reports a stored object's full byte cost against the budget.
 //
-// It charges the data, composite key, content type, and metadata plus a fixed per-entry
-// overhead, so the byte budget stays an honest bound and a small-data object carrying
-// large keys or metadata cannot escape it.
+// It charges the retained data capacity, composite key, content type, and metadata plus a
+// fixed per-entry overhead, so the byte budget stays an honest bound and neither a
+// small-data object carrying large keys or metadata nor a buffer holding spare capacity
+// can escape it.
 //
 // Takes key (string) which is the composite cache key charged to the object.
 // Takes value (*storedObject) which is the object whose cost is measured.
 //
 // Returns int64 which is the object's total footprint in bytes.
 func entryFootprint(key string, value *storedObject) int64 {
-	total := entryOverheadBytes + int64(len(key)) + int64(len(value.contentType)) + int64(len(value.data))
+	total := entryOverheadBytes + int64(len(key)) + int64(len(value.contentType)) + int64(cap(value.data))
 	for metadataKey, metadataValue := range value.metadata {
-		total += int64(len(metadataKey)) + int64(len(metadataValue))
+		total += metadataEntryOverheadBytes + int64(len(metadataKey)) + int64(len(metadataValue))
 	}
 	return total
 }
@@ -604,7 +658,7 @@ func entryFootprint(key string, value *storedObject) int64 {
 //
 // Returns uint32 which is the footprint capped at math.MaxUint32.
 func clampWeight(footprint int64) uint32 {
-	return uint32(min(footprint, math.MaxUint32))
+	return safeconv.Int64ToUint32(footprint)
 }
 
 // sliceByteRange returns the sub-slice of data covered by the inclusive range, clamping

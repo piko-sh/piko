@@ -471,3 +471,156 @@ func TestDoSProtectionDefaults(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestWithDocumentScaleLimits(t *testing.T) {
+	type item struct {
+		Name string `json:"name"`
+	}
+	type doc struct {
+		Items []item `json:"items"`
+	}
+	type input struct {
+		Doc doc `json:"doc"`
+	}
+
+	items := make([]any, 2000)
+	for i := range items {
+		items[i] = map[string]any{"name": fmt.Sprintf("item-%d", i)}
+	}
+	src := map[string]any{"doc": map[string]any{"items": items}}
+
+	t.Run("default limits reject a document-scale input", func(t *testing.T) {
+		binder := NewASTBinder()
+		var in input
+		err := binder.BindMap(context.Background(), &in, src, IgnoreUnknownKeys(true))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "exceeds maximum limit")
+	})
+
+	t.Run("document scale limits bind it", func(t *testing.T) {
+		binder := NewASTBinder()
+		var in input
+		err := binder.BindMap(context.Background(), &in, src, IgnoreUnknownKeys(true), WithDocumentScaleLimits())
+		require.NoError(t, err)
+		require.Len(t, in.Doc.Items, 2000)
+		assert.Equal(t, "item-1999", in.Doc.Items[1999].Name)
+	})
+
+	t.Run("form binding keeps the strict defaults", func(t *testing.T) {
+		binder := NewASTBinder()
+		var form SimpleForm
+		formSource := make(map[string][]string)
+		for i := range 2000 {
+			formSource[fmt.Sprintf("field%d", i)] = []string{"value"}
+		}
+		err := binder.Bind(context.Background(), &form, formSource)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "exceeds maximum limit of 1000")
+	})
+
+	t.Run("path depth and length keep their defaults", func(t *testing.T) {
+		opts := &BindOptions{}
+		WithDocumentScaleLimits()(opts)
+		assert.Nil(t, opts.MaxPathDepth)
+		assert.Nil(t, opts.MaxPathLength)
+		require.NotNil(t, opts.MaxFieldCount)
+		assert.Equal(t, DocumentMaxFieldCount, *opts.MaxFieldCount)
+	})
+}
+
+func TestSliceElementBudget(t *testing.T) {
+	type sparseTarget struct {
+		Items []int `json:"items"`
+	}
+
+	t.Run("a sparse index cannot outgrow the values supplied", func(t *testing.T) {
+		binder := NewASTBinder()
+		var target sparseTarget
+		err := binder.Bind(context.Background(), &target, map[string][]string{
+			"items[49999]": {"1"},
+		}, WithDocumentScaleLimits())
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrSliceElementBudgetExhausted)
+		assert.Empty(t, target.Items)
+	})
+
+	t.Run("many sparse indices cannot compound the allocation", func(t *testing.T) {
+		binder := NewASTBinder()
+		type wide struct {
+			First  []int `json:"first"`
+			Second []int `json:"second"`
+		}
+		var target wide
+		err := binder.Bind(context.Background(), &target, map[string][]string{
+			"first[49999]":  {"1"},
+			"second[49999]": {"1"},
+		}, WithDocumentScaleLimits())
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrSliceElementBudgetExhausted)
+	})
+
+	t.Run("a densely supplied slice still binds", func(t *testing.T) {
+		binder := NewASTBinder()
+		var target sparseTarget
+		source := make(map[string][]string, 4000)
+		for index := range 4000 {
+			source[fmt.Sprintf("items[%d]", index)] = []string{"7"}
+		}
+		err := binder.Bind(context.Background(), &target, source, WithDocumentScaleLimits())
+		require.NoError(t, err)
+		require.Len(t, target.Items, 4000)
+		assert.Equal(t, 7, target.Items[3999])
+	})
+
+	t.Run("an index within the default budget floor still binds", func(t *testing.T) {
+		binder := NewASTBinder()
+		var target sparseTarget
+		err := binder.Bind(context.Background(), &target, map[string][]string{
+			"items[999]": {"5"},
+		})
+		require.NoError(t, err)
+		require.Len(t, target.Items, 1000)
+		assert.Equal(t, 5, target.Items[999])
+	})
+}
+
+func TestBindHonoursContextCancellation(t *testing.T) {
+	binder := NewASTBinder()
+
+	source := make(map[string][]string, 4000)
+	for index := range 4000 {
+		source[fmt.Sprintf("field%d", index)] = []string{"value"}
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	var form SimpleForm
+	err := binder.Bind(ctx, &form, source, WithDocumentScaleLimits())
+	require.Error(t, err)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestPathExpressionCacheIsBounded(t *testing.T) {
+	binder := NewASTBinder()
+
+	type element struct {
+		Name string `json:"name"`
+	}
+	type target struct {
+		Items []element `json:"items"`
+	}
+
+	pathCount := maxCachedPathExpressions * 2
+	source := make(map[string][]string, pathCount)
+	for index := range pathCount {
+		source[fmt.Sprintf("items[%d].name", index)] = []string{"value"}
+	}
+
+	var destination target
+	err := binder.Bind(context.Background(), &destination, source, WithDocumentScaleLimits())
+	require.NoError(t, err)
+	require.Len(t, destination.Items, pathCount)
+
+	assert.LessOrEqual(t, binder.astCacheEntries.Load(), int64(maxCachedPathExpressions))
+}

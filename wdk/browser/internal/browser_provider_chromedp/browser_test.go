@@ -19,9 +19,14 @@
 package browser_provider_chromedp
 
 import (
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/chromedp/cdproto/runtime"
 	"github.com/go-json-experiment/json/jsontext"
@@ -372,4 +377,54 @@ func TestPageHelper_ClearConsoleLogs_ClearsInternalState(t *testing.T) {
 	if len(ph.ConsoleLogsWithLevel()) != 0 {
 		t.Error("expected consoleLogsV2 to be cleared")
 	}
+}
+
+func TestValidateChromePath(t *testing.T) {
+	t.Parallel()
+
+	executable := filepath.Join(t.TempDir(), "chrome-headless-shell")
+	require.NoError(t, os.WriteFile(executable, []byte("#!/bin/sh\n"), 0o755))
+
+	nonExecutable := filepath.Join(t.TempDir(), "not-executable")
+	require.NoError(t, os.WriteFile(nonExecutable, []byte("data"), 0o644))
+
+	testCases := []struct {
+		name       string
+		chromePath string
+		wantErr    error
+	}{
+		{name: "empty keeps the default lookup", chromePath: "", wantErr: nil},
+		{name: "absolute executable is accepted", chromePath: executable, wantErr: nil},
+		{name: "relative path is rejected", chromePath: "chrome-headless-shell", wantErr: ErrChromePathNotAbsolute},
+		{name: "non-executable file is rejected", chromePath: nonExecutable, wantErr: ErrChromePathNotExecutable},
+		{name: "missing file is rejected", chromePath: "/nonexistent/chrome", wantErr: os.ErrNotExist},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateChromePath(testCase.chromePath)
+			if testCase.wantErr == nil {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.ErrorIs(t, err, testCase.wantErr)
+		})
+	}
+}
+
+func TestNewBrowserRejectsInvalidChromePath(t *testing.T) {
+	t.Parallel()
+
+	browser, err := NewBrowser(BrowserOptions{
+		ChromePath:       "chrome-headless-shell",
+		ChromeFlags:      nil,
+		Headless:         true,
+		IgnoreCertErrors: false,
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, browser)
+	assert.ErrorIs(t, err, ErrChromePathNotAbsolute)
 }

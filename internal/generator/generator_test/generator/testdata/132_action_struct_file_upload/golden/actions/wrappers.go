@@ -21,7 +21,7 @@ func invokeFilesUpload(ctx context.Context, action any, argsMap map[string]any) 
 	}
 	delete(argsMap, "avatar")
 	if len(argsMap) > 0 {
-		if err := pikobinder.BindMap(ctx, &input, argsMap, pikobinder.IgnoreUnknownKeys(true)); err != nil {
+		if err := pikobinder.BindMap(ctx, &input, argsMap, pikobinder.IgnoreUnknownKeys(true), pikobinder.WithDocumentScaleLimits()); err != nil {
 			l.Error("Failed to bind action parameter from flat argsMap", logger.String("param", "input"), logger.Error(err))
 			return nil, err
 		}
