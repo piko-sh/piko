@@ -20,7 +20,7 @@ require (
 	github.com/pkg/xattr v0.4.12 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/image v0.44.0 // indirect
-	piko.sh/vectormaths v0.1.0 // indirect
+	piko.sh/vectormaths v0.2.0 // indirect
 )
 
 require (

@@ -42,7 +42,7 @@ require (
 	golang.org/x/image v0.44.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	piko.sh/asmgen v0.1.0 // indirect
-	piko.sh/vectormaths v0.1.0 // indirect
+	piko.sh/vectormaths v0.2.0 // indirect
 )
 
 require (

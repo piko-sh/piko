@@ -6,7 +6,7 @@ require piko.sh/piko v0.0.0
 
 // These are transitive dependencies of piko, needed for `go mod tidy` to work.
 require (
-	github.com/bojanz/currency v1.4.2 // indirect
+	github.com/bojanz/currency v1.4.4 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
 )
 

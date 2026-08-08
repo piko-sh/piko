@@ -44,7 +44,7 @@ require (
 	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/tools v0.48.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/vectormaths v0.1.0 // indirect
+	piko.sh/vectormaths v0.2.0 // indirect
 )
 
 replace piko.sh/piko => ../../../../

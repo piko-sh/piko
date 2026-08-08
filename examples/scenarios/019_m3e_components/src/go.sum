@@ -101,5 +101,5 @@ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntN
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
-piko.sh/vectormaths v0.1.0 h1:+tyYDQ2jQiDL3fW6CixZtF8t34/KV5zXM6CVLyfdWQE=
-piko.sh/vectormaths v0.1.0/go.mod h1:zlk/lyiw/rweTRxm4wxVRzqP/alU9mQhs9zJuuA07e0=
+piko.sh/vectormaths v0.2.0 h1:Nz1egFYwfFxYY6VvL+hjBpFvx1Vu0mldgtWi9R1JH8g=
+piko.sh/vectormaths v0.2.0/go.mod h1:wViOFV+X5fo2r0s5RkO9QTXtTdAgUdl46tzm3mWv+qY=

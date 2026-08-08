@@ -52,5 +52,5 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/vectormaths v0.1.0 // indirect
+	piko.sh/vectormaths v0.2.0 // indirect
 )

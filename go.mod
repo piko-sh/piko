@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	piko.sh/asmgen v0.1.0
-	piko.sh/vectormaths v0.1.0
+	piko.sh/vectormaths v0.2.0
 )
 
 require (

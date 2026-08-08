@@ -63,5 +63,5 @@ require (
 	google.golang.org/grpc v1.83.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	piko.sh/vectormaths v0.1.0 // indirect
+	piko.sh/vectormaths v0.2.0 // indirect
 )
