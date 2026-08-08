@@ -6,7 +6,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.49
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.35
 )
 
 require (

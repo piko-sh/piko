@@ -2,7 +2,7 @@ module piko.sh/piko/cmd/stdlib-generator
 
 go 1.26.0
 
-require piko.sh/piko v0.0.0
+require piko.sh/piko v0.0.0-alpha.35
 
 require (
 	github.com/bojanz/currency v1.4.4 // indirect

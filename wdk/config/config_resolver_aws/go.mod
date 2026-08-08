@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.44.3
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.35
 )
 
 require (

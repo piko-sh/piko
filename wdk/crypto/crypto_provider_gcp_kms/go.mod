@@ -8,7 +8,7 @@ require (
 	go.uber.org/goleak v1.3.0
 	google.golang.org/api v0.292.0
 	google.golang.org/grpc v1.83.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.35
 )
 
 require (
