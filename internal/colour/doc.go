@@ -20,8 +20,8 @@
 //
 // Colours are represented by [Style] values that hold pre-computed ANSI escape sequences.
 // Create a Style once with [New] and reuse it for every write. The hot-path methods
-// [Style.WriteStart] and [Style.WriteReset] perform zero heap allocations -- they write
-// pre-built byte slices directly to an [io.Writer].
+// [Style.WriteStart] and [Style.WriteReset] perform zero heap allocations, because they
+// write pre-built byte slices directly to an [io.Writer].
 //
 // # Usage
 //

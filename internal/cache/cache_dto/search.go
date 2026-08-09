@@ -86,8 +86,8 @@ type FieldSchema struct {
 	// (e.g., "address.city").
 	Name string
 
-	// DistanceMetric specifies the similarity metric for VECTOR fields -- "cosine"
-	// (default), "euclidean", or "dot_product" -- and is ignored for non-vector field types.
+	// DistanceMetric specifies the similarity metric for VECTOR fields: "cosine" (default),
+	// "euclidean", or "dot_product". It is ignored for non-vector field types.
 	DistanceMetric string
 
 	// Type specifies how the field should be searchable.

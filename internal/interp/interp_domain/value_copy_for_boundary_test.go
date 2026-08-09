@@ -43,7 +43,7 @@ func TestValueCopyForBoundaryStructProducesIndependentStorage(t *testing.T) {
 
 	original.Field(0).SetInt(99)
 	require.Equal(t, int64(7), snapshot.Field(0).Int(),
-		"the copy must hold an independent struct value so mutating the source does not leak into the destination -- this is the central guarantee of valueCopyForBoundary for value-typed locals across function args, assignments, and channel receives")
+		"the copy must hold an independent struct value so mutating the source does not leak into the destination; this is the central guarantee of valueCopyForBoundary for value-typed locals across function args, assignments, and channel receives")
 }
 
 func TestValueCopyForBoundaryArrayProducesIndependentStorage(t *testing.T) {
@@ -61,7 +61,7 @@ func TestValueCopyForBoundaryArrayProducesIndependentStorage(t *testing.T) {
 
 	original.Index(0).SetInt(99)
 	require.Equal(t, int64(1), snapshot.Index(0).Int(),
-		"the array copy must own its own backing storage -- Go's range-over-array spec requires the iteration to observe a snapshot of the array at loop entry, and the same independence is needed at every boundary crossing where Go's value semantics would copy")
+		"the array copy must own its own backing storage, because Go's range-over-array spec requires the iteration to observe a snapshot of the array at loop entry, and the same independence is needed at every boundary crossing where Go's value semantics would copy")
 }
 
 func TestValueCopyForBoundaryPointerSharesPointee(t *testing.T) {
@@ -74,7 +74,7 @@ func TestValueCopyForBoundaryPointerSharesPointee(t *testing.T) {
 	require.True(t, snapshot.IsValid())
 	require.Equal(t, reflect.Pointer, snapshot.Kind())
 	require.Equal(t, original.Pointer(), snapshot.Pointer(),
-		"pointer kind must pass through valueCopyForBoundary unchanged so the copy and source point at the same memory -- Go's pointer semantics share the pointee, and copying the pointer header is the right semantic at every boundary where a pointer is value-passed")
+		"pointer kind must pass through valueCopyForBoundary unchanged so the copy and source point at the same memory, because Go's pointer semantics share the pointee, and copying the pointer header is the right semantic at every boundary where a pointer is value-passed")
 }
 
 func TestValueCopyForBoundarySliceSharesUnderlyingArray(t *testing.T) {
@@ -90,7 +90,7 @@ func TestValueCopyForBoundarySliceSharesUnderlyingArray(t *testing.T) {
 
 	source[1] = 99
 	require.Equal(t, int64(99), snapshot.Index(1).Int(),
-		"slice header pass-through is the correct Go semantic: the slice value carries (ptr, len, cap), and copying it gives a second header pointing at the same backing array -- exactly Go's behaviour for `s2 := s1` where s1 is a slice")
+		"slice header pass-through is the correct Go semantic: the slice value carries (ptr, len, cap), and copying it gives a second header pointing at the same backing array, exactly Go's behaviour for `s2 := s1` where s1 is a slice")
 }
 
 func TestValueCopyForBoundaryInvalidPassesThrough(t *testing.T) {
@@ -109,7 +109,7 @@ func TestSnapshotModeForStructAlwaysSnapshot(t *testing.T) {
 		types.NewField(0, nil, "N", types.Typ[types.Int], false),
 	}, nil)
 	require.Equal(t, snapshotAlways, snapshotModeFor(structType),
-		"struct types must always snapshot -- without this the compiler would alias struct values across the move and the receiver could see post-move mutations from the sender")
+		"struct types must always snapshot; without this the compiler would alias struct values across the move and the receiver could see post-move mutations from the sender")
 }
 
 func TestSnapshotModeForArrayAlwaysSnapshot(t *testing.T) {
@@ -117,7 +117,7 @@ func TestSnapshotModeForArrayAlwaysSnapshot(t *testing.T) {
 
 	arrayType := types.NewArray(types.Typ[types.Int], 4)
 	require.Equal(t, snapshotAlways, snapshotModeFor(arrayType),
-		"array types match struct semantics -- Go copies the entire array at value-pass boundaries, so snapshotAlways is the only correct answer")
+		"array types match struct semantics, because Go copies the entire array at value-pass boundaries, so snapshotAlways is the only correct answer")
 }
 
 func TestSnapshotModeForPointerNeverSnapshot(t *testing.T) {
@@ -125,7 +125,7 @@ func TestSnapshotModeForPointerNeverSnapshot(t *testing.T) {
 
 	pointerType := types.NewPointer(types.Typ[types.Int])
 	require.Equal(t, snapshotNever, snapshotModeFor(pointerType),
-		"pointer types must take the alias-fast path because Go's reference semantics for pointers permit aliasing -- the reflect.Value header copy already gives the correct behaviour")
+		"pointer types must take the alias-fast path because Go's reference semantics for pointers permit aliasing, so the reflect.Value header copy already gives the correct behaviour")
 }
 
 func TestSnapshotModeForSliceNeverSnapshot(t *testing.T) {
@@ -133,7 +133,7 @@ func TestSnapshotModeForSliceNeverSnapshot(t *testing.T) {
 
 	sliceType := types.NewSlice(types.Typ[types.Int])
 	require.Equal(t, snapshotNever, snapshotModeFor(sliceType),
-		"slice types must take the alias-fast path -- Go slice headers are 24-byte structs whose copy semantics are already alias-correct via reflect.Value header copy")
+		"slice types must take the alias-fast path, because Go slice headers are 24-byte structs whose copy semantics are already alias-correct via reflect.Value header copy")
 }
 
 func TestSnapshotModeForMapNeverSnapshot(t *testing.T) {
@@ -141,7 +141,7 @@ func TestSnapshotModeForMapNeverSnapshot(t *testing.T) {
 
 	mapType := types.NewMap(types.Typ[types.String], types.Typ[types.Int])
 	require.Equal(t, snapshotNever, snapshotModeFor(mapType),
-		"map types must take the alias-fast path -- Go map references already alias their hash tables and reflect.Value's header copy preserves that semantic")
+		"map types must take the alias-fast path, because Go map references already alias their hash tables and reflect.Value's header copy preserves that semantic")
 }
 
 func TestSnapshotModeForChanNeverSnapshot(t *testing.T) {
@@ -149,16 +149,16 @@ func TestSnapshotModeForChanNeverSnapshot(t *testing.T) {
 
 	chanType := types.NewChan(types.SendRecv, types.Typ[types.Int])
 	require.Equal(t, snapshotNever, snapshotModeFor(chanType),
-		"channel types must take the alias-fast path -- channel handles are inherently reference-typed and the helper's runtime kind switch would be wasted work for every channel-typed register move")
+		"channel types must take the alias-fast path, because channel handles are inherently reference-typed and the helper's runtime kind switch would be wasted work for every channel-typed register move")
 }
 
 func TestSnapshotModeForBasicNeverSnapshot(t *testing.T) {
 	t.Parallel()
 
 	require.Equal(t, snapshotNever, snapshotModeFor(types.Typ[types.Int]),
-		"basic int boxed into general must take alias-fast -- header copy preserves the integer value byte-for-byte; no kind switch needed")
+		"basic int boxed into general must take alias-fast, because a header copy preserves the integer value byte-for-byte; no kind switch needed")
 	require.Equal(t, snapshotNever, snapshotModeFor(types.Typ[types.String]),
-		"basic string boxed into general must take alias-fast for the same reason -- string headers in reflect.Value are alias-correct")
+		"basic string boxed into general must take alias-fast for the same reason: string headers in reflect.Value are alias-correct")
 }
 
 func TestSnapshotModeForInterfaceDynamic(t *testing.T) {
@@ -166,7 +166,7 @@ func TestSnapshotModeForInterfaceDynamic(t *testing.T) {
 
 	emptyInterface := types.NewInterfaceType(nil, nil).Complete()
 	require.Equal(t, snapshotDynamic, snapshotModeFor(emptyInterface),
-		"empty interface must classify dynamic -- at runtime it could hold a struct value and the snapshot decision can only be made then, so the helper's kind switch must remain in the dispatch path")
+		"empty interface must classify dynamic, because at runtime it could hold a struct value and the snapshot decision can only be made then, so the helper's kind switch must remain in the dispatch path")
 }
 
 func TestSnapshotModeForNamedRecursesIntoUnderlying(t *testing.T) {
@@ -180,14 +180,14 @@ func TestSnapshotModeForNamedRecursesIntoUnderlying(t *testing.T) {
 	namedType := types.NewNamed(typeName, structType, nil)
 
 	require.Equal(t, snapshotAlways, snapshotModeFor(namedType),
-		"named struct types must classify by their underlying struct kind -- without this every user-defined struct would fall to dynamic, defeating the alias elision for the most common compile-time-known case")
+		"named struct types must classify by their underlying struct kind; without this every user-defined struct would fall to dynamic, defeating the alias elision for the most common compile-time-known case")
 }
 
 func TestSnapshotModeForNilDynamic(t *testing.T) {
 	t.Parallel()
 
 	require.Equal(t, snapshotDynamic, snapshotModeFor(nil),
-		"nil types must classify dynamic so that emitMoveTyped sites without static type info preserve current behaviour byte-for-byte -- passing nil from a not-yet-threaded call site must remain correct")
+		"nil types must classify dynamic so that emitMoveTyped sites without static type info preserve current behaviour byte-for-byte, so passing nil from a not-yet-threaded call site must remain correct")
 }
 
 func TestGeneralMoveModeForMapsToMoveGeneralModeConstants(t *testing.T) {
@@ -204,5 +204,5 @@ func TestGeneralMoveModeForMapsToMoveGeneralModeConstants(t *testing.T) {
 		"struct types must produce the moveGeneralModeSnapshot byte so the runtime always invokes copyReflectValue without a kind switch")
 
 	require.Equal(t, moveGeneralModeDynamic, generalMoveModeFor(nil),
-		"nil types must produce the moveGeneralModeDynamic byte so handleMoveGeneral falls through to valueCopyForBoundary's runtime kind switch -- preserves correctness for sites without static type info")
+		"nil types must produce the moveGeneralModeDynamic byte so handleMoveGeneral falls through to valueCopyForBoundary's runtime kind switch, which preserves correctness for sites without static type info")
 }

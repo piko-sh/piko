@@ -277,7 +277,7 @@ func (c *Collector) collectAttributes(s sdktrace.ReadOnlySpan) []telemetry_grpcf
 			continue
 		}
 		key := string(a.Key)
-		value, keep := redact(key, a.Value.Emit())
+		value, keep := redact(key, a.Value.String())
 		if !keep {
 			continue
 		}

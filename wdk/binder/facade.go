@@ -122,10 +122,12 @@ type StructValidator = binder.StructValidator
 // configured validator could supply them.
 type ValidationFailedError = binder.ValidationFailedError
 
-// ErrValidationFailed reports that a bound destination violated its `validate:"..."`
-// tags. Use errors.Is against it to detect a validation failure from a Bind call that
-// opted in via WithValidation.
-var ErrValidationFailed = binder.ErrValidationFailed
+var (
+	// ErrValidationFailed reports that a bound destination violated its `validate:"..."`
+	// tags. Use errors.Is against it to detect a validation failure from a Bind call that
+	// opted in via WithValidation.
+	ErrValidationFailed = binder.ErrValidationFailed
+)
 
 // WithValidation returns an Option that runs the configured struct validator against the
 // destination once binding succeeds, so `validate:"..."` tags are enforced.

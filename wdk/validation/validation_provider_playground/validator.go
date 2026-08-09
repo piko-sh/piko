@@ -163,17 +163,33 @@ func formFieldName(destinationType reflect.Type, namespace string) string {
 		return namespace
 	}
 
-	current := derefType(destinationType)
-	names := make([]string, 0, len(segments)-1)
-	for _, segment := range segments[1:] {
+	names, resolved := resolveSegmentNames(derefType(destinationType), segments[1:])
+	if !resolved || len(names) == 0 {
+		return namespace
+	}
+
+	return strings.Join(names, ".")
+}
+
+// resolveSegmentNames walks namespace segments over a type, naming each field as the
+// binder accepts it.
+//
+// Takes current (reflect.Type) which is the struct the first segment resolves against.
+// Takes segments ([]string) which are the namespace segments below the root.
+//
+// Returns names ([]string) which are the resolved names.
+// Returns resolved (bool) which is false when a segment does not name a bindable field.
+func resolveSegmentNames(current reflect.Type, segments []string) (names []string, resolved bool) {
+	names = make([]string, 0, len(segments))
+	for _, segment := range segments {
 		fieldName, index := splitIndex(segment)
 
 		if current == nil || current.Kind() != reflect.Struct {
-			return namespace
+			return nil, false
 		}
 		field, found := current.FieldByName(fieldName)
 		if !found {
-			return namespace
+			return nil, false
 		}
 
 		current = derefType(elementType(field.Type))
@@ -184,7 +200,7 @@ func formFieldName(destinationType reflect.Type, namespace string) string {
 
 		name := bindFieldName(field)
 		if name == "-" {
-			return namespace
+			return nil, false
 		}
 		if index != "" {
 			name += "[" + index + "]"
@@ -192,11 +208,7 @@ func formFieldName(destinationType reflect.Type, namespace string) string {
 		names = append(names, name)
 	}
 
-	if len(names) == 0 {
-		return namespace
-	}
-
-	return strings.Join(names, ".")
+	return names, true
 }
 
 // bindFieldName returns the name the binder accepts for a field: its bind tag when
@@ -231,9 +243,9 @@ func bindFieldName(field reflect.StructField) string {
 //
 // Takes segment (string) which is one namespace segment.
 //
-// Returns string which is the field name.
-// Returns string which is the index, empty when the segment is not indexed.
-func splitIndex(segment string) (string, string) {
+// Returns fieldName (string) which is the field name.
+// Returns index (string) which is the index, empty when the segment is not indexed.
+func splitIndex(segment string) (fieldName string, index string) {
 	open := strings.IndexByte(segment, '[')
 	if open < 0 || !strings.HasSuffix(segment, "]") {
 		return segment, ""
@@ -248,7 +260,7 @@ func splitIndex(segment string) (string, string) {
 // Returns reflect.Type which is the pointed-to type, or t unchanged.
 func derefType(t reflect.Type) reflect.Type {
 	for range maxPointerDepth {
-		if t == nil || t.Kind() != reflect.Ptr {
+		if t == nil || t.Kind() != reflect.Pointer {
 			return t
 		}
 		t = t.Elem()

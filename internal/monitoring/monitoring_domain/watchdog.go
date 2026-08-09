@@ -110,8 +110,8 @@ const (
 	defaultGoroutineLeakCheckInterval = 5 * time.Minute
 
 	// defaultFDPressureThresholdPercent is the fraction of the soft FD limit above which the
-	// watchdog emits an FD pressure warning. Set high because FD exhaustion is unrecoverable
-	// -- by the time we cross 80% the operator wants to know.
+	// watchdog emits an FD pressure warning. Set high because FD exhaustion is unrecoverable,
+	// so by the time we cross 80% the operator wants to know.
 	defaultFDPressureThresholdPercent = 0.80
 
 	// defaultSchedulerLatencyP99Threshold is the p99 scheduler latency above which the
@@ -154,8 +154,8 @@ const (
 	defaultContentionDiagnosticWindow = 60 * time.Second
 
 	// defaultContentionDiagnosticBlockProfileRate is the runtime block profile rate to set
-	// during a diagnostic. 1e6 means "sample one event per 1 ms of blocking" -- low enough
-	// overhead to be safe, high enough to surface real contention within a 60s window.
+	// during a diagnostic. 1e6 means "sample one event per 1 ms of blocking", which is low
+	// enough overhead to be safe and high enough to surface real contention in a 60s window.
 	defaultContentionDiagnosticBlockProfileRate = 1_000_000
 
 	// defaultContentionDiagnosticMutexProfileFraction is the runtime mutex profile fraction
@@ -1513,8 +1513,8 @@ func (w *Watchdog) collectProfileBytes(ctx context.Context, controller Profiling
 }
 
 // writeSidecarMetadata builds and writes the JSON sidecar that pairs with a profile
-// capture. Failure is logged but never aborts the capture flow -- the profile is the
-// primary artefact, the sidecar is supplementary.
+// capture. Failure is logged but never aborts the capture flow, because the profile is the
+// primary artefact and the sidecar is supplementary.
 //
 // Takes profileType (string) which identifies the profile category.
 // Takes timestamp (string) which is the timestamp portion of the profile filename.
@@ -1560,8 +1560,8 @@ func (w *Watchdog) writeSidecarMetadata(ctx context.Context, profileType, timest
 // .stacks.txt file pairs by base name with the .pb.gz binary profile so consumers can
 // locate either by stripping the matching extension.
 //
-// Failure is logged but never aborts the capture flow -- the binary profile is the
-// primary artefact, the stacks file is supplementary.
+// Failure is logged but never aborts the capture flow, because the binary profile is the
+// primary artefact and the stacks file is supplementary.
 //
 // Takes profileType (string) which identifies the profile category. Only "goroutine"
 // triggers a stacks write today; other types are no-ops so this helper can sit

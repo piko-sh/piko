@@ -28,15 +28,15 @@ import (
 
 // continuousProfilingLoop periodically captures routine profile snapshots at the
 // configured interval. The loop is opt-in (gated on ContinuousProfilingEnabled) and lives
-// alongside the main evaluation loop -- routine captures complement, not replace,
-// threshold-triggered captures.
+// alongside the main evaluation loop, because routine captures complement rather than
+// replace threshold-triggered captures.
 //
 // Routine captures are written under a distinct prefix so they rotate independently from
 // threshold-triggered ones; both sets coexist in the profile directory.
 //
 // Routine captures are skipped when the system is already in an unstable state (goroutine
-// count above the safety ceiling) -- capturing pprof in that situation would worsen the
-// failure.
+// count above the safety ceiling), because capturing pprof in that situation would worsen
+// the failure.
 func (w *Watchdog) continuousProfilingLoop(ctx context.Context) {
 	defer goroutine.RecoverPanic(ctx, "monitoring.watchdogContinuousProfiling")
 

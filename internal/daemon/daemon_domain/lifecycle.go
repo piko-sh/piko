@@ -26,12 +26,10 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"piko.sh/piko/internal/daemon/daemon_dto"
@@ -39,8 +37,6 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/netutil"
 
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -59,22 +55,6 @@ const (
 
 	// keyBindAddress is the logging key for network bind addresses.
 	keyBindAddress = "bind_address"
-
-	// http2MaxConcurrentStream is the most streams that can run at the same time on one
-	// HTTP/2 connection.
-	http2MaxConcurrentStream = 250
-
-	// http2IdleTimeoutSecs is the idle timeout for HTTP/2 connections.
-	http2IdleTimeoutSecs = 90
-
-	// http2ReadIdleTimeoutSecs is the duration of inactivity before sending a PING frame to
-	// verify the client connection is still alive. This is particularly useful when running
-	// behind load balancers or reverse proxies.
-	http2ReadIdleTimeoutSecs = 30
-
-	// http2PingTimeoutSecs is the duration to wait for a PING response before closing the
-	// connection. Only applies when http2ReadIdleTimeoutSecs > 0.
-	http2PingTimeoutSecs = 15
 )
 
 // serverKind identifies the type of server for differentiated logging and telemetry.
@@ -176,31 +156,12 @@ func (ds *daemonService) startHTTPServers(ctx context.Context) chan error {
 
 // startMainServer sets up and starts the main HTTP server.
 //
-// When TLS is enabled, native HTTP/2 negotiation happens via ALPN so the h2c cleartext
-// wrapper is not needed.
+// HTTP/2 is negotiated by the server adapter: over ALPN when TLS is enabled, and over
+// cleartext prior-knowledge h2c when it is not.
 //
 // Returns error when the server fails to start.
 func (ds *daemonService) startMainServer(ctx context.Context) error {
-	tracingHandler := ds.createTracingHandler()
-
-	if ds.daemonConfig.TLS.Enabled() {
-		return ds.startServer(ctx, tracingHandler)
-	}
-
-	h2s := &http2.Server{
-		MaxConcurrentStreams: http2MaxConcurrentStream,
-		IdleTimeout:          http2IdleTimeoutSecs * time.Second,
-		ReadIdleTimeout:      http2ReadIdleTimeoutSecs * time.Second,
-		PingTimeout:          http2PingTimeoutSecs * time.Second,
-		CountError: func(errType string) {
-			http2ProtocolErrors.Add(ctx, 1, metric.WithAttributes(
-				attribute.String("error_type", errType),
-			))
-		},
-	}
-
-	h2cHandler := h2c.NewHandler(tracingHandler, h2s)
-	return ds.startServer(ctx, h2cHandler)
+	return ds.startServer(ctx, ds.createTracingHandler())
 }
 
 // createTracingHandler wraps the final router to extract distributed trace context from

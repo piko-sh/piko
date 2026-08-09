@@ -506,7 +506,7 @@ func symbolExpressionAST(symbol ExtractedSymbol, alias string) ast.Expr {
 	case SymbolType:
 		castExpr := &ast.CallExpr{
 			Fun:  &ast.ParenExpr{X: goastutil.StarExpr(qualified)},
-			Args: []ast.Expr{goastutil.CachedIdent("nil")},
+			Args: []ast.Expr{goastutil.NilIdent()},
 		}
 		return goastutil.CallExpr(reflectValueOf, castExpr)
 
@@ -556,9 +556,9 @@ func buildTypesLoaderInitAST(pathElts []ast.Expr) *ast.FuncDecl {
 
 	ifNoErr := goastutil.IfStmt(nil,
 		&ast.BinaryExpr{
-			X:  goastutil.CachedIdent("err"),
+			X:  goastutil.ErrIdent(),
 			Op: token.EQL,
-			Y:  goastutil.CachedIdent("nil"),
+			Y:  goastutil.NilIdent(),
 		},
 		goastutil.BlockStmt(
 			goastutil.AssignStmt(

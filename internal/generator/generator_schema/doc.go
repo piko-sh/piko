@@ -23,6 +23,6 @@
 // hash is prepended to every serialised manifest payload so that the cache is
 // automatically invalidated whenever the schema evolves. The sub-package
 // generator_schema_gen contains the generated FlatBuffer types that define the binary
-// format for the project manifest -- the runtime "phone book" describing a compiled Piko
+// format for the project manifest, the runtime "phone book" describing a compiled Piko
 // application's structure, routing, and assets.
 package generator_schema

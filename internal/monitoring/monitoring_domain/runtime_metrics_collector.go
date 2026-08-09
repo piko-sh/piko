@@ -260,7 +260,7 @@ type runtimeMetricsSnapshot struct {
 // per tick. It owns a pre-allocated samples slice so the hot path performs no
 // allocations.
 //
-// sample is single-threaded by contract -- the SystemCollector tick goroutine drives it.
+// sample is single-threaded by contract: the SystemCollector tick goroutine drives it.
 // The snapshot it produces is copied into SystemCollector.lastSnapshot under the
 // collector's RWMutex; lastSnapshotMap reads only the snapshot passed to it (no shared
 // state) and is therefore safe to call from any goroutine.
@@ -281,8 +281,8 @@ type runtimeMetricsCollector struct {
 }
 
 // newRuntimeMetricsCollector creates a collector configured for the metrics available on
-// the running Go version. Metrics absent from metrics.All() are silently skipped -- the
-// corresponding snapshot field stays zero on every read.
+// the running Go version. Metrics absent from metrics.All() are silently skipped, leaving
+// the corresponding snapshot field zero on every read.
 //
 // Returns *runtimeMetricsCollector ready to be sampled. The collector is allocated once
 // per SystemCollector and reused.

@@ -1,7 +1,7 @@
 {
-  "description": "Tests that a user package with an unresolvable import that IS imported by generated code correctly produces a compilation error.",
+  "description": "Tests that a user package with an unresolvable import that IS imported by generated code correctly produces a compilation error naming the offending import path.",
   "requestURL": "/main",
   "shouldGenerateError": true,
-  "errorContains": "crypto/sha256",
+  "errorContains": "pkg/missing",
   "isFragment": false
 }

@@ -314,9 +314,9 @@ func writeRegisterToCell(vm *VM, arena *RegisterArena, cell *upvalueCell, regist
 }
 
 // writeRegisterThroughIndirectCell stores the source register's value through the cell's
-// *T pointer so every reader of the cell -- both the declaring frame and any other
-// closure that captured the same variable -- observes the new value. Mirrors
-// readIndirectCellValue: the source kind selects the typed bank to read from.
+// *T pointer so every reader of the cell observes the new value, both the declaring frame
+// and any other closure that captured the same variable. Mirrors readIndirectCellValue:
+// the source kind selects the typed bank to read from.
 //
 // Takes arena (*RegisterArena) which is unused for non-string banks and provides string
 // materialisation for strings.

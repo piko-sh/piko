@@ -86,13 +86,13 @@ func (p *SpanProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
 	}
 
 	for _, attr := range s.Attributes() {
-		span.Attributes[string(attr.Key)] = attr.Value.Emit()
+		span.Attributes[string(attr.Key)] = attr.Value.String()
 	}
 
 	for _, event := range s.Events() {
 		eventAttrs := make(map[string]string)
 		for _, attr := range event.Attributes {
-			eventAttrs[string(attr.Key)] = attr.Value.Emit()
+			eventAttrs[string(attr.Key)] = attr.Value.String()
 		}
 		e := monitoring_domain.InternalSpanEvent{
 			Timestamp:  event.Time,

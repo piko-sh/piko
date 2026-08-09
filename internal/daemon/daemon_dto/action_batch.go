@@ -51,6 +51,10 @@ type BatchActionResult struct {
 	// Data holds the result payload for a successful action; nil if the action failed.
 	Data any `json:"data,omitempty"`
 
+	// Errors holds per-field validation messages when the action failed its input
+	// constraints, matching the shape the single-action endpoint returns.
+	Errors map[string]string `json:"errors,omitempty"`
+
 	// Name is the identifier for the action that was performed.
 	Name string `json:"name"`
 
@@ -59,10 +63,6 @@ type BatchActionResult struct {
 
 	// Code is the error code when the action failed; empty on success.
 	Code string `json:"code,omitempty"`
-
-	// Errors holds per-field validation messages when the action failed its input
-	// constraints, matching the shape the single-action endpoint returns.
-	Errors map[string]string `json:"errors,omitempty"`
 
 	// Status is the HTTP status code for this action.
 	Status int `json:"status"`

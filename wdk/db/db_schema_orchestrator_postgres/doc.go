@@ -19,7 +19,7 @@
 // Package db_schema_orchestrator_postgres re-exports the orchestrator's Postgres
 // migrations.
 //
-// The migration files live with the orchestrator's data access layer, and this package
-// makes them reachable from wdk/db so an application can apply the orchestrator schema
-// without importing an internal package.
+// The migration files live with the orchestrator's data access layer. Re-exporting them
+// here makes them reachable from wdk/db, so an application can apply the orchestrator
+// schema without importing an internal package.
 package db_schema_orchestrator_postgres

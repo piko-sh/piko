@@ -19,7 +19,10 @@
 package daemon_domain
 
 import (
+	"context"
+
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -37,6 +40,35 @@ var (
 	// http2ProtocolErrors counts HTTP/2 protocol-level errors by type.
 	http2ProtocolErrors metric.Int64Counter
 )
+
+// RecordHTTP2ProtocolError counts one HTTP/2 protocol-level error.
+//
+// The server adapter owns the HTTP/2 transport configuration but not the daemon's
+// telemetry, so it reports errors through this entry point rather than reaching for the
+// counter directly.
+//
+// Takes errType (string) which names the protocol error, in lowercase with underscores.
+func RecordHTTP2ProtocolError(ctx context.Context, errType string) {
+	recordProtocolError(ctx, http2ProtocolErrors, errType)
+}
+
+// recordProtocolError adds one to counter, tolerating an instrument that was never
+// created.
+//
+// Instrument creation reports to the OpenTelemetry error handler rather than being fatal,
+// so a counter can be left unset. The caller here is the HTTP/2 transport, where a nil
+// dereference would take down a live connection over a metric.
+//
+// Takes counter (metric.Int64Counter) which receives the increment, or nil.
+// Takes errType (string) which names the protocol error, in lowercase with underscores.
+func recordProtocolError(ctx context.Context, counter metric.Int64Counter, errType string) {
+	if counter == nil {
+		return
+	}
+	counter.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("error_type", errType),
+	))
+}
 
 func init() {
 	var err error

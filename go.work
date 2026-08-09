@@ -21,6 +21,7 @@ use (
 	./tests/integration/interpreted_runner
 	./tests/integration/layouter
 	./tests/integration/llm
+	./tests/integration/lsp
 	./tests/integration/markdown_collection
 	./tests/integration/orchestrator_pipeline
 	./tests/integration/pdf
@@ -185,6 +186,7 @@ replace (
 	piko.sh/piko/tests/integration/interpreted_runner v0.0.0 => ./tests/integration/interpreted_runner
 	piko.sh/piko/tests/integration/layouter v0.0.0 => ./tests/integration/layouter
 	piko.sh/piko/tests/integration/llm v0.0.0 => ./tests/integration/llm
+	piko.sh/piko/tests/integration/lsp v0.0.0 => ./tests/integration/lsp
 	piko.sh/piko/tests/integration/markdown_collection v0.0.0 => ./tests/integration/markdown_collection
 	piko.sh/piko/tests/integration/orchestrator_pipeline v0.0.0 => ./tests/integration/orchestrator_pipeline
 	piko.sh/piko/tests/integration/pdf v0.0.0 => ./tests/integration/pdf

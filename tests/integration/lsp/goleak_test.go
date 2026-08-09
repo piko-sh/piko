@@ -26,8 +26,18 @@ import (
 	"go.uber.org/goleak"
 )
 
+type binaryCleanupRunner struct {
+	m *testing.M
+}
+
+func (r binaryCleanupRunner) Run() int {
+	code := r.m.Run()
+	removeLSPBinary()
+	return code
+}
+
 func TestMain(m *testing.M) {
-	goleak.VerifyTestMain(m,
+	goleak.VerifyTestMain(binaryCleanupRunner{m: m},
 
 		goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"),
 	)

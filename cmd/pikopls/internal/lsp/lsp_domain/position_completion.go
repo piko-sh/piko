@@ -628,7 +628,7 @@ func findExpressionStart(text []byte) int {
 	i := len(text) - 1
 	depth := 0
 
-	for i >= 0 && i < len(text) { // #nosec G602 -- i is always in bounds; explicit check satisfies static analysis
+	for i >= 0 && i < len(text) {
 		character := text[i]
 
 		switch character {

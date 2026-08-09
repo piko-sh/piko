@@ -550,10 +550,26 @@ func handleGoldenFile(t *testing.T, testPath, goldenFileName string, outputData 
 		}
 
 		if !bytes.Equal(outputData, expectedData) {
-			t.Errorf("Golden file mismatch for %s: got %d bytes, expected %d bytes",
-				goldenFileName, len(outputData), len(expectedData))
+			t.Errorf("Golden file mismatch for %s: got %d bytes, expected %d bytes%s",
+				goldenFileName, len(outputData), len(expectedData),
+				describeFirstByteDifference(outputData, expectedData))
 		}
 	}
+}
+
+func describeFirstByteDifference(actual, expected []byte) string {
+	if len(actual) != len(expected) {
+		return ""
+	}
+
+	for index := range actual {
+		if actual[index] != expected[index] {
+			return fmt.Sprintf(
+				" (same length, first difference at byte %d: got 0x%02x, expected 0x%02x)",
+				index, actual[index], expected[index])
+		}
+	}
+	return ""
 }
 
 func executeErrorCheck(ctx context.Context, h *assetPipelineHarness, testPath string, check testutil.ErrorCheck) error {

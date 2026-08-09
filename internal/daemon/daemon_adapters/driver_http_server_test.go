@@ -101,29 +101,6 @@ func TestNewDriverHTTPServerAdapter_HasMainPurpose(t *testing.T) {
 	assert.Equal(t, serverPurposeMain, adapter.purpose)
 }
 
-func TestNewHealthServerAdapter_ReturnsNonNil(t *testing.T) {
-	t.Parallel()
-
-	adapter := NewHealthServerAdapter()
-	require.NotNil(t, adapter)
-}
-
-func TestNewHealthServerAdapter_ImplementsInterface(t *testing.T) {
-	t.Parallel()
-
-	adapter := NewHealthServerAdapter()
-	_, ok := adapter.(*driverHTTPServerAdapter)
-	assert.True(t, ok)
-}
-
-func TestNewHealthServerAdapter_HasHealthPurpose(t *testing.T) {
-	t.Parallel()
-
-	adapter, ok := NewHealthServerAdapter().(*driverHTTPServerAdapter)
-	require.True(t, ok, "expected *driverHTTPServerAdapter")
-	assert.Equal(t, serverPurposeHealth, adapter.purpose)
-}
-
 func TestShutdown_NilServer_ReturnsNil(t *testing.T) {
 	t.Parallel()
 
@@ -191,32 +168,23 @@ func TestFormatServerURL_WithTLS_HostAndPort(t *testing.T) {
 	assert.Equal(t, "https://0.0.0.0:443", result)
 }
 
-func TestNewDriverHTTPServerAdapterWithTLS_HasTLSConfig(t *testing.T) {
+func TestAlpnProtocols(t *testing.T) {
 	t.Parallel()
 
-	config := TLSAdapterConfig{
-		MinVersion: 0x0304,
-		NextProtos: []string{"h2", "http/1.1"},
-	}
-	adapter := NewDriverHTTPServerAdapterWithTLS(config)
-	a, ok := adapter.(*driverHTTPServerAdapter)
-	require.True(t, ok)
-	assert.NotNil(t, a.tlsConfig)
-	assert.Equal(t, serverPurposeMain, a.purpose)
-	assert.Equal(t, uint16(0x0304), a.tlsConfig.MinVersion)
-}
+	t.Run("keeps a configured preference order", func(t *testing.T) {
+		t.Parallel()
 
-func TestNewHealthServerAdapterWithTLS_HasTLSConfig(t *testing.T) {
-	t.Parallel()
+		assert.Equal(t, []string{"http/1.1"}, alpnProtocols([]string{"http/1.1"}),
+			"an explicit list is the caller's choice, including one that omits h2")
+	})
 
-	config := TLSAdapterConfig{
-		MinVersion: 0x0303,
-	}
-	adapter := NewHealthServerAdapterWithTLS(config)
-	a, ok := adapter.(*driverHTTPServerAdapter)
-	require.True(t, ok)
-	assert.NotNil(t, a.tlsConfig)
-	assert.Equal(t, serverPurposeHealth, a.purpose)
+	t.Run("defaults to HTTP/2 then HTTP/1.1", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, []string{alpnProtocolHTTP2, alpnProtocolHTTP11}, alpnProtocols(nil),
+			"the server declares HTTP/2, so the listener must be able to negotiate it")
+		assert.Equal(t, []string{alpnProtocolHTTP2, alpnProtocolHTTP11}, alpnProtocols([]string{}))
+	})
 }
 
 func TestNewDriverHTTPServerAdapter_NoTLSConfig(t *testing.T) {
@@ -237,4 +205,74 @@ func TestFormatTLSVersion_Known(t *testing.T) {
 func TestFormatTLSVersion_Unknown(t *testing.T) {
 	t.Parallel()
 	assert.Equal(t, "unknown", formatTLSVersion(0x0000))
+}
+
+func TestDriverHTTPServerAdapter_BuildServerConfiguresHTTP2(t *testing.T) {
+	t.Parallel()
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+
+	t.Run("without TLS accepts cleartext HTTP/2", func(t *testing.T) {
+		t.Parallel()
+
+		adapter := &driverHTTPServerAdapter{}
+		server := adapter.buildServer(context.Background(), ":0", handler)
+
+		require.NotNil(t, server.Protocols, "protocols must be configured")
+		assert.True(t, server.Protocols.UnencryptedHTTP2(),
+			"cleartext HTTP/2 replaces the h2c handler wrapper when TLS is off")
+		assert.True(t, server.Protocols.HTTP1(), "HTTP/1.1 must remain available")
+		assert.True(t, server.Protocols.HTTP2(), "HTTP/2 must remain available")
+	})
+
+	t.Run("with TLS negotiates HTTP/2 over ALPN only", func(t *testing.T) {
+		t.Parallel()
+
+		adapter := &driverHTTPServerAdapter{tlsConfig: &TLSAdapterConfig{}}
+		server := adapter.buildServer(context.Background(), ":0", handler)
+
+		require.NotNil(t, server.Protocols, "protocols must be configured")
+		assert.False(t, server.Protocols.UnencryptedHTTP2(),
+			"a TLS listener carries no cleartext connections to upgrade")
+		assert.True(t, server.Protocols.HTTP2(), "HTTP/2 must be offered over ALPN")
+	})
+
+	t.Run("carries the standard timeouts", func(t *testing.T) {
+		t.Parallel()
+
+		adapter := &driverHTTPServerAdapter{}
+		server := adapter.buildServer(context.Background(), ":0", handler)
+
+		assert.Equal(t, defaultReadTimeout, server.ReadTimeout)
+		assert.Equal(t, defaultWriteTimeout, server.WriteTimeout)
+		assert.Equal(t, defaultIdleTimeout, server.IdleTimeout,
+			"HTTP/2 has no idle setting of its own, so it inherits this one")
+		assert.Equal(t, defaultReadHeaderTimeout, server.ReadHeaderTimeout)
+		assert.Equal(t, defaultMaxHeaderBytes, server.MaxHeaderBytes)
+	})
+
+	t.Run("preserves HTTP/2 tuning", func(t *testing.T) {
+		t.Parallel()
+
+		adapter := &driverHTTPServerAdapter{}
+		server := adapter.buildServer(context.Background(), ":0", handler)
+
+		require.NotNil(t, server.HTTP2, "HTTP/2 configuration must be set")
+		assert.Equal(t, http2MaxConcurrentStreams, server.HTTP2.MaxConcurrentStreams)
+		assert.Equal(t, http2SendPingTimeout, server.HTTP2.SendPingTimeout)
+		assert.Equal(t, http2PingTimeout, server.HTTP2.PingTimeout)
+	})
+
+	t.Run("counts protocol errors after the starting context is cancelled", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		adapter := &driverHTTPServerAdapter{}
+		server := adapter.buildServer(ctx, ":0", handler)
+		cancel()
+
+		require.NotNil(t, server.HTTP2.CountError, "protocol errors must still be counted")
+		assert.NotPanics(t, func() { server.HTTP2.CountError("frame_headers_bad_path") },
+			"the server outlives the context that started it, so counting must survive cancellation")
+	})
 }

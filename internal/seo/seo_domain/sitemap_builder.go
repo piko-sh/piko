@@ -570,9 +570,6 @@ func gitLastCommitDate(ctx context.Context, sourcePath string) (string, bool) {
 	ctx, cancel := context.WithTimeoutCause(ctx, gitLastModTimeout, errGitLastModTimeout)
 	defer cancel()
 
-	// %cs is the committer date in short (YYYY-MM-DD) form; -C runs git as if from the
-	// file's directory so the repository is discovered and the basename pathspec resolves
-	// correctly.
 	//nolint:gosec // G204: fixed git subcommand; only a build-time project source path varies, passed after -- as a pathspec.
 	cmd := exec.CommandContext(ctx, "git", "-C", filepath.Dir(sourcePath),
 		"log", "-1", "--format=%cs", "--", filepath.Base(sourcePath))

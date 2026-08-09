@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/tlscert"
 )
 
@@ -1131,34 +1133,63 @@ func TestStartMainServer_PropagatesError(t *testing.T) {
 	assert.ErrorIs(t, err, serverErr, "expected server error")
 }
 
-func TestStartMainServer_WithTLS_SkipsH2C(t *testing.T) {
+func TestStartMainServer_PassesUnwrappedHandlerRegardlessOfTLS(t *testing.T) {
 	t.Parallel()
 
-	var receivedHandler http.Handler
-	mockServer := &MockServerAdapter{
-		ListenAndServeFunc: func(_ string, h http.Handler) error {
-			receivedHandler = h
-			return http.ErrServerClosed
-		},
+	testCases := []struct {
+		name       string
+		tlsEnabled bool
+	}{
+		{name: "TLS enabled", tlsEnabled: true},
+		{name: "TLS disabled", tlsEnabled: false},
 	}
 
-	daemonConfig := testDaemonConfig()
-	daemonConfig.TLS = tlscert.TLSValues{Mode: tlscert.TLSModeCertFile}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-	deps := &DaemonServiceDeps{
-		DaemonConfig: daemonConfig,
-		Server:       mockServer,
-		FinalRouter:  http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }),
+			var receivedHandler http.Handler
+			mockServer := &MockServerAdapter{
+				ListenAndServeFunc: func(_ string, h http.Handler) error {
+					receivedHandler = h
+					return http.ErrServerClosed
+				},
+			}
+
+			daemonConfig := testDaemonConfig()
+			if testCase.tlsEnabled {
+				daemonConfig.TLS = tlscert.TLSValues{Mode: tlscert.TLSModeCertFile}
+			}
+
+			routerReached := false
+			var routerRequestCtx *daemon_dto.PikoRequestCtx
+			deps := &DaemonServiceDeps{
+				DaemonConfig: daemonConfig,
+				Server:       mockServer,
+				FinalRouter: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					routerReached = true
+					routerRequestCtx = daemon_dto.PikoRequestCtxFromContext(r.Context())
+					w.WriteHeader(http.StatusOK)
+				}),
+			}
+
+			service := mustBuildDaemonService(t, deps)
+
+			_ = service.startMainServer(context.Background())
+
+			require.NotNil(t, receivedHandler, "expected handler to be set")
+			assert.IsType(t, http.HandlerFunc(nil), receivedHandler,
+				"the adapter configures HTTP/2 on the server, so the domain must hand over its own handler unwrapped")
+
+			recorder := httptest.NewRecorder()
+			receivedHandler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+
+			assert.Equal(t, http.StatusOK, recorder.Code)
+			assert.True(t, routerReached, "the handed-over handler must reach the final router")
+			require.NotNil(t, routerRequestCtx, "the tracing handler must attach the Piko request context")
+			assert.True(t, routerRequestCtx.OtelExtracted, "trace context extraction must have run")
+		})
 	}
-
-	service := mustBuildDaemonService(t, deps)
-
-	_ = service.startMainServer(context.Background())
-
-	require.NotNil(t, receivedHandler, "expected handler to be set")
-
-	handlerType := fmt.Sprintf("%T", receivedHandler)
-	assert.NotContains(t, handlerType, "h2c", "expected non-h2c handler when TLS is enabled")
 }
 
 func TestShutdown_SignalsDrainBeforeShuttingDown(t *testing.T) {
@@ -1326,33 +1357,4 @@ func TestShutdown_DrainWaitRespectsContextDeadline(t *testing.T) {
 	elapsed := time.Since(start)
 
 	assert.Less(t, elapsed, 2*time.Second, "drain wait should respect context deadline, not wait full 10s")
-}
-
-func TestStartMainServer_WithoutTLS_UsesH2C(t *testing.T) {
-	t.Parallel()
-
-	var receivedHandler http.Handler
-	mockServer := &MockServerAdapter{
-		ListenAndServeFunc: func(_ string, h http.Handler) error {
-			receivedHandler = h
-			return http.ErrServerClosed
-		},
-	}
-
-	daemonConfig := testDaemonConfig()
-
-	deps := &DaemonServiceDeps{
-		DaemonConfig: daemonConfig,
-		Server:       mockServer,
-		FinalRouter:  http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) }),
-	}
-
-	service := mustBuildDaemonService(t, deps)
-
-	_ = service.startMainServer(context.Background())
-
-	require.NotNil(t, receivedHandler, "expected handler to be set")
-
-	handlerType := fmt.Sprintf("%T", receivedHandler)
-	assert.Contains(t, handlerType, "h2c", "expected h2c handler when TLS is off")
 }

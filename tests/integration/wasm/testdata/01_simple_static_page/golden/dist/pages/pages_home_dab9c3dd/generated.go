@@ -8,11 +8,12 @@ import (
 	"cmp"
 	"fmt"
 	"html"
+	"sort"
+	"strconv"
+
 	piko "piko.sh/piko"
 	pikoruntime "piko.sh/piko/wdk/runtime"
 	"piko.sh/piko/wdk/safeconv"
-	"sort"
-	"strconv"
 )
 
 var _ = fmt.Println

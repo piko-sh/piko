@@ -164,14 +164,14 @@ type GCInfo struct {
 }
 
 // SchedulerInfo holds Go scheduler statistics from runtime/metrics. Provides signals that
-// the legacy MemStats path could not -- most importantly the scheduler latency p99 which
+// the legacy MemStats path could not, most importantly the scheduler latency p99 which
 // catches goroutine starvation.
 type SchedulerInfo struct {
-	// LatencyP50 is the p50 scheduler latency from the runtime histogram -- the median wait
+	// LatencyP50 is the p50 scheduler latency from the runtime histogram: the median wait
 	// between a goroutine becoming runnable and being scheduled.
 	LatencyP50 time.Duration
 
-	// LatencyP99 is the p99 scheduler latency from the runtime histogram -- the tail of how
+	// LatencyP99 is the p99 scheduler latency from the runtime histogram: the tail of how
 	// long runnable goroutines wait for CPU. High values indicate scheduler starvation.
 	LatencyP99 time.Duration
 
@@ -270,7 +270,7 @@ type MemoryInfo struct {
 	// under the runtime/metrics name for consumers that prefer that vocabulary).
 	HeapObjectsBytes uint64
 
-	// HeapFreeBytes is heap memory available for reuse but not yet returned to the OS -- a
+	// HeapFreeBytes is heap memory available for reuse but not yet returned to the OS, a
 	// fragmentation indicator. Sourced from /memory/classes/heap/free:bytes.
 	HeapFreeBytes uint64
 

@@ -127,7 +127,7 @@ var (
 
 	// watchdogLoopPanicCount tracks the total number of unrecovered panics in the watchdog
 	// evaluation loop. Increments at most once per process because the loop does not
-	// auto-restart -- combined with a stale heartbeat this signals "watchdog has stopped
+	// auto-restart, so combined with a stale heartbeat this signals "watchdog has stopped
 	// working".
 	watchdogLoopPanicCount metric.Int64Counter
 

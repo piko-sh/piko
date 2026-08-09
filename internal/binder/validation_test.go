@@ -25,7 +25,9 @@ import (
 	"testing"
 )
 
-var errInvalid = errors.New("stub validation failed")
+var (
+	errInvalid = errors.New("stub validation failed")
+)
 
 type stubValidator struct {
 	calls  int

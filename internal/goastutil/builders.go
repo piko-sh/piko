@@ -34,6 +34,13 @@ import (
 const (
 	// defaultTabWidth is the number of spaces used for tab indentation in Go code.
 	defaultTabWidth = 4
+
+	// identNameNil is the nil literal, emitted as an identifier by every generator that
+	// returns a zero value or compares against nil.
+	identNameNil = "nil"
+
+	// identNameErr is the conventional name generators give an error result.
+	identNameErr = "err"
 )
 
 var (
@@ -96,6 +103,20 @@ func CachedIdent(name string) *ast.Ident {
 		return result
 	}
 	return newIdent
+}
+
+// NilIdent returns the cached identifier for the nil literal.
+//
+// Returns *ast.Ident which is the shared nil identifier.
+func NilIdent() *ast.Ident {
+	return CachedIdent(identNameNil)
+}
+
+// ErrIdent returns the cached identifier for the conventional error variable name.
+//
+// Returns *ast.Ident which is the shared err identifier.
+func ErrIdent() *ast.Ident {
+	return CachedIdent(identNameErr)
 }
 
 // StrLit creates a Go AST string literal from a string value.
@@ -504,7 +525,7 @@ func FormatAST(fset *token.FileSet, file *ast.File) ([]byte, error) {
 
 func init() {
 	commonIdents := []string{
-		"append", "nil", "ok", "err", "true", "false", "make", "len", "cap",
+		"append", identNameNil, "ok", identNameErr, "true", "false", "make", "len", "cap",
 		"any", "string", "int", "int64", "int32", "int16", "int8",
 		"uint", "uint64", "uint32", "uint16", "uint8", "byte",
 		"float64", "float32", "bool", "error", "rune",

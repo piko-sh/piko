@@ -280,7 +280,7 @@ func slogAttrsToMap(attrs []slog.Attr) map[string]string {
 func otelAttrsToMap(attrs []attribute.KeyValue) map[string]string {
 	m := make(map[string]string, len(attrs))
 	for _, kv := range attrs {
-		m[string(kv.Key)] = kv.Value.Emit()
+		m[string(kv.Key)] = kv.Value.String()
 	}
 	return m
 }

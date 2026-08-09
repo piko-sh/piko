@@ -51,7 +51,7 @@ type encoder struct {
 	allPackages map[string]*packages.Package
 
 	// arena provides slab-allocated DTO structs to avoid per-object heap allocations. The
-	// arena is NOT pooled -- it is allocated fresh per build and its backing memory lives as
+	// arena is NOT pooled: it is allocated fresh per build and its backing memory lives as
 	// long as the DTOs reference it.
 	arena *encoderArena
 

@@ -245,7 +245,7 @@ func (store *profileStore) readHistory() (startupHistoryFile, bool, error) {
 }
 
 // writeHistory persists the supplied history file atomically. Older entries are NOT
-// trimmed -- callers are responsible for keeping the ring within bounds before calling.
+// trimmed; callers are responsible for keeping the ring within bounds before calling.
 //
 // Takes file (startupHistoryFile) which provides the entries to persist.
 //
@@ -386,8 +386,8 @@ func (store *profileStore) write(profileType string, data []byte) (string, error
 // returned from write to pair correctly).
 // Takes meta (captureMetadata) which provides the structured metadata to persist.
 //
-// Returns error when JSON encoding or file writing fails. Errors are recoverable -- the
-// profile is already on disk.
+// Returns error when JSON encoding or file writing fails. Errors are recoverable because
+// the profile is already on disk.
 //
 // Safe for concurrent use; protected by the store's mutex.
 func (store *profileStore) writeMetadata(profileType, timestamp string, meta captureMetadata) error {
@@ -418,8 +418,8 @@ func (store *profileStore) writeMetadata(profileType, timestamp string, meta cap
 // Takes stacks ([]byte) which is the raw stacks payload (typically pprof debug=2 text
 // output).
 //
-// Returns error when file writing fails. Errors are recoverable -- the binary profile is
-// already on disk.
+// Returns error when file writing fails. Errors are recoverable because the binary profile
+// is already on disk.
 //
 // Safe for concurrent use; protected by the store's mutex.
 func (store *profileStore) writeStacks(profileType, timestamp string, stacks []byte) error {

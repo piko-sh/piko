@@ -55,6 +55,28 @@ func TestCachedIdent_StaticCacheHit(t *testing.T) {
 	}
 }
 
+func TestNilIdent(t *testing.T) {
+	t.Parallel()
+
+	identifier := NilIdent()
+
+	require.NotNil(t, identifier)
+	assert.Equal(t, "nil", identifier.Name)
+	assert.Same(t, CachedIdent("nil"), identifier, "emitters share one node for the nil literal")
+	assert.Same(t, staticIdentCache["nil"], identifier, "nil is pre-seeded, so it never allocates")
+}
+
+func TestErrIdent(t *testing.T) {
+	t.Parallel()
+
+	identifier := ErrIdent()
+
+	require.NotNil(t, identifier)
+	assert.Equal(t, "err", identifier.Name)
+	assert.Same(t, CachedIdent("err"), identifier, "emitters share one node for the err name")
+	assert.Same(t, staticIdentCache["err"], identifier, "err is pre-seeded, so it never allocates")
+}
+
 func TestCachedIdent_DynamicCacheHit(t *testing.T) {
 	t.Parallel()
 

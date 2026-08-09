@@ -1,5 +1,6 @@
 {
   "description": "Tests captcha-protected form submission with HMAC challenge provider",
+  "requiresCaptcha": true,
   "requestURL": "/contact",
   "expectedStatus": 200,
   "browserSteps": [

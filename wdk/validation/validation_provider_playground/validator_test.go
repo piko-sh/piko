@@ -20,6 +20,7 @@ package validation_provider_playground
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -650,4 +651,128 @@ func TestValidatorFieldErrorsFlattensEmbeddedStructs(t *testing.T) {
 		"the binder promotes embedded fields, so the key must carry no embedding segment")
 	assert.Contains(t, fields, "email")
 	assert.NotContains(t, fields, "address.city")
+}
+
+func TestDerefType(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns a non-pointer type unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, reflect.TypeFor[string](), derefType(reflect.TypeFor[string]()))
+	})
+
+	t.Run("unwraps nested pointers", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, reflect.TypeFor[string](), derefType(reflect.TypeFor[***string]()))
+	})
+
+	t.Run("returns nil for a nil type", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Nil(t, derefType(nil))
+	})
+
+	t.Run("gives up beyond the pointer depth limit", func(t *testing.T) {
+		t.Parallel()
+
+		deep := reflect.TypeFor[string]()
+		for range maxPointerDepth + 1 {
+			deep = reflect.PointerTo(deep)
+		}
+
+		assert.Nil(t, derefType(deep),
+			"a type nested deeper than the bound is refused rather than followed without limit")
+	})
+
+	t.Run("unwraps exactly at the pointer depth limit", func(t *testing.T) {
+		t.Parallel()
+
+		deep := reflect.TypeFor[string]()
+		for range maxPointerDepth - 1 {
+			deep = reflect.PointerTo(deep)
+		}
+
+		assert.Equal(t, reflect.TypeFor[string](), derefType(deep))
+	})
+}
+
+func TestResolveSegmentNames(t *testing.T) {
+	t.Parallel()
+
+	type inner struct {
+		City string `bind:"city"`
+	}
+	type embedded struct {
+		Promoted string `bind:"promoted"`
+	}
+	type outer struct {
+		embedded
+		Inner    inner   `bind:"inner"`
+		Contacts []inner `bind:"contacts"`
+		Skipped  string  `bind:"-"`
+	}
+
+	testCases := []struct {
+		name          string
+		segments      []string
+		expectedNames []string
+		expectResolve bool
+	}{
+		{
+			name:          "walks nested fields",
+			segments:      []string{"Inner", "City"},
+			expectedNames: []string{"inner", "city"},
+			expectResolve: true,
+		},
+		{
+			name:          "carries an index through",
+			segments:      []string{"Contacts[2]", "City"},
+			expectedNames: []string{"contacts[2]", "city"},
+			expectResolve: true,
+		},
+		{
+			name:          "contributes no name for an embedded segment",
+			segments:      []string{"embedded", "Promoted"},
+			expectedNames: []string{"promoted"},
+			expectResolve: true,
+		},
+		{
+			name:          "resolves to no names when every segment is embedded",
+			segments:      []string{"embedded"},
+			expectedNames: []string{},
+			expectResolve: true,
+		},
+		{
+			name:          "fails on an unknown field",
+			segments:      []string{"Missing"},
+			expectResolve: false,
+		},
+		{
+			name:          "fails on a field excluded from binding",
+			segments:      []string{"Skipped"},
+			expectResolve: false,
+		},
+		{
+			name:          "fails when a segment descends past a leaf",
+			segments:      []string{"Inner", "City", "Deeper"},
+			expectResolve: false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			names, resolved := resolveSegmentNames(reflect.TypeFor[outer](), testCase.segments)
+
+			assert.Equal(t, testCase.expectResolve, resolved)
+			if !testCase.expectResolve {
+				assert.Nil(t, names, "an unresolved path reports no names")
+				return
+			}
+			assert.Equal(t, testCase.expectedNames, names)
+		})
+	}
 }

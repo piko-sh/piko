@@ -33,9 +33,10 @@ import (
 	interp_arm64 "piko.sh/piko/internal/interp/interp_domain/asm/asmgen_arch_arm64"
 )
 
-// generatedFileHeader is the copyright, licence, and banner block appended below the
-// generated-code marker at the top of every generated .s file.
-const generatedFileHeader = `// Copyright 2026 PolitePixels Limited
+const (
+	// generatedFileHeader is the copyright, licence, and banner block appended below the
+	// generated-code marker at the top of every generated .s file.
+	generatedFileHeader = `// Copyright 2026 PolitePixels Limited
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,6 +53,7 @@ const generatedFileHeader = `// Copyright 2026 PolitePixels Limited
 // This project stands against fascism, authoritarianism, and all forms of
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.`
+)
 
 // headerOptions returns the asmgen options that reproduce piko's generated-file header.
 // Generation and validation must use the same options so validation compares against

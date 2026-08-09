@@ -38,6 +38,9 @@ const (
 	// wrapperIdentOK is the identifier name for the boolean result of type assertions.
 	wrapperIdentOK = "ok"
 
+	// wrapperIdentLogger is the package identifier for the logger in generated code.
+	wrapperIdentLogger = "logger"
+
 	// goTypeString is the Go type name for string.
 	goTypeString = "string"
 
@@ -220,7 +223,7 @@ func (*ActionWrapperEmitter) buildLogVarDecl() *ast.GenDecl {
 				Names: []*ast.Ident{goastutil.CachedIdent("log")},
 				Values: []ast.Expr{
 					goastutil.CallExpr(
-						goastutil.SelectorExpr("logger", "GetLogger"),
+						goastutil.SelectorExpr(wrapperIdentLogger, "GetLogger"),
 						goastutil.StrLit("piko/actions"),
 					),
 				},
@@ -244,7 +247,7 @@ func (e *ActionWrapperEmitter) buildWrapperFunc(spec *annotator_dto.ActionSpec) 
 		statements = append(statements, goastutil.DefineStmtMulti(
 			[]string{"ctx", "l"},
 			goastutil.CallExpr(
-				goastutil.SelectorExpr("logger", "From"),
+				goastutil.SelectorExpr(wrapperIdentLogger, "From"),
 				goastutil.CachedIdent("ctx"),
 				goastutil.CachedIdent("log"),
 			),
@@ -646,7 +649,7 @@ func (*ActionWrapperEmitter) buildCallInvocation(spec *annotator_dto.ActionSpec)
 
 	return []ast.Stmt{
 		goastutil.DefineStmt("result", callExpr),
-		goastutil.ReturnStmt(goastutil.CachedIdent("result"), goastutil.CachedIdent("nil")),
+		goastutil.ReturnStmt(goastutil.CachedIdent("result"), goastutil.NilIdent()),
 	}
 }
 
@@ -697,20 +700,20 @@ func buildBindMapStmt(sourceExpression ast.Expr, varName, jsonKey, errorContext 
 			),
 		),
 		Cond: &ast.BinaryExpr{
-			X:  goastutil.CachedIdent("err"),
+			X:  goastutil.ErrIdent(),
 			Op: token.NEQ,
-			Y:  goastutil.CachedIdent("nil"),
+			Y:  goastutil.NilIdent(),
 		},
 		Body: goastutil.BlockStmt(
 			goastutil.ExprStmt(
 				goastutil.CallExpr(
 					goastutil.SelectorExpr("l", "Warn"),
 					goastutil.StrLit(errorContext),
-					goastutil.CallExpr(goastutil.SelectorExpr("logger", "String"), goastutil.StrLit("param"), goastutil.StrLit(jsonKey)),
-					goastutil.CallExpr(goastutil.SelectorExpr("logger", "Error"), goastutil.CachedIdent("err")),
+					goastutil.CallExpr(goastutil.SelectorExpr(wrapperIdentLogger, "String"), goastutil.StrLit("param"), goastutil.StrLit(jsonKey)),
+					goastutil.CallExpr(goastutil.SelectorExpr(wrapperIdentLogger, "Error"), goastutil.ErrIdent()),
 				),
 			),
-			goastutil.ReturnStmt(goastutil.CachedIdent("nil"), goastutil.CachedIdent("err")),
+			goastutil.ReturnStmt(goastutil.NilIdent(), goastutil.ErrIdent()),
 		),
 	}
 }
@@ -724,7 +727,7 @@ func buildBindMapStmt(sourceExpression ast.Expr, varName, jsonKey, errorContext 
 // Returns ast.Expr which is the zero-value expression for the type.
 func buildZeroValueExpr(param *annotator_dto.ParamSpec) ast.Expr {
 	if param.Optional {
-		return goastutil.CachedIdent("nil")
+		return goastutil.NilIdent()
 	}
 
 	switch param.GoType {

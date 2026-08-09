@@ -19,11 +19,9 @@
 package domain
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"testcase_16_user_package_with_bad_import/pkg/missing"
 )
 
 func HashValue(input string) string {
-	hash := sha256.Sum256([]byte(input))
-	return hex.EncodeToString(hash[:])
+	return missing.HashValue(input)
 }

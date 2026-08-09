@@ -40,8 +40,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -64,7 +62,6 @@ func TestFrontendAssetHandlerWithFullMiddlewareStack(t *testing.T) {
 		}))
 
 		mainRouter.Use(middleware.RequestID)
-		mainRouter.Use(middleware.RealIP)
 
 		mainRouter.Use(middleware.Recoverer)
 		mainRouter.Use(middleware.Heartbeat("/ping"))
@@ -87,13 +84,7 @@ func TestFrontendAssetHandlerWithFullMiddlewareStack(t *testing.T) {
 			mainRouter.ServeHTTP(w, r.WithContext(reqCtx))
 		})
 
-		h2s := &http2.Server{
-			MaxConcurrentStreams: 250,
-			IdleTimeout:          90 * time.Second,
-		}
-		h2cHandler := h2c.NewHandler(tracingHandler, h2s)
-
-		server := httptest.NewServer(h2cHandler)
+		server := httptest.NewServer(tracingHandler)
 		defer server.Close()
 
 		testCases := []struct {
@@ -517,7 +508,6 @@ func TestFrontendAssetHandlerCompressionVerification(t *testing.T) {
 		}))
 
 		mainRouter.Use(middleware.RequestID)
-		mainRouter.Use(middleware.RealIP)
 		mainRouter.Use(middleware.Recoverer)
 		mainRouter.Use(middleware.Heartbeat("/ping"))
 		mainRouter.Use(middleware.Timeout(60 * time.Second))
@@ -539,13 +529,7 @@ func TestFrontendAssetHandlerCompressionVerification(t *testing.T) {
 			mainRouter.ServeHTTP(w, r.WithContext(reqCtx))
 		})
 
-		h2s := &http2.Server{
-			MaxConcurrentStreams: 250,
-			IdleTimeout:          90 * time.Second,
-		}
-		h2cHandler := h2c.NewHandler(tracingHandler, h2s)
-
-		server := httptest.NewServer(h2cHandler)
+		server := httptest.NewServer(tracingHandler)
 		defer server.Close()
 
 		expectedAsset, ok := daemon_frontend.GetAsset(context.Background(), "built/ppframework.core.es.js")
@@ -650,7 +634,6 @@ func TestFrontendAssetHandlerCompressionVerification(t *testing.T) {
 
 		router := chi.NewRouter()
 		router.Use(middleware.RequestID)
-		router.Use(middleware.RealIP)
 		router.Get("/_piko/dist/*", serveEmbeddedFrontend(true, false))
 
 		server := httptest.NewServer(router)

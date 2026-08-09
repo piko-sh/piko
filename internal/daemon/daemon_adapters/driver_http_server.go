@@ -27,6 +27,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -52,13 +53,32 @@ const (
 
 	// ServerPurposeHealth is the exported form of serverPurposeHealth.
 	ServerPurposeHealth = serverPurposeHealth
+	
+	// http2MaxConcurrentStreams is the most streams that can run at the same time on one
+	// HTTP/2 connection.
+	http2MaxConcurrentStreams = 250
+
+	// http2SendPingTimeout is the duration of inactivity before sending a PING frame to
+	// verify the client connection is still alive.
+	http2SendPingTimeout = 30 * time.Second
+
+	// http2PingTimeout is the duration to wait for a PING response before closing the
+	// connection. Only applies when http2SendPingTimeout is non-zero.
+	http2PingTimeout = 15 * time.Second
+
+	// alpnProtocolHTTP2 is the ALPN identifier a client offers to negotiate HTTP/2 over TLS.
+	alpnProtocolHTTP2 = "h2"
+
+	// alpnProtocolHTTP11 is the ALPN identifier for HTTP/1.1.
+	alpnProtocolHTTP11 = "http/1.1"
 )
 
 // driverHTTPServerAdapter implements the ServerAdapter interface using the standard Go
 // http.Server for production HTTP serving.
 type driverHTTPServerAdapter struct {
-	// server holds the HTTP server instance created during ListenAndServe.
-	server *http.Server
+	// server holds the HTTP server instance created during ListenAndServe. Shutdown runs on
+	// a different goroutine from the one serving, so the pointer is published atomically.
+	server atomic.Pointer[http.Server]
 
 	// tlsConfig holds optional TLS configuration; nil means plain HTTP.
 	tlsConfig *TLSAdapterConfig
@@ -92,19 +112,11 @@ func (a *driverHTTPServerAdapter) ListenAndServe(
 	defer span.End()
 
 	l.Internal("Configuring HTTP server")
-	a.server = &http.Server{
-		Addr:     address,
-		Handler:  handler,
-		ErrorLog: stdlog.New(&httpServerErrorWriter{}, "", 0),
 
-		ReadTimeout:       defaultReadTimeout,
-		WriteTimeout:      defaultWriteTimeout,
-		IdleTimeout:       defaultIdleTimeout,
-		ReadHeaderTimeout: defaultReadHeaderTimeout,
-		MaxHeaderBytes:    defaultMaxHeaderBytes,
-	}
+	server := a.buildServer(ctx, address, handler)
+	a.server.Store(server)
 
-	a.recordServerSpanAttributes(span)
+	a.recordServerSpanAttributes(span, server)
 
 	listener, err := a.createListener(address, l)
 	if err != nil {
@@ -118,7 +130,7 @@ func (a *driverHTTPServerAdapter) ListenAndServe(
 	}
 
 	startTime := time.Now()
-	err = a.server.Serve(listener)
+	err = server.Serve(listener)
 	duration := time.Since(startTime)
 
 	serverStartupDuration.Record(ctx, float64(duration.Milliseconds()))
@@ -138,7 +150,8 @@ func (a *driverHTTPServerAdapter) Shutdown(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "driverHTTPServerAdapter.Shutdown")
 	defer span.End()
 
-	if a.server == nil {
+	server := a.server.Load()
+	if server == nil {
 		l.Internal("No server instance to shutdown")
 		span.SetStatus(codes.Ok, "No server instance to shutdown")
 		return nil
@@ -147,7 +160,7 @@ func (a *driverHTTPServerAdapter) Shutdown(ctx context.Context) error {
 	l.Internal("Shutting down HTTP server")
 
 	startTime := time.Now()
-	err := a.server.Shutdown(ctx)
+	err := server.Shutdown(ctx)
 	duration := time.Since(startTime)
 
 	serverShutdownDuration.Record(ctx, float64(duration.Milliseconds()))
@@ -176,15 +189,55 @@ func (a *driverHTTPServerAdapter) SetOnBound(fn func(address string)) {
 	a.onBound = fn
 }
 
+// buildServer constructs the HTTP server, including its HTTP/2 configuration.
+//
+// Takes address (string) which is the TCP address the server will listen on.
+// Takes handler (http.Handler) which handles incoming requests.
+//
+// Returns *http.Server which is configured but not yet listening.
+func (a *driverHTTPServerAdapter) buildServer(ctx context.Context, address string, handler http.Handler) *http.Server {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetHTTP2(true)
+	if a.tlsConfig == nil {
+		protocols.SetUnencryptedHTTP2(true)
+	}
+
+	countErrorCtx := context.WithoutCancel(ctx)
+
+	return &http.Server{
+		Addr:     address,
+		Handler:  handler,
+		ErrorLog: stdlog.New(&httpServerErrorWriter{}, "", 0),
+
+		ReadTimeout:       defaultReadTimeout,
+		WriteTimeout:      defaultWriteTimeout,
+		IdleTimeout:       defaultIdleTimeout,
+		ReadHeaderTimeout: defaultReadHeaderTimeout,
+		MaxHeaderBytes:    defaultMaxHeaderBytes,
+
+		Protocols: protocols,
+		HTTP2: &http.HTTP2Config{
+			MaxConcurrentStreams: http2MaxConcurrentStreams,
+			SendPingTimeout:      http2SendPingTimeout,
+			PingTimeout:          http2PingTimeout,
+			CountError: func(errType string) {
+				daemon_domain.RecordHTTP2ProtocolError(countErrorCtx, errType)
+			},
+		},
+	}
+}
+
 // recordServerSpanAttributes adds server configuration attributes to the trace span.
 //
 // Takes span (trace.Span) which receives the configuration attributes.
-func (a *driverHTTPServerAdapter) recordServerSpanAttributes(span trace.Span) {
+// Takes server (*http.Server) whose resolved timeouts are reported.
+func (a *driverHTTPServerAdapter) recordServerSpanAttributes(span trace.Span, server *http.Server) {
 	span.SetAttributes(
-		attribute.Int64("readTimeoutMs", a.server.ReadTimeout.Milliseconds()),
-		attribute.Int64("writeTimeoutMs", a.server.WriteTimeout.Milliseconds()),
-		attribute.Int64("idleTimeoutMs", a.server.IdleTimeout.Milliseconds()),
-		attribute.Int64("readHeaderTimeoutMs", a.server.ReadHeaderTimeout.Milliseconds()),
+		attribute.Int64("readTimeoutMs", server.ReadTimeout.Milliseconds()),
+		attribute.Int64("writeTimeoutMs", server.WriteTimeout.Milliseconds()),
+		attribute.Int64("idleTimeoutMs", server.IdleTimeout.Milliseconds()),
+		attribute.Int64("readHeaderTimeoutMs", server.ReadHeaderTimeout.Milliseconds()),
 		attribute.Bool("tls.enabled", a.tlsConfig != nil),
 	)
 	if a.tlsConfig != nil {
@@ -214,7 +267,7 @@ func (a *driverHTTPServerAdapter) createListener(address string, l logger_domain
 			ClientAuth:     a.tlsConfig.ClientAuth,
 			ClientCAs:      a.tlsConfig.ClientCAs,
 			MinVersion:     max(a.tlsConfig.MinVersion, tls.VersionTLS12),
-			NextProtos:     a.tlsConfig.NextProtos,
+			NextProtos:     alpnProtocols(a.tlsConfig.NextProtos),
 		}
 		listener = tls.NewListener(listener, tlsConfig)
 		l.Internal("TLS enabled on listener",
@@ -246,34 +299,21 @@ func NewDriverHTTPServerAdapter() daemon_domain.ServerAdapter {
 	return &driverHTTPServerAdapter{purpose: serverPurposeMain}
 }
 
-// NewDriverHTTPServerAdapterWithTLS creates a TLS-enabled HTTP server adapter for the
-// main server. The provided config controls TLS certificate loading, client auth, and
-// protocol negotiation.
+// alpnProtocols resolves the ALPN list offered by a TLS listener.
 //
-// Takes config (TLSAdapterConfig) which provides the TLS settings.
+// The server declares HTTP/2 in its Protocols set, but ALPN is negotiated by the
+// listener's tls.Config, so an empty list would leave the server advertising a protocol
+// no client can select. Defaulting here keeps the two in step.
 //
-// Returns daemon_domain.ServerAdapter which is the configured TLS adapter ready for use.
-func NewDriverHTTPServerAdapterWithTLS(config TLSAdapterConfig) daemon_domain.ServerAdapter {
-	return &driverHTTPServerAdapter{purpose: serverPurposeMain, tlsConfig: &config}
-}
-
-// NewHealthServerAdapter creates a server adapter for the health probe server.
+// Takes configured ([]string) which is the caller's ALPN preference order, possibly
+// empty.
 //
-// Returns daemon_domain.ServerAdapter which provides the health probe server adapter
-// ready for use.
-func NewHealthServerAdapter() daemon_domain.ServerAdapter {
-	return &driverHTTPServerAdapter{purpose: serverPurposeHealth}
-}
-
-// NewHealthServerAdapterWithTLS creates a TLS-enabled server adapter for the health probe
-// server.
-//
-// Takes config (TLSAdapterConfig) which provides the TLS settings.
-//
-// Returns daemon_domain.ServerAdapter which provides the TLS-enabled health probe adapter
-// ready for use.
-func NewHealthServerAdapterWithTLS(config TLSAdapterConfig) daemon_domain.ServerAdapter {
-	return &driverHTTPServerAdapter{purpose: serverPurposeHealth, tlsConfig: &config}
+// Returns []string which is the configured list, or the HTTP/2-then-HTTP/1.1 default.
+func alpnProtocols(configured []string) []string {
+	if len(configured) > 0 {
+		return configured
+	}
+	return []string{alpnProtocolHTTP2, alpnProtocolHTTP11}
 }
 
 // recordServerCompletion records metrics and span status based on the server completion

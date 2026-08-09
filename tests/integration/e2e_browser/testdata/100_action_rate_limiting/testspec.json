@@ -1,5 +1,6 @@
 {
   "description": "Tests per-action rate limiting. Action allows 3 requests per minute. The 4th request should be rejected with 429.",
+  "requiresRateLimit": true,
   "requestURL": "/test",
   "expectedStatus": 200,
   "browserSteps": [

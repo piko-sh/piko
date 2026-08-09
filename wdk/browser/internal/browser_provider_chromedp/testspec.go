@@ -90,6 +90,15 @@ type TestSpec struct {
 	// true, the harness configures piko.WithMarkdownParser during both code generation and
 	// server execution.
 	RequiresMarkdown bool `json:"requiresMarkdown,omitempty"`
+
+	// RequiresRateLimit indicates that the test exercises rate limiting. Rate limiting is
+	// off by default, so a test asserting a 429 has to opt in explicitly.
+	RequiresRateLimit bool `json:"requiresRateLimit,omitempty"`
+
+	// RequiresCaptcha indicates that the test renders or submits a captcha-protected form.
+	// When true, the harness registers the HMAC challenge provider, which verifies tokens
+	// locally and so needs no external service.
+	RequiresCaptcha bool `json:"requiresCaptcha,omitempty"`
 }
 
 // BrowserStep defines a single browser action to execute within a test.

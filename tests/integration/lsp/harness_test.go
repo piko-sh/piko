@@ -22,6 +22,7 @@ package lsp_stress_test
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
@@ -49,6 +50,7 @@ const (
 
 var (
 	lspBinaryOnce sync.Once
+	lspBinaryDir  string
 	lspBinaryPath string
 	lspBuildErr   error
 )
@@ -57,15 +59,18 @@ func buildLSPBinary(t *testing.T) string {
 	t.Helper()
 
 	lspBinaryOnce.Do(func() {
-		tmpDir := os.TempDir()
-		lspBinaryPath = filepath.Join(tmpDir, "pikopls-stress-test")
+		lspBinaryDir, lspBuildErr = os.MkdirTemp("", "pikopls-stress-test")
+		if lspBuildErr != nil {
+			return
+		}
+		lspBinaryPath = filepath.Join(lspBinaryDir, "pikopls")
 
 		repoRoot, err := filepath.Abs(filepath.Join("..", "..", ".."))
 		if err != nil {
 			lspBuildErr = err
 			return
 		}
-		absLspSrcDir := filepath.Join(repoRoot, "cmd", "lsp")
+		absLspSrcDir := filepath.Join(repoRoot, "cmd", "pikopls")
 		goWorkPath := filepath.Join(repoRoot, "go.work")
 
 		cmd := exec.Command("go", "build", "-o", lspBinaryPath, ".")
@@ -79,11 +84,17 @@ func buildLSPBinary(t *testing.T) string {
 	})
 
 	require.NoError(t, lspBuildErr, "building pikopls binary")
-	t.Cleanup(func() {
-
-	})
 
 	return lspBinaryPath
+}
+
+func removeLSPBinary() {
+	if lspBinaryDir == "" {
+		return
+	}
+	if err := os.RemoveAll(lspBinaryDir); err != nil {
+		fmt.Fprintf(os.Stderr, "removing pikopls build directory %s: %v\n", lspBinaryDir, err)
+	}
 }
 
 type buildError struct {

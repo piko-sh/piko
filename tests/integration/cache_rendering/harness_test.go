@@ -211,10 +211,11 @@ func loadTestSpec(t *testing.T, tc testCase) CacheRenderingTestSpec {
 }
 
 var (
-	csrfMetaRegex = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
-	csrfAttrRegex = regexp.MustCompile(`data-csrf-(ephemeral-token|action-token)="[^"]*"`)
-	partialRegex  = regexp.MustCompile(`partial="pages_(nocache|astcache|staticcache)_[a-f0-9]+"`)
-	pageidRegex   = regexp.MustCompile(`data-pageid="pages/(nocache|astcache|staticcache)\.pk"`)
+	csrfMetaRegex  = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
+	csrfAttrRegex  = regexp.MustCompile(`data-csrf-(ephemeral-token|action-token)="[^"]*"`)
+	partialRegex   = regexp.MustCompile(`partial="pages_(nocache|astcache|staticcache)_[a-f0-9]+"`)
+	pageidRegex    = regexp.MustCompile(`data-pageid="pages/(nocache|astcache|staticcache)\.pk"`)
+	canonicalRegex = regexp.MustCompile(`<link rel="canonical" href="[^"]*/(nocache|astcache|staticcache)">`)
 )
 
 func normaliseForComparison(html []byte) []byte {
@@ -222,6 +223,7 @@ func normaliseForComparison(html []byte) []byte {
 	result = csrfAttrRegex.ReplaceAll(result, []byte(`data-csrf-$1="[NORMALISED]"`))
 	result = partialRegex.ReplaceAll(result, []byte(`partial="pages_[PAGE]_[HASH]"`))
 	result = pageidRegex.ReplaceAll(result, []byte(`data-pageid="pages/[PAGE].pk"`))
+	result = canonicalRegex.ReplaceAll(result, []byte(`<link rel="canonical" href="[NORMALISED]/[PAGE]">`))
 	return result
 }
 

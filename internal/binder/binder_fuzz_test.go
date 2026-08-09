@@ -200,7 +200,7 @@ func FuzzSliceGrowth(f *testing.F) {
 			return
 		}
 
-		err := growSliceToFitIndex(sliceVal, index, int(binder.maxSliceSize.Load()))
+		err := growSliceToFitIndex(sliceVal, index, int(binder.maxSliceSize.Load()), nil)
 
 		if err == nil && index >= initialLen {
 			if len(slice) != index+1 {

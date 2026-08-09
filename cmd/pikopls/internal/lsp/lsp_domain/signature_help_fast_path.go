@@ -455,7 +455,7 @@ func extractCalleeFromText(text []byte) (functionName string, baseExpr string) {
 	}
 
 	end := len(text)
-	for end > 0 && end <= len(text) && isWhitespace(text[end-1]) { // #nosec G602 -- end is always in bounds; explicit check satisfies static analysis
+	for end > 0 && end <= len(text) && isWhitespace(text[end-1]) {
 		end--
 	}
 	if end == 0 {

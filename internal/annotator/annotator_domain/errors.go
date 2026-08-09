@@ -31,6 +31,12 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
+const (
+	// semanticErrorDetailLimit caps how many failing diagnostics a SemanticError names in
+	// its message. One file can fail once per expression, so the tail is counted instead.
+	semanticErrorDetailLimit = 5
+)
+
 // IsParseSoftError reports whether err originated from a tolerable parse failure during
 // .pk file processing. Script-block syntax errors and template-diagnostic errors are
 // considered soft so discovery (which only cares about imports) can continue past them;
@@ -109,15 +115,21 @@ func NewSemanticError(diagnostics []*ast_domain.Diagnostic) *SemanticError {
 
 // Error implements the error interface.
 //
-// Returns string which contains the count of semantic validation errors and warnings
-// found during analysis.
+// Returns string which counts the semantic validation errors and warnings, followed by
+// the failing diagnostics up to semanticErrorDetailLimit.
 func (e *SemanticError) Error() string {
 	_, _, warningCount, errorCount := getDiagnosticCounts(e.Diagnostics)
 
+	summary := fmt.Sprintf("found %d semantic validation errors and %d semantic validation warnings", errorCount, warningCount)
 	if len(e.Diagnostics) == 1 {
-		return "found 1 semantic validation error"
+		summary = "found 1 semantic validation error"
 	}
-	return fmt.Sprintf("found %d semantic validation errors and %d semantic validation warnings", errorCount, warningCount)
+
+	details := describeErrorDiagnostics(e.Diagnostics)
+	if details == "" {
+		return summary
+	}
+	return summary + ": " + details
 }
 
 // CircularDependencyError represents a loop in the component graph where packages depend
@@ -163,6 +175,9 @@ func FormatAllDiagnostics(diagnostics []*ast_domain.Diagnostic, sourceContents m
 
 	diagsByFile := make(map[string][]*ast_domain.Diagnostic)
 	for _, d := range diagnostics {
+		if d == nil {
+			continue
+		}
 		if d.SourcePath == "" {
 			builder.WriteString(d.Error() + "\n(Source path was missing for this diagnostic)\n\n")
 			continue
@@ -195,6 +210,36 @@ func FormatAllDiagnostics(diagnostics []*ast_domain.Diagnostic, sourceContents m
 	return builder.String()
 }
 
+// describeErrorDiagnostics lists the error-severity diagnostics behind a SemanticError's
+// count.
+//
+// Takes diagnostics ([]*ast_domain.Diagnostic) which are the analysis results.
+//
+// Returns string which describes the failing diagnostics, or empty when none are errors.
+func describeErrorDiagnostics(diagnostics []*ast_domain.Diagnostic) string {
+	described := make([]string, 0, min(len(diagnostics), semanticErrorDetailLimit))
+	omitted := 0
+
+	for _, diagnostic := range diagnostics {
+		if diagnostic == nil || diagnostic.Severity != ast_domain.Error {
+			continue
+		}
+		if len(described) >= semanticErrorDetailLimit {
+			omitted++
+			continue
+		}
+		described = append(described, diagnostic.Error())
+	}
+
+	if len(described) == 0 {
+		return ""
+	}
+	if omitted > 0 {
+		described = append(described, fmt.Sprintf("and %d more", omitted))
+	}
+	return strings.Join(described, "; ")
+}
+
 // getDiagnosticCounts counts diagnostics by severity level.
 //
 // Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostics to count.
@@ -205,6 +250,9 @@ func FormatAllDiagnostics(diagnostics []*ast_domain.Diagnostic, sourceContents m
 // Returns errorCount (int) which is the number of error-level diagnostics.
 func getDiagnosticCounts(diagnostics []*ast_domain.Diagnostic) (debugCount int, infoCount int, warningCount int, errorCount int) {
 	for _, diagnostic := range diagnostics {
+		if diagnostic == nil {
+			continue
+		}
 		if diagnostic.Severity == ast_domain.Debug {
 			debugCount++
 		}

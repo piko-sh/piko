@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// dispatch_amd64.h -- amd64-specific macros for the threaded dispatch loop.
+// dispatch_amd64.h: amd64-specific macros for the threaded dispatch loop.
 // Included by all vm_dispatch_*_amd64.s files.
 
 // Register allocation (preserved across all handlers):
@@ -42,11 +42,11 @@
 // The 4-byte instruction word naturally encodes its own tier via
 // leading-zero bytes:
 //
-//   tier 0: [op != 0, ...]              -- TZCNT in [0, 7]
-//   tier 1: [0, sub != 0, ...]          -- TZCNT in [8, 15]
-//   tier 2: [0, 0, sub != 0, c]         -- TZCNT in [16, 23]
-//   tier 3: [0, 0, 0, sub != 0]         -- TZCNT in [24, 31]
-//   nop:    [0, 0, 0, 0]                -- TZCNT == 32
+//   tier 0: [op != 0, ...]              -> TZCNT in [0, 7]
+//   tier 1: [0, sub != 0, ...]          -> TZCNT in [8, 15]
+//   tier 2: [0, 0, sub != 0, c]         -> TZCNT in [16, 23]
+//   tier 3: [0, 0, 0, sub != 0]         -> TZCNT in [24, 31]
+//   nop:    [0, 0, 0, 0]                -> TZCNT == 32
 //
 // So tier = TZCNT(word) >> 3 and shift_amount_in_bits = tier * 8 =
 // (TZCNT(word) & ~7). The sub-op byte for the active tier is

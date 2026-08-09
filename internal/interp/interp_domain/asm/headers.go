@@ -884,7 +884,7 @@ func emitOffsetsLicenceAndPreamble() string {
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// dispatch_offsets.h -- architecture-independent constants shared by both
+// dispatch_offsets.h: architecture-independent constants shared by both
 // vm_dispatch_*_amd64.s and vm_dispatch_*_arm64.s.
 //
 // All offsets are verified at test time by vm_dispatch_offsets_test.go.

@@ -331,7 +331,7 @@ type databaseInstance struct {
 	replicaCount int
 
 	// externallyOwned is true when the primary db was supplied pre-opened by the caller
-	// (reg.DB != nil). The container must not close such a connection -- neither via the
+	// (reg.DB != nil). The container must not close such a connection: neither via the
 	// shutdown hook (which is skipped at open time) nor during startup-rollback cleanup.
 	externallyOwned bool
 }

@@ -284,10 +284,10 @@ type BytecodeArchitecturePort interface {
 	//
 	// Supported directions:
 	//
-	// 	"INTEGER_TO_FLOAT"  -- int64 src bank -> float64 dst bank
-	// 	"FLOAT_TO_INTEGER"  -- float64 src bank -> int64 dst bank
-	// 	"UNSIGNED_TO_FLOAT" -- uint64 src bank -> float64 dst bank
-	// 	"FLOAT_TO_UNSIGNED" -- float64 src bank -> uint64 dst bank
+	// 	"INTEGER_TO_FLOAT":  int64 src bank -> float64 dst bank
+	// 	"FLOAT_TO_INTEGER":  float64 src bank -> int64 dst bank
+	// 	"UNSIGNED_TO_FLOAT": uint64 src bank -> float64 dst bank
+	// 	"FLOAT_TO_UNSIGNED": float64 src bank -> uint64 dst bank
 	FloatConversion(emitter *asmgen.Emitter, direction string, destinationIndex, sourceIndex string)
 
 	// StringLengthRead emits a read of the Len field of a Go string header.

@@ -18,7 +18,7 @@
 
 // Package db_schema_registry_postgres re-exports the registry's Postgres migrations.
 //
-// The migration files live with the registry's data access layer, and this package makes
-// them reachable from wdk/db so an application can apply the registry schema without
-// importing an internal package.
+// The migration files live with the registry's data access layer. Re-exporting them here
+// makes them reachable from wdk/db, so an application can apply the registry schema
+// without importing an internal package.
 package db_schema_registry_postgres

@@ -433,9 +433,9 @@ func Test_driverHTTPServerAdapter_Shutdown_WithTimeout(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	adapter.server = &http.Server{
+	adapter.server.Store(&http.Server{
 		Handler: testHandler,
-	}
+	})
 
 	ctx, cancel := context.WithTimeoutCause(context.Background(), 100*time.Millisecond, fmt.Errorf("test: Shutdown timeout"))
 	defer cancel()

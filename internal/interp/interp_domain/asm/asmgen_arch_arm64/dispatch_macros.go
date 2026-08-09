@@ -42,7 +42,7 @@ const (
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// dispatch_arm64.h -- arm64-specific macros for the threaded dispatch loop.
+// dispatch_arm64.h: arm64-specific macros for the threaded dispatch loop.
 // Included by all vm_dispatch_*_arm64.s files.
 
 // Register allocation (preserved across all handlers):
@@ -71,11 +71,11 @@ const (
 // The 4-byte instruction word naturally encodes its own tier via
 // leading-zero bytes:
 //
-//   tier 0: [op != 0, ...]              -- TZCNT in [0, 7]
-//   tier 1: [0, sub != 0, ...]          -- TZCNT in [8, 15]
-//   tier 2: [0, 0, sub != 0, c]         -- TZCNT in [16, 23]
-//   tier 3: [0, 0, 0, sub != 0]         -- TZCNT in [24, 31]
-//   nop:    [0, 0, 0, 0]                -- (special-cased before TZCNT)
+//   tier 0: [op != 0, ...]              -> TZCNT in [0, 7]
+//   tier 1: [0, sub != 0, ...]          -> TZCNT in [8, 15]
+//   tier 2: [0, 0, sub != 0, c]         -> TZCNT in [16, 23]
+//   tier 3: [0, 0, 0, sub != 0]         -> TZCNT in [24, 31]
+//   nop:    [0, 0, 0, 0]                -> (special-cased before TZCNT)
 //
 // arm64 has no native TZCNT; emulate with RBITW (reverse bits in
 // the lower 32 bits) followed by CLZW (count leading zeros, 32-bit

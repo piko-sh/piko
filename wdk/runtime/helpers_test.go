@@ -20,13 +20,16 @@ package runtime
 
 import (
 	"errors"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/markdown/markdown_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
@@ -305,4 +308,113 @@ func TestCollectionNotFound_NilCause(t *testing.T) {
 	cnf, ok := errors.AsType[*collectionNotFoundError](err)
 	require.True(t, ok)
 	assert.Nil(t, cnf.Unwrap())
+}
+
+func TestCollectionNotFound_SafeMessage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reports the route and withholds the collection", func(t *testing.T) {
+		t.Parallel()
+
+		cnf, ok := errors.AsType[*collectionNotFoundError](
+			CollectionNotFound("blog", "/blog/my-post", errors.New("item not found in store")))
+		require.True(t, ok)
+
+		safe := cnf.SafeMessage()
+
+		assert.Contains(t, safe, `route "/blog/my-post"`)
+		assert.NotContains(t, safe, "blog\"", "the collection names internal project structure")
+		assert.NotContains(t, safe, "item not found in store", "the cause is for logs, not users")
+	})
+
+	t.Run("satisfies the user-facing error contract", func(t *testing.T) {
+		t.Parallel()
+
+		err := CollectionNotFound("blog", "/blog/my-post", nil)
+
+		safeErr, ok := errors.AsType[safeerror.Error](err)
+		require.True(t, ok, "the rendering pipeline selects the safe message through this interface")
+		assert.Equal(t, safeErr.SafeMessage(),
+			safeerror.ExtractSafeMessage(err, false))
+		assert.Equal(t, err.Error(), safeerror.ExtractSafeMessage(err, true),
+			"development mode keeps the full detail")
+	})
+
+	t.Run("caps an over-long route", func(t *testing.T) {
+		t.Parallel()
+
+		route := "/blog/" + strings.Repeat("é", 4096)
+		cnf, ok := errors.AsType[*collectionNotFoundError](CollectionNotFound("blog", route, nil))
+		require.True(t, ok)
+
+		safe := cnf.SafeMessage()
+
+		assert.Less(t, len(safe), len(route),
+			"a path parameter is caller-chosen, so it must not inflate every 404 it produces")
+		assert.Contains(t, safe, routeTruncationMarker, "a truncated route is marked as partial")
+	})
+
+	t.Run("escapes control bytes in the route", func(t *testing.T) {
+		t.Parallel()
+
+		cnf, ok := errors.AsType[*collectionNotFoundError](
+			CollectionNotFound("blog", "/blog/a\nb\tc", nil))
+		require.True(t, ok)
+
+		safe := cnf.SafeMessage()
+
+		assert.NotContains(t, safe, "\n", "a raw newline would let a route forge a log line")
+		assert.NotContains(t, safe, "\t")
+		assert.Contains(t, safe, `\n`)
+	})
+}
+
+func TestTruncateRoute(t *testing.T) {
+	t.Parallel()
+
+	t.Run("leaves a route within the cap untouched", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "/blog/my-post", truncateRoute("/blog/my-post"))
+		assert.Equal(t, "", truncateRoute(""))
+
+		exact := strings.Repeat("a", maxSafeMessageRouteBytes)
+		assert.Equal(t, exact, truncateRoute(exact), "a route exactly at the cap still fits")
+	})
+
+	t.Run("marks and bounds a route past the cap", func(t *testing.T) {
+		t.Parallel()
+
+		result := truncateRoute(strings.Repeat("a", maxSafeMessageRouteBytes+1))
+
+		assert.Len(t, result, maxSafeMessageRouteBytes,
+			"the marker is counted inside the cap, so the result never exceeds it")
+		assert.True(t, strings.HasSuffix(result, routeTruncationMarker))
+	})
+
+	t.Run("never severs a multi-byte rune", func(t *testing.T) {
+		t.Parallel()
+
+		for extra := range 8 {
+			route := "/b/" + strings.Repeat("é", maxSafeMessageRouteBytes/2+extra)
+			result := truncateRoute(route)
+
+			assert.True(t, utf8.ValidString(result),
+				"route of %d bytes produced invalid UTF-8: %q", len(route), result)
+			assert.LessOrEqual(t, len(result), maxSafeMessageRouteBytes)
+		}
+	})
+
+	t.Run("never severs a four-byte rune", func(t *testing.T) {
+		t.Parallel()
+
+		for extra := range 8 {
+			route := "/b/" + strings.Repeat("😀", maxSafeMessageRouteBytes/4+extra)
+			result := truncateRoute(route)
+
+			assert.True(t, utf8.ValidString(result),
+				"route of %d bytes produced invalid UTF-8: %q", len(route), result)
+			assert.LessOrEqual(t, len(result), maxSafeMessageRouteBytes)
+		}
+	})
 }

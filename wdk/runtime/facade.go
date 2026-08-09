@@ -37,6 +37,7 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 	"piko.sh/piko/wdk/safeconv"
 	"reflect"
+	"unicode/utf8"
 )
 
 // SearchMode defines how much text analysis is applied during search.
@@ -229,6 +230,13 @@ const (
 
 	// httpStatusNotFound is the HTTP 404 status code returned for missing collection items.
 	httpStatusNotFound = 404
+
+	// maxSafeMessageRouteBytes caps the request route echoed in a user-facing error message.
+	// Generous enough for any real route, so a legitimate request never sees the marker.
+	maxSafeMessageRouteBytes = 256
+
+	// routeTruncationMarker is appended to a route shortened by maxSafeMessageRouteBytes.
+	routeTruncationMarker = "..."
 )
 
 // RenderArena is a pooled container holding pre-allocated slabs for all AST types used
@@ -836,6 +844,31 @@ func (*collectionNotFoundError) StatusCode() int { return httpStatusNotFound }
 //
 // Returns string which is the constant "COLLECTION_NOT_FOUND".
 func (*collectionNotFoundError) ErrorCode() string { return "COLLECTION_NOT_FOUND" }
+
+// SafeMessage implements the framework's user-facing error contract, so a missing item
+// renders as a 404 rather than the generic internal-error placeholder in production.
+//
+// Returns string which reports the missing item without disclosing the collection.
+func (e *collectionNotFoundError) SafeMessage() string {
+	return fmt.Sprintf("collection item not found: route %q", truncateRoute(e.route))
+}
+
+// truncateRoute caps a route for inclusion in a user-facing message.
+//
+// Takes route (string) which is the requested route.
+//
+// Returns string which is route, or a shortened form ending in the truncation marker.
+func truncateRoute(route string) string {
+	if len(route) <= maxSafeMessageRouteBytes {
+		return route
+	}
+
+	end := maxSafeMessageRouteBytes - len(routeTruncationMarker)
+	for end > 0 && !utf8.RuneStart(route[end]) {
+		end--
+	}
+	return route[:end] + routeTruncationMarker
+}
 
 // Unwrap returns the underlying error.
 //

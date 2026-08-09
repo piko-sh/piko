@@ -317,7 +317,7 @@ func attributeSetToMap(attrs attribute.Set) map[string]string {
 	iterator := attrs.Iter()
 	for iterator.Next() {
 		kv := iterator.Attribute()
-		result[string(kv.Key)] = kv.Value.Emit()
+		result[string(kv.Key)] = kv.Value.String()
 	}
 	return result
 }

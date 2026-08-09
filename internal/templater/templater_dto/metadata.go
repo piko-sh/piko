@@ -188,7 +188,7 @@ type InternalMetadata struct {
 	// collection-not-found 404) so the HTTP handler can extract the correct status code and
 	// route to the appropriate error page.
 	//
-	// Not serialised -- only used for in-process error propagation.
+	// Not serialised; used only for in-process error propagation.
 	RenderError error `json:"-"`
 
 	// JSScriptMetas holds client-side JavaScript modules for this page and its embedded

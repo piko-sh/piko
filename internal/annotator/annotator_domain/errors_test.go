@@ -19,6 +19,7 @@
 package annotator_domain
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -183,36 +184,45 @@ func TestSemanticError_Error(t *testing.T) {
 			expected:    "found 0 semantic validation errors and 0 semantic validation warnings",
 		},
 		{
-			name: "single error uses singular form",
+			name: "single error uses singular form and names the failure",
 			diagnostics: []*ast_domain.Diagnostic{
-				{Message: "test error", Severity: ast_domain.Error},
+				{Message: "test error", Severity: ast_domain.Error, SourcePath: "pages/main.pk"},
 			},
-			expected: "found 1 semantic validation error",
+			expected: "found 1 semantic validation error: " +
+				"error in pages/main.pk at line 0, col 0: test error",
 		},
 		{
-			name: "multiple errors only",
+			name: "multiple errors are all named",
 			diagnostics: []*ast_domain.Diagnostic{
-				{Message: "error 1", Severity: ast_domain.Error},
-				{Message: "error 2", Severity: ast_domain.Error},
+				{Message: "error 1", Severity: ast_domain.Error, SourcePath: "a.pk"},
+				{Message: "error 2", Severity: ast_domain.Error, SourcePath: "b.pk"},
 			},
-			expected: "found 2 semantic validation errors and 0 semantic validation warnings",
+			expected: "found 2 semantic validation errors and 0 semantic validation warnings: " +
+				"error in a.pk at line 0, col 0: error 1; " +
+				"error in b.pk at line 0, col 0: error 2",
 		},
 		{
-			name: "errors and warnings",
+			name: "warnings are counted but not named",
 			diagnostics: []*ast_domain.Diagnostic{
-				{Message: "error 1", Severity: ast_domain.Error},
-				{Message: "warning 1", Severity: ast_domain.Warning},
-				{Message: "warning 2", Severity: ast_domain.Warning},
+				{Message: "error 1", Severity: ast_domain.Error, SourcePath: "a.pk"},
+				{Message: "warning 1", Severity: ast_domain.Warning, SourcePath: "b.pk"},
+				{Message: "warning 2", Severity: ast_domain.Warning, SourcePath: "c.pk"},
 			},
-			expected: "found 1 semantic validation errors and 2 semantic validation warnings",
+			expected: "found 1 semantic validation errors and 2 semantic validation warnings: " +
+				"error in a.pk at line 0, col 0: error 1",
 		},
 		{
-			name: "warnings only",
+			name: "warnings only carries no detail",
 			diagnostics: []*ast_domain.Diagnostic{
 				{Message: "warning 1", Severity: ast_domain.Warning},
 				{Message: "warning 2", Severity: ast_domain.Warning},
 			},
 			expected: "found 0 semantic validation errors and 2 semantic validation warnings",
+		},
+		{
+			name:        "nil diagnostics carry no detail",
+			diagnostics: []*ast_domain.Diagnostic{nil, nil},
+			expected:    "found 0 semantic validation errors and 0 semantic validation warnings",
 		},
 	}
 
@@ -226,6 +236,28 @@ func TestSemanticError_Error(t *testing.T) {
 			assert.Equal(t, tc.expected, result)
 		})
 	}
+}
+
+func TestSemanticError_Error_CapsTheNamedDiagnostics(t *testing.T) {
+	t.Parallel()
+
+	diagnostics := make([]*ast_domain.Diagnostic, 0, semanticErrorDetailLimit+3)
+	for index := range semanticErrorDetailLimit + 3 {
+		diagnostics = append(diagnostics, &ast_domain.Diagnostic{
+			Message:    fmt.Sprintf("error %d", index),
+			Severity:   ast_domain.Error,
+			SourcePath: "a.pk",
+		})
+	}
+
+	result := NewSemanticError(diagnostics).Error()
+
+	assert.Contains(t, result, "error 0")
+	assert.Contains(t, result, fmt.Sprintf("error %d", semanticErrorDetailLimit-1))
+	assert.NotContains(t, result, fmt.Sprintf("error %d", semanticErrorDetailLimit),
+		"one file can fail once per expression, so the message must not grow without bound")
+	assert.Contains(t, result, "and 3 more",
+		"the omitted diagnostics are counted so the reader knows the list is partial")
 }
 
 func TestNewCircularDependencyError(t *testing.T) {

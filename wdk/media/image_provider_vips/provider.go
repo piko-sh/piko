@@ -88,6 +88,9 @@ const (
 	// dimensionFullReadBytes is the absolute cap when the header-peek path fails and a full
 	// vips decode is required.
 	dimensionFullReadBytes = 32 << 20
+
+	// outputResolutionPixelsPerMillimetre is the 72 DPI web default.
+	outputResolutionPixelsPerMillimetre = 72.0 / 25.4
 )
 
 // Config holds configuration options for the vips provider.
@@ -209,7 +212,14 @@ func (p *Provider) Transform(
 		return "", err
 	}
 
-	buffer, mimeType, err := p.export(img, spec)
+	normalised, err := img.CopyChangingResolution(
+		outputResolutionPixelsPerMillimetre, outputResolutionPixelsPerMillimetre)
+	if err != nil {
+		return "", fmt.Errorf("normalising output resolution: %w", err)
+	}
+	defer normalised.Close()
+
+	buffer, mimeType, err := p.export(normalised, spec)
 	if err != nil {
 		return "", err
 	}

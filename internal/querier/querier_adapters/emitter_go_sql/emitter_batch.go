@@ -520,7 +520,7 @@ func buildBatchExpandValuesFunc() *ast.FuncDecl {
 		)),
 		goastutil.IfStmt(
 			nil,
-			&ast.BinaryExpr{X: goastutil.CachedIdent("loc"), Op: token.EQL, Y: goastutil.CachedIdent("nil")},
+			&ast.BinaryExpr{X: goastutil.CachedIdent("loc"), Op: token.EQL, Y: goastutil.NilIdent()},
 			goastutil.BlockStmt(goastutil.ReturnStmt(goastutil.CachedIdent(emitter_shared.IdentQuery))),
 		),
 		goastutil.DefineStmt("idx", &ast.IndexExpr{X: goastutil.CachedIdent("loc"), Index: goastutil.IntLit(0)}),

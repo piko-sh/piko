@@ -893,9 +893,9 @@ func BuildProject(
 // isErrorPage checks whether a filename follows the error page convention.
 //
 // Supported patterns:
-//   - !NNN.pk -- exact status code (e.g., !404.pk, !500.pk)
-//   - !NNN-NNN.pk -- status code range (e.g., !400-499.pk)
-//   - !error.pk -- catch-all for any error status code
+//   - !NNN.pk: exact status code (e.g., !404.pk, !500.pk)
+//   - !NNN-NNN.pk: status code range (e.g., !400-499.pk)
+//   - !error.pk: catch-all for any error status code
 //
 // Status codes must be valid HTTP codes in the range 100-599. For ranges, the minimum
 // must not exceed the maximum.

@@ -49,6 +49,7 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"
 	browserpkg "piko.sh/piko/wdk/browser"
+	"piko.sh/piko/wdk/captcha/captcha_provider_hmac_challenge"
 	"piko.sh/piko/wdk/logger"
 	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
 	"piko.sh/piko/wdk/safedisk"
@@ -82,6 +83,9 @@ var (
 	{{- if .RequiresMarkdown}}
 		"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
 	{{- end}}
+	{{- if .RequiresCaptcha}}
+		"piko.sh/piko/wdk/captcha/captcha_provider_hmac_challenge"
+	{{- end}}
 	)
 
 	func main() {
@@ -91,10 +95,27 @@ var (
 		}
 		port, _ := strconv.Atoi(portString)
 
+	{{- if .RequiresCaptcha}}
+		captchaProvider, captchaErr := captcha_provider_hmac_challenge.NewProvider(captcha_provider_hmac_challenge.Config{
+			Secret: []byte("e2e-browser-harness-captcha-secret"),
+		})
+		if captchaErr != nil {
+			fmt.Fprintf(os.Stderr, "Captcha provider error: %v\n", captchaErr)
+			os.Exit(1)
+		}
+	{{- end}}
+
 		server := piko.New(
 			piko.WithCSSReset(piko.WithCSSResetComplete()),
 	{{- if .RequiresMarkdown}}
 			piko.WithMarkdownParser(markdown_provider_goldmark.NewParser()),
+	{{- end}}
+	{{- if .RequiresRateLimit}}
+			piko.WithRateLimitEnabled(true),
+	{{- end}}
+	{{- if .RequiresCaptcha}}
+			piko.WithCaptchaProvider("hmac_challenge", captchaProvider),
+			piko.WithDefaultCaptchaProvider("hmac_challenge"),
 	{{- end}}
 		)
 		server.Configure(piko.PublicConfig{
@@ -185,6 +206,21 @@ func (h *E2EBrowserHarness) BuildServer() error {
 	if h.Spec.RequiresMarkdown {
 		serverOptions = append(serverOptions, piko.WithMarkdownParser(markdown_provider_goldmark.NewParser()))
 	}
+	if h.Spec.RequiresRateLimit {
+		serverOptions = append(serverOptions, piko.WithRateLimitEnabled(true))
+	}
+	if h.Spec.RequiresCaptcha {
+		captchaProvider, captchaErr := captcha_provider_hmac_challenge.NewProvider(captcha_provider_hmac_challenge.Config{
+			Secret: []byte("e2e-browser-harness-captcha-secret"),
+		})
+		if captchaErr != nil {
+			return fmt.Errorf("creating captcha provider: %w", captchaErr)
+		}
+		serverOptions = append(serverOptions,
+			piko.WithCaptchaProvider("hmac_challenge", captchaProvider),
+			piko.WithDefaultCaptchaProvider("hmac_challenge"),
+		)
+	}
 	server := piko.New(serverOptions...)
 	err = server.Generate(context.Background(), piko.GenerateModeAll)
 	server.Close()
@@ -268,7 +304,13 @@ func (h *E2EBrowserHarness) BuildServer() error {
 	}
 	defer func() { _ = mainGoFile.Close() }()
 
-	if err := mainGoTemplate.Execute(mainGoFile, map[string]any{"ModuleName": moduleName, "RequiresMarkdown": h.Spec.RequiresMarkdown}); err != nil {
+	templateData := map[string]any{
+		"ModuleName":        moduleName,
+		"RequiresMarkdown":  h.Spec.RequiresMarkdown,
+		"RequiresRateLimit": h.Spec.RequiresRateLimit,
+		"RequiresCaptcha":   h.Spec.RequiresCaptcha,
+	}
+	if err := mainGoTemplate.Execute(mainGoFile, templateData); err != nil {
 		return fmt.Errorf("executing main.go template: %w", err)
 	}
 

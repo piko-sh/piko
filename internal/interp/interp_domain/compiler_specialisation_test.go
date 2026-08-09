@@ -31,7 +31,7 @@ func makeTypeParam(name string) *types.TypeParam {
 	anyType := types.Universe.Lookup("any").Type()
 	constraint, ok := anyType.Underlying().(*types.Interface)
 	if !ok {
-		panic("any's underlying type is not an interface -- go/types invariant broken")
+		panic("any's underlying type is not an interface, so a go/types invariant is broken")
 	}
 	return types.NewTypeParam(tname, constraint)
 }
@@ -74,7 +74,7 @@ func TestSubstituteTypePointerOfTypeParam(t *testing.T) {
 	resultPointer, ok := result.(*types.Pointer)
 	require.True(t, ok, "result must be a *types.Pointer")
 	require.Same(t, intType, resultPointer.Elem(),
-		"the pointer's element type must be the substituted concrete type -- without this every generic path that takes a pointer parameter would fail to specialise correctly")
+		"the pointer's element type must be the substituted concrete type; without this every generic path that takes a pointer parameter would fail to specialise correctly")
 }
 
 func TestSubstituteTypeSliceOfTypeParam(t *testing.T) {
@@ -87,7 +87,7 @@ func TestSubstituteTypeSliceOfTypeParam(t *testing.T) {
 	resultSlice, ok := result.(*types.Slice)
 	require.True(t, ok, "result must be a *types.Slice")
 	require.Same(t, intType, resultSlice.Elem(),
-		"slice element substitution must recurse -- the body of a generic that ranges []T relies on this for typed-bank slice ops")
+		"slice element substitution must recurse, because the body of a generic that ranges []T relies on this for typed-bank slice ops")
 }
 
 func TestSubstituteTypeMapOfTypeParams(t *testing.T) {
@@ -102,7 +102,7 @@ func TestSubstituteTypeMapOfTypeParams(t *testing.T) {
 	resultMap, ok := result.(*types.Map)
 	require.True(t, ok, "result must be a *types.Map")
 	require.Same(t, stringType, resultMap.Key(),
-		"map key substitution -- both K and V must resolve independently to support multi-param generics")
+		"map key substitution: both K and V must resolve independently to support multi-param generics")
 	require.Same(t, intType, resultMap.Elem(),
 		"map value substitution")
 }
@@ -119,7 +119,7 @@ func TestSubstituteTypeArrayOfTypeParam(t *testing.T) {
 	require.Same(t, intType, resultArray.Elem(),
 		"array element substitution preserves the length while replacing the element type")
 	require.Equal(t, int64(5), resultArray.Len(),
-		"array length must round-trip -- a generic [N]T with concrete N stays the same N after substitution")
+		"array length must round-trip: a generic [N]T with concrete N stays the same N after substitution")
 }
 
 func TestSubstituteTypeChanOfTypeParam(t *testing.T) {
@@ -132,7 +132,7 @@ func TestSubstituteTypeChanOfTypeParam(t *testing.T) {
 	resultChan, ok := result.(*types.Chan)
 	require.True(t, ok, "result must be a *types.Chan")
 	require.Same(t, intType, resultChan.Elem(),
-		"channel element substitution -- generic chan T must specialise to concrete chan int")
+		"channel element substitution: generic chan T must specialise to concrete chan int")
 	require.Equal(t, types.SendOnly, resultChan.Dir(),
 		"channel direction must be preserved")
 }
@@ -150,7 +150,7 @@ func TestSubstituteTypeNestedComposite(t *testing.T) {
 	resultPointer, ok := resultSlice.Elem().(*types.Pointer)
 	require.True(t, ok)
 	require.Same(t, intType, resultPointer.Elem(),
-		"deeply nested substitution must propagate through every layer -- without this []*Box[T] in a generic body would fail to specialise correctly")
+		"deeply nested substitution must propagate through every layer; without this []*Box[T] in a generic body would fail to specialise correctly")
 }
 
 func TestSubstituteTypeIdentityWhenNoSubstitutionApplies(t *testing.T) {
@@ -176,7 +176,7 @@ func TestSubstituteTypeStructFieldWithTypeParam(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, resultStruct.NumFields())
 	require.Same(t, intType, resultStruct.Field(0).Type(),
-		"struct field substitution -- Box[T]{Value T} must specialise to Box[int]{Value int}")
+		"struct field substitution: Box[T]{Value T} must specialise to Box[int]{Value int}")
 	require.Equal(t, `json:"value"`, resultStruct.Tag(0),
 		"struct field tags must be preserved across substitution")
 }
@@ -195,7 +195,7 @@ func TestSubstituteTypeSignatureWithTypeParamParam(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, resultSig.Params().Len())
 	require.Same(t, intType, resultSig.Params().At(0).Type(),
-		"signature param substitution -- func(T) T must specialise to func(int) int when T->int")
+		"signature param substitution: func(T) T must specialise to func(int) int when T->int")
 	require.Equal(t, 1, resultSig.Results().Len())
 	require.Same(t, intType, resultSig.Results().At(0).Type(),
 		"signature result substitution")
@@ -211,5 +211,5 @@ func TestSubstituteTypeCacheReusesResults(t *testing.T) {
 	first := substituteType(slice, subs, cache)
 	second := substituteType(slice, subs, cache)
 	require.Same(t, first, second,
-		"the cache must return the same constructed type on repeated lookups -- without this, deeply nested generic bodies would allocate a fresh substituted slice/map/etc. for every reference, multiplying the substitution cost")
+		"the cache must return the same constructed type on repeated lookups; without this, deeply nested generic bodies would allocate a fresh substituted slice/map/etc. for every reference, multiplying the substitution cost")
 }

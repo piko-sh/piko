@@ -95,7 +95,7 @@ const (
 	WatchdogEventPreviousCrashClassified WatchdogEventType = "previous_crash_classified"
 
 	// WatchdogEventRoutineProfileCaptured is emitted (when notification is enabled) for each
-	// continuous-profiling routine capture. Informational only -- do not page on this event.
+	// continuous-profiling routine capture. Informational only; do not page on this event.
 	WatchdogEventRoutineProfileCaptured WatchdogEventType = "routine_profile_captured"
 
 	// WatchdogEventContentionDiagnostic is emitted at the start and end of a contention
@@ -276,7 +276,7 @@ func NewFDPressureEvent(fdCount int32, fdLimitSoft int64, thresholdPercent float
 // Takes latencyP99 (time.Duration) which is the observed p99 latency.
 // Takes threshold (time.Duration) which is the configured threshold.
 // Takes consecutiveCount (int) which is the count of consecutive triggers inside the
-// rule's tracking window -- used by the contention diagnostic to decide whether to
+// rule's tracking window, used by the contention diagnostic to decide whether to
 // escalate.
 //
 // Returns WatchdogEvent which describes the scheduler latency anomaly.

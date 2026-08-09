@@ -498,7 +498,7 @@ type operationInstrumentation struct {
 // failure.
 // Takes isSuccess (func(*Response) bool) indicating whether the response succeeded.
 //
-// Returns (*Response, error); the error is always nil -- failures are encoded in the
+// Returns (*Response, error); the error is always nil because failures are encoded in the
 // response.
 func instrumentedOperation[Response any](
 	ctx context.Context,

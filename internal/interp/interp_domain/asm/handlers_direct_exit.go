@@ -30,10 +30,10 @@
 // Each stub is the composition of two existing ArchitecturePort
 // primitives:
 //
-//   DecrementProgramCounter()  -- un-advance R14 / R20 so the Go
+//   DecrementProgramCounter()  -> un-advance R14 / R20 so the Go
 //                                 handler reads the instruction that
 //                                 just triggered the exit.
-//   ExitWithReason(reason)     -- write the reason byte + PC into
+//   ExitWithReason(reason)     -> write the reason byte + PC into
 //                                 ctx and RET to Go.
 //
 // So there is no per-arch direct-exit emitter: the per-arch arch
