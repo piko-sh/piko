@@ -148,50 +148,83 @@ func ConvertEsbuildToTdewolff(esbuildAST *js_ast.AST, registry *RegistryContext)
 	return tdewolffAST, nil
 }
 
-// PrintExpr converts a JavaScript AST expression to source code.
+// printExpression converts a JavaScript AST expression to source code for an
+// AssignmentExpression slot.
 //
 // Takes expression (js_ast.Expr) which is the expression to convert.
 // Takes registry (*RegistryContext) which looks up names for identifiers that were
 // created by hand.
 //
-// Returns string which is the JavaScript source code, or an empty string if the
-// expression is nil or conversion fails.
-func PrintExpr(expression js_ast.Expr, registry *RegistryContext) string {
+// Returns string which is the JavaScript source code, or an empty string for a nil
+// expression.
+// Returns error when the expression cannot be converted or normalised.
+func printExpression(expression js_ast.Expr, registry *RegistryContext) (string, error) {
+	return printExpressionAt(expression, registry, parsejs.OpAssign)
+}
+
+// printExpressionAt converts a JavaScript AST expression to source code, with the
+// brackets the target slot needs.
+//
+// Takes expression (js_ast.Expr) which is the expression to convert.
+// Takes registry (*RegistryContext) which looks up names for identifiers that were
+// created by hand.
+// Takes required (parsejs.OpPrec) which is the minimum precedence the slot accepts.
+//
+// Returns string which is the JavaScript source code, or an empty string for a nil
+// expression.
+// Returns error when the expression cannot be converted or normalised.
+func printExpressionAt(expression js_ast.Expr, registry *RegistryContext, required parsejs.OpPrec) (string, error) {
 	if expression.Data == nil {
-		return ""
+		return "", nil
 	}
 
 	converter := NewASTConverter(nil, nil, registry)
 	tdewolffExpr, err := converter.convertExpression(expression)
-	if err != nil || tdewolffExpr == nil {
-		return ""
+	if err != nil {
+		return "", fmt.Errorf("converting expression for printing: %w", err)
+	}
+	if tdewolffExpr == nil {
+		return "", nil
+	}
+
+	tdewolffExpr, err = normaliseExpression(tdewolffExpr, required)
+	if err != nil {
+		return "", fmt.Errorf("normalising expression for printing: %w", err)
 	}
 
 	var builder strings.Builder
 	tdewolffExpr.JS(&builder)
-	return builder.String()
+	return builder.String(), nil
 }
 
-// PrintStatement converts a single JavaScript AST statement to source code.
+// printStatement converts a single JavaScript AST statement to source code.
 //
 // Takes statement (js_ast.Stmt) which is the statement to convert.
 // Takes registry (*RegistryContext) which provides name lookup for identifiers that were
 // created by hand.
 //
-// Returns string which contains the JavaScript source code.
-// Returns an empty string if the statement is nil or conversion fails.
-func PrintStatement(statement js_ast.Stmt, registry *RegistryContext) string {
+// Returns string which contains the JavaScript source code, or an empty string for a nil
+// statement.
+// Returns error when the statement cannot be converted or normalised.
+func printStatement(statement js_ast.Stmt, registry *RegistryContext) (string, error) {
 	if statement.Data == nil {
-		return ""
+		return "", nil
 	}
 
 	converter := NewASTConverter(nil, nil, registry)
 	tdewolffStmt, err := converter.convertStatement(statement)
-	if err != nil || tdewolffStmt == nil {
-		return ""
+	if err != nil {
+		return "", fmt.Errorf("converting statement for printing: %w", err)
+	}
+	if tdewolffStmt == nil {
+		return "", nil
+	}
+
+	if err := normaliseStatement(tdewolffStmt); err != nil {
+		return "", fmt.Errorf("normalising statement for printing: %w", err)
 	}
 
 	var builder strings.Builder
 	tdewolffStmt.JS(&builder)
-	return builder.String()
+	return builder.String(), nil
 }

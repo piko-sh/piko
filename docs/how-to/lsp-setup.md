@@ -58,7 +58,7 @@ The Piko Zed extension lives under [`plugins/zed/`](https://github.com/piko-sh/p
 Install `pikopls` first so it is on `PATH` under that exact name. `make build-lsp` produces `./bin/lsp/pikopls`; copy it onto `PATH` (`cp bin/lsp/pikopls /usr/local/bin/`). You can also `go install piko.sh/piko/cmd/pikopls@latest`, but Go names the binary after the package's last path segment (`lsp`), so rename it: `mv "$(go env GOBIN)/lsp" "$(go env GOBIN)/pikopls"` (falling back to `"$(go env GOPATH)/bin"` when `GOBIN` is empty). Then install the extension from the editor:
 
 1. Open Zed.
-2. Command palette → **zed: install dev extension**.
+2. Command palette, then **zed: install dev extension**.
 3. Select the `plugins/zed/` directory.
 
 Zed resolves the language server in order: an explicit `lsp.pikopls.binary.path` setting, then `pikopls` on `PATH`, then a download of the matching `pikopls` asset from [GitHub releases](https://github.com/piko-sh/piko/releases). To point at a custom build, add to your Zed `settings.json`:

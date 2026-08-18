@@ -839,3 +839,74 @@ func TestValidateAST_DuplicateAttribute(t *testing.T) {
 		assert.Empty(t, tree.Diagnostics)
 	})
 }
+
+func TestValidateAST_StaticMemoAttribute(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should warn when _memo is written as a static attribute", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<li _memo="row"></li>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assertHasValidationError(t, tree, Warning, "'_memo' attribute is set statically")
+	})
+
+	t.Run("should treat differing case as the same reserved attribute", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<li _MEMO="row"></li>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assertHasValidationError(t, tree, Warning, "attribute is set statically")
+	})
+
+	t.Run("should not warn for the p-memo directive", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<li p-for="row in state.Rows" p-key="row.ID" p-memo="row"></li>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assert.Empty(t, tree.Diagnostics)
+	})
+
+	t.Run("should not warn for a bound :_memo prop", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<li p-for="row in state.Rows" p-key="row.ID" :_memo="row"></li>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assert.Empty(t, tree.Diagnostics)
+	})
+
+	t.Run("should not warn for unrelated static attributes", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<li data-memo="row"></li>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assert.Empty(t, tree.Diagnostics)
+	})
+}
+
+func TestValidateAST_DirectivePrecedenceCoversMemo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should warn when p-memo is written before p-for", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<li p-memo="row" p-for="row in state.Rows" p-key="row.ID"></li>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assertHasValidationError(t, tree, Warning, "`p-memo` is written before `p-for`")
+	})
+
+	t.Run("should not warn when p-memo follows p-for", func(t *testing.T) {
+		t.Parallel()
+
+		source := `<li p-for="row in state.Rows" p-key="row.ID" p-memo="row"></li>`
+		tree := parseForValidation(t, source)
+		ValidateAST(tree)
+		assert.Empty(t, tree.Diagnostics)
+	})
+}

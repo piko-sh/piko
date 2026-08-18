@@ -20,7 +20,7 @@ CSP controls which resources a page can load. Piko offers four presets:
 |---|---|
 | `piko.WithPikoDefaultCSP()` | Default balance of safety and convenience. Recommended starting point. |
 | `piko.WithStrictCSP()` | Production sites with no inline scripts, no `eval`, and a locked-down allow-list. |
-| `piko.WithRelaxedCSP()` | Legacy content that cannot yet meet strict rules; use as a migration stepping stone. |
+| `piko.WithRelaxedCSP()` | Legacy content that cannot meet the strict rules. Use it while migrating. |
 | `piko.WithAPICSP()` | API-only deployments with no HTML output; minimal policy. |
 
 ```go

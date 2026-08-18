@@ -229,6 +229,105 @@ function normaliseChildren(children) {
 function isDef(x) {
   return x != null;
 }
+const arrayMutatorMethods = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
+const REACTIVE_RAW = /* @__PURE__ */ Symbol.for("piko.reactivity.rawTarget");
+function toRaw(value) {
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+  const raw = value[REACTIVE_RAW];
+  return raw === void 0 ? value : raw;
+}
+function makeReactive(target, context, parentProp) {
+  if (typeof target !== "object" || target === null) {
+    return target;
+  }
+  if (target instanceof Node || isNonReactiveBuiltin(target)) {
+    return target;
+  }
+  if (Array.isArray(target)) {
+    return createArrayProxy(target, context, parentProp);
+  }
+  return createObjectProxy(target, context);
+}
+function isNonReactiveBuiltin(value) {
+  return value instanceof Date || value instanceof RegExp || value instanceof Map || value instanceof Set || value instanceof WeakMap || value instanceof WeakSet || value instanceof Promise;
+}
+function mustReturnRawValue(target, prop) {
+  const descriptor = Object.getOwnPropertyDescriptor(target, prop);
+  return descriptor?.configurable === false && descriptor.writable === false;
+}
+function createArrayProxy(arr, context, parentProp) {
+  return new Proxy(arr, {
+    get(target, prop, receiver) {
+      if (prop === REACTIVE_RAW) {
+        return target;
+      }
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof prop === "string" && arrayMutatorMethods.includes(prop) && typeof value === "function") {
+        return function(...args) {
+          const result = value.apply(target, args);
+          if (context?.changedPropsSet && parentProp) {
+            context.changedPropsSet.add(parentProp);
+          }
+          if (context?.scheduleRender) {
+            context.scheduleRender();
+          }
+          return result;
+        };
+      }
+      if (typeof value === "object" && value !== null && !(value instanceof Node)) {
+        if (mustReturnRawValue(target, prop)) {
+          return value;
+        }
+        return makeReactive(value, context, parentProp);
+      }
+      return value;
+    },
+    set(target, prop, value) {
+      target[prop] = value;
+      if (context?.changedPropsSet && parentProp) {
+        context.changedPropsSet.add(parentProp);
+      }
+      if (context?.scheduleRender) {
+        context.scheduleRender();
+      }
+      return true;
+    }
+  });
+}
+function createObjectProxy(target, context) {
+  return new Proxy(target, {
+    get(proxyTarget, prop, receiver) {
+      if (prop === REACTIVE_RAW) {
+        return proxyTarget;
+      }
+      const value = Reflect.get(proxyTarget, prop, receiver);
+      if (typeof value === "object" && value !== null && !(value instanceof Node)) {
+        if (mustReturnRawValue(proxyTarget, prop)) {
+          return value;
+        }
+        const propKey = typeof prop === "string" ? prop : String(prop);
+        return makeReactive(value, context, propKey);
+      }
+      return value;
+    },
+    set(proxyTarget, prop, value) {
+      const oldVal = proxyTarget[prop];
+      if (oldVal === value && typeof value !== "object") {
+        return true;
+      }
+      proxyTarget[prop] = value;
+      if (context?.changedPropsSet && typeof prop === "string") {
+        context.changedPropsSet.add(prop);
+      }
+      if (context?.scheduleRender) {
+        context.scheduleRender();
+      }
+      return true;
+    }
+  });
+}
 function isUndef(x) {
   return x === void 0 || x === null;
 }
@@ -253,6 +352,10 @@ function createKeyToOldIdxMap(children, beginIndex, endIndex) {
 }
 function getHiddenNodeType(vnode) {
   return vnode._type === "fragment" ? "fragment" : "node";
+}
+const RESERVED_PROPS = ["_k", "_c", "_s", "_memo", "class", "_class", "style", "_style"];
+function isReservedProp(propName) {
+  return RESERVED_PROPS.includes(propName);
 }
 function parseClassData(value) {
   let classes = "";
@@ -607,6 +710,10 @@ function patchElementVNode(domElement, oldVNode, newVNode, refs) {
     });
     return;
   }
+  if (canSkipPatchByMemo(oldVNode, newVNode)) {
+    newVNode.children = oldVNode.children;
+    return;
+  }
   patchProps(domElement, oldVNode.props ?? {}, newVNode.props ?? {}, refs);
   if (newVNode.html != null) {
     if (oldVNode.children && oldVNode.children.length > 0) {
@@ -778,16 +885,18 @@ function updateChildren(parentElement, oldChildren, newChildren, refs, overallIn
     addRemainingNewChildren(newChildren, newStartIdx, newEndIdx, parentElement, refs, overallInsertBeforeNode);
   }
 }
-function eventHandlersEqual(a, b) {
-  if (a === b) {
+function canSkipPatchByMemo(oldVNode, newVNode) {
+  const oldMemo = oldVNode.props ? oldVNode.props["_memo"] : void 0;
+  const newMemo = newVNode.props ? newVNode.props["_memo"] : void 0;
+  return oldMemo !== void 0 && newMemo !== void 0 && memoDependenciesEqual(oldMemo, newMemo);
+}
+function memoDependenciesEqual(a, b) {
+  if (toRaw(a) === toRaw(b)) {
     return true;
   }
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) {
-      return false;
-    }
+  if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) {
     for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) {
+      if (toRaw(a[i]) !== toRaw(b[i])) {
         return false;
       }
     }
@@ -795,13 +904,13 @@ function eventHandlersEqual(a, b) {
   }
   return false;
 }
-function removeStaleEventListener(htmlElement, propName, oldProps, newProps) {
-  if (propName in newProps && eventHandlersEqual(oldProps[propName], newProps[propName])) {
+function removeStaleEventListener(htmlElement, propName, newProps) {
+  if (propName in newProps) {
     return;
   }
-  const prefixLen = propName.startsWith("pe:") ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH;
-  const parsed = parseEventPropKey(propName, prefixLen);
-  toggleListener(htmlElement, parsed.eventName, oldProps[propName], false, parsed.listenerOptions);
+  const isCustom = propName.startsWith("pe:");
+  const parsed = parseEventPropKey(propName, isCustom ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH);
+  setManagedListener(htmlElement, eventPropNamespace(propName), parsed.eventName, void 0, parsed.listenerOptions);
 }
 function removeStaleProps(htmlElement, oldProps, newProps, refs) {
   for (const propName in oldProps) {
@@ -811,10 +920,10 @@ function removeStaleProps(htmlElement, oldProps, newProps, refs) {
     if (propName.startsWith("?")) {
       htmlElement.removeAttribute(propName.slice(1));
     } else if (propName.startsWith("on") || propName.startsWith("pe:")) {
-      removeStaleEventListener(htmlElement, propName, oldProps, newProps);
+      removeStaleEventListener(htmlElement, propName, newProps);
     } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName]] === htmlElement) {
       delete refs[oldProps[propName]];
-    } else if (!["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
+    } else if (!isReservedProp(propName)) {
       htmlElement.removeAttribute(propName);
     }
   }
@@ -855,20 +964,16 @@ function applyPropValue(htmlElement, propName, oldValue, newValue, refs) {
     }
     return;
   }
-  if (propName.startsWith("on")) {
-    const parsed = parseEventPropKey(propName, PREFIX_ON_LENGTH);
-    if (!eventHandlersEqual(oldValue, newValue)) {
-      toggleListener(htmlElement, parsed.eventName, oldValue, false, parsed.listenerOptions);
-      toggleListener(htmlElement, parsed.eventName, newValue, true, parsed.listenerOptions);
-    }
-    return;
-  }
-  if (propName.startsWith("pe:")) {
-    const parsed = parseEventPropKey(propName, PREFIX_PE_LENGTH);
-    if (!eventHandlersEqual(oldValue, newValue)) {
-      toggleListener(htmlElement, parsed.eventName, oldValue, false, parsed.listenerOptions);
-      toggleListener(htmlElement, parsed.eventName, newValue, true, parsed.listenerOptions);
-    }
+  if (propName.startsWith("on") || propName.startsWith("pe:")) {
+    const isCustom = propName.startsWith("pe:");
+    const parsed = parseEventPropKey(propName, isCustom ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH);
+    setManagedListener(
+      htmlElement,
+      eventPropNamespace(propName),
+      parsed.eventName,
+      newValue,
+      parsed.listenerOptions
+    );
     return;
   }
   if (propName === "_ref") {
@@ -889,7 +994,7 @@ function applyNewProps(htmlElement, oldProps, newProps, refs) {
   for (const propName in newProps) {
     const newValue = newProps[propName];
     const oldValue = oldProps[propName];
-    if (["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
+    if (isReservedProp(propName)) {
       continue;
     }
     if (propName !== "value" && newValue === oldValue && typeof newValue !== "function") {
@@ -964,24 +1069,72 @@ function parseEventPropKey(propName, prefixLen) {
   }
   return { eventName, listenerOptions: opts };
 }
-function toggleListener(htmlElement, eventName, handler, add, listenerOptions) {
-  if (!handler) {
-    return;
-  }
+const MANAGED_LISTENERS = /* @__PURE__ */ Symbol("pikoManagedListeners");
+function eventPropNamespace(propName) {
+  return propName.startsWith("pe:") ? "pe" : "on";
+}
+function effectiveListenerOptions(eventName, listenerOptions) {
   const options = { ...listenerOptions };
   if ((eventName === "focus" || eventName === "blur") && options.capture === void 0) {
     options.capture = true;
   }
-  const method = add ? "addEventListener" : "removeEventListener";
-  if (Array.isArray(handler)) {
-    for (const func of handler) {
-      if (typeof func === "function") {
-        htmlElement[method](eventName, func, options);
-      }
-    }
-  } else if (typeof handler === "function") {
-    htmlElement[method](eventName, handler, options);
+  return options;
+}
+function invokeManagedHandler(handler, htmlElement, event) {
+  if (typeof handler !== "function") {
+    return;
   }
+  try {
+    handler.call(htmlElement, event);
+  } catch (error) {
+    queueMicrotask(() => {
+      throw error;
+    });
+  }
+}
+function setManagedListener(htmlElement, namespace, eventName, handler, listenerOptions) {
+  const options = effectiveListenerOptions(eventName, listenerOptions);
+  const flags = `${options.capture ? "c" : ""}${options.once ? "o" : ""}${options.passive ? "p" : ""}`;
+  const key = `${namespace}|${eventName}|${flags}`;
+  const host = htmlElement;
+  let map = host[MANAGED_LISTENERS];
+  if (!handler) {
+    const entry2 = map ? map.get(key) : void 0;
+    if (entry2 && map) {
+      htmlElement.removeEventListener(eventName, entry2.dispatch, entry2.options);
+      map.delete(key);
+    }
+    return;
+  }
+  if (!map) {
+    map = /* @__PURE__ */ new Map();
+    host[MANAGED_LISTENERS] = map;
+  }
+  const existing = map.get(key);
+  if (existing) {
+    existing.handler = handler;
+    return;
+  }
+  const entries = map;
+  const entry = {
+    handler,
+    options,
+    dispatch(e) {
+      if (entry.options.once) {
+        entries.delete(key);
+      }
+      const current = entry.handler;
+      if (Array.isArray(current)) {
+        for (const fn of current) {
+          invokeManagedHandler(fn, htmlElement, e);
+        }
+        return;
+      }
+      invokeManagedHandler(current, htmlElement, e);
+    }
+  };
+  map.set(key, entry);
+  htmlElement.addEventListener(eventName, entry.dispatch, options);
 }
 function isSvgParent(parent) {
   return parent instanceof Element && parent.namespaceURI === SVG_NS && parent.localName.toLowerCase() !== FOREIGN_OBJECT_TAG;
@@ -2048,98 +2201,6 @@ function registerPikoSvgInline() {
   if (!customElements.get("piko-svg-inline")) {
     customElements.define("piko-svg-inline", PikoSvgInline);
   }
-}
-const arrayMutatorMethods = ["push", "pop", "shift", "unshift", "splice", "sort", "reverse"];
-const REACTIVE_RAW = /* @__PURE__ */ Symbol.for("piko.reactivity.rawTarget");
-function makeReactive(target, context, parentProp) {
-  if (typeof target !== "object" || target === null) {
-    return target;
-  }
-  if (target instanceof Node || isNonReactiveBuiltin(target)) {
-    return target;
-  }
-  if (Array.isArray(target)) {
-    return createArrayProxy(target, context, parentProp);
-  }
-  return createObjectProxy(target, context);
-}
-function isNonReactiveBuiltin(value) {
-  return value instanceof Date || value instanceof RegExp || value instanceof Map || value instanceof Set || value instanceof WeakMap || value instanceof WeakSet || value instanceof Promise;
-}
-function mustReturnRawValue(target, prop) {
-  const descriptor = Object.getOwnPropertyDescriptor(target, prop);
-  return descriptor?.configurable === false && descriptor.writable === false;
-}
-function createArrayProxy(arr, context, parentProp) {
-  return new Proxy(arr, {
-    get(target, prop, receiver) {
-      if (prop === REACTIVE_RAW) {
-        return target;
-      }
-      const value = Reflect.get(target, prop, receiver);
-      if (typeof prop === "string" && arrayMutatorMethods.includes(prop) && typeof value === "function") {
-        return function(...args) {
-          const result = value.apply(target, args);
-          if (context?.changedPropsSet && parentProp) {
-            context.changedPropsSet.add(parentProp);
-          }
-          if (context?.scheduleRender) {
-            context.scheduleRender();
-          }
-          return result;
-        };
-      }
-      if (typeof value === "object" && value !== null && !(value instanceof Node)) {
-        if (mustReturnRawValue(target, prop)) {
-          return value;
-        }
-        return makeReactive(value, context, parentProp);
-      }
-      return value;
-    },
-    set(target, prop, value) {
-      target[prop] = value;
-      if (context?.changedPropsSet && parentProp) {
-        context.changedPropsSet.add(parentProp);
-      }
-      if (context?.scheduleRender) {
-        context.scheduleRender();
-      }
-      return true;
-    }
-  });
-}
-function createObjectProxy(target, context) {
-  return new Proxy(target, {
-    get(proxyTarget, prop, receiver) {
-      if (prop === REACTIVE_RAW) {
-        return proxyTarget;
-      }
-      const value = Reflect.get(proxyTarget, prop, receiver);
-      if (typeof value === "object" && value !== null && !(value instanceof Node)) {
-        if (mustReturnRawValue(proxyTarget, prop)) {
-          return value;
-        }
-        const propKey = typeof prop === "string" ? prop : String(prop);
-        return makeReactive(value, context, propKey);
-      }
-      return value;
-    },
-    set(proxyTarget, prop, value) {
-      const oldVal = proxyTarget[prop];
-      if (oldVal === value && typeof value !== "object") {
-        return true;
-      }
-      proxyTarget[prop] = value;
-      if (context?.changedPropsSet && typeof prop === "string") {
-        context.changedPropsSet.add(prop);
-      }
-      if (context?.scheduleRender) {
-        context.scheduleRender();
-      }
-      return true;
-    }
-  });
 }
 registerPikoSvgInline();
 export {

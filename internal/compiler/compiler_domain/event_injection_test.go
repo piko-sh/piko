@@ -880,7 +880,8 @@ func TestEncodeEventHandlerArgs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			registry := NewRegistryContext()
 			arguments := tc.arguments(registry)
-			got := encodeEventHandlerArgs(arguments, nil, registry)
+			got, err := encodeEventHandlerArgs(arguments, registry)
+			require.NoError(t, err)
 			assert.Equal(t, tc.wantPart, got)
 		})
 	}
@@ -890,25 +891,33 @@ func TestUsesLoopVar(t *testing.T) {
 	t.Run("returns false for empty loop var names", func(t *testing.T) {
 		registry := NewRegistryContext()
 		arguments := []js_ast.Expr{registry.MakeIdentifierExpr("item")}
-		assert.False(t, usesLoopVar(arguments, nil, registry))
+		used, err := usesLoopVar(arguments, nil, registry)
+		require.NoError(t, err)
+		assert.False(t, used)
 	})
 
 	t.Run("returns false for empty loop var slice", func(t *testing.T) {
 		registry := NewRegistryContext()
 		arguments := []js_ast.Expr{registry.MakeIdentifierExpr("item")}
-		assert.False(t, usesLoopVar(arguments, []string{}, registry))
+		used, err := usesLoopVar(arguments, []string{}, registry)
+		require.NoError(t, err)
+		assert.False(t, used)
 	})
 
 	t.Run("returns true when argument matches loop var", func(t *testing.T) {
 		registry := NewRegistryContext()
 		arguments := []js_ast.Expr{registry.MakeIdentifierExpr("item")}
-		assert.True(t, usesLoopVar(arguments, []string{"item"}, registry))
+		used, err := usesLoopVar(arguments, []string{"item"}, registry)
+		require.NoError(t, err)
+		assert.True(t, used)
 	})
 
 	t.Run("returns false when no arguments match loop vars", func(t *testing.T) {
 		registry := NewRegistryContext()
 		arguments := []js_ast.Expr{registry.MakeIdentifierExpr("other")}
-		assert.False(t, usesLoopVar(arguments, []string{"item"}, registry))
+		used, err := usesLoopVar(arguments, []string{"item"}, registry)
+		require.NoError(t, err)
+		assert.False(t, used)
 	})
 
 	t.Run("returns true when one of several arguments matches", func(t *testing.T) {
@@ -917,7 +926,9 @@ func TestUsesLoopVar(t *testing.T) {
 			registry.MakeIdentifierExpr("other"),
 			registry.MakeIdentifierExpr("item"),
 		}
-		assert.True(t, usesLoopVar(arguments, []string{"item"}, registry))
+		used, err := usesLoopVar(arguments, []string{"item"}, registry)
+		require.NoError(t, err)
+		assert.True(t, used)
 	})
 }
 
@@ -925,7 +936,8 @@ func TestFindUsedLoopVars(t *testing.T) {
 	t.Run("returns matching loop vars", func(t *testing.T) {
 		registry := NewRegistryContext()
 		arguments := []js_ast.Expr{registry.MakeIdentifierExpr("item")}
-		result := findUsedLoopVars(arguments, []string{"item", "index"}, registry)
+		result, err := findUsedLoopVars(arguments, []string{"item", "index"}, registry)
+		require.NoError(t, err)
 		assert.Equal(t, []string{"item"}, result)
 	})
 
@@ -935,20 +947,23 @@ func TestFindUsedLoopVars(t *testing.T) {
 			registry.MakeIdentifierExpr("item"),
 			registry.MakeIdentifierExpr("index"),
 		}
-		result := findUsedLoopVars(arguments, []string{"item", "index"}, registry)
+		result, err := findUsedLoopVars(arguments, []string{"item", "index"}, registry)
+		require.NoError(t, err)
 		assert.Equal(t, []string{"item", "index"}, result)
 	})
 
 	t.Run("returns nil for no matches", func(t *testing.T) {
 		registry := NewRegistryContext()
 		arguments := []js_ast.Expr{registry.MakeIdentifierExpr("other")}
-		result := findUsedLoopVars(arguments, []string{"item"}, registry)
+		result, err := findUsedLoopVars(arguments, []string{"item"}, registry)
+		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
 
 	t.Run("returns nil for empty arguments", func(t *testing.T) {
 		registry := NewRegistryContext()
-		result := findUsedLoopVars(nil, []string{"item"}, registry)
+		result, err := findUsedLoopVars(nil, []string{"item"}, registry)
+		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
 }
@@ -980,14 +995,16 @@ func TestBuildHOFCallExpr(t *testing.T) {
 func TestEncodeBlockStatements(t *testing.T) {
 	t.Run("returns empty string for nil block", func(t *testing.T) {
 		registry := NewRegistryContext()
-		result := encodeBlockStatements(nil, registry)
+		result, err := encodeBlockStatements(nil, registry)
+		require.NoError(t, err)
 		assert.Equal(t, "", result)
 	})
 
 	t.Run("returns empty string for empty block", func(t *testing.T) {
 		registry := NewRegistryContext()
 		block := &js_ast.SBlock{Stmts: nil}
-		result := encodeBlockStatements(block, registry)
+		result, err := encodeBlockStatements(block, registry)
+		require.NoError(t, err)
 		assert.Equal(t, "", result)
 	})
 
@@ -997,7 +1014,8 @@ func TestEncodeBlockStatements(t *testing.T) {
 		require.NoError(t, err)
 
 		block := &js_ast.SBlock{Stmts: []js_ast.Stmt{statement}}
-		result := encodeBlockStatements(block, registry)
+		result, err := encodeBlockStatements(block, registry)
+		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 	})
 }
@@ -1335,7 +1353,8 @@ func TestCreateDirectBinding(t *testing.T) {
 		assert.False(t, bindings[0].IsHOF)
 		assert.False(t, bindings[0].IsFrameworkHandler)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "handleClick.call(this, e)")
 	})
 
@@ -1354,7 +1373,8 @@ func TestCreateDirectBinding(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "handleKeydown.call(this, e)")
 	})
 
@@ -1374,7 +1394,8 @@ func TestCreateDirectBinding(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "handleClick.call(this);")
 		assert.NotContains(t, statementString, "handleClick.call(this, e)")
 	})
@@ -1395,7 +1416,8 @@ func TestCreateDirectBinding(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "handleClick.call(this, e)")
 	})
 
@@ -1417,7 +1439,8 @@ func TestCreateDirectBinding(t *testing.T) {
 		require.Len(t, bindings, 1)
 		assert.False(t, bindings[0].IsFrameworkHandler)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "handleClick.call(this, value)")
 		assert.NotContains(t, statementString, "handleClick.call(this, e)")
 	})
@@ -1441,7 +1464,8 @@ func TestCreateDirectBinding(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "handler.call(this, value, e)")
 	})
 
@@ -1660,7 +1684,8 @@ func TestCreateDirectBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "e.preventDefault()")
 		assert.Contains(t, statementString, "handleClick.call(this, e)")
 	})
@@ -1680,7 +1705,8 @@ func TestCreateDirectBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "e.stopPropagation()")
 	})
 
@@ -1699,7 +1725,8 @@ func TestCreateDirectBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "_once_click_fn_evt_1")
 	})
 
@@ -1718,7 +1745,8 @@ func TestCreateDirectBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "e.target !== e.currentTarget")
 		assert.Contains(t, statementString, "e.preventDefault()")
 		assert.Contains(t, statementString, "e.stopPropagation()")
@@ -1739,7 +1767,8 @@ func TestCreateDirectBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.NotContains(t, statementString, "preventDefault")
 		assert.NotContains(t, statementString, "stopPropagation")
 		assert.Contains(t, statementString, "handleClick.call(this, e)")
@@ -1763,7 +1792,8 @@ func TestCreateHOFBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "e.preventDefault()")
 		assert.Contains(t, statementString, "handleClick.call(this")
 	})
@@ -1784,7 +1814,8 @@ func TestCreateHOFBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, statementString, "_once_click_fn_evt_1")
 	})
 
@@ -1804,7 +1835,8 @@ func TestCreateHOFBinding_WithModifiers(t *testing.T) {
 		bindings := ec.getBindings()
 		require.Len(t, bindings, 1)
 
-		statementString := PrintStatement(bindings[0].Expression, registry)
+		statementString, err := printStatement(bindings[0].Expression, registry)
+		require.NoError(t, err)
 		assert.NotContains(t, statementString, "preventDefault")
 		assert.NotContains(t, statementString, "stopPropagation")
 		assert.Contains(t, statementString, "handleClick.call(this")

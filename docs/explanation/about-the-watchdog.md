@@ -10,7 +10,7 @@ nav:
 
 # About the watchdog
 
-External alerting tools tell an operator that *something is wrong*. They do not, on their own, tell the operator *what was happening at the moment things went wrong*. By the time the alert fires, the on-call engineer has at best a Grafana panel showing the last fifteen minutes of a metric. The state that would actually explain the failure has vanished. The heap snapshot, the goroutine stacks, and the block profile have all rolled over with the next request, the next GC cycle, and the next minute of normal operation.
+External alerting tools tell an operator that *something is wrong*. They do not, on their own, tell the operator *what was happening at the time things went wrong*. By the time the alert fires, the on-call engineer has at best a Grafana panel showing the last fifteen minutes of a metric. The state that would actually explain the failure has vanished. The heap snapshot, the goroutine stacks, and the block profile have all rolled over with the next request, the next GC cycle, and the next minute of normal operation.
 
 Piko's watchdog exists to close this gap. It runs inside the same process the operator wants to debug. It evaluates a small set of runtime thresholds on a tight loop. The moment a threshold trips, it captures the diagnostic profiles and fires a notification. The artefact and the alert ship together, from the same moment in time. This page explains why that design is the right one, what the watchdog watches, and how the budget rules keep it from becoming part of the problem.
 

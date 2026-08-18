@@ -180,17 +180,23 @@ describe("RenderScheduler", () => {
       expect(onUpdated.mock.calls[0][0].has("name")).toBe(true);
     });
 
-    it("should execute afterRender on next frame", async () => {
+    it("should execute afterRender synchronously once the patch is applied", () => {
       const afterRender = vi.fn();
       lifecycleManager.onAfterRender(afterRender);
 
       renderScheduler.render();
 
-      expect(afterRender).not.toHaveBeenCalled();
+      expect(afterRender).toHaveBeenCalledTimes(1);
+    });
 
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+    it("should execute afterRender after the VDOM has been patched", () => {
+      const callOrder: string[] = [];
+      lifecycleManager.onBeforeRender(() => callOrder.push("before"));
+      lifecycleManager.onAfterRender(() => callOrder.push("after"));
 
-      expect(afterRender).toHaveBeenCalled();
+      renderScheduler.render();
+
+      expect(callOrder).toEqual(["before", "after"]);
     });
   });
 

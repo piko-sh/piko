@@ -119,7 +119,7 @@ Both methods return `[]`/`false` before the shadow root attaches. Call them from
 
 ## When the slot is itself reactive content
 
-If your template renders the `<slot>` conditionally (`p-if`), the runtime can add or remove the slot element itself between renders. The listener attaches to the current slot element on registration. If the slot disappears and reappears across renders, re-attach the listener inside `pkc.onConnected` and let `attachSlotListener` re-bind. The runtime queues attaches when the shadow root is not yet available and replays them on attach (`flushPendingListeners`).
+If your template renders the `<slot>` conditionally (`p-if`), the runtime can add or remove the slot element itself between renders. The listener attaches to the current slot element on registration. If the slot disappears and reappears across renders, re-attach the listener inside `pkc.onConnected` and let `attachSlotListener` re-bind. The runtime queues attaches made before the shadow root exists and replays them on attach (`flushPendingListeners`).
 
 ## See also
 

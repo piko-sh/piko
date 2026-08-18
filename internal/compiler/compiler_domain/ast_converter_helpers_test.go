@@ -637,7 +637,8 @@ func TestGetClassElementName(t *testing.T) {
 			Flags:            0,
 		}
 
-		result := converter.getClassElementName(prop)
+		result, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 		assert.Equal(t, parsejs.IdentifierToken, result.Literal.TokenType)
 		assert.Equal(t, "run", string(result.Literal.Data))
 	})
@@ -658,7 +659,8 @@ func TestGetClassElementName(t *testing.T) {
 			Flags:            0,
 		}
 
-		result := converter.getClassElementName(prop)
+		result, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 		assert.Equal(t, parsejs.IdentifierToken, result.Literal.TokenType)
 	})
 
@@ -678,7 +680,8 @@ func TestGetClassElementName(t *testing.T) {
 			Flags:            0,
 		}
 
-		result := converter.getClassElementName(prop)
+		result, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 		assert.Equal(t, parsejs.StringToken, result.Literal.TokenType)
 	})
 
@@ -700,7 +703,8 @@ func TestGetClassElementName(t *testing.T) {
 			Flags:            0,
 		}
 
-		result := converter.getClassElementName(prop)
+		result, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 		assert.Equal(t, parsejs.IdentifierToken, result.Literal.TokenType)
 		assert.Equal(t, "memberName", string(result.Literal.Data))
 	})
@@ -721,7 +725,8 @@ func TestGetClassElementName(t *testing.T) {
 			Flags:            0,
 		}
 
-		result := converter.getClassElementName(prop)
+		result, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 		assert.Equal(t, "member", string(result.Literal.Data))
 	})
 
@@ -741,7 +746,8 @@ func TestGetClassElementName(t *testing.T) {
 			Flags:            0,
 		}
 
-		result := converter.getClassElementName(prop)
+		result, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 		assert.Empty(t, result.Literal.Data)
 	})
 }
@@ -776,7 +782,8 @@ func TestConvertClassMethod(t *testing.T) {
 			Kind:             js_ast.PropertyGetter,
 			Flags:            0,
 		}
-		elemName := converter.getClassElementName(prop)
+		elemName, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 
 		result, err := converter.convertClassMethod(prop, jsFunction, elemName)
 		require.NoError(t, err)
@@ -821,7 +828,8 @@ func TestConvertClassMethod(t *testing.T) {
 			Kind:             js_ast.PropertySetter,
 			Flags:            0,
 		}
-		elemName := converter.getClassElementName(prop)
+		elemName, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 
 		result, err := converter.convertClassMethod(prop, jsFunction, elemName)
 		require.NoError(t, err)
@@ -858,7 +866,8 @@ func TestConvertClassMethod(t *testing.T) {
 			Kind:             js_ast.PropertyMethod,
 			Flags:            js_ast.PropertyIsStatic,
 		}
-		elemName := converter.getClassElementName(prop)
+		elemName, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 
 		result, err := converter.convertClassMethod(prop, jsFunction, elemName)
 		require.NoError(t, err)
@@ -887,7 +896,8 @@ func TestConvertClassField(t *testing.T) {
 			Kind:             js_ast.PropertyField,
 			Flags:            0,
 		}
-		elemName := converter.getClassElementName(prop)
+		elemName, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 
 		result, err := converter.convertClassField(prop, elemName)
 		require.NoError(t, err)
@@ -910,7 +920,8 @@ func TestConvertClassField(t *testing.T) {
 			Kind:             js_ast.PropertyField,
 			Flags:            0,
 		}
-		elemName := converter.getClassElementName(prop)
+		elemName, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 
 		result, err := converter.convertClassField(prop, elemName)
 		require.NoError(t, err)
@@ -933,7 +944,8 @@ func TestConvertClassField(t *testing.T) {
 			Kind:             js_ast.PropertyField,
 			Flags:            0,
 		}
-		elemName := converter.getClassElementName(prop)
+		elemName, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 
 		result, err := converter.convertClassField(prop, elemName)
 		require.NoError(t, err)
@@ -956,7 +968,8 @@ func TestConvertClassField(t *testing.T) {
 			Kind:             js_ast.PropertyField,
 			Flags:            js_ast.PropertyIsStatic,
 		}
-		elemName := converter.getClassElementName(prop)
+		elemName, err := converter.getClassElementName(prop)
+		require.NoError(t, err)
 
 		result, err := converter.convertClassField(prop, elemName)
 		require.NoError(t, err)
@@ -1019,45 +1032,28 @@ func TestConvertUnaryOp(t *testing.T) {
 		name     string
 		op       js_ast.OpCode
 		expected parsejs.TokenType
+		wantErr  bool
 	}{
-		{name: "negate", op: js_ast.UnOpNeg, expected: parsejs.SubToken},
+		{name: "negate", op: js_ast.UnOpNeg, expected: parsejs.NegToken},
+		{name: "positive", op: js_ast.UnOpPos, expected: parsejs.PosToken},
 		{name: "not", op: js_ast.UnOpNot, expected: parsejs.NotToken},
 		{name: "typeof", op: js_ast.UnOpTypeof, expected: parsejs.TypeofToken},
 		{name: "void", op: js_ast.UnOpVoid, expected: parsejs.VoidToken},
 		{name: "delete", op: js_ast.UnOpDelete, expected: parsejs.DeleteToken},
 		{name: "pre increment", op: js_ast.UnOpPreInc, expected: parsejs.PreIncrToken},
 		{name: "post decrement", op: js_ast.UnOpPostDec, expected: parsejs.PostDecrToken},
-		{name: "unknown op defaults to not", op: js_ast.OpCode(255), expected: parsejs.NotToken},
+		{name: "unknown op errors", op: js_ast.OpCode(255), wantErr: true},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			result := convertUnaryOp(tc.op)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
-}
-
-func TestGetOpPrecedence(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name     string
-		op       js_ast.OpCode
-		expected int
-	}{
-		{name: "assign has precedence 1", op: js_ast.BinOpAssign, expected: 1},
-		{name: "add has precedence 11", op: js_ast.BinOpAdd, expected: 11},
-		{name: "mul has precedence 12", op: js_ast.BinOpMul, expected: 12},
-		{name: "pow has precedence 13", op: js_ast.BinOpPow, expected: 13},
-		{name: "unknown op has precedence 0", op: js_ast.OpCode(255), expected: 0},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			result := getOpPrecedence(tc.op)
+			result, err := convertUnaryOp(tc.op)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
 			assert.Equal(t, tc.expected, result)
 		})
 	}

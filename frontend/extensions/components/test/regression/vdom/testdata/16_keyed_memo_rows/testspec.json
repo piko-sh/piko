@@ -1,0 +1,56 @@
+{
+    "description": "Keyed rows carrying :_memo skip re-patching when their dep object is unchanged: data-render freezes at the last non-skipped render for untouched rows, updates for replaced rows, and survives keyed reorder",
+    "initialState": {
+        "gen": 1,
+        "items": [
+            { "id": "a", "label": "Apple" },
+            { "id": "b", "label": "Banana" },
+            { "id": "c", "label": "Cherry" }
+        ]
+    },
+    "initialVDOM": "dom.el('ul', 'list', {}, state.items.map((item) => dom.el('li', item.id, { _memo: item, 'data-key': item.id, 'data-render': String(state.gen) }, [dom.txt(item.label, item.id + '-t')])))",
+    "steps": [
+        {
+            "description": "Initial render stamps data-render=1 on all rows",
+            "assertions": [
+                { "selector": "li", "count": 3, "description": "Three rows" },
+                { "selector": "li[data-key=a]", "attribute": "data-render", "value": "1", "description": "Row a stamped gen 1" },
+                { "selector": "li[data-key=b]", "textContent": "Banana", "description": "Row b label" }
+            ]
+        },
+        {
+            "description": "Replace only row b's object; bump gen - rows a/c must SKIP (data-render stays 1), row b patches to gen 2",
+            "stateChanges": [
+                { "path": "gen", "value": 2 },
+                { "path": "items.1", "value": { "id": "b", "label": "Blueberry" } }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, state.items.map((item) => dom.el('li', item.id, { _memo: item, 'data-key': item.id, 'data-render': String(state.gen) }, [dom.txt(item.label, item.id + '-t')])))",
+            "assertions": [
+                { "selector": "li[data-key=a]", "attribute": "data-render", "value": "1", "description": "Row a skipped (stale stamp proves it)" },
+                { "selector": "li[data-key=c]", "attribute": "data-render", "value": "1", "description": "Row c skipped" },
+                { "selector": "li[data-key=b]", "attribute": "data-render", "value": "2", "description": "Row b re-patched" },
+                { "selector": "li[data-key=b]", "textContent": "Blueberry", "description": "Row b new label" }
+            ]
+        },
+        {
+            "description": "Reorder rows without changing objects; bump gen - order updates, every row still skips its patch",
+            "stateChanges": [
+                { "path": "gen", "value": 3 }
+            ],
+            "newVDOM": "dom.el('ul', 'list', {}, [state.items[2], state.items[0], state.items[1]].map((item) => dom.el('li', item.id, { _memo: item, 'data-key': item.id, 'data-render': String(state.gen) }, [dom.txt(item.label, item.id + '-t')])))",
+            "assertions": [
+                { "selector": "li:first-child", "attribute": "data-key", "value": "c", "description": "Row c moved first" },
+                { "selector": "li[data-key=a]", "attribute": "data-render", "value": "1", "description": "Row a still skipped across the move" },
+                { "selector": "li[data-key=b]", "attribute": "data-render", "value": "2", "description": "Row b keeps its gen-2 stamp" }
+            ]
+        },
+        {
+            "description": "Remove row a - skipped rows unmount cleanly",
+            "newVDOM": "dom.el('ul', 'list', {}, [state.items[2], state.items[1]].map((item) => dom.el('li', item.id, { _memo: item, 'data-key': item.id, 'data-render': String(state.gen) }, [dom.txt(item.label, item.id + '-t')])))",
+            "assertions": [
+                { "selector": "li", "count": 2, "description": "Two rows remain" },
+                { "selector": "li[data-key=a]", "exists": false, "description": "Row a gone" }
+            ]
+        }
+    ]
+}

@@ -33,7 +33,7 @@ if err := total.Err(); err != nil {
 // total.MustString() == "71.96"
 ```
 
-`AddPercent` is shorthand for `Multiply(1 + percent/100)`. `Round(2)` uses banker's rounding to two decimal places. The error check lives at the end of the chain. Any error earlier in the pipeline propagates through to `total.Err()`.
+`AddPercent` is shorthand for `Multiply(1 + percent/100)`. `Round(2)` uses banker's rounding to two decimal places. The error check lives at the end of the chain. Any error earlier in the chain propagates through to `total.Err()`.
 
 ## Split an invoice without losing a penny
 

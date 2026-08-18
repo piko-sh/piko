@@ -243,6 +243,9 @@ func printBasicDirectives(builder *strings.Builder, node *TemplateNode, indent s
 	if node.DirRef != nil {
 		_, _ = fmt.Fprintf(builder, "%s  - p-ref: %s\n", indent, node.DirRef.RawExpression)
 	}
+	if node.DirMemo != nil {
+		_, _ = fmt.Fprintf(builder, "%s  - p-memo: %s\n", indent, node.DirMemo.Expression.String())
+	}
 	if node.DirSlot != nil {
 		_, _ = fmt.Fprintf(builder, "%s  - p-slot: %s\n", indent, node.DirSlot.RawExpression)
 	}

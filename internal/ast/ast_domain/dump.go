@@ -289,6 +289,7 @@ func dumpDirectives(builder *strings.Builder, node *TemplateNode, nodePackageAli
 	dumpDirective(node.DirStyle, "p-style")
 	dumpDirective(node.DirModel, "p-model")
 	dumpDirective(node.DirRef, "p-ref")
+	dumpDirective(node.DirMemo, "p-memo")
 	dumpDirective(node.DirSlot, "p-slot")
 	dumpDirective(node.DirKey, "p-key")
 	dumpDirective(node.DirContext, "p-context")

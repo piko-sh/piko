@@ -52,6 +52,7 @@ func (n *TemplateNode) Clone() *TemplateNode {
 		DirFor:             cloneDirective(n.DirFor),
 		DirShow:            cloneDirective(n.DirShow),
 		DirRef:             cloneDirective(n.DirRef),
+		DirMemo:            cloneDirective(n.DirMemo),
 		DirSlot:            cloneDirective(n.DirSlot),
 		DirModel:           cloneDirective(n.DirModel),
 		DirScaffold:        cloneDirective(n.DirScaffold),
@@ -172,6 +173,7 @@ func (n *TemplateNode) resetDirectiveFields() {
 	n.DirShow = nil
 	n.DirModel = nil
 	n.DirRef = nil
+	n.DirMemo = nil
 	n.DirSlot = nil
 	n.DirClass = nil
 	n.DirStyle = nil

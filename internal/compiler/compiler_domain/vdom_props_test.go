@@ -802,6 +802,40 @@ func TestVdomProps_CollectDynamicAttrs(t *testing.T) {
 		_, existsWithout := properties["disabled"]
 		assert.False(t, existsWithout, "should not exist without ? prefix")
 	})
+
+	t.Run("memo prop keeps its name when bound to a boolean prop", func(t *testing.T) {
+		node := &ast_domain.TemplateNode{
+			DynamicAttributes: []ast_domain.DynamicAttribute{
+				{
+					Name:       "_memo",
+					Expression: &ast_domain.Identifier{Name: "isDisabled"},
+				},
+			},
+		}
+		properties := make(map[string]js_ast.Expr)
+		collectDynamicAttrs(node, properties, false, []string{"isDisabled"}, registry)
+
+		_, exists := properties["_memo"]
+		assert.True(t, exists, "_memo must reach the renderer under its own name")
+		_, prefixed := properties["?_memo"]
+		assert.False(t, prefixed, "_memo must never be rewritten as a presence attribute")
+	})
+
+	t.Run("memo prop is collected from an ordinary binding", func(t *testing.T) {
+		node := &ast_domain.TemplateNode{
+			DynamicAttributes: []ast_domain.DynamicAttribute{
+				{
+					Name:       "_memo",
+					Expression: &ast_domain.Identifier{Name: "row"},
+				},
+			},
+		}
+		properties := make(map[string]js_ast.Expr)
+		collectDynamicAttrs(node, properties, false, nil, registry)
+
+		_, exists := properties["_memo"]
+		assert.True(t, exists, "bound :_memo should become a _memo prop")
+	})
 }
 
 func TestVdomProps_CollectBindProps(t *testing.T) {
@@ -867,6 +901,23 @@ func TestVdomProps_CollectBindProps(t *testing.T) {
 
 		_, exists := properties["?checked"]
 		assert.True(t, exists, "boolean-bound bind should have ? prefix")
+	})
+
+	t.Run("memo bind keeps its name when bound to a boolean prop", func(t *testing.T) {
+		node := &ast_domain.TemplateNode{
+			Binds: map[string]*ast_domain.Directive{
+				"_memo": {
+					Expression: &ast_domain.Identifier{Name: "isChecked"},
+				},
+			},
+		}
+		properties := make(map[string]js_ast.Expr)
+		collectBindProps(node, properties, false, []string{"isChecked"}, js_ast.Expr{}, registry)
+
+		_, exists := properties["_memo"]
+		assert.True(t, exists, "_memo must reach the renderer under its own name")
+		_, prefixed := properties["?_memo"]
+		assert.False(t, prefixed, "_memo must never be rewritten as a presence attribute")
 	})
 }
 
@@ -1213,13 +1264,15 @@ func TestVdomProps_BuildDynamicContentExpr(t *testing.T) {
 
 func TestVdomProps_ParseModelHandlerBlockForExpr(t *testing.T) {
 	t.Run("input handler uses value property", func(t *testing.T) {
-		block := parseModelHandlerBlockForExpr("this.$$ctx.name", false)
+		block, err := parseModelHandlerBlockForExpr("this.$$ctx.name", false)
+		require.NoError(t, err)
 		require.NotNil(t, block, "should parse successfully for input model")
 		assert.NotEmpty(t, block.Stmts)
 	})
 
 	t.Run("checkbox handler uses checked property", func(t *testing.T) {
-		block := parseModelHandlerBlockForExpr("this.$$ctx.isActive", true)
+		block, err := parseModelHandlerBlockForExpr("this.$$ctx.isActive", true)
+		require.NoError(t, err)
 		require.NotNil(t, block, "should parse successfully for checkbox model")
 		assert.NotEmpty(t, block.Stmts)
 	})
@@ -1355,7 +1408,7 @@ func TestVdomProps_HandleModelDirective(t *testing.T) {
 			},
 		}
 
-		handleModelDirective(ctx, node, properties, multiValueProps, events, nil)
+		require.NoError(t, handleModelDirective(ctx, node, properties, multiValueProps, events, nil))
 
 		_, hasValue := properties["value"]
 		assert.True(t, hasValue, "text input should bind to value property")
@@ -1387,7 +1440,7 @@ func TestVdomProps_HandleModelDirective(t *testing.T) {
 			},
 		}
 
-		handleModelDirective(ctx, node, properties, multiValueProps, events, nil)
+		require.NoError(t, handleModelDirective(ctx, node, properties, multiValueProps, events, nil))
 
 		_, hasChecked := properties["?checked"]
 		assert.True(t, hasChecked, "checkbox should bind to ?checked property")
@@ -1416,7 +1469,7 @@ func TestVdomProps_HandleModelDirective(t *testing.T) {
 			},
 		}
 
-		handleModelDirective(ctx, node, properties, multiValueProps, events, nil)
+		require.NoError(t, handleModelDirective(ctx, node, properties, multiValueProps, events, nil))
 
 		_, hasValue := properties["value"]
 		assert.True(t, hasValue, "nil expression transforms to null literal, so value is bound")

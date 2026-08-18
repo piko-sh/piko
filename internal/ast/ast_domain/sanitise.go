@@ -205,6 +205,7 @@ func sanitiseNodeDirectives(v *TemplateNode, basePath string) {
 	sanitiseItem(v.DirShow, basePath)
 	sanitiseItem(v.DirModel, basePath)
 	sanitiseItem(v.DirRef, basePath)
+	sanitiseItem(v.DirMemo, basePath)
 	sanitiseItem(v.DirSlot, basePath)
 	sanitiseItem(v.DirClass, basePath)
 	sanitiseItem(v.DirStyle, basePath)

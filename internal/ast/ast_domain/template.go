@@ -379,6 +379,9 @@ type TemplateNode struct {
 	// making the DOM element accessible to scripts. It is equivalent to Vue's ref attribute.
 	DirRef *Directive
 
+	// DirMemo holds the p-memo directive, which lists the values a keyed row renders from.
+	DirMemo *Directive
+
 	// DirSlot holds the p-slot directive for assigning this element to a named slot during
 	// partial expansion. The value is a raw string slot name (e.g., "header").
 	DirSlot *Directive
@@ -488,6 +491,7 @@ var (
 		DirectiveShow:     func(n *TemplateNode, d *Directive) { n.DirShow = d },
 		DirectiveModel:    func(n *TemplateNode, d *Directive) { n.DirModel = d },
 		DirectiveRef:      func(n *TemplateNode, d *Directive) { n.DirRef = d },
+		DirectiveMemo:     func(n *TemplateNode, d *Directive) { n.DirMemo = d },
 		DirectiveSlot:     func(n *TemplateNode, d *Directive) { n.DirSlot = d },
 		DirectiveClass:    func(n *TemplateNode, d *Directive) { n.DirClass = d },
 		DirectiveStyle:    func(n *TemplateNode, d *Directive) { n.DirStyle = d },
@@ -509,6 +513,7 @@ var (
 		DirectiveShow:     func(n *TemplateNode) *Directive { return n.DirShow },
 		DirectiveModel:    func(n *TemplateNode) *Directive { return n.DirModel },
 		DirectiveRef:      func(n *TemplateNode) *Directive { return n.DirRef },
+		DirectiveMemo:     func(n *TemplateNode) *Directive { return n.DirMemo },
 		DirectiveSlot:     func(n *TemplateNode) *Directive { return n.DirSlot },
 		DirectiveClass:    func(n *TemplateNode) *Directive { return n.DirClass },
 		DirectiveStyle:    func(n *TemplateNode) *Directive { return n.DirStyle },
@@ -666,8 +671,8 @@ func (t *TemplateAST) SetArena(arena *RenderArena) {
 func isSingleInstance(d DirectiveType) bool {
 	switch d {
 	case DirectiveIf, DirectiveElseIf, DirectiveElse, DirectiveFor, DirectiveShow,
-		DirectiveModel, DirectiveRef, DirectiveClass, DirectiveStyle, DirectiveText,
-		DirectiveHTML, DirectiveKey, DirectiveContext, DirectiveScaffold:
+		DirectiveModel, DirectiveRef, DirectiveMemo, DirectiveClass, DirectiveStyle,
+		DirectiveText, DirectiveHTML, DirectiveKey, DirectiveContext, DirectiveScaffold:
 		return true
 	default:
 		return false

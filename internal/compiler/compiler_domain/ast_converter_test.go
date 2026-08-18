@@ -19,6 +19,7 @@
 package compiler_domain
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,7 +47,9 @@ func convertAndPrint(t *testing.T, code string) string {
 	result, err := ConvertEsbuildToTdewolff(esbuildAST, NewRegistryContext())
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	return printTdewolffAST(result)
+	printed, err := printTdewolffAST(result)
+	require.NoError(t, err)
+	return printed
 }
 
 func TestConvertEBinary_NullishParenthesisation(t *testing.T) {
@@ -90,6 +93,69 @@ func TestConvertEIndex_MemberAccessParenthesisation(t *testing.T) {
 			t.Parallel()
 			minified := minifyEmittedJS(t, convertAndPrint(t, tc.code))
 			assert.Contains(t, minified, tc.want)
+			if tc.notWant != "" {
+				assert.NotContains(t, minified, tc.notWant)
+			}
+		})
+	}
+}
+
+func TestConvertEUnary_OperandParenthesisation(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		code    string
+		notWant string
+		accept  []string
+	}{
+		{
+			name:    "not over logical and",
+			code:    `const r = !(a && a.enabled);`,
+			accept:  []string{"!(a&&a.enabled)", "!a||!a.enabled"},
+			notWant: "!a&&a.enabled",
+		},
+		{
+			name:    "not over logical or",
+			code:    `const r = !(a || b);`,
+			accept:  []string{"!(a||b)", "!a&&!b"},
+			notWant: "!a||b",
+		},
+		{
+			name:    "negate over addition",
+			code:    `const r = -(a + b);`,
+			accept:  []string{"-(a+b)"},
+			notWant: "-a+b",
+		},
+		{
+			name:   "typeof over logical",
+			code:   `const r = typeof (a && b);`,
+			accept: []string{"typeof(a&&b)", "typeof (a&&b)"},
+		},
+		{
+			name:   "not over ternary",
+			code:   `const r = !(c ? a : b);`,
+			accept: []string{"!(c?a:b)", "c?!a:!b"},
+		},
+		{
+			name:    "nested unary stays bare",
+			code:    `const r = !!a;`,
+			accept:  []string{"!!a"},
+			notWant: "!(!a)",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			minified := minifyEmittedJS(t, convertAndPrint(t, tc.code))
+			found := false
+			for _, w := range tc.accept {
+				if strings.Contains(minified, w) {
+					found = true
+					break
+				}
+			}
+			assert.True(t, found, "want one of %q in %q", tc.accept, minified)
 			if tc.notWant != "" {
 				assert.NotContains(t, minified, tc.notWant)
 			}
@@ -508,7 +574,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "/^[0-9]+$/")
 	})
 
@@ -525,7 +592,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "/hello/gi")
 	})
 
@@ -546,7 +614,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "/^[0-9]+$/")
 		assert.Contains(t, output, `/^[\d.]+$/`)
 		assert.Contains(t, output, `/^-?[\d.]+$/`)
@@ -566,7 +635,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "/^[a-z]+$/")
 		assert.Contains(t, output, ".test")
 	})
@@ -584,7 +654,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "do")
 		assert.Contains(t, output, "while")
 		assert.NotContains(t, output, "unsupported")
@@ -603,7 +674,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "12345678901234567890n")
 		assert.NotContains(t, output, "unsupported")
 	})
@@ -621,7 +693,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "function*")
 		assert.Contains(t, output, "yield")
 		assert.NotContains(t, output, "unsupported")
@@ -640,7 +713,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "class")
 		assert.Contains(t, output, "constructor")
 		assert.NotContains(t, output, "unsupported")
@@ -659,7 +733,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "import")
 		assert.Contains(t, output, "./module.js")
 		assert.NotContains(t, output, "unsupported")
@@ -678,7 +753,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 
 		assert.NotContains(t, output, "unsupported")
 	})
@@ -696,7 +772,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "#count")
 		assert.NotContains(t, output, "unsupported")
 	})
@@ -714,7 +791,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "outer")
 		assert.Contains(t, output, "break")
 		assert.NotContains(t, output, "unsupported")
@@ -733,7 +811,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "loop")
 		assert.Contains(t, output, "continue")
 		assert.NotContains(t, output, "unsupported")
@@ -752,7 +831,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "useState")
 		assert.NotContains(t, output, "unsupported")
 	})
@@ -770,7 +850,8 @@ func TestConvertEsbuildToTdewolff(t *testing.T) {
 		require.NotNil(t, result)
 		assert.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "debugger")
 		assert.NotContains(t, output, "unsupported")
 	})
@@ -781,50 +862,58 @@ func TestPrintExpr(t *testing.T) {
 
 	t.Run("prints string literal", func(t *testing.T) {
 		expression := newStringLiteral("hello")
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "hello")
 	})
 
 	t.Run("prints number", func(t *testing.T) {
 		expression := js_ast.Expr{Data: &js_ast.ENumber{Value: 42}}
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "42")
 	})
 
 	t.Run("prints boolean", func(t *testing.T) {
 		expression := newBooleanLiteral(true)
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "true")
 	})
 
 	t.Run("prints null", func(t *testing.T) {
 		expression := newNullLiteral()
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "null")
 	})
 
 	t.Run("prints identifier with registry", func(t *testing.T) {
 		identifier := registry.MakeIdentifier("myVariable")
 		expression := js_ast.Expr{Data: identifier}
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "myVariable")
 	})
 
 	t.Run("nil data returns empty string", func(t *testing.T) {
 		expression := js_ast.Expr{Data: nil}
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Empty(t, result)
 	})
 
 	t.Run("prints regex literal", func(t *testing.T) {
 		expression := js_ast.Expr{Data: &js_ast.ERegExp{Value: "/^[0-9]+$/"}}
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Equal(t, "/^[0-9]+$/", result)
 	})
 
 	t.Run("prints regex literal with flags", func(t *testing.T) {
 		expression := js_ast.Expr{Data: &js_ast.ERegExp{Value: "/pattern/gi"}}
-		result := PrintExpr(expression, registry)
+		result, err := printExpression(expression, registry)
+		require.NoError(t, err)
 		assert.Equal(t, "/pattern/gi", result)
 	})
 }
@@ -836,26 +925,30 @@ func TestPrintStatement(t *testing.T) {
 		statement := js_ast.Stmt{Data: &js_ast.SReturn{
 			ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 42}},
 		}}
-		result := PrintStatement(statement, registry)
+		result, err := printStatement(statement, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "return")
 		assert.Contains(t, result, "42")
 	})
 
 	t.Run("prints break statement", func(t *testing.T) {
 		statement := js_ast.Stmt{Data: &js_ast.SBreak{}}
-		result := PrintStatement(statement, registry)
+		result, err := printStatement(statement, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "break")
 	})
 
 	t.Run("prints continue statement", func(t *testing.T) {
 		statement := js_ast.Stmt{Data: &js_ast.SContinue{}}
-		result := PrintStatement(statement, registry)
+		result, err := printStatement(statement, registry)
+		require.NoError(t, err)
 		assert.Contains(t, result, "continue")
 	})
 
 	t.Run("nil data returns empty string", func(t *testing.T) {
 		statement := js_ast.Stmt{Data: nil}
-		result := PrintStatement(statement, registry)
+		result, err := printStatement(statement, registry)
+		require.NoError(t, err)
 		assert.Empty(t, result)
 	})
 }
@@ -948,7 +1041,8 @@ func TestASTConverterRoundTrip(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, tdewolffAST)
 
-			output := printTdewolffAST(tdewolffAST)
+			output, err := printTdewolffAST(tdewolffAST)
+			require.NoError(t, err)
 
 			assert.NotEmpty(t, output, "Expected non-empty output for: %s", tc.input)
 		})
@@ -979,7 +1073,8 @@ func TestConvertEsbuildToTdewolffWithRegisteredIdentifiers(t *testing.T) {
 		require.NotNil(t, result)
 		require.NotEmpty(t, result.List)
 
-		output := printTdewolffAST(result)
+		output, err := printTdewolffAST(result)
+		require.NoError(t, err)
 		assert.Contains(t, output, "customIdentifier")
 	})
 }
@@ -1025,7 +1120,8 @@ func TestASTConverterTernaryExpression(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1075,7 +1171,8 @@ func TestASTConverterFunctionExpression(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1121,7 +1218,8 @@ func TestASTConverterSimpleTemplate(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1166,7 +1264,8 @@ func TestASTConverterAwaitExpression(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1211,7 +1310,8 @@ func TestASTConverterForInStatement(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1256,7 +1356,8 @@ func TestASTConverterForOfStatement(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1301,7 +1402,8 @@ func TestASTConverterObjectDestructuring(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1356,7 +1458,8 @@ func TestASTConverterExportDefault(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1401,7 +1504,8 @@ func TestASTConverterImportCall(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1441,7 +1545,8 @@ func TestASTConverterNewTarget(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1481,7 +1586,8 @@ func TestASTConverterImportMeta(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)
@@ -1521,7 +1627,8 @@ func TestASTConverterNamespaceImport(t *testing.T) {
 			require.NotNil(t, result)
 			assert.NotEmpty(t, result.List)
 
-			output := printTdewolffAST(result)
+			output, err := printTdewolffAST(result)
+			require.NoError(t, err)
 			assert.NotContains(t, output, "unsupported")
 			for _, expected := range tc.expectContains {
 				assert.Contains(t, output, expected, "expected output to contain %q for input: %s", expected, tc.input)

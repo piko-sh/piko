@@ -20,6 +20,7 @@ package compiler_domain
 
 import (
 	"math"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -331,7 +332,9 @@ func TestConvertECall(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		callExpr, ok := result.(*parsejs.CallExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		callExpr, ok := normalised.(*parsejs.CallExpr)
 		require.True(t, ok)
 		_, isGroup := callExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "arrow function call target should be wrapped in GroupExpr")
@@ -360,7 +363,9 @@ func TestConvertECall(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		callExpr, ok := result.(*parsejs.CallExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		callExpr, ok := normalised.(*parsejs.CallExpr)
 		require.True(t, ok)
 		_, isGroup := callExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "function expression call target should be wrapped in GroupExpr")
@@ -440,7 +445,9 @@ func TestConvertEDot(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		dotExpr, ok := result.(*parsejs.DotExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		dotExpr, ok := normalised.(*parsejs.DotExpr)
 		require.True(t, ok)
 		_, isGroup := dotExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "binary target should be wrapped in GroupExpr")
@@ -463,7 +470,9 @@ func TestConvertEDot(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		dotExpr, ok := result.(*parsejs.DotExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		dotExpr, ok := normalised.(*parsejs.DotExpr)
 		require.True(t, ok)
 		_, isGroup := dotExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "ternary target should be wrapped in GroupExpr")
@@ -535,7 +544,9 @@ func TestConvertEIndex(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		indexExpr, ok := result.(*parsejs.IndexExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		indexExpr, ok := normalised.(*parsejs.IndexExpr)
 		require.True(t, ok)
 		_, isGroup := indexExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "binary target should be wrapped in GroupExpr")
@@ -558,7 +569,9 @@ func TestConvertEIndex(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		indexExpr, ok := result.(*parsejs.IndexExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		indexExpr, ok := normalised.(*parsejs.IndexExpr)
 		require.True(t, ok)
 		_, isGroup := indexExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "ternary target should be wrapped in GroupExpr")
@@ -586,7 +599,9 @@ func TestConvertEBinary(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		binaryExpr, ok := result.(*parsejs.BinaryExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		binaryExpr, ok := normalised.(*parsejs.BinaryExpr)
 		require.True(t, ok)
 		_, isGroup := binaryExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "left with lower precedence should be wrapped")
@@ -610,7 +625,9 @@ func TestConvertEBinary(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		binaryExpr, ok := result.(*parsejs.BinaryExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		binaryExpr, ok := normalised.(*parsejs.BinaryExpr)
 		require.True(t, ok)
 		_, isGroup := binaryExpr.Y.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "right with lower precedence should be wrapped")
@@ -634,7 +651,9 @@ func TestConvertEBinary(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		binaryExpr, ok := result.(*parsejs.BinaryExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		binaryExpr, ok := normalised.(*parsejs.BinaryExpr)
 		require.True(t, ok)
 		_, isGroup := binaryExpr.Y.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "ternary on right should be wrapped in GroupExpr")
@@ -658,7 +677,9 @@ func TestConvertEBinary(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		binaryExpr, ok := result.(*parsejs.BinaryExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		binaryExpr, ok := normalised.(*parsejs.BinaryExpr)
 		require.True(t, ok)
 		_, isGroup := binaryExpr.X.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "ternary on left should be wrapped in GroupExpr")
@@ -682,7 +703,9 @@ func TestConvertEBinary(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		binaryExpr, ok := result.(*parsejs.BinaryExpr)
+		normalised, err := normaliseExpression(result, parsejs.OpExpr)
+		require.NoError(t, err)
+		binaryExpr, ok := normalised.(*parsejs.BinaryExpr)
 		require.True(t, ok)
 		_, isGroup := binaryExpr.Y.(*parsejs.GroupExpr)
 		assert.True(t, isGroup, "right same-prec left-assoc should be wrapped")
@@ -725,7 +748,7 @@ func TestConvertEUnary(t *testing.T) {
 
 		unaryExpr, ok := result.(*parsejs.UnaryExpr)
 		require.True(t, ok)
-		assert.Equal(t, parsejs.SubToken, unaryExpr.Op)
+		assert.Equal(t, parsejs.NegToken, unaryExpr.Op)
 	})
 
 	t.Run("typeof converts to UnaryExpr", func(t *testing.T) {
@@ -931,10 +954,14 @@ func TestConvertEYield(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		unary, ok := result.(*parsejs.UnaryExpr)
-		require.True(t, ok)
-		assert.Equal(t, parsejs.YieldToken, unary.Op)
-		assert.Nil(t, unary.X)
+		yieldExpr, ok := result.(*parsejs.YieldExpr)
+		require.True(t, ok, "want *parsejs.YieldExpr, got %T", result)
+		assert.Nil(t, yieldExpr.X)
+		assert.False(t, yieldExpr.Generator)
+
+		var builder strings.Builder
+		result.JS(&builder)
+		assert.Equal(t, "yield", builder.String())
 	})
 
 	t.Run("yield with value", func(t *testing.T) {
@@ -1342,9 +1369,11 @@ func TestConvertEBinary_NullishWrapsChild(t *testing.T) {
 	for _, childOp := range []js_ast.OpCode{js_ast.BinOpLogicalAnd, js_ast.BinOpLogicalOr} {
 		for _, onLeft := range []bool{true, false} {
 			converter := NewASTConverter(nil, nil, nil)
-			result, err := converter.convertEBinary(build(childOp, onLeft))
+			converted, err := converter.convertEBinary(build(childOp, onLeft))
 			require.NoError(t, err)
-			bin, ok := result.(*parsejs.BinaryExpr)
+			normalised, err := normaliseExpression(converted, parsejs.OpExpr)
+			require.NoError(t, err)
+			bin, ok := normalised.(*parsejs.BinaryExpr)
 			require.True(t, ok)
 			operand := bin.Y
 			if onLeft {
@@ -1375,7 +1404,7 @@ func TestConvertENumber_NonFinite(t *testing.T) {
 		require.NoError(t, err)
 		u, ok := result.(*parsejs.UnaryExpr)
 		require.True(t, ok)
-		assert.Equal(t, parsejs.SubToken, u.Op)
+		assert.Equal(t, parsejs.NegToken, u.Op)
 		v, ok := u.X.(*parsejs.Var)
 		require.True(t, ok)
 		assert.Equal(t, "Infinity", string(v.Data))

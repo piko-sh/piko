@@ -74,7 +74,7 @@ http://localhost:6060/_piko/profiler/status        # profiler capabilities / met
 http://localhost:6060/_piko/profiler/trace/recent  # rolling trace snapshot download
 ```
 
-The rolling trace endpoint complements `/debug/pprof/trace`. It lets you dump the most recent in-memory trace window on demand, so you do not have to start a new trace at the moment you notice a problem.
+The rolling trace endpoint complements `/debug/pprof/trace`. It lets you dump the most recent in-memory trace window on demand, so you do not have to start a new trace when you notice a problem.
 
 ### Generator profiling (build-time)
 

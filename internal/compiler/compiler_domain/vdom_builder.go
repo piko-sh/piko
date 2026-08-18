@@ -524,7 +524,7 @@ func buildPikoElementPropsAST(
 			continue
 		}
 		propName := dynamicAttribute.Name
-		if isBooleanBound(dynamicAttribute.Expression, booleanProps) {
+		if isBooleanBound(dynamicAttribute.Expression, booleanProps) && !isRuntimeOnlyProp(propName) {
 			propName = "?" + propName
 		}
 		properties[propName] = js_ast.Expr{Data: &js_ast.EUnary{Op: js_ast.UnOpPos, Value: jsExpr}}
@@ -533,7 +533,9 @@ func buildPikoElementPropsAST(
 	collectBindProps(n, properties, false, booleanProps, js_ast.Expr{}, registry)
 
 	if n.DirModel != nil {
-		handleModelDirective(ctx, n, properties, multiValueProps, events, loopVars)
+		if err := handleModelDirective(ctx, n, properties, multiValueProps, events, loopVars); err != nil {
+			return js_ast.Expr{}, fmt.Errorf("building p-model binding: %w", err)
+		}
 	}
 
 	userClicked := collectEventHandlers(ctx, n, events, loopVars, multiValueProps)

@@ -77,7 +77,7 @@ Without `WithWatchdogContentionDiagnosticAutoFire`, the diagnostic only runs whe
 
 ## Why the diagnostic is not part of the regular tick loop
 
-Block and mutex profiling impose a per-goroutine cost that scales with the workload. The watchdog's tick loop (see [about the watchdog](../../explanation/about-the-watchdog.md)) keeps its overhead negligible by reading runtime metrics. Turning block and mutex profiling on continuously would itself become the contention. The contention diagnostic is the exception. It opens a short, deliberate window where the cost is acceptable because the goal is to capture exactly that cost.
+Block and mutex profiling impose a per-goroutine cost that scales with the workload. The watchdog's tick loop (see [about the watchdog](../../explanation/about-the-watchdog.md)) keeps its overhead negligible by reading runtime metrics. Turning block and mutex profiling on continuously would itself become the contention. The contention diagnostic is the exception. It opens a short, deliberate window where the cost is acceptable, because it captures exactly that cost.
 
 ## See also
 

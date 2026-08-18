@@ -59,7 +59,7 @@ Run both releases behind the load balancer. No coordination step is required:
 - Requests for assets are content-addressed, so an old-release asset URL resolves on a new-release instance through the shared registry, and a page loaded mid-rollout completes with the assets its HTML references.
 - Runtime uploads land in the shared store and are visible to every instance.
 
-Watch the logs on first rollout. A healthy publish logs `Registry release publish complete` with the outcome; a release identity problem logs `Release digest conflict` at error level.
+Watch the logs on the first deploy. A healthy publish logs `Registry release publish complete` with the outcome; a release identity problem logs `Release digest conflict` at error level.
 
 ## Step 4: Retire the old release
 

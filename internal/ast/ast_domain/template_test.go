@@ -42,6 +42,7 @@ func TestTemplateNode_DistributeDirectives(t *testing.T) {
 	mockExprHTML := &Identifier{Name: "rawHTML"}
 	mockExprOnClick := &Identifier{Name: "handleClick"}
 	mockExprOnUpdate := &Identifier{Name: "handleUpdate"}
+	mockExprMemo := &Identifier{Name: "row"}
 
 	t.Run("distributes all directive types correctly", func(t *testing.T) {
 		t.Parallel()
@@ -54,6 +55,7 @@ func TestTemplateNode_DistributeDirectives(t *testing.T) {
 				{Type: DirectiveBind, Arg: "href", Expression: mockExprBind},
 				{Type: DirectiveModel, Expression: mockExprModel},
 				{Type: DirectiveRef, RawExpression: rawRefValue},
+				{Type: DirectiveMemo, Expression: mockExprMemo},
 				{Type: DirectiveClass, Expression: mockExprClass},
 				{Type: DirectiveStyle, Expression: mockExprStyle},
 				{Type: DirectiveText, Expression: mockExprText},
@@ -79,6 +81,9 @@ func TestTemplateNode_DistributeDirectives(t *testing.T) {
 
 		require.NotNil(t, node.DirRef)
 		assert.Equal(t, rawRefValue, node.DirRef.RawExpression, "DirRef RawExpression mismatch")
+
+		require.NotNil(t, node.DirMemo)
+		assert.Same(t, mockExprMemo, node.DirMemo.Expression, "DirMemo expression mismatch")
 
 		require.NotNil(t, node.DirClass)
 		assert.Same(t, mockExprClass, node.DirClass.Expression, "DirClass expression mismatch")

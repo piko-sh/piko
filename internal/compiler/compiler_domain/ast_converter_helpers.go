@@ -27,8 +27,6 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// Binding conversion
-
 // convertBinding converts an esbuild binding to a tdewolff binding.
 //
 // Takes binding (js_ast.Binding) which is the esbuild binding to convert.
@@ -211,8 +209,6 @@ func (c *ASTConverter) convertFunctionBody(body js_ast.FnBody) (*parsejs.BlockSt
 	return &parsejs.BlockStmt{List: statements}, nil
 }
 
-// Property conversion
-
 // convertProperty converts a JavaScript object property to internal form.
 //
 // Takes prop (js_ast.Property) which is the property to convert.
@@ -240,6 +236,12 @@ func (c *ASTConverter) convertProperty(prop js_ast.Property) (*parsejs.Property,
 		return nil, fmt.Errorf("converting property name: %w", err)
 	}
 
+	if accessor, ok, err := c.tryConvertAccessorProperty(prop, name); err != nil {
+		return nil, err
+	} else if ok {
+		return accessor, nil
+	}
+
 	var value parsejs.IExpr
 	if prop.ValueOrNil.Data != nil {
 		value, err = c.convertExpression(prop.ValueOrNil)
@@ -252,6 +254,51 @@ func (c *ASTConverter) convertProperty(prop js_ast.Property) (*parsejs.Property,
 		Name:  name,
 		Value: value,
 	}, nil
+}
+
+// tryConvertAccessorProperty converts a getter, setter or concise method of an object
+// literal into a method declaration.
+//
+// Takes prop (js_ast.Property) which is the property to convert.
+// Takes name (*parsejs.PropertyName) which is the already-converted key.
+//
+// Returns *parsejs.Property which holds the method.
+// Returns bool which is true when the property was an accessor or a method.
+// Returns error when the function body cannot be converted.
+func (c *ASTConverter) tryConvertAccessorProperty(
+	prop js_ast.Property,
+	name *parsejs.PropertyName,
+) (*parsejs.Property, bool, error) {
+	if prop.Kind != js_ast.PropertyGetter && prop.Kind != js_ast.PropertySetter && prop.Kind != js_ast.PropertyMethod {
+		return nil, false, nil
+	}
+	jsFunction, ok := prop.ValueOrNil.Data.(*js_ast.EFunction)
+	if !ok {
+		return nil, false, nil
+	}
+
+	params, err := c.convertParams(jsFunction.Fn.Args)
+	if err != nil {
+		return nil, false, fmt.Errorf("converting object method parameters: %w", err)
+	}
+	body, err := c.convertFunctionBody(jsFunction.Fn.Body)
+	if err != nil {
+		return nil, false, fmt.Errorf("converting object method body: %w", err)
+	}
+
+	method := &parsejs.MethodDecl{
+		Async:     jsFunction.Fn.IsAsync,
+		Generator: jsFunction.Fn.IsGenerator,
+		Get:       prop.Kind == js_ast.PropertyGetter,
+		Set:       prop.Kind == js_ast.PropertySetter,
+		Params:    params,
+		Body:      *body,
+	}
+	if name != nil {
+		method.Name = parsejs.ClassElementName{PropertyName: *name}
+	}
+
+	return &parsejs.Property{Value: method}, true, nil
 }
 
 // tryConvertShorthandProperty tries to convert a shorthand property.
@@ -333,7 +380,14 @@ func (c *ASTConverter) convertPropertyName(key js_ast.Expr) (*parsejs.PropertyNa
 // Returns *parsejs.ClassElement which is the converted element.
 // Returns error when the conversion fails.
 func (c *ASTConverter) convertClassProperty(prop js_ast.Property) (*parsejs.ClassElement, error) {
-	elemName := c.getClassElementName(prop)
+	if prop.Kind == js_ast.PropertyClassStaticBlock {
+		return c.convertClassStaticBlock(prop)
+	}
+
+	elemName, err := c.getClassElementName(prop)
+	if err != nil {
+		return nil, fmt.Errorf("converting class element name: %w", err)
+	}
 
 	if jsFunction, ok := prop.ValueOrNil.Data.(*js_ast.EFunction); ok {
 		return c.convertClassMethod(prop, jsFunction, elemName)
@@ -342,12 +396,46 @@ func (c *ASTConverter) convertClassProperty(prop js_ast.Property) (*parsejs.Clas
 	return c.convertClassField(prop, elemName)
 }
 
+// convertClassStaticBlock converts a class static initialisation block.
+//
+// Takes prop (js_ast.Property) which carries the static block.
+//
+// Returns *parsejs.ClassElement which holds the block.
+// Returns error when a statement in the block cannot be converted.
+func (c *ASTConverter) convertClassStaticBlock(prop js_ast.Property) (*parsejs.ClassElement, error) {
+	block := &parsejs.BlockStmt{}
+	if prop.ClassStaticBlock == nil {
+		return &parsejs.ClassElement{StaticBlock: block}, nil
+	}
+
+	for i, statement := range prop.ClassStaticBlock.Block.Stmts {
+		converted, err := c.convertStatement(statement)
+		if err != nil {
+			return nil, fmt.Errorf("converting class static block statement %d: %w", i, err)
+		}
+		if converted != nil {
+			block.List = append(block.List, converted)
+		}
+	}
+	return &parsejs.ClassElement{StaticBlock: block}, nil
+}
+
 // getClassElementName extracts the name from a class element property.
 //
 // Takes prop (js_ast.Property) which contains the class element to process.
 //
 // Returns parsejs.ClassElementName which holds the extracted name.
-func (c *ASTConverter) getClassElementName(prop js_ast.Property) parsejs.ClassElementName {
+// Returns error when the key cannot be represented, so a dropped name surfaces instead of
+// emitting a class body with a blank member.
+func (c *ASTConverter) getClassElementName(prop js_ast.Property) (parsejs.ClassElementName, error) {
+	if prop.Key.Data == nil {
+		return parsejs.ClassElementName{}, nil
+	}
+
+	if prop.Flags.Has(js_ast.PropertyIsComputed) {
+		return c.computedClassElementName(prop)
+	}
+
 	if str, ok := prop.Key.Data.(*js_ast.EString); ok {
 		strValue := helpers.UTF16ToString(str.Value)
 		if prop.Kind == js_ast.PropertyMethod || prop.Kind == js_ast.PropertyGetter || prop.Kind == js_ast.PropertySetter {
@@ -358,7 +446,7 @@ func (c *ASTConverter) getClassElementName(prop js_ast.Property) parsejs.ClassEl
 						Data:      []byte(strValue),
 					},
 				},
-			}
+			}, nil
 		}
 		return parsejs.ClassElementName{
 			PropertyName: parsejs.PropertyName{
@@ -367,7 +455,7 @@ func (c *ASTConverter) getClassElementName(prop js_ast.Property) parsejs.ClassEl
 					Data:      fmt.Appendf(nil, fmtQuotedString, strValue),
 				},
 			},
-		}
+		}, nil
 	}
 
 	if identifier, ok := prop.Key.Data.(*js_ast.EIdentifier); ok {
@@ -388,10 +476,29 @@ func (c *ASTConverter) getClassElementName(prop js_ast.Property) parsejs.ClassEl
 					Data:      []byte(name),
 				},
 			},
-		}
+		}, nil
 	}
 
-	return parsejs.ClassElementName{}
+	return c.computedClassElementName(prop)
+}
+
+// computedClassElementName converts a class member key into the computed-name slot.
+//
+// Takes prop (js_ast.Property) which owns the key.
+//
+// Returns parsejs.ClassElementName which holds the converted key expression.
+// Returns error when the key expression cannot be converted.
+func (c *ASTConverter) computedClassElementName(prop js_ast.Property) (parsejs.ClassElementName, error) {
+	key, err := c.convertExpression(prop.Key)
+	if err != nil {
+		return parsejs.ClassElementName{}, fmt.Errorf("converting computed class member key: %w", err)
+	}
+	if key == nil {
+		return parsejs.ClassElementName{}, fmt.Errorf("computed class member key: %w", errUnsupportedExpression)
+	}
+	return parsejs.ClassElementName{
+		PropertyName: parsejs.PropertyName{Computed: key},
+	}, nil
 }
 
 // convertClassMethod converts a class method from AST property format.
@@ -468,8 +575,6 @@ func (c *ASTConverter) convertClassField(prop js_ast.Property, elemName parsejs.
 
 var (
 	// esbuildBinaryOpToTdewolff maps esbuild binary operators to tdewolff tokens.
-	// js_ast.OpCode is a unified enum mixing unary and binary operators; the unary values
-	// are handled by esbuildUnaryOpToTdewolff so this map intentionally omits them.
 	esbuildBinaryOpToTdewolff = map[js_ast.OpCode]parsejs.TokenType{ //nolint:exhaustive // unary OpCodes handled by esbuildUnaryOpToTdewolff
 		js_ast.BinOpAdd:                     parsejs.AddToken,
 		js_ast.BinOpSub:                     parsejs.SubToken,
@@ -516,9 +621,9 @@ var (
 	}
 
 	// esbuildUnaryOpToTdewolff maps esbuild unary operators to tdewolff tokens.
-	esbuildUnaryOpToTdewolff = map[js_ast.OpCode]parsejs.TokenType{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-		js_ast.UnOpNeg:     parsejs.SubToken,
-		js_ast.UnOpPos:     parsejs.AddToken,
+	esbuildUnaryOpToTdewolff = map[js_ast.OpCode]parsejs.TokenType{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are errors in convertUnaryOp
+		js_ast.UnOpNeg:     parsejs.NegToken,
+		js_ast.UnOpPos:     parsejs.PosToken,
 		js_ast.UnOpNot:     parsejs.NotToken,
 		js_ast.UnOpCpl:     parsejs.BitNotToken,
 		js_ast.UnOpTypeof:  parsejs.TypeofToken,
@@ -528,54 +633,6 @@ var (
 		js_ast.UnOpPreDec:  parsejs.PreDecrToken,
 		js_ast.UnOpPostInc: parsejs.PostIncrToken,
 		js_ast.UnOpPostDec: parsejs.PostDecrToken,
-	}
-
-	// esbuildOpPrecedence is the operator precedence table for esbuild operators where
-	// higher values mean tighter binding, based on esbuild's js_ast.L* constants. BinOpComma
-	// carries precedence 0 to match esbuild's LComma which is the loosest binding.
-	esbuildOpPrecedence = map[js_ast.OpCode]int{ //nolint:exhaustive // unary OpCodes carry precedence in esbuild's unary tables, not this binary-op precedence table
-		js_ast.BinOpComma:                   0,
-		js_ast.BinOpAssign:                  1,
-		js_ast.BinOpAddAssign:               1,
-		js_ast.BinOpSubAssign:               1,
-		js_ast.BinOpMulAssign:               1,
-		js_ast.BinOpDivAssign:               1,
-		js_ast.BinOpRemAssign:               1,
-		js_ast.BinOpPowAssign:               1,
-		js_ast.BinOpShlAssign:               1,
-		js_ast.BinOpShrAssign:               1,
-		js_ast.BinOpUShrAssign:              1,
-		js_ast.BinOpBitwiseOrAssign:         1,
-		js_ast.BinOpBitwiseAndAssign:        1,
-		js_ast.BinOpBitwiseXorAssign:        1,
-		js_ast.BinOpNullishCoalescingAssign: 1,
-		js_ast.BinOpLogicalOrAssign:         1,
-		js_ast.BinOpLogicalAndAssign:        1,
-		js_ast.BinOpNullishCoalescing:       2,
-		js_ast.BinOpLogicalOr:               3,
-		js_ast.BinOpLogicalAnd:              4,
-		js_ast.BinOpBitwiseOr:               5,
-		js_ast.BinOpBitwiseXor:              6,
-		js_ast.BinOpBitwiseAnd:              7,
-		js_ast.BinOpLooseEq:                 8,
-		js_ast.BinOpLooseNe:                 8,
-		js_ast.BinOpStrictEq:                8,
-		js_ast.BinOpStrictNe:                8,
-		js_ast.BinOpLt:                      9,
-		js_ast.BinOpLe:                      9,
-		js_ast.BinOpGt:                      9,
-		js_ast.BinOpGe:                      9,
-		js_ast.BinOpIn:                      9,
-		js_ast.BinOpInstanceof:              9,
-		js_ast.BinOpShl:                     10,
-		js_ast.BinOpShr:                     10,
-		js_ast.BinOpUShr:                    10,
-		js_ast.BinOpAdd:                     11,
-		js_ast.BinOpSub:                     11,
-		js_ast.BinOpMul:                     12,
-		js_ast.BinOpDiv:                     12,
-		js_ast.BinOpRem:                     12,
-		js_ast.BinOpPow:                     13,
 	}
 )
 
@@ -597,25 +654,13 @@ func convertBinaryOp(op js_ast.OpCode) (parsejs.TokenType, error) {
 //
 // Takes op (js_ast.OpCode) which specifies the esbuild unary operator to convert.
 //
-// Returns parsejs.TokenType which is the matching tdewolff token, or parsejs.NotToken if
-// no mapping exists.
-func convertUnaryOp(op js_ast.OpCode) parsejs.TokenType {
+// Returns parsejs.TokenType which is the matching tdewolff token.
+// Returns error when no mapping exists for the operator.
+func convertUnaryOp(op js_ast.OpCode) (parsejs.TokenType, error) {
 	if token, ok := esbuildUnaryOpToTdewolff[op]; ok {
-		return token
+		return token, nil
 	}
-	return parsejs.NotToken
-}
-
-// getOpPrecedence returns the precedence level for an esbuild operator.
-//
-// Takes op (js_ast.OpCode) which is the operator code to look up.
-//
-// Returns int which is the precedence level, or 0 if the operator is unknown.
-func getOpPrecedence(op js_ast.OpCode) int {
-	if prec, ok := esbuildOpPrecedence[op]; ok {
-		return prec
-	}
-	return 0
+	return 0, fmt.Errorf("unsupported JS unary operator %v", op)
 }
 
 // nonFiniteKeyLiteral returns the JavaScript literal for a non-finite numeric object key.

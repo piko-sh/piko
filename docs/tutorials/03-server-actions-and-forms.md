@@ -340,7 +340,7 @@ func Render(r *piko.RequestData, props piko.NoProps) (piko.NoResponse, piko.Meta
 </script>
 ```
 
-Visit `http://localhost:8080/progress` and click Start. The progress bar advances in ten steps of roughly 400 ms each. The label underneath updates with every step. When the run finishes, "Complete. Job: &lt;uuid&gt;" replaces the running label.
+Visit `http://localhost:8080/progress` and click Start. The progress bar advances in ten steps, one per `time.After` tick in the action. The label underneath updates with every step. When the run finishes, "Complete. Job: &lt;uuid&gt;" replaces the running label.
 
 For the `withOnProgress(...).call()` builder see [how to streaming with SSE](../how-to/actions/streaming-with-sse.md).
 

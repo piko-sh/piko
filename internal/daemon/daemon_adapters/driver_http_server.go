@@ -53,7 +53,7 @@ const (
 
 	// ServerPurposeHealth is the exported form of serverPurposeHealth.
 	ServerPurposeHealth = serverPurposeHealth
-	
+
 	// http2MaxConcurrentStreams is the most streams that can run at the same time on one
 	// HTTP/2 connection.
 	http2MaxConcurrentStreams = 250

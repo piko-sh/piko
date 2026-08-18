@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -208,7 +209,15 @@ func (ec *eventBindingCollection) createAndStoreBindingAST(
 		rawEventName:   rawEventName,
 	}
 
-	needsHOF := len(opts.userArgs) > 0 && usesLoopVar(opts.userArgs, opts.loopVarNames, ec.registry)
+	needsHOF := false
+	if len(opts.userArgs) > 0 {
+		usesLoop, err := usesLoopVar(opts.userArgs, opts.loopVarNames, ec.registry)
+		if err != nil {
+			EventBindingCreationErrorCount.Add(ctx, 1)
+			return js_ast.Expr{}, fmt.Errorf("inspecting handler arguments for loop variables: %w", err)
+		}
+		needsHOF = usesLoop
+	}
 
 	if needsHOF {
 		return ec.createHOFBinding(ctx, names, opts.userArgs, opts.loopVarNames, opts.eventModifiers)
@@ -245,12 +254,20 @@ func (ec *eventBindingCollection) createHOFBinding(
 ) (js_ast.Expr, error) {
 	handlerName := fmt.Sprintf("_hof_%s_%s%s", names.safeEventName, names.safeUserMethod, names.suffix)
 
-	usedLoopVars := findUsedLoopVars(userArgs, loopVarNames, ec.registry)
+	usedLoopVars, err := findUsedLoopVars(userArgs, loopVarNames, ec.registry)
+	if err != nil {
+		EventBindingCreationErrorCount.Add(ctx, 1)
+		return js_ast.Expr{}, fmt.Errorf("finding loop variables in handler arguments: %w", err)
+	}
 	if len(usedLoopVars) == 0 {
 		usedLoopVars = loopVarNames
 	}
 
-	argumentsString := encodeEventHandlerArgs(userArgs, loopVarNames, ec.registry)
+	argumentsString, err := encodeEventHandlerArgs(userArgs, ec.registry)
+	if err != nil {
+		EventBindingCreationErrorCount.Add(ctx, 1)
+		return js_ast.Expr{}, fmt.Errorf("encoding handler arguments: %w", err)
+	}
 
 	guards := buildModifierGuards(eventModifiers, handlerName)
 	loopVarsString := strings.Join(usedLoopVars, ", ")
@@ -301,15 +318,24 @@ func (ec *eventBindingCollection) createDirectBinding(
 	guards := buildModifierGuards(eventModifiers, handlerName)
 	var handlerSnippet string
 
-	if directFrameworkBody != nil {
-		bodyString := encodeBlockStatements(directFrameworkBody, ec.registry)
+	switch {
+	case directFrameworkBody != nil:
+		bodyString, err := encodeBlockStatements(directFrameworkBody, ec.registry)
+		if err != nil {
+			EventBindingCreationErrorCount.Add(ctx, 1)
+			return js_ast.Expr{}, fmt.Errorf("encoding framework handler body: %w", err)
+		}
 		handlerSnippet = fmt.Sprintf("this.%s = (event) => { %s%s };", handlerName, guards, bodyString)
-	} else if userArgs == nil {
+	case userArgs == nil:
 		handlerSnippet = fmt.Sprintf("this.%s = (e) => { %sthis.$$ctx.%s.call(this, e); };", handlerName, guards, names.safeUserMethod)
-	} else if len(userArgs) == 0 {
+	case len(userArgs) == 0:
 		handlerSnippet = fmt.Sprintf("this.%s = (e) => { %sthis.$$ctx.%s.call(this); };", handlerName, guards, names.safeUserMethod)
-	} else {
-		argumentsString := encodeEventHandlerArgs(userArgs, nil, ec.registry)
+	default:
+		argumentsString, err := encodeEventHandlerArgs(userArgs, ec.registry)
+		if err != nil {
+			EventBindingCreationErrorCount.Add(ctx, 1)
+			return js_ast.Expr{}, fmt.Errorf("encoding handler arguments: %w", err)
+		}
 		handlerSnippet = fmt.Sprintf("this.%s = (e) => { %sthis.$$ctx.%s.call(this, %s); };", handlerName, guards, names.safeUserMethod, argumentsString)
 	}
 
@@ -930,18 +956,22 @@ func buildListenerOptionSuffix(modifiers []string) string {
 // Takes registry (*RegistryContext) which provides context for printing expressions.
 //
 // Returns []string which contains the matching variable names.
-func findUsedLoopVars(arguments []js_ast.Expr, loopVarNames []string, registry *RegistryContext) []string {
+// Returns error when an argument cannot be printed.
+func findUsedLoopVars(arguments []js_ast.Expr, loopVarNames []string, registry *RegistryContext) ([]string, error) {
 	var used []string
 	for _, varName := range loopVarNames {
 		for _, argument := range arguments {
-			argString := PrintExpr(argument, registry)
+			argString, err := printExpression(argument, registry)
+			if err != nil {
+				return nil, fmt.Errorf("printing handler argument: %w", err)
+			}
 			if strings.Contains(argString, varName) {
 				used = append(used, varName)
 				break
 			}
 		}
 	}
-	return used
+	return used, nil
 }
 
 // buildHOFCallExpr builds a higher-order function call expression in the form
@@ -974,10 +1004,14 @@ func buildHOFCallExpr(handlerName string, loopVarNames []string, registry *Regis
 // Takes registry (*RegistryContext) which provides context for printing expressions.
 //
 // Returns string which is the comma-separated JavaScript argument list.
-func encodeEventHandlerArgs(arguments []js_ast.Expr, _ []string, registry *RegistryContext) string {
+// Returns error when an argument cannot be printed.
+func encodeEventHandlerArgs(arguments []js_ast.Expr, registry *RegistryContext) (string, error) {
 	parts := make([]string, 0, len(arguments))
 	for _, argument := range arguments {
-		argString := PrintExpr(argument, registry)
+		argString, err := printExpression(argument, registry)
+		if err != nil {
+			return "", fmt.Errorf("printing handler argument: %w", err)
+		}
 		switch argString {
 		case "$event":
 			argString = "e"
@@ -986,7 +1020,7 @@ func encodeEventHandlerArgs(arguments []js_ast.Expr, _ []string, registry *Regis
 		}
 		parts = append(parts, argString)
 	}
-	return strings.Join(parts, ", ")
+	return strings.Join(parts, ", "), nil
 }
 
 // usesLoopVar checks if any of the arguments refer to a loop variable.
@@ -995,20 +1029,24 @@ func encodeEventHandlerArgs(arguments []js_ast.Expr, _ []string, registry *Regis
 // Takes loopVarNames ([]string) which lists the loop variable names to look for.
 // Takes registry (*RegistryContext) which provides context for printing expressions.
 //
-// Returns bool which is true if any argument contains a loop variable name.
-func usesLoopVar(arguments []js_ast.Expr, loopVarNames []string, registry *RegistryContext) bool {
+// Returns bool which is true when any argument contains a loop variable name.
+// Returns error when an argument cannot be printed.
+func usesLoopVar(arguments []js_ast.Expr, loopVarNames []string, registry *RegistryContext) (bool, error) {
 	if len(loopVarNames) == 0 {
-		return false
+		return false, nil
 	}
 	for _, argument := range arguments {
-		argString := PrintExpr(argument, registry)
-		for _, varName := range loopVarNames {
-			if strings.Contains(argString, varName) {
-				return true
-			}
+		argString, err := printExpression(argument, registry)
+		if err != nil {
+			return false, fmt.Errorf("printing handler argument: %w", err)
+		}
+		if slices.ContainsFunc(loopVarNames, func(varName string) bool {
+			return strings.Contains(argString, varName)
+		}) {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // encodeBlockStatements converts the statements in a block to a JavaScript string.
@@ -1017,14 +1055,19 @@ func usesLoopVar(arguments []js_ast.Expr, loopVarNames []string, registry *Regis
 // Takes registry (*RegistryContext) which provides the compilation context.
 //
 // Returns string which contains the converted statements joined by spaces, or an empty
-// string if the block is nil or has no statements.
-func encodeBlockStatements(block *js_ast.SBlock, registry *RegistryContext) string {
+// string when the block is nil or has no statements.
+// Returns error when a statement cannot be printed.
+func encodeBlockStatements(block *js_ast.SBlock, registry *RegistryContext) (string, error) {
 	if block == nil || len(block.Stmts) == 0 {
-		return ""
+		return "", nil
 	}
 	parts := make([]string, 0, len(block.Stmts))
 	for _, statement := range block.Stmts {
-		parts = append(parts, PrintStatement(statement, registry))
+		printed, err := printStatement(statement, registry)
+		if err != nil {
+			return "", fmt.Errorf("printing handler body statement: %w", err)
+		}
+		parts = append(parts, printed)
 	}
-	return strings.Join(parts, " ")
+	return strings.Join(parts, " "), nil
 }

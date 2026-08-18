@@ -418,8 +418,8 @@ func (store *profileStore) writeMetadata(profileType, timestamp string, meta cap
 // Takes stacks ([]byte) which is the raw stacks payload (typically pprof debug=2 text
 // output).
 //
-// Returns error when file writing fails. Errors are recoverable because the binary profile
-// is already on disk.
+// Returns error when file writing fails. Errors are recoverable because the binary
+// profile is already on disk.
 //
 // Safe for concurrent use; protected by the store's mutex.
 func (store *profileStore) writeStacks(profileType, timestamp string, stacks []byte) error {

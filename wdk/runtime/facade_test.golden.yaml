@@ -224,6 +224,8 @@ TemplateNode: |- # Kind: Struct
       // Field
       DirRef *ast_domain.Directive
       // Field
+      DirMemo *ast_domain.Directive
+      // Field
       DirSlot *ast_domain.Directive
       // Field
       DirModel *ast_domain.Directive

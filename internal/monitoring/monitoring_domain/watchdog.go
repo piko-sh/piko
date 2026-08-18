@@ -34,9 +34,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -110,8 +110,8 @@ const (
 	defaultGoroutineLeakCheckInterval = 5 * time.Minute
 
 	// defaultFDPressureThresholdPercent is the fraction of the soft FD limit above which the
-	// watchdog emits an FD pressure warning. Set high because FD exhaustion is unrecoverable,
-	// so by the time we cross 80% the operator wants to know.
+	// watchdog emits an FD pressure warning. Set high because FD exhaustion is
+	// unrecoverable, so by the time we cross 80% the operator wants to know.
 	defaultFDPressureThresholdPercent = 0.80
 
 	// defaultSchedulerLatencyP99Threshold is the p99 scheduler latency above which the
@@ -1513,8 +1513,8 @@ func (w *Watchdog) collectProfileBytes(ctx context.Context, controller Profiling
 }
 
 // writeSidecarMetadata builds and writes the JSON sidecar that pairs with a profile
-// capture. Failure is logged but never aborts the capture flow, because the profile is the
-// primary artefact and the sidecar is supplementary.
+// capture. Failure is logged but never aborts the capture flow, because the profile is
+// the primary artefact and the sidecar is supplementary.
 //
 // Takes profileType (string) which identifies the profile category.
 // Takes timestamp (string) which is the timestamp portion of the profile filename.

@@ -1126,3 +1126,36 @@ func TestParse_SVGForeignToken(t *testing.T) {
 		assert.Equal(t, "rect", svg2.Children[0].TagName)
 	})
 }
+
+func TestParse_MemoDirective(t *testing.T) {
+	t.Parallel()
+
+	t.Run("parses p-memo into DirMemo", func(t *testing.T) {
+		t.Parallel()
+
+		tree := parseForValidation(t, `<li p-for="row in state.Rows" p-key="row.ID" p-memo="row"></li>`)
+		require.NotEmpty(t, tree.RootNodes)
+
+		node := tree.RootNodes[0]
+		require.NotNil(t, node.DirMemo)
+		require.NotNil(t, node.DirMemo.Expression, "p-memo carries an expression, not a raw string")
+		assert.Equal(t, DirectiveMemo, node.DirMemo.Type)
+	})
+
+	t.Run("parses an array of dependencies", func(t *testing.T) {
+		t.Parallel()
+
+		tree := parseForValidation(t, `<li p-memo="[row, state.Flag]"></li>`)
+		require.NotEmpty(t, tree.RootNodes)
+		require.NotNil(t, tree.RootNodes[0].DirMemo)
+		require.NotNil(t, tree.RootNodes[0].DirMemo.Expression)
+	})
+
+	t.Run("leaves DirMemo nil when absent", func(t *testing.T) {
+		t.Parallel()
+
+		tree := parseForValidation(t, `<li p-for="row in state.Rows" p-key="row.ID"></li>`)
+		require.NotEmpty(t, tree.RootNodes)
+		assert.Nil(t, tree.RootNodes[0].DirMemo)
+	})
+}

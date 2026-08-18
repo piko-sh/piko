@@ -1282,18 +1282,27 @@ func printAST(ctx context.Context, tree *js_ast.AST, instanceProps []string, reg
 
 	RewriteTdewolffAST(tdewolffAST, instanceProps)
 
-	return printTdewolffAST(tdewolffAST), nil
+	printed, err := printTdewolffAST(tdewolffAST)
+	if err != nil {
+		return "", fmt.Errorf("printing converted AST: %w", err)
+	}
+	return printed, nil
 }
 
 // printTdewolffAST converts a tdewolff AST back to JavaScript source code.
 //
 // Takes tree (*parsejs.AST) which is the parsed JavaScript syntax tree.
 //
-// Returns string which contains the JavaScript source code, or an empty string if tree is
-// nil.
-func printTdewolffAST(tree *parsejs.AST) string {
+// Returns string which contains the JavaScript source code, or an empty string when tree
+// is nil.
+// Returns error when the tree cannot be normalised for printing.
+func printTdewolffAST(tree *parsejs.AST) (string, error) {
 	if tree == nil {
-		return ""
+		return "", nil
+	}
+
+	if err := normaliseAST(tree); err != nil {
+		return "", fmt.Errorf("normalising AST for printing: %w", err)
 	}
 
 	var builder strings.Builder
@@ -1304,7 +1313,7 @@ func printTdewolffAST(tree *parsejs.AST) string {
 		statement.JS(&builder)
 	}
 
-	return builder.String()
+	return builder.String(), nil
 }
 
 // insertRenderMethod inserts the renderVDOM method into the target class.

@@ -135,4 +135,9 @@ const (
 	// on a single element. HTML keeps the first occurrence and silently discards the rest,
 	// so the later value never takes effect.
 	CodeDuplicateAttribute = "T031"
+
+	// CodeStaticMemoAttribute indicates `_memo` is written as a static attribute instead of
+	// the p-memo directive. A static value never changes, so the memo check always matches
+	// and the element stops updating after its first render.
+	CodeStaticMemoAttribute = "T032"
 )

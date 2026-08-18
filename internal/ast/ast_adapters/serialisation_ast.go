@@ -56,6 +56,7 @@ var (
 		ast_domain.DirectiveText:     ast_schema_gen.DirectiveTypeTEXT,
 		ast_domain.DirectiveHTML:     ast_schema_gen.DirectiveTypeHTML,
 		ast_domain.DirectiveRef:      ast_schema_gen.DirectiveTypeREF,
+		ast_domain.DirectiveMemo:     ast_schema_gen.DirectiveTypeMEMO,
 		ast_domain.DirectiveSlot:     ast_schema_gen.DirectiveTypeSLOT,
 		ast_domain.DirectiveKey:      ast_schema_gen.DirectiveTypeKEY,
 		ast_domain.DirectiveContext:  ast_schema_gen.DirectiveTypeCONTEXT,
@@ -79,6 +80,7 @@ var (
 		ast_schema_gen.DirectiveTypeEVENT:    ast_domain.DirectiveEvent,
 		ast_schema_gen.DirectiveTypeMODEL:    ast_domain.DirectiveModel,
 		ast_schema_gen.DirectiveTypeREF:      ast_domain.DirectiveRef,
+		ast_schema_gen.DirectiveTypeMEMO:     ast_domain.DirectiveMemo,
 		ast_schema_gen.DirectiveTypeCLASS:    ast_domain.DirectiveClass,
 		ast_schema_gen.DirectiveTypeSTYLE:    ast_domain.DirectiveStyle,
 		ast_schema_gen.DirectiveTypeTEXT:     ast_domain.DirectiveText,
@@ -163,6 +165,9 @@ type templateNodeDirectiveOffsets struct {
 	// dirRef is the FlatBuffer offset for the ref directive.
 	dirRef flatbuffers.UOffsetT
 
+	// dirMemo is the FlatBuffer offset for the memo directive.
+	dirMemo flatbuffers.UOffsetT
+
 	// dirSlot holds the FlatBuffer offset for the slot directive.
 	dirSlot flatbuffers.UOffsetT
 
@@ -195,53 +200,88 @@ type templateNodeDirectiveOffsets struct {
 // Returns templateNodeDirectiveOffsets which holds the built directive offsets.
 // Returns error when any directive fails to build.
 func (s *encoder) buildTemplateNodeDirectives(node *ast_domain.TemplateNode) (templateNodeDirectiveOffsets, error) {
+	off, err := s.buildControlFlowDirectiveOffsets(node)
+	if err != nil {
+		return off, err
+	}
+	return s.buildBindingDirectiveOffsets(node, off)
+}
+
+// buildControlFlowDirectiveOffsets serialises the directives that decide whether and how
+// often an element renders.
+//
+// Takes node (*ast_domain.TemplateNode) which holds the directives.
+//
+// Returns templateNodeDirectiveOffsets which carries the offsets filled so far.
+// Returns error when a directive fails to serialise.
+func (s *encoder) buildControlFlowDirectiveOffsets(node *ast_domain.TemplateNode) (templateNodeDirectiveOffsets, error) {
 	var off templateNodeDirectiveOffsets
 	var err error
 
 	if off.dirIf, err = s.buildDirective(node.DirIf); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirIf: %w", err)
 	}
 	if off.dirElseIf, err = s.buildDirective(node.DirElseIf); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirElseIf: %w", err)
 	}
 	if off.dirElse, err = s.buildDirective(node.DirElse); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirElse: %w", err)
 	}
 	if off.dirFor, err = s.buildDirective(node.DirFor); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirFor: %w", err)
 	}
 	if off.dirShow, err = s.buildDirective(node.DirShow); err != nil {
-		return off, err
-	}
-	if off.dirModel, err = s.buildDirective(node.DirModel); err != nil {
-		return off, err
-	}
-	if off.dirRef, err = s.buildDirective(node.DirRef); err != nil {
-		return off, err
-	}
-	if off.dirSlot, err = s.buildDirective(node.DirSlot); err != nil {
-		return off, err
-	}
-	if off.dirClass, err = s.buildDirective(node.DirClass); err != nil {
-		return off, err
-	}
-	if off.dirStyle, err = s.buildDirective(node.DirStyle); err != nil {
-		return off, err
-	}
-	if off.dirText, err = s.buildDirective(node.DirText); err != nil {
-		return off, err
-	}
-	if off.dirHTML, err = s.buildDirective(node.DirHTML); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirShow: %w", err)
 	}
 	if off.dirKey, err = s.buildDirective(node.DirKey); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirKey: %w", err)
+	}
+	if off.dirMemo, err = s.buildDirective(node.DirMemo); err != nil {
+		return off, fmt.Errorf("building DirMemo: %w", err)
 	}
 	if off.dirContext, err = s.buildDirective(node.DirContext); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirContext: %w", err)
+	}
+	return off, nil
+}
+
+// buildBindingDirectiveOffsets serialises the directives that bind data or behaviour to an
+// element that is already rendering.
+//
+// Takes node (*ast_domain.TemplateNode) which holds the directives.
+// Takes off (templateNodeDirectiveOffsets) which carries the offsets built so far.
+//
+// Returns templateNodeDirectiveOffsets which carries every directive offset.
+// Returns error when a directive fails to serialise.
+func (s *encoder) buildBindingDirectiveOffsets(
+	node *ast_domain.TemplateNode,
+	off templateNodeDirectiveOffsets,
+) (templateNodeDirectiveOffsets, error) {
+	var err error
+
+	if off.dirModel, err = s.buildDirective(node.DirModel); err != nil {
+		return off, fmt.Errorf("building DirModel: %w", err)
+	}
+	if off.dirRef, err = s.buildDirective(node.DirRef); err != nil {
+		return off, fmt.Errorf("building DirRef: %w", err)
+	}
+	if off.dirSlot, err = s.buildDirective(node.DirSlot); err != nil {
+		return off, fmt.Errorf("building DirSlot: %w", err)
+	}
+	if off.dirClass, err = s.buildDirective(node.DirClass); err != nil {
+		return off, fmt.Errorf("building DirClass: %w", err)
+	}
+	if off.dirStyle, err = s.buildDirective(node.DirStyle); err != nil {
+		return off, fmt.Errorf("building DirStyle: %w", err)
+	}
+	if off.dirText, err = s.buildDirective(node.DirText); err != nil {
+		return off, fmt.Errorf("building DirText: %w", err)
+	}
+	if off.dirHTML, err = s.buildDirective(node.DirHTML); err != nil {
+		return off, fmt.Errorf("building DirHTML: %w", err)
 	}
 	if off.dirScaffold, err = s.buildDirective(node.DirScaffold); err != nil {
-		return off, err
+		return off, fmt.Errorf("building DirScaffold: %w", err)
 	}
 	return off, nil
 }
@@ -376,6 +416,7 @@ func (s *encoder) addDirectivesToFlatBuffer(directive templateNodeDirectiveOffse
 	ast_schema_gen.TemplateNodeFBAddDirectiveShow(s.builder, directive.dirShow)
 	ast_schema_gen.TemplateNodeFBAddDirectiveModel(s.builder, directive.dirModel)
 	ast_schema_gen.TemplateNodeFBAddDirectiveRef(s.builder, directive.dirRef)
+	ast_schema_gen.TemplateNodeFBAddDirectiveMemo(s.builder, directive.dirMemo)
 	ast_schema_gen.TemplateNodeFBAddDirectiveSlot(s.builder, directive.dirSlot)
 	ast_schema_gen.TemplateNodeFBAddDirectiveClass(s.builder, directive.dirClass)
 	ast_schema_gen.TemplateNodeFBAddDirectiveStyle(s.builder, directive.dirStyle)
@@ -1040,6 +1081,20 @@ func (d *decoder) unpackTemplateNodeVectors(ctx context.Context, fb *ast_schema_
 //
 // Returns error when any directive fails to unpack.
 func (d *decoder) unpackTemplateNodeDirectives(fb *ast_schema_gen.TemplateNodeFB, node *ast_domain.TemplateNode) error {
+	if err := d.unpackControlFlowDirectives(fb, node); err != nil {
+		return err
+	}
+	return d.unpackBindingDirectives(fb, node)
+}
+
+// unpackControlFlowDirectives unpacks the directives that decide whether and how often an
+// element renders.
+//
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which holds the serialised node.
+// Takes node (*ast_domain.TemplateNode) which receives the directives.
+//
+// Returns error when a directive fails to unpack.
+func (d *decoder) unpackControlFlowDirectives(fb *ast_schema_gen.TemplateNodeFB, node *ast_domain.TemplateNode) error {
 	var err error
 	if node.DirIf, err = d.unpackDirective(fb.DirectiveIf(&d.dirFB)); err != nil {
 		return fmt.Errorf("unpacking DirIf: %w", err)
@@ -1056,6 +1111,27 @@ func (d *decoder) unpackTemplateNodeDirectives(fb *ast_schema_gen.TemplateNodeFB
 	if node.DirShow, err = d.unpackDirective(fb.DirectiveShow(&d.dirFB)); err != nil {
 		return fmt.Errorf("unpacking DirShow: %w", err)
 	}
+	if node.DirKey, err = d.unpackDirective(fb.DirectiveKey(&d.dirFB)); err != nil {
+		return fmt.Errorf("unpacking DirKey: %w", err)
+	}
+	if node.DirMemo, err = d.unpackDirective(fb.DirectiveMemo(&d.dirFB)); err != nil {
+		return fmt.Errorf("unpacking DirMemo: %w", err)
+	}
+	if node.DirContext, err = d.unpackDirective(fb.DirectiveContext(&d.dirFB)); err != nil {
+		return fmt.Errorf("unpacking DirContext: %w", err)
+	}
+	return nil
+}
+
+// unpackBindingDirectives unpacks the directives that bind data or behaviour to an element
+// that is already rendering.
+//
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which holds the serialised node.
+// Takes node (*ast_domain.TemplateNode) which receives the directives.
+//
+// Returns error when a directive fails to unpack.
+func (d *decoder) unpackBindingDirectives(fb *ast_schema_gen.TemplateNodeFB, node *ast_domain.TemplateNode) error {
+	var err error
 	if node.DirModel, err = d.unpackDirective(fb.DirectiveModel(&d.dirFB)); err != nil {
 		return fmt.Errorf("unpacking DirModel: %w", err)
 	}
@@ -1076,12 +1152,6 @@ func (d *decoder) unpackTemplateNodeDirectives(fb *ast_schema_gen.TemplateNodeFB
 	}
 	if node.DirHTML, err = d.unpackDirective(fb.DirectiveHtml(&d.dirFB)); err != nil {
 		return fmt.Errorf("unpacking DirHTML: %w", err)
-	}
-	if node.DirKey, err = d.unpackDirective(fb.DirectiveKey(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirKey: %w", err)
-	}
-	if node.DirContext, err = d.unpackDirective(fb.DirectiveContext(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirContext: %w", err)
 	}
 	if node.DirScaffold, err = d.unpackDirective(fb.DirectiveScaffold(&d.dirFB)); err != nil {
 		return fmt.Errorf("unpacking DirScaffold: %w", err)

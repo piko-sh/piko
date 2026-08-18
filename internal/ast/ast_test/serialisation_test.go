@@ -156,6 +156,7 @@ func assertNodesAreEqual(t *testing.T, expected, actual *ast_domain.TemplateNode
 	assertDirectivesAreEqual(t, expected.DirShow, actual.DirShow, path+".DirShow")
 	assertDirectivesAreEqual(t, expected.DirModel, actual.DirModel, path+".DirModel")
 	assertDirectivesAreEqual(t, expected.DirRef, actual.DirRef, path+".DirRef")
+	assertDirectivesAreEqual(t, expected.DirMemo, actual.DirMemo, path+".DirMemo")
 	assertDirectivesAreEqual(t, expected.DirClass, actual.DirClass, path+".DirClass")
 	assertDirectivesAreEqual(t, expected.DirStyle, actual.DirStyle, path+".DirStyle")
 	assertDirectivesAreEqual(t, expected.DirText, actual.DirText, path+".DirText")
@@ -369,4 +370,247 @@ func assertPropValuesAreEqual(t *testing.T, expected, actual *ast_domain.PropVal
 	require.Equal(t, expected.Location, actual.Location, "Location mismatch at %s", path)
 	assertExprsAreEqual(t, expected.Expression, actual.Expression, path+".Expression")
 	assertGoAnnotationsAreEqual(t, expected.InvokerAnnotation, actual.InvokerAnnotation, path+".InvokerAnnotation")
+}
+
+func TestSerialisation_MemoDirectiveRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		source string
+	}{
+		{
+			name:   "single dependency",
+			source: `<li p-for="row in state.Rows" p-key="row.ID" p-memo="row"></li>`,
+		},
+		{
+			name:   "array of dependencies",
+			source: `<li p-for="row in state.Rows" p-key="row.ID" p-memo="[row, state.Flag]"></li>`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			basePath, err := filepath.Abs(".")
+			require.NoError(t, err)
+			original := ast_domain.SanitiseForEncoding(mustParse(t, tc.source), basePath)
+			require.NotNil(t, original.RootNodes[0].DirMemo, "the parse must produce a memo directive to round-trip")
+
+			data, err := ast_adapters.EncodeAST(original)
+			require.NoError(t, err)
+
+			decoded, err := ast_adapters.DecodeAST(context.Background(), data)
+			require.NoError(t, err)
+			require.NotEmpty(t, decoded.RootNodes)
+
+			require.NotNil(t, decoded.RootNodes[0].DirMemo, "DirMemo must survive the flatbuffer round-trip")
+			assertASTsAreEqual(t, original, decoded)
+		})
+	}
+}
+
+func TestSerialisation_EveryDirectiveSlotRoundTrips(t *testing.T) {
+	t.Parallel()
+
+	expression := func(name string) ast_domain.Expression {
+		return &ast_domain.Identifier{Name: name}
+	}
+	directive := func(kind ast_domain.DirectiveType, name string) *ast_domain.Directive {
+		return &ast_domain.Directive{Type: kind, Expression: expression(name)}
+	}
+	rawDirective := func(kind ast_domain.DirectiveType, raw string) *ast_domain.Directive {
+		return &ast_domain.Directive{Type: kind, RawExpression: raw}
+	}
+
+	node := &ast_domain.TemplateNode{
+		NodeType:    ast_domain.NodeElement,
+		TagName:     "li",
+		DirIf:       directive(ast_domain.DirectiveIf, "showIf"),
+		DirElseIf:   directive(ast_domain.DirectiveElseIf, "showElseIf"),
+		DirElse:     directive(ast_domain.DirectiveElse, "showElse"),
+		DirFor:      directive(ast_domain.DirectiveFor, "rows"),
+		DirShow:     directive(ast_domain.DirectiveShow, "visible"),
+		DirKey:      directive(ast_domain.DirectiveKey, "rowID"),
+		DirMemo:     directive(ast_domain.DirectiveMemo, "row"),
+		DirContext:  directive(ast_domain.DirectiveContext, "scope"),
+		DirModel:    directive(ast_domain.DirectiveModel, "value"),
+		DirRef:      rawDirective(ast_domain.DirectiveRef, "rowRef"),
+		DirSlot:     rawDirective(ast_domain.DirectiveSlot, "header"),
+		DirClass:    directive(ast_domain.DirectiveClass, "classes"),
+		DirStyle:    directive(ast_domain.DirectiveStyle, "styles"),
+		DirText:     directive(ast_domain.DirectiveText, "label"),
+		DirHTML:     directive(ast_domain.DirectiveHTML, "body"),
+		DirScaffold: rawDirective(ast_domain.DirectiveScaffold, "true"),
+	}
+
+	sourcePath := "everything.pkc"
+	original := &ast_domain.TemplateAST{
+		SourcePath: &sourcePath,
+		RootNodes:  []*ast_domain.TemplateNode{node},
+	}
+
+	data, err := ast_adapters.EncodeAST(original)
+	require.NoError(t, err)
+	require.NotEmpty(t, data)
+
+	decoded, err := ast_adapters.DecodeAST(context.Background(), data)
+	require.NoError(t, err)
+	require.Len(t, decoded.RootNodes, 1)
+
+	assertASTsAreEqual(t, original, decoded)
+
+	decodedNode := decoded.RootNodes[0]
+	for name, got := range map[string]*ast_domain.Directive{
+		"DirIf":       decodedNode.DirIf,
+		"DirElseIf":   decodedNode.DirElseIf,
+		"DirElse":     decodedNode.DirElse,
+		"DirFor":      decodedNode.DirFor,
+		"DirShow":     decodedNode.DirShow,
+		"DirKey":      decodedNode.DirKey,
+		"DirMemo":     decodedNode.DirMemo,
+		"DirContext":  decodedNode.DirContext,
+		"DirModel":    decodedNode.DirModel,
+		"DirRef":      decodedNode.DirRef,
+		"DirSlot":     decodedNode.DirSlot,
+		"DirClass":    decodedNode.DirClass,
+		"DirStyle":    decodedNode.DirStyle,
+		"DirText":     decodedNode.DirText,
+		"DirHTML":     decodedNode.DirHTML,
+		"DirScaffold": decodedNode.DirScaffold,
+	} {
+		require.NotNilf(t, got, "%s was dropped by the round-trip", name)
+	}
+}
+
+type unencodableExpression struct{}
+
+func (unencodableExpression) String() string { return "unencodable" }
+
+func (e unencodableExpression) TransformIdentifiers(func(string) string) ast_domain.Expression {
+	return e
+}
+
+func (e unencodableExpression) Clone() ast_domain.Expression { return e }
+
+func (unencodableExpression) GetRelativeLocation() ast_domain.Location {
+	return ast_domain.Location{}
+}
+
+func (unencodableExpression) SetLocation(ast_domain.Location, int) {}
+
+func (unencodableExpression) GetGoAnnotation() *ast_domain.GoGeneratorAnnotation { return nil }
+
+func (unencodableExpression) SetGoAnnotation(*ast_domain.GoGeneratorAnnotation) {}
+
+func (unencodableExpression) GetSourceLength() int { return 0 }
+
+func TestSerialisation_DirectiveEncodeFailureNamesTheSlot(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		apply    func(*ast_domain.TemplateNode, *ast_domain.Directive)
+		name     string
+		wantSlot string
+	}{
+		{
+			name:     "DirIf",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirIf = d },
+			wantSlot: "DirIf",
+		},
+		{
+			name:     "DirElseIf",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirElseIf = d },
+			wantSlot: "DirElseIf",
+		},
+		{
+			name:     "DirElse",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirElse = d },
+			wantSlot: "DirElse",
+		},
+		{
+			name:     "DirFor",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirFor = d },
+			wantSlot: "DirFor",
+		},
+		{
+			name:     "DirShow",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirShow = d },
+			wantSlot: "DirShow",
+		},
+		{
+			name:     "DirKey",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirKey = d },
+			wantSlot: "DirKey",
+		},
+		{
+			name:     "DirMemo",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirMemo = d },
+			wantSlot: "DirMemo",
+		},
+		{
+			name:     "DirContext",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirContext = d },
+			wantSlot: "DirContext",
+		},
+		{
+			name:     "DirModel",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirModel = d },
+			wantSlot: "DirModel",
+		},
+		{
+			name:     "DirRef",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirRef = d },
+			wantSlot: "DirRef",
+		},
+		{
+			name:     "DirSlot",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirSlot = d },
+			wantSlot: "DirSlot",
+		},
+		{
+			name:     "DirClass",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirClass = d },
+			wantSlot: "DirClass",
+		},
+		{
+			name:     "DirStyle",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirStyle = d },
+			wantSlot: "DirStyle",
+		},
+		{
+			name:     "DirText",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirText = d },
+			wantSlot: "DirText",
+		},
+		{
+			name:     "DirHTML",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirHTML = d },
+			wantSlot: "DirHTML",
+		},
+		{
+			name:     "DirScaffold",
+			apply:    func(node *ast_domain.TemplateNode, d *ast_domain.Directive) { node.DirScaffold = d },
+			wantSlot: "DirScaffold",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			node := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "li"}
+			tc.apply(node, &ast_domain.Directive{Expression: unencodableExpression{}})
+
+			sourcePath := "broken.pkc"
+			_, err := ast_adapters.EncodeAST(&ast_domain.TemplateAST{
+				SourcePath: &sourcePath,
+				RootNodes:  []*ast_domain.TemplateNode{node},
+			})
+
+			require.Error(t, err)
+			require.ErrorContains(t, err, tc.wantSlot, "the failing directive slot must be named in the error")
+		})
+	}
 }

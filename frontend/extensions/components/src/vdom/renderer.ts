@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import type {VirtualNode, ElementVNode} from '@/vdom/types';
+import {toRaw} from '@/reactivity';
 import {
     isUndef,
     isVNodeHidden,
@@ -28,7 +29,8 @@ import {
     parseClassData,
     parseStyleData,
     combineClasses,
-    combineStyles
+    combineStyles,
+    isReservedProp
 } from '@/vdom/propDiff';
 
 /** SVG namespace URI used when creating SVG elements. */
@@ -602,6 +604,11 @@ function patchElementVNode(
         return;
     }
 
+    if (canSkipPatchByMemo(oldVNode, newVNode)) {
+        newVNode.children = oldVNode.children;
+        return;
+    }
+
     patchProps(domElement, oldVNode.props ?? {}, newVNode.props ?? {}, refs);
 
     if (newVNode.html != null) {
@@ -899,31 +906,32 @@ function updateChildren(
 }
 
 /**
- * Compares two event-handler prop values (a single handler, or an array of
- * handlers) for equality. Arrays are compared element-wise by reference.
+ * Reports whether a row's entire patch can be skipped.
  *
- * Event-prop values are emitted as fresh array literals on every render (e.g.
- * `onInput: [modelUpdater, userHandler]`), so a plain `!==` reference check
- * treats them as changed every time and removes+re-adds all listeners. When a
- * render is triggered synchronously from within one of those handlers (e.g. a
- * p-model updater that mutates state), the still-pending sibling handler is
- * detached from the live listener list mid-dispatch and never fires. Comparing
- * element-wise lets the renderer leave unchanged listeners attached.
- *
- * @param a - The previous handler value.
- * @param b - The incoming handler value.
- * @returns True when both represent the same listener set.
+ * @param oldVNode - The previous virtual node.
+ * @param newVNode - The incoming virtual node.
+ * @returns True when the patch can be skipped entirely.
  */
-function eventHandlersEqual(a: unknown, b: unknown): boolean {
-    if (a === b) {
+function canSkipPatchByMemo(oldVNode: VirtualNode, newVNode: VirtualNode): boolean {
+    const oldMemo = oldVNode.props ? oldVNode.props["_memo"] : undefined;
+    const newMemo = newVNode.props ? newVNode.props["_memo"] : undefined;
+    return oldMemo !== undefined && newMemo !== undefined && memoDependenciesEqual(oldMemo, newMemo);
+}
+
+/**
+ * Compares two `_memo` dependency values for the keyed-row memo fast path.
+ *
+ * @param a - The previous `_memo` value.
+ * @param b - The incoming `_memo` value.
+ * @returns True when every dep is raw-reference-equal.
+ */
+function memoDependenciesEqual(a: unknown, b: unknown): boolean {
+    if (toRaw(a) === toRaw(b)) {
         return true;
     }
-    if (Array.isArray(a) && Array.isArray(b)) {
-        if (a.length !== b.length) {
-            return false;
-        }
+    if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) {
         for (let i = 0; i < a.length; i++) {
-            if (a[i] !== b[i]) {
+            if (toRaw(a[i]) !== toRaw(b[i])) {
                 return false;
             }
         }
@@ -933,31 +941,27 @@ function eventHandlersEqual(a: unknown, b: unknown): boolean {
 }
 
 /**
- * Removes the listener for a stale event prop ("on*" or "pe:*"), unless the
- * handler set is unchanged element-wise.
+ * Removes the listener for a stale event prop ("on*" or "pe:*").
  *
- * Handler arrays are emitted as fresh literals each render, so the set can be
- * identical while the array reference differs. Leaving an unchanged listener
- * attached lets a synchronous re-render triggered mid-dispatch keep a
- * still-pending sibling handler attached instead of detaching it before it fires.
+ * A prop still present in the new props is left alone: `applyPropValue` swaps
+ * the managed handler in place, which keeps a still-pending sibling handler
+ * attached when a re-render is triggered synchronously mid-dispatch.
  *
  * @param htmlElement - The target HTML element.
  * @param propName - The event prop name being removed.
- * @param oldProps - The previous props record.
  * @param newProps - The incoming props record.
  */
 function removeStaleEventListener(
     htmlElement: HTMLElement,
     propName: string,
-    oldProps: PropsRecord,
     newProps: PropsRecord
 ): void {
-    if ((propName in newProps) && eventHandlersEqual(oldProps[propName], newProps[propName])) {
+    if (propName in newProps) {
         return;
     }
-    const prefixLen = propName.startsWith("pe:") ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH;
-    const parsed = parseEventPropKey(propName, prefixLen);
-    toggleListener(htmlElement, parsed.eventName, oldProps[propName] as EventHandler | EventHandler[], false, parsed.listenerOptions);
+    const isCustom = propName.startsWith("pe:");
+    const parsed = parseEventPropKey(propName, isCustom ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH);
+    setManagedListener(htmlElement, eventPropNamespace(propName), parsed.eventName, undefined, parsed.listenerOptions);
 }
 
 /**
@@ -981,10 +985,10 @@ function removeStaleProps(
         if (propName.startsWith("?")) {
             htmlElement.removeAttribute(propName.slice(1));
         } else if (propName.startsWith("on") || propName.startsWith("pe:")) {
-            removeStaleEventListener(htmlElement, propName, oldProps, newProps);
+            removeStaleEventListener(htmlElement, propName, newProps);
         } else if (propName === "_ref" && refs && oldProps[propName] && refs[oldProps[propName] as string] === htmlElement) {
             delete refs[oldProps[propName] as string];
-        } else if (!["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
+        } else if (!isReservedProp(propName)) {
             htmlElement.removeAttribute(propName);
         }
     }
@@ -1056,21 +1060,16 @@ function applyPropValue(
         return;
     }
 
-    if (propName.startsWith("on")) {
-        const parsed = parseEventPropKey(propName, PREFIX_ON_LENGTH);
-        if (!eventHandlersEqual(oldValue, newValue)) {
-            toggleListener(htmlElement, parsed.eventName, oldValue as EventHandler | EventHandler[], false, parsed.listenerOptions);
-            toggleListener(htmlElement, parsed.eventName, newValue as EventHandler | EventHandler[], true, parsed.listenerOptions);
-        }
-        return;
-    }
-
-    if (propName.startsWith("pe:")) {
-        const parsed = parseEventPropKey(propName, PREFIX_PE_LENGTH);
-        if (!eventHandlersEqual(oldValue, newValue)) {
-            toggleListener(htmlElement, parsed.eventName, oldValue as EventHandler | EventHandler[], false, parsed.listenerOptions);
-            toggleListener(htmlElement, parsed.eventName, newValue as EventHandler | EventHandler[], true, parsed.listenerOptions);
-        }
+    if (propName.startsWith("on") || propName.startsWith("pe:")) {
+        const isCustom = propName.startsWith("pe:");
+        const parsed = parseEventPropKey(propName, isCustom ? PREFIX_PE_LENGTH : PREFIX_ON_LENGTH);
+        setManagedListener(
+            htmlElement,
+            eventPropNamespace(propName),
+            parsed.eventName,
+            newValue as EventHandler | EventHandler[] | undefined,
+            parsed.listenerOptions
+        );
         return;
     }
 
@@ -1106,7 +1105,7 @@ function applyNewProps(
         const newValue = newProps[propName];
         const oldValue = oldProps[propName];
 
-        if (["_k", "_c", "_s", "class", "_class", "style", "_style"].includes(propName)) {
+        if (isReservedProp(propName)) {
             continue;
         }
         if (propName !== "value" && newValue === oldValue && typeof newValue !== 'function') {
@@ -1228,38 +1227,126 @@ function parseEventPropKey(propName: string, prefixLen: number): { eventName: st
 }
 
 /**
- * Adds or removes an event listener on an HTML element.
- *
- * @param htmlElement - The HTML element to modify.
- * @param eventName - The event name to listen for.
- * @param handler - The event handler or array of handlers.
- * @param add - Whether to add (true) or remove (false) the listener.
- * @param listenerOptions - Optional addEventListener options (capture, passive).
+ * Managed event listeners. Compiled templates mint FRESH handler closures on
+ * every re-render, so identity comparison always fails and the old
+ * remove/add pair churned the DOM's listener list on every patched node.
+ * A large keyed list re-rendering at 60fps produced thousands of listener
+ * mutations a second, which profiled as a top-3 cost on big scenes.
  */
-function toggleListener(
-    htmlElement: HTMLElement,
-    eventName: string,
-    handler: EventHandler | EventHandler[] | undefined,
-    add: boolean,
-    listenerOptions?: AddEventListenerOptions
-) {
-    if (!handler) {
-        return;
-    }
+interface ManagedListenerEntry {
+    handler: EventHandler | EventHandler[];
+    options: AddEventListenerOptions;
+    dispatch: (e: Event) => void;
+}
+
+const MANAGED_LISTENERS = Symbol("pikoManagedListeners");
+
+type ManagedHost = HTMLElement & { [MANAGED_LISTENERS]?: Map<string, ManagedListenerEntry> };
+
+/**
+ * The listener namespace a given event prop belongs to.
+ *
+ * @param propName - The event prop name ("on*" or "pe:*").
+ * @returns The namespace segment for the managed-listener key.
+ */
+function eventPropNamespace(propName: string): string {
+    return propName.startsWith("pe:") ? "pe" : "on";
+}
+
+/**
+ * Resolves the effective listener options for an event, applying the
+ * focus/blur capture default.
+ *
+ * @param eventName - The lowercased DOM event name.
+ * @param listenerOptions - The options parsed from the prop name, if any.
+ * @returns A fresh options object owned by the caller.
+ */
+function effectiveListenerOptions(eventName: string, listenerOptions?: AddEventListenerOptions): AddEventListenerOptions {
     const options: AddEventListenerOptions = {...listenerOptions};
     if ((eventName === "focus" || eventName === "blur") && options.capture === undefined) {
         options.capture = true;
     }
-    const method = add ? 'addEventListener' : 'removeEventListener';
-    if (Array.isArray(handler)) {
-        for (const func of handler) {
-            if (typeof func === "function") {
-                htmlElement[method](eventName, func, options);
-            }
-        }
-    } else if (typeof handler === "function") {
-        htmlElement[method](eventName, handler, options);
+    return options;
+}
+
+/**
+ * Invokes one handler with the element as `this`, isolating a throw.
+ *
+ * @param handler - The handler to invoke.
+ * @param htmlElement - The element the listener is bound to (`this`).
+ * @param event - The event being dispatched.
+ */
+function invokeManagedHandler(handler: EventHandler, htmlElement: HTMLElement, event: Event): void {
+    if (typeof handler !== "function") {
+        return;
     }
+    try {
+        handler.call(htmlElement, event);
+    } catch (error) {
+        queueMicrotask(() => {
+            throw error;
+        });
+    }
+}
+
+/**
+ * Registers, updates, or removes the managed listener for one event binding.
+ *
+ * @param htmlElement - The element to bind on.
+ * @param namespace - The event prop namespace ("on" or "pe").
+ * @param eventName - The lowercased DOM event name.
+ * @param handler - The handler (or handler array) to install, or undefined to remove.
+ * @param listenerOptions - The options parsed from the prop name, if any.
+ */
+function setManagedListener(
+    htmlElement: HTMLElement,
+    namespace: string,
+    eventName: string,
+    handler: EventHandler | EventHandler[] | undefined,
+    listenerOptions?: AddEventListenerOptions
+): void {
+    const options = effectiveListenerOptions(eventName, listenerOptions);
+    const flags = `${options.capture ? "c" : ""}${options.once ? "o" : ""}${options.passive ? "p" : ""}`;
+    const key = `${namespace}|${eventName}|${flags}`;
+    const host = htmlElement as ManagedHost;
+    let map = host[MANAGED_LISTENERS];
+    if (!handler) {
+        const entry = map ? map.get(key) : undefined;
+        if (entry && map) {
+            htmlElement.removeEventListener(eventName, entry.dispatch, entry.options);
+            map.delete(key);
+        }
+        return;
+    }
+    if (!map) {
+        map = new Map();
+        host[MANAGED_LISTENERS] = map;
+    }
+    const existing = map.get(key);
+    if (existing) {
+        existing.handler = handler;
+        return;
+    }
+    const entries = map;
+    const entry: ManagedListenerEntry = {
+        handler,
+        options,
+        dispatch(e: Event) {
+            if (entry.options.once) {
+                entries.delete(key);
+            }
+            const current = entry.handler;
+            if (Array.isArray(current)) {
+                for (const fn of current) {
+                    invokeManagedHandler(fn, htmlElement, e);
+                }
+                return;
+            }
+            invokeManagedHandler(current, htmlElement, e);
+        },
+    };
+    map.set(key, entry);
+    htmlElement.addEventListener(eventName, entry.dispatch, options);
 }
 
 /**

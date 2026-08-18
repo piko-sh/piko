@@ -95,7 +95,7 @@ dap.configurations.go = {
 | Generated page renderers under `dist/` | Supported |
 | Generator output for partials, components, collections | Supported |
 | Go code inside `<script lang="go">` blocks running under `dev-i` (interpreted mode) | Supported |
-| `.pk` source lines mapped back from the generated renderer | Work in progress |
+| `.pk` source lines mapped back from the generated renderer | Not supported |
 
 To step through what happens when a request hits a page, set a breakpoint in `dist/pages/<route>/<hash>/page.go` inside the rendered function and reload the page in the browser.
 
@@ -122,7 +122,7 @@ lsof -i :2345
 kill <pid>
 ```
 
-**Cannot step into interpreted `.pk` lines.** Source-mapping from generated Go back to `.pk` source is not yet implemented. Set the breakpoint inside the generated `dist/.../page.go` file instead - the rendered function preserves the order and shape of your template.
+**Cannot step into interpreted `.pk` lines.** Piko does not map generated Go back to `.pk` source. Set the breakpoint inside the generated `dist/.../page.go` file instead - the rendered function preserves the order and shape of your template.
 
 ## See also
 

@@ -77,6 +77,9 @@ const (
 	// DirectiveRef represents a p-ref element reference directive.
 	DirectiveRef
 
+	// DirectiveMemo represents a p-memo keyed-row memoisation directive.
+	DirectiveMemo
+
 	// DirectiveSlot represents a p-slot directive for assigning an element to a named slot.
 	DirectiveSlot
 
@@ -194,6 +197,7 @@ var (
 		"p-text":     DirectiveText,
 		"p-html":     DirectiveHTML,
 		"p-key":      DirectiveKey,
+		"p-memo":     DirectiveMemo,
 		"p-context":  DirectiveContext,
 		"p-scaffold": DirectiveScaffold,
 		"p-timeline": DirectiveTimeline,
@@ -217,6 +221,7 @@ var (
 		DirectiveText:     "p-text",
 		DirectiveHTML:     "p-html",
 		DirectiveKey:      "p-key",
+		DirectiveMemo:     "p-memo",
 		DirectiveContext:  "p-context",
 		DirectiveScaffold: "p-scaffold",
 		DirectiveTimeline: "p-timeline",

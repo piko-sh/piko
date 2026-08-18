@@ -69,7 +69,7 @@ imageConfig, err := media.Image().
 
 `media.Variant()` exposes `Size`, `MaxWidth`, `MaxHeight`, `Format`, `Quality`, `Fit`/`Cover`/`Contain`/`Fill`/`Inside`/`Outside`, `Background`, `AspectRatio`, and modifier helpers (`Blur`, `Greyscale`). See `wdk/media/facade.go` for the full list.
 
-To start with sensible defaults plus Piko's predefined variants (`thumb_100`, `thumb_200`, `thumb_400`, `preview_800`, `lqip`), call `FromDefaults()`:
+For sensible defaults plus Piko's predefined variants (`thumb_100`, `thumb_200`, `thumb_400`, `preview_800`, `lqip`), call `FromDefaults()`:
 
 ```go
 imageConfig, _ := media.Image().

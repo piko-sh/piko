@@ -98,7 +98,7 @@ Either form is correct. The choice reflects the action's shape, not a global con
 
 ### HTTP method override
 
-Actions mount at POST by default. The seven `MethodGet`, `MethodHead`, `MethodPost`, `MethodPut`, `MethodDelete`, `MethodOptions`, and `MethodPatch` constants exist, and an action may declare a `Method() piko.HTTPMethod` receiver. At present the generator's `detectHTTPMethodOverride` only checks whether the receiver is *defined*. It ignores the return value, so every action with a `Method()` receiver still mounts at POST in the registry. Treat the verb as effectively fixed for the moment.
+Actions mount at POST by default. The seven `MethodGet`, `MethodHead`, `MethodPost`, `MethodPut`, `MethodDelete`, `MethodOptions`, and `MethodPatch` constants exist, and an action may declare a `Method() piko.HTTPMethod` receiver. The generator's `detectHTTPMethodOverride` only checks whether the receiver is *defined*. It ignores the return value, so every action with a `Method()` receiver still mounts at POST in the registry. Treat the verb as fixed.
 
 ### Other absences
 

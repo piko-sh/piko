@@ -25,6 +25,7 @@ const (
 	DirectiveTypeCONTEXT  DirectiveType = 15
 	DirectiveTypeSCAFFOLD DirectiveType = 16
 	DirectiveTypeSLOT     DirectiveType = 17
+	DirectiveTypeMEMO     DirectiveType = 18
 )
 
 var EnumNamesDirectiveType = map[DirectiveType]string{
@@ -46,6 +47,7 @@ var EnumNamesDirectiveType = map[DirectiveType]string{
 	DirectiveTypeCONTEXT:  "CONTEXT",
 	DirectiveTypeSCAFFOLD: "SCAFFOLD",
 	DirectiveTypeSLOT:     "SLOT",
+	DirectiveTypeMEMO:     "MEMO",
 }
 
 var EnumValuesDirectiveType = map[string]DirectiveType{
@@ -67,6 +69,7 @@ var EnumValuesDirectiveType = map[string]DirectiveType{
 	"CONTEXT":  DirectiveTypeCONTEXT,
 	"SCAFFOLD": DirectiveTypeSCAFFOLD,
 	"SLOT":     DirectiveTypeSLOT,
+	"MEMO":     DirectiveTypeMEMO,
 }
 
 func (v DirectiveType) String() string {

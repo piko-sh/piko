@@ -197,7 +197,7 @@ const result = await action.customer.Upsert({
 }).call();
 ```
 
-The argument object's keys mirror the Go parameter names (or struct field JSON tags). The builder returns a thenable. Awaiting `.call()` resolves to the typed response or throws on failure. The runtime auto-imports the bindings.
+The argument object's keys mirror the Go parameter names (or struct field JSON tags). The builder returns a thenable. An `await` on `.call()` resolves to the typed response, or throws on failure. The runtime auto-imports the bindings.
 
 ## Batch endpoint
 

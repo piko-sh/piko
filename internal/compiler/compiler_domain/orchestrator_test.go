@@ -701,11 +701,11 @@ const state = { n: 0 as OnlyAType };
 }
 
 type mockCSSPreProcessor struct {
-	result    string
 	err       error
-	called    bool
+	result    string
 	gotCSS    string
 	gotSource string
+	called    bool
 }
 
 func (m *mockCSSPreProcessor) InlineImports(_ context.Context, cssContent string, sourcePath string) (string, error) {
@@ -773,4 +773,62 @@ func TestPreProcessStyles(t *testing.T) {
 		assert.Equal(t, original, cc.stylesDefault)
 		assert.True(t, preProcessor.called)
 	})
+}
+
+func TestCompileSFC_MemoBinding(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		sfcContent  string
+		wantKept    []string
+		wantDropped []string
+	}{
+		{
+			name: "p-memo reaches the props object as the reserved prop",
+			sfcContent: `<template name="memo-rows"><ul><li p-for="row in state.rows" p-key="row.id" p-memo="row">{{ row.label }}</li></ul></template>
+<script lang="ts">
+const state = { rows: [{ id: "a", label: "Apple" }] };
+</script>`,
+			wantKept:    []string{`"_memo"`},
+			wantDropped: []string{`"?_memo"`, `"p-memo"`},
+		},
+		{
+			name: "p-memo array deps are emitted verbatim",
+			sfcContent: `<template name="memo-array"><ul><li p-for="row in state.rows" p-key="row.id" p-memo="[row, state.flag]">{{ row.label }}</li></ul></template>
+<script lang="ts">
+const state = { rows: [{ id: "a", label: "Apple" }], flag: true };
+</script>`,
+			wantKept:    []string{`"_memo"`, "flag"},
+			wantDropped: []string{`"?_memo"`, `"p-memo"`},
+		},
+		{
+			name: "the :_memo prop binding still reaches the renderer",
+			sfcContent: `<template name="memo-prop"><ul><li p-for="row in state.rows" p-key="row.id" :_memo="row">{{ row.label }}</li></ul></template>
+<script lang="ts">
+const state = { rows: [{ id: "a", label: "Apple" }] };
+</script>`,
+			wantKept:    []string{`"_memo"`},
+			wantDropped: []string{`"?_memo"`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			orchestrator := NewCompilerOrchestrator(nil, nil, WithOrchestratorModuleName("example.com/proj"))
+			artefact, err := orchestrator.CompileSFCBytes(context.Background(), "memo.pkc", []byte(tt.sfcContent))
+			require.NoError(t, err)
+			require.NotNil(t, artefact)
+
+			js := artefact.Files[artefact.BaseJSPath]
+			for _, kept := range tt.wantKept {
+				assert.Contains(t, js, kept, "expected %q in the emitted component", kept)
+			}
+			for _, dropped := range tt.wantDropped {
+				assert.NotContains(t, js, dropped, "expected %q never to be emitted", dropped)
+			}
+		})
+	}
 }

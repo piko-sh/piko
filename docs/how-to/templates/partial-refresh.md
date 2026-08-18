@@ -136,7 +136,7 @@ piko.partials.reload('cart', {
 
 ## Style the loading state
 
-Piko adds the `pk-loading` class to the partial element while the refresh is in flight, then removes it when the response replaces the content:
+Piko adds the `pk-loading` class to the partial element while the refresh runs, then removes it when the response replaces the content:
 
 ```css
 .pk-loading {

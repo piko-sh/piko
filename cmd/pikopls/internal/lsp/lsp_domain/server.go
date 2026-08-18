@@ -34,13 +34,13 @@ import (
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/formatter/formatter_domain"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/typegen/typegen_adapters"
 	"piko.sh/piko/internal/typegen/typegen_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

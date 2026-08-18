@@ -26,7 +26,8 @@ enum DirectiveType : ushort {
   IF = 0, ELSEIF = 1, ELSE = 2, FOR = 3, SHOW = 4, BIND = 5,
   ON = 6, EVENT = 7, MODEL = 8, REF = 9, CLASS = 10, STYLE = 11,
   TEXT = 12,
-  HTML = 13, KEY = 14, CONTEXT = 15, SCAFFOLD = 16, SLOT = 17
+  HTML = 13, KEY = 14, CONTEXT = 15, SCAFFOLD = 16, SLOT = 17,
+  MEMO = 18
 }
 
 enum UnaryOperatorFB : ubyte { NOT = 0, NEG = 1, ADDR_OF = 2, TRUTHY = 3 }
@@ -250,6 +251,7 @@ table TemplateNodeFB {
   children_pooled:bool;
   prerendered_html:[ubyte];
   preserve_whitespace:bool;
+  directive_memo:DirectiveFB;
 }
 
 table TemplateASTFB {

@@ -534,9 +534,11 @@ func (w *Watchdog) evaluateFDPressure(ctx context.Context, now time.Time, stats 
 }
 
 // evaluateSchedulerLatency emits a warning when the runtime/metrics scheduler latency p99
-// exceeds the configured threshold. High scheduler latency indicates that runnable
-// goroutines are waiting too long for CPU. Symptoms include GC interference, lock
-// contention, CPU starvation, or goroutine pile-ups.
+// exceeds the configured threshold.
+//
+// High scheduler latency means runnable goroutines are waiting too long for CPU. The
+// usual causes are GC interference, lock contention, CPU starvation, or a build-up of
+// goroutines.
 //
 // The rule also records each event timestamp in a small ring so the contention diagnostic
 // can detect repeated triggers and decide whether to escalate to mutex/block profiling.

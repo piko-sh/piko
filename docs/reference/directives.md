@@ -121,6 +121,26 @@ Provides a unique identifier for list items so the renderer can reconcile DOM no
 
 The key expression resolves to a value derived from the iterated item, such as a struct field, a string, a computed expression, or a method call.
 
+### `p-memo` (PKC only)
+
+Declares the values a row renders from. While none of those values change, the client renderer skips the whole props walk and child diff for that row. The directive sets the reserved `_memo` prop, which the renderer reads and never writes to the DOM.
+
+This tells the client-side reconciler what to skip, so it only applies to `.pkc` components. The server renders a `.pk` page and never runs the vdom diff, so `p-memo` does nothing there.
+
+```piko
+<template>
+  <ul>
+    <li p-for="row in state.Rows" p-key="row.ID" p-memo="row">{{ row.Label }}</li>
+  </ul>
+</template>
+```
+
+Pass an array when a row reads from more than one source, such as `p-memo="[row, state.SelectedID]"`. The renderer compares dependencies by reference, one array item at a time, so replace objects instead of changing them in place.
+
+The dependencies must cover every non-static value the row renders. A missing dependency can leave a field wrong forever, not just late. Do not use `p-memo` on rows containing controlled inputs, because the skipped patch also skips setting `value` and `checked` again.
+
+For the full contract and a way to verify skipping, see the [keyed-row memoisation how-to](../how-to/templates/memoise-keyed-rows.md).
+
 ## Event handling
 
 ### `p-on`
@@ -402,6 +422,7 @@ The compiler emits these directives. They do not appear in authored templates.
 | `p-for` | `<li p-for="item in state.Items">{{ item }}</li>` |
 | `p-for` (with index) | `<li p-for="(i, item) in state.Items">{{ i }}: {{ item }}</li>` |
 | `p-key` | `<li p-for="item in items" p-key="item.ID">...</li>` |
+| `p-memo` (PKC only) | `<li p-for="row in rows" p-key="row.ID" p-memo="row">...</li>` |
 
 ### Event directives
 
@@ -452,6 +473,6 @@ The compiler emits these directives. They do not appear in authored templates.
 
 - [Template syntax reference](template-syntax.md) for the expression language used inside directive values.
 - [PK file format reference](pk-file-format.md) for the surrounding file structure.
-- [How to conditionals](../how-to/templates/conditionals.md) and [how to loops](../how-to/templates/loops.md) for task recipes.
+- [How to conditionals](../how-to/templates/conditionals.md), [how to loops](../how-to/templates/loops.md), and [how to memoise keyed rows](../how-to/templates/memoise-keyed-rows.md) for task recipes.
 - [How to control component attribute merging](../how-to/templates/attribute-merging.md), [how to scope and bridge component CSS](../how-to/templates/scoped-css.md), and [how to control partial refresh behaviour](../how-to/templates/partial-refresh.md).
 - [Scenario 004: product catalogue](../../examples/scenarios/004_product_catalogue/) for directives in action.

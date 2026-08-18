@@ -1213,7 +1213,7 @@ func newVirtualRootNode(children []*TemplateNode) *TemplateNode {
 		AttributeWriters: nil, TextContentWriter: nil,
 		CustomEvents: nil, OnEvents: nil, Binds: nil, DirContext: nil,
 		DirElse: nil, DirText: nil, DirStyle: nil, DirClass: nil, DirIf: nil, DirElseIf: nil,
-		DirFor: nil, DirShow: nil, DirRef: nil, DirSlot: nil, DirModel: nil, DirScaffold: nil,
+		DirFor: nil, DirShow: nil, DirRef: nil, DirMemo: nil, DirSlot: nil, DirModel: nil, DirScaffold: nil,
 		TagName: "", TextContent: "", InnerHTML: "", Children: children,
 		RichText: nil, Attributes: nil, Diagnostics: nil, DynamicAttributes: nil, Directives: nil,
 		Location: Location{}, NodeType: NodeFragment, IsPooled: false, IsContentEditable: false,

@@ -578,7 +578,8 @@ func TestPrintAST(t *testing.T) {
 
 func TestPrintTdewolffAST(t *testing.T) {
 	t.Run("returns empty for nil AST", func(t *testing.T) {
-		result := printTdewolffAST(nil)
+		result, err := printTdewolffAST(nil)
+		require.NoError(t, err)
 		assert.Empty(t, result)
 	})
 }

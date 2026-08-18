@@ -31,6 +31,11 @@ import (
 const (
 	// directivePrefix is the prefix added to directive names for display.
 	directivePrefix = "p-"
+
+	// memoAttributeName is the reserved prop that carries keyed-row memoisation
+	// dependencies. The p-memo directive sets it, the renderer reads it to decide whether
+	// an element's patch can be skipped, and it is never written to the DOM.
+	memoAttributeName = "_memo"
 )
 
 // ValidateAST checks a template AST for structural and semantic problems. It adds any
@@ -107,6 +112,7 @@ func validateNodeList(nodes []*TemplateNode, tree *TemplateAST) {
 		}
 
 		validateAttributeConflicts(node, tree)
+		validateMemoBinding(node, tree)
 		validateContentDirectives(node, tree)
 		validateRedundantConditionals(node, tree)
 		validateDirectivePrecedence(node, tree)
@@ -189,6 +195,29 @@ func validateAttributeConflicts(node *TemplateNode, tree *TemplateAST) {
 			diagnostic := NewDiagnosticWithCode(Warning, message, ":"+dynAttr.Name, CodeAttributeConflict, dynAttr.NameLocation, sourcePath)
 			tree.Diagnostics = append(tree.Diagnostics, diagnostic)
 		}
+	}
+}
+
+// validateMemoBinding checks that memoisation is declared with the p-memo directive and
+// not as a plain `_memo` attribute.
+//
+// Takes node (*TemplateNode) which is the node to check.
+// Takes tree (*TemplateAST) which receives any diagnostic.
+func validateMemoBinding(node *TemplateNode, tree *TemplateAST) {
+	for i := range node.Attributes {
+		attr := &node.Attributes[i]
+		if !strings.EqualFold(attr.Name, memoAttributeName) {
+			continue
+		}
+		message := fmt.Sprintf(
+			"The '%s' attribute is set statically. Its value never changes, so this element "+
+				"and its children are skipped on every re-render after the first. Use the "+
+				"p-memo directive instead, for example 'p-memo=\"item\"'.",
+			memoAttributeName,
+		)
+		sourcePath := getNodeSourcePath(node, tree)
+		diagnostic := NewDiagnosticWithCode(Warning, message, attr.Name, CodeStaticMemoAttribute, attr.NameLocation, sourcePath)
+		tree.Diagnostics = append(tree.Diagnostics, diagnostic)
 	}
 }
 
@@ -303,8 +332,8 @@ func validateDirectivePrecedence(node *TemplateNode, tree *TemplateAST) {
 func checkStandardDirectives(node *TemplateNode, pForLocation Location, pForAnn *GoGeneratorAnnotation, tree *TemplateAST) {
 	directivesToCheck := []*Directive{
 		node.DirIf, node.DirElseIf, node.DirShow, node.DirModel,
-		node.DirRef, node.DirSlot, node.DirClass, node.DirStyle, node.DirText,
-		node.DirHTML, node.DirKey, node.DirContext, node.DirScaffold,
+		node.DirRef, node.DirMemo, node.DirSlot, node.DirClass, node.DirStyle,
+		node.DirText, node.DirHTML, node.DirKey, node.DirContext, node.DirScaffold,
 	}
 
 	for _, d := range directivesToCheck {

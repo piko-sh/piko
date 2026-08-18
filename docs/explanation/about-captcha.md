@@ -84,7 +84,7 @@ A captcha is a tax on users. Some of that tax pays for security. Some of it is p
 - IP-based heuristics (rejecting known bot networks).
 - Honeypot fields (hidden form fields that only bots fill in).
 
-A captcha wins when abuse clears these cheaper defences but still runs automatically. Humans paid to manually solve captchas (captcha farms) exist and defeat any captcha eventually. A captcha is not a silver bullet for determined adversaries.
+A captcha wins when abuse clears these cheaper defences but still runs automatically. Humans paid to solve captchas by hand (captcha farms) exist, and given enough time they defeat any captcha. A captcha is not a silver bullet for determined adversaries.
 
 ## Failure modes to expect
 

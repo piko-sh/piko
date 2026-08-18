@@ -214,6 +214,15 @@ var (
 			Note:         "Essential for efficient updates when list items change.",
 			DocumentsURL: "/docs/api/directives/p-key",
 		},
+		"p-memo": {
+			Name:         "p-memo",
+			Description:  "Skip a keyed row's patch while its dependencies are unchanged",
+			Syntax:       `p-memo="expression"`,
+			Accepts:      "A value, or an array of values, the row renders from",
+			Example:      `<li p-for="row in state.rows" p-key="row.id" p-memo="row">...</li>`,
+			Note:         "PKC only. The dependencies must cover every non-static value the row renders, and the row must not contain a controlled input.",
+			DocumentsURL: "/docs/api/directives/p-memo",
+		},
 		"p-context": {
 			Name:         "p-context",
 			Description:  "Set scoping prefix for automatic key generation within subtree",

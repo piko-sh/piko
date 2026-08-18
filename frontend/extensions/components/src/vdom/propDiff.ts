@@ -28,7 +28,7 @@ const PREFIX_ON_LENGTH = 2;
 /**
  * Reserved prop names that have special handling.
  */
-export const RESERVED_PROPS = ['_k', '_c', '_s', 'class', '_class', 'style', '_style'] as const;
+export const RESERVED_PROPS = ['_k', '_c', '_s', '_memo', 'class', '_class', 'style', '_style'] as const;
 
 /**
  * Union of reserved prop name literals.

@@ -723,8 +723,21 @@ func (rcv *TemplateNodeFB) MutatePreserveWhitespace(n bool) bool {
 	return rcv._tab.MutateBoolSlot(92, n)
 }
 
+func (rcv *TemplateNodeFB) DirectiveMemo(obj *DirectiveFB) *DirectiveFB {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(94))
+	if o != 0 {
+		x := rcv._tab.Indirect(o + rcv._tab.Pos)
+		if obj == nil {
+			obj = new(DirectiveFB)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
+	}
+	return nil
+}
+
 func TemplateNodeFBStart(builder *flatbuffers.Builder) {
-	builder.StartObject(45)
+	builder.StartObject(46)
 }
 func TemplateNodeFBAddNodeType(builder *flatbuffers.Builder, nodeType NodeType) {
 	builder.PrependByteSlot(0, byte(nodeType), 0)
@@ -893,6 +906,9 @@ func TemplateNodeFBStartPrerenderedHtmlVector(builder *flatbuffers.Builder, numE
 }
 func TemplateNodeFBAddPreserveWhitespace(builder *flatbuffers.Builder, preserveWhitespace bool) {
 	builder.PrependBoolSlot(44, preserveWhitespace, false)
+}
+func TemplateNodeFBAddDirectiveMemo(builder *flatbuffers.Builder, directiveMemo flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(45, flatbuffers.UOffsetT(directiveMemo), 0)
 }
 func TemplateNodeFBEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

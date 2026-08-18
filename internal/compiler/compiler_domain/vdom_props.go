@@ -25,10 +25,18 @@ import (
 	"slices"
 	"strings"
 
+	parsejs "github.com/tdewolff/parse/v2/js"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/esbuild/js_ast"
+)
+
+const (
+	// memoPropName is the reserved prop that carries keyed-row memoisation dependencies.
+	// The p-memo directive sets it, the renderer reads it to decide whether a row's patch
+	// can be skipped, and it is never written to the DOM.
+	memoPropName = "_memo"
 )
 
 // buildPropsAST builds the props object for an element node.
@@ -60,7 +68,9 @@ func buildPropsAST(
 	linkHrefExpr = collectBindProps(n, properties, isLink, booleanProps, linkHrefExpr, registry)
 
 	if n.DirModel != nil && !isLink {
-		handleModelDirective(ctx, n, properties, multiValueProps, events, loopVars)
+		if err := handleModelDirective(ctx, n, properties, multiValueProps, events, loopVars); err != nil {
+			return js_ast.Expr{}, fmt.Errorf("building p-model binding: %w", err)
+		}
 	}
 
 	userClicked := collectEventHandlers(ctx, n, events, loopVars, multiValueProps)
@@ -75,7 +85,7 @@ func buildPropsAST(
 }
 
 // collectDirectiveProps gathers directive properties from a template node. It extracts
-// _s, _class, _style, and _ref directives and adds them to the properties map.
+// _s, _class, _style, _ref and _memo directives and adds them to the properties map.
 //
 // Takes n (*ast_domain.TemplateNode) which is the template node to extract directive
 // properties from.
@@ -97,6 +107,12 @@ func collectDirectiveProps(n *ast_domain.TemplateNode, properties map[string]js_
 	}
 	if n.DirRef != nil && n.DirRef.RawExpression != "" {
 		properties["_ref"] = newStringLiteral(n.DirRef.RawExpression)
+	}
+	if n.DirMemo != nil {
+		jsExpr, _ := transformOurASTtoJSAST(n.DirMemo.Expression, registry)
+		if jsExpr.Data != nil {
+			properties[memoPropName] = jsExpr
+		}
 	}
 	for arg, dir := range n.TimelineDirectives {
 		val := ""
@@ -150,7 +166,7 @@ func collectDynamicAttrs(n *ast_domain.TemplateNode, properties map[string]js_as
 		}
 
 		propName := dynamicAttribute.Name
-		if isBooleanBound(dynamicAttribute.Expression, booleanProps) {
+		if isBooleanBound(dynamicAttribute.Expression, booleanProps) && !isRuntimeOnlyProp(propName) {
 			propName = "?" + propName
 		}
 
@@ -190,7 +206,7 @@ func collectBindProps(n *ast_domain.TemplateNode, properties map[string]js_ast.E
 		}
 
 		propName := attributeName
-		if isBooleanBound(bindDirective.Expression, booleanProps) {
+		if isBooleanBound(bindDirective.Expression, booleanProps) && !isRuntimeOnlyProp(propName) {
 			propName = "?" + propName
 		}
 
@@ -198,6 +214,16 @@ func collectBindProps(n *ast_domain.TemplateNode, properties map[string]js_ast.E
 	}
 
 	return linkHrefExpr
+}
+
+// isRuntimeOnlyProp reports whether a prop is consumed by the vdom renderer itself and
+// never written to the DOM as an attribute.
+//
+// Takes propName (string) which is the prop name to classify.
+//
+// Returns bool which is true when the prop is read by the renderer rather than rendered.
+func isRuntimeOnlyProp(propName string) bool {
+	return propName == memoPropName
 }
 
 // collectEventHandlers gathers event handlers from a template node and adds them to the
@@ -363,6 +389,10 @@ func extractBaseIdentifier(expression ast_domain.Expression) string {
 // binding.
 // Takes events (*eventBindingCollection) which manages event bindings.
 // Takes loopVars (map[string]bool) which tracks loop variable names.
+//
+// Returns error when the bound expression cannot be transformed, printed, or turned into
+// an updater. Without it, a broken p-model would quietly produce a component with no
+// two-way binding.
 func handleModelDirective(
 	ctx context.Context,
 	n *ast_domain.TemplateNode,
@@ -370,11 +400,14 @@ func handleModelDirective(
 	multiValueProps map[string][]js_ast.Expr,
 	events *eventBindingCollection,
 	loopVars map[string]bool,
-) {
+) error {
 	registry := events.getRegistry()
 	modelExpr, err := transformOurASTtoJSAST(n.DirModel.Expression, registry)
-	if err != nil || modelExpr.Data == nil {
-		return
+	if err != nil {
+		return fmt.Errorf("transforming p-model expression: %w", err)
+	}
+	if modelExpr.Data == nil {
+		return nil
 	}
 
 	isCheckbox := isCheckboxInput(n)
@@ -385,8 +418,15 @@ func handleModelDirective(
 		properties["value"] = modelExpr
 	}
 
-	modelExprString := PrintExpr(modelExpr, registry)
-	handlerBodyBlock := parseModelHandlerBlockForExpr(modelExprString, isCheckbox)
+	modelExprString, err := printExpressionAt(modelExpr, registry, parsejs.OpLHS)
+	if err != nil {
+		return fmt.Errorf("printing p-model target: %w", err)
+	}
+
+	handlerBodyBlock, err := parseModelHandlerBlockForExpr(modelExprString, isCheckbox)
+	if err != nil {
+		return fmt.Errorf("building p-model updater: %w", err)
+	}
 
 	eventName := "input"
 	if isCheckbox {
@@ -400,7 +440,7 @@ func handleModelDirective(
 		},
 	)
 	if err != nil {
-		return
+		return fmt.Errorf("creating p-model event binding: %w", err)
 	}
 
 	propKey := "onInput"
@@ -408,6 +448,7 @@ func handleModelDirective(
 		propKey = "onChange"
 	}
 	multiValueProps[propKey] = append(multiValueProps[propKey], jsPropVal)
+	return nil
 }
 
 // isCheckboxInput reports whether the node is an input element with type="checkbox".
@@ -431,14 +472,14 @@ func isCheckboxInput(n *ast_domain.TemplateNode) bool {
 // parseModelHandlerBlockForExpr parses the model update handler with the given model
 // expression.
 //
-// The modelExprString should already include the this.$$ctx prefix from PrintExpr.
+// The modelExprString should already include the this.$$ctx prefix from printExpression.
 //
 // Takes modelExprString (string) which specifies the model expression to update.
 // Takes isCheckbox (bool) which indicates whether to use .checked instead of .value.
 //
-// Returns *js_ast.SBlock which contains the parsed handler block, or nil when parsing
-// fails.
-func parseModelHandlerBlockForExpr(modelExprString string, isCheckbox bool) *js_ast.SBlock {
+// Returns *js_ast.SBlock which contains the parsed handler block.
+// Returns error when the snippet cannot be parsed.
+func parseModelHandlerBlockForExpr(modelExprString string, isCheckbox bool) (*js_ast.SBlock, error) {
 	targetProperty := "value"
 	if isCheckbox {
 		targetProperty = "checked"
@@ -450,9 +491,9 @@ func parseModelHandlerBlockForExpr(modelExprString string, isCheckbox bool) *js_
 	`, modelExprString, targetProperty)
 	block, err := parseSnippetAsBlock(handlerSnippet)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("parsing p-model updater snippet: %w", err)
 	}
-	return block
+	return block, nil
 }
 
 // handleLinkProps sets up properties for piko:a elements.

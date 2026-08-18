@@ -241,26 +241,20 @@ describe('formAssociated behaviour', () => {
     });
 
     describe('onConnected callback', () => {
-        it('should call _updateFormState on next animation frame', () => {
+        it('should synchronise the form state when the component connects', () => {
             formBehaviour(mockComponent as unknown as never);
 
             onConnectedCallbacks[0]();
-
-            expect(mockInternals.setFormValue).not.toHaveBeenCalled();
-
-            vi.advanceTimersByTime(16);
 
             expect(mockInternals.setFormValue).toHaveBeenCalledWith('test-value');
         });
     });
 
     describe('onAfterRender callback', () => {
-        it('should call _updateFormState on next animation frame', () => {
+        it('should synchronise the form state after each render', () => {
             formBehaviour(mockComponent as unknown as never);
 
             onAfterRenderCallbacks[0]();
-
-            vi.advanceTimersByTime(16);
 
             expect(mockInternals.setFormValue).toHaveBeenCalled();
         });
@@ -384,13 +378,15 @@ describe('formAssociated behaviour', () => {
             expect(mockComponent.state!.value).toBe('initial-value');
         });
 
-        it('should call _updateFormState after reset', () => {
+        it('should synchronise the form state on the microtask after reset', async () => {
             mockComponent.$$ctx = { $$initialState: { value: 'initial-value' }, state: { value: 'initial-value' } };
             formBehaviour(mockComponent as unknown as never);
             mockInternals.setFormValue = vi.fn();
 
             mockComponent.formResetCallback!();
-            vi.advanceTimersByTime(16);
+            expect(mockInternals.setFormValue).not.toHaveBeenCalled();
+
+            await Promise.resolve();
 
             expect(mockInternals.setFormValue).toHaveBeenCalled();
         });
@@ -429,11 +425,14 @@ describe('formAssociated behaviour', () => {
             expect(mockComponent.state!.value).toBe('autocomplete-value');
         });
 
-        it('should call _updateFormState after restore', () => {
+        it('should synchronise the form state on the microtask after restore', async () => {
             formBehaviour(mockComponent as unknown as never);
+            mockInternals.setFormValue = vi.fn();
 
             mockComponent.formStateRestoreCallback!('test', 'restore');
-            vi.advanceTimersByTime(16);
+            expect(mockInternals.setFormValue).not.toHaveBeenCalled();
+
+            await Promise.resolve();
 
             expect(mockInternals.setFormValue).toHaveBeenCalled();
         });

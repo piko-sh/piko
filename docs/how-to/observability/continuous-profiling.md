@@ -73,7 +73,7 @@ piko watchdog list --type heap
 piko watchdog download --latest --type heap --output ./pprof
 ```
 
-The sidecar JSON stored alongside each profile records whether the capture was routine or threshold-fired, which threshold tripped, and the runtime metrics at the moment of capture.
+The sidecar JSON stored alongside each profile records whether the capture was routine or threshold-fired, which threshold tripped, and the runtime metrics at capture time.
 
 ## Diff a breach profile against a routine baseline
 

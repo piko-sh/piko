@@ -144,4 +144,5 @@ func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, e
 
 - [Directives reference](../../reference/directives.md) for `p-for`, `p-key`, and `p-if`.
 - [How to conditionally render elements](conditionals.md).
+- [How to memoise keyed rows with `p-memo`](memoise-keyed-rows.md) when a long list costs too much to re-patch.
 - [Template syntax reference](../../reference/template-syntax.md).

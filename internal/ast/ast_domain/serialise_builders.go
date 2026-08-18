@@ -190,6 +190,7 @@ func appendNodeDirectives(node *TemplateNode, elts *[]goast.Expr) {
 		{name: "DirModel", directive: node.DirModel},
 		{name: "DirScaffold", directive: node.DirScaffold},
 		{name: "DirRef", directive: node.DirRef},
+		{name: "DirMemo", directive: node.DirMemo},
 		{name: "DirSlot", directive: node.DirSlot},
 		{name: "DirClass", directive: node.DirClass},
 		{name: "DirStyle", directive: node.DirStyle},
