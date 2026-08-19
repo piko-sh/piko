@@ -74,7 +74,6 @@
     :host {
         display: block;
         --_surface: var(--m3e-surface, #fffbfe);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .list {

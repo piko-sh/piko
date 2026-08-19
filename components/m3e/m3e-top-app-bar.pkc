@@ -56,7 +56,8 @@
         --_surface: var(--m3e-surface, #fffbfe);
         --_on-surface: var(--m3e-on-surface, #1c1b1f);
         --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
     }
 
     .top-app-bar {
@@ -90,21 +91,25 @@
     .leading {
         display: flex;
         align-items: center;
-
         ::slotted(*) {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             width: 48px;
             height: 48px;
+            margin: 0;
+            padding: 0;
+            border: none;
             border-radius: 50%;
+            background: transparent;
             color: var(--_on-surface);
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
+            transition: background var(--_duration-short) var(--_easing-standard);
         }
 
         ::slotted(*:hover) {
-            background: rgba(28, 27, 31, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
     }
 
@@ -131,14 +136,19 @@
             justify-content: center;
             width: 48px;
             height: 48px;
+            margin: 0;
+            padding: 0;
+            border: none;
             border-radius: 50%;
+            background: transparent;
             color: var(--_on-surface-variant);
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
+            transition: background var(--_duration-short) var(--_easing-standard);
         }
 
         ::slotted(*:hover) {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
     }
 

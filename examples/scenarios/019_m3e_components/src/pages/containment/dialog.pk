@@ -61,7 +61,7 @@
                     <div class="demo-preview">
                         <m3e-button variant="filled" p-on:click="openIcon()">Open Dialog</m3e-button>
                         <m3e-dialog p-ref="icon_dialog" headline="Delete file?">
-                            <piko:svg src="@/lib/icons/close.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
+                            <piko:svg src="@/lib/icons/delete.svg" fill="currentColor" width="24" height="24" slot="icon"></piko:svg>
                             <p>This action cannot be undone.</p>
                             <div slot="actions">
                                 <m3e-button variant="text" p-on:click="closeIcon()">Cancel</m3e-button>
@@ -70,7 +70,7 @@
                         </m3e-dialog>
                     </div>
                     <pre class="demo-code"><code>&lt;m3e-dialog id="my-dialog" headline="Delete file?"&gt;
-  &lt;piko:svg src="@/lib/icons/close.svg" slot="icon"&gt;&lt;/piko:svg&gt;
+  &lt;piko:svg src="@/lib/icons/delete.svg" slot="icon"&gt;&lt;/piko:svg&gt;
   &lt;p&gt;This action cannot be undone.&lt;/p&gt;
   &lt;div slot="actions"&gt;
     &lt;m3e-button variant="text"&gt;Cancel&lt;/m3e-button&gt;

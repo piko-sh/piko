@@ -34,7 +34,6 @@
             <span class="state-layer"></span>
             <span class="label"><slot></slot></span>
         </button>
-        <div class="divider"></div>
         <button class="dropdown-trigger"
                 type="button"
                 :disabled="state.disabled ? '' : null"
@@ -42,10 +41,13 @@
                 aria-haspopup="menu"
                 p-on:click="toggleMenu">
             <span class="state-layer"></span>
-            <span class="arrow">&#x25BC;</span>
+            <span class="arrow">
+                <piko:svg src="piko.sh/piko/lib/icons/arrow-drop-down.svg" fill="currentColor" width="22" height="22"></piko:svg>
+            </span>
         </button>
-        <div class="menu" p-if="state.open">
+        <div class="menu" p-if="state.open" role="menu">
             <slot name="menu"></slot>
+            <p class="menu-empty" p-if="!state.has_menu" role="none">No options</p>
         </div>
     </div>
 </template>
@@ -55,6 +57,7 @@
         variant: 'filled' as string,
         disabled: false as boolean,
         open: false as boolean,
+        has_menu: false as boolean,
     };
 
     function handlePrimaryClick() {
@@ -65,8 +68,14 @@
         }));
     }
 
+    function hasMenuContent() {
+        const nodes = Array.from(pkc.querySelectorAll('[slot="menu"]'));
+        return nodes.some((node) => node.children.length > 0 || node.textContent.trim() !== '');
+    }
+
     function toggleMenu() {
         if (state.disabled) return;
+        state.has_menu = hasMenuContent();
         state.open = !state.open;
 
         if (state.open) {
@@ -98,22 +107,23 @@
         --_surface-container: var(--m3e-surface-container, #f3edf7);
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
-        --_shape-full: var(--m3e-shape-full, 9999px);
+        --_shape-md: var(--m3e-shape-md, 12px);
         --_shape-xs: var(--m3e-shape-xs, 4px);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_shape-pill: 20px;
     }
 
     .split-button {
         position: relative;
         display: inline-flex;
+        gap: 2px;
         height: 40px;
-        border-radius: var(--_shape-full);
         overflow: visible;
     }
 
     .primary-action,
     .dropdown-trigger {
         position: relative;
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -130,24 +140,46 @@
         height: 100%;
         background: var(--_primary);
         color: var(--_on-primary);
+        transition: border-radius var(--_duration-short) var(--_easing-standard);
     }
 
     .primary-action {
-        padding: 0 16px 0 24px;
-        border-radius: var(--_shape-full) 0 0 var(--_shape-full);
+        padding: 0 12px 0 16px;
+        border-start-start-radius: var(--_shape-pill);
+        border-end-start-radius: var(--_shape-pill);
+        border-start-end-radius: var(--_shape-xs);
+        border-end-end-radius: var(--_shape-xs);
 
         &:hover .state-layer {
             opacity: 0.08;
+        }
+
+        &:hover {
+            border-start-end-radius: var(--_shape-md);
+            border-end-end-radius: var(--_shape-md);
         }
     }
 
     .dropdown-trigger {
-        padding: 0 12px;
-        border-radius: 0 var(--_shape-full) var(--_shape-full) 0;
+        padding: 0 13px;
+        border-start-end-radius: var(--_shape-pill);
+        border-end-end-radius: var(--_shape-pill);
+        border-start-start-radius: var(--_shape-xs);
+        border-end-start-radius: var(--_shape-xs);
 
         &:hover .state-layer {
             opacity: 0.08;
         }
+
+        &:hover {
+            border-start-start-radius: var(--_shape-md);
+            border-end-start-radius: var(--_shape-md);
+        }
+    }
+
+    .open .dropdown-trigger {
+        border-start-start-radius: var(--_shape-pill);
+        border-end-start-radius: var(--_shape-pill);
     }
 
     .state-layer {
@@ -160,15 +192,10 @@
         pointer-events: none;
     }
 
-    .divider {
-        width: 1px;
-        align-self: stretch;
-        margin: 8px 0;
-        background: rgba(255, 255, 255, 0.2);
-    }
-
     .arrow {
-        font-size: 0.625rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         transition: transform var(--_duration-short) var(--_easing-standard);
         z-index: 1;
     }
@@ -191,10 +218,6 @@
         .state-layer {
             background: var(--_on-secondary-container);
         }
-
-        .divider {
-            background: rgba(0, 0, 0, 0.12);
-        }
     }
 
     .outlined {
@@ -205,16 +228,8 @@
             border: 1px solid var(--_outline);
         }
 
-        .primary-action {
-            border-right: none;
-        }
-
         .state-layer {
             background: var(--_primary);
-        }
-
-        .divider {
-            background: var(--_outline);
         }
     }
 
@@ -233,5 +248,19 @@
         border-radius: var(--_shape-xs);
         box-shadow: 0px 1px 2px 0px rgba(0,0,0,0.30), 0px 2px 6px 2px rgba(0,0,0,0.15);
         padding: 8px 0;
+    }
+
+    .menu-empty {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        margin: 0;
+        padding: 0 12px;
+        color: var(--_on-surface);
+        font-size: 0.875rem;
+        opacity: 0.38;
+        white-space: nowrap;
+        cursor: default;
+        user-select: none;
     }
 </style>

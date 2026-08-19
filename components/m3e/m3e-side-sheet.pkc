@@ -28,6 +28,12 @@
          }">
         <div class="scrim" p-if="state.modal" p-on:click="close"></div>
         <div class="sheet" role="dialog" aria-modal="true">
+            <div class="header">
+                <button class="close-button" type="button" p-on:click="close" aria-label="Close">
+                    <piko:svg src="piko.sh/piko/lib/icons/close.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                </button>
+                <h2 class="headline" p-if="state.headline" p-text="state.headline"></h2>
+            </div>
             <div class="content">
                 <slot></slot>
             </div>
@@ -40,6 +46,7 @@
         open: false as boolean,
         modal: false as boolean,
         side: 'end' as string,
+        headline: '' as string,
     };
 
     let escHandler = null;
@@ -57,7 +64,7 @@
             if (state.modal) {
                 document.body.style.overflow = state.open ? 'hidden' : '';
             }
-            if (state.open && state.modal) {
+            if (state.open) {
                 escHandler = (e) => {
                     if (e.key === 'Escape') {
                         e.stopPropagation();
@@ -93,7 +100,8 @@
         --_duration-medium: var(--m3e-duration-medium, 400ms);
         --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
         --_shape-lg: var(--m3e-shape-lg, 16px);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
     }
 
     .side-sheet-wrapper {
@@ -102,18 +110,6 @@
         z-index: 10000;
         pointer-events: none;
         display: flex;
-
-        &.visible {
-            pointer-events: auto;
-
-            .scrim {
-                opacity: 1;
-            }
-
-            .sheet {
-                transform: translateX(0);
-            }
-        }
 
         &.end {
             justify-content: flex-end;
@@ -133,8 +129,33 @@
             }
         }
 
+        &.visible {
+            pointer-events: auto;
+
+            .scrim {
+                opacity: 1;
+            }
+
+            &.end .sheet,
+            &.start .sheet {
+                transform: translateX(0);
+            }
+        }
+
+        &.start .header {
+            flex-direction: row-reverse;
+        }
+
         &.modal .sheet {
             box-shadow: 0px 8px 12px 6px rgba(0,0,0,0.15), 0px 4px 4px 0px rgba(0,0,0,0.30);
+        }
+
+        &.end:not(.modal) .sheet {
+            border-left: 1px solid var(--_outline-variant);
+        }
+
+        &.start:not(.modal) .sheet {
+            border-right: 1px solid var(--_outline-variant);
         }
     }
 
@@ -157,8 +178,52 @@
         overflow-y: auto;
     }
 
+    .header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 8px 0;
+    }
+
+    .headline {
+        flex: 1;
+        margin: 0;
+        padding: 0 8px;
+        font-size: 1.375rem;
+        font-weight: 400;
+        line-height: 1.27;
+        color: var(--_on-surface);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .close-button {
+
+        font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--_on-surface);
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+
+        transition: background var(--_duration-short) var(--_easing-standard);
+
+        &:hover {
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
+        }
+    }
+
     .content {
-        padding: 24px;
+        padding: 16px 24px 24px;
         color: var(--_on-surface);
     }
 </style>

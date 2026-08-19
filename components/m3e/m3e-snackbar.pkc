@@ -111,7 +111,6 @@
         --_duration-medium: var(--m3e-duration-medium, 400ms);
         --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
         --_shape-xs: var(--m3e-shape-xs, 4px);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .snackbar {
@@ -173,11 +172,13 @@
         -webkit-tap-highlight-color: transparent;
 
         &:hover {
-            background: rgba(208, 188, 255, 0.08);
+            background: color-mix(in srgb, var(--_inverse-primary) 8%, transparent);
         }
     }
 
     .close-button {
+
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -192,7 +193,7 @@
         -webkit-tap-highlight-color: transparent;
 
         &:hover {
-            background: rgba(244, 239, 244, 0.08);
+            background: color-mix(in srgb, var(--_inverse-on-surface) 8%, transparent);
         }
     }
 </style>

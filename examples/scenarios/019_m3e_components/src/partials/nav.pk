@@ -22,7 +22,7 @@
     <nav class="nav">
         <div class="nav-header">
             <h2 class="nav-title">M3E Components</h2>
-            <p class="nav-subtitle">Material Design 3 Expressive</p>
+            <p class="nav-subtitle">Based on Google's Material Design 3 Expressive</p>
         </div>
 
         <div class="nav-links">

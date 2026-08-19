@@ -124,57 +124,70 @@
         --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
-        --_shape-full: var(--m3e-shape-full, 9999px);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_shape-sm: var(--m3e-shape-sm, 8px);
+        --_shape-pill: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.25rem;
     }
 
     .button-group {
         display: inline-flex;
-
+        gap: 2px;
         & ::slotted(*) {
             position: relative;
+            font-family: inherit;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             height: 40px;
             min-width: 48px;
-            padding: 0 24px;
+            margin: 0;
+            padding: 0 16px;
             border: 1px solid var(--_outline);
-            border-right-width: 0;
+            border-radius: var(--_shape-sm);
             background: transparent;
             color: var(--_on-surface);
             font-family: inherit;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: inherit;
             cursor: pointer;
             outline: none;
             appearance: none;
             -webkit-appearance: none;
             -webkit-tap-highlight-color: transparent;
             transition: background var(--_duration-short) var(--_easing-standard),
-                        color var(--_duration-short) var(--_easing-standard);
+                        color var(--_duration-short) var(--_easing-standard),
+                        border-radius var(--_duration-short) var(--_easing-standard);
         }
 
         & ::slotted(*:first-child) {
-            border-radius: var(--_shape-full) 0 0 var(--_shape-full);
+            border-start-start-radius: var(--_shape-pill);
+            border-end-start-radius: var(--_shape-pill);
         }
 
         & ::slotted(*:last-child) {
-            border-radius: 0 var(--_shape-full) var(--_shape-full) 0;
-            border-right-width: 1px;
+            border-start-end-radius: var(--_shape-pill);
+            border-end-end-radius: var(--_shape-pill);
         }
 
         & ::slotted(*:only-child) {
-            border-radius: var(--_shape-full);
+            border-radius: var(--_shape-pill);
         }
 
         & ::slotted(*:hover) {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
 
         & ::slotted([data-selected]) {
+            border-radius: var(--_shape-pill);
             background: var(--_secondary-container);
             color: var(--_on-secondary-container);
+        }
+
+        & ::slotted([data-selected]:hover) {
+            background: color-mix(in srgb, var(--_on-secondary-container) 8%, var(--_secondary-container));
         }
     }
 </style>

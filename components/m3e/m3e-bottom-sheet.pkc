@@ -23,9 +23,9 @@
          p-class="{ 'visible': state.open, 'modal': state.modal }">
         <div class="scrim" p-if="state.modal" p-on:click="close"></div>
         <div class="sheet" role="dialog" aria-modal="true">
-            <div class="drag-handle">
-                <div class="handle-bar"></div>
-            </div>
+            <button class="drag-handle" type="button" p-on:click="close" aria-label="Close sheet">
+                <span class="handle-bar"></span>
+            </button>
             <div class="content">
                 <slot></slot>
             </div>
@@ -54,7 +54,7 @@
             if (state.modal) {
                 document.body.style.overflow = state.open ? 'hidden' : '';
             }
-            if (state.open && state.modal) {
+            if (state.open) {
                 escHandler = (e) => {
                     if (e.key === 'Escape') {
                         e.stopPropagation();
@@ -91,7 +91,6 @@
         --_duration-medium: var(--m3e-duration-medium, 400ms);
         --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
         --_shape-xl: var(--m3e-shape-xl, 28px);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .bottom-sheet-wrapper {
@@ -136,16 +135,32 @@
     }
 
     .drag-handle {
+
+        font-family: inherit;
         display: flex;
+        align-items: center;
         justify-content: center;
+        width: 100%;
+        height: 48px;
         padding: 16px 0 8px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        outline: none;
+        -webkit-tap-highlight-color: transparent;
+        &:hover .handle-bar,
+        &:focus-visible .handle-bar {
+            background: var(--_on-surface-variant);
+        }
     }
 
     .handle-bar {
+        display: block;
         width: 32px;
         height: 4px;
         border-radius: var(--m3e-shape-full, 9999px);
         background: var(--_outline-variant);
+        transition: background var(--_duration-medium) var(--_easing-emphasized);
     }
 
     .content {

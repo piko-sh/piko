@@ -89,7 +89,6 @@
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
         --_shape-xs: var(--m3e-shape-xs, 4px);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .header-row {

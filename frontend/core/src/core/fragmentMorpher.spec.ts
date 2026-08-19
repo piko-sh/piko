@@ -2866,6 +2866,35 @@ describe('fragmentMorpher', () => {
             expect(added?.getAttribute('partial')).toBe('added_scope parent_scope');
         });
     });
+
+    describe('binder marker retention', () => {
+        it('should keep pk-ev-bound on the root when the source lacks it', () => {
+            setup('<div pk-ev-bound="p-on:click" class="old"></div>');
+
+            fragmentMorpher(fromEl, '<div class="new"></div>');
+
+            expect(fromEl.getAttribute('pk-ev-bound')).toBe('p-on:click');
+            expect(fromEl.getAttribute('class')).toBe('new');
+        });
+
+        it('should keep pk-ev-bound on a morphed child when the source lacks it', () => {
+            setup('<div><button id="b" pk-ev-bound="p-on:click,p-event:custom">old</button></div>');
+
+            fragmentMorpher(fromEl, '<div><button id="b">new</button></div>');
+
+            const button = fromEl.querySelector('#b') as HTMLElement;
+            expect(button.getAttribute('pk-ev-bound')).toBe('p-on:click,p-event:custom');
+            expect(button.textContent).toBe('new');
+        });
+
+        it('should keep pk-sync-bound on a morphed child when the source lacks it', () => {
+            setup('<div><span id="s" pk-sync-bound="true">old</span></div>');
+
+            fragmentMorpher(fromEl, '<div><span id="s">new</span></div>');
+
+            expect((fromEl.querySelector('#s') as HTMLElement).getAttribute('pk-sync-bound')).toBe('true');
+        });
+    });
 });
 
 function toElement(html: string): Node {

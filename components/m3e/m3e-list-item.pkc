@@ -116,7 +116,6 @@
         --_on-surface: var(--m3e-on-surface, #1c1b1f);
         --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
         --_duration-short: var(--m3e-duration-short, 200ms);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .list-item {

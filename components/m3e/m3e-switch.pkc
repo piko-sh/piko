@@ -95,7 +95,10 @@
         --_primary-container: var(--m3e-primary-container, #eaddff);
         --_on-primary-container: var(--m3e-on-primary-container, #21005d);
         --_duration-short: var(--m3e-duration-short, 200ms);
+        --_duration-medium: var(--m3e-duration-medium, 400ms);
         --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        --_easing-emphasized-spatial: cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     .switch {
@@ -127,6 +130,9 @@
 
     .track {
         position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 52px;
         height: 32px;
         border-radius: var(--m3e-shape-full, 9999px);
@@ -137,8 +143,8 @@
         inset: 0;
         border: 2px solid var(--_outline);
         border-radius: inherit;
-        transition: border-color var(--_duration-short) var(--_easing-emphasized),
-                    opacity var(--_duration-short) var(--_easing-emphasized);
+        transition: border-color var(--_duration-short) var(--_easing-standard),
+                    opacity var(--_duration-short) var(--_easing-standard);
     }
 
     .track-background {
@@ -146,15 +152,16 @@
         inset: 0;
         border-radius: inherit;
         background: var(--_surface-container-highest);
-        transition: background var(--_duration-short) var(--_easing-emphasized);
+        transition: background var(--_duration-short) var(--_easing-standard);
     }
 
     .thumb-container {
-        position: absolute;
-        top: 50%;
-        left: 6px;
-        transform: translateY(-50%);
-        transition: left var(--_duration-short) var(--_easing-emphasized);
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-inline-end: 20px;
+        transition: margin var(--_duration-medium) var(--_easing-emphasized-spatial);
     }
 
     .thumb {
@@ -168,7 +175,7 @@
         justify-content: center;
         transition: width var(--_duration-short) var(--_easing-emphasized),
                     height var(--_duration-short) var(--_easing-emphasized),
-                    background var(--_duration-short) var(--_easing-emphasized);
+                    background var(--_duration-short) var(--_easing-standard);
         z-index: 1;
     }
 
@@ -181,12 +188,21 @@
 
     .state-layer {
         position: absolute;
-        inset: -12px;
+        top: 50%;
+        left: 50%;
+        width: 40px;
+        height: 40px;
+        transform: translate(-50%, -50%);
         border-radius: 50%;
         background: var(--_on-surface);
         opacity: 0;
-        transition: opacity var(--_duration-short);
+        transition: opacity var(--_duration-short),
+                    background var(--_duration-short) var(--_easing-standard);
         pointer-events: none;
+    }
+
+    .switch:hover .thumb {
+        background: var(--_on-surface-variant);
     }
 
     .checked {
@@ -199,7 +215,8 @@
         }
 
         .thumb-container {
-            left: 26px;
+            margin-inline-end: 0;
+            margin-inline-start: 20px;
         }
 
         .thumb {
@@ -209,11 +226,15 @@
         }
 
         .icon {
-            color: var(--_on-primary-container);
+            color: var(--_primary);
         }
 
         &:hover .state-layer {
             background: var(--_primary);
+        }
+
+        &:hover .thumb {
+            background: var(--_primary-container);
         }
     }
 

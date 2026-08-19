@@ -60,7 +60,6 @@
         --_shape-xl: var(--m3e-shape-xl, 28px);
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
-        font-family: system-ui, -apple-system, sans-serif;
 
         &([variant="floating"]) {
             display: inline-flex;
@@ -102,13 +101,14 @@
         align-items: center;
         flex: 1;
         gap: 0;
-
         ::slotted(*) {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             width: 48px;
             height: 48px;
+            margin: 0;
+            padding: 0;
             border: none;
             border-radius: 50%;
             background: transparent;
@@ -119,7 +119,7 @@
         }
 
         ::slotted(*:hover) {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
     }
 

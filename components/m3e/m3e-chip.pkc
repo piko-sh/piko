@@ -119,7 +119,6 @@
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
         --_shape-sm: var(--m3e-shape-sm, 8px);
-        font-family: system-ui, -apple-system, sans-serif;
 
         &([touch-target="wrapper"]) {
             margin: 8px 0;
@@ -128,6 +127,7 @@
 
     .chip {
         position: relative;
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -144,7 +144,8 @@
         overflow: hidden;
         -webkit-tap-highlight-color: transparent;
         transition: background var(--_duration-short) var(--_easing-standard),
-                    border-color var(--_duration-short) var(--_easing-standard);
+                    border-color var(--_duration-short) var(--_easing-standard),
+                    color var(--_duration-short) var(--_easing-standard);
 
         &:focus-visible .state-layer {
             opacity: 0.12;
@@ -197,6 +198,8 @@
     }
 
     .remove {
+
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -213,7 +216,7 @@
         z-index: 1;
 
         &:hover {
-            background: rgba(73, 69, 79, 0.12);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
     }
 </style>

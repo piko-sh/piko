@@ -55,11 +55,11 @@
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
         --_shape-lg: var(--m3e-shape-lg, 16px);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .extended-fab {
         position: relative;
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         justify-content: center;

@@ -186,8 +186,11 @@
     :host {
         display: block;
         --_surface: var(--m3e-surface, #fffbfe);
+        --_on-surface: var(--m3e-on-surface, #1c1b1f);
         --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
         --_outline-variant: var(--m3e-outline-variant, #cac4d0);
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
     }
 
     .tabs-wrapper {
@@ -226,6 +229,8 @@
     }
 
     .scroll-button {
+
+        font-family: inherit;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -237,8 +242,10 @@
         z-index: 1;
         flex-shrink: 0;
 
+        transition: background var(--_duration-short) var(--_easing-standard);
+
         &:hover {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
     }
 </style>

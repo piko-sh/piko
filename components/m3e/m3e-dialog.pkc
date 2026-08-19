@@ -44,7 +44,8 @@
                     <slot name="actions"></slot>
                 </div>
             </div>
-            <h2 class="headline centered" id="dialog-headline"
+            <h2 class="headline" id="dialog-headline"
+                p-class="{ 'centered': state.has_icon }"
                 p-if="state.headline && !state.fullscreen"
                 p-text="state.headline"></h2>
             <div class="content">
@@ -187,7 +188,8 @@
         --_duration-medium: var(--m3e-duration-medium, 400ms);
         --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
         --_shape-xl: var(--m3e-shape-xl, 28px);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
     }
 
     .dialog-backdrop {
@@ -277,6 +279,8 @@
     }
 
     .close-button {
+
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -289,8 +293,10 @@
         cursor: pointer;
         outline: none;
 
+        transition: background var(--_duration-short) var(--_easing-standard);
+
         &:hover {
-            background: rgba(28, 27, 31, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
     }
 
@@ -305,8 +311,20 @@
 
     .actions {
         display: flex;
+        align-items: center;
         justify-content: flex-end;
         gap: 8px;
         padding: 16px 24px 24px;
+    }
+
+    .actions ::slotted(div),
+    .header-actions ::slotted(div) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
     }
 </style>

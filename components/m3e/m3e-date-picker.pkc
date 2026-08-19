@@ -163,7 +163,7 @@
         --_outline: var(--m3e-outline, #79747e);
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_shape-xl: var(--m3e-shape-xl, 28px);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
     }
 
     .date-picker {
@@ -188,6 +188,8 @@
     }
 
     .nav-btn {
+
+        font-family: inherit;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -200,8 +202,10 @@
         cursor: pointer;
         outline: none;
 
+        transition: background var(--_duration-short) var(--_easing-standard);
+
         &:hover {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
     }
 
@@ -242,8 +246,8 @@
         font-family: inherit;
         transition: background var(--_duration-short), color var(--_duration-short);
 
-        &:hover:not(.empty):not(.disabled) {
-            background: rgba(73, 69, 79, 0.08);
+        &:hover:not(.empty):not(.disabled):not(.selected) {
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
 
         &.empty {
@@ -257,6 +261,10 @@
         &.selected {
             background: var(--_primary);
             color: var(--_on-primary);
+        }
+
+        &.selected:hover:not(.disabled) {
+            background: color-mix(in srgb, var(--_on-primary) 8%, var(--_primary));
         }
 
         &.disabled {

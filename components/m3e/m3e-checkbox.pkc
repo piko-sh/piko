@@ -207,7 +207,8 @@
         border-radius: 50%;
         background: var(--_on-surface);
         opacity: 0;
-        transition: opacity var(--_duration-short) var(--_easing-standard);
+        transition: opacity var(--_duration-short) var(--_easing-standard),
+                    background var(--_duration-short) var(--_easing-standard);
         pointer-events: none;
     }
 

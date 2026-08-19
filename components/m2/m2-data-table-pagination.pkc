@@ -174,7 +174,6 @@
         --_surface: var(--m3e-surface, #fffbfe);
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .pagination {
@@ -227,6 +226,8 @@
     }
 
     .page-button {
+
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         justify-content: center;

@@ -87,8 +87,10 @@
     }
 
     .radio-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        column-gap: 2px;
+        row-gap: 0;
     }
 </style>

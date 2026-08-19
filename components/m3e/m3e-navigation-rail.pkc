@@ -165,17 +165,21 @@
         --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
         --_secondary-container: var(--m3e-secondary-container, #e8def8);
         --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_duration-short: var(--m3e-duration-short, 200ms);
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1rem;
     }
 
     .navigation-rail {
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 80px;
+        min-width: 80px;
         height: 100%;
         background: var(--_surface);
-        padding: 0;
+        padding: 5px;
 
         &.align-top .items {
             justify-content: flex-start;
@@ -199,6 +203,7 @@
     }
 
     .items {
+        width: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -215,33 +220,41 @@
             gap: 4px;
             width: 100%;
             min-height: 64px;
-            padding: 4px 4px;
+            margin: 0;
+            padding: 4px 4px 8px;
             border: none;
             background: transparent;
             cursor: pointer;
             color: var(--_on-surface-variant);
             text-decoration: none;
-            font-size: 0.75rem;
-            font-weight: 500;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: inherit;
             letter-spacing: 0.5px;
             outline: none;
             appearance: none;
             -webkit-appearance: none;
             -webkit-tap-highlight-color: transparent;
-            transition: color 200ms;
-            font-family: inherit;
+            transition: color 200ms,
+                        background var(--_duration-short) var(--_easing-standard),
+                        border-radius var(--_duration-short) var(--_easing-standard);
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
         }
 
         ::slotted(*:hover) {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
             border-radius: 16px;
         }
 
         ::slotted([data-active]) {
             color: var(--_on-secondary-container);
+        }
+
+        ::slotted([data-active]:hover) {
+            background: color-mix(in srgb, var(--_on-secondary-container) 8%, transparent);
         }
     }
 </style>

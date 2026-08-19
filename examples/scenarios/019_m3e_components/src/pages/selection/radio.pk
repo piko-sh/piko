@@ -27,9 +27,9 @@
             <p class="demo-description">Radio buttons allow users to select one option from a set. Use radio groups to manage mutual exclusivity.</p>
 
             <div class="demo-grid">
-                <!-- Group with Three Options -->
+                <!-- Group -->
                 <section class="demo-section">
-                    <h3 class="demo-subtitle">Group with Three Options</h3>
+                    <h3 class="demo-subtitle">Group</h3>
                     <div class="demo-preview">
                         <m3e-radio-group name="fruits" value="apple">
                             <m3e-radio name="fruits" value="apple" checked></m3e-radio> Apple
@@ -41,25 +41,6 @@
   &lt;m3e-radio name="fruits" value="apple" checked&gt;&lt;/m3e-radio&gt; Apple
   &lt;m3e-radio name="fruits" value="banana"&gt;&lt;/m3e-radio&gt; Banana
   &lt;m3e-radio name="fruits" value="cherry"&gt;&lt;/m3e-radio&gt; Cherry
-&lt;/m3e-radio-group&gt;</code></pre>
-                </section>
-
-                <!-- Group with Four Options -->
-                <section class="demo-section">
-                    <h3 class="demo-subtitle">Group with Four Options</h3>
-                    <div class="demo-preview">
-                        <m3e-radio-group name="colours" value="green">
-                            <m3e-radio name="colours" value="red"></m3e-radio> Red
-                            <m3e-radio name="colours" value="green" checked></m3e-radio> Green
-                            <m3e-radio name="colours" value="blue"></m3e-radio> Blue
-                            <m3e-radio name="colours" value="yellow"></m3e-radio> Yellow
-                        </m3e-radio-group>
-                    </div>
-                    <pre class="demo-code"><code>&lt;m3e-radio-group name="colours" value="green"&gt;
-  &lt;m3e-radio name="colours" value="red"&gt;&lt;/m3e-radio&gt; Red
-  &lt;m3e-radio name="colours" value="green" checked&gt;&lt;/m3e-radio&gt; Green
-  &lt;m3e-radio name="colours" value="blue"&gt;&lt;/m3e-radio&gt; Blue
-  &lt;m3e-radio name="colours" value="yellow"&gt;&lt;/m3e-radio&gt; Yellow
 &lt;/m3e-radio-group&gt;</code></pre>
                 </section>
 

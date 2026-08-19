@@ -31,7 +31,7 @@
                 <section class="demo-section">
                     <h3 class="demo-subtitle">Default</h3>
                     <div class="demo-preview">
-                        <m3e-ripple style="width: 200px; height: 100px; position: relative; border: 1px solid #cac4d0; border-radius: 12px;">
+                        <m3e-ripple style="width: 200px; height: 100px; position: relative; border: 1px solid var(--m3e-outline-variant); border-radius: 12px;">
                             <span style="display: flex; align-items: center; justify-content: center; height: 100%;">Click me</span>
                         </m3e-ripple>
                     </div>
@@ -42,7 +42,7 @@
                 <section class="demo-section">
                     <h3 class="demo-subtitle">Disabled</h3>
                     <div class="demo-preview">
-                        <m3e-ripple disabled style="width: 200px; height: 100px; position: relative; border: 1px solid #cac4d0; border-radius: 12px; opacity: 0.5;">
+                        <m3e-ripple disabled style="width: 200px; height: 100px; position: relative; border: 1px solid var(--m3e-outline-variant); border-radius: 12px; opacity: 0.5;">
                             <span style="display: flex; align-items: center; justify-content: center; height: 100%;">No ripple</span>
                         </m3e-ripple>
                     </div>

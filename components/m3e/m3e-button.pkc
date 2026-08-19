@@ -128,7 +128,6 @@
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
         --_shape-full: var(--m3e-shape-full, 9999px);
-        font-family: system-ui, -apple-system, sans-serif;
 
         &([touch-target="wrapper"]) {
             margin: 4px 0;
@@ -137,6 +136,7 @@
 
     .button {
         position: relative;
+        font-family: inherit;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -326,10 +326,22 @@
             border-color: transparent;
         }
 
-        &.elevated,
+        &.elevated {
+            background: var(--_primary);
+            color: var(--_on-primary);
+
+            & .state-layer {
+                background: var(--_on-primary);
+            }
+        }
+
         &.text {
-            color: var(--_primary);
-            font-weight: 600;
+            background: var(--_secondary-container);
+            color: var(--_on-secondary-container);
+
+            & .state-layer {
+                background: var(--_on-secondary-container);
+            }
         }
     }
 </style>

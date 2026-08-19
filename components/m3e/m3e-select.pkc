@@ -196,7 +196,6 @@
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
         --_shape-xs: var(--m3e-shape-xs, 4px);
         --_error: var(--m3e-error, #b3261e);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .select {
@@ -215,6 +214,7 @@
             .active-indicator {
                 height: 2px;
                 background: var(--_primary);
+                transition: background var(--_duration-short) var(--_easing-standard);
             }
 
             .outline-start,
@@ -263,6 +263,7 @@
         &.error {
             .active-indicator {
                 background: var(--_error);
+                transition: background var(--_duration-short) var(--_easing-standard);
             }
 
             .outline-start,

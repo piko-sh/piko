@@ -46,7 +46,6 @@
         display: inline-flex;
         --_error: var(--m3e-error, #b3261e);
         --_on-error: var(--m3e-on-error, #ffffff);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .badge-container {

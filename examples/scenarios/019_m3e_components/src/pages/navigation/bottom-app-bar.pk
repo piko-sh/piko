@@ -97,7 +97,7 @@
                                 <piko:svg src="@/lib/icons/star.svg" fill="currentColor" width="24" height="24"></piko:svg>
                             </m3e-icon-button>
                             <m3e-icon-button variant="standard">
-                                <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
+                                <piko:svg src="@/lib/icons/search.svg" fill="currentColor" width="24" height="24"></piko:svg>
                             </m3e-icon-button>
                             <m3e-icon-button variant="standard">
                                 <piko:svg src="@/lib/icons/settings.svg" fill="currentColor" width="24" height="24"></piko:svg>
@@ -112,7 +112,7 @@
     &lt;piko:svg src="@/lib/icons/star.svg"&gt;&lt;/piko:svg&gt;
   &lt;/m3e-icon-button&gt;
   &lt;m3e-icon-button variant="standard"&gt;
-    &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;
+    &lt;piko:svg src="@/lib/icons/search.svg"&gt;&lt;/piko:svg&gt;
   &lt;/m3e-icon-button&gt;
   &lt;m3e-icon-button variant="standard"&gt;
     &lt;piko:svg src="@/lib/icons/settings.svg"&gt;&lt;/piko:svg&gt;

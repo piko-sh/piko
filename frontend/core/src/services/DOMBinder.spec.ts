@@ -2231,4 +2231,186 @@ describe('DOMBinder', () => {
             expect(asyncHelper).toHaveBeenCalled();
         });
     });
+
+    describe('rebinding after an element is morphed', () => {
+        it('should call the function named by the current payload, not the one bound first', () => {
+            const first = vi.fn();
+            const second = vi.fn();
+            helperRegistry.register('firstFn', first as never);
+            helperRegistry.register('secondFn', second as never);
+
+            const button = document.createElement('button');
+            button.setAttribute('p-on:click', btoa(JSON.stringify({f: 'firstFn', a: []})));
+            root.appendChild(button);
+
+            domBinder.bindActions(root);
+
+            button.setAttribute('p-on:click', btoa(JSON.stringify({f: 'secondFn', a: []})));
+            domBinder.bindActions(root);
+
+            button.click();
+
+            expect(second).toHaveBeenCalledTimes(1);
+            expect(first).not.toHaveBeenCalled();
+        });
+
+        it('should not stack listeners when an already-bound element is rebound', () => {
+            const helperFn = vi.fn();
+            helperRegistry.register('stableFn', helperFn as never);
+
+            const button = document.createElement('button');
+            button.setAttribute('p-on:click', btoa(JSON.stringify({f: 'stableFn', a: []})));
+            root.appendChild(button);
+
+            domBinder.bindActions(root);
+            domBinder.bindActions(root);
+            domBinder.bindActions(root);
+
+            button.click();
+
+            expect(helperFn).toHaveBeenCalledTimes(1);
+        });
+
+        it('should bind a directive that appears on an already-bound element', () => {
+            const clickFn = vi.fn();
+            const inputFn = vi.fn();
+            helperRegistry.register('clickFn', clickFn as never);
+            helperRegistry.register('inputFn', inputFn as never);
+
+            const input = document.createElement('input');
+            input.setAttribute('p-on:click', btoa(JSON.stringify({f: 'clickFn', a: []})));
+            root.appendChild(input);
+
+            domBinder.bindActions(root);
+
+            input.setAttribute('p-on:input', btoa(JSON.stringify({f: 'inputFn', a: []})));
+            domBinder.bindActions(root);
+
+            input.dispatchEvent(new Event('input', {bubbles: true}));
+            input.click();
+
+            expect(inputFn).toHaveBeenCalledTimes(1);
+            expect(clickFn).toHaveBeenCalledTimes(1);
+        });
+
+        it('should leave the listener inert when its directive is removed', () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const helperFn = vi.fn();
+            helperRegistry.register('goneFn', helperFn as never);
+
+            const button = document.createElement('button');
+            button.setAttribute('p-on:click', btoa(JSON.stringify({f: 'goneFn', a: []})));
+            root.appendChild(button);
+
+            domBinder.bindActions(root);
+            button.removeAttribute('p-on:click');
+            button.click();
+
+            expect(helperFn).not.toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+    });
+
+    describe('rebinding edge cases', () => {
+        it('should re-arm a .once handler when the payload changes', () => {
+            const first = vi.fn();
+            const second = vi.fn();
+            helperRegistry.register('onceFirst', first as never);
+            helperRegistry.register('onceSecond', second as never);
+
+            const button = document.createElement('button');
+            button.setAttribute('p-on:click.once', btoa(JSON.stringify({f: 'onceFirst', a: []})));
+            root.appendChild(button);
+
+            domBinder.bindActions(root);
+
+            button.click();
+            button.click();
+
+            expect(first).toHaveBeenCalledTimes(1);
+
+            button.setAttribute('p-on:click.once', btoa(JSON.stringify({f: 'onceSecond', a: []})));
+            domBinder.bindActions(root);
+
+            button.click();
+            button.click();
+
+            expect(second).toHaveBeenCalledTimes(1);
+            expect(first).toHaveBeenCalledTimes(1);
+        });
+
+        it('should keep a .once handler inert across rebinds when the payload is unchanged', () => {
+            const helperFn = vi.fn();
+            helperRegistry.register('onceStable', helperFn as never);
+
+            const button = document.createElement('button');
+            button.setAttribute('p-on:click.once', btoa(JSON.stringify({f: 'onceStable', a: []})));
+            root.appendChild(button);
+
+            domBinder.bindActions(root);
+            button.click();
+            domBinder.bindActions(root);
+            button.click();
+
+            expect(helperFn).toHaveBeenCalledTimes(1);
+        });
+
+        it('should fire the new payload when a directive is removed and later re-added', () => {
+            const first = vi.fn();
+            const second = vi.fn();
+            helperRegistry.register('goneFirst', first as never);
+            helperRegistry.register('backSecond', second as never);
+
+            const button = document.createElement('button');
+            button.setAttribute('p-on:click', btoa(JSON.stringify({f: 'goneFirst', a: []})));
+            root.appendChild(button);
+
+            domBinder.bindActions(root);
+
+            button.removeAttribute('p-on:click');
+            domBinder.bindActions(root);
+
+            button.setAttribute('p-on:click', btoa(JSON.stringify({f: 'backSecond', a: []})));
+            domBinder.bindActions(root);
+
+            button.click();
+
+            expect(second).toHaveBeenCalledTimes(1);
+            expect(first).not.toHaveBeenCalled();
+        });
+
+        it('should pick up a morphed payload on a p-event directive', () => {
+            const first = vi.fn();
+            const second = vi.fn();
+            helperRegistry.register('evFirst', first as never);
+            helperRegistry.register('evSecond', second as never);
+
+            const div = document.createElement('div');
+            div.setAttribute('p-event:mycustom', btoa(JSON.stringify({f: 'evFirst', a: []})));
+            root.appendChild(div);
+
+            domBinder.bindActions(root);
+
+            div.setAttribute('p-event:mycustom', btoa(JSON.stringify({f: 'evSecond', a: []})));
+            domBinder.bindActions(root);
+
+            div.dispatchEvent(new CustomEvent('mycustom'));
+
+            expect(second).toHaveBeenCalledTimes(1);
+            expect(first).not.toHaveBeenCalled();
+        });
+
+        it('should not open the modal twice when an already-bound element is rebound', () => {
+            const button = document.createElement('button');
+            button.setAttribute('p-modal:selector', '#my-modal');
+            root.appendChild(button);
+
+            domBinder.bindActions(root);
+            domBinder.bindActions(root);
+
+            button.click();
+
+            expect(callbacks.onOpenModal).toHaveBeenCalledTimes(1);
+        });
+    });
 });

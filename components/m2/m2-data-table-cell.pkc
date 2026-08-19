@@ -95,7 +95,6 @@
         --_primary: var(--m3e-primary, #6750a4);
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .cell {

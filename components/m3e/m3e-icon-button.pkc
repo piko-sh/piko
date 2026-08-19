@@ -103,6 +103,8 @@
     }
 
     .icon-button {
+
+        font-family: inherit;
         position: relative;
         display: inline-flex;
         align-items: center;
@@ -118,6 +120,10 @@
         outline: none;
         overflow: hidden;
         -webkit-tap-highlight-color: transparent;
+
+        transition: background var(--_duration-short) var(--_easing-standard),
+                    color var(--_duration-short) var(--_easing-standard),
+                    border-color var(--_duration-short) var(--_easing-standard);
 
         &:focus-visible .state-layer {
             opacity: 0.12;
@@ -160,12 +166,8 @@
     }
 
     .filled {
-        color: var(--_primary);
-
-        &.selected {
-            background: var(--_primary);
-            color: var(--_on-primary);
-        }
+        background: var(--_primary);
+        color: var(--_on-primary);
 
         &.toggle:not(.selected) {
             background: var(--_surface-container-highest);
@@ -174,12 +176,8 @@
     }
 
     .filled-tonal {
-        color: var(--_on-surface-variant);
-
-        &.selected {
-            background: var(--_secondary-container);
-            color: var(--_on-secondary-container);
-        }
+        background: var(--_secondary-container);
+        color: var(--_on-secondary-container);
 
         &.toggle:not(.selected) {
             background: var(--_surface-container-highest);

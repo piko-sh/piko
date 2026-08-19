@@ -515,7 +515,6 @@
         border-radius: var(--m3e-shape-full, 9999px);
         padding: 4px 12px;
         font-size: 0.75rem;
-        font-family: system-ui, -apple-system, sans-serif;
         white-space: nowrap;
         opacity: 0;
         transition: opacity var(--_duration-short) var(--_easing-standard);
@@ -547,6 +546,8 @@
         top: 50%;
         transform: translate(-50%, -50%);
         background: var(--_surface-container-highest);
+
+        transition: background var(--_duration-short) var(--_easing-standard);
 
         &.active {
             background: var(--_on-primary);

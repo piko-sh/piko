@@ -125,10 +125,14 @@
         --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
         --_secondary-container: var(--m3e-secondary-container, #e8def8);
         --_on-secondary-container: var(--m3e-on-secondary-container, #1d192b);
+        --_outline: var(--m3e-outline, #79747e);
+        --_outline-variant: var(--m3e-outline-variant, #cac4d0);
         --_duration-medium: var(--m3e-duration-medium, 400ms);
         --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
         --_shape-lg: var(--m3e-shape-lg, 16px);
-        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.25rem;
 
         &(:not([modal])) .drawer {
             height: 100%;
@@ -186,10 +190,12 @@
 
     .headline {
         margin: 0;
-        padding: 28px 28px 0;
-        font-size: 0.875rem;
-        font-weight: 500;
-        letter-spacing: 0.1px;
+        padding: 24px 28px 8px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1rem;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
         color: var(--_on-surface-variant);
     }
 
@@ -203,20 +209,26 @@
             align-items: center;
             gap: 12px;
             height: 56px;
-            padding: 0 24px 0 16px;
+            margin: 0;
+            padding: 0 24px 0 16px !important;
+            border: none;
             border-radius: var(--m3e-shape-full, 9999px);
+            background: transparent;
             cursor: pointer;
             color: var(--_on-surface-variant);
             text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-family: inherit;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: inherit;
             letter-spacing: 0.1px;
             -webkit-tap-highlight-color: transparent;
             transition: background 200ms, color 200ms;
         }
 
         ::slotted(*:hover) {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
+            color: var(--_on-surface);
         }
 
         ::slotted([data-active]) {
@@ -224,11 +236,17 @@
             color: var(--_on-secondary-container);
         }
 
+        ::slotted([data-active]:hover) {
+            background: color-mix(in srgb, var(--_on-secondary-container) 8%, var(--_secondary-container));
+            color: var(--_on-secondary-container);
+        }
+
         ::slotted(.drawer-header) {
             height: auto;
-            padding: 24px 16px;
+            padding: 24px 16px !important;
             border-radius: 0;
-            border-bottom: 1px solid var(--m3e-outline-variant, #cac4d0);
+            border: none;
+            border-bottom: 1px solid var(--_outline-variant);
             cursor: default;
             font-size: inherit;
             font-weight: inherit;
@@ -248,7 +266,7 @@
 
         ::slotted(.drawer-footer) {
             height: auto;
-            padding: 16px 24px;
+            padding: 16px 24px !important;
             border-radius: 0;
             cursor: default;
             font-size: 0.75rem;
@@ -259,3 +277,4 @@
         }
     }
 </style>
+

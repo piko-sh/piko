@@ -137,7 +137,6 @@
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
         --_shape-xs: var(--m3e-shape-xs, 4px);
         --_shape-md: var(--m3e-shape-md, 12px);
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .tooltip-anchor {

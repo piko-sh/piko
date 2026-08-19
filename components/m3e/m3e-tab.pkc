@@ -98,7 +98,6 @@
         --_on-surface-variant: var(--m3e-on-surface-variant, #49454f);
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-emphasized: var(--m3e-easing-emphasized, cubic-bezier(0.05, 0.7, 0.1, 1));
-        font-family: system-ui, -apple-system, sans-serif;
     }
 
     .tab {

@@ -5064,7 +5064,7 @@ function parsePayload(encodedPayload, el) {
     return null;
   }
 }
-function createActionHandler(key, encodedPayload, isCustomEvent, el, helperRegistry, callbacks) {
+function createActionHandler(key, attrName, isCustomEvent, el, helperRegistry, callbacks) {
   const parts = key.split(".");
   const eventName = parts[0].trim();
   const modifiers = new Set(parts.slice(1));
@@ -5078,7 +5078,7 @@ function createActionHandler(key, encodedPayload, isCustomEvent, el, helperRegis
   if (modifiers.has("passive")) {
     listenerOptions.passive = true;
   }
-  let firedOnce = false;
+  let firedPayload = null;
   const handlerFunc = (event) => {
     if (modifiers.has("self") && event.target !== event.currentTarget) {
       return;
@@ -5089,10 +5089,14 @@ function createActionHandler(key, encodedPayload, isCustomEvent, el, helperRegis
     if (modifiers.has("stop")) {
       event.stopPropagation();
     }
-    if (modifiers.has("once") && firedOnce) {
+    const encodedPayload = el.getAttribute(attrName);
+    if (encodedPayload === null) {
       return;
     }
-    firedOnce = true;
+    if (modifiers.has("once") && firedPayload === encodedPayload) {
+      return;
+    }
+    firedPayload = encodedPayload;
     const payload = parsePayload(encodedPayload, el);
     if (!payload) {
       return;
@@ -5165,26 +5169,27 @@ function createDOMBinder(helperRegistry, callbacks) {
   }
   function bindActions(rootElement) {
     rootElement.querySelectorAll("*").forEach((el) => {
-      if (el.hasAttribute(BOUND_MARKER)) {
-        return;
-      }
+      const alreadyBound = new Set(el.getAttribute(BOUND_MARKER)?.split(",").filter(Boolean));
       const handlers = /* @__PURE__ */ new Map();
-      let hasBound = false;
-      for (const { name: attrName, value: attrValue } of Array.from(el.attributes)) {
+      const boundNames = [...alreadyBound];
+      for (const { name: attrName } of Array.from(el.attributes)) {
+        if (alreadyBound.has(attrName)) {
+          continue;
+        }
         let result = null;
         if (attrName.startsWith("p-on:")) {
-          result = createActionHandler(attrName.slice(P_ON_PREFIX_LEN), attrValue, false, el, helperRegistry, callbacks);
+          result = createActionHandler(attrName.slice(P_ON_PREFIX_LEN), attrName, false, el, helperRegistry, callbacks);
         } else if (attrName.startsWith("p-event:")) {
-          result = createActionHandler(attrName.slice(P_EVENT_PREFIX_LEN), attrValue, true, el, helperRegistry, callbacks);
+          result = createActionHandler(attrName.slice(P_EVENT_PREFIX_LEN), attrName, true, el, helperRegistry, callbacks);
         }
         if (result?.handlerFunc) {
           addHandler(handlers, result.eventName, result.handlerFunc, result.listenerOptions);
-          hasBound = true;
+          boundNames.push(attrName);
         }
       }
-      if (el.hasAttribute("p-modal:selector")) {
+      if (el.hasAttribute("p-modal:selector") && !alreadyBound.has("p-modal:selector")) {
         addHandler(handlers, "click", createModalHandler(el, callbacks));
-        hasBound = true;
+        boundNames.push("p-modal:selector");
       }
       handlers.forEach(({ eventName, funcs, listenerOptions }) => {
         el.addEventListener(eventName, (event) => {
@@ -5197,8 +5202,8 @@ function createDOMBinder(helperRegistry, callbacks) {
           }
         }, listenerOptions);
       });
-      if (hasBound) {
-        el.setAttribute(BOUND_MARKER, "true");
+      if (boundNames.length > 0) {
+        el.setAttribute(BOUND_MARKER, boundNames.join(","));
       }
     });
   }

@@ -75,6 +75,7 @@
     }
 
     .fab {
+        font-family: inherit;
         position: relative;
         display: inline-flex;
         align-items: center;

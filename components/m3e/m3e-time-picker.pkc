@@ -172,7 +172,7 @@
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_shape-sm: var(--m3e-shape-sm, 8px);
         --_shape-xl: var(--m3e-shape-xl, 28px);
-        font-family: system-ui, -apple-system, sans-serif;
+        --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
     }
 
     .time-picker {
@@ -192,7 +192,8 @@
         background: var(--_surface-container-highest);
         border-radius: var(--_shape-sm);
         border: 2px solid transparent;
-        transition: border-color var(--_duration-short);
+        transition: border-color var(--_duration-short) var(--_easing-standard),
+                    background var(--_duration-short) var(--_easing-standard);
     }
 
     .time-field.active {
@@ -216,6 +217,7 @@
         color: var(--_on-surface);
         outline: none;
         font-family: inherit;
+        transition: color var(--_duration-short) var(--_easing-standard);
     }
 
     .separator {
@@ -257,6 +259,6 @@
     }
 
     .period-btn:hover:not(.active) {
-        background: rgba(73, 69, 79, 0.08);
+        background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
     }
 </style>

@@ -659,7 +659,7 @@ function parsePayload(encodedPayload: string, el: HTMLElement): ActionPayload | 
  * navigation on second clicks. The .passive and .capture modifiers are returned
  * as listener options for addEventListener.
  * @param key - The attribute key suffix containing the event name and modifiers.
- * @param encodedPayload - The base64-encoded action payload.
+ * @param attrName - The full directive attribute name, read at dispatch time for the payload.
  * @param isCustomEvent - A flag indicating whether this is a p-event (custom) or p-on (standard) binding.
  * @param el - The element being bound.
  * @param helperRegistry - The helper registry for function lookup.
@@ -668,7 +668,7 @@ function parsePayload(encodedPayload: string, el: HTMLElement): ActionPayload | 
  */
 function createActionHandler(
     key: string,
-    encodedPayload: string,
+    attrName: string,
     isCustomEvent: boolean,
     el: HTMLElement,
     helperRegistry: HelperRegistry,
@@ -690,7 +690,7 @@ function createActionHandler(
         listenerOptions.passive = true;
     }
 
-    let firedOnce = false;
+    let firedPayload: string | null = null;
 
     const handlerFunc = (event: Event) => {
         if (modifiers.has('self') && event.target !== event.currentTarget) {
@@ -705,11 +705,16 @@ function createActionHandler(
             event.stopPropagation();
         }
 
-        if (modifiers.has('once') && firedOnce) {
+        const encodedPayload = el.getAttribute(attrName);
+        if (encodedPayload === null) {
             return;
         }
 
-        firedOnce = true;
+        if (modifiers.has('once') && firedPayload === encodedPayload) {
+            return;
+        }
+
+        firedPayload = encodedPayload;
 
         const payload = parsePayload(encodedPayload, el);
         if (!payload) {
@@ -843,31 +848,33 @@ export function createDOMBinder(helperRegistry: HelperRegistry, callbacks: DOMBi
      */
     function bindActions(rootElement: HTMLElement): void {
         rootElement.querySelectorAll<HTMLElement>('*').forEach(el => {
-            if (el.hasAttribute(BOUND_MARKER)) {
-                return;
-            }
+            const alreadyBound = new Set(el.getAttribute(BOUND_MARKER)?.split(',').filter(Boolean));
 
             const handlers = new Map<string, HandlerEntry>();
-            let hasBound = false;
+            const boundNames: string[] = [...alreadyBound];
 
-            for (const {name: attrName, value: attrValue} of Array.from(el.attributes)) {
+            for (const {name: attrName} of Array.from(el.attributes)) {
+                if (alreadyBound.has(attrName)) {
+                    continue;
+                }
+
                 let result: HandlerResult | null = null;
 
                 if (attrName.startsWith('p-on:')) {
-                    result = createActionHandler(attrName.slice(P_ON_PREFIX_LEN), attrValue, false, el, helperRegistry, callbacks);
+                    result = createActionHandler(attrName.slice(P_ON_PREFIX_LEN), attrName, false, el, helperRegistry, callbacks);
                 } else if (attrName.startsWith('p-event:')) {
-                    result = createActionHandler(attrName.slice(P_EVENT_PREFIX_LEN), attrValue, true, el, helperRegistry, callbacks);
+                    result = createActionHandler(attrName.slice(P_EVENT_PREFIX_LEN), attrName, true, el, helperRegistry, callbacks);
                 }
 
                 if (result?.handlerFunc) {
                     addHandler(handlers, result.eventName, result.handlerFunc, result.listenerOptions);
-                    hasBound = true;
+                    boundNames.push(attrName);
                 }
             }
 
-            if (el.hasAttribute('p-modal:selector')) {
+            if (el.hasAttribute('p-modal:selector') && !alreadyBound.has('p-modal:selector')) {
                 addHandler(handlers, 'click', createModalHandler(el, callbacks));
-                hasBound = true;
+                boundNames.push('p-modal:selector');
             }
 
             handlers.forEach(({eventName, funcs, listenerOptions}) => {
@@ -882,8 +889,8 @@ export function createDOMBinder(helperRegistry: HelperRegistry, callbacks: DOMBi
                 }, listenerOptions);
             });
 
-            if (hasBound) {
-                el.setAttribute(BOUND_MARKER, 'true');
+            if (boundNames.length > 0) {
+                el.setAttribute(BOUND_MARKER, boundNames.join(','));
             }
         });
     }

@@ -126,32 +126,38 @@
         --_duration-short: var(--m3e-duration-short, 200ms);
         --_easing-standard: var(--m3e-easing-standard, cubic-bezier(0.2, 0, 0, 1));
         --_shape-full: var(--m3e-shape-full, 9999px);
-        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.25rem;
     }
 
     .segmented-button {
-        display: inline-flex;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
         border: 1px solid var(--_outline);
         border-radius: var(--_shape-full);
         overflow: hidden;
 
         ::slotted(*) {
             position: relative;
-            flex: 1;
+            font-family: inherit;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             height: 40px;
             min-width: 48px;
-            padding: 0 24px;
+            margin: 0;
+            padding: 0 12px;
             cursor: pointer;
             border: none;
             border-right: 1px solid var(--_outline);
             background: transparent;
             color: var(--_on-surface);
             font-family: inherit;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: inherit;
             outline: none;
             appearance: none;
             -webkit-appearance: none;
@@ -165,12 +171,16 @@
         }
 
         ::slotted(*:hover) {
-            background: rgba(73, 69, 79, 0.08);
+            background: color-mix(in srgb, var(--_on-surface) 8%, transparent);
         }
 
         ::slotted([data-selected]) {
             background: var(--_secondary-container);
             color: var(--_on-secondary-container);
+        }
+
+        ::slotted([data-selected]:hover) {
+            background: color-mix(in srgb, var(--_on-secondary-container) 8%, var(--_secondary-container));
         }
     }
 </style>
