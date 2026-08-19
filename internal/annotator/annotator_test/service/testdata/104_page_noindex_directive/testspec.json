@@ -1,0 +1,6 @@
+{
+  "description": "Verifies that a page carrying p-noindex sets SitemapNoindex on the annotation result, which is what makes the generated page default its robots rule to noindex.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "expectSitemapNoindex": true
+}

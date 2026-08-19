@@ -1770,8 +1770,9 @@ func TestRenderASTToString(t *testing.T) {
 					},
 					Metadata: &templater_dto.InternalMetadata{
 						Metadata: templater_dto.Metadata{
-							Title:    "Test",
-							Language: "en",
+							Title:       "Test",
+							Language:    "en",
+							Description: "A headless page",
 						},
 					},
 					IncludeDocumentWrapper: true,
@@ -1780,6 +1781,61 @@ func TestRenderASTToString(t *testing.T) {
 			wantContains: []string{
 				"<title>Test</title>",
 				`lang="en"`,
+				`<meta name="description" content="A headless page">`,
+			},
+		},
+		{
+			name: "IncludeDocumentWrapper with a robots rule emits the robots meta tag",
+			buildOpts: func() *RenderOrchestrator {
+				return NewTestOrchestratorBuilder().Build()
+			},
+			opts: func() RenderASTToStringOptions {
+				return RenderASTToStringOptions{
+					Template: &ast_domain.TemplateAST{
+						RootNodes: []*ast_domain.TemplateNode{
+							{
+								NodeType:    ast_domain.NodeText,
+								TextContent: "content",
+							},
+						},
+					},
+					Metadata: &templater_dto.InternalMetadata{
+						Metadata: templater_dto.Metadata{
+							RobotsRule: "noindex, nofollow",
+						},
+					},
+					IncludeDocumentWrapper: true,
+				}
+			},
+			wantContains: []string{
+				`<meta name="robots" content="noindex, nofollow">`,
+			},
+		},
+		{
+			name: "IncludeDocumentWrapper escapes the robots rule",
+			buildOpts: func() *RenderOrchestrator {
+				return NewTestOrchestratorBuilder().Build()
+			},
+			opts: func() RenderASTToStringOptions {
+				return RenderASTToStringOptions{
+					Template: &ast_domain.TemplateAST{
+						RootNodes: []*ast_domain.TemplateNode{
+							{
+								NodeType:    ast_domain.NodeText,
+								TextContent: "content",
+							},
+						},
+					},
+					Metadata: &templater_dto.InternalMetadata{
+						Metadata: templater_dto.Metadata{
+							RobotsRule: `noindex"><script>alert(1)</script>`,
+						},
+					},
+					IncludeDocumentWrapper: true,
+				}
+			},
+			wantContains: []string{
+				"&lt;script&gt;",
 			},
 		},
 		{

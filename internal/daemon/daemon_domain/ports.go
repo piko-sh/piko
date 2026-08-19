@@ -149,6 +149,14 @@ type RouterConfig struct {
 	// previewing. Nil in production mode.
 	DevPreviewHandler DevPreviewHandlerPort
 
+	// RobotsTxtBlock holds a pre-rendered robots.txt that blocks every crawler, served in
+	// place of the stored artefact so a deploy can withhold itself from search without a
+	// rebuild. Nil serves the artefact from the registry as usual.
+	//
+	// It is also the signal that this deploy is withheld from search at all, so the
+	// X-Robots-Tag response header follows it rather than being configured separately.
+	RobotsTxtBlock []byte
+
 	// PublicDomain is the public-facing domain for CORS origins.
 	PublicDomain string
 

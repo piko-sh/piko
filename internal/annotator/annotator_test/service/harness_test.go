@@ -65,6 +65,7 @@ type TopLevelTestSpec struct {
 	ExpectedDiagnostics         int               `json:"expectedDiagnostics"`
 	ShouldError                 bool              `json:"shouldError,omitempty"`
 	ExpectUsesCaptcha           *bool             `json:"expectUsesCaptcha,omitempty"`
+	ExpectSitemapNoindex        *bool             `json:"expectSitemapNoindex,omitempty"`
 }
 
 type DiagnosticCheck struct {
@@ -226,6 +227,11 @@ func runTestCase(t *testing.T, tc testCase) {
 	if spec.ExpectUsesCaptcha != nil {
 		assert.Equal(t, *spec.ExpectUsesCaptcha, annotationResult.UsesCaptcha,
 			"UsesCaptcha mismatch: expected %v", *spec.ExpectUsesCaptcha)
+	}
+
+	if spec.ExpectSitemapNoindex != nil {
+		assert.Equal(t, *spec.ExpectSitemapNoindex, annotationResult.SitemapNoindex,
+			"SitemapNoindex mismatch: expected %v", *spec.ExpectSitemapNoindex)
 	}
 
 	generateAndCheckGoldenFiles(t, tc, annotationResult)

@@ -10,7 +10,7 @@ nav:
 
 # SEO configuration
 
-You supply `piko.SEOConfig` through the `piko.WithSEO(...)` functional option, not through a YAML `seo:` block. It controls `sitemap.xml`, `robots.txt`, hreflang alternates, and per-page and per-item overrides. SEO generation is only active when a caller passes `WithSEO` with `Enabled: true` and a non-empty `Sitemap.Hostname`. This page enumerates every field, type, template attribute, environment variable, and flag. For task recipes see the how-to guides on [sitemap and robots.txt](../how-to/metadata-seo/sitemap-and-robots.md) and [a multilingual sitemap](../how-to/metadata-seo/multilingual-sitemap.md).
+You supply `piko.SEOConfig` through the `piko.WithSEO(...)` functional option, not through a YAML `seo:` block. It controls `sitemap.xml`, `robots.txt`, hreflang alternates, and per-page and per-item overrides. SEO generation is active when a caller passes `WithSEO` with a non-empty `Sitemap.Hostname`. Passing the option is itself the enable signal, so you can leave `Enabled` alone. This page enumerates every field, type, template attribute, environment variable, and flag. For task recipes see the how-to guides on [sitemap and robots.txt](../how-to/metadata-seo/sitemap-and-robots.md) and [a multilingual sitemap](../how-to/metadata-seo/multilingual-sitemap.md).
 
 ## Enabling SEO
 
@@ -24,7 +24,7 @@ func WithRouteSource(source seo_domain.RouteSource) Option
 
 | Option | Meaning |
 |---|---|
-| `piko.WithSEO` | Provides the SEO configuration for sitemap and robots.txt generation. SEO is only active when a caller passes this option with an enabled configuration and a non-empty sitemap hostname. |
+| `piko.WithSEO` | Provides the SEO configuration for sitemap and robots.txt generation, and enables SEO. Requires a non-empty sitemap hostname. Omit the option to disable SEO. |
 | `piko.WithSitemapURLProvider` | Registers a build-time, in-process provider of additional sitemap URLs for dynamic routes whose slugs come from application data instead of content collections. Piko ignores a `nil` provider. Requires `WithSEO`. |
 | `piko.WithRouteSource` | Registers a composable build-time `RouteSource` for a page bound to it with the `p-route-source` directive, expanding param values against the page's real route pattern so localised paths and hreflang are correct. Preferred over `WithSitemapURLProvider` for dynamic pages templated over a Go registry. Piko ignores a `nil` source. Requires `WithSEO`. |
 
@@ -42,7 +42,7 @@ type SEOConfig struct {
 |---|---|---|
 | `Robots` | `RobotsConfig` | robots.txt settings. See [RobotsConfig](#robotsconfig). |
 | `Sitemap` | `SitemapConfig` | sitemap.xml settings. See [SitemapConfig](#sitemapconfig). |
-| `Enabled` | `bool` | Controls whether SEO file generation is active. Default `true`. |
+| `Enabled` | `bool` | Piko sets this to `true` when it stores the configuration, because supplying `WithSEO` is the enable signal. A `bool` cannot distinguish an omitted field from an explicit `false`, so an explicit `false` here does not disable SEO. Omit `WithSEO` instead. Piko logs a notice when it enables SEO for a configuration that did not set this. |
 
 ## `SitemapConfig`
 
@@ -50,13 +50,13 @@ type SEOConfig struct {
 type SitemapConfig struct {
     Sitemaps              map[string]SitemapChunkConfig
     CacheMaxAgeSeconds    *int
+    DiscoverImages        *bool
     Hostname              string
     Exclude               []string
     Sources               []string
     Defaults              SitemapEntryDefaults
     RouteRules            []SitemapRouteRule
     MaxURLsPerSitemap     int
-    DiscoverImages        bool
     IncludeAuthGatedPages bool
     GitLastMod            bool
 }
@@ -72,7 +72,7 @@ type SitemapConfig struct {
 | `Defaults` | `SitemapEntryDefaults` | Default values for sitemap entry fields. See [SitemapEntryDefaults](#sitemapentrydefaults). |
 | `RouteRules` | `[]SitemapRouteRule` | Per-route SEO metadata matched by glob, without editing pages. See [SitemapRouteRule](#sitemaprouterule). |
 | `MaxURLsPerSitemap` | `int` | When the URL count exceeds this value, the builder splits the sitemap and generates an index. Default `5000`; validated `min=1,max=50000`. |
-| `DiscoverImages` | `bool` | Automatically discover and include images in the sitemap. Default `true`. |
+| `DiscoverImages` | `*bool` | Automatically discover and include images in the sitemap. `nil` takes the default of `true`; pass `new(false)` to omit them. It is a pointer because the defaults merge cannot tell a plain `false` apart from an unset field. |
 | `IncludeAuthGatedPages` | `bool` | Include `AuthPolicy`-gated pages in the sitemap. Default `false` (excluded). |
 | `GitLastMod` | `bool` | Derive a static page's `<lastmod>` from its last git commit date instead of file mtime. Default `false`. |
 
@@ -107,18 +107,20 @@ type SitemapChunkConfig struct {
 ```go
 type RobotsConfig struct {
     CustomRules                []RobotsRuleGroup
+    NeverIndex                 bool
+    PreviewDeployment          bool
     BlockAiBots                bool
     BlockNonSeoBots            bool
-    AllowNonProductionIndexing bool
 }
 ```
 
 | Field | Type | Meaning / default |
 |---|---|---|
 | `CustomRules` | `[]RobotsRuleGroup` | Custom robots.txt rules per user agent. Appended after the base and bot-blocking groups. |
+| `NeverIndex` | `bool` | This project must never appear in a search index, in any environment. A property of the project. Blocks the base group at generation and at serve time, and no deploy setting, environment variable or run mode lifts it. A `CustomRules` group that grants a named user agent `Allow: /` still applies to that agent, because a crawler obeys the most specific group that matches it. Default `false`. See [Indexing behaviour](#indexing-behaviour). |
+| `PreviewDeployment` | `bool` | This deploy is a copy of the site, not the live one. A property of the deploy. Piko reads it only when serving `robots.txt` and never writes it into an artefact. Default `false`. See [Indexing behaviour](#indexing-behaviour). |
 | `BlockAiBots` | `bool` | Block known AI crawler bots (the `seo_dto.AIBots` list). Default `false`. See [AI and non-SEO bot lists](#ai-and-non-seo-bot-lists). |
 | `BlockNonSeoBots` | `bool` | Block known non-SEO web scrapers (the `seo_dto.NonSEOBots` list). Default `false`. See [AI and non-SEO bot lists](#ai-and-non-seo-bot-lists). |
-| `AllowNonProductionIndexing` | `bool` | Opt out of blocking crawlers in non-production builds. Default `false`. See [Non-production behaviour](#non-production-behaviour). |
 
 ### `RobotsRuleGroup`
 
@@ -136,9 +138,30 @@ type RobotsRuleGroup struct {
 | `Disallow` | `[]string` | URL path patterns these user agents cannot crawl. |
 | `Allow` | `[]string` | URL path patterns these user agents may crawl, overriding more general `Disallow` rules. |
 
-### Non-production behaviour
+### Indexing behaviour
 
-When a build is non-production and `AllowNonProductionIndexing` is `false`, the base group is `User-agent: *` / `Disallow: /` (a site-wide block) and the robots builder logs a warning. When `AllowNonProductionIndexing` is `true`, the base group is the permissive `User-agent: *` / `Allow: /` even in non-production, and the robots builder logs a different warning. In production the base group is always the permissive `User-agent: *` / `Allow: /`. The SEO service assumes production when no caller supplies a production-mode signal, so a missing wiring path fails open instead of de-indexing a live site. `BlockAiBots` and `BlockNonSeoBots` are independent of production mode. Each, when true, appends an extra group with `Disallow: /` targeting its fixed user-agent list.
+Indexability is two independent questions. `NeverIndex` answers "is this project ever meant to be public?", a fixed property of the software. `PreviewDeployment` answers "is this deploy the live one?", a property that varies between deploys of the same build.
+
+| `NeverIndex` | `PreviewDeployment` | run signal | Generated artefact | Served |
+|---|---|---|---|---|
+| `true` | any | any | `Disallow: /` | `Disallow: /` |
+| `false` | `true` | none (generate mode) or `prod` | `Allow: /` | `Disallow: /` |
+| `false` | `false` | none (generate mode) or `prod` | `Allow: /` | as generated |
+| `false` | any | `dev` / `dev-i` | `Disallow: /` | `Disallow: /` |
+
+Serving only ever tightens. It can add a block but never remove one, so a build that already baked a block stays blocked whatever the deploy declares.
+
+Piko logs every case, including the permissive one, so the build output states the indexing posture instead of leaving you to assume it.
+
+`PreviewDeployment` is deliberately absent from the generated artefact. Baking it in would produce a block that no later deploy of that artefact could lift, which defeats the purpose of promoting one build through environments.
+
+Only a run mode supplies a production signal: `WithProductionMode(true)` for `prod`, `false` for `dev` and `dev-i`. The generate modes (`all`, `manifest`, `assets`, `sql`) supply none, because a generate mode says what to build, not where the result lands. With no signal the SEO service assumes production, so an unwired path fails open instead of de-indexing a live site.
+
+The build writes `robots.txt`, and in production the server then serves it unchanged from the registry, because the production daemon wires no coordinator. The `dev` and `dev-i` daemons do regenerate it on every rebuild, and those rebuilds always write a blocking file so a development run cannot leave a permissive one behind.
+
+A `Disallow` asks a crawler not to fetch a URL. It does not remove a URL already in the index, and a crawler you have blocked never reads a `noindex` directive in the body. Both `NeverIndex` and `PreviewDeployment` therefore also set `X-Robots-Tag: noindex, nofollow` on every response, which is what actually keeps a site out of an index.
+
+`BlockAiBots` and `BlockNonSeoBots` are independent of all the above. Each, when true, appends an extra group with `Disallow: /` targeting its fixed user-agent list.
 
 ### AI and non-SEO bot lists
 
@@ -361,6 +384,10 @@ A page opts into locale routing by declaring a `SupportedLocales()` function in 
 
 ## Environment variables and flags
 
+> **Piko itself reads no environment variables or flags for `SEOConfig`.** The configuration reaches the framework only through `piko.WithSEO(...)`, which never passes through the configuration loader, so Piko consults none of the names below at runtime. They are metadata for a host application that chooses to run its own environment or flag pass over the struct. To vary SEO settings per environment, read the variable in your own code and pass the result to `piko.WithSEO`.
+>
+> The `default` column is accurate. Piko applies those defaults when it stores the configuration, so a field you omit gets the documented value.
+
 Fields not listed below (`Sitemaps`, `Defaults` as a whole, `RouteRules`, `CustomRules`, and every `SitemapRouteRule` and `RobotsRuleGroup` field) are YAML/JSON only.
 
 | Environment variable | Flag | Default | Field |
@@ -378,7 +405,8 @@ Fields not listed below (`Sitemaps`, `Defaults` as a whole, `RouteRules`, `Custo
 | `PIKO_SEO_SITEMAP_DEFAULT_PRIORITY` | `sitemapDefaultPriority` | `0.5` | `SitemapEntryDefaults.Priority` |
 | `PIKO_SEO_ROBOTS_BLOCK_AI_BOTS` | `robotsBlockAiBots` | `false` | `RobotsConfig.BlockAiBots` |
 | `PIKO_SEO_ROBOTS_BLOCK_NON_SEO_BOTS` | `robotsBlockNonSeoBots` | `false` | `RobotsConfig.BlockNonSeoBots` |
-| `PIKO_SEO_ROBOTS_ALLOW_NONPROD_INDEXING` | `robotsAllowNonProdIndexing` | `false` | `RobotsConfig.AllowNonProductionIndexing` |
+| (none) | `robotsNeverIndex` | `false` | `RobotsConfig.NeverIndex` |
+| (none) | `robotsPreviewDeployment` | `false` | `RobotsConfig.PreviewDeployment` |
 
 ## See also
 

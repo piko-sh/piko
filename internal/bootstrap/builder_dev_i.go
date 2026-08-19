@@ -692,6 +692,7 @@ func (b *interpretedDaemonBuilder) buildRouterConfig() *daemon_domain.RouterConf
 	routerConfig := NewRouterConfig(&serverConfig, shValues, b.c.GetReportingConfig())
 	routerConfig.DisableHTTPCache = true
 	routerConfig.SitemapCacheMaxAgeSeconds = sitemapCacheMaxAge(b.c.seoConfigOverride)
+	routerConfig.RobotsTxtBlock = robotsTxtBlock(b.c.GetAppContext(), b.c.seoConfigOverride)
 	if b.devEventBroadcaster != nil {
 		routerConfig.DevEventsBroadcaster = b.devEventBroadcaster
 	}

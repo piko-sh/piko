@@ -261,3 +261,99 @@ func TestWithEmbeddedDefaults(t *testing.T) {
 		assert.False(t, container.IsEmbeddedMode(), "an explicit WithoutEmbeddedRuntime must override the prepended default")
 	})
 }
+
+func TestIsRunMode(t *testing.T) {
+	t.Parallel()
+
+	t.Run("run modes are recognised", func(t *testing.T) {
+		t.Parallel()
+		assert.True(t, isRunMode(RunModeProd))
+		assert.True(t, isRunMode(RunModeDev))
+		assert.True(t, isRunMode(RunModeDevInterpreted))
+	})
+
+	t.Run("generate modes are not run modes", func(t *testing.T) {
+		t.Parallel()
+		assert.False(t, isRunMode(GenerateModeAll))
+		assert.False(t, isRunMode(GenerateModeManifest))
+		assert.False(t, isRunMode(GenerateModeAssets))
+		assert.False(t, isRunMode(GenerateModeSQL))
+	})
+
+	t.Run("unknown values are not run modes", func(t *testing.T) {
+		t.Parallel()
+		assert.False(t, isRunMode(""))
+		assert.False(t, isRunMode("production"))
+	})
+}
+
+func TestIsGenerateMode(t *testing.T) {
+	t.Parallel()
+
+	t.Run("generate modes are recognised", func(t *testing.T) {
+		t.Parallel()
+		assert.True(t, isGenerateMode(GenerateModeAll))
+		assert.True(t, isGenerateMode(GenerateModeManifest))
+		assert.True(t, isGenerateMode(GenerateModeAssets))
+		assert.True(t, isGenerateMode(GenerateModeSQL))
+	})
+
+	t.Run("run modes are not generate modes", func(t *testing.T) {
+		t.Parallel()
+		assert.False(t, isGenerateMode(RunModeProd))
+		assert.False(t, isGenerateMode(RunModeDev))
+		assert.False(t, isGenerateMode(RunModeDevInterpreted))
+	})
+
+	t.Run("unknown values are not generate modes", func(t *testing.T) {
+		t.Parallel()
+		assert.False(t, isGenerateMode(""))
+		assert.False(t, isGenerateMode("build"))
+	})
+}
+
+func TestSEOProductionSignal(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		want *bool
+		name string
+		mode string
+	}{
+		{name: "prod is production", mode: RunModeProd, want: new(true)},
+		{name: "dev is not production", mode: RunModeDev, want: new(false)},
+		{name: "dev-interpreted is not production", mode: RunModeDevInterpreted, want: new(false)},
+		{name: "generate all carries no signal", mode: GenerateModeAll, want: nil},
+		{name: "generate manifest carries no signal", mode: GenerateModeManifest, want: nil},
+		{name: "generate assets carries no signal", mode: GenerateModeAssets, want: nil},
+		{name: "generate sql carries no signal", mode: GenerateModeSQL, want: nil},
+		{name: "an unknown mode carries no signal", mode: "build", want: nil},
+		{name: "an empty mode carries no signal", mode: "", want: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			got := seoProductionSignal(testCase.mode)
+
+			if testCase.want == nil {
+				assert.Nil(t, got, "a mode that says nothing about deployment must leave the signal unset")
+				return
+			}
+			require.NotNil(t, got)
+			assert.Equal(t, *testCase.want, *got)
+		})
+	}
+}
+
+func TestGenerate_RejectsNonGenerateModes(t *testing.T) {
+	t.Parallel()
+
+	for _, mode := range []string{RunModeProd, RunModeDev, "", "build"} {
+		server := &SSRServer{}
+		err := server.Generate(context.Background(), mode)
+
+		require.Error(t, err, "mode %q must be rejected", mode)
+		assert.ErrorContains(t, err, "is not one of")
+	}
+}

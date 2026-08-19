@@ -51,9 +51,9 @@ type normaliser struct {
 
 // normaliseAST normalises every statement in a converted program, in place.
 //
-// The parsejs printer adds NO brackets of its own, and a GroupExpr node is the only way to
-// get one. So if a child binds more loosely than the slot it sits in, the printed code is
-// a DIFFERENT program, or is not valid JavaScript at all.
+// The parsejs printer adds NO brackets of its own, and a GroupExpr node is the only way
+// to get one. So if a child binds more loosely than the slot it sits in, the printed code
+// is a DIFFERENT program, or is not valid JavaScript at all.
 //
 // Takes tree (*parsejs.AST) which is the program to normalise; nil is a no-op.
 //

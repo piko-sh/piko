@@ -464,13 +464,38 @@ func buildReturnStatement(result *annotator_dto.AnnotationResult, customTagsVarN
 		Elts: metadataFields,
 	}
 
-	return []goast.Stmt{
+	var statements []goast.Stmt
+	if result.SitemapNoindex {
+		statements = append(statements, buildNoindexDefaultStatement())
+	}
+
+	return append(statements,
 		defineAndAssign("internalMetaResult", internalMetaLit),
 		&goast.ReturnStmt{
 			Results: []goast.Expr{
 				cachedIdent("rootAST"),
 				cachedIdent("internalMetaResult"),
 				cachedIdent(DiagnosticsVarName),
+			},
+		},
+	)
+}
+
+// buildNoindexDefaultStatement emits the guard that defaults a p-noindex page's robots
+// rule.
+//
+// Returns goast.Stmt which is the guarded assignment.
+func buildNoindexDefaultStatement() goast.Stmt {
+	robotsRule := &goast.SelectorExpr{X: cachedIdent(PageMetaVarName), Sel: cachedIdent("RobotsRule")}
+	return &goast.IfStmt{
+		Cond: &goast.BinaryExpr{X: robotsRule, Op: token.EQL, Y: strLit("")},
+		Body: &goast.BlockStmt{
+			List: []goast.Stmt{
+				&goast.AssignStmt{
+					Lhs: []goast.Expr{robotsRule},
+					Tok: token.ASSIGN,
+					Rhs: []goast.Expr{strLit("noindex")},
+				},
 			},
 		},
 	}

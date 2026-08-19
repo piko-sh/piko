@@ -32,9 +32,9 @@ type robotsBuilder struct {
 	config config.RobotsConfig
 
 	// blockAllIndexing, when true, replaces the permissive base rule with a site-wide
-	// "Disallow: /" so no crawler indexes the site. It is set for non-production builds
-	// (unless RobotsConfig.AllowNonProductionIndexing opts out) to stop a dev/staging deploy
-	// being indexed with production URLs.
+	// "Disallow: /" so no crawler crawls the site. The caller decides it: see
+	// resolveBlockAllIndexing for the generated artefact, and the serving process for a
+	// deploy that withholds itself without a rebuild.
 	blockAllIndexing bool
 }
 
@@ -77,8 +77,8 @@ func (b *robotsBuilder) Build(ctx context.Context, sitemapURL string) ([]byte, e
 }
 
 // generateBaseRules creates the base rule for all bots. Normally this allows all paths;
-// in a non-production build with blockAllIndexing set it disallows everything instead, so
-// the deploy cannot be indexed.
+// when blockAllIndexing is set it disallows everything instead, so the deploy is not
+// crawled.
 //
 // Returns seo_dto.RobotGroup which permits (or, when blocking, forbids) all user agents
 // on all paths.
@@ -122,8 +122,7 @@ func (*robotsBuilder) generateNonSEOBotRules() seo_dto.RobotGroup {
 // newRobotsBuilder creates a new robotsBuilder with the given settings.
 //
 // Takes robotsConfig (config.RobotsConfig) which specifies the robots.txt settings.
-// Takes blockAllIndexing (bool) which, when true, makes the base rule disallow all paths
-// (used for non-production builds).
+// Takes blockAllIndexing (bool) which, when true, makes the base rule disallow all paths.
 //
 // Returns *robotsBuilder which is ready for use.
 func newRobotsBuilder(robotsConfig config.RobotsConfig, blockAllIndexing bool) *robotsBuilder {

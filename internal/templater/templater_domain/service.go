@@ -37,6 +37,9 @@ import (
 const (
 	// logFieldOriginalPath is the log field key for the original request path.
 	logFieldOriginalPath = "originalPath"
+
+	// headerXRobotsTag is the HTTP header name for per-response indexing directives.
+	headerXRobotsTag = "X-Robots-Tag"
 )
 
 // templaterService provides template rendering and page probing functions. It implements
@@ -157,6 +160,7 @@ func (*templaterService) renderGeneric(
 	}
 
 	applyAutoLocaleHead(&internalMeta, req.AutoLocaleHead)
+	applyRobotsHeader(req.Response, &internalMeta)
 
 	l.Trace("Rendering through renderer",
 		logger_domain.String("phase", label),
@@ -263,4 +267,17 @@ func applyAutoLocaleHead(meta *templater_dto.InternalMetadata, auto *LocaleSEOHe
 	if len(meta.AlternateLinks) == 0 {
 		meta.AlternateLinks = auto.AlternateLinks
 	}
+}
+
+// applyRobotsHeader copies the page's robots rule into the X-Robots-Tag response header,
+// so a HEAD request sees the rule without reading the body.
+//
+// Takes response (http.ResponseWriter) which receives the header, or nil when the caller
+// renders without one.
+// Takes meta (*templater_dto.InternalMetadata) which carries the page's robots rule.
+func applyRobotsHeader(response http.ResponseWriter, meta *templater_dto.InternalMetadata) {
+	if response == nil || meta.RobotsRule == "" {
+		return
+	}
+	response.Header().Add(headerXRobotsTag, meta.RobotsRule)
 }

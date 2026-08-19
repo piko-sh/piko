@@ -11,6 +11,7 @@
 
     {%- if p.Description != "" -%}<meta name="description" content="{%s= p.Description -%}">{%- endif -%}
     {%- if p.Keywords != "" -%}<meta name="keywords" content="{%s= p.Keywords -%}">{%- endif -%}
+    {%- if p.RobotsRule != "" -%}<meta name="robots" content="{%s p.RobotsRule -%}">{%- endif -%}
     {%- if p.CanonicalURL != "" -%}<link rel="canonical" href="{%s= p.CanonicalURL -%}">{%- endif -%}
     {%- for _, link := range p.AlternateLinks -%}
     <link rel="alternate" hreflang="{%s= link["hreflang"] -%}" href="{%s= link["href"] -%}">

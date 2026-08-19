@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -41,13 +42,13 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/security/security_adapters"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // HTTPRouterBuilder builds the main HTTP router with all system middleware and route
@@ -140,6 +141,10 @@ func (*HTTPRouterBuilder) setupBaseMiddleware(
 		router.Use(securityMiddleware.Handler)
 	}
 
+	if len(routerConfig.RobotsTxtBlock) > 0 {
+		router.Use(withheldFromSearchMiddleware)
+	}
+
 	router.Use(middleware.Recoverer)
 
 	router.Use(middleware.Heartbeat("/ping"))
@@ -174,7 +179,7 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	router.Get("/theme.css", builder.serveTheme(registryService, noCache))
 	router.Get("/sitemap.xml", builder.serveSitemapArtefact(registryService, "sitemap.xml", sitemapCacheControl))
 	router.Get("/sitemap-{number}.xml", builder.serveSitemapChunk(registryService, sitemapCacheControl))
-	router.Get("/robots.txt", builder.serveRobotsTxt(registryService, sitemapCacheControl))
+	router.Get("/robots.txt", builder.serveRobotsTxt(registryService, sitemapCacheControl, routerConfig.RobotsTxtBlock))
 	router.Get(fmt.Sprintf("%s/*", routerConfig.ArtefactServePath), builder.serveArtefact(registryService, variantGenerator, noCache))
 
 	router.Get("/_piko/video/{artefactID}/master.m3u8", builder.serveVideoMasterPlaylist(registryService, noCache))
@@ -394,10 +399,26 @@ func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_dom
 
 // serveRobotsTxt returns a handler that serves the robots.txt file.
 //
-// Takes registryService (RegistryService) which provides access to static files.
+// When block is non-empty those bytes are served instead of the stored artefact, so a
+// deploy can withhold itself from search without regenerating anything. The block is also
+// served when no artefact exists, because a missing robots.txt answers 404 and crawlers
+// read that as permission to crawl everything.
 //
-// Returns http.HandlerFunc which serves the robots.txt file with a one-hour cache.
-func (*HTTPRouterBuilder) serveRobotsTxt(registryService registry_domain.RegistryService, cacheControl string) http.HandlerFunc {
+// Takes registryService (RegistryService) which provides access to static files.
+// Takes cacheControl (string) which is the Cache-Control header value to send.
+// Takes block ([]byte) which is a pre-rendered blocking robots.txt, or nil to serve the
+// stored artefact.
+//
+// Returns http.HandlerFunc which serves the robots.txt file.
+func (*HTTPRouterBuilder) serveRobotsTxt(
+	registryService registry_domain.RegistryService,
+	cacheControl string,
+	block []byte,
+) http.HandlerFunc {
+	if len(block) > 0 {
+		return serveFixedRobotsTxt(block, cacheControl)
+	}
+
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      "robots.txt",
 		defaultMimeType: "text/plain; charset=utf-8",
@@ -1070,6 +1091,46 @@ func writeStaticVariantResponse(
 	if _, err := io.Copy(w, blobStream); err != nil {
 		l.Warn("Error while streaming artefact to client",
 			logger_domain.String(logFieldError, err.Error()))
+	}
+}
+
+// withheldFromSearchMiddleware marks every response as not for indexing.
+//
+// Takes next (http.Handler) which is the next handler in the chain.
+//
+// Returns http.Handler which sets the header before delegating.
+func withheldFromSearchMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header()[headerXRobotsTag] = headerValNoIndexNoFollow
+		next.ServeHTTP(w, r)
+	})
+}
+
+// serveFixedRobotsTxt returns a handler that writes a fixed robots.txt body computed at
+// startup rather than reading the stored artefact.
+//
+// Takes content ([]byte) which is the robots.txt body to serve.
+// Takes cacheControl (string) which is the Cache-Control header value to send.
+//
+// Returns http.HandlerFunc which serves the fixed body.
+func serveFixedRobotsTxt(content []byte, cacheControl string) http.HandlerFunc {
+	body := bytes.Clone(content)
+	etag := []string{formatJITETag(xxhash.Sum64(body))}
+	contentType := []string{"text/plain; charset=utf-8"}
+	cacheControlValue := []string{cacheControl}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h[headerETag] = etag
+		h[headerCacheControl] = cacheControlValue
+
+		if match := r.Header.Get(headerIfNoneMatch); match != "" && strings.Contains(match, etag[0]) {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+
+		h[headerContentType] = contentType
+		http.ServeContent(w, r, "robots.txt", time.Time{}, bytes.NewReader(body))
 	}
 }
 

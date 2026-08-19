@@ -211,8 +211,12 @@ func TestSEOService_GenerateArtefacts_StorageSitemapError(t *testing.T) {
 		t.Errorf("Expected error to mention sitemap storage, got: %v", err)
 	}
 
-	if storage.callCount != 1 {
-		t.Errorf("Expected 1 storage call (failed sitemap), got %d", storage.callCount)
+	if storage.callCount != 2 {
+		t.Errorf("Expected 2 storage calls (failed sitemap, then robots.txt), got %d", storage.callCount)
+	}
+
+	if storage.storedRobotsTxt == nil {
+		t.Error("Expected robots.txt to be stored even though the sitemap failed")
 	}
 }
 
@@ -314,7 +318,7 @@ func TestSEOService_Integration_WithExclusions(t *testing.T) {
 		Enabled: true,
 		Sitemap: config.SitemapConfig{
 			Hostname:       "https://example.com",
-			DiscoverImages: true,
+			DiscoverImages: new(true),
 			Exclude:        []string{"/admin/*"},
 		},
 		Robots: config.RobotsConfig{
@@ -507,16 +511,18 @@ func TestSEOService_GenerateArtefacts_NonProductionBlocksAllCrawlers(t *testing.
 	assert.NotContains(t, content, "Allow: /", "non-production build must not emit a permissive base rule")
 }
 
-func TestSEOService_GenerateArtefacts_NonProductionIndexingOptInIsPermissive(t *testing.T) {
+// A development build blocks with no way to opt back in, so a rebuild during development
+// cannot leave a permissive robots.txt behind in the local registry.
+func TestSEOService_GenerateArtefacts_NonProductionAlwaysBlocks(t *testing.T) {
 	seoConfig := config.SEOConfig{
 		Enabled: true,
 		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
-		Robots:  config.RobotsConfig{AllowNonProductionIndexing: true},
+		Robots:  config.RobotsConfig{PreviewDeployment: true},
 	}
 
 	content := generateAndStoreRobots(t, seoConfig, WithProductionMode(false))
-	assert.Contains(t, content, "Allow: /", "opting into non-production indexing restores the permissive rule")
-	assert.NotContains(t, content, "Disallow: /", "opting in must not block all crawlers")
+	assert.Contains(t, content, "Disallow: /", "a development build blocks all crawlers")
+	assert.NotContains(t, content, "Allow: /", "a development build must not emit a permissive base rule")
 }
 
 func TestSEOService_GenerateArtefacts_ProductionModeIsPermissive(t *testing.T) {
@@ -528,6 +534,66 @@ func TestSEOService_GenerateArtefacts_ProductionModeIsPermissive(t *testing.T) {
 	content := generateAndStoreRobots(t, seoConfig, WithProductionMode(true))
 	assert.Contains(t, content, "Allow: /", "production build must be permissive")
 	assert.NotContains(t, content, "Disallow: /", "production build must not block all crawlers")
+}
+
+func TestSEOService_GenerateArtefacts_NeverIndexBlocksCrawlers(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+		Robots:  config.RobotsConfig{NeverIndex: true},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig)
+	assert.Contains(t, content, "Disallow: /", "neverIndex must block all crawlers")
+	assert.NotContains(t, content, "Allow: /", "neverIndex must not emit a permissive base rule")
+}
+
+func TestSEOService_GenerateArtefacts_NeverIndexOverridesProductionMode(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+		Robots:  config.RobotsConfig{NeverIndex: true},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig, WithProductionMode(true))
+	assert.Contains(t, content, "Disallow: /", "neverIndex must win over a production signal")
+	assert.NotContains(t, content, "Allow: /", "neverIndex must not emit a permissive base rule")
+}
+
+func TestSEOService_GenerateArtefacts_NeverIndexBlocksInEveryBuild(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+		Robots:  config.RobotsConfig{NeverIndex: true},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig, WithProductionMode(false))
+	assert.Contains(t, content, "Disallow: /", "neverIndex blocks whatever the build mode says")
+	assert.NotContains(t, content, "Allow: /", "an explicit block must not emit a permissive base rule")
+}
+
+func TestSEOService_GenerateArtefacts_PreviewDeploymentDoesNotReachTheArtefact(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+		Robots:  config.RobotsConfig{PreviewDeployment: true},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig)
+	assert.Contains(t, content, "Allow: /", "previewDeployment must not change the generated artefact")
+	assert.NotContains(t, content, "Disallow: /", "previewDeployment must never be baked into a build")
+}
+
+func TestSEOService_GenerateArtefacts_RobotsAlwaysAdvertisesSitemap(t *testing.T) {
+	seoConfig := config.SEOConfig{
+		Enabled: true,
+		Sitemap: config.SitemapConfig{Hostname: "https://example.com"},
+		Robots:  config.RobotsConfig{NeverIndex: true},
+	}
+
+	content := generateAndStoreRobots(t, seoConfig)
+	assert.Contains(t, content, "Sitemap: https://example.com/sitemap.xml",
+		"robots.txt advertises the sitemap even when it blocks every crawler")
 }
 
 func TestSEOService_GenerateArtefacts_RouteSourceEmitsLocalisedURL(t *testing.T) {

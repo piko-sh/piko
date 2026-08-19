@@ -400,6 +400,167 @@ func TestServeRobotsTxt_ETagMatch_304(t *testing.T) {
 	AssertNotModified(t, recorder)
 }
 
+func buildRobotsBlockRouter(t *testing.T, block []byte, storedRobots string, storedETag string) http.Handler {
+	t.Helper()
+
+	h := NewTestHarness(t)
+	if storedRobots != "" {
+		variant := CreateTestVariant("source", "robots.txt/source",
+			WithVariantMimeType("text/plain; charset=utf-8"),
+			WithVariantTag("type", "source"),
+			WithVariantTag("etag", storedETag),
+		)
+		h.RegistryService.AddArtefact(CreateTestArtefact("robots.txt", variant))
+		h.RegistryService.AddVariantData("robots.txt/source", []byte(storedRobots))
+	}
+
+	routerConfig := h.RouterConfig()
+	routerConfig.RobotsTxtBlock = block
+
+	builder := NewTestRouterBuilder(t)
+	router, err := builder.BuildRouter(routerConfig, daemon_domain.RouterDependencies{
+		RegistryService:  h.RegistryService,
+		VariantGenerator: h.VariantGenerator,
+		CSPConfig:        h.CSPConfig,
+		RateLimitService: h.RateLimitService,
+	})
+	require.NoError(t, err)
+	return router
+}
+
+func TestServeRobotsTxt_BlockOverridesStoredArtefact(t *testing.T) {
+	t.Parallel()
+
+	block := []byte("User-agent: *\nDisallow: /\n")
+	router := buildRobotsBlockRouter(t, block, "User-agent: *\nAllow: /", `"robots123"`)
+
+	request := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	AssertStatus(t, recorder, http.StatusOK)
+	assert.Equal(t, string(block), recorder.Body.String())
+	assert.Contains(t, recorder.Header().Get("Content-Type"), "text/plain")
+}
+
+func TestServeRobotsTxt_BlockServedWhenArtefactMissing(t *testing.T) {
+	t.Parallel()
+
+	block := []byte("User-agent: *\nDisallow: /\n")
+	router := buildRobotsBlockRouter(t, block, "", "")
+
+	request := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	AssertStatus(t, recorder, http.StatusOK)
+	assert.Equal(t, string(block), recorder.Body.String())
+}
+
+func TestServeRobotsTxt_BlockCarriesItsOwnETag(t *testing.T) {
+	t.Parallel()
+
+	storedETag := `"robots123"`
+	router := buildRobotsBlockRouter(t, []byte("User-agent: *\nDisallow: /\n"), "User-agent: *\nAllow: /", storedETag)
+
+	request := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	blockETag := recorder.Header().Get("Etag")
+	assert.NotEmpty(t, blockETag, "a synthesised body must carry an ETag")
+	assert.NotEqual(t, storedETag, blockETag, "the block must not reuse the stored artefact's ETag")
+
+	staleRequest := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	staleRequest.Header.Set("If-None-Match", storedETag)
+	staleRecorder := httptest.NewRecorder()
+	router.ServeHTTP(staleRecorder, staleRequest)
+
+	AssertStatus(t, staleRecorder, http.StatusOK)
+	assert.Contains(t, staleRecorder.Body.String(), "Disallow: /")
+}
+
+func TestServeRobotsTxt_BlockHonoursItsOwnETag(t *testing.T) {
+	t.Parallel()
+
+	router := buildRobotsBlockRouter(t, []byte("User-agent: *\nDisallow: /\n"), "", "")
+
+	request := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	blockETag := recorder.Header().Get("Etag")
+	require.NotEmpty(t, blockETag)
+
+	repeatRequest := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	repeatRequest.Header.Set("If-None-Match", blockETag)
+	repeatRecorder := httptest.NewRecorder()
+	router.ServeHTTP(repeatRecorder, repeatRequest)
+
+	AssertNotModified(t, repeatRecorder)
+}
+
+func TestWithheldDeploy_SetsXRobotsTagOnEveryResponse(t *testing.T) {
+	t.Parallel()
+
+	router := buildRobotsBlockRouter(t, []byte("User-agent: *\nDisallow: /\n"), "", "")
+
+	for _, path := range []string{"/robots.txt", "/ping"} {
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		assert.Equal(t, "noindex, nofollow", recorder.Header().Get("X-Robots-Tag"), "path %s", path)
+	}
+}
+
+func TestIndexableDeploy_SetsNoXRobotsTag(t *testing.T) {
+	t.Parallel()
+
+	router := buildRobotsBlockRouter(t, nil, "User-agent: *\nAllow: /", `"robots123"`)
+
+	request := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	AssertStatus(t, recorder, http.StatusOK)
+	assert.Empty(t, recorder.Header().Get("X-Robots-Tag"))
+}
+
+func TestServeRobotsTxt_FrameworkRouteWinsOverUserRoute(t *testing.T) {
+	t.Parallel()
+
+	h := NewTestHarness(t)
+	variant := CreateTestVariant("source", "robots.txt/source",
+		WithVariantMimeType("text/plain; charset=utf-8"),
+		WithVariantTag("type", "source"),
+		WithVariantTag("etag", `"robots123"`),
+	)
+	h.RegistryService.AddArtefact(CreateTestArtefact("robots.txt", variant))
+	h.RegistryService.AddVariantData("robots.txt/source", []byte("generated"))
+
+	userRouter := chi.NewRouter()
+	userRouter.Get("/robots.txt", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("from the application router"))
+	})
+
+	builder := NewTestRouterBuilder(t)
+	router, err := builder.BuildRouter(h.RouterConfig(), daemon_domain.RouterDependencies{
+		RegistryService:  h.RegistryService,
+		UserRouter:       userRouter,
+		VariantGenerator: h.VariantGenerator,
+		CSPConfig:        h.CSPConfig,
+		RateLimitService: h.RateLimitService,
+	})
+	require.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	AssertStatus(t, recorder, http.StatusOK)
+	assert.Equal(t, "generated", recorder.Body.String(), "the generated artefact must win over an application route")
+}
+
 func TestHeartbeat_Ping(t *testing.T) {
 	t.Parallel()
 

@@ -46,243 +46,253 @@ func StreamFragmentPageHeader(qw422016 *qt422016.Writer, p *FragmentPageData) {
 //line fragment.qtpl:7
 	}
 //line fragment.qtpl:8
+	if p.RobotsRule != "" {
+//line fragment.qtpl:8
+		qw422016.N().S(`<meta name="robots" content="`)
+//line fragment.qtpl:8
+		qw422016.E().S(p.RobotsRule)
+//line fragment.qtpl:8
+		qw422016.N().S(`">`)
+//line fragment.qtpl:8
+	}
+//line fragment.qtpl:9
 	if p.CanonicalURL != "" {
-//line fragment.qtpl:8
+//line fragment.qtpl:9
 		qw422016.N().S(`<link rel="canonical" href="`)
-//line fragment.qtpl:8
+//line fragment.qtpl:9
 		qw422016.N().S(p.CanonicalURL)
-//line fragment.qtpl:8
-		qw422016.N().S(`">`)
-//line fragment.qtpl:8
-	}
 //line fragment.qtpl:9
+		qw422016.N().S(`">`)
+//line fragment.qtpl:9
+	}
+//line fragment.qtpl:10
 	for _, link := range p.AlternateLinks {
-//line fragment.qtpl:9
+//line fragment.qtpl:10
 		qw422016.N().S(`<link rel="alternate" hreflang="`)
-//line fragment.qtpl:9
+//line fragment.qtpl:10
 		qw422016.N().S(link["hreflang"])
-//line fragment.qtpl:9
+//line fragment.qtpl:10
 		qw422016.N().S(`" href="`)
-//line fragment.qtpl:9
+//line fragment.qtpl:10
 		qw422016.N().S(link["href"])
-//line fragment.qtpl:9
-		qw422016.N().S(`">`)
-//line fragment.qtpl:9
-	}
 //line fragment.qtpl:10
+		qw422016.N().S(`">`)
+//line fragment.qtpl:10
+	}
+//line fragment.qtpl:11
 	for _, tag := range p.MetaTags {
-//line fragment.qtpl:10
+//line fragment.qtpl:11
 		qw422016.N().S(`<meta name="`)
-//line fragment.qtpl:10
+//line fragment.qtpl:11
 		qw422016.N().S(tag.Name)
-//line fragment.qtpl:10
+//line fragment.qtpl:11
 		qw422016.N().S(`" content="`)
-//line fragment.qtpl:10
+//line fragment.qtpl:11
 		qw422016.N().S(tag.Content)
-//line fragment.qtpl:10
-		qw422016.N().S(`">`)
-//line fragment.qtpl:10
-	}
 //line fragment.qtpl:11
+		qw422016.N().S(`">`)
+//line fragment.qtpl:11
+	}
+//line fragment.qtpl:12
 	for _, og := range p.OGTags {
-//line fragment.qtpl:11
+//line fragment.qtpl:12
 		qw422016.N().S(`<meta property="`)
-//line fragment.qtpl:11
+//line fragment.qtpl:12
 		qw422016.N().S(og.Property)
-//line fragment.qtpl:11
+//line fragment.qtpl:12
 		qw422016.N().S(`" content="`)
-//line fragment.qtpl:11
+//line fragment.qtpl:12
 		qw422016.N().S(og.Content)
-//line fragment.qtpl:11
-		qw422016.N().S(`">`)
-//line fragment.qtpl:11
-	}
 //line fragment.qtpl:12
+		qw422016.N().S(`">`)
+//line fragment.qtpl:12
+	}
+//line fragment.qtpl:13
 	for _, tc := range p.TwitterCards {
-//line fragment.qtpl:12
+//line fragment.qtpl:13
 		qw422016.N().S(`<meta name="`)
-//line fragment.qtpl:12
+//line fragment.qtpl:13
 		qw422016.N().S(tc.Name)
-//line fragment.qtpl:12
+//line fragment.qtpl:13
 		qw422016.N().S(`" content="`)
-//line fragment.qtpl:12
+//line fragment.qtpl:13
 		qw422016.N().S(tc.Content)
-//line fragment.qtpl:12
-		qw422016.N().S(`">`)
-//line fragment.qtpl:12
-	}
 //line fragment.qtpl:13
+		qw422016.N().S(`">`)
+//line fragment.qtpl:13
+	}
+//line fragment.qtpl:14
 	for _, jsonLD := range p.StructuredData {
-//line fragment.qtpl:13
+//line fragment.qtpl:14
 		qw422016.N().S(`<script type="application/ld+json">`)
-//line fragment.qtpl:13
+//line fragment.qtpl:14
 		qw422016.N().S(jsonLD)
-//line fragment.qtpl:13
+//line fragment.qtpl:14
 		qw422016.N().S(`</script>`)
-//line fragment.qtpl:13
-	}
 //line fragment.qtpl:14
+	}
+//line fragment.qtpl:15
 	if len(p.CSRFActionToken) > 0 {
-//line fragment.qtpl:14
+//line fragment.qtpl:15
 		qw422016.N().S(`<meta name="csrf-token" content="`)
-//line fragment.qtpl:14
+//line fragment.qtpl:15
 		qw422016.N().Z(p.CSRFActionToken)
-//line fragment.qtpl:14
-		qw422016.N().S(`">`)
-//line fragment.qtpl:14
-	}
 //line fragment.qtpl:15
+		qw422016.N().S(`">`)
+//line fragment.qtpl:15
+	}
+//line fragment.qtpl:16
 	if p.CSRFEphemeralToken != "" {
-//line fragment.qtpl:15
+//line fragment.qtpl:16
 		qw422016.N().S(`<meta name="csrf-ephemeral" content="`)
-//line fragment.qtpl:15
+//line fragment.qtpl:16
 		qw422016.N().S(p.CSRFEphemeralToken)
-//line fragment.qtpl:15
-		qw422016.N().S(`">`)
-//line fragment.qtpl:15
-	}
 //line fragment.qtpl:16
+		qw422016.N().S(`">`)
+//line fragment.qtpl:16
+	}
+//line fragment.qtpl:17
 	if p.Styling != "" {
-//line fragment.qtpl:16
+//line fragment.qtpl:17
 		qw422016.N().S(`<style pk-page>`)
-//line fragment.qtpl:16
+//line fragment.qtpl:17
 		qw422016.N().S(p.Styling)
-//line fragment.qtpl:16
+//line fragment.qtpl:17
 		qw422016.N().S(`</style>`)
-//line fragment.qtpl:16
+//line fragment.qtpl:17
 	}
-//line fragment.qtpl:16
+//line fragment.qtpl:17
 	qw422016.N().S(`</head><body>`)
-//line fragment.qtpl:19
+//line fragment.qtpl:20
 	qw422016.N().S(`<div id="app" data-pageid="`)
-//line fragment.qtpl:19
+//line fragment.qtpl:20
 	qw422016.N().S(p.PageID)
-//line fragment.qtpl:19
+//line fragment.qtpl:20
 	qw422016.N().S(`">`)
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 }
 
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 func WriteFragmentPageHeader(qq422016 qtio422016.Writer, p *FragmentPageData) {
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	StreamFragmentPageHeader(qw422016, p)
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	qt422016.ReleaseWriter(qw422016)
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 }
 
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 func FragmentPageHeader(p *FragmentPageData) string {
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	qb422016 := qt422016.AcquireByteBuffer()
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	WriteFragmentPageHeader(qb422016, p)
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	qs422016 := string(qb422016.B)
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	qt422016.ReleaseByteBuffer(qb422016)
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 	return qs422016
-//line fragment.qtpl:21
+//line fragment.qtpl:22
 }
 
-//line fragment.qtpl:23
+//line fragment.qtpl:24
 func StreamFragmentPageFooter(qw422016 *qt422016.Writer, p *FragmentPageData) {
-//line fragment.qtpl:23
+//line fragment.qtpl:24
 	qw422016.N().S(`    </div>`)
-//line fragment.qtpl:26
-	if p.SvgSpriteSheet != "" {
 //line fragment.qtpl:27
-		qw422016.N().S(p.SvgSpriteSheet)
+	if p.SvgSpriteSheet != "" {
 //line fragment.qtpl:28
+		qw422016.N().S(p.SvgSpriteSheet)
+//line fragment.qtpl:29
 	}
-//line fragment.qtpl:30
+//line fragment.qtpl:31
 	if p.ModuleScripts != "" {
-//line fragment.qtpl:30
+//line fragment.qtpl:31
 		qw422016.N().S(p.ModuleScripts)
-//line fragment.qtpl:30
-	}
 //line fragment.qtpl:31
+	}
+//line fragment.qtpl:32
 	for _, meta := range p.PKScriptMetas {
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(`<script type="module" src="`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(meta.URL)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(`"`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		if meta.SRIHash != "" {
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(` `)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(`integrity="`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(meta.SRIHash)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(`" crossorigin="anonymous"`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		}
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(`></script><meta name="pk-script" content="`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(meta.URL)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(`"`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		if meta.PartialName != "" {
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(` `)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(`data-partial-name="`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(meta.PartialName)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 			qw422016.N().S(`"`)
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		}
-//line fragment.qtpl:31
+//line fragment.qtpl:32
 		qw422016.N().S(`>`)
-//line fragment.qtpl:31
-	}
 //line fragment.qtpl:32
+	}
+//line fragment.qtpl:33
 	for _, url := range p.WidgetScripts {
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(`<meta name="pk-widget-script" content="`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(url)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 		qw422016.N().S(`">`)
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 	}
-//line fragment.qtpl:32
+//line fragment.qtpl:33
 	qw422016.N().S(`</body>`)
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 }
 
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 func WriteFragmentPageFooter(qq422016 qtio422016.Writer, p *FragmentPageData) {
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	StreamFragmentPageFooter(qw422016, p)
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	qt422016.ReleaseWriter(qw422016)
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 }
 
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 func FragmentPageFooter(p *FragmentPageData) string {
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	qb422016 := qt422016.AcquireByteBuffer()
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	WriteFragmentPageFooter(qb422016, p)
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	qs422016 := string(qb422016.B)
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	qt422016.ReleaseByteBuffer(qb422016)
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 	return qs422016
-//line fragment.qtpl:35
+//line fragment.qtpl:36
 }

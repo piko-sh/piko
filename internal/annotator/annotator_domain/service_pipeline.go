@@ -204,6 +204,7 @@ func (p *componentAnnotationPipeline) runFinalTransformations(ctx context.Contex
 	analysisResult.SitemapImageURLs = collectSitemapImageURLs(assetDeps, p.service.pathsConfig)
 	analysisResult.CustomTags = customTags
 	analysisResult.UsesCaptcha = usesCaptcha
+	analysisResult.SitemapNoindex = p.vc.Source.SitemapNoindex
 	p.diagnostics = append(p.diagnostics, diagnostics...)
 	if analysisResult.AnnotatedAST != nil {
 		p.diagnostics = append(p.diagnostics, analysisResult.AnnotatedAST.Diagnostics...)

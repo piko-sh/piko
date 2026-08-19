@@ -170,9 +170,10 @@ func (op *buildOperation) execute(ctx context.Context) error {
 		return nil
 	case GenerateModeAll:
 		return op.runAnnotationEmitAndBuildAssets(ctx)
-	default:
-
+	case GenerateModeManifest:
 		return op.generateAndWriteArtefacts(ctx)
+	default:
+		return fmt.Errorf("unsupported generate mode %q", op.runMode)
 	}
 }
 

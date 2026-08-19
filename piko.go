@@ -344,6 +344,11 @@ func (s *SSRServer) WithSymbols(symbolSources ...templater_domain.SymbolExports)
 // Returns error when configuration bootstrap fails, interpreter provider is missing for
 // dev-i mode, or the build process fails.
 func (s *SSRServer) Generate(ctx context.Context, runMode string) error {
+	if !isGenerateMode(runMode) && runMode != RunModeDevInterpreted {
+		return fmt.Errorf("generate mode %q is not one of %q, %q, %q, %q or %q",
+			runMode, GenerateModeAll, GenerateModeManifest, GenerateModeAssets, GenerateModeSQL, RunModeDevInterpreted)
+	}
+
 	deps := &bootstrap.Dependencies{
 		AppRouter: s.AppRouter,
 	}
@@ -601,8 +606,8 @@ func (s *SSRServer) stopPreviousDaemon(ctx context.Context, container *bootstrap
 // creation.
 //
 // Takes deps (*bootstrap.Dependencies) which provides the application dependencies.
-// Takes runMode (string) which specifies the execution mode (prod, dev, or
-// dev-interpreted).
+// Takes runMode (string) which is either a run mode (prod, dev, dev-interpreted) or a
+// generate mode (all, manifest, assets, sql).
 //
 // Returns *bootstrap.Container which is the initialised container.
 // Returns error when configuration bootstrap or global setup fails.
@@ -617,7 +622,9 @@ func (s *SSRServer) ensureContainer(ctx context.Context, deps *bootstrap.Depende
 	}
 	s.Container = container
 
-	container.SetSEOProductionMode(runMode == RunModeProd)
+	if productionMode := seoProductionSignal(runMode); productionMode != nil {
+		container.SetSEOProductionMode(*productionMode)
+	}
 
 	isDevMode := runMode == RunModeDev || runMode == RunModeDevInterpreted
 	if isDevMode {
@@ -635,6 +642,48 @@ func (s *SSRServer) ensureContainer(ctx context.Context, deps *bootstrap.Depende
 	}
 
 	return container, nil
+}
+
+// isRunMode reports whether mode names a run mode (prod, dev, dev-interpreted) rather
+// than a generate mode (all, manifest, assets, sql).
+//
+// Takes mode (string) which is the requested run or generate mode.
+//
+// Returns bool which is true when mode is a run mode.
+func isRunMode(mode string) bool {
+	switch mode {
+	case RunModeProd, RunModeDev, RunModeDevInterpreted:
+		return true
+	default:
+		return false
+	}
+}
+
+// isGenerateMode reports whether mode names a generate mode (all, manifest, assets, sql).
+//
+// Takes mode (string) which is the requested generate mode.
+//
+// Returns bool which is true when mode is a generate mode.
+func isGenerateMode(mode string) bool {
+	switch mode {
+	case GenerateModeAll, GenerateModeManifest, GenerateModeAssets, GenerateModeSQL:
+		return true
+	default:
+		return false
+	}
+}
+
+// seoProductionSignal reports whether a mode says the build is for production, and
+// returns nil when the mode says nothing about it.
+//
+// Takes mode (string) which is the requested run or generate mode.
+//
+// Returns *bool which is the production signal, or nil when the mode carries none.
+func seoProductionSignal(mode string) *bool {
+	if !isRunMode(mode) {
+		return nil
+	}
+	return new(mode == RunModeProd)
 }
 
 // installCrashOutput wires the runtime crash mirror into the running process.

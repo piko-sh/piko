@@ -694,7 +694,7 @@ func (b *sitemapBuilder) buildLocalisedURL(routePattern string, locale string) s
 // Returns []seo_dto.ImageEntry for the page's images, or nil when image discovery is
 // disabled.
 func (b *sitemapBuilder) discoverImages(explicitImages []string) []seo_dto.ImageEntry {
-	if !b.config.DiscoverImages {
+	if b.config.DiscoverImages != nil && !*b.config.DiscoverImages {
 		return nil
 	}
 

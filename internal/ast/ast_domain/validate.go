@@ -33,8 +33,8 @@ const (
 	directivePrefix = "p-"
 
 	// memoAttributeName is the reserved prop that carries keyed-row memoisation
-	// dependencies. The p-memo directive sets it, the renderer reads it to decide whether
-	// an element's patch can be skipped, and it is never written to the DOM.
+	// dependencies. The p-memo directive sets it, the renderer reads it to decide whether an
+	// element's patch can be skipped, and it is never written to the DOM.
 	memoAttributeName = "_memo"
 )
 

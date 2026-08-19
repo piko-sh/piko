@@ -19,8 +19,14 @@
 package driven_code_emitter_go_literal
 
 import (
+	"bytes"
 	goast "go/ast"
+	"go/printer"
+	"go/token"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/generator/generator_dto"
@@ -405,4 +411,41 @@ func TestBuildLocalStoreStatement(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildReturnStatement_SitemapNoindex(t *testing.T) {
+	t.Parallel()
+
+	renderStatements := func(t *testing.T, result *annotator_dto.AnnotationResult) string {
+		t.Helper()
+		var buffer bytes.Buffer
+		fileSet := token.NewFileSet()
+		for _, statement := range buildReturnStatement(result, "customTags") {
+			require.NoError(t, printer.Fprint(&buffer, fileSet, statement))
+			buffer.WriteString("\n")
+		}
+		return buffer.String()
+	}
+
+	t.Run("emits a guarded default when noindex is set", func(t *testing.T) {
+		t.Parallel()
+		output := renderStatements(t, &annotator_dto.AnnotationResult{SitemapNoindex: true})
+
+		assert.Contains(t, output, `pageMeta.RobotsRule == ""`)
+		assert.Contains(t, output, `pageMeta.RobotsRule = "noindex"`)
+	})
+
+	t.Run("guards the assignment so a page's own rule wins", func(t *testing.T) {
+		t.Parallel()
+		output := renderStatements(t, &annotator_dto.AnnotationResult{SitemapNoindex: true})
+
+		assert.Contains(t, output, "if pageMeta.RobotsRule ==")
+	})
+
+	t.Run("emits nothing when noindex is not set", func(t *testing.T) {
+		t.Parallel()
+		output := renderStatements(t, &annotator_dto.AnnotationResult{})
+
+		assert.NotContains(t, output, "RobotsRule")
+	})
 }

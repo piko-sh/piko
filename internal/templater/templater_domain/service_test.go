@@ -791,3 +791,63 @@ func TestTemplaterService_RenderPage_PassesAllParamsToRenderer(t *testing.T) {
 		t.Error("expected PageDefinition to match")
 	}
 }
+
+func TestTemplaterService_RenderPage_RobotsHeader(t *testing.T) {
+	t.Parallel()
+
+	renderWithRule := func(t *testing.T, robotsRule string, existing string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		fixture := NewTestFixture(t)
+		response := NewTestResponseWriter()
+		if existing != "" {
+			response.Header().Set("X-Robots-Tag", existing)
+		}
+
+		metadata := NewTestMetadata()
+		metadata.RobotsRule = robotsRule
+
+		fixture.MockRunner.RunPageFunc = func(
+			_ context.Context,
+			_ templater_dto.PageDefinition,
+			_ *http.Request,
+		) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
+			return NewTestAST(), metadata, "", nil
+		}
+		fixture.MockRenderer.RenderPageFunc = func(_ context.Context, _ templater_domain.RenderPageParams) error {
+			return nil
+		}
+
+		var buffer bytes.Buffer
+		require.NoError(t, fixture.Service.RenderPage(context.Background(), templater_domain.RenderRequest{
+			Page:          NewTestPageDefinition("pages/home.pk"),
+			Writer:        &buffer,
+			Response:      response,
+			Request:       NewTestRequest("GET", "/"),
+			WebsiteConfig: NewTestConfig(),
+		}))
+		return response
+	}
+
+	t.Run("emits the page rule", func(t *testing.T) {
+		t.Parallel()
+		response := renderWithRule(t, "noindex, nofollow", "")
+
+		require.Equal(t, []string{"noindex, nofollow"}, response.Header().Values("X-Robots-Tag"))
+	})
+
+	t.Run("emits nothing when the page sets no rule", func(t *testing.T) {
+		t.Parallel()
+		response := renderWithRule(t, "", "")
+
+		require.Empty(t, response.Header().Values("X-Robots-Tag"))
+	})
+
+	t.Run("adds to a site-wide block rather than replacing it", func(t *testing.T) {
+		t.Parallel()
+		response := renderWithRule(t, "index, follow", "noindex, nofollow")
+
+		require.Equal(t, []string{"noindex, nofollow", "index, follow"}, response.Header().Values("X-Robots-Tag"),
+			"a page rule must not erase a site-wide block")
+	})
+}

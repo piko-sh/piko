@@ -48,7 +48,7 @@ type Metadata struct {
 | `Keywords` | `string` | `<meta name="keywords">` |
 | `Language` | `string` | `lang` attribute on `<html>` |
 | `CanonicalURL` | `string` | `<link rel="canonical" href="...">` |
-| `RobotsRule` | `string` | `<meta name="robots">` (for example `"noindex,nofollow"`) |
+| `RobotsRule` | `string` | `<meta name="robots">` and the `X-Robots-Tag` response header (for example `"noindex,nofollow"`). Empty omits both. Also drops the page from the sitemap when it contains `noindex`. |
 | `Status` | `int` | Not consulted by the response writer. See [Status handling](#status-handling). |
 | `StatusText` | `string` | Not consulted by the response writer. See [Status handling](#status-handling). |
 | `ClientRedirect` | `string` | URL for browser redirect (changes visible URL) |

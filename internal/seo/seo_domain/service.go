@@ -23,7 +23,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"piko.sh/piko/internal/capabilities/capabilities_dto"
@@ -49,6 +48,9 @@ const (
 
 	// sitemapMimeType is the content type served for sitemap variants.
 	sitemapMimeType = "application/xml"
+
+	// logFieldHostname is the log field key for the configured sitemap hostname.
+	logFieldHostname = "hostname"
 )
 
 // seoService generates SEO files such as sitemaps and robots.txt. It implements
@@ -70,22 +72,32 @@ type seoService struct {
 // GenerateArtefacts creates sitemap.xml and robots.txt files and stores them in the
 // registry. It implements the SEOService interface.
 //
+// robots.txt is attempted even when the sitemap fails, and both errors are reported
+// together. Returning early on the sitemap would lose robots.txt to an unrelated storage
+// fault, and a build that ships neither artefact serves 404 for /robots.txt, which
+// crawlers read as permission to crawl everything.
+//
 // Takes view (*seo_dto.ProjectView) which provides the project data for sitemap
 // generation.
 //
-// Returns error when sitemap generation fails or robots.txt cannot be stored.
+// Returns error when sitemap generation fails, robots.txt cannot be stored, or both.
 func (s *seoService) GenerateArtefacts(ctx context.Context, view *seo_dto.ProjectView) error {
 	ctx, l := logger_domain.From(ctx, log)
 	return l.RunInSpan(ctx, "GenerateArtefacts", func(spanCtx context.Context, _ logger_domain.Logger) error {
 		startTime := time.Now()
 
-		totalURLs, err := s.generateAndStoreSitemaps(spanCtx, view)
-		if err != nil {
-			return fmt.Errorf("generating and storing sitemaps: %w", err)
+		totalURLs, sitemapErr := s.generateAndStoreSitemaps(spanCtx, view)
+		if sitemapErr != nil {
+			sitemapErr = fmt.Errorf("generating and storing sitemaps: %w", sitemapErr)
 		}
 
-		if err := s.generateAndStoreRobotsTxt(spanCtx); err != nil {
-			return fmt.Errorf("generating and storing robots.txt: %w", err)
+		robotsErr := s.generateAndStoreRobotsTxt(spanCtx)
+		if robotsErr != nil {
+			robotsErr = fmt.Errorf("generating and storing robots.txt: %w", robotsErr)
+		}
+
+		if err := errors.Join(sitemapErr, robotsErr); err != nil {
+			return err
 		}
 
 		s.recordMetrics(spanCtx, startTime, totalURLs)
@@ -289,8 +301,7 @@ func (s *seoService) generateAndStoreRobotsTxt(
 ) error {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("Generating robots.txt...")
-	sitemapURL := strings.TrimSuffix(s.config.Sitemap.Hostname, "/") + "/sitemap.xml"
-	robotsTxt, err := s.robotsBuilder.Build(ctx, sitemapURL)
+	robotsTxt, err := s.robotsBuilder.Build(ctx, sitemapIndexURL(s.config.Sitemap.Hostname))
 	if err != nil {
 		return fmt.Errorf("building robots.txt: %w", err)
 	}
@@ -372,8 +383,7 @@ type seoServiceOptions struct {
 	//
 	// Nil means unknown, which is treated as production so a plumbing gap fails open (a live
 	// site keeps indexing) rather than accidentally de-indexing production. When explicitly
-	// false, robots.txt blocks all crawlers unless RobotsConfig.AllowNonProductionIndexing
-	// opts out.
+	// false, robots.txt blocks all crawlers.
 	productionMode *bool
 
 	// i18nStrategy is the locale-routing strategy (one of i18n_domain.Strategy*) used when
@@ -429,11 +439,11 @@ func WithI18nStrategy(strategy string) SEOServiceOption {
 
 // WithProductionMode declares whether SEO artefacts are generated for a production build.
 //
-// In non-production builds robots.txt blocks all crawlers (unless
-// RobotsConfig.AllowNonProductionIndexing is set), preventing a dev/staging deploy from
-// being indexed with production URLs. When this option is not supplied the service
-// assumes production, so a missing wiring path fails open rather than de-indexing a live
-// site.
+// In non-production builds robots.txt blocks all crawlers, so a development rebuild cannot
+// leave a permissive file behind in the local registry. Only a run mode supplies this; when
+// the option is not supplied the service assumes production, so a missing wiring path fails
+// open rather than de-indexing a live site. To withhold a real deploy, use
+// RobotsConfig.NeverIndex or RobotsConfig.PreviewDeployment.
 //
 // Takes isProduction (bool) which is true for a production build.
 //
@@ -467,6 +477,35 @@ func WithRouteSources(sources []RouteSource) SEOServiceOption {
 	return func(o *seoServiceOptions) {
 		o.routeSources = append(o.routeSources, sources...)
 	}
+}
+
+// resolveBlockAllIndexing decides whether the generated robots.txt replaces its
+// permissive base rule with a site-wide "Disallow: /", and logs the outcome either way so
+// the indexing posture of a build is never silent.
+//
+// Takes seoConfig (config.SEOConfig) which carries the robots settings and the hostname
+// used to identify the site in the log message.
+// Takes productionMode (*bool) which is the caller's production signal, or nil when none
+// was supplied.
+//
+// Returns bool which is true when every crawler should be blocked.
+func resolveBlockAllIndexing(seoConfig config.SEOConfig, productionMode *bool) bool {
+	isProduction := productionMode == nil || *productionMode
+	blockAllIndexing := seoConfig.Robots.NeverIndex || !isProduction
+
+	switch {
+	case seoConfig.Robots.NeverIndex:
+		log.Warn("SEO: robots.neverIndex is set - robots.txt will block all crawlers",
+			logger_domain.String(logFieldHostname, seoConfig.Sitemap.Hostname))
+	case blockAllIndexing:
+		log.Warn("SEO: development build - robots.txt will block all crawlers. A production build is unaffected",
+			logger_domain.String(logFieldHostname, seoConfig.Sitemap.Hostname))
+	default:
+		log.Notice("SEO: robots.txt allows all crawlers. Set robots.neverIndex for a project that must never be indexed, or robots.previewDeployment on a deploy that is not the live one",
+			logger_domain.String(logFieldHostname, seoConfig.Sitemap.Hostname))
+	}
+
+	return blockAllIndexing
 }
 
 // NewSEOService creates a new SEO service with all required dependencies.
@@ -525,17 +564,7 @@ func NewSEOService(
 		sitemapOpts...,
 	)
 
-	isProduction := options.productionMode == nil || *options.productionMode
-	blockAllIndexing := !isProduction && !seoConfig.Robots.AllowNonProductionIndexing
-	if blockAllIndexing {
-		log.Warn("SEO: non-production build - robots.txt will block all crawlers (set robots.allowNonProductionIndexing to override)",
-			logger_domain.String("hostname", seoConfig.Sitemap.Hostname))
-	} else if !isProduction {
-		log.Warn("SEO: non-production build is indexable - robots.txt allows crawlers and the sitemap uses the configured production hostname",
-			logger_domain.String("hostname", seoConfig.Sitemap.Hostname))
-	}
-
-	robotsBuilder := newRobotsBuilder(seoConfig.Robots, blockAllIndexing)
+	robotsBuilder := newRobotsBuilder(seoConfig.Robots, resolveBlockAllIndexing(seoConfig, options.productionMode))
 
 	return &seoService{
 		storagePort:    storagePort,

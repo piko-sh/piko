@@ -84,4 +84,9 @@ type AnnotationResult struct {
 	// UsesCaptcha indicates the template contains a piko:captcha element and needs captcha
 	// provider scripts loaded at runtime.
 	UsesCaptcha bool
+
+	// SitemapNoindex indicates the template carries a p-noindex attribute. As well as
+	// keeping the page out of the sitemap, the generated code defaults the page's robots
+	// rule to "noindex" so the rendered response carries the directive a crawler acts on.
+	SitemapNoindex bool
 }

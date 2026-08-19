@@ -359,10 +359,10 @@ func TestGenerateSEOArtefacts(t *testing.T) {
 		t.Parallel()
 		s := newTestService(func(s *generatorService) { s.seoService = nil })
 
-		s.generateSEOArtefacts(ctx, projectResult)
+		require.NoError(t, s.generateSEOArtefacts(ctx, projectResult))
 	})
 
-	t.Run("error logs warning but does not fail", func(t *testing.T) {
+	t.Run("error fails the build rather than exiting zero with no artefacts", func(t *testing.T) {
 		t.Parallel()
 		s := newTestService(func(s *generatorService) {
 			s.seoService = &mockSEOService{
@@ -372,7 +372,9 @@ func TestGenerateSEOArtefacts(t *testing.T) {
 			}
 		})
 
-		s.generateSEOArtefacts(ctx, projectResult)
+		err := s.generateSEOArtefacts(ctx, projectResult)
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "seo fail")
 	})
 }
 

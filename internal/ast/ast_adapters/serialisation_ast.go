@@ -245,8 +245,8 @@ func (s *encoder) buildControlFlowDirectiveOffsets(node *ast_domain.TemplateNode
 	return off, nil
 }
 
-// buildBindingDirectiveOffsets serialises the directives that bind data or behaviour to an
-// element that is already rendering.
+// buildBindingDirectiveOffsets serialises the directives that bind data or behaviour to
+// an element that is already rendering.
 //
 // Takes node (*ast_domain.TemplateNode) which holds the directives.
 // Takes off (templateNodeDirectiveOffsets) which carries the offsets built so far.
@@ -1123,8 +1123,8 @@ func (d *decoder) unpackControlFlowDirectives(fb *ast_schema_gen.TemplateNodeFB,
 	return nil
 }
 
-// unpackBindingDirectives unpacks the directives that bind data or behaviour to an element
-// that is already rendering.
+// unpackBindingDirectives unpacks the directives that bind data or behaviour to an
+// element that is already rendering.
 //
 // Takes fb (*ast_schema_gen.TemplateNodeFB) which holds the serialised node.
 // Takes node (*ast_domain.TemplateNode) which receives the directives.

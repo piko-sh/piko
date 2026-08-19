@@ -39,7 +39,7 @@ import (
 func TestSitemapBuilder_Build_BasicURLDiscovery(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -106,7 +106,7 @@ func TestSitemapBuilder_Build_ExclusionPatterns(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			sitemapConfig := config.SitemapConfig{
 				Hostname:       "https://example.com",
-				DiscoverImages: false,
+				DiscoverImages: new(false),
 				Exclude:        tc.excludeGlobs,
 				Sources:        []string{},
 			}
@@ -141,7 +141,7 @@ func TestSitemapBuilder_Build_ExclusionPatterns(t *testing.T) {
 func TestSitemapBuilder_Build_I18nAlternateLinks(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -200,7 +200,7 @@ func TestSitemapBuilder_Build_I18nAlternateLinks(t *testing.T) {
 func TestSitemapBuilder_Build_ImageDiscovery(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: true,
+		DiscoverImages: new(true),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -248,7 +248,7 @@ func TestSitemapBuilder_Build_ImageDiscovery(t *testing.T) {
 func TestSitemapBuilder_Build_DynamicURLSources(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{"https://api.example.com/sitemap-urls"},
 	}
@@ -287,7 +287,7 @@ func TestSitemapBuilder_Build_DynamicURLSources(t *testing.T) {
 func TestSitemapBuilder_Build_BuildTimeURLProvider(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -335,7 +335,7 @@ func TestSitemapBuilder_Build_BuildTimeURLProvider(t *testing.T) {
 func TestSitemapBuilder_Build_URLProviderPanicIsolated(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -362,7 +362,7 @@ func TestSitemapBuilder_Build_URLProviderPanicIsolated(t *testing.T) {
 func TestSitemapBuilder_Build_FiltersNonIndexableRoutes(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -431,7 +431,7 @@ func TestIsAbsoluteURL(t *testing.T) {
 func TestSitemapBuilder_Build_RelativeHTTPSlugIsResolved(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -479,7 +479,7 @@ func TestSitemapBuilder_fetchProvidedURLs_CapsRunawayProvider(t *testing.T) {
 func TestSitemapBuilder_Build_EmptyView(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -504,7 +504,7 @@ func TestSitemapBuilder_Build_EmptyView(t *testing.T) {
 func TestSitemapBuilder_Build_NilView(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{},
 	}
@@ -525,7 +525,7 @@ func TestSitemapBuilder_Build_NilView(t *testing.T) {
 func TestSitemapBuilder_Build_AutomaticSplitting(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:          "https://example.com",
-		DiscoverImages:    false,
+		DiscoverImages:    new(false),
 		Exclude:           []string{},
 		Sources:           []string{},
 		MaxURLsPerSitemap: 5,
@@ -586,7 +586,7 @@ func TestSitemapBuilder_Build_AutomaticSplitting(t *testing.T) {
 func TestSitemapBuilder_Build_NoSplittingBelowThreshold(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:          "https://example.com",
-		DiscoverImages:    false,
+		DiscoverImages:    new(false),
 		Exclude:           []string{},
 		Sources:           []string{},
 		MaxURLsPerSitemap: 10,
@@ -627,7 +627,7 @@ func TestSitemapBuilder_Build_NoSplittingBelowThreshold(t *testing.T) {
 func TestSitemapBuilder_Build_VideoEntries(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{"https://api.example.com/videos"},
 	}
@@ -694,7 +694,7 @@ func TestSitemapBuilder_Build_VideoEntries(t *testing.T) {
 func TestSitemapBuilder_Build_NewsEntries(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{"https://api.example.com/news"},
 	}
@@ -756,7 +756,7 @@ func TestSitemapBuilder_Build_NewsEntries(t *testing.T) {
 func TestSitemapBuilder_Build_RichImageMetadata(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{"https://api.example.com/images"},
 	}
@@ -821,7 +821,7 @@ func TestSitemapBuilder_Build_RichImageMetadata(t *testing.T) {
 func TestSitemapBuilder_Build_RichImagesOverrideSimpleImages(t *testing.T) {
 	sitemapConfig := config.SitemapConfig{
 		Hostname:       "https://example.com",
-		DiscoverImages: false,
+		DiscoverImages: new(false),
 		Exclude:        []string{},
 		Sources:        []string{"https://api.example.com/data"},
 	}
@@ -1252,7 +1252,7 @@ func TestSitemapBuilder_Build_ExcludesAuthGatedPages(t *testing.T) {
 }
 
 func TestSitemapBuilder_Build_EmitsVideoAndNewsFromMetadata(t *testing.T) {
-	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com", DiscoverImages: true}
+	sitemapConfig := config.SitemapConfig{Hostname: "https://example.com", DiscoverImages: new(true)}
 	builder := newSitemapBuilder(sitemapConfig, "en", &mockDynamicURLSource{})
 
 	view := &seo_dto.ProjectView{

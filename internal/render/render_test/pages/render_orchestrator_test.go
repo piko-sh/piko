@@ -331,6 +331,55 @@ func TestRenderOrchestrator_Metadata(t *testing.T) {
 	})
 }
 
+func TestRenderOrchestrator_RobotsMetaTag(t *testing.T) {
+	orchestrator, _, request := setupTest(t)
+
+	renderWith := func(t *testing.T, metadata templater_dto.InternalMetadata, isFragment bool) string {
+		t.Helper()
+		var buffer bytes.Buffer
+		err := orchestrator.RenderAST(context.Background(), &buffer, httptest.NewRecorder(), request,
+			render_domain.RenderASTOptions{
+				PageID:     "robots-page",
+				Template:   fixtures.SimplePageAST(),
+				Metadata:   &metadata,
+				IsFragment: isFragment,
+				SiteConfig: &config.WebsiteConfig{},
+			})
+		require.NoError(t, err)
+		return buffer.String()
+	}
+
+	t.Run("emits the tag when a rule is set", func(t *testing.T) {
+		output := renderWith(t, templater_dto.InternalMetadata{
+			Metadata: templater_dto.Metadata{RobotsRule: "noindex, nofollow"},
+		}, false)
+
+		assert.Contains(t, output, `<meta name="robots" content="noindex, nofollow">`)
+	})
+
+	t.Run("omits the tag when no rule is set, keeping goldens unchanged", func(t *testing.T) {
+		output := renderWith(t, templater_dto.InternalMetadata{}, false)
+
+		assert.NotContains(t, output, `name="robots"`)
+	})
+
+	t.Run("emits the tag in a fragment, so soft navigation keeps it", func(t *testing.T) {
+		output := renderWith(t, templater_dto.InternalMetadata{
+			Metadata: templater_dto.Metadata{RobotsRule: "noindex"},
+		}, true)
+
+		assert.Contains(t, output, `<meta name="robots" content="noindex">`)
+	})
+
+	t.Run("escapes the rule", func(t *testing.T) {
+		output := renderWith(t, templater_dto.InternalMetadata{
+			Metadata: templater_dto.Metadata{RobotsRule: `noindex"><script>alert(1)</script>`},
+		}, false)
+
+		assert.NotContains(t, output, "<script>alert(1)</script>")
+	})
+}
+
 func TestRenderOrchestrator_Errors(t *testing.T) {
 	orchestrator, _, request := setupTest(t)
 

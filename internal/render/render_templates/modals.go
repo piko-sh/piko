@@ -39,6 +39,10 @@ type BasePageData struct {
 	// Keywords contains meta keywords for search engine optimisation.
 	Keywords string
 
+	// RobotsRule is the value of the robots meta tag, such as "noindex, nofollow". Empty
+	// omits the tag, which crawlers read as the permissive default.
+	RobotsRule string
+
 	// CanonicalURL is the preferred URL for the current page.
 	CanonicalURL string
 
@@ -143,6 +147,11 @@ type FragmentPageData struct {
 
 	// Title is the page title shown in the browser tab.
 	Title string
+
+	// RobotsRule is the value of the robots meta tag, such as "noindex, nofollow". Empty
+	// omits the tag. A fragment carries it so a soft navigation does not drop the directive
+	// the full page render emitted.
+	RobotsRule string
 
 	// CSRFActionToken is the CSRF action token for page-wide protection via meta tags. This
 	// is []byte to enable zero-allocation CSRF token generation.

@@ -597,7 +597,7 @@ func (c *Container) createDefaultSEOService() {
 	l.Internal("Creating default SEOService...")
 
 	if c.seoConfigOverride == nil {
-		l.Internal("No SEO config provided, skipping SEO service creation")
+		l.Notice("SEO: no configuration supplied, so no sitemap.xml or robots.txt is generated and /robots.txt returns 404, which crawlers read as permission to crawl everything")
 		c.seoService = nil
 		return
 	}
@@ -605,13 +605,13 @@ func (c *Container) createDefaultSEOService() {
 	seoConfig := *c.seoConfigOverride
 
 	if !seoConfig.Enabled {
-		l.Internal("SEO is disabled in configuration, skipping SEO service creation")
+		l.Notice("SEO: disabled in configuration, so no sitemap.xml or robots.txt is generated and /robots.txt will return 404")
 		c.seoService = nil
 		return
 	}
 
 	if seoConfig.Sitemap.Hostname == "" {
-		l.Internal("SEO is enabled but sitemap hostname is not configured, skipping SEO service creation")
+		l.Warn("SEO: enabled but Sitemap.Hostname is empty, so no sitemap.xml or robots.txt is generated. Set the sitemap hostname to the canonical production origin")
 		c.seoService = nil
 		return
 	}
@@ -626,6 +626,7 @@ func (c *Container) createDefaultSEOService() {
 	httpSourceAdapter := seo_adapters.NewHTTPSourceAdapter()
 
 	seoOpts := c.buildSEOOptions()
+	c.warnSEOHostnameNotAbsolute(seoConfig)
 	c.warnSEOHostnameMismatch(seoConfig)
 	seoDefaultLocale := c.resolveSEODefaultLocale()
 
@@ -677,6 +678,21 @@ func (c *Container) buildSEOOptions() []seo_domain.SEOServiceOption {
 	return seoOpts
 }
 
+// warnSEOHostnameNotAbsolute warns when the sitemap hostname is not an absolute URL.
+//
+// Takes seoConfig (config.SEOConfig) which carries the sitemap hostname.
+func (c *Container) warnSEOHostnameNotAbsolute(seoConfig config.SEOConfig) {
+	hostname := seoConfig.Sitemap.Hostname
+	if isAbsoluteOrigin(hostname) {
+		return
+	}
+
+	_, l := logger_domain.From(c.GetAppContext(), log)
+	l.Warn("SEO: sitemap hostname is not an absolute URL; sitemap <loc> entries and the robots.txt Sitemap directive will be invalid",
+		logger_domain.String("hostname", hostname),
+		logger_domain.String("expected", "an absolute origin such as https://example.com"))
+}
+
 // warnSEOHostnameMismatch warns when the sitemap hostname and canonical base URL differ.
 //
 // Both must be set for the check to fire. The sitemap <loc> uses the sitemap hostname
@@ -717,11 +733,23 @@ func (c *Container) resolveSEODefaultLocale() string {
 //
 // Takes seoConfig (config.SEOConfig) which specifies the SEO settings.
 func (c *Container) SetSEOConfig(seoConfig config.SEOConfig) {
-	_, l := logger_domain.From(c.GetAppContext(), log)
-	c.seoConfigOverride = &seoConfig
+	ctx, l := logger_domain.From(c.GetAppContext(), log)
+
+	defaulted, err := applySEOConfigDefaults(ctx, seoConfig)
+	if err != nil {
+		l.Warn("SEO: could not apply configuration defaults; using the supplied values verbatim",
+			logger_domain.Error(err))
+	}
+
+	if !seoConfig.Enabled {
+		l.Notice("SEO: enabling SEO artefact generation because an SEO configuration was supplied; omit the SEO option to disable it",
+			logger_domain.String("hostname", defaulted.Sitemap.Hostname))
+	}
+	defaulted.Enabled = true
+
+	c.seoConfigOverride = &defaulted
 	l.Internal("SEO config set via programmatic API",
-		logger_domain.String("hostname", seoConfig.Sitemap.Hostname),
-		logger_domain.Bool("enabled", seoConfig.Enabled))
+		logger_domain.String("hostname", defaulted.Sitemap.Hostname))
 }
 
 // SetSitemapURLProvider stores a build-time provider of additional sitemap URLs for use

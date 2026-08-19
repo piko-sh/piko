@@ -86,6 +86,12 @@ piko.Metadata{
 
 Common values: `"index,follow"`, `"noindex"`, `"noindex,nofollow"`, `"noarchive"`.
 
+Piko renders the value as `<meta name="robots">` on the page and on the fragment a soft navigation swaps in. It also mirrors the value into the `X-Robots-Tag` response header, so a `HEAD` request and any non-HTML representation carry it too. A value containing `noindex` also drops the page from the sitemap.
+
+To mark a page `noindex` without writing Go, add the `p-noindex` attribute to its `<template>`. That sets `RobotsRule` to `"noindex"` unless the page sets its own rule, so an explicit `RobotsRule` always wins.
+
+To withhold a whole site instead of one page, see [keeping a site out of the index](sitemap-and-robots.md#keep-a-site-out-of-the-index). A `robots.txt` `Disallow` alone does not de-index. It stops the crawl, and a crawler that never fetches the page cannot read its `noindex`.
+
 ## Language
 
 Set the document language:

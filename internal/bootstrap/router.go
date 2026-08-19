@@ -438,6 +438,7 @@ func (op *routerOperation) buildRouterConfig(ctx context.Context) *daemon_domain
 	routerConfig := NewRouterConfig(&serverConfig, shValues, op.container.GetReportingConfig())
 	routerConfig.DisableHTTPCache = op.disableHTTPCache
 	routerConfig.SitemapCacheMaxAgeSeconds = sitemapCacheMaxAge(op.container.seoConfigOverride)
+	routerConfig.RobotsTxtBlock = robotsTxtBlock(ctx, op.container.seoConfigOverride)
 	routerConfig.DevEventsBroadcaster = op.devEventsBroadcaster
 	routerConfig.DevAPIHandler = op.devAPIHandler
 	routerConfig.DevPreviewHandler = op.devPreviewHandler

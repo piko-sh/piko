@@ -457,7 +457,10 @@ func (s *generatorService) finaliseProjectGeneration(
 		return nil, nil, fmt.Errorf("building manifest and register file: %w", err)
 	}
 
-	s.generateSEOArtefacts(ctx, projectResult)
+	if err := s.generateSEOArtefacts(ctx, projectResult); err != nil {
+		return nil, nil, err
+	}
+
 	s.cleanOrphanedDirs(ctx, projectResult.VirtualModule)
 	l.Internal("Project generation finished successfully.")
 	return allArtefacts, manifest, nil
@@ -1092,23 +1095,26 @@ func (s *generatorService) buildManifestAndRegister(
 //
 // Takes projectResult (*annotator_dto.ProjectAnnotationResult) which provides the project
 // data used for SEO file creation.
+//
+// Returns error when the SEO artefacts could not be generated or stored.
 func (s *generatorService) generateSEOArtefacts(
 	ctx context.Context,
 	projectResult *annotator_dto.ProjectAnnotationResult,
-) {
+) error {
 	ctx, l := logger_domain.From(ctx, log)
 	if s.seoService == nil {
-		return
+		return nil
 	}
 
 	l.Internal("Generating SEO artefacts (sitemap.xml, robots.txt)...")
 	translator := seo_adapters.NewProjectViewTranslator(s.i18nLocales)
 	projectView := translator.Translate(projectResult)
 	if err := s.seoService.GenerateArtefacts(ctx, projectView); err != nil {
-		l.Warn("Failed to generate SEO artefacts", logger_domain.Error(err))
-	} else {
-		l.Internal("SEO artefacts generated successfully.")
+		return fmt.Errorf("generating SEO artefacts: %w", err)
 	}
+
+	l.Internal("SEO artefacts generated successfully.")
+	return nil
 }
 
 // generateSingleArtefact contains the core logic for generating one Go file from a

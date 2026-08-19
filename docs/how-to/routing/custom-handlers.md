@@ -121,14 +121,16 @@ ssr.AppRouter.Mount("/debug", middleware.Profiler())
 
 ## Serve a static file
 
-For one-off static responses (`robots.txt`, `humans.txt`, `.well-known/*`):
+For one-off static responses (`humans.txt`, `.well-known/*`):
 
 ```go
-ssr.AppRouter.Get("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+ssr.AppRouter.Get("/humans.txt", func(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-    w.Write(robotsBody)
+    w.Write(humansBody)
 })
 ```
+
+`/robots.txt` and `/sitemap.xml` are not available this way. Piko registers them as exact routes on the main router and mounts the application router beneath, so a handler you register for either path never runs. Configure them through [`piko.WithSEO`](../metadata-seo/sitemap-and-robots.md) instead.
 
 For a directory of static assets, use `http.FileServer` mounted with `chi`:
 

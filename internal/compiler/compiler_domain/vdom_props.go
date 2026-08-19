@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	// memoPropName is the reserved prop that carries keyed-row memoisation dependencies.
-	// The p-memo directive sets it, the renderer reads it to decide whether a row's patch
-	// can be skipped, and it is never written to the DOM.
+	// memoPropName is the reserved prop that carries keyed-row memoisation dependencies. The
+	// p-memo directive sets it, the renderer reads it to decide whether a row's patch can be
+	// skipped, and it is never written to the DOM.
 	memoPropName = "_memo"
 )
 

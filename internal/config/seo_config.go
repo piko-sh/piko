@@ -41,6 +41,10 @@ type SitemapConfig struct {
 	// sitemap.xml, its chunks, and robots.txt.
 	CacheMaxAgeSeconds *int `json:"cacheMaxAgeSeconds" yaml:"cacheMaxAgeSeconds" default:"600" env:"PIKO_SEO_SITEMAP_CACHE_MAX_AGE" flag:"sitemapCacheMaxAge" usage:"Cache-Control max-age for sitemap.xml/robots.txt in seconds; 0 disables caching (default 600)."`
 
+	// DiscoverImages controls whether the generator finds images on pages and adds them to
+	// the sitemap; true improves image SEO.
+	DiscoverImages *bool `json:"discoverImages" yaml:"discoverImages" default:"true" env:"PIKO_SEO_SITEMAP_DISCOVER_IMAGES" flag:"sitemapDiscoverImages" usage:"Automatically discover and include images in sitemap."`
+
 	// Hostname is the base URL for the site (e.g., "https://www.example.com"). Required to
 	// build full URLs in the sitemap.
 	Hostname string `json:"hostname" yaml:"hostname" env:"PIKO_SEO_SITEMAP_HOSTNAME" flag:"sitemapHostname" usage:"Canonical base URL (e.g., https://example.com)."`
@@ -65,10 +69,6 @@ type SitemapConfig struct {
 	// When the URL count exceeds this value, the system splits the sitemap into multiple
 	// files and generates a sitemap index. Recommended: 5000-10000 for optimal performance.
 	MaxURLsPerSitemap int `json:"maxUrlsPerSitemap" yaml:"maxUrlsPerSitemap" default:"5000" env:"PIKO_SEO_SITEMAP_MAX_URLS" flag:"sitemapMaxUrls" usage:"Max URLs per sitemap before auto-splitting (5000 recommended)." validate:"min=1,max=50000"`
-
-	// DiscoverImages controls whether the generator finds images on pages and adds them to
-	// the sitemap; true improves image SEO.
-	DiscoverImages bool `json:"discoverImages" yaml:"discoverImages" default:"true" env:"PIKO_SEO_SITEMAP_DISCOVER_IMAGES" flag:"sitemapDiscoverImages" usage:"Automatically discover and include images in sitemap."`
 
 	// IncludeAuthGatedPages controls whether pages that declare an AuthPolicy (login-gated
 	// content) appear in the sitemap.
@@ -138,8 +138,17 @@ type RobotsConfig struct {
 	// BLEXBot, and magpie-crawler.
 	BlockNonSeoBots bool `json:"blockNonSeoBots" yaml:"blockNonSeoBots" default:"false" env:"PIKO_SEO_ROBOTS_BLOCK_NON_SEO_BOTS" flag:"robotsBlockNonSeoBots" usage:"Block non-SEO web scrapers."`
 
-	// AllowNonProductionIndexing opts out of blocking crawlers in non-production builds.
-	AllowNonProductionIndexing bool `json:"allowNonProductionIndexing" yaml:"allowNonProductionIndexing" default:"false" env:"PIKO_SEO_ROBOTS_ALLOW_NONPROD_INDEXING" flag:"robotsAllowNonProdIndexing" usage:"Allow crawler indexing in non-production builds (default blocks all)."`
+	// NeverIndex keeps the project out of every search index.
+	//
+	// It suits an internal tool, an admin console or a staff back office: software that must
+	// not be found in any environment. It is a property of the project rather than of a
+	// deploy, so it belongs in source and is identical everywhere the project runs.
+	NeverIndex bool `json:"neverIndex" yaml:"neverIndex" default:"false" flag:"robotsNeverIndex" usage:"Never allow this project to be indexed, in any environment."`
+
+	// PreviewDeployment marks the process reading it as a copy of the site rather than the
+	// live one: staging, a pull-request preview, a demo box. It is a property of a deploy
+	// rather than of the project, so two deploys of one build may answer differently.
+	PreviewDeployment bool `json:"previewDeployment" yaml:"previewDeployment" default:"false" flag:"robotsPreviewDeployment" usage:"Mark this deploy as a preview copy so it is not indexed."`
 }
 
 // RobotsRuleGroup holds a set of rules for one or more user agents.

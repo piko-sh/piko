@@ -620,6 +620,7 @@ func (ro *RenderOrchestrator) renderFragment(
 		Styling:         opts.Styling,
 		SvgSpriteSheet:  "",
 		PKScriptMetas:   opts.Metadata.JSScriptMetas,
+		RobotsRule:      opts.Metadata.RobotsRule,
 		AlternateLinks:  opts.Metadata.AlternateLinks,
 		MetaTags:        opts.Metadata.MetaTags,
 		OGTags:          opts.Metadata.OGTags,
@@ -689,6 +690,7 @@ func (ro *RenderOrchestrator) renderFullPage(
 		RenderedContent:  "",
 		Styling:          opts.Styling,
 		PKScriptMetas:    opts.Metadata.JSScriptMetas,
+		RobotsRule:       opts.Metadata.RobotsRule,
 		MetaTags:         opts.Metadata.MetaTags,
 		OGTags:           opts.Metadata.OGTags,
 		AlternateLinks:   opts.Metadata.AlternateLinks,
@@ -1194,13 +1196,8 @@ func (ro *RenderOrchestrator) renderHeadlessFullPage(
 	opts RenderASTToStringOptions,
 ) error {
 	lang := ""
-	title := ""
-	description := ""
-
 	if opts.Metadata != nil {
 		lang = opts.Metadata.Language
-		title = opts.Metadata.Title
-		description = opts.Metadata.Description
 	}
 
 	qw.N().S("<!DOCTYPE html>\n<html")
@@ -1215,18 +1212,7 @@ func (ro *RenderOrchestrator) renderHeadlessFullPage(
 	qw.N().S(`<meta name="viewport" content="width=device-width, initial-scale=1.0">`)
 	qw.N().S("\n")
 
-	if title != "" {
-		qw.N().S("<title>")
-		qw.E().S(title)
-		qw.N().S("</title>\n")
-	}
-
-	if description != "" {
-		qw.N().S(`<meta name="description" content="`)
-		qw.E().S(description)
-		qw.N().S(`">`)
-		qw.N().S("\n")
-	}
+	writeHeadlessHeadMetadata(qw, opts.Metadata)
 
 	if opts.Styling != "" {
 		qw.N().S("<style>\n")
@@ -1424,4 +1410,34 @@ func filterValidJSON(ctx context.Context, input []string) []string {
 		}
 	}
 	return result
+}
+
+// writeHeadlessHeadMetadata writes the title, description and robots meta tags for the
+// headless document wrapper.
+//
+// Takes qw (*qt.Writer) which receives the rendered tags.
+// Takes metadata (*templater_dto.InternalMetadata) which carries the values, or nil when
+// the caller supplied none.
+func writeHeadlessHeadMetadata(qw *qt.Writer, metadata *templater_dto.InternalMetadata) {
+	if metadata == nil {
+		return
+	}
+
+	if metadata.Title != "" {
+		qw.N().S("<title>")
+		qw.E().S(metadata.Title)
+		qw.N().S("</title>\n")
+	}
+
+	if metadata.Description != "" {
+		qw.N().S(`<meta name="description" content="`)
+		qw.E().S(metadata.Description)
+		qw.N().S("\">\n")
+	}
+
+	if metadata.RobotsRule != "" {
+		qw.N().S(`<meta name="robots" content="`)
+		qw.E().S(metadata.RobotsRule)
+		qw.N().S("\">\n")
+	}
 }

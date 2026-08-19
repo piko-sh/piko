@@ -73,6 +73,10 @@ const (
 	// headerVary is the HTTP header name for content negotiation hints.
 	headerVary = "Vary"
 
+	// headerXRobotsTag is the HTTP header name for per-response indexing directives.
+	// Canonical MIME form capitalises only the first letter of each segment.
+	headerXRobotsTag = "X-Robots-Tag"
+
 	// headerAcceptEncoding is the HTTP header name for the client's accepted content
 	// encodings. It is also the value advertised in Vary, since responses are negotiated on
 	// it.
@@ -278,6 +282,10 @@ var (
 	// headerValCacheImmutable is a pre-allocated header value slice for immutable cache
 	// control.
 	headerValCacheImmutable = []string{cacheControlImmutable}
+
+	// headerValNoIndexNoFollow is a pre-allocated header value slice marking a response as
+	// not for indexing, used by deploys that withhold themselves from search.
+	headerValNoIndexNoFollow = []string{"noindex, nofollow"}
 
 	// headerValFragmentPatch is a pre-allocated header value slice for fragment-patch
 	// response support.
