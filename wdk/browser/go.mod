@@ -28,7 +28,7 @@ require (
 	github.com/go-json-experiment/json v0.0.0-20260623181947-01eb4420fa68
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.36
 )
 
 require (

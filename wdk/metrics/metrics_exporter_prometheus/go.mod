@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/prometheus/client_golang v1.24.1
 	go.opentelemetry.io/otel/exporters/prometheus v0.67.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.36
 )
 
 require (
