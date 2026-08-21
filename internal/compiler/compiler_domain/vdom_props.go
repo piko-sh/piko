@@ -771,18 +771,6 @@ func dirTextDynamicExpr(expression ast_domain.Expression, keyBaseExpr js_ast.Exp
 	return buildDynamicContentExpr(expression, keyBaseExpr, registry, "txt")
 }
 
-// dirHTMLDynamicExpr builds a JavaScript expression for dynamic HTML content.
-//
-// Takes expression (ast_domain.Expression) which is the expression to build.
-// Takes keyBaseExpr (js_ast.Expr) which is the base key expression.
-// Takes registry (*RegistryContext) which holds the registry context.
-//
-// Returns js_ast.Expr which is the built JavaScript expression.
-// Returns error when the expression cannot be built.
-func dirHTMLDynamicExpr(expression ast_domain.Expression, keyBaseExpr js_ast.Expr, registry *RegistryContext) (js_ast.Expr, error) {
-	return buildDynamicContentExpr(expression, keyBaseExpr, registry, "html")
-}
-
 // buildDynamicContentExpr builds a dynamic content expression for text or HTML rendering
 // in the virtual DOM.
 //
@@ -794,17 +782,12 @@ func dirHTMLDynamicExpr(expression ast_domain.Expression, keyBaseExpr js_ast.Exp
 // Returns js_ast.Expr which is an array holding the DOM call expression.
 // Returns error when the expression change fails.
 func buildDynamicContentExpr(expression ast_domain.Expression, keyBaseExpr js_ast.Expr, registry *RegistryContext, contentType string) (js_ast.Expr, error) {
-	jsExpr, err := transformOurASTtoJSAST(expression, registry)
+	stringifiedExpr, err := stringifyExpr(expression, registry)
 	if err != nil {
-		jsExpr = newStringLiteral("/*err*/")
+		return js_ast.Expr{}, err
 	}
 
 	keyExpr := appendToKeyExpr(keyBaseExpr, ":"+contentType)
-
-	stringifiedExpr := js_ast.Expr{Data: &js_ast.ECall{
-		Target: newIdentifier(jsString),
-		Args:   []js_ast.Expr{jsExpr},
-	}}
 
 	arrayElements := []js_ast.Expr{buildDOMCall(contentType, stringifiedExpr, keyExpr)}
 	return js_ast.Expr{Data: &js_ast.EArray{Items: arrayElements}}, nil

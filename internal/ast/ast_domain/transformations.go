@@ -667,7 +667,7 @@ func breaksIfElseChain(node *TemplateNode) bool {
 	if node.NodeType == NodeElement {
 		return node.DirIf == nil && node.DirElseIf == nil && node.DirElse == nil
 	}
-	return node.NodeType != NodeComment && !isWhitespaceOnlyText(node)
+	return node.NodeType != NodeComment && !node.IsWhitespaceOnlyText()
 }
 
 // processIfElseNode handles a single node in an if-else chain and returns the updated

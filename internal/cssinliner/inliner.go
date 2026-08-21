@@ -30,6 +30,7 @@ import (
 	"strings"
 	"sync"
 
+	"errors"
 	ast "piko.sh/piko/internal/ast/ast_domain"
 	es_ast "piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/css_ast"
@@ -44,20 +45,26 @@ import (
 // is the full file path.
 type cssParseCache = map[string]*css_ast.AST
 
+// sourceContext locates a block of CSS in its source file, so a rule offset inside that
+// block can be reported at the line and column the author wrote.
+type sourceContext struct {
+	// path is the file the CSS came from.
+	path string
+
+	// content is the CSS text that rule offsets are relative to.
+	content string
+
+	// startLocation is where content begins in the source file.
+	startLocation ast.Location
+}
+
 // Inliner holds the state for a single CSS inlining operation.
 type Inliner struct {
 	// resolver resolves CSS import paths.
 	resolver resolver_domain.ResolverPort
 
-	// parserOptions holds the CSS parser settings.
-	parserOptions css_parser.Options
-
 	// fsReader reads CSS files to resolve @import statements.
 	fsReader FSReaderPort
-
-	// diagnosticCode is the code assigned to diagnostics produced by this inliner (e.g.
-	// "T114" for import errors).
-	diagnosticCode string
 
 	// cache stores parsed CSS stylesheets to avoid parsing the same file twice.
 	cache cssParseCache
@@ -65,8 +72,29 @@ type Inliner struct {
 	// parseCache is the shared, content-addressed CSS parse cache; nil disables it.
 	parseCache *parseCache
 
+	// merged records every resolved path already inlined in this operation, so a stylesheet
+	// reached by two different import chains is merged once rather than duplicated.
+	merged map[string]struct{}
+
+	// diagnosticCode is the code assigned to parser diagnostics produced by this inliner.
+	diagnosticCode string
+
+	// importDiagnosticCode is the code assigned to diagnostics raised because an @import
+	// could not be resolved or read.
+	importDiagnosticCode string
+
+	// parserOptions holds the CSS parser settings.
+	parserOptions css_parser.Options
+
 	// diagnostics collects errors found while processing CSS imports.
 	diagnostics []*ast.Diagnostic
+
+	// limits bounds how far and how much this operation may inline.
+	limits Limits
+
+	// inlinedBytes counts the CSS merged so far in this operation, checked against
+	// limits.MaxTotalBytes.
+	inlinedBytes int
 }
 
 var (
@@ -85,9 +113,18 @@ var (
 // Takes parserOptions (css_parser.Options) which configures the CSS parser.
 // Takes fsReader (FSReaderPort) which provides file system access.
 // Takes diagnosticCode (string) which is assigned to generated diagnostics.
+// Takes importDiagnosticCode (string) which is assigned to @import failures.
 //
 // Returns *Inliner which is ready to use.
-func GetInliner(resolver resolver_domain.ResolverPort, parserOptions css_parser.Options, fsReader FSReaderPort, diagnosticCode string, sharedParseCache *parseCache) *Inliner {
+func GetInliner(
+	resolver resolver_domain.ResolverPort,
+	parserOptions css_parser.Options,
+	fsReader FSReaderPort,
+	diagnosticCode string,
+	importDiagnosticCode string,
+	sharedParseCache *parseCache,
+	limits Limits,
+) *Inliner {
 	inliner, ok := inlinerPool.Get().(*Inliner)
 	if !ok {
 		inliner = &Inliner{}
@@ -96,8 +133,12 @@ func GetInliner(resolver resolver_domain.ResolverPort, parserOptions css_parser.
 	inliner.parserOptions = parserOptions
 	inliner.fsReader = fsReader
 	inliner.diagnosticCode = diagnosticCode
+	inliner.importDiagnosticCode = importDiagnosticCode
 	inliner.cache = make(cssParseCache)
 	inliner.parseCache = sharedParseCache
+	inliner.merged = make(map[string]struct{})
+	inliner.limits = limits.withDefaults()
+	inliner.inlinedBytes = 0
 	inliner.diagnostics = nil
 	return inliner
 }
@@ -110,8 +151,12 @@ func PutInliner(inliner *Inliner) {
 	inliner.parserOptions = css_parser.Options{}
 	inliner.fsReader = nil
 	inliner.diagnosticCode = ""
+	inliner.importDiagnosticCode = ""
 	inliner.cache = nil
 	inliner.parseCache = nil
+	inliner.merged = nil
+	inliner.limits = Limits{}
+	inliner.inlinedBytes = 0
 	inliner.diagnostics = nil
 	inlinerPool.Put(inliner)
 }
@@ -158,6 +203,11 @@ func (i *Inliner) parseRecursive(
 	if err := i.checkCircularDependency(containingPath, startLocation, pathStack); err != nil {
 		return nil, fmt.Errorf("checking circular dependency for %q: %w", containingPath, err)
 	}
+	if len(pathStack) > i.limits.MaxDepth {
+		return nil, i.reportLimit(startLocation, containingPath, fmt.Sprintf(
+			"CSS imports nest deeper than the limit of %d; raise it with WithCSSImportMaxDepth",
+			i.limits.MaxDepth))
+	}
 
 	if cachedAST, exists := i.cache[containingPath]; exists {
 		return CloneAST(cachedAST), nil
@@ -169,7 +219,7 @@ func (i *Inliner) parseRecursive(
 	}
 
 	if len(tree.ImportRecords) > 0 {
-		processedTree, err := i.processImports(ctx, tree, containingPath, startLocation, pathStack)
+		processedTree, err := i.processImports(ctx, tree, containingPath, cssContent, startLocation, pathStack)
 		if err != nil {
 			return nil, fmt.Errorf("processing CSS imports for %q: %w", containingPath, err)
 		}
@@ -263,9 +313,16 @@ func (i *Inliner) parseOrLoadCSS(cssContent, containingPath string) (css_ast.AST
 //
 // Returns css_ast.AST which is the tree with imports merged in reverse order.
 // Returns error when an imported file cannot be collected or processed.
-func (i *Inliner) processImports(ctx context.Context, tree css_ast.AST, containingPath string, startLocation ast.Location, pathStack []string) (css_ast.AST, error) {
+func (i *Inliner) processImports(
+	ctx context.Context,
+	tree css_ast.AST,
+	containingPath string,
+	cssContent string,
+	startLocation ast.Location,
+	pathStack []string,
+) (css_ast.AST, error) {
 	newPathStack := slices.Concat(pathStack, []string{containingPath})
-	rulesToKeep, importsToMerge, err := i.collectImportedASTs(ctx, tree, containingPath, startLocation, newPathStack)
+	rulesToKeep, importsToMerge, err := i.collectImportedASTs(ctx, tree, containingPath, cssContent, startLocation, newPathStack)
 	if err != nil {
 		return css_ast.AST{}, err
 	}
@@ -393,7 +450,14 @@ func isExternalImportPath(path string) bool {
 // external @import rules that are left verbatim for the browser to resolve at runtime.
 // Returns []*css_ast.AST which contains the parsed ASTs of inlined local imports.
 // Returns error when a circular import is found or parsing fails.
-func (i *Inliner) collectImportedASTs(ctx context.Context, tree css_ast.AST, containingPath string, startLocation ast.Location, pathStack []string) ([]css_ast.Rule, []*css_ast.AST, error) {
+func (i *Inliner) collectImportedASTs(
+	ctx context.Context,
+	tree css_ast.AST,
+	containingPath string,
+	cssContent string,
+	startLocation ast.Location,
+	pathStack []string,
+) ([]css_ast.Rule, []*css_ast.AST, error) {
 	var rulesToKeep []css_ast.Rule
 	var importsToMerge []*css_ast.AST
 
@@ -409,7 +473,7 @@ func (i *Inliner) collectImportedASTs(ctx context.Context, tree css_ast.AST, con
 			continue
 		}
 
-		importedAST, err := i.resolveAndParseImport(ctx, tree, imp, rule, containingPath, startLocation, pathStack)
+		importedAST, err := i.resolveAndParseImport(ctx, tree, imp, rule, sourceContext{path: containingPath, content: cssContent, startLocation: startLocation}, pathStack)
 		if err != nil {
 			return nil, nil, fmt.Errorf("resolving CSS import in %q: %w", containingPath, err)
 		}
@@ -426,8 +490,7 @@ func (i *Inliner) collectImportedASTs(ctx context.Context, tree css_ast.AST, con
 // Takes tree (css_ast.AST) which provides the import records for resolution.
 // Takes imp (*css_ast.RAtImport) which specifies the import rule to process.
 // Takes rule (css_ast.Rule) which provides the original rule location.
-// Takes containingPath (string) which is the path of the file that contains the import.
-// Takes startLocation (ast.Location) which marks where the import appears.
+// Takes source (sourceContext) which locates the CSS block that holds the import.
 // Takes pathStack ([]string) which tracks visited paths to find cycles.
 //
 // Returns *css_ast.AST which is the parsed and condition-wrapped imported CSS, or nil if
@@ -438,26 +501,38 @@ func (i *Inliner) resolveAndParseImport(
 	tree css_ast.AST,
 	imp *css_ast.RAtImport,
 	rule css_ast.Rule,
-	containingPath string,
-	startLocation ast.Location,
+	source sourceContext,
 	pathStack []string,
 ) (*css_ast.AST, error) {
+	containingPath, cssContent, startLocation := source.path, source.content, source.startLocation
 	importRecord := tree.ImportRecords[imp.ImportRecordIndex]
 	importPath := importRecord.Path.Text
+	ruleLocation := LocationForOffset(cssContent, int(rule.Loc.Start), startLocation)
 
 	resolvedPath, err := i.resolver.ResolveCSSPath(ctx, importPath, filepath.Dir(containingPath))
 	if err != nil {
-		diagnostic := ast.NewDiagnosticWithCode(ast.Error, err.Error(), importPath, i.diagnosticCode, startLocation, containingPath)
+		diagnostic := ast.NewDiagnosticWithCode(ast.Error, err.Error(), importPath, i.importDiagnosticCode, ruleLocation, containingPath)
 		i.diagnostics = append(i.diagnostics, diagnostic)
+		return nil, nil
+	}
+
+	if _, alreadyMerged := i.merged[resolvedPath]; alreadyMerged && !slices.Contains(pathStack, resolvedPath) {
 		return nil, nil
 	}
 
 	importedContent, err := i.fsReader.ReadFile(ctx, resolvedPath)
 	if err != nil {
-		diagnostic := ast.NewDiagnosticWithCode(ast.Error, err.Error(), importPath, i.diagnosticCode, startLocation, containingPath)
+		diagnostic := ast.NewDiagnosticWithCode(ast.Error, err.Error(), importPath, i.importDiagnosticCode, ruleLocation, containingPath)
 		i.diagnostics = append(i.diagnostics, diagnostic)
 		return nil, nil
 	}
+
+	i.inlinedBytes += len(importedContent)
+	if i.inlinedBytes > i.limits.MaxTotalBytes {
+		return nil, i.reportLimit(ruleLocation, containingPath,
+			fmt.Sprintf("CSS imports total more than the limit of %d bytes; raise it with WithCSSImportMaxBytes", i.limits.MaxTotalBytes))
+	}
+	i.merged[resolvedPath] = struct{}{}
 
 	importedAST, err := i.parseRecursive(ctx, string(importedContent), resolvedPath, ast.Location{Line: 1, Column: 1, Offset: 0}, pathStack)
 	if err != nil {
@@ -1014,4 +1089,21 @@ func parseLayerNameFromChildren(children []css_ast.Token) [][]string {
 	}
 
 	return [][]string{parts}
+}
+
+// reportLimit records a hard limit being reached and returns the matching error.
+//
+// A limit is reported as a diagnostic as well as an error so the failure reaches the
+// build output through the same channel as every other CSS problem, rather than
+// truncating the stylesheet quietly.
+//
+// Takes startLocation (ast.Location) which is where to attribute the failure.
+// Takes sourcePath (string) which is the file the limit was reached in.
+// Takes message (string) which describes the limit and how to raise it.
+//
+// Returns error which reports the limit.
+func (i *Inliner) reportLimit(startLocation ast.Location, sourcePath, message string) error {
+	i.diagnostics = append(i.diagnostics,
+		ast.NewDiagnosticWithCode(ast.Error, message, "", CodeImportLimitExceeded, startLocation, sourcePath))
+	return errors.New(message)
 }

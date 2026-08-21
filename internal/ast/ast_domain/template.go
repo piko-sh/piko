@@ -394,8 +394,13 @@ type TemplateNode struct {
 	// identifies each item when the list changes.
 	DirKey *Directive
 
-	// TextContent holds plain text for NodeText nodes without interpolations. When a text
-	// node contains {{ }} expressions, RichText is used instead.
+	// TextContent holds plain text for NodeText nodes without interpolations.
+	//
+	// A text node with {{ }} expressions keeps its segments in RichText while it is source,
+	// and in TextContentWriter once it has been rendered, so TextContent stays empty in both
+	// phases. NodeComment nodes always keep their body here.
+	//
+	// Use OwnText, OwnRawText or IsWhitespaceOnlyText, which read all three carriers.
 	TextContent string
 
 	// TagName is the HTML element tag name, such as "div", "span", or "custom-component".
@@ -418,6 +423,10 @@ type TemplateNode struct {
 	// RichText contains text parts for nodes with {{ }} interpolations. Alternates between
 	// literal strings and expression parts; when empty, TextContent holds plain static text
 	// instead.
+	//
+	// This is the build-time carrier of an interpolated text node and is set only by the
+	// parser. Once the node has been rendered the parts live in TextContentWriter instead,
+	// so read text through OwnText or OwnRawText rather than RichText alone.
 	RichText []TextPart
 
 	// Attributes holds static HTML attributes as name-value pairs. For dynamic attributes,

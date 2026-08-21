@@ -22,6 +22,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/esbuild/helpers"
+	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
 func TestBase36(t *testing.T) {
@@ -109,52 +112,6 @@ func TestNodeKeyGenerator_Isolation(t *testing.T) {
 	assert.Equal(t, "0", gen2.nextKeyBase36())
 	assert.Equal(t, "1", gen1.nextKeyBase36())
 	assert.Equal(t, "1", gen2.nextKeyBase36())
-}
-
-func TestEscapeBackticks(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "no backticks",
-			input:    "hello world",
-			expected: "hello world",
-		},
-		{
-			name:     "single backtick",
-			input:    "hello `world`",
-			expected: "hello \\`world\\`",
-		},
-		{
-			name:     "multiple backticks",
-			input:    "`a` and `b`",
-			expected: "\\`a\\` and \\`b\\`",
-		},
-		{
-			name:     "consecutive backticks",
-			input:    "``code``",
-			expected: "\\`\\`code\\`\\`",
-		},
-		{
-			name:     "empty string",
-			input:    "",
-			expected: "",
-		},
-		{
-			name:     "only backticks",
-			input:    "```",
-			expected: "\\`\\`\\`",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := escapeBackticks(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
 }
 
 func TestNormaliseWhitespace(t *testing.T) {
@@ -297,4 +254,82 @@ func TestEventRecord(t *testing.T) {
 		assert.Equal(t, "custom_2", record.EventID)
 		assert.False(t, record.IsNative)
 	})
+}
+func TestCreateStaticGetterFunction_ContentSurvivesTheJavaScriptRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		css  string
+	}{
+		{
+			name: "icon font escape keeps its backslash",
+			css:  `.icon:before{content:"\eb1c"}`,
+		},
+		{
+			name: "escaped identifier selector survives",
+			css:  `.w-1\/2{width:50%}`,
+		},
+		{
+			name: "tailwind style variant selector survives",
+			css:  `.md\:flex{display:flex}`,
+		},
+		{
+			name: "trailing backslash does not run the string to the end",
+			css:  `.a:before{content:"\\"}.b{color:red}`,
+		},
+		{
+			name: "dollar brace is inert rather than a live substitution",
+			css:  `.a:before{content:"${danger}"}`,
+		},
+		{
+			name: "backtick is carried through",
+			css:  ".a:before{content:\"`\"}",
+		},
+		{
+			name: "literal non-ascii character survives",
+			css:  `.a:before{content:"café"}`,
+		},
+		{
+			name: "em dash escape survives",
+			css:  `.a:before{content:"\2014"}`,
+		},
+		{
+			name: "bell escape survives",
+			css:  `.a:before{content:"\7"}`,
+		},
+		{
+			name: "double quote inside the stylesheet survives",
+			css:  `.a[data-x="y"]{color:red}`,
+		},
+		{
+			name: "newline inside the stylesheet survives",
+			css:  ".a{color:red}\n.b{color:blue}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			property := createStaticGetterFunction("css", tt.css)
+			require.NotNil(t, property)
+
+			str, isStr := property.Key.Data.(*js_ast.EString)
+			require.True(t, isStr)
+			assert.Equal(t, "css", helpers.UTF16ToString(str.Value))
+			assert.Equal(t, js_ast.PropertyGetter, property.Kind)
+			assert.True(t, property.Flags.Has(js_ast.PropertyIsStatic))
+
+			fn, isFn := property.ValueOrNil.Data.(*js_ast.EFunction)
+			require.True(t, isFn)
+			require.Len(t, fn.Fn.Body.Block.Stmts, 1)
+			ret, isReturn := fn.Fn.Body.Block.Stmts[0].Data.(*js_ast.SReturn)
+			require.True(t, isReturn)
+			value, isValue := ret.ValueOrNil.Data.(*js_ast.EString)
+			require.True(t, isValue, "content must be carried as a string literal, never a template")
+			assert.Equal(t, tt.css, helpers.UTF16ToString(value.Value),
+				"the getter must carry the stylesheet byte for byte")
+		})
+	}
 }

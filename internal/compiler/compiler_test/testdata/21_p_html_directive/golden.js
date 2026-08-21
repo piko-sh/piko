@@ -45,7 +45,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             super.connectedCallback();
         }
         renderVDOM () {
-            return dom.el("div", "r.0", {}, dom.frag("r.0_f", [dom.el("div", "r.0:0", {}, [dom.html(String(this.$$ctx.state.rawHtml), "r.0:0:html")]), dom.el("button", "r.0:1", {"onClick": this._dir_click_updateHtml_evt_1}, dom.txt("Update", "r.0:1:0"))]));
+            return dom.el("div", "r.0", {}, dom.frag("r.0_f", [dom.el("div", "r.0:0", {}, [], String(this.$$ctx.state.rawHtml)), dom.el("button", "r.0:1", {"onClick": this._dir_click_updateHtml_evt_1}, dom.txt("Update", "r.0:1:0"))]));
         }
     }
     customElements.define("p-html-dir", PHtmlDirElement);

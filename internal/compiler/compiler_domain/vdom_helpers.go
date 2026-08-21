@@ -328,3 +328,31 @@ func isNumericOrBoolOrNull(value string) bool {
 	_, err := SscanfFloat(trimmed)
 	return err == nil
 }
+
+// newEmptyArray creates an empty JavaScript array literal expression, used as the
+// children argument for an element whose content comes from a directive instead.
+//
+// Returns js_ast.Expr which holds the empty array literal.
+func newEmptyArray() js_ast.Expr {
+	return js_ast.Expr{Data: &js_ast.EArray{}}
+}
+
+// stringifyExpr compiles a directive expression and wraps it in a String() call, so the
+// renderer always receives text even when the expression evaluates to another type.
+//
+// Takes expression (ast_domain.Expression) which is the directive expression to compile.
+// Takes registry (*RegistryContext) which provides the compilation context.
+//
+// Returns js_ast.Expr which is the String(expression) call.
+// Returns error when the expression cannot be converted.
+func stringifyExpr(expression ast_domain.Expression, registry *RegistryContext) (js_ast.Expr, error) {
+	jsExpr, err := transformOurASTtoJSAST(expression, registry)
+	if err != nil {
+		return js_ast.Expr{}, fmt.Errorf("converting directive expression: %w", err)
+	}
+
+	return js_ast.Expr{Data: &js_ast.ECall{
+		Target: newIdentifier(jsString),
+		Args:   []js_ast.Expr{jsExpr},
+	}}, nil
+}

@@ -127,6 +127,34 @@ describe('DOM Factory Functions', () => {
       const node = dom.el('div', 'el7', {}, null);
       expect(node.children).toEqual([]);
     });
+
+    it('should not carry an html key when no html argument is given', () => {
+      const node = dom.el('div', 'el8');
+      expect(node.html).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(node, 'html')).toBe(false);
+    });
+
+    it('should carry raw html on the element itself rather than in a wrapper child', () => {
+      const node = dom.el('div', 'el9', {}, [], '<em>raw</em>');
+      expect(node.html).toBe('<em>raw</em>');
+      expect(node.children).toEqual([]);
+    });
+
+    it('should keep the element tag when html is supplied', () => {
+      const node = dom.el('svg', 'el10', { viewBox: '0 0 10 10' }, [], '<circle r="4"></circle>');
+      expect(node.tag).toBe('svg');
+      expect(node.html).toBe('<circle r="4"></circle>');
+    });
+
+    it('should treat an empty html string as content, not as absent', () => {
+      const node = dom.el('div', 'el11', {}, [], '');
+      expect(node.html).toBe('');
+    });
+
+    it('should ignore a null html argument', () => {
+      const node = dom.el('div', 'el12', {}, [], null as unknown as string);
+      expect(Object.prototype.hasOwnProperty.call(node, 'html')).toBe(false);
+    });
   });
 
   describe('dom.frag()', () => {
@@ -276,6 +304,18 @@ describe('DOM Factory Functions', () => {
       dom.pikoEl('piko:a', 'pe8', props);
       expect(props).toEqual({ href: '/test' });
       expect(props).not.toHaveProperty('piko:a');
+    });
+
+    it('should forward raw html onto the resolved element', () => {
+      const node = dom.pikoEl('section', 'pe9', {}, [], '', '<b>raw</b>');
+      expect(node.tag).toBe('section');
+      expect(node.html).toBe('<b>raw</b>');
+      expect(node.children).toEqual([]);
+    });
+
+    it('should not carry an html key when no html argument is given', () => {
+      const node = dom.pikoEl('section', 'pe10', {}, [], '');
+      expect(Object.prototype.hasOwnProperty.call(node, 'html')).toBe(false);
     });
   });
 

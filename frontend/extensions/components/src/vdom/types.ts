@@ -76,7 +76,8 @@ export interface DomAPI {
         tag: string,
         id: string,
         props?: Record<string, unknown>,
-        children?: VirtualNode | VirtualNode[] | null
+        children?: VirtualNode | VirtualNode[] | null,
+        html?: string
     ) => ElementVNode;
     /** Creates a fragment node. */
     frag: (id: string, children?: VirtualNode | VirtualNode[] | null, props?: Record<string, unknown>) => VirtualNode;
@@ -88,6 +89,7 @@ export interface DomAPI {
         id: string,
         props?: Record<string, unknown>,
         children?: VirtualNode | VirtualNode[] | null,
-        moduleName?: string
+        moduleName?: string,
+        html?: string
     ) => ElementVNode;
 }

@@ -156,7 +156,7 @@ type WriterPart struct {
 // cases (up to 8 parts).
 type DirectWriter struct {
 	// cachedString holds the computed string form to avoid repeated work.
-	cachedString string
+	cachedString atomic.Pointer[string]
 
 	// Name is the identifier for this writer; empty means unnamed.
 	Name string
@@ -174,9 +174,6 @@ type DirectWriter struct {
 
 	// len is the number of parts held by the writer.
 	len int
-
-	// hasCachedString indicates whether cachedString holds a valid cached value.
-	hasCachedString bool
 }
 
 var (
@@ -263,10 +260,7 @@ func (dw *DirectWriter) Reset() {
 	if dw.Name != "" {
 		dw.Name = ""
 	}
-	if dw.hasCachedString {
-		dw.cachedString = ""
-		dw.hasCachedString = false
-	}
+	dw.cachedString.Store(nil)
 }
 
 // AppendString adds a string to the output buffer.
@@ -498,8 +492,8 @@ func (dw *DirectWriter) String() string {
 	if dw == nil || dw.len == 0 {
 		return ""
 	}
-	if dw.hasCachedString {
-		return dw.cachedString
+	if cached := dw.cachedString.Load(); cached != nil {
+		return *cached
 	}
 
 	bufferPointer, ok := stringBufPool.Get().(*[]byte)
@@ -509,12 +503,12 @@ func (dw *DirectWriter) String() string {
 	buffer := *bufferPointer
 	buffer = dw.WriteTo(buffer)
 
-	dw.cachedString = string(buffer)
-	dw.hasCachedString = true
+	rendered := string(buffer)
+	dw.cachedString.Store(&rendered)
 
 	*bufferPointer = buffer[:0]
 	stringBufPool.Put(bufferPointer)
-	return dw.cachedString
+	return rendered
 }
 
 // StringRaw returns the combined string content without HTML escaping. Used by premailer
@@ -598,6 +592,13 @@ func (dw *DirectWriter) RenderedLen() int {
 // Returns int which is the count of parts.
 func (dw *DirectWriter) Len() int {
 	return dw.len
+}
+
+// HasParts reports whether the writer holds at least one part.
+//
+// Returns bool which is true when the receiver is non-nil and holds at least one part.
+func (dw *DirectWriter) HasParts() bool {
+	return dw != nil && dw.len > 0
 }
 
 // Part returns the part at the given index.
@@ -762,16 +763,14 @@ func (dw *DirectWriter) resetForArena() {
 	if dw.Name != "" {
 		dw.Name = ""
 	}
-	if dw.hasCachedString {
-		dw.cachedString = ""
-		dw.hasCachedString = false
-	}
+	dw.cachedString.Store(nil)
 }
 
 // append adds a writer part to the buffer.
 //
 // Takes p (WriterPart) which is the part to add.
 func (dw *DirectWriter) append(p WriterPart) {
+	dw.cachedString.Store(nil)
 	if dw.len < directWriterPartsCapacity {
 		dw.parts[dw.len] = p
 	} else {

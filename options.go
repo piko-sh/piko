@@ -3784,3 +3784,23 @@ func WithSpamFeedbackStore(store spamdetect_domain.FeedbackStore) Option {
 		c.SetSpamDetectFeedbackStore(store)
 	}
 }
+
+// WithCSSImportMaxDepth sets how deep a chain of CSS @import rules may nest before the
+// build fails.
+//
+// Takes n (int) which is the maximum nesting depth.
+//
+// Returns Option which applies the limit.
+func WithCSSImportMaxDepth(n int) Option {
+	return bootstrap.WithCSSImportMaxDepth(n)
+}
+
+// WithCSSImportMaxBytes sets how much CSS a single component may pull in through @import
+// rules before the build fails.
+//
+// Takes n (int) which is the maximum total size in bytes.
+//
+// Returns Option which applies the limit.
+func WithCSSImportMaxBytes(n int) Option {
+	return bootstrap.WithCSSImportMaxBytes(n)
+}

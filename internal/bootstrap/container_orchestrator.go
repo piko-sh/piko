@@ -184,6 +184,10 @@ func (c *Container) createCSSPreProcessor(resolver resolver_domain.ResolverPort,
 		Options: &esbuildconfig.Options{
 			UnsupportedCSSFeatures: compat.Nesting,
 		},
+		Limits: cssinliner.Limits{
+			MaxDepth:      deref(c.serverConfig.Build.CSSImportMaxDepth, cssinliner.DefaultMaxImportDepth),
+			MaxTotalBytes: deref(c.serverConfig.Build.CSSImportMaxBytes, cssinliner.DefaultMaxInlinedBytes),
+		},
 	})
 	return compiler_adapters.NewCSSPreProcessor(processor, fsReader, resolver.GetModuleName(), baseDir), nil
 }

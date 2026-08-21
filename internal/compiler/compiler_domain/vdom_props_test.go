@@ -1208,23 +1208,6 @@ func TestVdomProps_DirTextDynamicExpr(t *testing.T) {
 	})
 }
 
-func TestVdomProps_DirHTMLDynamicExpr(t *testing.T) {
-	registry := NewRegistryContext()
-
-	t.Run("produces array with dom call", func(t *testing.T) {
-		expression := &ast_domain.Identifier{Name: "htmlContent"}
-		keyBase := newStringLiteral("k")
-
-		result, err := dirHTMLDynamicExpr(expression, keyBase, registry)
-
-		require.NoError(t, err)
-		require.NotNil(t, result.Data)
-		arr, isArr := result.Data.(*js_ast.EArray)
-		require.True(t, isArr, "result should be an array expression")
-		assert.Len(t, arr.Items, 1, "should contain one DOM call element")
-	})
-}
-
 func TestVdomProps_BuildDynamicContentExpr(t *testing.T) {
 	registry := NewRegistryContext()
 

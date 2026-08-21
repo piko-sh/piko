@@ -171,3 +171,31 @@ func getAttribute(t *testing.T, node *TemplateNode, name string) *HTMLAttribute 
 	require.Fail(t, fmt.Sprintf("Failed to find attribute with name '%s' on node <%s>", name, node.TagName))
 	return nil
 }
+
+func literalPart(text string) TextPart {
+	return TextPart{
+		Expression:    nil,
+		GoAnnotations: nil,
+		Literal:       text,
+		RawExpression: "",
+		Location:      Location{},
+		IsLiteral:     true,
+	}
+}
+
+func expressionPart(raw string) TextPart {
+	return TextPart{
+		Expression:    nil,
+		GoAnnotations: nil,
+		Literal:       "",
+		RawExpression: raw,
+		Location:      Location{},
+		IsLiteral:     false,
+	}
+}
+
+func writerWith(appendTo func(dw *DirectWriter)) *DirectWriter {
+	dw := &DirectWriter{}
+	appendTo(dw)
+	return dw
+}

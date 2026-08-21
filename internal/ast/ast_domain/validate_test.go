@@ -634,7 +634,7 @@ func TestValidateHelperFunctions(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				result := isWhitespaceOnlyText(tc.node)
+				result := tc.node.IsWhitespaceOnlyText()
 				assert.Equal(t, tc.expected, result)
 			})
 		}

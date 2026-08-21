@@ -21,7 +21,6 @@ package compiler_domain
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/esbuild/js_ast"
@@ -124,14 +123,14 @@ func processConditionalChain(
 	index *int,
 	buildContext *nodeBuildContext,
 ) (js_ast.Expr, bool, error) {
-	chain, nextIndex := collectConditionalChain(ifNode, children, *index)
+	chain, resumeIndex := collectConditionalChain(ifNode, children, *index)
 
 	chainExpr, err := buildConditionalChainAST(ctx, chain, buildContext)
 	if err != nil {
 		return js_ast.Expr{}, false, err
 	}
 
-	*index = nextIndex - 1
+	*index = resumeIndex - 1
 	return chainExpr, false, nil
 }
 
@@ -142,52 +141,59 @@ func processConditionalChain(
 // Takes startIndex (int) which is the position of ifNode within children.
 //
 // Returns []*ast_domain.TemplateNode which contains all nodes in the chain.
-// Returns int which is the index of the first node after the chain.
-func collectConditionalChain(ifNode *ast_domain.TemplateNode, children []*ast_domain.TemplateNode, startIndex int) ([]*ast_domain.TemplateNode, int) {
+// Returns int which is the index of the first sibling the caller must still process.
+func collectConditionalChain(
+	ifNode *ast_domain.TemplateNode,
+	children []*ast_domain.TemplateNode,
+	startIndex int,
+) ([]*ast_domain.TemplateNode, int) {
 	chain := []*ast_domain.TemplateNode{ifNode}
-	nextIndex := startIndex + 1
+	resumeIndex := startIndex + 1
 
-	for nextIndex < len(children) {
-		nextSibling := children[nextIndex]
+	for scanIndex := resumeIndex; scanIndex < len(children); scanIndex++ {
+		sibling := children[scanIndex]
 
-		if isInsignificantNode(nextSibling) {
-			nextIndex++
+		if isInsignificantNode(sibling) {
 			continue
 		}
-
-		if !isChainContinuation(nextSibling) {
+		if !isChainContinuation(sibling) {
 			break
 		}
-		chain = append(chain, nextSibling)
-		nextIndex++
+
+		chain = append(chain, sibling)
+		resumeIndex = scanIndex + 1
 	}
 
-	return chain, nextIndex
+	return chain, resumeIndex
 }
 
-// isInsignificantNode checks whether a node can be ignored during rendering.
-// Insignificant nodes are whitespace-only text nodes or comment nodes.
+// isInsignificantNode checks whether a node can be skipped while scanning for the rest of
+// a conditional chain. Insignificant nodes are comments and text nodes holding only
+// whitespace.
+//
+// The whitespace test goes through IsWhitespaceOnlyText so that interpolated text is
+// never mistaken for whitespace. A parsed {{ }} node keeps its segments in RichText, and
+// only that method reads every carrier.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
 // Returns bool which is true if the node is insignificant.
 func isInsignificantNode(node *ast_domain.TemplateNode) bool {
-	if node.NodeType == ast_domain.NodeComment {
-		return true
-	}
-	if node.NodeType == ast_domain.NodeText && strings.TrimSpace(node.TextContent) == "" {
-		return true
-	}
-	return false
+	return node.NodeType == ast_domain.NodeComment || node.IsWhitespaceOnlyText()
 }
 
 // isChainContinuation checks if a node is part of a conditional chain (else-if or else).
+//
+// A node carrying p-if is always a chain head even when it also carries p-else or
+// p-else-if, matching how the chain-linking pass treats it: that pass tests p-if first,
+// so server-side rendering starts a new chain there. Absorbing such a node as an else
+// branch would make the two renderers disagree and would silently ignore its condition.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
 // Returns bool which is true if the node has an else-if or else directive.
 func isChainContinuation(node *ast_domain.TemplateNode) bool {
-	return node.DirElseIf != nil || node.DirElse != nil
+	return node.DirIf == nil && (node.DirElseIf != nil || node.DirElse != nil)
 }
 
 // buildConditionalChainAST builds a nested JavaScript ternary expression from a slice of

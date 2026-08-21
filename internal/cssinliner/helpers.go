@@ -22,6 +22,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/esbuild/css_ast"
 	es_logger "piko.sh/piko/internal/esbuild/logger"
+	"strings"
 )
 
 // CleanCSSTree walks the CSS AST and removes any rules where Data is nil. This is needed
@@ -125,4 +126,36 @@ func ConvertESBuildMessagesToDiagnostics(messages []es_logger.Msg, sourcePath st
 		})
 	}
 	return diagnostics
+}
+
+// LocationForOffset maps a byte offset inside a CSS block to a source location, given
+// where the block itself starts in the file.
+//
+// Takes cssContent (string) which is the CSS the offset refers to.
+// Takes offset (int) which is the byte offset of the item within cssContent.
+// Takes startLocation (ast_domain.Location) which is where cssContent begins in the file.
+//
+// Returns ast_domain.Location which is the position of the offset in the source file.
+func LocationForOffset(cssContent string, offset int, startLocation ast_domain.Location) ast_domain.Location {
+	if offset < 0 || offset > len(cssContent) {
+		return startLocation
+	}
+
+	precedingLineBreaks := strings.Count(cssContent[:offset], "\n")
+	columnStart := strings.LastIndexByte(cssContent[:offset], '\n') + 1
+	column := offset - columnStart + 1
+
+	if precedingLineBreaks == 0 {
+		return ast_domain.Location{
+			Line:   startLocation.Line,
+			Column: startLocation.Column + column - 1,
+			Offset: startLocation.Offset + offset,
+		}
+	}
+
+	return ast_domain.Location{
+		Line:   startLocation.Line + precedingLineBreaks,
+		Column: column,
+		Offset: startLocation.Offset + offset,
+	}
 }

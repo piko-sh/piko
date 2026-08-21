@@ -309,6 +309,8 @@ TemplateNode: |- # Kind: Struct
       // Method
       HasDirective(ast_domain.DirectiveType) bool
       // Method
+      IsWhitespaceOnlyText() bool
+      // Method
       LastElementChild() *ast_domain.TemplateNode
       // Method
       MustQuery(string) *ast_domain.TemplateNode
@@ -320,6 +322,12 @@ TemplateNode: |- # Kind: Struct
       Nodes() func(func(*ast_domain.TemplateNode) bool)
       // Method
       NodesWithParent() func(func(*ast_domain.TemplateNode, *ast_domain.TemplateNode) bool)
+      // Method
+      OwnRawText() string
+      // Method
+      OwnText() string
+      // Method
+      OwnTextRaw() string
       // Method
       ParallelWalk(context.Context, int, func(context.Context, *ast_domain.TemplateNode) error) error
       // Method

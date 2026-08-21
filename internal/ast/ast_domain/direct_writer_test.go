@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -845,17 +846,11 @@ func TestDirectWriter_String_Caching(t *testing.T) {
 
 	second := dw.String()
 
-	if first != second {
-		t.Errorf("String() not consistent: first=%q, second=%q", first, second)
-	}
+	assert.Equal(t, first, second, "repeated calls must agree")
 
-	if !dw.hasCachedString {
-		t.Error("hasCachedString should be true after String() call")
-	}
-
-	if dw.cachedString != first {
-		t.Error("cachedString should equal returned string")
-	}
+	cached := dw.cachedString.Load()
+	require.NotNil(t, cached, "the string form is memoised after the first call")
+	assert.Equal(t, first, *cached, "the memo must hold the value that was returned")
 }
 
 func TestDirectWriter_String_Empty(t *testing.T) {
@@ -888,19 +883,27 @@ func TestDirectWriter_Reset_ClearsCachedString(t *testing.T) {
 
 	dw.AppendString("original")
 	_ = dw.String()
-
-	if !dw.hasCachedString {
-		t.Fatal("hasCachedString should be true before Reset")
-	}
+	require.NotNil(t, dw.cachedString.Load(), "the memo is filled before Reset")
 
 	dw.Reset()
 
-	if dw.hasCachedString {
-		t.Error("hasCachedString should be false after Reset")
-	}
-	if dw.cachedString != "" {
-		t.Error("cachedString should be empty after Reset")
-	}
+	assert.Nil(t, dw.cachedString.Load(), "Reset clears the memo")
+}
+
+func TestDirectWriter_AppendInvalidatesCachedString(t *testing.T) {
+	t.Parallel()
+
+	dw := GetDirectWriter()
+	defer PutDirectWriter(dw)
+
+	dw.AppendString("first")
+	require.Equal(t, "first", dw.String())
+	require.NotNil(t, dw.cachedString.Load(), "the memo is filled by the first read")
+
+	dw.AppendString(" second")
+
+	assert.Nil(t, dw.cachedString.Load(), "appending must clear the memo")
+	assert.Equal(t, "first second", dw.String(), "a read after an append sees the appended part")
 }
 
 func TestDirectWriter_String_WithEscaping(t *testing.T) {
@@ -1690,4 +1693,43 @@ func TestDirectWriter_WriteToRaw(t *testing.T) {
 			t.Errorf("WriteToRaw() = %q, want %q", raw, "<b>test</b>")
 		}
 	})
+}
+
+func TestDirectWriter_HasParts(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		writer *DirectWriter
+		name   string
+		want   bool
+	}{
+		{name: "nil writer", writer: nil, want: false},
+		{name: "no parts", writer: &DirectWriter{}, want: false},
+		{
+			name:   "one empty part still counts as parts",
+			writer: writerWith(func(dw *DirectWriter) { dw.AppendEscapeString("") }),
+			want:   true,
+		},
+		{
+			name:   "one non-empty part",
+			writer: writerWith(func(dw *DirectWriter) { dw.AppendString("x") }),
+			want:   true,
+		},
+		{
+			name: "parts spilling past the inline capacity",
+			writer: writerWith(func(dw *DirectWriter) {
+				for range 32 {
+					dw.AppendString("x")
+				}
+			}),
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, tt.writer.HasParts())
+		})
+	}
 }

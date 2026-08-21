@@ -439,11 +439,11 @@ func WithI18nStrategy(strategy string) SEOServiceOption {
 
 // WithProductionMode declares whether SEO artefacts are generated for a production build.
 //
-// In non-production builds robots.txt blocks all crawlers, so a development rebuild cannot
-// leave a permissive file behind in the local registry. Only a run mode supplies this; when
-// the option is not supplied the service assumes production, so a missing wiring path fails
-// open rather than de-indexing a live site. To withhold a real deploy, use
-// RobotsConfig.NeverIndex or RobotsConfig.PreviewDeployment.
+// In non-production builds robots.txt blocks all crawlers, so a development rebuild
+// cannot leave a permissive file behind in the local registry. Only a run mode supplies
+// this; when the option is not supplied the service assumes production, so a missing
+// wiring path fails open rather than de-indexing a live site. To withhold a real deploy,
+// use RobotsConfig.NeverIndex or RobotsConfig.PreviewDeployment.
 //
 // Takes isProduction (bool) which is true for a production build.
 //

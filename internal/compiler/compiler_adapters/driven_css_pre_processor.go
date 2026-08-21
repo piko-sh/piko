@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"cmp"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/cssinliner"
@@ -89,10 +90,18 @@ func NewCSSPreProcessor(
 // Takes cssContent (string) which is the raw CSS with potential @import rules.
 // Takes sourcePath (string) which identifies the source file for resolving relative
 // imports.
+// Takes startLocation (ast_domain.Location) which is where the style content begins in
+// the source file, so a failure is reported at the line the author wrote rather than at
+// the top of the file.
 //
 // Returns string which is the CSS with all imports inlined.
 // Returns error when import resolution or file reading fails.
-func (p *cssPreProcessor) InlineImports(ctx context.Context, cssContent string, sourcePath string) (string, error) {
+func (p *cssPreProcessor) InlineImports(
+	ctx context.Context, 
+	cssContent string, 
+	sourcePath string,
+	startLocation ast_domain.Location,
+) (string, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, _ := l.Span(ctx, "CSSPreProcessor.InlineImports",
 		logger_domain.String("sourcePath", sourcePath),
@@ -106,7 +115,7 @@ func (p *cssPreProcessor) InlineImports(ctx context.Context, cssContent string, 
 		ctx,
 		cssContent,
 		fsPath,
-		ast_domain.Location{Line: 1, Column: 1},
+		startLocation,
 		p.fsReader,
 	)
 	if err != nil {
@@ -114,7 +123,7 @@ func (p *cssPreProcessor) InlineImports(ctx context.Context, cssContent string, 
 	}
 
 	if ast_domain.HasErrors(diagnostics) {
-		return "", fmt.Errorf("CSS import inlining produced errors for %s: %s", sourcePath, diagnostics[0].Message)
+		return "", newCSSImportError(sourcePath, p.processor.ImportDiagnosticCode(), diagnostics)
 	}
 
 	return result, nil
@@ -135,4 +144,73 @@ func (p *cssPreProcessor) resolveToFilesystemPath(sourcePath string) string {
 		return filepath.Join(p.baseDir, filepath.FromSlash(relativePath))
 	}
 	return sourcePath
+}
+
+// cssImportError reports every error-severity diagnostic raised while inlining a
+// component's CSS imports.
+type cssImportError struct {
+	// SourcePath is the component whose styles failed.
+	SourcePath string
+
+	// ImportCode is the diagnostic code the inliner assigns to @import failures, which tells
+	// them apart from parser diagnostics.
+	ImportCode string
+
+	// Diagnostics holds every error-severity diagnostic from the inlining pass.
+	Diagnostics []*ast_domain.Diagnostic
+}
+
+// newCSSImportError collects the error-severity diagnostics from an inlining pass.
+//
+// Takes sourcePath (string) which identifies the component whose styles failed.
+// Takes importCode (string) which marks a diagnostic as an @import failure.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which holds the diagnostics from inlining.
+//
+// Returns error which describes every error-severity diagnostic found.
+func newCSSImportError(sourcePath, importCode string, diagnostics []*ast_domain.Diagnostic) error {
+	failures := make([]*ast_domain.Diagnostic, 0, len(diagnostics))
+	for _, diagnostic := range diagnostics {
+		if diagnostic != nil && diagnostic.Severity == ast_domain.Error {
+			failures = append(failures, diagnostic)
+		}
+	}
+
+	return &cssImportError{SourcePath: sourcePath, ImportCode: importCode, Diagnostics: failures}
+}
+
+// Error renders one line per failing diagnostic, each naming the file and position it
+// came from so the author can go straight to it.
+//
+// Returns string which is the summary of every failure.
+func (e *cssImportError) Error() string {
+	if len(e.Diagnostics) == 0 {
+		return fmt.Sprintf("%s: CSS import inlining failed", e.SourcePath)
+	}
+
+	lines := make([]string, 0, len(e.Diagnostics))
+	for _, diagnostic := range e.Diagnostics {
+		lines = append(lines, describeCSSDiagnostic(e.SourcePath, e.ImportCode, diagnostic))
+	}
+	return strings.Join(lines, "; ")
+}
+
+// describeCSSDiagnostic formats one diagnostic as position, cause and message.
+//
+// Takes sourcePath (string) which identifies the component whose styles failed.
+// Takes importCode (string) which marks a diagnostic as an @import failure.
+// Takes diagnostic (*ast_domain.Diagnostic) which is the diagnostic to describe.
+//
+// Returns string which is the one-line description.
+func describeCSSDiagnostic(sourcePath, importCode string, diagnostic *ast_domain.Diagnostic) string {
+	file := cmp.Or(diagnostic.SourcePath, sourcePath)
+
+	position := file
+	if diagnostic.Location.Line > 0 {
+		position = fmt.Sprintf("%s:%d:%d", file, diagnostic.Location.Line, diagnostic.Location.Column)
+	}
+
+	if diagnostic.Code == importCode && diagnostic.Expression != "" {
+		return fmt.Sprintf("%s: cannot resolve @import %q: %s", position, diagnostic.Expression, diagnostic.Message)
+	}
+	return fmt.Sprintf("%s: %s", position, diagnostic.Message)
 }

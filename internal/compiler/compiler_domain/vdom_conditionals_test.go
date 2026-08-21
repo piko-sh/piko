@@ -850,3 +850,206 @@ func TestVdomConditional_processChildNode(t *testing.T) {
 		assert.NotNil(t, expression.Data)
 	})
 }
+
+func TestVdomConditional_ChainLeavesTrailingSiblingsForTheCaller(t *testing.T) {
+	t.Parallel()
+
+	ifNode := makeElementNode("span", "if")
+	ifNode.DirIf = makeDirective("state.flag")
+
+	elseNode := makeElementNode("span", "else")
+	elseNode.DirElse = makeElseDirective()
+
+	tests := []struct {
+		name         string
+		children     []*ast_domain.TemplateNode
+		wantChainLen int
+		wantResumeAt int
+	}{
+		{
+			name:         "p-if as the last child",
+			children:     []*ast_domain.TemplateNode{ifNode},
+			wantChainLen: 1,
+			wantResumeAt: 1,
+		},
+		{
+			name: "interpolation after a p-if is handed back",
+			children: []*ast_domain.TemplateNode{
+				ifNode,
+				makeRichTextNode([]ast_domain.TextPart{richExpression("state.after")}, "t"),
+			},
+			wantChainLen: 1,
+			wantResumeAt: 1,
+		},
+		{
+			name: "interpolation between a p-if and a following element is handed back",
+			children: []*ast_domain.TemplateNode{
+				ifNode,
+				makeRichTextNode([]ast_domain.TextPart{richExpression("state.after")}, "t"),
+				makeElementNode("i", "tail"),
+			},
+			wantChainLen: 1,
+			wantResumeAt: 1,
+		},
+		{
+			name: "whitespace before a non-chain element is handed back",
+			children: []*ast_domain.TemplateNode{
+				ifNode,
+				makeTextNode(" ", "ws"),
+				makeElementNode("p", "tail"),
+			},
+			wantChainLen: 1,
+			wantResumeAt: 1,
+		},
+		{
+			name: "comment before a non-chain element is handed back",
+			children: []*ast_domain.TemplateNode{
+				ifNode,
+				makeCommentNode("keep me"),
+				makeElementNode("p", "tail"),
+			},
+			wantChainLen: 1,
+			wantResumeAt: 1,
+		},
+		{
+			name: "whitespace between chain members is absorbed",
+			children: []*ast_domain.TemplateNode{
+				ifNode,
+				makeTextNode(" ", "ws"),
+				makeCommentNode("between"),
+				elseNode,
+			},
+			wantChainLen: 2,
+			wantResumeAt: 4,
+		},
+		{
+			name: "trailing whitespace after a completed chain is handed back",
+			children: []*ast_domain.TemplateNode{
+				ifNode,
+				elseNode,
+				makeTextNode(" ", "ws"),
+			},
+			wantChainLen: 2,
+			wantResumeAt: 2,
+		},
+		{
+			name: "blank interpolation stays skippable so the chain still joins",
+			children: []*ast_domain.TemplateNode{
+				ifNode,
+				makeRichTextNode([]ast_domain.TextPart{richLiteral(" ")}, "ws"),
+				elseNode,
+			},
+			wantChainLen: 2,
+			wantResumeAt: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			chain, resumeIndex := collectConditionalChain(tt.children[0], tt.children, 0)
+
+			assert.Len(t, chain, tt.wantChainLen)
+			assert.Equal(t, tt.wantResumeAt, resumeIndex)
+		})
+	}
+}
+
+func TestVdomConditional_ChainContinuationRejectsANewChainHead(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		node *ast_domain.TemplateNode
+		want bool
+	}{
+		{
+			name: "plain element does not continue a chain",
+			node: makeElementNode("p", "k"),
+			want: false,
+		},
+		{
+			name: "p-else continues a chain",
+			node: func() *ast_domain.TemplateNode {
+				n := makeElementNode("p", "k")
+				n.DirElse = makeElseDirective()
+				return n
+			}(),
+			want: true,
+		},
+		{
+			name: "p-else-if continues a chain",
+			node: func() *ast_domain.TemplateNode {
+				n := makeElementNode("p", "k")
+				n.DirElseIf = makeDirective("state.other")
+				return n
+			}(),
+			want: true,
+		},
+		{
+			name: "p-if alongside p-else starts a new chain instead",
+			node: func() *ast_domain.TemplateNode {
+				n := makeElementNode("p", "k")
+				n.DirIf = makeDirective("state.b")
+				n.DirElse = makeElseDirective()
+				return n
+			}(),
+			want: false,
+		},
+		{
+			name: "p-if alongside p-else-if starts a new chain instead",
+			node: func() *ast_domain.TemplateNode {
+				n := makeElementNode("p", "k")
+				n.DirIf = makeDirective("state.b")
+				n.DirElseIf = makeDirective("state.c")
+				return n
+			}(),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, isChainContinuation(tt.node))
+		})
+	}
+}
+
+func TestVdomConditional_InsignificantNodeSeesInterpolation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		node *ast_domain.TemplateNode
+		name string
+		want bool
+	}{
+		{name: "comment", node: makeCommentNode("c"), want: true},
+		{name: "blank text", node: makeTextNode("  \n", "k"), want: true},
+		{name: "visible text", node: makeTextNode("x", "k"), want: false},
+		{name: "element", node: makeElementNode("p", "k"), want: false},
+		{
+			name: "interpolation is significant",
+			node: makeRichTextNode([]ast_domain.TextPart{richExpression("state.value")}, "k"),
+			want: false,
+		},
+		{
+			name: "blank literal interpolation is insignificant",
+			node: makeRichTextNode([]ast_domain.TextPart{richLiteral(" ")}, "k"),
+			want: true,
+		},
+		{
+			name: "visible literal interpolation is significant",
+			node: makeRichTextNode([]ast_domain.TextPart{richLiteral("x")}, "k"),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, isInsignificantNode(tt.node))
+		})
+	}
+}

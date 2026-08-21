@@ -282,7 +282,7 @@ func (*ASTConverter) convertEString(e *js_ast.EString) (parsejs.IExpr, error) {
 	str := helpers.UTF16ToString(e.Value)
 	return &parsejs.LiteralExpr{
 		TokenType: parsejs.StringToken,
-		Data:      fmt.Appendf(nil, fmtQuotedString, str),
+		Data:      helpers.QuoteForJSON(str, false),
 	}, nil
 }
 
@@ -920,7 +920,7 @@ func (c *ASTConverter) convertEImportString(e *js_ast.EImportString) (parsejs.IE
 			List: []parsejs.Arg{{
 				Value: &parsejs.LiteralExpr{
 					TokenType: parsejs.StringToken,
-					Data:      fmt.Appendf(nil, "%q", path),
+					Data:      helpers.QuoteForJSON(path, false),
 				},
 			}},
 		},

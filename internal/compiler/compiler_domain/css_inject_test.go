@@ -83,8 +83,7 @@ func TestInsertGetterIntoClass(t *testing.T) {
 			Parts: []js_ast.Part{{Stmts: []js_ast.Stmt{statement}}},
 		}
 
-		getter, err := createStaticGetterFunction("css", ".test{color:red}")
-		require.NoError(t, err)
+		getter := createStaticGetterFunction("css", ".test{color:red}")
 		require.NotNil(t, getter)
 
 		_, span, _ := log.Span(ctx, "test")
@@ -98,12 +97,12 @@ func TestInsertGetterIntoClass(t *testing.T) {
 			Parts: []js_ast.Part{{Stmts: []js_ast.Stmt{}}},
 		}
 
-		getter, err := createStaticGetterFunction("css", ".test{color:red}")
-		require.NoError(t, err)
+		getter := createStaticGetterFunction("css", ".test{color:red}")
+		require.NotNil(t, getter)
 
 		_, span, _ := log.Span(ctx, "test")
 		defer span.End()
-		err = insertGetterIntoClass(ctx, span, tree, "Missing", getter)
+		err := insertGetterIntoClass(ctx, span, tree, "Missing", getter)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found")
 	})

@@ -872,25 +872,10 @@ func resolveFormIntrinsicDimensions(box *LayoutBox, node *ast_domain.TemplateNod
 //
 // Returns string which is the plain text content, or empty if the node has no text.
 func extractTextContent(node *ast_domain.TemplateNode) string {
-	if node.TextContentWriter != nil && node.TextContentWriter.Len() > 0 {
+	if node.TextContentWriter.HasParts() {
 		return node.TextContentWriter.StringRaw()
 	}
-
-	if node.TextContent != "" {
-		return html.UnescapeString(node.TextContent)
-	}
-
-	if len(node.RichText) > 0 {
-		var builder strings.Builder
-		for _, part := range node.RichText {
-			if part.IsLiteral {
-				builder.WriteString(part.Literal)
-			}
-		}
-		return html.UnescapeString(builder.String())
-	}
-
-	return ""
+	return html.UnescapeString(node.OwnText())
 }
 
 // fixAnonymousBoxes wraps inline children in anonymous block boxes when a box contains a

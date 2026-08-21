@@ -77,7 +77,7 @@ func newTestProcessor(resolver resolver_domain.ResolverPort) *Processor {
 }
 
 func newTestInliner(processor *Processor, fsReader FSReaderPort) *Inliner {
-	return GetInliner(processor.GetResolver(), processor.GetParserOptions(), fsReader, "TEST", nil)
+	return GetInliner(processor.GetResolver(), processor.GetParserOptions(), fsReader, "TEST", "TEST-IMPORT", nil, Limits{})
 }
 
 func TestCSSInliner_BasicImport(t *testing.T) {
@@ -1147,7 +1147,7 @@ func TestGetInliner(t *testing.T) {
 		resolver := newPassthroughResolver()
 		processor := newTestProcessor(resolver)
 
-		ci := GetInliner(processor.GetResolver(), processor.GetParserOptions(), fsReader, "TEST", nil)
+		ci := GetInliner(processor.GetResolver(), processor.GetParserOptions(), fsReader, "TEST", "TEST-IMPORT", nil, Limits{})
 
 		require.NotNil(t, ci)
 		assert.Same(t, resolver, ci.resolver)

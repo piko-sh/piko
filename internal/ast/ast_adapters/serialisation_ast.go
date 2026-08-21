@@ -1076,85 +1076,18 @@ func (d *decoder) unpackTemplateNodeVectors(ctx context.Context, fb *ast_schema_
 
 // unpackTemplateNodeDirectives unpacks all distributed directive fields into the node.
 //
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which is the source flatbuffer.
+// Takes fb (*ast_schema_gen.TemplateNodeFB) which provides the serialised template node
+// data.
 // Takes node (*ast_domain.TemplateNode) which receives the unpacked directives.
 //
 // Returns error when any directive fails to unpack.
 func (d *decoder) unpackTemplateNodeDirectives(fb *ast_schema_gen.TemplateNodeFB, node *ast_domain.TemplateNode) error {
-	if err := d.unpackControlFlowDirectives(fb, node); err != nil {
-		return err
-	}
-	return d.unpackBindingDirectives(fb, node)
-}
-
-// unpackControlFlowDirectives unpacks the directives that decide whether and how often an
-// element renders.
-//
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which holds the serialised node.
-// Takes node (*ast_domain.TemplateNode) which receives the directives.
-//
-// Returns error when a directive fails to unpack.
-func (d *decoder) unpackControlFlowDirectives(fb *ast_schema_gen.TemplateNodeFB, node *ast_domain.TemplateNode) error {
-	var err error
-	if node.DirIf, err = d.unpackDirective(fb.DirectiveIf(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirIf: %w", err)
-	}
-	if node.DirElseIf, err = d.unpackDirective(fb.DirectiveElseIf(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirElseIf: %w", err)
-	}
-	if node.DirElse, err = d.unpackDirective(fb.DirectiveElse(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirElse: %w", err)
-	}
-	if node.DirFor, err = d.unpackDirective(fb.DirectiveFor(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirFor: %w", err)
-	}
-	if node.DirShow, err = d.unpackDirective(fb.DirectiveShow(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirShow: %w", err)
-	}
-	if node.DirKey, err = d.unpackDirective(fb.DirectiveKey(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirKey: %w", err)
-	}
-	if node.DirMemo, err = d.unpackDirective(fb.DirectiveMemo(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirMemo: %w", err)
-	}
-	if node.DirContext, err = d.unpackDirective(fb.DirectiveContext(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirContext: %w", err)
-	}
-	return nil
-}
-
-// unpackBindingDirectives unpacks the directives that bind data or behaviour to an
-// element that is already rendering.
-//
-// Takes fb (*ast_schema_gen.TemplateNodeFB) which holds the serialised node.
-// Takes node (*ast_domain.TemplateNode) which receives the directives.
-//
-// Returns error when a directive fails to unpack.
-func (d *decoder) unpackBindingDirectives(fb *ast_schema_gen.TemplateNodeFB, node *ast_domain.TemplateNode) error {
-	var err error
-	if node.DirModel, err = d.unpackDirective(fb.DirectiveModel(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirModel: %w", err)
-	}
-	if node.DirRef, err = d.unpackDirective(fb.DirectiveRef(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirRef: %w", err)
-	}
-	if node.DirSlot, err = d.unpackDirective(fb.DirectiveSlot(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirSlot: %w", err)
-	}
-	if node.DirClass, err = d.unpackDirective(fb.DirectiveClass(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirClass: %w", err)
-	}
-	if node.DirStyle, err = d.unpackDirective(fb.DirectiveStyle(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirStyle: %w", err)
-	}
-	if node.DirText, err = d.unpackDirective(fb.DirectiveText(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirText: %w", err)
-	}
-	if node.DirHTML, err = d.unpackDirective(fb.DirectiveHtml(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirHTML: %w", err)
-	}
-	if node.DirScaffold, err = d.unpackDirective(fb.DirectiveScaffold(&d.dirFB)); err != nil {
-		return fmt.Errorf("unpacking DirScaffold: %w", err)
+	for _, slot := range directiveSlots {
+		directive, err := d.unpackDirective(slot.fetch(fb, &d.dirFB))
+		if err != nil {
+			return fmt.Errorf("unpacking %s: %w", slot.name, err)
+		}
+		*slot.target(node) = directive
 	}
 	return nil
 }
@@ -1219,6 +1152,9 @@ func (d *decoder) unpackTemplateNode(ctx context.Context, fb *ast_schema_gen.Tem
 	}
 	if err := d.unpackTemplateNodeAnnotations(ctx, fb, node); err != nil {
 		return nil, fmt.Errorf("unpacking template node annotations: %w", err)
+	}
+	if err := checkSingleTextCarrier(node); err != nil {
+		return nil, fmt.Errorf("checking text carrier invariant: %w", err)
 	}
 
 	return node, nil

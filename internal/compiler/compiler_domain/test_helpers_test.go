@@ -24,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
@@ -50,4 +51,93 @@ func mustParseJS(t *testing.T, src string) (*js_ast.AST, *RegistryContext) {
 
 	registry := NewRegistryContext()
 	return result, registry
+}
+
+type mockCSSPreProcessor struct {
+	err         error
+	result      string
+	gotCSS      string
+	gotSource   string
+	gotLocation ast_domain.Location
+	called      bool
+}
+
+func (m *mockCSSPreProcessor) InlineImports(_ context.Context, cssContent string, sourcePath string,
+	startLocation ast_domain.Location,
+) (string, error) {
+	m.called = true
+	m.gotCSS = cssContent
+	m.gotSource = sourcePath
+	m.gotLocation = startLocation
+	return m.result, m.err
+}
+
+func richLiteral(text string) ast_domain.TextPart {
+	return ast_domain.TextPart{
+		Expression:    nil,
+		GoAnnotations: nil,
+		Literal:       text,
+		RawExpression: "",
+		Location:      ast_domain.Location{},
+		IsLiteral:     true,
+	}
+}
+
+func richExpression(raw string) ast_domain.TextPart {
+	return ast_domain.TextPart{
+		Expression:    &ast_domain.Identifier{Name: raw},
+		GoAnnotations: nil,
+		Literal:       "",
+		RawExpression: raw,
+		Location:      ast_domain.Location{},
+		IsLiteral:     false,
+	}
+}
+
+func makeRichTextNode(parts []ast_domain.TextPart, keyVal string) *ast_domain.TemplateNode {
+	return &ast_domain.TemplateNode{
+		NodeType: ast_domain.NodeText,
+		RichText: parts,
+		Key:      &ast_domain.StringLiteral{Value: keyVal},
+	}
+}
+
+func domCallName(t *testing.T, expr js_ast.Expr) string {
+	t.Helper()
+	call, isCall := expr.Data.(*js_ast.ECall)
+	if !isCall {
+		return ""
+	}
+	dot, isDot := call.Target.Data.(*js_ast.EDot)
+	if !isDot {
+		return ""
+	}
+	return dot.Name
+}
+
+func domCallStringArg(t *testing.T, expr js_ast.Expr) (string, bool) {
+	t.Helper()
+	call, isCall := expr.Data.(*js_ast.ECall)
+	if !isCall || len(call.Args) == 0 {
+		return "", false
+	}
+	str, isStr := call.Args[0].Data.(*js_ast.EString)
+	if !isStr {
+		return "", false
+	}
+	return helpers.UTF16ToString(str.Value), true
+}
+
+func domCallArgCount(t *testing.T, expr js_ast.Expr) int {
+	t.Helper()
+
+	call, isCall := expr.Data.(*js_ast.ECall)
+	require.True(t, isCall, "expected a dom call")
+	return len(call.Args)
+}
+
+func writerHoldingText(text string) *ast_domain.DirectWriter {
+	writer := &ast_domain.DirectWriter{}
+	writer.AppendString(text)
+	return writer
 }

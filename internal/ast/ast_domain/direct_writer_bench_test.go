@@ -131,8 +131,7 @@ func resetSwitchUnroll(dw *DirectWriter) {
 	dw.borrowedBufs = dw.borrowedBufs[:0]
 
 	dw.Name = ""
-	dw.cachedString = ""
-	dw.hasCachedString = false
+	dw.cachedString.Store(nil)
 }
 
 func BenchmarkDirectWriterReset_ConditionalClear(b *testing.B) {
@@ -176,10 +175,7 @@ func resetConditionalClear(dw *DirectWriter) {
 	if dw.Name != "" {
 		dw.Name = ""
 	}
-	if dw.hasCachedString {
-		dw.cachedString = ""
-		dw.hasCachedString = false
-	}
+	dw.cachedString.Store(nil)
 }
 
 func BenchmarkDirectWriterReset_Combined(b *testing.B) {
@@ -232,8 +228,5 @@ func resetCombined(dw *DirectWriter) {
 	if dw.Name != "" {
 		dw.Name = ""
 	}
-	if dw.hasCachedString {
-		dw.cachedString = ""
-		dw.hasCachedString = false
-	}
+	dw.cachedString.Store(nil)
 }

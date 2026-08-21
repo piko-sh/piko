@@ -19,6 +19,7 @@
 package cssinliner
 
 import (
+	"cmp"
 	"context"
 	"strings"
 	"time"
@@ -41,12 +42,20 @@ type ProcessorConfig struct {
 	// Options controls CSS output formatting (minification, etc.).
 	Options *config.Options
 
-	// DiagnosticCode is assigned to diagnostics generated during processing (e.g. "T114" for
-	// import errors, "T115" for processing errors).
+	// DiagnosticCode is assigned to diagnostics generated during processing (e.g. "T115" for
+	// processing errors).
 	DiagnosticCode string
+
+	// ImportDiagnosticCode is assigned to diagnostics raised because an @import could not be
+	// resolved or read, so callers can tell those apart from parser diagnostics. Defaults to
+	// DiagnosticCode, and to CodeUnresolvedImport when neither is set.
+	ImportDiagnosticCode string
 
 	// Loader configures the CSS parser mode (e.g. LoaderLocalCSS).
 	Loader config.Loader
+
+	// Limits bounds import depth and total inlined size. A zero value uses the defaults.
+	Limits Limits
 }
 
 // Processor provides CSS @import inlining and optional minification.
@@ -64,8 +73,14 @@ type Processor struct {
 	// diagnosticCode is assigned to generated diagnostics.
 	diagnosticCode string
 
+	// importDiagnosticCode is assigned to diagnostics raised by @import resolution.
+	importDiagnosticCode string
+
 	// parserOptions holds the CSS parser settings.
 	parserOptions css_parser.Options
+
+	// limits bounds import depth and total inlined size for every operation.
+	limits Limits
 }
 
 // NewProcessor creates a new CSS processor with the given settings.
@@ -79,11 +94,13 @@ func NewProcessor(cfg ProcessorConfig) *Processor {
 		options = &config.Options{}
 	}
 	return &Processor{
-		resolver:       cfg.Resolver,
-		options:        options,
-		parserOptions:  css_parser.OptionsFromConfig(cfg.Loader, options),
-		diagnosticCode: cfg.DiagnosticCode,
-		parseCache:     newParseCache(),
+		resolver:             cfg.Resolver,
+		options:              options,
+		parserOptions:        css_parser.OptionsFromConfig(cfg.Loader, options),
+		diagnosticCode:       cfg.DiagnosticCode,
+		importDiagnosticCode: cmp.Or(cfg.ImportDiagnosticCode, cfg.DiagnosticCode, CodeUnresolvedImport),
+		limits:               cfg.Limits.withDefaults(),
+		parseCache:           newParseCache(),
 	}
 }
 
@@ -104,11 +121,13 @@ func (p *Processor) SetResolver(resolver resolver_domain.ResolverPort) {
 // Returns *Processor which is a new processor with the given resolver.
 func (p *Processor) WithResolver(resolver resolver_domain.ResolverPort) *Processor {
 	return &Processor{
-		resolver:       resolver,
-		options:        p.options,
-		parserOptions:  p.parserOptions,
-		diagnosticCode: p.diagnosticCode,
-		parseCache:     p.parseCache,
+		resolver:             resolver,
+		options:              p.options,
+		parserOptions:        p.parserOptions,
+		diagnosticCode:       p.diagnosticCode,
+		importDiagnosticCode: p.importDiagnosticCode,
+		limits:               p.limits,
+		parseCache:           p.parseCache,
 	}
 }
 
@@ -166,14 +185,12 @@ func (p *Processor) Process(
 	if trimmed == "" {
 		return "", nil, nil
 	}
-
-	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode, p.parseCache)
+	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode, p.importDiagnosticCode, p.parseCache, p.limits)
 	defer PutInliner(inliner)
 	tree, inlinerDiags := inliner.InlineAndParse(ctx, trimmed, sourcePath, startLocation)
 
 	if tree == nil {
 		ProcessErrorCount.Add(ctx, 1)
-		l.Error("Failed to process CSS with fatal error during import resolution")
 		return "", inlinerDiags, nil
 	}
 
@@ -229,13 +246,12 @@ func (p *Processor) InlineToAST(
 		return nil, nil, nil
 	}
 
-	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode, p.parseCache)
+	inliner := GetInliner(p.resolver, p.parserOptions, fsReader, p.diagnosticCode, p.importDiagnosticCode, p.parseCache, p.limits)
 	defer PutInliner(inliner)
 	tree, inlinerDiags := inliner.InlineAndParse(ctx, trimmed, sourcePath, startLocation)
 
 	if tree == nil {
 		ProcessErrorCount.Add(ctx, 1)
-		l.Error("Failed to process CSS with fatal error during import resolution")
 		return nil, inlinerDiags, nil
 	}
 
@@ -246,4 +262,12 @@ func (p *Processor) InlineToAST(
 		logger_domain.Int("ruleCount", len(tree.Rules)),
 	)
 	return tree, inlinerDiags, nil
+}
+
+// ImportDiagnosticCode returns the code assigned to diagnostics raised by @import
+// resolution, so a caller can tell those apart from parser diagnostics.
+//
+// Returns string which is the configured import diagnostic code.
+func (p *Processor) ImportDiagnosticCode() string {
+	return p.importDiagnosticCode
 }

@@ -65,10 +65,11 @@ func NewCSSProcessor(
 ) *CSSProcessor {
 	return &CSSProcessor{
 		processor: cssinliner.NewProcessor(cssinliner.ProcessorConfig{
-			Resolver:       resolver,
-			Loader:         loader,
-			Options:        options,
-			DiagnosticCode: annotator_dto.CodeCSSProcessingError,
+			Resolver:             resolver,
+			Loader:               loader,
+			Options:              options,
+			DiagnosticCode:       annotator_dto.CodeCSSProcessingError,
+			ImportDiagnosticCode: annotator_dto.CodeCSSImportError,
 		}),
 	}
 }

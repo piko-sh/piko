@@ -29,6 +29,36 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+const (
+	// interpolationOpen is the delimiter that starts a text interpolation, written back out
+	// when a node's authored form is rebuilt from its RichText parts.
+	interpolationOpen = "{{ "
+
+	// interpolationClose is the delimiter that ends a text interpolation, written back out
+	// when a node's authored form is rebuilt from its RichText parts.
+	interpolationClose = " }}"
+
+	// keyTagName is the structured log key carrying a node's tag name.
+	keyTagName = "tag_name"
+)
+
+// textCarrier identifies which of a node's three text fields holds its content.
+type textCarrier uint8
+
+const (
+	// carrierNone indicates the node holds no text in any of the three fields.
+	carrierNone textCarrier = iota
+
+	// carrierRich indicates the text lives in RichText as literal and expression parts.
+	carrierRich
+
+	// carrierWriter indicates the text lives in TextContentWriter as appended parts.
+	carrierWriter
+
+	// carrierStatic indicates the text lives in TextContent as a plain string.
+	carrierStatic
+)
+
 // RawText returns the concatenated raw text content of a node and its descendants,
 // including the raw string of any expressions.
 //
@@ -42,7 +72,7 @@ func (n *TemplateNode) RawText(ctx context.Context) string {
 	}
 
 	var builder strings.Builder
-	walkTextRaw(ctx, n, &builder)
+	walkTextInto(ctx, n, &builder, 0, (*TemplateNode).OwnRawText)
 	return strings.TrimSpace(builder.String())
 }
 
@@ -59,7 +89,7 @@ func (n *TemplateNode) Text(ctx context.Context) string {
 	}
 
 	var builder strings.Builder
-	walkText(ctx, n, &builder)
+	walkTextInto(ctx, n, &builder, 0, (*TemplateNode).OwnText)
 	return strings.TrimSpace(builder.String())
 }
 
@@ -306,26 +336,145 @@ func (n *TemplateNode) ShouldFormatBlock() bool {
 	return n != nil && n.PreferredFormat == FormatBlock
 }
 
-// walkText walks the node tree and extracts text into the builder.
+// textCarrier reports which of the node's three text fields holds its content.
 //
-// This is the recursive helper for Text.
+// Returns textCarrier which names the populated field, or carrierNone when the node holds
+// no text.
+func (n *TemplateNode) textCarrier() textCarrier {
+	switch {
+	case n == nil:
+		return carrierNone
+	case len(n.RichText) > 0:
+		return carrierRich
+	case n.TextContentWriter.HasParts():
+		return carrierWriter
+	case n.TextContent != "":
+		return carrierStatic
+	default:
+		return carrierNone
+	}
+}
+
+// OwnText returns this node's own text as it will appear in rendered output, without
+// descending into children.
 //
-// Takes ctx (context.Context) which carries the request-scoped logger.
-// Takes node (*TemplateNode) which is the current node to extract text from.
-// Takes builder (*strings.Builder) which collects the extracted text.
-func walkText(ctx context.Context, node *TemplateNode, builder *strings.Builder) {
+// Returns string which is the node's own text, or an empty string when the node is nil or
+// holds no text.
+func (n *TemplateNode) OwnText() string {
+	switch n.textCarrier() {
+	case carrierRich:
+		var builder strings.Builder
+		for _, part := range n.RichText {
+			if part.IsLiteral {
+				builder.WriteString(part.Literal)
+			}
+		}
+		return builder.String()
+	case carrierWriter:
+		return n.TextContentWriter.String()
+	case carrierStatic:
+		return n.TextContent
+	default:
+		return ""
+	}
+}
+
+// OwnTextRaw returns this node's own text without HTML escaping, without descending into
+// children.
+//
+// Returns string which is the node's own unescaped text, or an empty string when the node
+// is nil or holds no text.
+func (n *TemplateNode) OwnTextRaw() string {
+	if n.textCarrier() == carrierWriter {
+		return n.TextContentWriter.StringRaw()
+	}
+	return n.OwnText()
+}
+
+// OwnRawText returns this node's own text as it was authored in the template source, with
+// interpolations rebuilt as "{{ expression }}", without descending into children.
+//
+// Returns string which is the node's own authored text, or an empty string when the node
+// is nil or holds no authored text.
+func (n *TemplateNode) OwnRawText() string {
+	if n == nil {
+		return ""
+	}
+	if n.textCarrier() != carrierRich {
+		return n.TextContent
+	}
+
+	var builder strings.Builder
+	for _, part := range n.RichText {
+		if part.IsLiteral {
+			builder.WriteString(part.Literal)
+			continue
+		}
+		builder.WriteString(interpolationOpen)
+		builder.WriteString(part.RawExpression)
+		builder.WriteString(interpolationClose)
+	}
+	return builder.String()
+}
+
+// IsWhitespaceOnlyText reports whether the node is a text node whose authored content is
+// nothing but whitespace.
+//
+// Returns bool which is true when the node is a text node carrying only whitespace.
+func (n *TemplateNode) IsWhitespaceOnlyText() bool {
+	if n == nil || n.NodeType != NodeText {
+		return false
+	}
+
+	switch n.textCarrier() {
+	case carrierRich:
+		for _, part := range n.RichText {
+			if !part.IsLiteral || strings.TrimSpace(part.Literal) != "" {
+				return false
+			}
+		}
+		return true
+	case carrierWriter:
+		return strings.TrimSpace(n.TextContentWriter.String()) == ""
+	case carrierStatic:
+		return strings.TrimSpace(n.TextContent) == ""
+	default:
+		return true
+	}
+}
+
+// walkTextInto walks the node tree and gathers text into the builder, taking the text of
+// each node from the supplied accessor.
+//
+// Takes node (*TemplateNode) which is the current node to gather text from.
+// Takes builder (*strings.Builder) which collects the gathered text.
+// Takes depth (int) which is the current recursion depth.
+// Takes textOf (func(*TemplateNode) string) which reads one node's own text.
+func walkTextInto(
+	ctx context.Context,
+	node *TemplateNode,
+	builder *strings.Builder,
+	depth int,
+	textOf func(*TemplateNode) string,
+) {
 	if node == nil {
+		return
+	}
+	if depth > maxWalkDepth {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Text walk stopped at the depth limit; the result is incomplete",
+			logger_domain.Int("maxDepth", maxWalkDepth),
+			logger_domain.String(keyTagName, node.TagName))
 		return
 	}
 
 	switch node.NodeType {
 	case NodeText:
-		content := extractPlainTextContent(node)
-		appendNormalisedText(builder, content)
+		appendNormalisedText(builder, textOf(node))
 
 	case NodeElement, NodeFragment:
 		for _, child := range node.Children {
-			walkText(ctx, child, builder)
+			walkTextInto(ctx, child, builder, depth+1, textOf)
 		}
 
 	case NodeComment:
@@ -335,92 +484,8 @@ func walkText(ctx context.Context, node *TemplateNode, builder *strings.Builder)
 		_, l := logger_domain.From(ctx, log)
 		l.Warn("Unknown node type in text walk",
 			logger_domain.Int("node_type", int(node.NodeType)),
-			logger_domain.String("tag_name", node.TagName))
+			logger_domain.String(keyTagName, node.TagName))
 	}
-}
-
-// walkTextRaw walks a template tree and gathers raw text content.
-//
-// This is the recursive helper for RawText. It visits each node and adds any text content
-// to the builder. Element and fragment nodes are walked in turn. Comment nodes are
-// skipped.
-//
-// Takes ctx (context.Context) which carries the request-scoped logger.
-// Takes node (*TemplateNode) which is the current node to process.
-// Takes builder (*strings.Builder) which gathers the extracted text.
-func walkTextRaw(ctx context.Context, node *TemplateNode, builder *strings.Builder) {
-	if node == nil {
-		return
-	}
-
-	switch node.NodeType {
-	case NodeText:
-		content := extractRawTextContent(node)
-		appendNormalisedText(builder, content)
-
-	case NodeElement, NodeFragment:
-		for _, child := range node.Children {
-			walkTextRaw(ctx, child, builder)
-		}
-
-	case NodeComment:
-		return
-
-	default:
-		_, l := logger_domain.From(ctx, log)
-		l.Warn("Unknown node type in raw text walk",
-			logger_domain.Int("node_type", int(node.NodeType)),
-			logger_domain.String("tag_name", node.TagName))
-	}
-}
-
-// extractPlainTextContent gets the plain text from a template node.
-//
-// Takes node (*TemplateNode) which contains rich text or plain content.
-//
-// Returns string which is the text with template markers removed.
-func extractPlainTextContent(node *TemplateNode) string {
-	if len(node.RichText) == 0 {
-		if node.TextContentWriter != nil && node.TextContentWriter.Len() > 0 {
-			return node.TextContentWriter.String()
-		}
-		return node.TextContent
-	}
-
-	var richSb strings.Builder
-	for _, part := range node.RichText {
-		if part.IsLiteral {
-			richSb.WriteString(part.Literal)
-		}
-	}
-	return richSb.String()
-}
-
-// extractRawTextContent builds the raw text content of a template node.
-//
-// When the node has no rich text parts, returns the plain text content. Otherwise,
-// rebuilds the original template string by joining literal text and wrapping expressions
-// in template markers.
-//
-// Takes node (*TemplateNode) which contains the text or rich text parts.
-//
-// Returns string which is the rebuilt raw content.
-func extractRawTextContent(node *TemplateNode) string {
-	if len(node.RichText) == 0 {
-		return node.TextContent
-	}
-
-	var richSb strings.Builder
-	for _, part := range node.RichText {
-		if part.IsLiteral {
-			richSb.WriteString(part.Literal)
-		} else {
-			richSb.WriteString("{{ ")
-			richSb.WriteString(part.RawExpression)
-			richSb.WriteString(" }}")
-		}
-	}
-	return richSb.String()
 }
 
 // appendNormalisedText appends text to the builder with whitespace normalised. It splits

@@ -146,6 +146,10 @@ type sfcCompilationContext struct {
 	// diagnostics collects non-fatal issues encountered during compilation; these flow into
 	// CompiledArtefact.Diagnostics so callers can surface them to the user.
 	diagnostics []compiler_dto.CompilationDiagnostic
+
+	// stylesLocation is where the first contributing style block's content begins in the
+	// source file, so a style failure is reported at the line the author wrote.
+	stylesLocation ast_domain.Location
 }
 
 // recordCompilationMetrics records timing and size metrics for SFC compilation.
@@ -184,36 +188,50 @@ func (cc *sfcCompilationContext) extractScriptAndStyles() {
 	}
 
 	var stylesBuilder strings.Builder
+	lineInBuffer := 0
 	for _, style := range cc.sfcParseResult.Styles {
 		if _, ok := style.Attributes["aesthetic"]; ok {
 			continue
 		}
-		if stylesBuilder.Len() > 0 {
+		if stylesBuilder.Len() == 0 {
+			cc.stylesLocation = ast_domain.Location{
+				Line:   style.ContentLocation.Line,
+				Column: style.ContentLocation.Column,
+				Offset: 0,
+			}
+			lineInBuffer = style.ContentLocation.Line
+		} else if padding := style.ContentLocation.Line - lineInBuffer; padding > 0 {
+			stylesBuilder.WriteString(strings.Repeat("\n", padding))
+			lineInBuffer += padding
+		} else {
 			stylesBuilder.WriteString("\n")
+			lineInBuffer++
 		}
 		stylesBuilder.WriteString(style.Content)
+		lineInBuffer += strings.Count(style.Content, "\n")
 	}
 	cc.stylesDefault = stylesBuilder.String()
 }
 
 // preProcessStyles resolves CSS @import statements in the concatenated style content
 // using the CSSPreProcessorPort stored on the compilation context. When no pre-processor
-// is available or processing fails, the raw CSS is kept as-is.
-func (cc *sfcCompilationContext) preProcessStyles(ctx context.Context) {
+// is available the raw CSS is kept as-is.
+//
+// Returns error when an @import cannot be resolved or its target cannot be read.
+func (cc *sfcCompilationContext) preProcessStyles(ctx context.Context) error {
 	if cc.stylesDefault == "" {
-		return
+		return nil
 	}
 	preProcessor := cc.cssPreProcessor
 	if preProcessor == nil {
-		return
+		return nil
 	}
-	processed, err := preProcessor.InlineImports(ctx, cc.stylesDefault, cc.sourceFilename)
+	processed, err := preProcessor.InlineImports(ctx, cc.stylesDefault, cc.sourceFilename, cc.stylesLocation)
 	if err != nil {
-		_, l := logger_domain.From(ctx, log)
-		l.Warn("CSS import inlining failed, using raw CSS", logger_domain.Error(err))
-		return
+		return fmt.Errorf("resolving component styles: %w", err)
 	}
 	cc.stylesDefault = processed
+	return nil
 }
 
 // extractTimeline parses the piko:timeline blocks, if present, and stores the resulting
@@ -497,23 +515,17 @@ func (cc *sfcCompilationContext) buildVDOMRenderMethod(ctx context.Context, tAST
 }
 
 // insertStaticCSS adds the default scoped styles to the JavaScript AST.
-func (cc *sfcCompilationContext) insertStaticCSS(ctx context.Context) {
+//
+// Returns error when the styles cannot be minified or the component class cannot be
+// found.
+func (cc *sfcCompilationContext) insertStaticCSS(ctx context.Context) error {
 	if cc.stylesDefault == "" {
-		return
+		return nil
 	}
 	if err := InsertStaticCSS(ctx, cc.jsAST, cc.stylesDefault, cc.className); err != nil {
-		_, l := logger_domain.From(ctx, log)
-		l.Warn("InsertStaticCSS failed; component CSS will be dropped",
-			logger_domain.String("class", cc.className),
-			logger_domain.String("source", cc.sourceFilename),
-			logger_domain.Error(err),
-		)
-		cc.diagnostics = append(cc.diagnostics, compiler_dto.CompilationDiagnostic{
-			Severity:         "warning",
-			Message:          fmt.Sprintf("component %s: failed to insert static CSS, styling dropped: %v", cc.className, err),
-			SourceIdentifier: cc.sourceFilename,
-		})
+		return fmt.Errorf("inserting styles for component %s: %w", cc.className, err)
 	}
+	return nil
 }
 
 // finaliseAST completes AST processing by rewriting it, adding custom element definitions
@@ -696,7 +708,11 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 	}
 
 	cc.extractScriptAndStyles()
-	cc.preProcessStyles(ccCtx)
+	if err := cc.preProcessStyles(ccCtx); err != nil {
+		l.ReportError(span, err, "style pre-processing failed")
+		SFCCompilationErrorCount.Add(ctx, 1)
+		return nil, err
+	}
 	cc.extractTimeline(ccCtx)
 
 	ccCtx, err = cc.setupNamingAndContext(ccCtx, span)
@@ -718,7 +734,11 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 		return nil, fmt.Errorf("processing template: %w", err)
 	}
 
-	cc.insertStaticCSS(ccCtx)
+	if err := cc.insertStaticCSS(ccCtx); err != nil {
+		l.ReportError(span, err, "static CSS insertion failed")
+		SFCCompilationErrorCount.Add(ctx, 1)
+		return nil, err
+	}
 
 	cc.finaliseAST(ccCtx)
 
@@ -1126,12 +1146,8 @@ func buildCoreImport(tree *js_ast.AST) js_ast.Stmt {
 	coreImportRecordIndex := safeconv.IntToUint32(len(tree.ImportRecords))
 	tree.ImportRecords = append(tree.ImportRecords, coreImportRecord)
 
-	coreImportItems := []js_ast.ClauseItem{
-		{Alias: "piko", OriginalName: "piko"},
-	}
-
 	return js_ast.Stmt{Data: &js_ast.SImport{
-		Items:             &coreImportItems,
+		Items:             new([]js_ast.ClauseItem{{Alias: "piko", OriginalName: "piko"}}),
 		ImportRecordIndex: coreImportRecordIndex,
 		IsSingleLine:      true,
 	}}
@@ -1152,14 +1168,8 @@ func buildComponentsImport(tree *js_ast.AST) js_ast.Stmt {
 	componentsImportRecordIndex := safeconv.IntToUint32(len(tree.ImportRecords))
 	tree.ImportRecords = append(tree.ImportRecords, componentsImportRecord)
 
-	componentsImportItems := []js_ast.ClauseItem{
-		{Alias: "PPElement", OriginalName: "PPElement"},
-		{Alias: "dom", OriginalName: "dom"},
-		{Alias: "makeReactive", OriginalName: "makeReactive"},
-	}
-
 	return js_ast.Stmt{Data: &js_ast.SImport{
-		Items:             &componentsImportItems,
+		Items:             new([]js_ast.ClauseItem{{Alias: "PPElement", OriginalName: "PPElement"}, {Alias: "dom", OriginalName: "dom"}, {Alias: "makeReactive", OriginalName: "makeReactive"}}),
 		ImportRecordIndex: componentsImportRecordIndex,
 		IsSingleLine:      true,
 	}}
@@ -1183,12 +1193,8 @@ func buildActionsImport(tree *js_ast.AST) js_ast.Stmt {
 	actionsImportRecordIndex := safeconv.IntToUint32(len(tree.ImportRecords))
 	tree.ImportRecords = append(tree.ImportRecords, actionsImportRecord)
 
-	actionsImportItems := []js_ast.ClauseItem{
-		{Alias: "action", OriginalName: "action"},
-	}
-
 	return js_ast.Stmt{Data: &js_ast.SImport{
-		Items:             &actionsImportItems,
+		Items:             new([]js_ast.ClauseItem{{Alias: "action", OriginalName: "action"}}),
 		ImportRecordIndex: actionsImportRecordIndex,
 		IsSingleLine:      true,
 	}}

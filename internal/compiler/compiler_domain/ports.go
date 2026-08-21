@@ -21,6 +21,7 @@ package compiler_domain
 import (
 	"context"
 
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/compiler/compiler_dto"
 )
 
@@ -55,10 +56,17 @@ type CSSPreProcessorPort interface {
 	// Takes cssContent (string) which is the raw CSS with potential @import rules.
 	// Takes sourcePath (string) which identifies the source file for resolving relative
 	// imports.
+	// Takes startLocation (ast_domain.Location) which is where the style content begins in
+	// the source file, so a failure can be reported at the line the author wrote.
 	//
 	// Returns string which is the CSS with all imports inlined.
 	// Returns error when import resolution or file reading fails.
-	InlineImports(ctx context.Context, cssContent string, sourcePath string) (string, error)
+	InlineImports(
+		ctx context.Context, 
+		cssContent string, 
+		sourcePath string,
+		startLocation ast_domain.Location,
+	) (string, error)
 }
 
 // CompilerService defines the interface for compiling single-file components.

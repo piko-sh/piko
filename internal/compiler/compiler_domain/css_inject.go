@@ -40,8 +40,7 @@ import (
 // Takes cascadingStyleSheet (string) which is the CSS content to minify and insert.
 // Takes targetClassName (string) which identifies the class to add the getter to.
 //
-// Returns error when CSS minification fails, getter creation fails, or the target class
-// cannot be found.
+// Returns error when CSS minification fails or the target class cannot be found.
 func InsertStaticCSS(
 	executionContext context.Context,
 	fullSyntaxTree *js_ast.AST,
@@ -69,11 +68,7 @@ func InsertStaticCSS(
 		return fmt.Errorf("minifying CSS: %w", err)
 	}
 
-	staticGetterFunction, err := createCSSGetterWithMetrics(ctx, span, minifiedStyles)
-	if err != nil {
-		CSSInsertionErrorCount.Add(ctx, 1)
-		return fmt.Errorf("creating CSS getter: %w", err)
-	}
+	staticGetterFunction := createStaticGetterFunction("css", minifiedStyles)
 
 	if err := insertGetterIntoClass(ctx, span, fullSyntaxTree, targetClassName, staticGetterFunction); err != nil {
 		CSSInsertionErrorCount.Add(ctx, 1)
@@ -114,23 +109,6 @@ func minifyCSSWithMetrics(ctx context.Context, span trace.Span, css string) (str
 	}
 
 	return minifiedStyles, nil
-}
-
-// createCSSGetterWithMetrics creates a getter property for static CSS content.
-//
-// Takes span (trace.Span) which provides tracing context.
-// Takes minifiedCSS (string) which contains the CSS content to embed.
-//
-// Returns *js_ast.Property which is the getter property for the CSS.
-// Returns error when the static getter function cannot be created.
-func createCSSGetterWithMetrics(ctx context.Context, span trace.Span, minifiedCSS string) (*js_ast.Property, error) {
-	ctx, l := logger_domain.From(ctx, log)
-	staticGetterFunction, err := createStaticGetterFunction("css", minifiedCSS)
-	if err != nil {
-		l.ReportError(span, err, "Failed to create static getter for CSS")
-		return nil, fmt.Errorf("unable to create static getter for CSS: %w", err)
-	}
-	return staticGetterFunction, nil
 }
 
 // insertGetterIntoClass finds the target class and adds the getter property.

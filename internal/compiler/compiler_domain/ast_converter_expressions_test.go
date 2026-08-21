@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 	parsejs "github.com/tdewolff/parse/v2/js"
 	"piko.sh/piko/internal/esbuild/ast"
+	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/esbuild/logger"
 )
@@ -1428,4 +1429,86 @@ func TestConvertENumber_NonFinite(t *testing.T) {
 		assert.Equal(t, parsejs.DecimalToken, lit.TokenType)
 		assert.Equal(t, "42", string(lit.Data))
 	})
+}
+
+func TestASTConverter_ConvertEStringEmitsJavaScriptCorrectEscapes(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		value string
+	}{
+		{name: "plain ascii", value: "hello"},
+		{name: "bell", value: "\a"},
+		{name: "nul", value: "\x00"},
+		{name: "delete", value: "\x7f"},
+		{name: "astral emoji", value: "a\U0001F600b"},
+		{name: "backslash", value: `a\b`},
+		{name: "double quote", value: `say "hi"`},
+		{name: "newline and tab", value: "a\n\tb"},
+		{name: "carriage return", value: "a\rb"},
+		{name: "vertical tab and form feed", value: "a\v\fb"},
+		{name: "non-ascii letters", value: "café"},
+		{name: "dollar brace", value: "${x}"},
+		{name: "backtick", value: "`"},
+		{name: "css icon font escape", value: `.i:before{content:"\eb1c"}`},
+		{name: "css escaped selector", value: `.w-1\/2{width:50%}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			converter := NewASTConverter(nil, nil, NewRegistryContext())
+			expr, err := converter.convertEString(&js_ast.EString{Value: helpers.StringToUTF16(tt.value)})
+			require.NoError(t, err)
+
+			literal, isLiteral := expr.(*parsejs.LiteralExpr)
+			require.True(t, isLiteral, "a string must convert to a literal expression")
+
+			source := "const value = " + string(literal.Data) + ";"
+			parser := NewTypeScriptParser()
+			tree, parseErr := parser.ParseTypeScriptStrict(source, "quote.ts")
+			require.NoError(t, parseErr, "emitted literal must parse: %s", source)
+
+			decoded, found := singleStringDeclaration(t, tree)
+			require.True(t, found, "no string literal found in %s", source)
+			assert.Equal(t, tt.value, decoded, "the literal must decode to the value it was built from")
+		})
+	}
+}
+
+func TestASTConverter_ConvertEStringNeverEmitsEscapesJavaScriptLacks(t *testing.T) {
+	t.Parallel()
+
+	converter := NewASTConverter(nil, nil, NewRegistryContext())
+
+	bell, err := converter.convertEString(&js_ast.EString{Value: helpers.StringToUTF16("\a")})
+	require.NoError(t, err)
+	assert.NotContains(t, string(bell.(*parsejs.LiteralExpr).Data), `\a`,
+		`\a is a Go escape that JavaScript decodes as a plain "a"`)
+
+	astral, err := converter.convertEString(&js_ast.EString{Value: helpers.StringToUTF16("\U0001F600")})
+	require.NoError(t, err)
+	assert.NotContains(t, string(astral.(*parsejs.LiteralExpr).Data), `\U`,
+		`\U is not JavaScript syntax`)
+}
+
+func singleStringDeclaration(t *testing.T, tree *js_ast.AST) (string, bool) {
+	t.Helper()
+
+	for _, statement := range getStmtsFromAST(tree) {
+		local, isLocal := statement.Data.(*js_ast.SLocal)
+		if !isLocal {
+			continue
+		}
+		for _, declaration := range local.Decls {
+			str, isStr := declaration.ValueOrNil.Data.(*js_ast.EString)
+			if !isStr {
+				continue
+			}
+			return helpers.UTF16ToString(str.Value), true
+		}
+	}
+	return "", false
 }

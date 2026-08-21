@@ -18,7 +18,7 @@
 
 import type {PikoNamespace} from "@piko/shared-types";
 
-import type {DomAPI, VirtualNode} from "./types";
+import type {DomAPI, ElementVNode, VirtualNode} from "./types";
 
 /** Access the piko namespace set by core on window. */
 function getPiko(): PikoNamespace | undefined {
@@ -68,16 +68,20 @@ export const dom: DomAPI = {
         };
     },
 
-    el(tag, id, props = {}, children = []) {
+    el(tag, id, props = {}, children = [], html) {
         const finalProps = {...props};
         const childArray = normaliseChildren(children);
-        return {
+        const node: ElementVNode = {
             _type: "element",
             tag,
             props: finalProps,
             children: childArray as VirtualNode[],
             key: id,
         };
+        if (html != null) {
+            node.html = html;
+        }
+        return node;
     },
 
     frag(id, children = [], props = {}) {
@@ -107,7 +111,7 @@ export const dom: DomAPI = {
         return s;
     },
 
-    pikoEl(rawTag, id, props = {}, children = [], moduleName = "") {
+    pikoEl(rawTag, id, props = {}, children = [], moduleName = "", html) {
         const tag = dom.resolveTag(rawTag);
         const finalProps = {...props};
         const rawTagStr = String(rawTag ?? "");
@@ -127,7 +131,7 @@ export const dom: DomAPI = {
             finalProps["src"] = pikoNs.assets.resolve(finalProps["src"], moduleName || undefined);
         }
 
-        return dom.el(tag, id, finalProps, children);
+        return dom.el(tag, id, finalProps, children, html);
     },
 };
 

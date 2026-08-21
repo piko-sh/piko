@@ -43,7 +43,7 @@ import { action } from "/_piko/assets/pk-js/pk/actions.gen.js";
             super.connectedCallback();
         }
         renderVDOM () {
-            return dom.el("div", "r.0", {}, dom.frag("r.0_f", [dom.el("div", "r.0:0", {"id": "html-content"}, [dom.html(String(this.$$ctx.state.htmlContent), "r.0:0:html")]), dom.el("button", "r.0:1", {"id": "change", "onClick": this._dir_click_changeContent_evt_1}, dom.txt("Change Content", "r.0:1:0"))]));
+            return dom.el("div", "r.0", {}, dom.frag("r.0_f", [dom.el("div", "r.0:0", {"id": "html-content"}, [], String(this.$$ctx.state.htmlContent)), dom.el("button", "r.0:1", {"id": "change", "onClick": this._dir_click_changeContent_evt_1}, dom.txt("Change Content", "r.0:1:0"))]));
         }
     }
     customElements.define("p-html-complex", PHtmlComplexElement);

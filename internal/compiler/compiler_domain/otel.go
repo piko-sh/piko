@@ -65,9 +65,6 @@ const (
 	// logKeyError is the logging key for error details.
 	logKeyError = "error"
 
-	// fmtQuotedString is the format string for wrapping a string in quotes.
-	fmtQuotedString = "%q"
-
 	// strSpace is a single space character used for whitespace replacement.
 	strSpace = " "
 

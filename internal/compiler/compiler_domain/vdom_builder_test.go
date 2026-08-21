@@ -593,3 +593,235 @@ func TestBuildMethodCallOnExpr(t *testing.T) {
 		assert.Len(t, call.Args, 1)
 	})
 }
+
+func TestVdomBuilder_SingleLiteralRichTextKeepsItsText(t *testing.T) {
+	t.Parallel()
+
+	registry := NewRegistryContext()
+	key := newStringLiteral("k")
+
+	tests := []struct {
+		name         string
+		parts        []ast_domain.TextPart
+		wantCall     string
+		wantText     string
+		wantTextSeen bool
+	}{
+		{
+			name:         "literal after an empty interpolation survives",
+			parts:        []ast_domain.TextPart{richLiteral("foo")},
+			wantCall:     "txt",
+			wantText:     "foo",
+			wantTextSeen: true,
+		},
+		{
+			name:         "literal before an empty interpolation survives",
+			parts:        []ast_domain.TextPart{richLiteral("Hello ")},
+			wantCall:     "txt",
+			wantText:     "Hello ",
+			wantTextSeen: true,
+		},
+		{
+			name:         "whitespace-only literal still collapses to a placeholder",
+			parts:        []ast_domain.TextPart{richLiteral("  ")},
+			wantCall:     "ws",
+			wantTextSeen: false,
+		},
+		{
+			name:         "internal whitespace is squashed as it is for plain text",
+			parts:        []ast_domain.TextPart{richLiteral("a\n  b")},
+			wantCall:     "txt",
+			wantText:     "a b",
+			wantTextSeen: true,
+		},
+		{
+			name:         "a real interpolation still takes the general path",
+			parts:        []ast_domain.TextPart{richExpression("state.value")},
+			wantCall:     "txt",
+			wantTextSeen: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			node := makeRichTextNode(tt.parts, "k")
+			result, err := buildRichTextNodeAST(node, key, registry)
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantCall, domCallName(t, result))
+
+			text, isLiteral := domCallStringArg(t, result)
+			if !tt.wantTextSeen {
+				return
+			}
+			require.True(t, isLiteral, "expected a string literal argument")
+			assert.Equal(t, tt.wantText, text)
+		})
+	}
+}
+
+func TestVdomBuilder_TextNodeReadsAllCarriers(t *testing.T) {
+	t.Parallel()
+
+	key := newStringLiteral("k")
+
+	tests := []struct {
+		node         *ast_domain.TemplateNode
+		name         string
+		wantCall     string
+		wantText     string
+		wantTextSeen bool
+	}{
+		{
+			name:         "plain text",
+			node:         makeTextNode("hello", "k"),
+			wantCall:     "txt",
+			wantText:     "hello",
+			wantTextSeen: true,
+		},
+		{
+			name:         "text held in rich text parts",
+			node:         makeRichTextNode([]ast_domain.TextPart{richLiteral("from rich")}, "k"),
+			wantCall:     "txt",
+			wantText:     "from rich",
+			wantTextSeen: true,
+		},
+		{
+			name: "text held in a writer",
+			node: &ast_domain.TemplateNode{
+				NodeType:          ast_domain.NodeText,
+				TextContentWriter: writerHoldingText("from writer"),
+				Key:               &ast_domain.StringLiteral{Value: "k"},
+			},
+			wantCall:     "txt",
+			wantText:     "from writer",
+			wantTextSeen: true,
+		},
+		{
+			name:     "whitespace-only text becomes a placeholder",
+			node:     makeTextNode("   ", "k"),
+			wantCall: "ws",
+		},
+		{
+			name: "preserved whitespace is emitted verbatim",
+			node: &ast_domain.TemplateNode{
+				NodeType:           ast_domain.NodeText,
+				TextContent:        "\n  ",
+				PreserveWhitespace: true,
+				Key:                &ast_domain.StringLiteral{Value: "k"},
+			},
+			wantCall:     "txt",
+			wantText:     "\n  ",
+			wantTextSeen: true,
+		},
+		{
+			name: "preserved but genuinely empty stays a placeholder",
+			node: &ast_domain.TemplateNode{
+				NodeType:           ast_domain.NodeText,
+				TextContent:        "",
+				PreserveWhitespace: true,
+				Key:                &ast_domain.StringLiteral{Value: "k"},
+			},
+			wantCall: "ws",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := buildTextNodeAST(tt.node, key)
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantCall, domCallName(t, result))
+
+			if !tt.wantTextSeen {
+				assert.Equal(t, 1, domCallArgCount(t, result),
+					"a placeholder call carries only the key, never text")
+				return
+			}
+
+			text, isLiteral := domCallStringArg(t, result)
+			require.True(t, isLiteral)
+			assert.Equal(t, tt.wantText, text)
+		})
+	}
+}
+
+func TestCompileSFC_PHTMLWritesToTheElementItself(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		sfcContent  string
+		wantKept    []string
+		wantDropped []string
+	}{
+		{
+			name: "p-html on a plain element carries the markup as the element value",
+			sfcContent: `<template name="html-plain"><div p-html="state.markup"></div></template>
+<script lang="ts">
+const state = { markup: "<em>hi</em>" };
+</script>`,
+			wantKept:    []string{`dom.el("div"`, `[], String(this.$$ctx.state.markup)`},
+			wantDropped: []string{"dom.html("},
+		},
+		{
+			name: "p-html inside svg keeps the svg element as the target",
+			sfcContent: `<template name="html-svg"><svg viewBox="0 0 10 10" p-html="state.shapes"></svg></template>
+<script lang="ts">
+const state = { shapes: "<circle r='4'></circle>" };
+</script>`,
+			wantKept:    []string{`dom.el("svg"`, `String(this.$$ctx.state.shapes)`},
+			wantDropped: []string{"dom.html("},
+		},
+		{
+			name: "p-html on a static piko:element target",
+			sfcContent: `<template name="html-piko-static"><piko:element is="section" p-html="state.markup"></piko:element></template>
+<script lang="ts">
+const state = { markup: "<b>x</b>" };
+</script>`,
+			wantKept:    []string{`dom.el("section"`, `String(this.$$ctx.state.markup)`},
+			wantDropped: []string{"dom.html("},
+		},
+		{
+			name: "p-html on a dynamic piko:element target keeps the module name argument",
+			sfcContent: `<template name="html-piko-dynamic"><piko:element :is="state.tag" p-html="state.markup"></piko:element></template>
+<script lang="ts">
+const state = { tag: "section", markup: "<b>x</b>" };
+</script>`,
+			wantKept:    []string{"dom.pikoEl(", `String(this.$$ctx.state.markup)`},
+			wantDropped: []string{"dom.html("},
+		},
+		{
+			name: "p-text is unaffected and still builds a text child",
+			sfcContent: `<template name="text-plain"><div p-text="state.label"></div></template>
+<script lang="ts">
+const state = { label: "hi" };
+</script>`,
+			wantKept:    []string{"dom.txt("},
+			wantDropped: []string{"dom.html("},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			orchestrator := NewCompilerOrchestrator(nil, nil, WithOrchestratorModuleName("example.com/proj"))
+			artefact, err := orchestrator.CompileSFCBytes(context.Background(), "phtml.pkc", []byte(tt.sfcContent))
+			require.NoError(t, err)
+			require.NotNil(t, artefact)
+
+			js := artefact.Files[artefact.BaseJSPath]
+			for _, kept := range tt.wantKept {
+				assert.Contains(t, js, kept, "expected %q in the emitted JS", kept)
+			}
+			for _, dropped := range tt.wantDropped {
+				assert.NotContains(t, js, dropped, "expected %q to be gone from the emitted JS", dropped)
+			}
+		})
+	}
+}

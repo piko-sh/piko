@@ -500,7 +500,7 @@ func findPreviousElementSibling(nodes []*TemplateNode, currentIndex int) *Templa
 		if previousNode.NodeType == NodeElement {
 			return previousNode
 		}
-		if previousNode.NodeType == NodeText && !isWhitespaceOnlyText(previousNode) {
+		if previousNode.NodeType == NodeText && !previousNode.IsWhitespaceOnlyText() {
 			return nil
 		}
 	}
@@ -573,29 +573,6 @@ func isModelableElement(tagName string) bool {
 	}
 }
 
-// isWhitespaceOnlyText reports whether the node is a text node that contains only
-// whitespace characters.
-//
-// Takes node (*TemplateNode) which is the node to check.
-//
-// Returns bool which is true if the node is a text node with only whitespace.
-func isWhitespaceOnlyText(node *TemplateNode) bool {
-	if node.NodeType != NodeText {
-		return false
-	}
-	if strings.TrimSpace(node.TextContent) != "" {
-		return false
-	}
-	if len(node.RichText) > 0 {
-		for _, part := range node.RichText {
-			if !part.IsLiteral || strings.TrimSpace(part.Literal) != "" {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 // hasMeaningfulContent reports whether the node contains any elements or text that is not
 // just whitespace.
 //
@@ -611,7 +588,7 @@ func hasMeaningfulContent(node *TemplateNode) bool {
 		if child.NodeType == NodeElement {
 			return true
 		}
-		if child.NodeType == NodeText && !isWhitespaceOnlyText(child) {
+		if child.NodeType == NodeText && !child.IsWhitespaceOnlyText() {
 			return true
 		}
 	}

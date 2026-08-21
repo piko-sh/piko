@@ -85,6 +85,14 @@ type BuildModeConfig struct {
 	// WithWatchMode() available to override.
 	WatchMode *bool `json:"-" yaml:"-"`
 
+	// CSSImportMaxDepth is the deepest chain of nested CSS @import rules a component may
+	// have before the build fails.
+	CSSImportMaxDepth *int `json:"cssImportMaxDepth" yaml:"cssImportMaxDepth" default:"64" env:"PIKO_CSS_IMPORT_MAX_DEPTH" flag:"cssImportMaxDepth" usage:"Maximum nesting depth for CSS @import rules."`
+
+	// CSSImportMaxBytes is the largest total size of CSS a single component may pull in
+	// through @import rules before the build fails.
+	CSSImportMaxBytes *int `json:"cssImportMaxBytes" yaml:"cssImportMaxBytes" default:"33554432" env:"PIKO_CSS_IMPORT_MAX_BYTES" flag:"cssImportMaxBytes" usage:"Maximum total bytes of CSS inlined through @import rules for one component."`
+
 	// E2EMode enables inclusion of E2E test pages and partials from Paths.E2ESourceDir.
 	//
 	// When false (default), E2E pages are excluded from code generation and cannot be

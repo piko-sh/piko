@@ -140,16 +140,20 @@ const dom = {
       key: id
     };
   },
-  el(tag, id, props = {}, children = []) {
+  el(tag, id, props = {}, children = [], html) {
     const finalProps = { ...props };
     const childArray = normaliseChildren(children);
-    return {
+    const node = {
       _type: "element",
       tag,
       props: finalProps,
       children: childArray,
       key: id
     };
+    if (html != null) {
+      node.html = html;
+    }
+    return node;
   },
   frag(id, children = [], props = {}) {
     const finalProps = { ...props };
@@ -176,7 +180,7 @@ const dom = {
     }
     return s;
   },
-  pikoEl(rawTag, id, props = {}, children = [], moduleName = "") {
+  pikoEl(rawTag, id, props = {}, children = [], moduleName = "", html) {
     const tag = dom.resolveTag(rawTag);
     const finalProps = { ...props };
     const rawTagStr = String(rawTag ?? "");
@@ -193,7 +197,7 @@ const dom = {
     if (pikoAssetTags[rawTagStr] && typeof finalProps["src"] === "string" && pikoNs?.assets) {
       finalProps["src"] = pikoNs.assets.resolve(finalProps["src"], moduleName || void 0);
     }
-    return dom.el(tag, id, finalProps, children);
+    return dom.el(tag, id, finalProps, children, html);
   }
 };
 const rejectedPikoElementTargets = {

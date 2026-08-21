@@ -23,6 +23,16 @@ import (
 	"strings"
 )
 
+const (
+	// CodeUnresolvedImport marks a diagnostic raised because an @import target could not be
+	// resolved or read, as opposed to one raised by the CSS parser.
+	CodeUnresolvedImport = "CSS-IMPORT-UNRESOLVED"
+
+	// CodeImportLimitExceeded marks a diagnostic raised because a CSS import chain went past
+	// a configured limit on depth or total size.
+	CodeImportLimitExceeded = "CSS-IMPORT-LIMIT"
+)
+
 // CircularDependencyError indicates a circular CSS @import chain was detected.
 type CircularDependencyError struct {
 	// Path is the chain of file paths forming the cycle.

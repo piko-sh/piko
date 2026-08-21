@@ -273,7 +273,7 @@ func (e *typeExtractor) expressionToString(expression js_ast.Expr) string {
 	case *js_ast.ENumber:
 		return fmt.Sprintf("%v", v.Value)
 	case *js_ast.EString:
-		return fmt.Sprintf("%q", helpers.UTF16ToString(v.Value))
+		return string(helpers.QuoteForJSON(helpers.UTF16ToString(v.Value), false))
 	case *js_ast.EBoolean:
 		return e.booleanToString(v.Value)
 	case *js_ast.EArray:

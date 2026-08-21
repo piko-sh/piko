@@ -20,11 +20,13 @@ package compiler_domain
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	es_logger "piko.sh/piko/internal/esbuild/logger"
@@ -945,4 +947,114 @@ func TestCollectUsedIdentifiers(t *testing.T) {
 	assert.NotContains(t, used, "Item", "an object property key must not be recorded")
 	assert.NotContains(t, used, "Widget", "a member name and string contents must not be recorded")
 	assert.NotContains(t, used, "MyType", "a name only in a string literal must not be recorded")
+}
+
+func TestCompileSFC_UnresolvableStyleImportFailsTheBuild(t *testing.T) {
+	t.Parallel()
+
+	sfc := `<template name="broken-styles"><div class="a">x</div></template>
+<style>
+@import "./missing.css";
+.a { color: red; }
+</style>`
+
+	orchestrator := NewCompilerOrchestrator(nil, nil,
+		WithOrchestratorModuleName("example.com/proj"),
+		WithOrchestratorCSSPreProcessor(&mockCSSPreProcessor{err: errors.New(`cannot resolve @import "./missing.css"`)}),
+	)
+
+	artefact, err := orchestrator.CompileSFCBytes(context.Background(), "components/widget.pkc", []byte(sfc))
+
+	require.Error(t, err, "an unresolvable @import must fail the compile, not ship missing styles")
+	assert.Nil(t, artefact)
+	assert.Contains(t, err.Error(), "resolving component styles")
+	assert.Contains(t, err.Error(), "missing.css")
+}
+
+func TestCompileSFC_ResolvableStyleImportStillCompiles(t *testing.T) {
+	t.Parallel()
+
+	sfc := `<template name="working-styles"><div class="a">x</div></template>
+<style>
+@import "./theme.css";
+.a { color: red; }
+</style>`
+
+	orchestrator := NewCompilerOrchestrator(nil, nil,
+		WithOrchestratorModuleName("example.com/proj"),
+		WithOrchestratorCSSPreProcessor(&mockCSSPreProcessor{result: ".theme{color:blue}.a{color:red}"}),
+	)
+
+	artefact, err := orchestrator.CompileSFCBytes(context.Background(), "components/widget.pkc", []byte(sfc))
+
+	require.NoError(t, err)
+	require.NotNil(t, artefact)
+	assert.Contains(t, artefact.Files[artefact.BaseJSPath], ".theme")
+}
+
+func TestPreProcessStyles(t *testing.T) {
+	t.Run("no-op when styles are empty", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{result: "should not be used"}
+		ctx := context.Background()
+		cc := &sfcCompilationContext{stylesDefault: "", cssPreProcessor: preProcessor}
+		require.NoError(t, cc.preProcessStyles(ctx))
+		assert.Equal(t, "", cc.stylesDefault)
+		assert.False(t, preProcessor.called)
+	})
+
+	t.Run("no-op when no pre-processor set", func(t *testing.T) {
+		ctx := context.Background()
+		cc := &sfcCompilationContext{stylesDefault: "@import './foo.css';"}
+		require.NoError(t, cc.preProcessStyles(ctx))
+		assert.Equal(t, "@import './foo.css';", cc.stylesDefault)
+	})
+
+	t.Run("replaces styles with pre-processed result", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{result: ".foo{color:red}"}
+		ctx := context.Background()
+		cc := &sfcCompilationContext{
+			stylesDefault:   "@import './foo.css';",
+			sourceFilename:  "components/widget.pkc",
+			cssPreProcessor: preProcessor,
+		}
+		require.NoError(t, cc.preProcessStyles(ctx))
+		assert.Equal(t, ".foo{color:red}", cc.stylesDefault)
+		assert.True(t, preProcessor.called)
+		assert.Equal(t, "@import './foo.css';", preProcessor.gotCSS)
+		assert.Equal(t, "components/widget.pkc", preProcessor.gotSource)
+	})
+
+	t.Run("fails the compile when an import cannot be resolved", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{err: errors.New("resolve failed")}
+		ctx := context.Background()
+		original := "@import './missing.css'; .local { color: blue; }"
+		cc := &sfcCompilationContext{
+			stylesDefault:   original,
+			sourceFilename:  "components/widget.pkc",
+			cssPreProcessor: preProcessor,
+		}
+
+		err := cc.preProcessStyles(ctx)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "resolving component styles")
+		assert.Contains(t, err.Error(), "resolve failed")
+		assert.True(t, preProcessor.called)
+	})
+
+	t.Run("passes the style block start location to the pre-processor", func(t *testing.T) {
+		preProcessor := &mockCSSPreProcessor{result: ".foo{}"}
+		ctx := context.Background()
+		cc := &sfcCompilationContext{
+			stylesDefault:   "@import './foo.css';",
+			sourceFilename:  "components/widget.pkc",
+			cssPreProcessor: preProcessor,
+			stylesLocation:  ast_domain.Location{Line: 12, Column: 3, Offset: 0},
+		}
+
+		require.NoError(t, cc.preProcessStyles(ctx))
+
+		assert.Equal(t, 12, preProcessor.gotLocation.Line)
+		assert.Equal(t, 3, preProcessor.gotLocation.Column)
+	})
 }

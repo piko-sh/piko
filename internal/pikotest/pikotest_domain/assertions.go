@@ -434,10 +434,7 @@ func (r *ASTQueryResult) getNodeText(node *ast_domain.TemplateNode) string {
 //
 // Returns string which is the resolved text content.
 func (*ASTQueryResult) resolveTextContent(node *ast_domain.TemplateNode) string {
-	if node.TextContentWriter != nil && node.TextContentWriter.Len() > 0 {
-		return node.TextContentWriter.String()
-	}
-	return node.TextContent
+	return node.OwnText()
 }
 
 // collectTextRecursive walks the node tree and gathers all text content.

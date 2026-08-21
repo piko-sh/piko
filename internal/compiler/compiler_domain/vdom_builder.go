@@ -19,6 +19,7 @@
 package compiler_domain
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -401,23 +402,41 @@ func buildElementNodeAST(
 	var childrenExpr js_ast.Expr
 	if n.DirText != nil {
 		childrenExpr, err = dirTextDynamicExpr(n.DirText.Expression, keyJSExpr, buildContext.events.getRegistry())
-	} else if n.DirHTML != nil {
-		childrenExpr, err = dirHTMLDynamicExpr(n.DirHTML.Expression, keyJSExpr, buildContext.events.getRegistry())
-	} else {
+	} else if n.DirHTML == nil {
 		childrenExpr, err = buildChildFragmentAST(ctx, n, buildContext)
+	} else {
+		childrenExpr = newEmptyArray()
 	}
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
 
-	elementCall := buildDOMCall("el",
+	arguments := []js_ast.Expr{
 		newStringLiteral(pickTagName(n, isLink)),
 		keyJSExpr,
 		propsExpr,
 		childrenExpr,
-	)
+	}
+	if n.DirHTML != nil {
+		htmlExpr, htmlErr := dirHTMLElementValue(n.DirHTML.Expression, buildContext.events.getRegistry())
+		if htmlErr != nil {
+			return js_ast.Expr{}, htmlErr
+		}
+		arguments = append(arguments, htmlExpr)
+	}
 
-	return elementCall, nil
+	return buildDOMCall("el", arguments...), nil
+}
+
+// dirHTMLElementValue builds the element-level html value for a p-html directive.
+//
+// Takes expression (ast_domain.Expression) which is the p-html directive expression.
+// Takes registry (*RegistryContext) which provides the compilation context.
+//
+// Returns js_ast.Expr which is the String(expression) call supplying the html value.
+// Returns error when the directive expression cannot be converted.
+func dirHTMLElementValue(expression ast_domain.Expression, registry *RegistryContext) (js_ast.Expr, error) {
+	return stringifyExpr(expression, registry)
 }
 
 // buildPikoElementNodeAST handles <piko:element :is="expr"> by compiling the dynamic :is
@@ -439,27 +458,9 @@ func buildPikoElementNodeAST(
 ) (js_ast.Expr, error) {
 	registry := buildContext.events.getRegistry()
 
-	var rawIsExpr js_ast.Expr
-	var isDynamic bool
-	for i := range n.DynamicAttributes {
-		if strings.EqualFold(n.DynamicAttributes[i].Name, attributeIs) {
-			jsExpr, err := transformOurASTtoJSAST(n.DynamicAttributes[i].Expression, registry)
-			if err != nil {
-				return js_ast.Expr{}, err
-			}
-			rawIsExpr = jsExpr
-			isDynamic = true
-			break
-		}
-	}
-
-	var tagExpr js_ast.Expr
-	if !isDynamic {
-		if staticIs, ok := n.GetAttribute(attributeIs); ok && staticIs != "" {
-			tagExpr = newStringLiteral(staticIs)
-		} else {
-			tagExpr = newStringLiteral("div")
-		}
+	tagExpr, isDynamic, err := pikoElementTagExpr(n, registry)
+	if err != nil {
+		return js_ast.Expr{}, err
 	}
 
 	propsExpr, err := buildPikoElementPropsAST(ctx, n, buildContext.events, buildContext.loopVars, buildContext.booleanProps)
@@ -470,23 +471,55 @@ func buildPikoElementNodeAST(
 	var childrenExpr js_ast.Expr
 	if n.DirText != nil {
 		childrenExpr, err = dirTextDynamicExpr(n.DirText.Expression, keyJSExpr, registry)
-	} else if n.DirHTML != nil {
-		childrenExpr, err = dirHTMLDynamicExpr(n.DirHTML.Expression, keyJSExpr, registry)
-	} else {
+	} else if n.DirHTML == nil {
 		childrenExpr, err = buildChildFragmentAST(ctx, n, buildContext)
+	} else {
+		childrenExpr = newEmptyArray()
 	}
 	if err != nil {
 		return js_ast.Expr{}, err
 	}
 
-	var elementCall js_ast.Expr
+	method := "el"
+	arguments := []js_ast.Expr{tagExpr, keyJSExpr, propsExpr, childrenExpr}
 	if isDynamic {
-		moduleNameExpr := newStringLiteral(buildContext.moduleName)
-		elementCall = buildDOMCall("pikoEl", rawIsExpr, keyJSExpr, propsExpr, childrenExpr, moduleNameExpr)
-	} else {
-		elementCall = buildDOMCall("el", tagExpr, keyJSExpr, propsExpr, childrenExpr)
+		method = "pikoEl"
+		arguments = append(arguments, newStringLiteral(buildContext.moduleName))
 	}
-	return elementCall, nil
+	if n.DirHTML != nil {
+		htmlExpr, htmlErr := dirHTMLElementValue(n.DirHTML.Expression, registry)
+		if htmlErr != nil {
+			return js_ast.Expr{}, htmlErr
+		}
+		arguments = append(arguments, htmlExpr)
+	}
+
+	return buildDOMCall(method, arguments...), nil
+}
+
+// pikoElementTagExpr resolves the tag argument for a piko:element node from its :is
+// attribute.
+//
+// Takes n (*ast_domain.TemplateNode) which is the piko:element node.
+// Takes registry (*RegistryContext) which provides the compilation context.
+//
+// Returns js_ast.Expr which is the compiled :is expression or the literal tag name.
+// Returns bool which is true when the :is attribute is a dynamic expression.
+// Returns error when the dynamic :is expression cannot be converted.
+func pikoElementTagExpr(n *ast_domain.TemplateNode, registry *RegistryContext) (js_ast.Expr, bool, error) {
+	for i := range n.DynamicAttributes {
+		if !strings.EqualFold(n.DynamicAttributes[i].Name, attributeIs) {
+			continue
+		}
+		jsExpr, err := transformOurASTtoJSAST(n.DynamicAttributes[i].Expression, registry)
+		if err != nil {
+			return js_ast.Expr{}, false, err
+		}
+		return jsExpr, true, nil
+	}
+
+	staticIs, _ := n.GetAttribute(attributeIs)
+	return newStringLiteral(cmp.Or(staticIs, "div")), false, nil
 }
 
 // buildPikoElementPropsAST builds props for a piko:element, excluding the :is attribute
@@ -702,7 +735,7 @@ func buildRichTextNodeAST(n *ast_domain.TemplateNode, keyExpr js_ast.Expr, regis
 // Returns js_ast.Expr which is the compiled JavaScript AST for the text node.
 // Returns error when the node cannot be built.
 func buildTextNodeAST(n *ast_domain.TemplateNode, keyExpr js_ast.Expr) (js_ast.Expr, error) {
-	text := n.TextContent
+	text := n.OwnText()
 	if n.PreserveWhitespace {
 		if text == "" {
 			return buildDOMCall("ws", keyExpr), nil

@@ -27,6 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/cssinliner"
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
@@ -67,7 +68,7 @@ func newTestCSSPreProcessor(files map[string][]byte) compiler_domain.CSSPreProce
 func TestCSSPreProcessor_InlineImports(t *testing.T) {
 	t.Run("passes through CSS without imports", func(t *testing.T) {
 		pp := newTestCSSPreProcessor(nil)
-		result, err := pp.InlineImports(context.Background(), ".foo { color: red; }", "/test/style.css")
+		result, err := pp.InlineImports(context.Background(), ".foo { color: red; }", "/test/style.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 		require.NoError(t, err)
 		assert.Contains(t, result, "color")
 		assert.Contains(t, result, "red")
@@ -78,7 +79,7 @@ func TestCSSPreProcessor_InlineImports(t *testing.T) {
 			"/test/base.css": []byte(".base { font-size: 16px; }"),
 		}
 		pp := newTestCSSPreProcessor(files)
-		result, err := pp.InlineImports(context.Background(), `@import "./base.css";`, "/test/component.css")
+		result, err := pp.InlineImports(context.Background(), `@import "./base.css";`, "/test/component.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 		require.NoError(t, err)
 		assert.Contains(t, result, "font-size")
 		assert.NotContains(t, result, "@import")
@@ -90,7 +91,7 @@ func TestCSSPreProcessor_InlineImports(t *testing.T) {
 			"/test/base.css":  []byte(`.base { margin: 0; }`),
 		}
 		pp := newTestCSSPreProcessor(files)
-		result, err := pp.InlineImports(context.Background(), `@import "./theme.css";`, "/test/component.css")
+		result, err := pp.InlineImports(context.Background(), `@import "./theme.css";`, "/test/component.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 		require.NoError(t, err)
 		assert.Contains(t, result, "margin")
 		assert.Contains(t, result, "color")
@@ -99,7 +100,7 @@ func TestCSSPreProcessor_InlineImports(t *testing.T) {
 
 	t.Run("returns error for missing import file", func(t *testing.T) {
 		pp := newTestCSSPreProcessor(nil)
-		_, err := pp.InlineImports(context.Background(), `@import "./missing.css";`, "/test/component.css")
+		_, err := pp.InlineImports(context.Background(), `@import "./missing.css";`, "/test/component.css", ast_domain.Location{Line: 1, Column: 1, Offset: 0})
 		require.Error(t, err)
 	})
 }
@@ -139,4 +140,45 @@ func TestCSSPreProcessor_ResolveToFilesystemPath(t *testing.T) {
 		input := "github.com/org/repo-other/styles/foo.css"
 		assert.Equal(t, input, p.resolveToFilesystemPath(input))
 	})
+}
+
+func TestCSSPreProcessor_MissingImportErrorNamesPositionAndPath(t *testing.T) {
+	t.Parallel()
+
+	pp := newTestCSSPreProcessor(nil)
+
+	css := "/* header */\n/* second line */\n@import \"./missing.css\";"
+
+	_, err := pp.InlineImports(
+		context.Background(),
+		css,
+		"/test/component.css",
+		ast_domain.Location{Line: 12, Column: 3, Offset: 0},
+	)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "/test/component.css:14:",
+		"the position must be the import's own line, two below the block start, not the block start")
+	assert.Contains(t, err.Error(), "./missing.css",
+		"the error must name the import that could not be resolved")
+}
+
+func TestCSSPreProcessor_ReportsEveryFailingImport(t *testing.T) {
+	t.Parallel()
+
+	pp := newTestCSSPreProcessor(nil)
+
+	css := "@import \"./first-missing.css\";\n@import \"./second-missing.css\";"
+
+	_, err := pp.InlineImports(
+		context.Background(),
+		css,
+		"/test/component.css",
+		ast_domain.Location{Line: 1, Column: 1, Offset: 0},
+	)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "./first-missing.css")
+	assert.Contains(t, err.Error(), "./second-missing.css",
+		"one build must report every broken import, not just the first")
 }

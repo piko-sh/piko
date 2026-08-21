@@ -151,7 +151,7 @@ func (c *ASTConverter) convertBindingPropertyKey(key js_ast.Expr) *parsejs.Prope
 	}
 	if str, ok := key.Data.(*js_ast.EString); ok {
 		return &parsejs.PropertyName{
-			Literal: parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: fmt.Appendf(nil, fmtQuotedString, helpers.UTF16ToString(str.Value))},
+			Literal: parsejs.LiteralExpr{TokenType: parsejs.StringToken, Data: helpers.QuoteForJSON(helpers.UTF16ToString(str.Value), false)},
 		}
 	}
 	return nil
@@ -337,7 +337,7 @@ func (c *ASTConverter) convertPropertyName(key js_ast.Expr) (*parsejs.PropertyNa
 		return &parsejs.PropertyName{
 			Literal: parsejs.LiteralExpr{
 				TokenType: parsejs.StringToken,
-				Data:      fmt.Appendf(nil, fmtQuotedString, helpers.UTF16ToString(k.Value)),
+				Data:      helpers.QuoteForJSON(helpers.UTF16ToString(k.Value), false),
 			},
 		}, nil
 
@@ -438,7 +438,9 @@ func (c *ASTConverter) getClassElementName(prop js_ast.Property) (parsejs.ClassE
 
 	if str, ok := prop.Key.Data.(*js_ast.EString); ok {
 		strValue := helpers.UTF16ToString(str.Value)
-		if prop.Kind == js_ast.PropertyMethod || prop.Kind == js_ast.PropertyGetter || prop.Kind == js_ast.PropertySetter {
+		isMember := prop.Kind == js_ast.PropertyMethod || prop.Kind == js_ast.PropertyGetter ||
+			prop.Kind == js_ast.PropertySetter
+		if isMember && js_ast.IsIdentifier(strValue) {
 			return parsejs.ClassElementName{
 				PropertyName: parsejs.PropertyName{
 					Literal: parsejs.LiteralExpr{
@@ -452,7 +454,7 @@ func (c *ASTConverter) getClassElementName(prop js_ast.Property) (parsejs.ClassE
 			PropertyName: parsejs.PropertyName{
 				Literal: parsejs.LiteralExpr{
 					TokenType: parsejs.StringToken,
-					Data:      fmt.Appendf(nil, fmtQuotedString, strValue),
+					Data:      helpers.QuoteForJSON(strValue, false),
 				},
 			},
 		}, nil

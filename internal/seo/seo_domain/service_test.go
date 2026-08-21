@@ -511,8 +511,6 @@ func TestSEOService_GenerateArtefacts_NonProductionBlocksAllCrawlers(t *testing.
 	assert.NotContains(t, content, "Allow: /", "non-production build must not emit a permissive base rule")
 }
 
-// A development build blocks with no way to opt back in, so a rebuild during development
-// cannot leave a permissive robots.txt behind in the local registry.
 func TestSEOService_GenerateArtefacts_NonProductionAlwaysBlocks(t *testing.T) {
 	seoConfig := config.SEOConfig{
 		Enabled: true,

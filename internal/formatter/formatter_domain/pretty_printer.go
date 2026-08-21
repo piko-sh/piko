@@ -899,17 +899,8 @@ func shouldWrapAttributes(tagName string, attrs []string, maxLineLength, current
 // blocks.
 // Returns hasContent (bool) which indicates whether any content was found.
 func buildTextContent(node *ast_domain.TemplateNode) (content string, hasContent bool) {
-	var contentBuilder strings.Builder
-
 	if len(node.RichText) > 0 {
-		for _, part := range node.RichText {
-			if part.IsLiteral {
-				contentBuilder.WriteString(part.Literal)
-			} else {
-				_, _ = fmt.Fprintf(&contentBuilder, "{{ %s }}", part.RawExpression)
-			}
-		}
-		return contentBuilder.String(), true
+		return node.OwnRawText(), true
 	}
 
 	if node.TextContent != "" {

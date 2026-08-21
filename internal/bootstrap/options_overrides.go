@@ -852,3 +852,27 @@ func WithI18nDefaultLocale(locale string) Option {
 		c.ensureOverrides().I18nDefaultLocale = &locale
 	}
 }
+
+// WithCSSImportMaxDepth sets how deep a chain of CSS @import rules may nest before the
+// build fails.
+//
+// Takes n (int) which is the maximum nesting depth.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithCSSImportMaxDepth(n int) Option {
+	return func(c *Container) {
+		c.ensureOverrides().Build.CSSImportMaxDepth = &n
+	}
+}
+
+// WithCSSImportMaxBytes sets how much CSS one component may pull in through @import rules
+// before the build fails.
+//
+// Takes n (int) which is the maximum total size in bytes.
+//
+// Returns Option which the bootstrap consumes when applied.
+func WithCSSImportMaxBytes(n int) Option {
+	return func(c *Container) {
+		c.ensureOverrides().Build.CSSImportMaxBytes = &n
+	}
+}

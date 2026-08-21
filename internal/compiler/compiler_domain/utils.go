@@ -19,10 +19,10 @@
 package compiler_domain
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
+	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
@@ -87,16 +87,6 @@ func base36(n int) string {
 	return sign + result
 }
 
-// escapeBackticks replaces backtick characters with escaped backticks for use in template
-// literals.
-//
-// Takes inputText (string) which is the text to process.
-//
-// Returns string which is the text with all backticks replaced by \`.
-func escapeBackticks(inputText string) string {
-	return strings.ReplaceAll(inputText, "`", "\\`")
-}
-
 // normaliseWhitespace replaces tabs, newlines, and multiple spaces with single spaces.
 //
 // Takes inputText (string) which is the text to process.
@@ -109,36 +99,29 @@ func normaliseWhitespace(inputText string) string {
 	return whitespacePattern.ReplaceAllString(noCarriage, singleSpace)
 }
 
-// createStaticGetterFunction builds a static getter property for a JavaScript class by
-// parsing a temporary class snippet.
+// createStaticGetterFunction builds a static getter property for a JavaScript class.
 //
 // Takes getterName (string) which specifies the name of the static getter.
 // Takes content (string) which provides the string value the getter returns.
 //
-// Returns *js_ast.Property which is the parsed static getter property node.
-// Returns error when parsing fails or no getter property can be extracted.
-func createStaticGetterFunction(getterName, content string) (*js_ast.Property, error) {
-	escapedContent := escapeBackticks(content)
-	classSnippet := fmt.Sprintf(
-		"class TemporaryClass { static get %s() { return `%s`; } }",
-		getterName,
-		escapedContent,
-	)
+// Returns *js_ast.Property which is the static getter property node.
+func createStaticGetterFunction(getterName, content string) *js_ast.Property {
+	returnStatement := js_ast.Stmt{Data: &js_ast.SReturn{
+		ValueOrNil: js_ast.Expr{Data: &js_ast.EString{Value: helpers.StringToUTF16(content)}},
+	}}
 
-	parser := NewTypeScriptParser()
-	tempAST, parseErr := parser.ParseTypeScript(classSnippet, "snippet.ts")
-	if parseErr != nil {
-		return nil, parseErr
+	getterFunction := &js_ast.EFunction{
+		Fn: js_ast.Fn{
+			Body: js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{returnStatement}}},
+		},
 	}
 
-	for _, statement := range getStmtsFromAST(tempAST) {
-		if classNode, isClass := statement.Data.(*js_ast.SClass); isClass {
-			for i := range classNode.Class.Properties {
-				return &classNode.Class.Properties[i], nil
-			}
-		}
+	return &js_ast.Property{
+		Key:        js_ast.Expr{Data: &js_ast.EString{Value: helpers.StringToUTF16(getterName)}},
+		ValueOrNil: js_ast.Expr{Data: getterFunction},
+		Kind:       js_ast.PropertyGetter,
+		Flags:      js_ast.PropertyIsStatic,
 	}
-	return nil, fmt.Errorf("failed to create static getter %q", getterName)
 }
 
 // findClassDeclarationByName finds the first named class declaration in a JavaScript AST,

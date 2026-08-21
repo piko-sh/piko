@@ -199,22 +199,7 @@ func (w *plainTextWalker) exitElement(node *ast_domain.TemplateNode) {
 //
 // Takes node (*ast_domain.TemplateNode) which contains the text content to process.
 func (w *plainTextWalker) handleText(node *ast_domain.TemplateNode) {
-	var text string
-	if len(node.RichText) > 0 {
-		var builder strings.Builder
-		for _, part := range node.RichText {
-			if part.IsLiteral {
-				builder.WriteString(part.Literal)
-			}
-		}
-		text = builder.String()
-	} else if node.TextContentWriter != nil && node.TextContentWriter.Len() > 0 {
-		text = node.TextContentWriter.String()
-	} else {
-		text = node.TextContent
-	}
-
-	text = html.UnescapeString(text)
+	text := html.UnescapeString(node.OwnText())
 
 	trimmed := strings.Join(strings.Fields(text), " ")
 	if trimmed == "" {

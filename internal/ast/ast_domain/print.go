@@ -95,7 +95,7 @@ func printNodeHeader(builder *strings.Builder, node *TemplateNode, indent string
 // Takes node (*TemplateNode) which provides the text content and position.
 // Takes indent (string) which specifies the indentation prefix.
 func printTextNodeHeader(builder *strings.Builder, node *TemplateNode, indent string) {
-	if len(strings.TrimSpace(node.TextContent)) == 0 && node.RichText == nil {
+	if node.IsWhitespaceOnlyText() {
 		_, _ = fmt.Fprintf(builder, "%s- Text (whitespace only)\n", indent)
 		return
 	}

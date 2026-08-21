@@ -23,7 +23,6 @@ import (
 	goast "go/ast"
 	"go/token"
 	"slices"
-	"strings"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -93,14 +92,13 @@ func (ie *ifEmitter) emitChain(
 	currentIfStmt := ifStmt
 	nodesConsumed := nodesInChain
 
-	for i := currentNodeIndex + nodesConsumed; i < len(siblings); i++ {
-		sibling := siblings[i]
+	for scanIndex := currentNodeIndex + nodesInChain; scanIndex < len(siblings); scanIndex++ {
+		sibling := siblings[scanIndex]
 
 		if sibling.NodeType != ast_domain.NodeElement {
 			if !isWhitespaceOrComment(sibling) {
 				break
 			}
-			nodesConsumed++
 			continue
 		}
 
@@ -110,7 +108,7 @@ func (ie *ifEmitter) emitChain(
 			allDiags = append(allDiags, elseIfDiags...)
 			currentIfStmt.Else = elseIfBlock
 			currentIfStmt = elseIfBlock
-			nodesConsumed++
+			nodesConsumed = scanIndex - currentNodeIndex + 1
 			continue
 		}
 
@@ -119,7 +117,7 @@ func (ie *ifEmitter) emitChain(
 			prereqStmts = append(prereqStmts, elsePrereqs...)
 			allDiags = append(allDiags, elseDiags...)
 			currentIfStmt.Else = elseBlock
-			nodesConsumed++
+			nodesConsumed = scanIndex - currentNodeIndex + 1
 			break
 		}
 		break
@@ -429,20 +427,7 @@ func isChainedElse(node, startNode *ast_domain.TemplateNode) bool {
 //
 // Returns bool which is true if the node is a comment or contains only whitespace text.
 func isWhitespaceOrComment(node *ast_domain.TemplateNode) bool {
-	if node.NodeType == ast_domain.NodeComment {
-		return true
-	}
-	if node.NodeType == ast_domain.NodeText {
-		if len(node.RichText) > 0 {
-			for _, part := range node.RichText {
-				if !part.IsLiteral || strings.TrimSpace(part.Literal) != "" {
-					return false
-				}
-			}
-		}
-		return strings.TrimSpace(node.TextContent) == ""
-	}
-	return false
+	return node.NodeType == ast_domain.NodeComment || node.IsWhitespaceOnlyText()
 }
 
 // wrapInTruthinessCallIfNeeded wraps a Go expression in a boolean check when needed. It

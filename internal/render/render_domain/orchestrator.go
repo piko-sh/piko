@@ -987,7 +987,7 @@ func (ro *RenderOrchestrator) renderNodeContent(node *ast_domain.TemplateNode, q
 		return nil
 	}
 
-	if node.TextContentWriter != nil && node.TextContentWriter.Len() > 0 {
+	if node.TextContentWriter.HasParts() {
 		writeDirectWriterParts(node.TextContentWriter, qw)
 		return nil
 	}

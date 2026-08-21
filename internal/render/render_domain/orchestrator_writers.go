@@ -48,7 +48,7 @@ var (
 // Takes node (*ast_domain.TemplateNode) which contains the text to write.
 // Takes qw (*qt.Writer) which receives the output.
 func writeTextNode(node *ast_domain.TemplateNode, qw *qt.Writer) {
-	if node.TextContentWriter != nil && node.TextContentWriter.Len() > 0 {
+	if node.TextContentWriter.HasParts() {
 		writeDirectWriterParts(node.TextContentWriter, qw)
 	} else {
 		qw.N().S(node.TextContent)

@@ -229,7 +229,7 @@ func (rtc *reactiveTransformContext) injectBehavioursAndProperties(ctx context.C
 func (rtc *reactiveTransformContext) injectEnabledBehaviours(ctx context.Context) {
 	behaviourList := make([]string, 0, len(rtc.enabledBehaviours))
 	for _, b := range rtc.enabledBehaviours {
-		behaviourList = append(behaviourList, fmt.Sprintf("%q", b))
+		behaviourList = append(behaviourList, string(helpers.QuoteForJSON(b, false)))
 	}
 	behavioursArrayString := fmt.Sprintf("[%s]", strings.Join(behaviourList, ", "))
 	injectStaticProperty(ctx, rtc.targetClass, "enabledBehaviours", behavioursArrayString)
@@ -882,7 +882,7 @@ func expressionToJSString(expression js_ast.Expr) string {
 	case *js_ast.ENumber:
 		return fmt.Sprintf("%v", v.Value)
 	case *js_ast.EString:
-		return fmt.Sprintf("%q", helpers.UTF16ToString(v.Value))
+		return string(helpers.QuoteForJSON(helpers.UTF16ToString(v.Value), false))
 	case *js_ast.EBoolean:
 		if v.Value {
 			return "true"
