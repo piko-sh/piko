@@ -137,6 +137,10 @@ type ActionHandlerEntry struct {
 	// Invoke calls the action with the given parsed arguments.
 	Invoke func(ctx context.Context, action any, arguments map[string]any) (any, error)
 
+	// Bind records the parsed arguments on the action without calling it. It is set only for
+	// actions that stream, where Call never runs, and is nil for every other action.
+	Bind func(ctx context.Context, action any, arguments map[string]any) error
+
 	// Name is the action identifier in dot notation, used for routing and tracing.
 	Name string
 
@@ -429,29 +433,54 @@ func (h *ActionHandler) runSecurityValidation(
 // Returns int64 which is the maximum request body size.
 // Returns time.Duration which is the slow action threshold.
 func (h *ActionHandler) applyResourceLimits(ctx context.Context, action any) (context.Context, context.CancelFunc, int64, time.Duration) {
-	bodyLimit := h.maxBodyBytes
-	var slowThreshold time.Duration
+	limits := h.resolveActionLimits(action)
+
 	var cancel context.CancelFunc
-
-	rl, ok := action.(daemon_domain.ResourceLimitable)
-	if !ok {
-		return ctx, nil, bodyLimit, slowThreshold
-	}
-
-	limits := rl.ResourceLimits()
-	if limits == nil {
-		return ctx, nil, bodyLimit, slowThreshold
-	}
-
-	if limits.MaxRequestBodySize > 0 {
-		bodyLimit = limits.MaxRequestBodySize
-	}
 	if limits.Timeout > 0 {
 		ctx, cancel = context.WithTimeoutCause(ctx, limits.Timeout,
 			fmt.Errorf("action execution exceeded %s timeout", limits.Timeout))
 	}
-	slowThreshold = limits.SlowThreshold
-	return ctx, cancel, bodyLimit, slowThreshold
+
+	return ctx, cancel, limits.BodyLimit, limits.SlowThreshold
+}
+
+// actionLimits holds the resource limits that apply to one action call.
+type actionLimits struct {
+	// BodyLimit is the largest request body the action accepts, in bytes.
+	BodyLimit int64
+
+	// Timeout bounds a single call, or zero when the action declares none.
+	Timeout time.Duration
+
+	// SlowThreshold is the duration past which a call is recorded as slow.
+	SlowThreshold time.Duration
+}
+
+// resolveActionLimits reads the resource limits an action declares.
+//
+// Takes action (any) which may implement daemon_domain.ResourceLimitable.
+//
+// Returns actionLimits which holds the handler defaults with any action override applied.
+func (h *ActionHandler) resolveActionLimits(action any) actionLimits {
+	limits := actionLimits{BodyLimit: h.maxBodyBytes}
+
+	limitable, ok := action.(daemon_domain.ResourceLimitable)
+	if !ok {
+		return limits
+	}
+
+	declared := limitable.ResourceLimits()
+	if declared == nil {
+		return limits
+	}
+
+	if declared.MaxRequestBodySize > 0 {
+		limits.BodyLimit = declared.MaxRequestBodySize
+	}
+	limits.Timeout = declared.Timeout
+	limits.SlowThreshold = declared.SlowThreshold
+
+	return limits
 }
 
 // cachedActionParams groups the parameters for handleCachedAction.
@@ -570,8 +599,6 @@ func (h *ActionHandler) handleSSE(
 		}
 	}
 
-	h.writeSSEHeaders(w)
-
 	action := entry.Create()
 	h.injectMetadata(request, action)
 
@@ -580,7 +607,57 @@ func (h *ActionHandler) handleSSE(
 		defer cancel()
 	}
 
+	if !h.bindSSEInput(ctx, w, request, action, entry, span) {
+		return
+	}
+
+	h.writeSSEHeaders(w)
+
 	h.executeSSEStream(ctx, w, request, action, entry, span, l)
+}
+
+// bindSSEInput records the request's arguments on a streaming action.
+//
+// Takes w (http.ResponseWriter) which receives an error response when binding fails.
+// Takes request (*http.Request) which carries the body to read the arguments from.
+// Takes action (any) which is the action instance the arguments are recorded on.
+// Takes entry (ActionHandlerEntry) which supplies the generated bind function.
+// Takes span (trace.Span) which records the failure.
+//
+// Returns bool which is true when binding succeeded, or false when an error response has
+// already been written.
+func (h *ActionHandler) bindSSEInput(
+	ctx context.Context,
+	w http.ResponseWriter,
+	request *http.Request,
+	action any,
+	entry ActionHandlerEntry,
+	span trace.Span,
+) bool {
+	if entry.Bind == nil {
+		return true
+	}
+
+	ctx, l := logger_domain.From(ctx, log)
+
+	request.Body = http.MaxBytesReader(w, request.Body, h.resolveActionLimits(action).BodyLimit)
+
+	arguments, err := h.parseRequestBody(request)
+	if err != nil {
+		l.ReportError(span, err, "Failed to parse SSE request body")
+		h.writeError(w, http.StatusBadRequest, "Invalid request body", err, isDevelopmentModeFromContext(ctx))
+		return false
+	}
+
+	if bindErr := entry.Bind(ctx, action, arguments); bindErr != nil {
+		if !isRequestFault(bindErr) {
+			l.ReportError(span, bindErr, "SSE input binding failed")
+		}
+		h.handleActionError(w, request, action, bindErr)
+		return false
+	}
+
+	return true
 }
 
 // writeSSEHeaders sets the standard SSE response headers. The write deadline is

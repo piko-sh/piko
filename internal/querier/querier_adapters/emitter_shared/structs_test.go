@@ -19,9 +19,12 @@
 package emitter_shared
 
 import (
+	"go/parser"
+	"go/token"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStripIndexedQuestionMarkPlaceholdersBasic(t *testing.T) {
@@ -72,4 +75,37 @@ func TestSQLStringLiteralQuotesWhenSQLContainsCarriageReturn(t *testing.T) {
 	literal := sqlStringLiteral("SELECT '\r' FROM t")
 	assert.Equal(t, `"SELECT '\r' FROM t"`, literal.Value)
 	assert.Contains(t, literal.Value, `\r`, "the carriage return must survive as an escape, not be dropped")
+}
+
+func TestJSONStructTagSanitisesColumnNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		fieldName string
+		expected  string
+	}{
+		{name: "plain name is untouched", fieldName: "user_id", expected: "`json:\"user_id\"`"},
+		{name: "tolerated punctuation is untouched", fieldName: "COUNT(*)", expected: "`json:\"COUNT(*)\"`"},
+		{name: "backtick cannot close the raw literal", fieldName: "we`ird", expected: "`json:\"we_ird\"`"},
+		{name: "double quote cannot close the tag", fieldName: `we"ird`, expected: "`json:\"we_ird\"`"},
+		{name: "comma cannot fake a tag option", fieldName: "id,omitempty", expected: "`json:\"id_omitempty\"`"},
+		{name: "empty name falls back", fieldName: "", expected: "`json:\"field\"`"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			tag := jsonStructTag(tt.fieldName)
+
+			require.NotNil(t, tag)
+			assert.Equal(t, tt.expected, tag.Value)
+
+			fset := token.NewFileSet()
+			source := "package p\n\ntype T struct {\n\tField string " + tag.Value + "\n}\n"
+			_, err := parser.ParseFile(fset, "structs.go", source, parser.AllErrors)
+			require.NoError(t, err, "a struct carrying the tag must still parse")
+		})
+	}
 }

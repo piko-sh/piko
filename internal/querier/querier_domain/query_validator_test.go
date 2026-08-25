@@ -81,6 +81,26 @@ func TestValidateDuplicateNames(t *testing.T) {
 			},
 		},
 		{
+			name: "names differing only in case are duplicates",
+			queries: []*querier_dto.AnalysedQuery{
+				{Name: "ZzFoo", Filename: "users.sql", Line: 3},
+				{Name: "ZZFOO", Filename: "admin.sql", Line: 7},
+			},
+			expectedCount: 1,
+			expectedDiagnostic: func(t *testing.T, diagnostics []querier_dto.SourceError) {
+				require.Len(t, diagnostics, 1)
+
+				diag := diagnostics[0]
+				assert.Equal(t, "admin.sql", diag.Filename)
+				assert.Equal(t, 7, diag.Line)
+				assert.Equal(t, "Q006", diag.Code)
+				assert.Contains(t, diag.Message, `"ZZFOO"`,
+					"message should name the query exactly as the author wrote it")
+				assert.Contains(t, diag.Message, "users.sql:3",
+					"message should reference the first definition's location")
+			},
+		},
+		{
 			name: "multiple duplicates returns multiple Q006 errors",
 			queries: []*querier_dto.AnalysedQuery{
 				{Name: "GetUser", Filename: "users.sql", Line: 1},

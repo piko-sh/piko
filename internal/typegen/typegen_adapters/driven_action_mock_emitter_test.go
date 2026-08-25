@@ -132,7 +132,9 @@ func TestActionMockEmitter_GenerateDefaultValue(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tc.want, emitter.generateDefaultValue(tc.typeSpec))
+			value, ok := emitter.generateDefaultValue(actionTSTypeNames{}, tc.typeSpec)
+			require.True(t, ok)
+			assert.Equal(t, tc.want, value)
 		})
 	}
 }
@@ -165,4 +167,65 @@ func TestActionMockEmitter_DefaultValueForTSType(t *testing.T) {
 			assert.Equal(t, tc.want, emitter.defaultValueForTSType(tc.tsType, tc.optional))
 		})
 	}
+}
+
+func TestActionMockEmitter_CompositeReturnTypes(t *testing.T) {
+	t.Parallel()
+	emitter := NewActionMockEmitter()
+
+	specs := []annotator_dto.ActionSpec{{
+		Name:           "report.Fetch",
+		TSFunctionName: "reportFetch",
+		ReturnType:     &annotator_dto.TypeSpec{Name: "map[string]any"},
+	}}
+
+	output, err := emitter.EmitMocks(context.Background(), specs)
+	require.NoError(t, err)
+
+	result := string(output)
+	requireValidTypeScript(t, result)
+	assert.Contains(t, result, "createMock<Record<string, unknown>>")
+	assert.NotContains(t, result, "import type { map[string]any }")
+	assert.NotContains(t, result, "} from './actions';")
+}
+
+func TestActionMockEmitter_UnsupportedGoTypes(t *testing.T) {
+	t.Parallel()
+	emitter := NewActionMockEmitter()
+
+	specs := []annotator_dto.ActionSpec{{
+		Name:           "stream.Open",
+		TSFunctionName: "streamOpen",
+		ReturnType:     &annotator_dto.TypeSpec{Name: "chan int"},
+	}}
+
+	_, err := emitter.EmitMocks(context.Background(), specs)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `action "stream.Open"`)
+	assert.Contains(t, err.Error(), `"chan int"`)
+}
+
+func TestActionMockEmitter_QuotesPropertyNames(t *testing.T) {
+	t.Parallel()
+	emitter := NewActionMockEmitter()
+
+	specs := []annotator_dto.ActionSpec{{
+		Name:           "echo.Run",
+		TSFunctionName: "2faEcho",
+		ReturnType: &annotator_dto.TypeSpec{
+			Name: "EchoOutput",
+			Fields: []annotator_dto.FieldSpec{
+				{Name: "Spaced", GoType: "string", TSType: "string", JSONName: "a b"},
+				{Name: "Plain", GoType: "bool", TSType: "boolean", JSONName: "plain"},
+			},
+		},
+	}}
+
+	output, err := emitter.EmitMocks(context.Background(), specs)
+	require.NoError(t, err)
+
+	result := string(output)
+	requireValidTypeScript(t, result)
+	assert.Contains(t, result, `default: { "a b": '', plain: false }`)
+	assert.Contains(t, result, "_2faEcho: createMock<EchoOutput>")
 }

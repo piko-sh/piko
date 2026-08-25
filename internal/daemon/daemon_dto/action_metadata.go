@@ -40,6 +40,11 @@ type ActionMetadata struct {
 
 	// response holds the HTTP response writer; nil until initialised by the framework.
 	response *ResponseWriter
+
+	// inputs holds the bound call arguments in declaration order. It is filled on the SSE
+	// dispatch path, where the generated binder runs but the action's Call method never
+	// does, so StreamProgress can still read the request's input.
+	inputs []any
 }
 
 // Request returns the HTTP request metadata.
@@ -75,6 +80,30 @@ func (m *ActionMetadata) SetRequest(request *RequestMetadata) {
 // Intentionally unexported in the public API to prevent user modification.
 func (m *ActionMetadata) SetResponse(response *ResponseWriter) {
 	m.response = response
+}
+
+// SetInput records the bound call arguments for the action.
+//
+// The framework calls this from generated binder code on the SSE dispatch path, where the
+// action's Call method never runs and the arguments would otherwise be discarded.
+//
+// Takes inputs (...any) which are the bound call arguments in declaration order.
+func (m *ActionMetadata) SetInput(inputs ...any) {
+	m.inputs = inputs
+}
+
+// Input returns the first bound call argument.
+//
+// SSE streaming is used with single-input actions, so the first argument is the request's
+// input struct.
+//
+// Returns any which is the first bound call argument, or nil when the action takes no
+// arguments or has not been bound.
+func (m *ActionMetadata) Input() any {
+	if len(m.inputs) == 0 {
+		return nil
+	}
+	return m.inputs[0]
 }
 
 // InheritMetadata copies request and response metadata from another action, typically

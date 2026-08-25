@@ -29,6 +29,7 @@ import (
 	"go/token"
 	"io/fs"
 	"path/filepath"
+	"strconv"
 
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
@@ -41,9 +42,6 @@ import (
 const (
 	// printerTabwidth is the tab width used by the Go printer.
 	printerTabwidth = 4
-
-	// goStringQuote wraps Go string literal values in generated AST nodes.
-	goStringQuote = `"`
 )
 
 // DrivenSearchIndexEmitter implements SearchIndexEmitterPort.
@@ -130,7 +128,8 @@ func (e *DrivenSearchIndexEmitter) EmitSearchIndex(
 ) error {
 	relOutputDir := e.sandbox.RelPath(outputDir)
 
-	collectionDir := filepath.Join(relOutputDir, "collections", collectionName)
+	packageName, _ := collectionPackageName(collectionName)
+	collectionDir := filepath.Join(relOutputDir, collectionsDirName, packageName)
 
 	if _, err := e.sandbox.Stat(collectionDir); errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("collection directory does not exist: %s (run CollectionEmitter first)", collectionDir)
@@ -158,7 +157,7 @@ func (e *DrivenSearchIndexEmitter) EmitSearchIndex(
 	}
 
 	goFilePath := filepath.Join(collectionDir, "generated.go")
-	goCode, err := e.generateGoWrapper(collectionName, fastIndexGenerated, smartIndexGenerated)
+	goCode, err := e.generateGoWrapper(packageName, collectionName, fastIndexGenerated, smartIndexGenerated)
 	if err != nil {
 		return fmt.Errorf("failed to generate Go wrapper for collection %q: %w", collectionName, err)
 	}
@@ -227,19 +226,22 @@ func (e *DrivenSearchIndexEmitter) emitModeIndex(
 //   - Registers all blobs with the runtime in init()
 //   - Conditionally includes search indexes based on what was generated
 //
-// Takes collectionName (string) which specifies the package name for the generated code.
+// Takes packageName (string) which is the package clause for the generated file, already
+// reduced to a legal Go package name by collectionPackageName.
+// Takes collectionName (string) which is the raw registry key the runtime registers the
+// blobs under.
 // Takes hasFast (bool) which indicates whether to include fast search index.
 // Takes hasSmart (bool) which indicates whether to include smart search index.
 //
 // Returns ([]byte, error) containing the formatted Go source code or an error.
-func (e *DrivenSearchIndexEmitter) generateGoWrapper(collectionName string, hasFast, hasSmart bool) ([]byte, error) {
+func (e *DrivenSearchIndexEmitter) generateGoWrapper(packageName, collectionName string, hasFast, hasSmart bool) ([]byte, error) {
 	fileExt := ".bin"
 	if e.manifestFormat == "json" {
 		fileExt = ".json"
 	}
 
 	config := goWrapperConfig{
-		packageName:    collectionName,
+		packageName:    packageName,
 		collectionName: collectionName,
 		fileExtension:  fileExt,
 		hasFast:        hasFast,
@@ -289,7 +291,7 @@ func buildGoWrapper(config goWrapperConfig) ([]byte, error) {
 
 	formatted, err := format.Source(buffer.Bytes())
 	if err != nil {
-		return buffer.Bytes(), nil
+		return nil, fmt.Errorf("formatting the search index wrapper for package %q: %w", config.packageName, err)
 	}
 
 	return formatted, nil
@@ -433,7 +435,7 @@ func buildRegisterCollectionBlobStmt(collectionName string) goast.Stmt {
 						Sel: goast.NewIdent("Background"),
 					},
 				},
-				&goast.BasicLit{Kind: token.STRING, Value: goStringQuote + collectionName + goStringQuote},
+				&goast.BasicLit{Kind: token.STRING, Value: strconv.Quote(collectionName)},
 				goast.NewIdent("collectionBlob"),
 			},
 		},
@@ -456,8 +458,8 @@ func buildRegisterSearchIndexStmt(collectionName, modeName, varName string) goas
 				Sel: goast.NewIdent("RegisterSearchIndex"),
 			},
 			Args: []goast.Expr{
-				&goast.BasicLit{Kind: token.STRING, Value: goStringQuote + collectionName + goStringQuote},
-				&goast.BasicLit{Kind: token.STRING, Value: goStringQuote + modeName + goStringQuote},
+				&goast.BasicLit{Kind: token.STRING, Value: strconv.Quote(collectionName)},
+				&goast.BasicLit{Kind: token.STRING, Value: strconv.Quote(modeName)},
 				goast.NewIdent(varName),
 			},
 		},

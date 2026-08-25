@@ -38,6 +38,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -55,6 +56,33 @@ const (
 	// headroom for larger generated files, avoiding repeated slice growth during formatting
 	// while maintaining reasonable memory use.
 	defaultBufferCapacity = 32 * 1024
+
+	// pikoFacadePackagePath is the import path of the piko facade. Its types appear in every
+	// signature this emitter writes, so the generated file always imports it under
+	// facadePackageName whatever the user's script chose to call it.
+	pikoFacadePackagePath = "piko.sh/piko"
+
+	// buildASTDeclName is the function every generated component declares, built by
+	// createBuildASTFunctionSignature.
+	buildASTDeclName = "BuildAST"
+
+	// customTagsDeclName is the package-level variable buildCustomTagsStaticVar declares.
+	customTagsDeclName = "customTags"
+
+	// fetcherNamePrefix begins the name of every generated collection fetcher function.
+	fetcherNamePrefix = "fetchCollection"
+
+	// tempVarNamePrefix begins the name of every generated temporary variable.
+	tempVarNamePrefix = "tempVar"
+
+	// staticNodeNamePrefix begins the name of every hoisted static node variable.
+	staticNodeNamePrefix = "staticNode_"
+
+	// staticAttrsNamePrefix begins the name of every hoisted static attribute variable.
+	staticAttrsNamePrefix = "staticAttrs_"
+
+	// loopIterNamePrefix begins the name of every extracted p-for collection variable.
+	loopIterNamePrefix = "loopIter_"
 )
 
 var (
@@ -65,7 +93,53 @@ var (
 			return bytes.NewBuffer(make([]byte, 0, defaultBufferCapacity))
 		},
 	}
+
+	// emitterImportAliases maps each package the emitter references to its qualifier.
+	emitterImportAliases = map[string]string{
+		"cmp":                       "",
+		"fmt":                       "",
+		"html":                      "",
+		"strconv":                   "",
+		"sort":                      "",
+		"piko.sh/piko/wdk/runtime":  runtimePackageName,
+		"piko.sh/piko/wdk/safeconv": "",
+		pikoFacadePackagePath:       facadePackageName,
+	}
+
+	// emitterReservedQualifiers maps each qualifier the emitter's own references use onto
+	// the package path it must resolve to.
+	emitterReservedQualifiers = buildEmitterReservedQualifiers()
+
+	// reservedGeneratedDeclNames holds the package-level names the emitter declares for
+	// every component. A script declaring one of these produces a file with the name
+	// declared twice, which does not compile.
+	reservedGeneratedDeclNames = map[string]struct{}{
+		buildASTDeclName:   {},
+		customTagsDeclName: {},
+	}
+
+	// reservedGeneratedDeclPrefixes holds the prefixes of the counted names the emitter
+	// generates. A name is reserved when a run of digits is all that follows the prefix.
+	reservedGeneratedDeclPrefixes = []string{
+		fetcherNamePrefix,
+		tempVarNamePrefix,
+		staticNodeNamePrefix,
+		staticAttrsNamePrefix,
+		loopIterNamePrefix,
+	}
 )
+
+// buildEmitterReservedQualifiers inverts emitterImportAliases into the qualifier-keyed
+// form the user script import check needs.
+//
+// Returns map[string]string which maps each reserved qualifier to its package path.
+func buildEmitterReservedQualifiers() map[string]string {
+	qualifiers := make(map[string]string, len(emitterImportAliases))
+	for path, alias := range emitterImportAliases {
+		qualifiers[resolvedQualifier(alias, path)] = path
+	}
+	return qualifiers
+}
 
 // Emitter provides a way to produce Go code from annotated source files. It implements
 // CodeEmitterPort for use by the generator and coordinator.
@@ -165,6 +239,8 @@ func (em *emitter) EmitCode(
 	em.AnnotationResult = result
 	em.guardedKeys = nil
 
+	em.registerEmitterImports()
+
 	em.resetState(ctx)
 	defer em.cleanup()
 
@@ -177,6 +253,9 @@ func (em *emitter) EmitCode(
 	fileAST, allDiags, err := em.buildFileAST(ctx, request, result, mainComponent)
 	if err != nil {
 		return nil, allDiags, fmt.Errorf("building file AST for %q: %w", request.SourcePath, err)
+	}
+	if fileAST == nil {
+		return nil, allDiags, nil
 	}
 
 	generatedBytes, err := em.formatAndVerify(request, fileSet, fileAST)
@@ -268,7 +347,13 @@ func (em *emitter) buildFileAST(
 
 	allDiags := make([]*ast_domain.Diagnostic, 0, defaultDiagnosticCapacity)
 
-	em.addBoilerplateAndUserCode(fileAST, mainComponent)
+	if diagnostic := em.checkUserScriptCollisions(result, mainComponent); diagnostic != nil {
+		return nil, append(allDiags, diagnostic), nil
+	}
+
+	if err := em.addBoilerplateAndUserCode(fileAST, mainComponent); err != nil {
+		return nil, allDiags, err
+	}
 
 	customTagsDecl, customTagsVarName := buildCustomTagsStaticVar(result.CustomTags)
 	if customTagsDecl != nil {
@@ -286,7 +371,9 @@ func (em *emitter) buildFileAST(
 		return nil, allDiags, fmt.Errorf("adding static and init functions: %w", err)
 	}
 
-	em.addImportBlock(result, mainComponent, fileAST)
+	if err := em.addImportBlock(result, mainComponent, fileAST); err != nil {
+		return nil, allDiags, err
+	}
 
 	return fileAST, allDiags, nil
 }
@@ -297,9 +384,14 @@ func (em *emitter) buildFileAST(
 // Takes fileAST (*goast.File) which is the target file to modify.
 // Takes mainComponent (*annotator_dto.VirtualComponent) which provides the user code to
 // copy.
-func (em *emitter) addBoilerplateAndUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualComponent) {
+//
+// Returns error when the script declares a name the emitter generates itself.
+func (em *emitter) addBoilerplateAndUserCode(
+	fileAST *goast.File,
+	mainComponent *annotator_dto.VirtualComponent,
+) error {
 	fileAST.Decls = append(fileAST.Decls, buildBoilerplateVarAcks()...)
-	copyUserCode(fileAST, mainComponent, em)
+	return copyUserCode(fileAST, mainComponent, em)
 }
 
 // generateBuildASTFunction creates the BuildAST function when an annotated AST exists.
@@ -338,15 +430,21 @@ func (em *emitter) addFetcherDeclarations(fileAST *goast.File) {
 // Takes mainComponent (*annotator_dto.VirtualComponent) which is the main component being
 // processed.
 // Takes fileAST (*goast.File) which is the AST to add the import block to.
+//
+// Returns error when a script import binds a qualifier the emitter's own references use.
 func (em *emitter) addImportBlock(
 	result *annotator_dto.AnnotationResult,
 	mainComponent *annotator_dto.VirtualComponent,
 	fileAST *goast.File,
-) {
-	importDecl := em.buildImportBlock(result, mainComponent, fileAST)
+) error {
+	importDecl, err := em.buildImportBlock(result, mainComponent, fileAST)
+	if err != nil {
+		return err
+	}
 	if importDecl != nil {
 		fileAST.Decls = append([]goast.Decl{importDecl}, fileAST.Decls...)
 	}
+	return nil
 }
 
 // addStaticAndInitFunctions adds static declarations and a registration init function to
@@ -389,22 +487,25 @@ func (em *emitter) addImport(canonicalPath, alias string) {
 	finalAlias := alias
 
 	if existingPath, aliasUsed := em.ctx.usedAliases[alias]; aliasUsed && existingPath != canonicalPath {
-		em.ctx.aliasCtr++
-		finalAlias = fmt.Sprintf("%s_%d", alias, em.ctx.aliasCtr)
-
-		for {
-			if _, stillUsed := em.ctx.usedAliases[finalAlias]; !stillUsed {
-				break
-			}
-			em.ctx.aliasCtr++
-			finalAlias = fmt.Sprintf("%s_%d", alias, em.ctx.aliasCtr)
-		}
+		finalAlias = goastutil.DisambiguateIdentifier(alias, em.ctx.usedAliases)
 	}
 
 	em.ctx.requiredImports[canonicalPath] = finalAlias
 	if finalAlias != "" {
 		em.ctx.usedAliases[finalAlias] = canonicalPath
 	}
+}
+
+// registerEmitterImports records the imports the emitter's own generated references need,
+// before any import discovered while building the AST can claim their qualifiers.
+//
+// The facade is the one that has to be registered rather than only forced into the import
+// block: the annotator lets a script import it under any alias it likes, and that alias
+// is the one the script's own code uses. Registering the canonical qualifier here means
+// the import block carries both, so "func BuildAST(r *piko.RequestData, ...)" resolves
+// whatever the script called the package.
+func (em *emitter) registerEmitterImports() {
+	em.addImport(pikoFacadePackagePath, facadePackageName)
 }
 
 // getImportAlias returns the alias for a given package path. This means type expressions
@@ -425,7 +526,7 @@ func (em *emitter) getImportAlias(canonicalPath string) string {
 // Returns string which is a unique function name (e.g. "fetchCollection1").
 func (em *emitter) nextFetcherName() string {
 	em.ctx.fetcherCtr++
-	return fmt.Sprintf("fetchCollection%d", em.ctx.fetcherCtr)
+	return fetcherNamePrefix + strconv.FormatInt(em.ctx.fetcherCtr, 10)
 }
 
 // addFetcherDeclaration adds a fetcher function to the file's declarations. These
@@ -517,7 +618,7 @@ func (em *emitter) formatAndVerify(request generator_dto.GenerateRequest, fset *
 // Returns string which is the generated name.
 func (em *emitter) nextTempName() string {
 	c := em.ctx.tempVarCtr.Add(1)
-	return "tempVar" + strconv.FormatInt(c, 10)
+	return tempVarNamePrefix + strconv.FormatInt(c, 10)
 }
 
 // nextStaticVarName creates a unique name for a static node variable.
@@ -525,7 +626,7 @@ func (em *emitter) nextTempName() string {
 // Returns string which is the generated variable name.
 func (em *emitter) nextStaticVarName() string {
 	c := em.ctx.staticVarCtr.Add(1)
-	return "staticNode_" + strconv.FormatInt(c, 10)
+	return staticNodeNamePrefix + strconv.FormatInt(c, 10)
 }
 
 // nextStaticAttrVarName returns a unique name for a static attribute slice variable.
@@ -533,7 +634,7 @@ func (em *emitter) nextStaticVarName() string {
 // Returns string which is the generated variable name.
 func (em *emitter) nextStaticAttrVarName() string {
 	c := em.ctx.staticAttrVarCtr.Add(1)
-	return "staticAttrs_" + strconv.FormatInt(c, 10)
+	return staticAttrsNamePrefix + strconv.FormatInt(c, 10)
 }
 
 // nextLoopIterName returns a unique name for a loop variable. These names are used to
@@ -543,7 +644,7 @@ func (em *emitter) nextStaticAttrVarName() string {
 // Returns string which is the generated loop variable name.
 func (em *emitter) nextLoopIterName() string {
 	c := em.ctx.loopIterCtr.Add(1)
-	return "loopIter_" + strconv.FormatInt(c, 10)
+	return loopIterNamePrefix + strconv.FormatInt(c, 10)
 }
 
 // buildImportBlock builds an import declaration block for the generated output.
@@ -555,11 +656,12 @@ func (em *emitter) nextLoopIterName() string {
 //
 // Returns *goast.GenDecl which contains the merged import declaration, or nil if no
 // imports are needed.
+// Returns error when a script import binds a qualifier the emitter's own references use.
 func (em *emitter) buildImportBlock(
 	result *annotator_dto.AnnotationResult,
 	mainComponent *annotator_dto.VirtualComponent,
 	fileAST *goast.File,
-) *goast.GenDecl {
+) (*goast.GenDecl, error) {
 	importSet := make(map[string]goast.Spec)
 
 	addStdImports(importSet)
@@ -570,9 +672,167 @@ func (em *emitter) buildImportBlock(
 	specs := em.collectCandidateImportSpecs(importSet)
 	kept := pruneUnreferencedSpecs(specs, collectUsedQualifiers(fileAST))
 	if len(kept) == 0 {
+		return nil, nil
+	}
+	return buildImportDeclFromSpecs(kept), nil
+}
+
+// checkUserScriptCollisions reports the first name a user script binds that the emitter
+// generates for itself.
+//
+// Both collisions are reported as diagnostics rather than as errors, because the
+// generator drops the diagnostics it was given whenever an error is also returned, and a
+// user writing an ordinary Go declaration deserves the same formatted, located message
+// the annotator gives them for a template mistake.
+//
+// Takes result (*annotator_dto.AnnotationResult) which supplies the invoked partials.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which is the component being
+// emitted.
+//
+// Returns *ast_domain.Diagnostic describing the first collision, or nil when none exist.
+func (em *emitter) checkUserScriptCollisions(
+	result *annotator_dto.AnnotationResult,
+	mainComponent *annotator_dto.VirtualComponent,
+) *ast_domain.Diagnostic {
+	if diagnostic := checkReservedImportAliases(result, mainComponent, em); diagnostic != nil {
+		return diagnostic
+	}
+
+	if mainComponent == nil || mainComponent.RewrittenScriptAST == nil {
 		return nil
 	}
-	return buildImportDeclFromSpecs(kept)
+
+	return checkReservedUserDeclNames(mainComponent, em, buildUserDeclLineMap(mainComponent, em))
+}
+
+// checkReservedImportAliases reports a reserved qualifier bound by any script whose
+// imports are merged into the generated file.
+//
+// Takes result (*annotator_dto.AnnotationResult) which supplies the invoked partials.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which is the component being
+// emitted.
+// Takes em (*emitter) which supplies path computation for the reported location.
+//
+// Returns *ast_domain.Diagnostic describing the first colliding import, or nil when none
+// collide.
+func checkReservedImportAliases(
+	result *annotator_dto.AnnotationResult,
+	mainComponent *annotator_dto.VirtualComponent,
+	em *emitter,
+) *ast_domain.Diagnostic {
+	if diagnostic := checkReservedUserImportAliases(mainComponent, em); diagnostic != nil {
+		return diagnostic
+	}
+
+	if result == nil || result.VirtualModule == nil || mainComponent == nil {
+		return nil
+	}
+
+	for _, invocation := range result.UniqueInvocations {
+		if invocation.PartialHashedName == mainComponent.HashedName {
+			continue
+		}
+
+		partial := result.VirtualModule.ComponentsByHash[invocation.PartialHashedName]
+		if diagnostic := checkReservedUserImportAliases(partial, em); diagnostic != nil {
+			return diagnostic
+		}
+	}
+
+	return nil
+}
+
+// checkReservedUserImportAliases reports a script import that binds a qualifier the
+// emitter's own generated references use.
+//
+// Takes comp (*annotator_dto.VirtualComponent) which provides the script to check.
+// Takes em (*emitter) which supplies path computation for the reported location.
+//
+// Returns *ast_domain.Diagnostic describing the first colliding import, or nil when none
+// collide.
+func checkReservedUserImportAliases(comp *annotator_dto.VirtualComponent, em *emitter) *ast_domain.Diagnostic {
+	if comp == nil || comp.RewrittenScriptAST == nil {
+		return nil
+	}
+
+	importLines := buildUserImportLineMap(comp, em)
+
+	for _, spec := range userImportSpecs(comp.RewrittenScriptAST) {
+		qualifier := importSpecQualifier(spec)
+		path := importSpecPath(spec)
+
+		reservedPath, reserved := emitterReservedQualifiers[qualifier]
+		if !reserved || reservedPath == path {
+			continue
+		}
+
+		return ast_domain.NewDiagnostic(
+			ast_domain.Error,
+			fmt.Sprintf(
+				"Script import %q uses the name %q, which piko's generated code uses for %q. "+
+					"Give the import a different alias.",
+				path, qualifier, reservedPath,
+			),
+			qualifier,
+			ast_domain.Location{Line: importLines[qualifier], Column: 1},
+			userCodeSourcePath(comp, em),
+		)
+	}
+
+	return nil
+}
+
+// userImportSpecs lists the import specs of a script AST in source order.
+//
+// Takes file (*goast.File) which is the script AST to read.
+//
+// Returns []*goast.ImportSpec which are the script's imports.
+func userImportSpecs(file *goast.File) []*goast.ImportSpec {
+	var specs []*goast.ImportSpec
+	for _, declaration := range file.Decls {
+		genDecl, isGen := declaration.(*goast.GenDecl)
+		if !isGen || genDecl.Tok != token.IMPORT {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			if impSpec, ok := spec.(*goast.ImportSpec); ok {
+				specs = append(specs, impSpec)
+			}
+		}
+	}
+	return specs
+}
+
+// buildUserImportLineMap maps each qualifier a script imports under to its .pk line.
+//
+// Takes comp (*annotator_dto.VirtualComponent) which provides the script AST and source
+// location data.
+// Takes em (*emitter) which is present when source locations are available at all.
+//
+// Returns map[string]int which maps qualifiers to line numbers, or nil when source
+// location data is unavailable.
+func buildUserImportLineMap(comp *annotator_dto.VirtualComponent, em *emitter) map[string]int {
+	if em == nil || comp.Source == nil || comp.Source.Script == nil {
+		return nil
+	}
+
+	script := comp.Source.Script
+	if script.ScriptStartLocation.Line <= 0 || script.Fset == nil || script.AST == nil {
+		return nil
+	}
+
+	startLine := script.ScriptStartLocation.Line
+	result := make(map[string]int)
+
+	for _, spec := range userImportSpecs(script.AST) {
+		if !spec.Pos().IsValid() {
+			continue
+		}
+		virtualLine := script.Fset.Position(spec.Pos()).Line
+		result[importSpecQualifier(spec)] = startLine + virtualLine - 1
+	}
+
+	return result
 }
 
 // collectCandidateImportSpecs flattens importSet into the candidate import-spec slice.
@@ -665,8 +925,10 @@ func (*emitter) buildRegistrationInitFunction(result *annotator_dto.AnnotationRe
 	statements = append(statements, createRegisterCall("RegisterASTFunc", "BuildAST"))
 
 	if mainComponent.Source.Script.HasCachePolicy {
-		statements = append(statements, buildCachePolicyRegisterCall(
+		statements = append(statements, buildPolicyRegisterCall(
 			pkgPathLit,
+			"RegisterCachePolicyFunc",
+			"CachePolicy",
 			mainComponent.Source.Script.CachePolicyFuncName,
 		))
 	}
@@ -675,6 +937,14 @@ func (*emitter) buildRegistrationInitFunction(result *annotator_dto.AnnotationRe
 	}
 	if mainComponent.Source.Script.HasSupportedLocales {
 		statements = append(statements, createRegisterCall("RegisterSupportedLocalesFunc", mainComponent.Source.Script.SupportedLocalesFuncName))
+	}
+	if mainComponent.Source.Script.HasAuthPolicy {
+		statements = append(statements, buildPolicyRegisterCall(
+			pkgPathLit,
+			"RegisterAuthPolicyFunc",
+			"AuthPolicy",
+			mainComponent.Source.Script.AuthPolicyFuncName,
+		))
 	}
 	if mainComponent.Source.Script.HasPreview {
 		statements = append(statements, createRegisterCall("RegisterPreviewFunc", mainComponent.Source.Script.PreviewFuncName))
@@ -712,20 +982,11 @@ func NewEmitterWithPrerenderer(_ context.Context, prerenderer generator_domain.S
 	}
 }
 
-// addStdImports adds the standard library imports needed by generated code.
+// addStdImports adds the imports the emitter's own generated references need.
 //
 // Takes importSet (map[string]goast.Spec) which receives the import entries to add.
 func addStdImports(importSet map[string]goast.Spec) {
-	stdImports := map[string]string{
-		"cmp":                       "",
-		"fmt":                       "",
-		"html":                      "",
-		"strconv":                   "",
-		"sort":                      "",
-		"piko.sh/piko/wdk/runtime":  runtimePackageName,
-		"piko.sh/piko/wdk/safeconv": "",
-	}
-	for path, alias := range stdImports {
+	for path, alias := range emitterImportAliases {
 		spec := &goast.ImportSpec{Path: strLit(path)}
 		if alias != "" {
 			spec.Name = cachedIdent(alias)
@@ -867,9 +1128,11 @@ type userCodeLineDirective struct {
 // Takes mainComponent (*annotator_dto.VirtualComponent) which provides the rewritten
 // script with its declarations to copy.
 // Takes em (*emitter) which provides path computation for //line directives.
-func copyUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualComponent, em *emitter) {
+//
+// Returns error when a declaration cannot be copied.
+func copyUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualComponent, em *emitter) error {
 	if mainComponent == nil || mainComponent.RewrittenScriptAST == nil {
-		return
+		return nil
 	}
 
 	userDeclLines := buildUserDeclLineMap(mainComponent, em)
@@ -892,6 +1155,153 @@ func copyUserCode(fileAST *goast.File, mainComponent *annotator_dto.VirtualCompo
 
 		fileAST.Decls = append(fileAST.Decls, declaration)
 	}
+
+	return nil
+}
+
+// checkReservedUserDeclNames reports a script declaration that collides with a name the
+// emitter generates for the same file.
+//
+// Takes comp (*annotator_dto.VirtualComponent) which provides the script to check.
+// Takes em (*emitter) which supplies path computation for the reported location.
+// Takes userDeclLines (map[string]int) which maps declaration names to .pk line numbers,
+// or nil when source locations are unavailable.
+//
+// Returns *ast_domain.Diagnostic describing the first colliding declaration, or nil when
+// none collide.
+func checkReservedUserDeclNames(
+	comp *annotator_dto.VirtualComponent,
+	em *emitter,
+	userDeclLines map[string]int,
+) *ast_domain.Diagnostic {
+	for _, name := range userDeclaredNames(comp.RewrittenScriptAST) {
+		if !isReservedGeneratedName(name) {
+			continue
+		}
+		return ast_domain.NewDiagnostic(
+			ast_domain.Error,
+			fmt.Sprintf(
+				"Script declares %q, which piko generates for this component. "+
+					"Rename the declaration.",
+				name,
+			),
+			name,
+			ast_domain.Location{Line: userDeclLines[name], Column: 1},
+			userCodeSourcePath(comp, em),
+		)
+	}
+
+	return nil
+}
+
+// userDeclaredNames lists the package-level names a script declares.
+//
+// Methods are excluded: their names live on their receiver, not in the file scope, so a
+// method may share a name with a generated function. Imports are excluded because the
+// emitter builds the import block itself.
+//
+// Takes file (*goast.File) which is the script AST to read.
+//
+// Returns []string which are the declared names in source order.
+func userDeclaredNames(file *goast.File) []string {
+	if file == nil {
+		return nil
+	}
+
+	names := make([]string, 0, len(file.Decls))
+	for _, declaration := range file.Decls {
+		switch decl := declaration.(type) {
+		case *goast.FuncDecl:
+			if decl.Recv == nil && decl.Name != nil {
+				names = append(names, decl.Name.Name)
+			}
+		case *goast.GenDecl:
+			if decl.Tok == token.IMPORT {
+				continue
+			}
+			names = append(names, genDeclNames(decl)...)
+		}
+	}
+	return names
+}
+
+// genDeclNames lists the names a const, var or type declaration binds.
+//
+// Takes decl (*goast.GenDecl) which is the declaration to read.
+//
+// Returns []string which are the bound names in source order.
+func genDeclNames(decl *goast.GenDecl) []string {
+	var names []string
+	for _, spec := range decl.Specs {
+		switch typed := spec.(type) {
+		case *goast.TypeSpec:
+			if typed.Name != nil {
+				names = append(names, typed.Name.Name)
+			}
+		case *goast.ValueSpec:
+			for _, ident := range typed.Names {
+				names = append(names, ident.Name)
+			}
+		}
+	}
+	return names
+}
+
+// isReservedGeneratedName reports whether a name is one the emitter generates itself.
+//
+// Takes name (string) which is the declared name to test.
+//
+// Returns bool which is true when the emitter may generate that name.
+func isReservedGeneratedName(name string) bool {
+	if _, reserved := reservedGeneratedDeclNames[name]; reserved {
+		return true
+	}
+	for _, prefix := range reservedGeneratedDeclPrefixes {
+		suffix, found := strings.CutPrefix(name, prefix)
+		if found && isAllDigits(suffix) {
+			return true
+		}
+	}
+	return false
+}
+
+// isAllDigits reports whether a string is one or more ASCII digits.
+//
+// Takes text (string) which is the string to test.
+//
+// Returns bool which is true when the string is a non-empty run of digits.
+func isAllDigits(text string) bool {
+	if text == "" {
+		return false
+	}
+	for index := range len(text) {
+		if text[index] < '0' || text[index] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// userCodeSourcePath returns the .pk path a diagnostic about user script code names.
+//
+// Takes comp (*annotator_dto.VirtualComponent) which provides the source path.
+// Takes em (*emitter) which supplies the base directory the path is made relative to. May
+// be nil, in which case the path is reported as stored.
+//
+// Returns string which is the path, relative to the project root where one is known.
+func userCodeSourcePath(comp *annotator_dto.VirtualComponent, em *emitter) string {
+	sourcePath := ""
+	if comp != nil && comp.Source != nil {
+		sourcePath = comp.Source.SourcePath
+	}
+	if em == nil {
+		return sourcePath
+	}
+	if sourcePath == "" {
+		sourcePath = em.config.SourcePath
+	}
+
+	return em.computeRelativePath(sourcePath)
 }
 
 // buildUserDeclLineMap builds a map from user-defined declaration names to their absolute
@@ -1136,24 +1546,25 @@ func verifyGeneratedCode(request generator_dto.GenerateRequest, generatedBytes [
 	return nil
 }
 
-// buildCachePolicyRegisterCall generates the AST for registering a cache policy function
-// with a wrapper that adapts the user's no-argument function to the CachePolicyFunc
-// signature (which receives *RequestData).
+// buildPolicyRegisterCall generates the AST for registering a no-argument policy hook
+// (CachePolicy, AuthPolicy) with a wrapper that adapts the user's function to the
+// registry signature, which receives *RequestData.
 //
-// The user defines CachePolicy as func() piko.CachePolicy, but the registry expects
-// func(*RequestData) CachePolicy. This wrapper bridges the two.
+// The user defines the hook as `func() piko.T`, but the registry expects
+// `func(*RequestData) piko.T`. This wrapper bridges the two.
 //
 // Takes pkgPathLit (goast.Expr) which is the string literal for the package path.
-// Takes cachePolicyFuncName (string) which is the name of the user's cache policy
-// function.
+// Takes registerFuncName (string) which is the runtime registration function to call.
+// Takes policyTypeName (string) which is the facade type the hook returns.
+// Takes policyFuncName (string) which is the name of the user's hook function.
 //
 // Returns goast.Stmt which is the registration call statement.
-func buildCachePolicyRegisterCall(pkgPathLit goast.Expr, cachePolicyFuncName string) goast.Stmt {
+func buildPolicyRegisterCall(pkgPathLit goast.Expr, registerFuncName, policyTypeName, policyFuncName string) goast.Stmt {
 	return &goast.ExprStmt{
 		X: &goast.CallExpr{
 			Fun: &goast.SelectorExpr{
 				X:   cachedIdent(runtimePackageName),
-				Sel: cachedIdent("RegisterCachePolicyFunc"),
+				Sel: cachedIdent(registerFuncName),
 			},
 			Args: []goast.Expr{
 				pkgPathLit,
@@ -1174,7 +1585,7 @@ func buildCachePolicyRegisterCall(pkgPathLit goast.Expr, cachePolicyFuncName str
 							List: []*goast.Field{{
 								Type: &goast.SelectorExpr{
 									X:   cachedIdent(facadePackageName),
-									Sel: cachedIdent("CachePolicy"),
+									Sel: cachedIdent(policyTypeName),
 								},
 							}},
 						},
@@ -1184,7 +1595,7 @@ func buildCachePolicyRegisterCall(pkgPathLit goast.Expr, cachePolicyFuncName str
 							&goast.ReturnStmt{
 								Results: []goast.Expr{
 									&goast.CallExpr{
-										Fun: cachedIdent(cachePolicyFuncName),
+										Fun: cachedIdent(policyFuncName),
 									},
 								},
 							},

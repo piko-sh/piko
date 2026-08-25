@@ -33,6 +33,7 @@ import (
 
 	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/internal/testutil"
 )
 
 type fakeRuntimeBuilderStrategy struct{}
@@ -246,6 +247,7 @@ func main() {
 
 	command := exec.Command("go", "run", ".")
 	command.Dir = tempDir
+	command.Env = testutil.ToolchainEnv()
 	output, runErr := command.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 
@@ -300,6 +302,7 @@ func main() {
 
 	command := exec.Command("go", "run", ".")
 	command.Dir = tempDir
+	command.Env = testutil.ToolchainEnv()
 	output, runErr := command.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 
@@ -363,6 +366,7 @@ func main() {
 
 	command := exec.Command("go", "run", ".")
 	command.Dir = tempDir
+	command.Env = testutil.ToolchainEnv()
 	output, runErr := command.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 

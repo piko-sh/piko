@@ -1,0 +1,5 @@
+{
+    "description": "Tests that a script importing the piko facade under its own alias still compiles, since the emitter's own references to the facade keep their qualifier",
+    "packageName": "script_piko_facade_alias_test",
+    "isPage": true
+}

@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strconv"
 	dto "testcase_054_conflicting_dto_packages/pkg/1/dto"
-	dto_1 "testcase_054_conflicting_dto_packages/pkg/2/dto"
+	dto2 "testcase_054_conflicting_dto_packages/pkg/2/dto"
 	models "testcase_054_conflicting_dto_packages/pkg/models"
 
 	piko "piko.sh/piko"
@@ -221,14 +221,14 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar31.NodeType = pikoruntime.NodeText
 	tempVar32 := arena.GetDirectWriter()
 	tempVar32.AppendString("First Contact: ")
-	tempVar32.AppendEscapeString(func() dto_1.Contact {
+	tempVar32.AppendEscapeString(func() dto2.Contact {
 		if pageData.User.Contacts == nil {
 			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Cannot index a nil slice/map in expression 'state.User.Contacts[0]'", "R004", "", "state.User.Contacts[0]", 1, 1)
-			return dto_1.Contact{}
+			return dto2.Contact{}
 		}
 		if int(0) >= len(pageData.User.Contacts) {
 			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Index out of bounds while accessing 'state.User.Contacts[0]'", "R005", "", "state.User.Contacts[0]", 1, 1)
-			return dto_1.Contact{}
+			return dto2.Contact{}
 		}
 		return pageData.User.Contacts[0]
 	}().Email)
@@ -247,14 +247,14 @@ func BuildAST(r *piko.RequestData, propsData interface{}) (*pikoruntime.Template
 	tempVar35.NodeType = pikoruntime.NodeText
 	tempVar36 := arena.GetDirectWriter()
 	tempVar36.AppendString("Out-of-Bounds Contact: ")
-	tempVar36.AppendEscapeString(func() dto_1.Contact {
+	tempVar36.AppendEscapeString(func() dto2.Contact {
 		if pageData.User.Contacts == nil {
 			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Cannot index a nil slice/map in expression 'state.User.Contacts[99]'", "R004", "", "state.User.Contacts[99]", 1, 1)
-			return dto_1.Contact{}
+			return dto2.Contact{}
 		}
 		if int(99) >= len(pageData.User.Contacts) {
 			diagnostics = pikoruntime.AppendDiagnostic(diagnostics, pikoruntime.Warning, "Index out of bounds while accessing 'state.User.Contacts[99]'", "R005", "", "state.User.Contacts[99]", 1, 1)
-			return dto_1.Contact{}
+			return dto2.Contact{}
 		}
 		return pageData.User.Contacts[99]
 	}().Phone)

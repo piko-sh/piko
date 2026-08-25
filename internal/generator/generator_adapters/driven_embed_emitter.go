@@ -59,12 +59,23 @@ const (
 
 	// copyBufferSize is the chunk size used by the cancellable payload copy loop.
 	copyBufferSize = 32 * 1024
+
+	// goSourceExtension is the one extension the Go toolchain parses when it walks a
+	// directory, which is what makes a blobbed Go file poisonous inside dist/.
+	goSourceExtension = ".go"
+
+	// embedGoSourceListLimit bounds how many offending paths an error names, so a tree full
+	// of Go files produces a message a person can read.
+	embedGoSourceListLimit = 10
 )
 
 var (
 	// embedPayloadTrees are the .piko subtrees the runtime reads from an embedded
 	// filesystem.
 	embedPayloadTrees = []string{"blobs", "storage"}
+
+	// ErrEmbedGoSourceAsset reports that the embed payload holds a Go source file.
+	ErrEmbedGoSourceAsset = errors.New("embed payload holds Go source")
 )
 
 // DrivenEmbedEmitter copies the runtime payload out of .piko into dist/embed/piko and
@@ -128,12 +139,18 @@ func (e *DrivenEmbedEmitter) writePayload(ctx context.Context) (int, error) {
 	}
 
 	copied := 0
+	var goSources []string
 	for _, tree := range embedPayloadTrees {
-		treeCopied, err := e.copyTree(ctx, tree)
+		treeCopied, treeGoSources, err := e.copyTree(ctx, tree)
+		copied += treeCopied
+		goSources = append(goSources, treeGoSources...)
 		if err != nil {
 			return copied, err
 		}
-		copied += treeCopied
+	}
+
+	if len(goSources) > 0 {
+		return copied, newEmbedGoSourceError(goSources)
 	}
 
 	snapshotCopied, err := e.copyFileIfPresent(ctx, embedRegistrySnapshotPath)
@@ -177,50 +194,50 @@ func (e *DrivenEmbedEmitter) cleanupPartialPayload(ctx context.Context) {
 
 // copyTree streams every regular file under the named .piko subtree into the payload.
 //
-// Relative paths are preserved. An absent subtree is not an error, because a project may
-// have no blobs or no storage; absence is decided by stat-ing the subtree root first.
-// Once the root exists, any walk failure propagates, including a file vanishing mid-walk,
-// so a partial tree is never mistaken for an absent one and shipped as a truncated
-// payload.
-//
 // Takes tree (string) which is the subtree name relative to the .piko root.
 //
 // Returns int which is the number of files copied, even on failure.
+// Returns []string which are the Go source files found, which cannot be copied.
 // Returns error when the subtree cannot be inspected, read, or written.
-func (e *DrivenEmbedEmitter) copyTree(ctx context.Context, tree string) (int, error) {
+func (e *DrivenEmbedEmitter) copyTree(ctx context.Context, tree string) (int, []string, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	if _, err := e.source.Stat(tree); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			l.Internal("Embed payload subtree absent, skipping", logger_domain.String("tree", tree))
-			return 0, nil
+			return 0, nil, nil
 		}
-		return 0, fmt.Errorf("inspecting .piko/%s for the embed payload: %w", tree, err)
+		return 0, nil, fmt.Errorf("inspecting .piko/%s for the embed payload: %w", tree, err)
 	}
 
 	copied := 0
+	var goSources []string
 	walkErr := e.source.WalkDir(tree, func(entryPath string, entry fs.DirEntry, err error) error {
-		if err != nil {
+		switch {
+		case err != nil:
 			return err
-		}
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return ctxErr
-		}
-		if entry.IsDir() {
+		case ctx.Err() != nil:
+			return ctx.Err()
+		case entry.IsDir():
 			return e.destination.MkdirAll(path.Join(embedPikoDirName, entryPath), embedDirPermission)
-		}
-		if !entry.Type().IsRegular() {
+		case !entry.Type().IsRegular():
+			return nil
+		case isGoSourcePath(entryPath):
+			goSources = append(goSources, path.Join(tree, entryPath))
 			return nil
 		}
+
 		if copyErr := e.copyFile(ctx, entryPath); copyErr != nil {
 			return copyErr
 		}
 		copied++
+
 		return nil
 	})
 	if walkErr != nil {
-		return copied, fmt.Errorf("copying .piko/%s into the embed payload: %w", tree, walkErr)
+		return copied, goSources, fmt.Errorf("copying .piko/%s into the embed payload: %w", tree, walkErr)
 	}
-	return copied, nil
+
+	return copied, goSources, nil
 }
 
 // copyFileIfPresent copies one file from the .piko root into the payload when it exists.
@@ -272,6 +289,59 @@ func (e *DrivenEmbedEmitter) copyFile(ctx context.Context, relativePath string) 
 	}()
 
 	return copyStreamWithContext(ctx, destinationFile, sourceFile)
+}
+
+// newEmbedGoSourceError builds the error raised when the embed payload holds Go source.
+//
+// The file cannot be copied: the blob store is flat, so two Go files from two packages
+// would land in one directory under dist/ with two package clauses, and "go build ./..."
+// would then fail module-wide pointing at a hash-named file nobody wrote. Copying it
+// would also serve the project's own server-side code over HTTP. Dropping it silently is
+// worse than either, because the registry still lists the asset, so a request for it
+// finds a manifest entry and no bytes.
+//
+// Takes goSources ([]string) which are the offending paths within .piko.
+//
+// Returns error which names the paths and how to resolve them.
+func newEmbedGoSourceError(goSources []string) error {
+	listed := goSources
+	suffix := ""
+	if len(listed) > embedGoSourceListLimit {
+		listed = listed[:embedGoSourceListLimit]
+		suffix = fmt.Sprintf(" and %d more", len(goSources)-embedGoSourceListLimit)
+	}
+
+	return fmt.Errorf(
+		"%w: %s%s. A Go file cannot be embedded as an asset, because the copied payload sits "+
+			"inside your module and the go tool would compile it. Move these files out of the "+
+			"asset directory",
+		ErrEmbedGoSourceAsset, strings.Join(listed, ", "), suffix,
+	)
+}
+
+// isGoSourcePath reports whether a payload file would be compiled if it were copied into
+// dist.
+//
+// The asset directory defaults to lib/, which legitimately holds mixed content, so a
+// project's own Go packages get blobbed as assets alongside its CSS and JavaScript. The
+// blob store is flat and keyed by content hash, so two Go files from two different
+// packages land side by side in one directory of the copied payload with two different
+// package clauses. That directory sits under dist/, inside the user's module, and the go
+// tool walks it: "go build ./..." then fails module-wide with "found packages a and b",
+// pointing at a hash-named file nobody wrote, while the generator reports success.
+//
+// Dropping these files costs an embedded build nothing it should have had. Serving a
+// project's own Go source over HTTP discloses server-side code, so the asset is one no
+// deployment wants; every other asset type is copied as before.
+//
+// The comparison is case-sensitive because the go tool's own is: a file named "X.GO" is
+// never compiled, so dropping it would lose an asset for nothing.
+//
+// Takes relativePath (string) which is the file's path within the .piko subtree.
+//
+// Returns bool which is true when the file must stay out of the payload.
+func isGoSourcePath(relativePath string) bool {
+	return path.Ext(relativePath) == goSourceExtension
 }
 
 // GenerateEmbedGenFile returns the source of dist/embed_gen.go: a piko_embed-tagged file

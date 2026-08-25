@@ -3,19 +3,18 @@ package actions
 import (
 	"context"
 	"mime/multipart"
-	"testcase_132_action_struct_file_upload/actions/files"
+	files_203cc8ad "testcase_132_action_struct_file_upload/actions/files"
 
 	"piko.sh/piko"
 	pikobinder "piko.sh/piko/wdk/binder"
 	"piko.sh/piko/wdk/logger"
 )
 
-var log = logger.GetLogger("piko/actions")
+var pikoActionLog = logger.GetLogger("piko/actions")
 
 func invokeFilesUpload(ctx context.Context, action any, argsMap map[string]any) (any, error) {
-	ctx, l := logger.From(ctx, log)
-	a := action.(*files.UploadAction)
-	var input files.UploadInput
+	ctx, l := logger.From(ctx, pikoActionLog)
+	var input files_203cc8ad.UploadInput
 	if fh, ok := argsMap["avatar"].(*multipart.FileHeader); ok {
 		input.Avatar = piko.NewFileUpload(fh)
 	}
@@ -24,5 +23,6 @@ func invokeFilesUpload(ctx context.Context, action any, argsMap map[string]any) 
 		l.Warn("Failed to bind action parameter from flat argsMap", logger.String("param", "input"), logger.Error(err))
 		return nil, err
 	}
+	a := action.(*files_203cc8ad.UploadAction)
 	return a.Call(input)
 }

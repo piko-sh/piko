@@ -1,0 +1,5 @@
+{
+  "description": "Tests that a page declaring an AuthPolicy function registers it with the runtime in the generated init.",
+  "packageName": "page_auth_policy_test",
+  "isPage": true
+}

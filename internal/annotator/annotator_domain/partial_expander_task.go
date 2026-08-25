@@ -1044,10 +1044,8 @@ func findEffectiveRootElements(nodes []*ast_domain.TemplateNode) []*ast_domain.T
 //
 // Returns bool which is true if the node is a comment or contains only whitespace.
 func isWhitespaceOrCommentNode(node *ast_domain.TemplateNode) bool {
-	if node.NodeType == ast_domain.NodeComment {
-		return true
+	if node == nil {
+		return false
 	}
-	return node.NodeType == ast_domain.NodeText &&
-		len(node.RichText) == 0 &&
-		strings.TrimSpace(node.TextContent) == ""
+	return node.NodeType == ast_domain.NodeComment || node.IsWhitespaceOnlyText()
 }

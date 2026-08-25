@@ -651,14 +651,35 @@ func TestBuildGoWrapper_SpecialCharactersInName(t *testing.T) {
 			collectionName: "collection123",
 			wantContains:   `pikoruntime.RegisterStaticCollectionBlob(context.Background(), "collection123"`,
 		},
+		{
+			name:           "hyphen",
+			collectionName: "blog-posts",
+			wantContains:   `pikoruntime.RegisterStaticCollectionBlob(context.Background(), "blog-posts"`,
+		},
+		{
+			name:           "embedded quotes",
+			collectionName: `say "hi"`,
+			wantContains:   `pikoruntime.RegisterStaticCollectionBlob(context.Background(), "say \"hi\""`,
+		},
+		{
+			name:           "go keyword",
+			collectionName: "range",
+			wantContains:   `pikoruntime.RegisterStaticCollectionBlob(context.Background(), "range"`,
+		},
+		{
+			name:           "backslash",
+			collectionName: `a\b`,
+			wantContains:   `pikoruntime.RegisterStaticCollectionBlob(context.Background(), "a\\b"`,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			packageName, _ := collectionPackageName(tt.collectionName)
 			config := goWrapperConfig{
-				packageName:    tt.collectionName,
+				packageName:    packageName,
 				collectionName: tt.collectionName,
 				hasFast:        false,
 				hasSmart:       false,

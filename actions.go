@@ -478,6 +478,41 @@ func RegisterActions(entries map[string]ActionHandlerEntry) {
 	daemon_adapters.RegisterActions(entries)
 }
 
+// SetActionInput records the bound call arguments on an action's metadata.
+//
+// Takes action (any) which is the action instance to record the arguments on.
+// Takes inputs (...any) which are the bound call arguments in declaration order.
+func SetActionInput(action any, inputs ...any) {
+	type inputSetter interface {
+		SetInput(inputs ...any)
+	}
+
+	if setter, ok := action.(inputSetter); ok {
+		setter.SetInput(inputs...)
+	}
+}
+
+// ActionInput returns an action's bound input.
+//
+// Takes m (*ActionMetadata) which is the action's embedded metadata.
+//
+// Returns T which is the bound input, or the zero value when the action has no bound
+// input of that type.
+// Returns bool which is true when the input was present and of type T.
+func ActionInput[T any](m *ActionMetadata) (T, bool) {
+	var zero T
+	if m == nil {
+		return zero, false
+	}
+
+	value, ok := m.Input().(T)
+	if !ok {
+		return zero, false
+	}
+
+	return value, true
+}
+
 // GetErrorContext returns the error page context from the request, if present, providing
 // the status code, message, and original request path for use inside error page Render
 // functions.

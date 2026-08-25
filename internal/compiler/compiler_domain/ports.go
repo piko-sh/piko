@@ -62,8 +62,8 @@ type CSSPreProcessorPort interface {
 	// Returns string which is the CSS with all imports inlined.
 	// Returns error when import resolution or file reading fails.
 	InlineImports(
-		ctx context.Context, 
-		cssContent string, 
+		ctx context.Context,
+		cssContent string,
 		sourcePath string,
 		startLocation ast_domain.Location,
 	) (string, error)

@@ -270,6 +270,8 @@ func unpackPageEntry(fb *gen_fb.ManifestPageEntryFB) generator_dto.ManifestPageE
 		MiddlewareFuncName:       mem.String(fb.MiddlewareFuncName()),
 		HasSupportedLocales:      fb.HasSupportedLocales(),
 		SupportedLocalesFuncName: mem.String(fb.SupportedLocalesFuncName()),
+		HasAuthPolicy:            fb.HasAuthPolicy(),
+		AuthPolicyFuncName:       mem.String(fb.AuthPolicyFuncName()),
 		LocalTranslations:        unpackLocaleTranslations(fb.LocalTranslationsLength(), fb.LocalTranslations),
 		IsE2EOnly:                fb.IsE2eOnly(),
 		HasPreview:               fb.HasPreview(),

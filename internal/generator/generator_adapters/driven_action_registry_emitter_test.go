@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/goastutil"
 )
 
 func makeTestActionSpec(name, packagePath, packageName, structName, method string) annotator_dto.ActionSpec {
@@ -95,7 +96,7 @@ func TestEmitRegistry(t *testing.T) {
 			},
 		},
 		{
-			name: "action needing import alias",
+			name: "action package is imported under a path-derived alias",
 			specs: []annotator_dto.ActionSpec{
 				{
 					Name:        "test.action",
@@ -106,7 +107,19 @@ func TestEmitRegistry(t *testing.T) {
 				},
 			},
 			wantContains: []string{
-				`some "mymod/actions/some_v2"`,
+				goastutil.GoPackageAliasWithStem("some", "mymod/actions/some_v2") + ` "mymod/actions/some_v2"`,
+			},
+		},
+		{
+			name: "action package named after a generated import is still aliased",
+			specs: []annotator_dto.ActionSpec{
+				makeTestActionSpec("log.write", "mymod/actions/log", "log", "WriteAction", "POST"),
+			},
+			wantContains: []string{
+				goastutil.GoPackageAliasWithStem("log", "mymod/actions/log") + ` "mymod/actions/log"`,
+			},
+			wantNotContain: []string{
+				"\t\"mymod/actions/log\"",
 			},
 		},
 		{
@@ -313,39 +326,39 @@ func TestActionSortSpecs_DoesNotModifyOriginal(t *testing.T) {
 	assert.Equal(t, "beta", original[2].Name)
 }
 
-func TestActionNeedsAlias(t *testing.T) {
+func TestActionPackageNameOrDefault(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name        string
-		packagePath string
 		packageName string
-		want        bool
+		packagePath string
+		want        string
 	}{
 		{
-			name:        "matching - no alias needed",
+			name:        "declared name wins",
+			packageName: "some",
+			packagePath: "mymod/actions/some_v2",
+			want:        "some",
+		},
+		{
+			name:        "falls back to the last path segment",
+			packageName: "",
 			packagePath: "mymod/actions/email",
-			packageName: "email",
-			want:        false,
+			want:        "email",
 		},
 		{
-			name:        "not matching - alias needed",
-			packagePath: "mymod/actions/email_v2",
-			packageName: "email",
-			want:        true,
-		},
-		{
-			name:        "single segment matching",
+			name:        "single segment path",
+			packageName: "",
 			packagePath: "email",
-			packageName: "email",
-			want:        false,
+			want:        "email",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.want, actionNeedsAlias(tt.packagePath, tt.packageName))
+			assert.Equal(t, tt.want, actionPackageNameOrDefault(tt.packageName, tt.packagePath))
 		})
 	}
 }
@@ -362,6 +375,9 @@ func TestActionToPascalCase(t *testing.T) {
 		{name: "dotted name", input: "email.contact", want: "EmailContact"},
 		{name: "triple dotted", input: "user.auth.login", want: "UserAuthLogin"},
 		{name: "empty string", input: "", want: ""},
+		{name: "empty parts are skipped", input: "api..delete", want: "ApiDelete"},
+		{name: "multi-byte leading rune is not sliced", input: "über.contact", want: "ÜberContact"},
+		{name: "leading rune without an upper case form", input: "日本.contact", want: "日本Contact"},
 	}
 
 	for _, tt := range tests {
@@ -370,6 +386,102 @@ func TestActionToPascalCase(t *testing.T) {
 			assert.Equal(t, tt.want, actionToPascalCase(tt.input))
 		})
 	}
+}
+
+func TestNewActionNaming(t *testing.T) {
+	t.Parallel()
+
+	t.Run("same package name at different paths receives different aliases", func(t *testing.T) {
+		t.Parallel()
+
+		naming := newActionNaming([]annotator_dto.ActionSpec{
+			makeTestActionSpec("repo.GithubGet", "mymod/actions/github/repo", "repo", "GithubGetAction", "POST"),
+			makeTestActionSpec("repo.GitlabGet", "mymod/actions/gitlab/repo", "repo", "GitlabGetAction", "POST"),
+		})
+
+		first := naming.qualifier("mymod/actions/github/repo", "repo")
+		second := naming.qualifier("mymod/actions/gitlab/repo", "repo")
+
+		assert.NotEqual(t, first, second, "two packages called repo must not share a qualifier")
+		assert.True(t, goastutil.IsValidGoIdentifier(first))
+		assert.True(t, goastutil.IsValidGoIdentifier(second))
+	})
+
+	t.Run("aliases never take a name the generated file already binds", func(t *testing.T) {
+		t.Parallel()
+
+		naming := newActionNaming([]annotator_dto.ActionSpec{
+			makeTestActionSpec("log.Write", "mymod/actions/log", "log", "WriteAction", "POST"),
+			makeTestActionSpec("context.Read", "mymod/actions/context", "context", "ReadAction", "POST"),
+			makeTestActionSpec("reflect.Scan", "mymod/actions/reflect", "reflect", "ScanAction", "POST"),
+		})
+
+		for _, reserved := range actionReservedIdentifiers {
+			for packagePath, alias := range naming.packageAliases {
+				assert.NotEqual(t, reserved, alias, "alias for %s collides with %s", packagePath, reserved)
+			}
+		}
+	})
+
+	t.Run("colliding wrapper names are disambiguated", func(t *testing.T) {
+		t.Parallel()
+
+		naming := newActionNaming([]annotator_dto.ActionSpec{
+			makeTestActionSpec("zza.BC", "mymod/actions/zza", "zza", "BCAction", "POST"),
+			makeTestActionSpec("zzaB.C", "mymod/actions/zzaB", "zzaB", "CAction", "POST"),
+		})
+
+		require.Len(t, naming.wrapperNames, 2)
+		assert.Equal(t, "invokeZzaBC", naming.wrapperNames[0])
+		assert.Equal(t, "invokeZzaBC2", naming.wrapperNames[1])
+	})
+
+	t.Run("actions sharing a name still receive distinct wrapper names", func(t *testing.T) {
+		t.Parallel()
+
+		naming := newActionNaming([]annotator_dto.ActionSpec{
+			makeTestActionSpec("repo.Get", "mymod/actions/github/repo", "repo", "GetAction", "POST"),
+			makeTestActionSpec("repo.Get", "mymod/actions/gitlab/repo", "repo", "GetAction", "POST"),
+		})
+
+		require.Len(t, naming.wrapperNames, 2)
+		assert.NotEqual(t, naming.wrapperNames[0], naming.wrapperNames[1])
+	})
+
+	t.Run("no action packages", func(t *testing.T) {
+		t.Parallel()
+
+		naming := newActionNaming(nil)
+
+		assert.Empty(t, naming.packagePaths)
+		assert.Empty(t, naming.wrapperNames)
+
+		alias := naming.qualifier("mymod/actions/email", "email")
+		assert.Equal(t, goastutil.GoPackageAliasWithStem("email", "mymod/actions/email"), alias)
+		assert.Equal(t, []string{"mymod/actions/email"}, naming.packagePaths,
+			"a late reference must join the import list, or its alias resolves to nothing")
+	})
+}
+
+func TestEmitRegistry_CollidingPackageNamesAtDifferentPaths(t *testing.T) {
+	t.Parallel()
+
+	specs := []annotator_dto.ActionSpec{
+		makeTestActionSpec("repo.GithubGet", "mymod/actions/github/repo", "repo", "GithubGetAction", "POST"),
+		makeTestActionSpec("repo.GitlabGet", "mymod/actions/gitlab/repo", "repo", "GitlabGetAction", "POST"),
+	}
+
+	emitter := NewActionRegistryEmitter()
+	result, err := emitter.EmitRegistry(context.Background(), specs)
+	require.NoError(t, err)
+
+	output := string(result)
+	assert.Contains(t, output, goastutil.GoPackageAliasWithStem("repo", "mymod/actions/github/repo")+` "mymod/actions/github/repo"`)
+	assert.Contains(t, output, goastutil.GoPackageAliasWithStem("repo", "mymod/actions/gitlab/repo")+` "mymod/actions/gitlab/repo"`)
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "registry.go", result, parser.AllErrors)
+	require.NoError(t, parseErr, "generated code should be valid Go:\n%s", output)
 }
 
 func TestCollectPretouchTypes(t *testing.T) {
@@ -536,4 +648,87 @@ func TestEmitRegistry_AlphabeticalOrder(t *testing.T) {
 
 	assert.Less(t, alphaIndex, midIndex, "alpha should come before mid")
 	assert.Less(t, midIndex, zetaIndex, "mid should come before zeta")
+}
+
+func TestEmitRegistry_SSEActionCarriesBindField(t *testing.T) {
+	t.Parallel()
+
+	sseSpec := makeTestActionSpec("stream.Export", "mymod/actions/stream", "stream", "ExportAction", "POST")
+	sseSpec.HasSSE = true
+	plainSpec := makeTestActionSpec("user.Create", "mymod/actions/user", "user", "CreateAction", "POST")
+
+	output, err := NewActionRegistryEmitter().EmitRegistry(context.Background(), []annotator_dto.ActionSpec{sseSpec, plainSpec})
+	require.NoError(t, err)
+
+	source := string(output)
+
+	assert.Contains(t, source, "Bind   func(ctx context.Context, action any, args map[string]any) error",
+		"the locally declared handler struct must carry Bind or the registry literal will not compile")
+	assert.Contains(t, source, "Bind: bindStreamExport")
+	assert.NotContains(t, source, "Bind: bindUserCreate", "an action without SSE needs no bind function")
+
+	_, parseErr := parser.ParseFile(token.NewFileSet(), "registry.go", source, parser.AllErrors)
+	require.NoError(t, parseErr)
+}
+
+func TestNewActionNaming_ReservesBindNamesOnlyForSSE(t *testing.T) {
+	t.Parallel()
+
+	sseSpec := makeTestActionSpec("stream.Export", "mymod/actions/stream", "stream", "ExportAction", "POST")
+	sseSpec.HasSSE = true
+	plainSpec := makeTestActionSpec("user.Create", "mymod/actions/user", "user", "CreateAction", "POST")
+
+	naming := newActionNaming([]annotator_dto.ActionSpec{sseSpec, plainSpec})
+
+	require.Len(t, naming.bindNames, 2)
+	for i := range naming.specs {
+		if naming.specs[i].HasSSE {
+			assert.Equal(t, "bindStreamExport", naming.bindNames[i])
+			continue
+		}
+		assert.Empty(t, naming.bindNames[i])
+	}
+}
+
+func TestEmitRegistry_TypePackageWithoutActionsIsImported(t *testing.T) {
+	t.Parallel()
+
+	spec := makeTypePackageSpec("input", false)
+	spec.ReturnType = &annotator_dto.TypeSpec{
+		Name:        "CreateOutput",
+		PackagePath: testTypePackagePath,
+		PackageName: "contracts",
+	}
+
+	result, err := NewActionRegistryEmitter().EmitRegistry(context.Background(), []annotator_dto.ActionSpec{spec})
+	require.NoError(t, err)
+
+	output := string(result)
+	assert.Contains(t, output, testTypePackageAlias+` "`+testTypePackagePath+`"`,
+		"a pretouched type's package must be imported even though it holds no action")
+	assert.Contains(t, output, "reflect.TypeFor["+testTypePackageAlias+".CreateInput]()")
+	assert.Contains(t, output, "reflect.TypeFor["+testTypePackageAlias+".CreateOutput]()")
+	assert.NotContains(t, output, "reflect.TypeFor[contracts.CreateInput]()",
+		"the bare package name is not bound by any import in the generated file")
+
+	_, parseErr := parser.ParseFile(token.NewFileSet(), "registry.go", output, parser.AllErrors)
+	require.NoError(t, parseErr, "generated code should be valid Go:\n%s", output)
+}
+
+func TestActionPackageStems_CollectsTypePackages(t *testing.T) {
+	t.Parallel()
+
+	spec := makeTypePackageSpec("input", false)
+	spec.ReturnType = &annotator_dto.TypeSpec{
+		Name:        "FetchOutput",
+		PackagePath: "mymod/pkg/results",
+		PackageName: "results",
+	}
+
+	paths, stems := actionPackageStems([]annotator_dto.ActionSpec{spec})
+
+	assert.Equal(t, []string{"mymod/actions/order", testTypePackagePath, "mymod/pkg/results"}, paths,
+		"the action package and both type packages need aliases, in a stable order")
+	assert.Equal(t, "contracts", stems[testTypePackagePath],
+		"the declared package name is the readable stem of the alias")
 }

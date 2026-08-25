@@ -19,10 +19,10 @@
 package emitter_shared
 
 import (
-	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
+
+	"piko.sh/piko/internal/goastutil"
 )
 
 var (
@@ -64,25 +64,21 @@ var (
 // SnakeToPascalCase converts a snake_case SQL identifier to PascalCase Go identifier,
 // applying Go initialism conventions.
 //
-// A SQL name need not be a legal Go identifier stem: quoted identifiers and aliases such
-// as "2fa_enabled" are valid SQL but their naive PascalCase form ("2faEnabled") starts
-// with a digit and would not compile. The result is therefore passed through
-// sanitiseGoIdentifier so a leading-digit (or otherwise empty) stem is prefixed with an
-// underscore.
+// A SQL name need not be a legal Go identifier stem: a quoted identifier or an alias may
+// hold any character at all, so "2fa_enabled" would give "2faEnabled", which starts with
+// a digit, and "my-query" would give "My-query", which is two tokens. The name is
+// therefore split on every rune that cannot appear in an identifier, not on underscores
+// alone, and the joined result is made into an exported identifier.
 //
 // Takes name (string) which is the snake_case identifier to convert.
 //
 // Returns string which is the PascalCase Go identifier.
 func SnakeToPascalCase(name string) string {
-	segments := strings.Split(name, "_")
+	segments := splitIdentifierSegments(name)
 	var builder strings.Builder
 	builder.Grow(len(name))
 
 	for _, segment := range segments {
-		if segment == "" {
-			continue
-		}
-
 		lower := strings.ToLower(segment)
 		if canonical, exists := commonInitialisms[lower]; exists {
 			builder.WriteString(canonical)
@@ -101,29 +97,36 @@ func SnakeToPascalCase(name string) string {
 		builder.WriteString(string(runes))
 	}
 
-	return sanitiseGoIdentifier(builder.String())
+	if builder.Len() == 0 {
+		if name == "" {
+			return ""
+		}
+
+		return goastutil.SanitiseGoExportedIdentifier(name)
+	}
+
+	return goastutil.SanitiseGoExportedIdentifier(builder.String())
 }
 
 // SnakeToCamelCase converts a snake_case SQL identifier to camelCase Go identifier,
 // applying Go initialism conventions for non-leading segments.
 //
-// As with SnakeToPascalCase, the result is passed through sanitiseGoIdentifier so a SQL
-// name whose camelCase form begins with a digit (or is empty) becomes a legal Go
-// identifier rather than non-compiling source.
+// As with SnakeToPascalCase, the name is split on every rune that cannot appear in an
+// identifier, a name that leaves nothing to join falls back to the shared kit, and the
+// result is passed through sanitiseGoIdentifier. The reserved word guard matters more
+// here than in the PascalCase form: a camelCase name keeps its lower-case leading
+// segment, so a column called "range" or "string" would otherwise emit a declaration that
+// either does not compile or shadows a predeclared identifier for the rest of the scope.
 //
 // Takes name (string) which is the snake_case identifier to convert.
 //
 // Returns string which is the camelCase Go identifier.
 func SnakeToCamelCase(name string) string {
-	segments := strings.Split(name, "_")
+	segments := splitIdentifierSegments(name)
 	var builder strings.Builder
 	builder.Grow(len(name))
 
 	for index, segment := range segments {
-		if segment == "" {
-			continue
-		}
-
 		lower := strings.ToLower(segment)
 
 		if index == 0 {
@@ -141,6 +144,9 @@ func SnakeToCamelCase(name string) string {
 		builder.WriteString(string(runes))
 	}
 
+	if builder.Len() == 0 && name != "" {
+		return goastutil.SanitiseGoIdentifier(name)
+	}
 	return sanitiseGoIdentifier(builder.String())
 }
 
@@ -148,7 +154,7 @@ func SnakeToCamelCase(name string) string {
 // lower-case letter, marking it as a camelCase token (such as "jobCount") whose interior
 // capitalisation must be preserved rather than folded away.
 //
-// Takes segment (string) which is a single underscore-delimited identifier segment.
+// Takes segment (string) which is a single separator-delimited identifier segment.
 //
 // Returns bool which is true when the segment mixes upper- and lower-case letters.
 func isMixedCaseSegment(segment string) bool {
@@ -164,13 +170,26 @@ func isMixedCaseSegment(segment string) bool {
 	return hasLower && hasUpper
 }
 
+// splitIdentifierSegments splits a SQL name into the segments a Go identifier is built
+// from.
+//
+// Takes name (string) which is the raw SQL identifier.
+//
+// Returns []string which are the non-empty identifier segments in source order.
+func splitIdentifierSegments(name string) []string {
+	return strings.FieldsFunc(name, func(character rune) bool {
+		return !unicode.IsLetter(character) && !unicode.IsDigit(character)
+	})
+}
+
 // sanitiseGoIdentifier ensures a converted name is a legal Go identifier stem.
 //
-// A Go identifier may not start with a digit, yet a quoted SQL name such as "2fa_enabled"
-// or "123" produces exactly such a stem. The name is prefixed with an underscore when it
-// begins with a digit, leaving every already-valid name untouched. An empty name is left
-// empty so callers that intentionally pass an empty string, for example an anonymous
-// field or result, are not given a spurious underscore.
+// goastutil repairs anything the conversion could not fix, prefixes a stem that starts
+// with a digit, and suffixes a name that landed on a Go keyword or a predeclared
+// identifier, since a column called "range" emits source that does not compile and one
+// called "string" shadows the type for the rest of the scope. An empty name is left empty
+// so callers that intentionally pass an empty string, for example an anonymous field or
+// result, are not given a spurious underscore.
 //
 // Takes name (string) which is the candidate Go identifier.
 //
@@ -179,10 +198,8 @@ func sanitiseGoIdentifier(name string) string {
 	if name == "" {
 		return ""
 	}
-	if first, _ := utf8.DecodeRuneInString(name); unicode.IsDigit(first) {
-		return "_" + name
-	}
-	return name
+
+	return goastutil.SanitiseGoIdentifier(name)
 }
 
 // DisambiguateGoFieldNames converts an ordered list of snake_case SQL names into the
@@ -227,16 +244,7 @@ func disambiguateGoFieldNames(names []string, convert func(string) string) []str
 	result := make([]string, len(names))
 	seen := make(map[string]struct{}, len(names))
 	for index, name := range names {
-		converted := convert(name)
-		candidate := converted
-		for suffix := 2; ; suffix++ {
-			if _, exists := seen[candidate]; !exists {
-				break
-			}
-			candidate = converted + strconv.Itoa(suffix)
-		}
-		seen[candidate] = struct{}{}
-		result[index] = candidate
+		result[index] = goastutil.ReserveIdentifier(convert(name), seen)
 	}
 	return result
 }

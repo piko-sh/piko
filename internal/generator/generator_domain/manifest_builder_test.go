@@ -629,6 +629,45 @@ func TestAddPageEntry_CollectionPageURLFromPagePath(t *testing.T) {
 	})
 }
 
+func TestAddPageEntry_CarriesAuthPolicy(t *testing.T) {
+	t.Parallel()
+
+	builder := &ManifestBuilder{
+		baseDir:        "/project",
+		pagesSourceDir: "pages",
+	}
+
+	artefacts := []*generator_dto.GeneratedArtefact{
+		{
+			SuggestedPath: "/output/pages/dashboard.go",
+			Component: &annotator_dto.VirtualComponent{
+				IsPage:                 true,
+				IsPublic:               true,
+				HashedName:             "dashboard_hash",
+				CanonicalGoPackagePath: "example.com/pages/dashboard",
+				Source: &annotator_dto.ParsedComponent{
+					SourcePath:    "/project/pages/dashboard.pk",
+					ComponentType: "page",
+					Script: &annotator_dto.ParsedScript{
+						HasAuthPolicy:      true,
+						AuthPolicyFuncName: "AuthPolicy",
+					},
+				},
+			},
+			Result: &annotator_dto.AnnotationResult{},
+		},
+	}
+
+	manifest, err := builder.Build(artefacts)
+	require.NoError(t, err)
+	require.Contains(t, manifest.Pages, "pages/dashboard.pk")
+
+	entry := manifest.Pages["pages/dashboard.pk"]
+	assert.True(t, entry.HasAuthPolicy,
+		"a page declaring AuthPolicy() must say so in the manifest, or its route is registered unguarded")
+	assert.Equal(t, "AuthPolicy", entry.AuthPolicyFuncName)
+}
+
 func TestAddErrorPageEntry(t *testing.T) {
 	t.Parallel()
 

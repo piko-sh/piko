@@ -138,9 +138,6 @@ type EmitterContext struct {
 
 	// loopIterCtr is an atomic counter for creating unique loop iterator variable names.
 	loopIterCtr atomic.Int64
-
-	// aliasCtr counts alias suffixes for creating unique names when imports clash.
-	aliasCtr int
 }
 
 // NewEmitterContext creates a new context for a code generation operation.
@@ -154,6 +151,5 @@ func NewEmitterContext() *EmitterContext {
 		fetcherDecls:      make([]goast.Decl, 0),
 		fetcherCtr:        0,
 		customTagsVarName: "",
-		aliasCtr:          0,
 	}
 }

@@ -174,7 +174,7 @@ func TestEmitQueryFileCollidingColumnNamesProduceCompilableStruct(t *testing.T) 
 	assert.Contains(t, source, "&row.FooBar2")
 }
 
-func TestEmitQueryFileLeadingDigitColumnNameProducesCompilableStruct(t *testing.T) {
+func TestEmitQueryFileLeadingDigitColumnNameProducesAnExportedField(t *testing.T) {
 
 	strategy := &indexedStrategy{preservesIndices: true}
 	query := &querier_dto.AnalysedQuery{
@@ -194,8 +194,11 @@ func TestEmitQueryFileLeadingDigitColumnNameProducesCompilableStruct(t *testing.
 	source := string(file.Content)
 	requireValidGo(t, file.Content)
 
-	assert.Contains(t, source, "_2faEnabled string")
-	assert.Contains(t, source, "&row._2faEnabled")
+	assert.Contains(t, source, "X2faEnabled string")
+	assert.Contains(t, source, "&row.X2faEnabled")
+	assert.Contains(t, source, "`json:\"2fa_enabled\"`")
+	assert.NotContains(t, source, "_2faEnabled",
+		"the field must be exported, or encoding/json drops the column from the response")
 }
 
 func TestEmitQueryFileGroupedQueryEmitsGroupingScaffolding(t *testing.T) {

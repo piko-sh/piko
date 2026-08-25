@@ -432,6 +432,8 @@ func TestRoundTrip(t *testing.T) {
 				CustomTags:          []string{"tag1", "tag2"},
 				HasCachePolicy:      true,
 				CachePolicyFuncName: "Cache",
+				HasAuthPolicy:       true,
+				AuthPolicyFuncName:  "AuthPolicy",
 				LocalTranslations: i18n_domain.Translations{
 					"en": {"key1": "value1"},
 				},
@@ -488,6 +490,10 @@ func TestRoundTrip(t *testing.T) {
 	assert.Equal(t, originalPage.PackagePath, loadedPage.PackagePath, "Page PackagePath mismatch")
 	assert.Len(t, loadedPage.AssetRefs, len(originalPage.AssetRefs), "AssetRefs count mismatch")
 	assert.Len(t, loadedPage.CustomTags, len(originalPage.CustomTags), "CustomTags count mismatch")
+	assert.True(t, loadedPage.HasAuthPolicy,
+		"HasAuthPolicy must survive the manifest round-trip; without it the page-level auth guard is never installed")
+	assert.Equal(t, originalPage.AuthPolicyFuncName, loadedPage.AuthPolicyFuncName,
+		"AuthPolicyFuncName mismatch")
 
 	loadedPartial := loaded.Partials["partials/widget.pk"]
 	originalPartial := original.Partials["partials/widget.pk"]

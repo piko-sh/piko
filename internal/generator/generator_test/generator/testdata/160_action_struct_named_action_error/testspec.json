@@ -1,0 +1,7 @@
+{
+    "description": "Tests that a struct named exactly Action is reported instead of registering an action whose name ends in a bare dot",
+    "packageName": "action_struct_named_action_error_test",
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "leaves an empty action name"
+}

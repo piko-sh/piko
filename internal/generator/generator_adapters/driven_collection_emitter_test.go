@@ -21,12 +21,15 @@ package generator_adapters
 import (
 	"context"
 	"errors"
+	"go/parser"
+	"go/token"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
+	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -176,4 +179,105 @@ func TestDrivenCollectionEmitter_EmitCollection(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to write Go wrapper")
 	})
+}
+
+func TestCollectionPackageName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		collection   string
+		expected     string
+		expectRename bool
+	}{
+		{name: "plain name is kept", collection: "docs", expected: "docs", expectRename: false},
+		{name: "underscored name is kept", collection: "blog_posts", expected: "blog_posts", expectRename: false},
+		{name: "mixed case name is kept", collection: "BlogPosts", expected: "BlogPosts", expectRename: false},
+		{name: "trailing digits are kept", collection: "posts2024", expected: "posts2024", expectRename: false},
+		{name: "hyphen is replaced", collection: "blog-posts", expected: "blog_posts_" + goastutil.ShortHash("blog-posts"), expectRename: true},
+		{name: "space is replaced", collection: "My Collection", expected: "my_collection_" + goastutil.ShortHash("My Collection"), expectRename: true},
+		{name: "dot is replaced", collection: "blog.posts", expected: "blog_posts_" + goastutil.ShortHash("blog.posts"), expectRename: true},
+		{name: "leading digit is prefixed", collection: "2024posts", expected: "p2024posts_" + goastutil.ShortHash("2024posts"), expectRename: true},
+		{name: "keyword is suffixed", collection: "range", expected: "range__" + goastutil.ShortHash("range"), expectRename: true},
+		{name: "predeclared name is suffixed", collection: "string", expected: "string__" + goastutil.ShortHash("string"), expectRename: true},
+		{name: "traversal loses its separators", collection: "../x", expected: "x_" + goastutil.ShortHash("../x"), expectRename: true},
+		{name: "main is renamed, since a package called main cannot be imported", collection: "main", expected: "main_" + goastutil.ShortHash("main"), expectRename: true},
+		{name: "empty name falls back", collection: "", expected: goastutil.DefaultGoPackageName + "_" + goastutil.ShortHash(""), expectRename: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			packageName, renamed := collectionPackageName(tt.collection)
+
+			assert.Equal(t, tt.expected, packageName)
+			assert.Equal(t, tt.expectRename, renamed)
+			assert.True(t, token.IsIdentifier(packageName), "a package clause must be a legal identifier")
+		})
+	}
+}
+
+func TestCollectionPackageNameKeepsFoldedNamesApart(t *testing.T) {
+	t.Parallel()
+
+	hyphenated, _ := collectionPackageName("blog-posts")
+	dotted, _ := collectionPackageName("blog.posts")
+
+	assert.NotEqual(t, hyphenated, dotted,
+		"two collections whose names sanitise alike must not share one generated package")
+}
+
+func TestDrivenCollectionEmitter_EmitCollectionSanitisesPackageName(t *testing.T) {
+	t.Parallel()
+
+	items := []collection_dto.ContentItem{{ID: "1", Slug: "hello-world"}}
+	suffix := "_" + goastutil.ShortHash("blog-posts")
+
+	encoder := &mockCollectionEncoder{encodeResult: []byte("binary-data")}
+	fsWriter, writes := newCollectionTrackingFSWriter(nil, 0)
+	sandbox := safedisk.NewMockSandbox("/sandbox", safedisk.ModeReadWrite)
+	defer sandbox.Close()
+
+	emitter := NewDrivenCollectionEmitter(encoder, fsWriter, sandbox, "mymod")
+
+	packagePath, err := emitter.EmitCollection(context.Background(), "blog-posts", items, "dist")
+
+	require.NoError(t, err)
+	assert.Equal(t, "mymod/dist/collections/blog_posts"+suffix, packagePath)
+	require.Len(t, *writes, 2)
+	assert.Equal(t, "dist/collections/blog_posts"+suffix+"/data.bin", (*writes)[0].path)
+	assert.Equal(t, "dist/collections/blog_posts"+suffix+"/generated.go", (*writes)[1].path)
+
+	goCode := string((*writes)[1].data)
+	assert.Contains(t, goCode, "package blog_posts"+suffix)
+	assert.Contains(t, goCode, `RegisterStaticCollectionBlob(context.Background(), "blog-posts"`,
+		"the raw name stays the registration key so templates keep resolving")
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", goCode, parser.AllErrors)
+	require.NoError(t, parseErr, "the generated wrapper must be parseable Go")
+}
+
+func TestDrivenCollectionEmitter_EmitCollectionQuotesRegistrationKey(t *testing.T) {
+	t.Parallel()
+
+	items := []collection_dto.ContentItem{{ID: "1", Slug: "hello-world"}}
+
+	encoder := &mockCollectionEncoder{encodeResult: []byte("binary-data")}
+	fsWriter, writes := newCollectionTrackingFSWriter(nil, 0)
+	sandbox := safedisk.NewMockSandbox("/sandbox", safedisk.ModeReadWrite)
+	defer sandbox.Close()
+
+	emitter := NewDrivenCollectionEmitter(encoder, fsWriter, sandbox, "mymod")
+
+	_, err := emitter.EmitCollection(context.Background(), `say "hi"`, items, "dist")
+
+	require.NoError(t, err)
+	require.Len(t, *writes, 2)
+
+	goCode := string((*writes)[1].data)
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", goCode, parser.AllErrors)
+	require.NoError(t, parseErr, "a quote in the collection name must not close the registration literal")
 }

@@ -60,6 +60,7 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko/internal/testutil"
 	"piko.sh/piko/internal/typegen/typegen_adapters"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -337,10 +338,8 @@ func verifyGeneratedCodeBuilds(t *testing.T, tc testCase, artefacts []*generator
 
 	srcModPath := filepath.Join(tc.Path, "src", "go.mod")
 	goModBytes, err := os.ReadFile(srcModPath)
-	if os.IsNotExist(err) {
-		return
-	}
-	require.NoError(t, err)
+	require.NoError(t, err,
+		"Test case %s has no src/go.mod - without one the generated code is never compiled, so add one", tc.Name)
 
 	goModContent := string(goModBytes)
 	goModContent = fixReplaceDirectives(goModContent, filepath.Join(tc.Path, "src"))
@@ -392,7 +391,7 @@ func verifyGeneratedCodeBuilds(t *testing.T, tc testCase, artefacts []*generator
 		require.NoError(t, os.WriteFile(filepath.Join(distActionsDir, "wrappers.go"), actionGen.WrapperCode, 0644))
 	}
 
-	goWorkOffEnv := append(os.Environ(), "GOWORK=off")
+	goWorkOffEnv := testutil.ToolchainEnv("GOWORK=off")
 
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = tempDir

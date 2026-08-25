@@ -1,0 +1,7 @@
+{
+    "description": "Tests that a script declaring a name piko generates for the component (BuildAST) is reported instead of emitting a file that declares it twice",
+    "packageName": "script_reserved_generated_decl_error_test",
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "Script declares \"BuildAST\""
+}

@@ -37,6 +37,14 @@ import (
 const (
 	// dotSeparator is the dot character used to separate parts in action names.
 	dotSeparator = "."
+
+	// mainPackageName is the one package name an action may not use: package main cannot be
+	// imported, and the generated registry imports every action package.
+	mainPackageName = "main"
+
+	// actionStructSuffix is trimmed from a struct name to derive the action name, so
+	// "ContactAction" becomes "Contact".
+	actionStructSuffix = "Action"
 )
 
 // ActionDiscoverer scans the actions/ directory and extracts initial action metadata. It
@@ -168,6 +176,7 @@ func (ad *ActionDiscoverer) processActionFiles(
 ) []*ast_domain.Diagnostic {
 	var diagnostics []*ast_domain.Diagnostic
 	moduleName := ad.resolver.GetModuleName()
+	claimedNames := make(map[string]string)
 
 	ctx, l := logger_domain.From(ctx, log)
 	for _, filePath := range goFiles {
@@ -175,6 +184,12 @@ func (ad *ActionDiscoverer) processActionFiles(
 		diagnostics = append(diagnostics, fileDiags...)
 
 		for _, candidate := range candidates {
+			if diagnostic := validateActionCandidate(candidate, claimedNames); diagnostic != nil {
+				diagnostics = append(diagnostics, diagnostic)
+				continue
+			}
+			claimedNames[candidate.ActionName] = candidate.RelativePath
+
 			action := candidateToDefinition(candidate)
 			manifest.AddAction(action)
 
@@ -187,6 +202,64 @@ func (ad *ActionDiscoverer) processActionFiles(
 	}
 
 	return diagnostics
+}
+
+// validateActionCandidate rejects a discovered action whose names cannot be turned into
+// generated code.
+//
+// Takes candidate (*annotator_dto.ActionCandidate) which is the discovered action.
+// Takes claimedNames (map[string]string) which maps each accepted action name to the file
+// that declared it. It is read, not modified.
+//
+// Returns *ast_domain.Diagnostic which reports why the action was rejected, or nil when
+// the action is usable.
+func validateActionCandidate(
+	candidate *annotator_dto.ActionCandidate,
+	claimedNames map[string]string,
+) *ast_domain.Diagnostic {
+	if candidate.PackageName == mainPackageName {
+		return newActionCandidateDiagnostic(candidate,
+			"Action struct '"+candidate.StructName+"' is declared in package main, which the generated "+
+				"action registry cannot import: move it into its own package under actions/")
+	}
+
+	if !token.IsExported(candidate.StructName) {
+		return newActionCandidateDiagnostic(candidate,
+			"Action struct '"+candidate.StructName+"' is not exported, so the generated action registry "+
+				"cannot reference it: rename it to start with an upper-case letter")
+	}
+
+	if candidate.StructName == actionStructSuffix {
+		return newActionCandidateDiagnostic(candidate,
+			"Action struct 'Action' leaves an empty action name once the 'Action' suffix is trimmed: "+
+				"give the struct a descriptive name such as 'ContactAction'")
+	}
+
+	if previousPath, claimed := claimedNames[candidate.ActionName]; claimed {
+		return newActionCandidateDiagnostic(candidate,
+			"Duplicate action name '"+candidate.ActionName+"': already declared in "+previousPath+
+				". Action names must be unique, so rename one of the two structs")
+	}
+
+	return nil
+}
+
+// newActionCandidateDiagnostic builds the error diagnostic for a rejected action.
+//
+// Takes candidate (*annotator_dto.ActionCandidate) which is the rejected action, and
+// which supplies the file and line the error is reported against.
+// Takes message (string) which explains the rejection.
+//
+// Returns *ast_domain.Diagnostic which is the error to report.
+func newActionCandidateDiagnostic(candidate *annotator_dto.ActionCandidate, message string) *ast_domain.Diagnostic {
+	return ast_domain.NewDiagnosticWithCode(
+		ast_domain.Error,
+		message,
+		candidate.StructName,
+		annotator_dto.CodeActionError,
+		ast_domain.Location{Line: candidate.StructLine},
+		candidate.RelativePath,
+	)
 }
 
 // findGoFiles recursively finds all .go files in the given directory.
@@ -428,7 +501,7 @@ func embedsActionMetadata(structType *ast.StructType) bool {
 //
 // Returns string which is the qualified action name in "package.Name" format.
 func structNameToActionName(structName string, packageName string) string {
-	name := strings.TrimSuffix(structName, "Action")
+	name := strings.TrimSuffix(structName, actionStructSuffix)
 	return packageName + dotSeparator + name
 }
 

@@ -236,6 +236,8 @@ func (mb *ManifestBuilder) addPageEntry(
 		MiddlewareFuncName:       vc.Source.Script.MiddlewaresFuncName,
 		HasSupportedLocales:      vc.Source.Script.HasSupportedLocales,
 		SupportedLocalesFuncName: vc.Source.Script.SupportedLocalesFuncName,
+		HasAuthPolicy:            vc.Source.Script.HasAuthPolicy,
+		AuthPolicyFuncName:       vc.Source.Script.AuthPolicyFuncName,
 		LocalTranslations:        vc.Source.LocalTranslations,
 		IsE2EOnly:                vc.IsE2EOnly,
 		HasPreview:               vc.Source.Script.HasPreview,

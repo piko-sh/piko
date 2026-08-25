@@ -30,6 +30,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/testutil"
 )
 
 func TestRuntimeColumnExpressionPatternAcceptsSafeForms(t *testing.T) {
@@ -291,6 +293,7 @@ func main() {
 
 	cmd := exec.Command("go", "run", ".")
 	cmd.Dir = tempDir
+	cmd.Env = testutil.ToolchainEnv()
 	output, runErr := cmd.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 
@@ -362,6 +365,7 @@ func main() {
 
 	cmd := exec.Command("go", "run", ".")
 	cmd.Dir = tempDir
+	cmd.Env = testutil.ToolchainEnv()
 	output, runErr := cmd.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 
@@ -406,6 +410,7 @@ func main() {
 
 	cmd := exec.Command("go", "run", ".")
 	cmd.Dir = tempDir
+	cmd.Env = testutil.ToolchainEnv()
 	output, runErr := cmd.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 
@@ -464,6 +469,7 @@ func main() {
 
 	cmd := exec.Command("go", "run", ".")
 	cmd.Dir = tempDir
+	cmd.Env = testutil.ToolchainEnv()
 	output, runErr := cmd.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 

@@ -20,6 +20,7 @@ package querier_domain
 
 import (
 	"fmt"
+	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
 )
@@ -68,7 +69,8 @@ func (*queryValidator) ValidateDuplicateNames(
 	seen := make(map[string]*querier_dto.AnalysedQuery)
 
 	for _, query := range queries {
-		if existing, exists := seen[query.Name]; exists {
+		key := strings.ToLower(query.Name)
+		if existing, exists := seen[key]; exists {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
 				Filename: query.Filename,
 				Line:     query.Line,
@@ -81,7 +83,7 @@ func (*queryValidator) ValidateDuplicateNames(
 				Code:     querier_dto.CodeDuplicateQueryName,
 			})
 		} else {
-			seen[query.Name] = query
+			seen[key] = query
 		}
 	}
 

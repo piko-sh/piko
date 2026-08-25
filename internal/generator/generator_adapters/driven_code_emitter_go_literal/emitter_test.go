@@ -19,8 +19,10 @@
 package driven_code_emitter_go_literal
 
 import (
+	"bytes"
 	"context"
 	goast "go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"strings"
@@ -229,7 +231,8 @@ func TestBuildImportBlock(t *testing.T) {
 	result := createMinimalAnnotationResult("test")
 	mainComponent := result.VirtualModule.ComponentsByHash["test"]
 
-	genDecl := em.buildImportBlock(result, mainComponent, fileASTUsing("strings"))
+	genDecl, err := em.buildImportBlock(result, mainComponent, fileASTUsing("strings"))
+	require.NoError(t, err)
 
 	require.NotNil(t, genDecl, "buildImportBlock returned nil")
 
@@ -265,7 +268,8 @@ func TestBuildImportBlock_Empty(t *testing.T) {
 	result := createMinimalAnnotationResult("test")
 	mainComponent := result.VirtualModule.ComponentsByHash["test"]
 
-	importDecl := em.buildImportBlock(result, mainComponent, fileASTUsing())
+	importDecl, err := em.buildImportBlock(result, mainComponent, fileASTUsing())
+	require.NoError(t, err)
 
 	if importDecl == nil {
 		t.Error("buildImportBlock should return standard imports even with no custom imports")
@@ -400,6 +404,27 @@ func TestBuildRegistrationInitFunction_WithOptionalFunctions(t *testing.T) {
 	if len(funcDecl.Body.List) < 4 {
 		t.Errorf("Expected at least 4 registration calls, got: %d", len(funcDecl.Body.List))
 	}
+}
+
+func TestBuildRegistrationInitFunction_RegistersAuthPolicy(t *testing.T) {
+	em := &emitter{}
+
+	result := createMinimalAnnotationResult("test")
+	mainComp := result.VirtualModule.ComponentsByHash["test"]
+	mainComp.Source.Script.HasAuthPolicy = true
+	mainComp.Source.Script.AuthPolicyFuncName = "AuthPolicy"
+
+	initFunc, err := em.buildRegistrationInitFunction(result)
+	require.NoError(t, err)
+
+	funcDecl := requireFuncDecl(t, initFunc, "init function declaration")
+
+	var buffer bytes.Buffer
+	require.NoError(t, format.Node(&buffer, token.NewFileSet(), funcDecl))
+	require.Contains(t, buffer.String(), "pikoruntime.RegisterAuthPolicyFunc",
+		"a page declaring AuthPolicy() must register it, or the page-level auth guard never sees the policy")
+	require.Contains(t, buffer.String(), "return AuthPolicy()",
+		"the registered wrapper adapts the user's no-argument AuthPolicy function")
 }
 
 func TestVerifyGeneratedCode(t *testing.T) {
@@ -1054,8 +1079,8 @@ func TestAddImport_AliasConflict(t *testing.T) {
 			canonicalPath:   "other/dto",
 			alias:           "dto",
 			wantImportCount: 2,
-			wantImports:     map[string]string{"existing/dto": "dto", "other/dto": "dto_1"},
-			wantAliases:     map[string]string{"dto": "existing/dto", "dto_1": "other/dto"},
+			wantImports:     map[string]string{"existing/dto": "dto", "other/dto": "dto2"},
+			wantAliases:     map[string]string{"dto": "existing/dto", "dto2": "other/dto"},
 			wantAliasCount:  2,
 		},
 		{
@@ -1065,21 +1090,21 @@ func TestAddImport_AliasConflict(t *testing.T) {
 				em.ctx.requiredImports["first/dto"] = "dto"
 				em.ctx.usedAliases["dto"] = "first/dto"
 
-				em.ctx.requiredImports["second/dto"] = "dto_1"
-				em.ctx.usedAliases["dto_1"] = "second/dto"
+				em.ctx.requiredImports["second/dto"] = "dto2"
+				em.ctx.usedAliases["dto2"] = "second/dto"
 			},
 			canonicalPath:   "third/dto",
 			alias:           "dto",
 			wantImportCount: 3,
 			wantImports: map[string]string{
 				"first/dto":  "dto",
-				"second/dto": "dto_1",
-				"third/dto":  "dto_2",
+				"second/dto": "dto2",
+				"third/dto":  "dto3",
 			},
 			wantAliases: map[string]string{
-				"dto":   "first/dto",
-				"dto_1": "second/dto",
-				"dto_2": "third/dto",
+				"dto":  "first/dto",
+				"dto2": "second/dto",
+				"dto3": "third/dto",
 			},
 			wantAliasCount: 3,
 		},

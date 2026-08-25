@@ -635,13 +635,19 @@ func (s *generatorService) generateStaticCollections(
 	return packagePaths, collectionItems, nil
 }
 
+var (
+	// ErrCollectionPackageCollision reports two collections that generate one Go package.
+	ErrCollectionPackageCollision = errors.New("collection package collision")
+)
+
 // emitCollections builds binary output for all collection items.
 //
 // Takes collectionItems (map[string][]collection_dto.ContentItem) which maps collection
 // names to their content items.
 //
 // Returns []string which contains the package paths for each generated collection.
-// Returns error when a collection fails to build.
+// Returns error when a collection fails to build, or when two collections generate one
+// package, which would leave one silently overwriting the other on disk.
 func (s *generatorService) emitCollections(
 	ctx context.Context,
 	collectionItems map[string][]collection_dto.ContentItem,
@@ -649,6 +655,8 @@ func (s *generatorService) emitCollections(
 	ctx, l := logger_domain.From(ctx, log)
 	packagePaths := make([]string, 0, len(collectionItems))
 	outputDir := filepath.Join(s.baseDir, distDir)
+
+	claimedPaths := make(map[string]string, len(collectionItems))
 
 	for collectionName, items := range collectionItems {
 		if ctx.Err() != nil {
@@ -663,6 +671,15 @@ func (s *generatorService) emitCollections(
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate collection %q: %w", collectionName, err)
 		}
+
+		if claimedBy, claimed := claimedPaths[packagePath]; claimed {
+			return nil, fmt.Errorf(
+				"collections %q and %q both generate the package %q, so one would overwrite the "+
+					"other; rename one of them: %w",
+				claimedBy, collectionName, packagePath, ErrCollectionPackageCollision,
+			)
+		}
+		claimedPaths[packagePath] = collectionName
 
 		packagePaths = append(packagePaths, packagePath)
 		l.Trace("Collection generated successfully",

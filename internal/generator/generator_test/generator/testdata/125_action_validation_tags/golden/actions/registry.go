@@ -3,7 +3,7 @@ package actions
 import (
 	"context"
 	"reflect"
-	"testcase_125_action_validation_tags/actions/user"
+	user_83ddb1f3 "testcase_125_action_validation_tags/actions/user"
 
 	"piko.sh/piko"
 	pikojson "piko.sh/piko/wdk/json"
@@ -11,9 +11,9 @@ import (
 
 func init() {
 	piko.RegisterActions(map[string]piko.ActionHandlerEntry{"user.Register": {Name: "user.Register", Method: "POST", Create: func() any {
-		return &user.RegisterAction{}
+		return &user_83ddb1f3.RegisterAction{}
 	}, Invoke: invokeUserRegister, HasSSE: false}})
-	pretouchTypes := []reflect.Type{reflect.TypeFor[user.RegisterInput](), reflect.TypeFor[user.RegisterOutput]()}
+	pretouchTypes := []reflect.Type{reflect.TypeFor[user_83ddb1f3.RegisterInput](), reflect.TypeFor[user_83ddb1f3.RegisterOutput]()}
 	for _, t := range pretouchTypes {
 		_ = pikojson.Pretouch(t)
 	}
@@ -24,11 +24,12 @@ type ActionHandler struct {
 	Method string
 	Create func() any
 	Invoke func(ctx context.Context, action any, args map[string]any) (any, error)
+	Bind   func(ctx context.Context, action any, args map[string]any) error
 	HasSSE bool
 }
 
 func Registry() map[string]ActionHandler {
 	return map[string]ActionHandler{"user.Register": {Name: "user.Register", Method: "POST", Create: func() any {
-		return &user.RegisterAction{}
+		return &user_83ddb1f3.RegisterAction{}
 	}, Invoke: invokeUserRegister, HasSSE: false}}
 }

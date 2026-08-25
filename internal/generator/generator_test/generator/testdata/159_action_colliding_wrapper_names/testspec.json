@@ -1,0 +1,5 @@
+{
+    "description": "Tests that two actions whose names fold onto the same PascalCase wrapper name receive distinct wrapper functions instead of one redeclared function",
+    "packageName": "action_colliding_wrapper_names_test",
+    "isPage": true
+}

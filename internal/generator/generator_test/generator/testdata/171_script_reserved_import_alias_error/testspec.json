@@ -1,0 +1,7 @@
+{
+    "description": "Tests that a script import binding a name piko's generated code uses for another package is reported instead of emitting a file whose own references resolve to the script's package",
+    "packageName": "script_reserved_import_alias_error_test",
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "uses the name \"sort\""
+}

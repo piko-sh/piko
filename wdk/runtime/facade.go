@@ -583,6 +583,10 @@ var (
 	// RegisterCachePolicyFunc registers a CachePolicy function for a component.
 	RegisterCachePolicyFunc = templater_domain.RegisterCachePolicyFunc
 
+	// RegisterAuthPolicyFunc registers a component's AuthPolicy function, which declares the
+	// authentication the page requires.
+	RegisterAuthPolicyFunc = templater_domain.RegisterAuthPolicyFunc
+
 	// RegisterMiddlewareFunc registers a component's Middlewares function.
 	RegisterMiddlewareFunc = templater_domain.RegisterMiddlewareFunc
 

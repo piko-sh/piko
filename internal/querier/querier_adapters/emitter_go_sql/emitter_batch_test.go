@@ -32,6 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/internal/testutil"
 )
 
 func batchInsertQuery(command querier_dto.QueryCommand) *querier_dto.AnalysedQuery {
@@ -193,6 +194,7 @@ func main() {
 
 	cmd := exec.Command("go", "run", ".")
 	cmd.Dir = dir
+	cmd.Env = testutil.ToolchainEnv()
 	output, runErr := cmd.CombinedOutput()
 	require.NoErrorf(t, runErr, "driver failed: %s", output)
 	return string(output)

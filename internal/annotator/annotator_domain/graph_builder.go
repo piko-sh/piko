@@ -31,12 +31,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"unicode"
 
 	"github.com/cespare/xxhash/v2"
+
 	"golang.org/x/sync/errgroup"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/pathutil"
 	"piko.sh/piko/internal/resolver/resolver_domain"
@@ -45,16 +46,6 @@ import (
 const (
 	// pikoFileExtension is the file extension for Piko template files.
 	pikoFileExtension = ".pk"
-
-	// shortHashLength is the number of hex characters kept in short hashes.
-	shortHashLength = 8
-
-	// defaultPackagePrefix is the prefix added to package names that start with a non-letter
-	// character.
-	defaultPackagePrefix = "p"
-
-	// defaultPackageName is the fallback package name used when no name is given.
-	defaultPackageName = "p_default_pkg_name"
 )
 
 // GraphBuilder finds and parses all .pk components to build a complete dependency graph.
@@ -634,38 +625,6 @@ func (cd *cycleDetector) dfs(ctx context.Context, hashedName string, path []stri
 	cd.visiting[hashedName] = false
 }
 
-// SanitiseForPackageName cleans a string to make it a valid Go package name part.
-//
-// Takes name (string) which is the raw string to clean.
-//
-// Returns string which is a valid package name part with only lowercase letters, digits,
-// and underscores.
-func SanitiseForPackageName(name string) string {
-	lowerName := strings.ToLower(name)
-	var builder strings.Builder
-	builder.Grow(len(lowerName))
-	lastWasSeparator := true
-
-	for _, r := range lowerName {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) {
-			_, _ = builder.WriteRune(r)
-			lastWasSeparator = false
-		} else if !lastWasSeparator {
-			_, _ = builder.WriteRune('_')
-			lastWasSeparator = true
-		}
-	}
-
-	result := strings.Trim(builder.String(), "_")
-	if result == "" {
-		return defaultPackageName
-	}
-	if !unicode.IsLetter(rune(result[0])) {
-		return defaultPackagePrefix + result
-	}
-	return result
-}
-
 // generateCacheKey creates a hash from a file path and its content. Including the path
 // means that if a file is renamed, even with the same content, it will be treated as new
 // and parsed again.
@@ -723,18 +682,7 @@ func buildAliasFromPath(relativePath string) string {
 	cleanedPath = strings.ReplaceAll(cleanedPath, "}", "")
 	cleanedPath = strings.ReplaceAll(cleanedPath, "-", "_")
 
-	return fmt.Sprintf("%s_%s", SanitiseForPackageName(cleanedPath), shortHash(relativePath))
-}
-
-// shortHash creates a fixed-length hex string from the xxhash of an input. It uses xxhash
-// for speed and to show this is not for cryptographic use.
-//
-// Takes txt (string) which is the input to hash.
-//
-// Returns string which is the shortened hexadecimal hash.
-func shortHash(txt string) string {
-	hash := xxhash.Sum64String(txt)
-	return fmt.Sprintf("%016x", hash)[:shortHashLength]
+	return goastutil.GoPackageAliasWithStem(cleanedPath, relativePath)
 }
 
 // extractModuleImportPath gets the module import path from a GOMODCACHE path by removing

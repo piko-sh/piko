@@ -2,9 +2,6 @@
 
 import { ActionBuilder, createActionBuilder, registerActionFunction } from '/_piko/dist/ppframework.core.es.js';
 
-export interface string {
-}
-
 export function brokenBadSignature(): ActionBuilder<string> {
   return createActionBuilder<string>('broken.BadSignature', {});
 }

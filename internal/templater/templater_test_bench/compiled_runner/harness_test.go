@@ -51,6 +51,7 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko/internal/testutil"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -168,7 +169,7 @@ func runBenchmarkCase(b *testing.B, bc benchmarkCase) {
 
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = tempDir
-	tidyCmd.Env = append(os.Environ(), "GOWORK=off")
+	tidyCmd.Env = testutil.ToolchainEnv("GOWORK=off")
 	tidyOutput, err := tidyCmd.CombinedOutput()
 	require.NoError(b, err, "Failed to `go mod tidy` in temp directory.\nOutput:\n%s", string(tidyOutput))
 

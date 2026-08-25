@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/tools/go/packages"
 	"piko.sh/piko/internal/goastutil"
+	"piko.sh/piko/internal/testutil"
 )
 
 func TestIsPrimitive(t *testing.T) {
@@ -235,6 +236,7 @@ var (
 
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = tempDir
+	tidyCmd.Env = testutil.ToolchainEnv()
 	tidyOutput, err := tidyCmd.CombinedOutput()
 	require.NoError(t, err, "go mod tidy failed: %s", string(tidyOutput))
 

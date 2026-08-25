@@ -61,6 +61,7 @@ import (
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
+	"piko.sh/piko/internal/testutil"
 	"piko.sh/piko/internal/testutil/leakcheck"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -329,7 +330,7 @@ func runSubprocessTest(t *testing.T, tc testCase, spec TestSpec) {
 
 	command := exec.Command("go", "test", "-v", "-count=1", "./...")
 	command.Dir = tmpDir
-	command.Env = append(os.Environ(), "GOWORK=off")
+	command.Env = testutil.ToolchainEnv("GOWORK=off")
 
 	var stdout, stderr bytes.Buffer
 	command.Stdout = &stdout

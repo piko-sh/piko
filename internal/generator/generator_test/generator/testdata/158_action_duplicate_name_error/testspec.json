@@ -1,0 +1,7 @@
+{
+    "description": "Tests that two actions deriving the same action name are reported instead of emitting a registry with a duplicate map key",
+    "packageName": "action_duplicate_name_error_test",
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "Duplicate action name"
+}

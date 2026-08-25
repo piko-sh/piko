@@ -1,0 +1,5 @@
+{
+    "description": "Tests that action packages named after identifiers the generated files already bind (log, context, reflect, pikobinder, multipart) are imported under distinct aliases and still compile",
+    "packageName": "action_reserved_package_names_test",
+    "isPage": true
+}

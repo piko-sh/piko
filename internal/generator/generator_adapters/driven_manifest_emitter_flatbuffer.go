@@ -169,6 +169,7 @@ func packPageEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestPageEntr
 	cachePolicyFuncNameOff := b.CreateString(entry.CachePolicyFuncName)
 	middlewareFuncNameOff := b.CreateString(entry.MiddlewareFuncName)
 	supportedLocalesFuncNameOff := b.CreateString(entry.SupportedLocalesFuncName)
+	authPolicyFuncNameOff := b.CreateString(entry.AuthPolicyFuncName)
 	localTranslationsOff := packLocaleTranslations(b, entry.LocalTranslations)
 
 	gen_fb.ManifestPageEntryFBStart(b)
@@ -190,6 +191,8 @@ func packPageEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestPageEntr
 	gen_fb.ManifestPageEntryFBAddIsE2eOnly(b, entry.IsE2EOnly)
 	gen_fb.ManifestPageEntryFBAddHasPreview(b, entry.HasPreview)
 	gen_fb.ManifestPageEntryFBAddUsesCaptcha(b, entry.UsesCaptcha)
+	gen_fb.ManifestPageEntryFBAddHasAuthPolicy(b, entry.HasAuthPolicy)
+	gen_fb.ManifestPageEntryFBAddAuthPolicyFuncName(b, authPolicyFuncNameOff)
 	return gen_fb.ManifestPageEntryFBEnd(b)
 }
 

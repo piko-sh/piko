@@ -48,6 +48,7 @@ import (
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
+	"piko.sh/piko/internal/testutil"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -261,7 +262,7 @@ func verifyGoldenBuild(t *testing.T, testCasePath string) {
 
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = goldenDir
-	tidyCmd.Env = append(os.Environ(), "GOWORK=off")
+	tidyCmd.Env = testutil.ToolchainEnv("GOWORK=off")
 	tidyOutput, err := tidyCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to tidy.\nBuild Output:\n%s", string(tidyOutput))
 }

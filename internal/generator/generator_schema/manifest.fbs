@@ -78,6 +78,10 @@ table ManifestPageEntryFB {
   has_preview:bool;
 
   uses_captcha:bool;
+
+  has_auth_policy:bool;
+
+  auth_policy_func_name:string;
 }
 
 table ManifestPartialEntryFB {

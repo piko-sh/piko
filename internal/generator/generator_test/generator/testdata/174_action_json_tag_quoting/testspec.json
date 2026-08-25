@@ -1,0 +1,5 @@
+{
+    "description": "Tests that JSON tags which are not TypeScript identifiers are emitted as quoted property names rather than as bare names that do not parse",
+    "packageName": "action_json_tag_quoting_test",
+    "isPage": true
+}

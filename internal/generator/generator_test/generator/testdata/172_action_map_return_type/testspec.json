@@ -1,0 +1,5 @@
+{
+    "description": "Tests that an action returning map[string]any emits a real TypeScript type rather than the Go type spelled into an interface name",
+    "packageName": "action_map_return_type_test",
+    "isPage": true
+}

@@ -1,0 +1,5 @@
+{
+    "description": "Tests that two action packages sharing a package name at different import paths are imported under distinct aliases instead of redeclaring one qualifier",
+    "packageName": "action_same_package_name_different_paths_test",
+    "isPage": true
+}

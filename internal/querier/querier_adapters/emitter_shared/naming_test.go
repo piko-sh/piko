@@ -19,9 +19,12 @@
 package emitter_shared
 
 import (
+	"go/token"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"piko.sh/piko/internal/goastutil"
 )
 
 func TestSnakeToPascalCase(t *testing.T) {
@@ -49,9 +52,9 @@ func TestSnakeToPascalCase(t *testing.T) {
 		{"jobCount", "JobCount"},
 		{"job_countValue", "JobCountValue"},
 
-		{"2fa_enabled", "_2faEnabled"},
-		{"123", "_123"},
-		{"4ever", "_4ever"},
+		{"2fa_enabled", "X2faEnabled"},
+		{"123", "X123"},
+		{"4ever", "X4ever"},
 	}
 
 	for _, test := range tests {
@@ -141,5 +144,112 @@ func TestDisambiguateGoFieldNamesPrefixesLeadingDigitThenDisambiguates(t *testin
 
 	names := []string{"2fa", "2fa"}
 	result := DisambiguateGoFieldNames(names)
-	assert.Equal(t, []string{"_2fa", "_2fa2"}, result)
+	assert.Equal(t, []string{"X2fa", "X2fa2"}, result)
+}
+
+func TestSnakeToPascalCaseSplitsOnEveryNonIdentifierRune(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"my-query", "MyQuery"},
+		{"user name", "UserName"},
+		{"user.name", "UserName"},
+		{"COUNT(*)", "Count"},
+		{"a--b", "AB"},
+		{"total_$", "Total"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			assert.Equal(t, test.expected, SnakeToPascalCase(test.input))
+		})
+	}
+}
+
+func TestSnakeToCamelCaseGuardsReservedWords(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"range", "range_"},
+		{"select", "select_"},
+		{"type", "type_"},
+		{"func", "func_"},
+		{"string", "string_"},
+		{"len", "len_"},
+		{"my-query", "myQuery"},
+		{"user-id", "userID"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			assert.Equal(t, test.expected, SnakeToCamelCase(test.input))
+		})
+	}
+}
+
+func TestSnakeToPascalCaseNeedsNoReservedWordGuard(t *testing.T) {
+
+	assert.Equal(t, "Range", SnakeToPascalCase("range"))
+	assert.Equal(t, "String", SnakeToPascalCase("string"))
+}
+
+func TestCaseConversionFallsBackWhenNothingSurvivesTheSplit(t *testing.T) {
+
+	tests := []struct {
+		input         string
+		expectedPasc  string
+		expectedCamel string
+	}{
+		{"$", "Piko", "piko"},
+		{"***", "Piko", "___"},
+		{"--", "Piko", "__"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			assert.Equal(t, test.expectedPasc, SnakeToPascalCase(test.input))
+			assert.Equal(t, test.expectedCamel, SnakeToCamelCase(test.input))
+		})
+	}
+}
+
+var (
+	hostileColumnNames = []string{
+		"", "_", "__", "-", "--", " ", "   ", ".", "2fa", "2fa_enabled", "123", "4ever",
+		"my-query", "my.query", "my query", "my/query", "type", "range", "error", "string",
+		"iota", "class", "await", "café", "日本語", "עברית", "ไทย", "$dollar", "😀",
+		"a\nb", "select *", "user__name", "COUNT(*)", `he said "hi"`, "a,b", "col`name",
+	}
+)
+
+func TestSnakeToPascalCaseAlwaysProducesAnExportedIdentifier(t *testing.T) {
+	for _, input := range hostileColumnNames {
+		result := SnakeToPascalCase(input)
+		if input == "" {
+			assert.Empty(t, result)
+			continue
+		}
+
+		assert.True(t, goastutil.IsValidGoIdentifier(result),
+			"%q became invalid Go identifier %q", input, result)
+		assert.True(t, token.IsExported(result),
+			"%q became unexported field name %q, which encoding/json would drop", input, result)
+	}
+}
+
+func TestSnakeToCamelCaseAlwaysProducesAUsableIdentifier(t *testing.T) {
+	for _, input := range hostileColumnNames {
+		result := SnakeToCamelCase(input)
+		if input == "" {
+			assert.Empty(t, result)
+			continue
+		}
+
+		assert.True(t, goastutil.IsValidGoIdentifier(result),
+			"%q became invalid Go identifier %q", input, result)
+		assert.False(t, goastutil.IsGoPredeclared(result),
+			"%q became predeclared identifier %q", input, result)
+	}
 }

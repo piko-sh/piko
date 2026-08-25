@@ -28,9 +28,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
@@ -277,32 +279,8 @@ func Test_buildAliasFromPath(t *testing.T) {
 			matches := aliasRegex.FindStringSubmatch(result)
 			require.Len(t, matches, 3, "Alias '%s' does not match the expected format 'sanitised_hash'", result)
 			assert.Equal(t, tc.expectedSanitisedPart, matches[1], "The sanitised part of the alias is incorrect")
-			assert.Len(t, matches[2], shortHashLength, "Hash part should be 8 characters long")
+			assert.Len(t, matches[2], goastutil.ShortHashLength, "Hash part should be 8 characters long")
 			assert.Equal(t, result, buildAliasFromPath(tc.input), "Function should be deterministic")
-		})
-	}
-}
-
-func TestSanitiseForPackageName(t *testing.T) {
-	testCases := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{name: "Simple lowercase", input: "hello", expected: "hello"},
-		{name: "Simple CamelCase", input: "HelloWorld", expected: "helloworld"},
-		{name: "With hyphens", input: "hello-world", expected: "hello_world"},
-		{name: "Starts with number", input: "1world", expected: "p1world"},
-		{name: "Starts with separator", input: "-world", expected: "world"},
-		{name: "Multiple separators", input: "hello--world", expected: "hello_world"},
-		{name: "Empty string", input: "", expected: defaultPackageName},
-		{name: "Ends with separator", input: "world-", expected: "world"},
-		{name: "Complex case", input: "1-API-v2_Component-Test.", expected: "p1_api_v2_component_test"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.expected, SanitiseForPackageName(tc.input))
 		})
 	}
 }
@@ -932,43 +910,3 @@ func (*graphBuilderMockResolverWithFailures) FindModuleBoundary(_ context.Contex
 var (
 	_ resolver_domain.ResolverPort = (*graphBuilderMockResolverWithFailures)(nil)
 )
-
-func TestShortHash(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns 8 character hex string", func(t *testing.T) {
-		t.Parallel()
-
-		result := shortHash("some/path/file.pk")
-
-		assert.Len(t, result, 8)
-		assert.Regexp(t, "^[0-9a-f]{8}$", result)
-	})
-
-	t.Run("same input produces same hash", func(t *testing.T) {
-		t.Parallel()
-
-		hash1 := shortHash("test/path")
-		hash2 := shortHash("test/path")
-
-		assert.Equal(t, hash1, hash2)
-	})
-
-	t.Run("different inputs produce different hashes", func(t *testing.T) {
-		t.Parallel()
-
-		hash1 := shortHash("path/one")
-		hash2 := shortHash("path/two")
-
-		assert.NotEqual(t, hash1, hash2)
-	})
-
-	t.Run("empty string produces valid hash", func(t *testing.T) {
-		t.Parallel()
-
-		result := shortHash("")
-
-		assert.Len(t, result, 8)
-		assert.Regexp(t, "^[0-9a-f]{8}$", result)
-	})
-}

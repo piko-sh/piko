@@ -22,7 +22,8 @@
 // It offers AST node builders for programmatic code generation, type string parsing and
 // formatting with package qualification support, and helpers for determining whether
 // types are primitives, built-ins, or standard library types. It also checks Go internal
-// package accessibility.
+// package accessibility and sanitises user-controlled names into legal Go identifiers.
+// TypeScript names are the job of internal/jsident.
 //
 // # Usage
 //

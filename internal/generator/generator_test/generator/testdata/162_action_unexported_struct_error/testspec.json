@@ -1,0 +1,7 @@
+{
+    "description": "Tests that an unexported action struct is reported instead of emitting a registry that references a name it cannot see",
+    "packageName": "action_unexported_struct_error_test",
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "is not exported"
+}

@@ -1,0 +1,5 @@
+{
+    "description": "Tests that a Call parameter named after a TypeScript reserved word is bound under a repaired name while the JSON key it travels under is left alone",
+    "packageName": "action_reserved_param_name_test",
+    "isPage": true
+}

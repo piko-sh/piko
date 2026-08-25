@@ -1,0 +1,12 @@
+{
+  "description": "Duplicate query name validation (Q006) for names that differ only in case. The emitter folds a query name to camelCase, so ZzFoo and ZZFOO both become the zzfoo declaration and the zzfoo map key; without a case-insensitive check the generated package failed to compile with a redeclaration error instead of reporting Q006 here.",
+  "expectedDiagnosticCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "Q006",
+      "messageContains": "duplicate query name",
+      "filename": "zzfoo_second.sql"
+    }
+  ]
+}

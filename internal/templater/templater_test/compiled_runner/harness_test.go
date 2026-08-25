@@ -51,6 +51,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/internal/testutil"
 	"piko.sh/piko/wdk/logger"
 )
 
@@ -168,13 +169,13 @@ func runTestCase(t *testing.T, tc testCase) {
 
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = tempDir
-	tidyCmd.Env = append(os.Environ(), "GOWORK=off")
+	tidyCmd.Env = testutil.ToolchainEnv("GOWORK=off")
 	tidyOutput, err := tidyCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to `go mod tidy` in temp directory.\nOutput:\n%s", string(tidyOutput))
 
 	buildCmd := exec.Command("go", "build", "-o", "server", ".")
 	buildCmd.Dir = tempDir
-	buildCmd.Env = append(os.Environ(), "GOWORK=off")
+	buildCmd.Env = testutil.ToolchainEnv("GOWORK=off")
 	buildOutput, err := buildCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to `go build` the test server.\nBuild Output:\n%s", string(buildOutput))
 

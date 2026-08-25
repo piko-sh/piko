@@ -693,6 +693,6 @@ func BuildStructDecl(
 func jsonStructTag(fieldName string) *ast.BasicLit {
 	return &ast.BasicLit{
 		Kind:  token.STRING,
-		Value: backtickQuote + `json:"` + fieldName + `"` + backtickQuote,
+		Value: backtickQuote + `json:"` + goastutil.SanitiseJSONTagName(fieldName) + `"` + backtickQuote,
 	}
 }

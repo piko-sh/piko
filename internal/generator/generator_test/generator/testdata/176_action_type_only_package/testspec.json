@@ -1,0 +1,5 @@
+{
+    "description": "Tests that a Call input or return type declared in a package holding no action is imported by the generated file that names it, and only by that file",
+    "packageName": "action_type_only_package_test",
+    "isPage": true
+}

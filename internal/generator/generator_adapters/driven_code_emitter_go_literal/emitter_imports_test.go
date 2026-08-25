@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
@@ -266,7 +267,7 @@ func TestCopyUserCode(t *testing.T) {
 			},
 		}
 
-		copyUserCode(fileAST, mainComponent, nil)
+		require.NoError(t, copyUserCode(fileAST, mainComponent, nil))
 
 		assert.Len(t, fileAST.Decls, 2, "Should copy 2 non-import declarations")
 
@@ -290,7 +291,7 @@ func TestCopyUserCode(t *testing.T) {
 			RewrittenScriptAST: nil,
 		}
 
-		copyUserCode(fileAST, mainComponent, nil)
+		require.NoError(t, copyUserCode(fileAST, mainComponent, nil))
 
 		assert.Empty(t, fileAST.Decls, "Should not add declarations when script is nil")
 	})
@@ -302,7 +303,7 @@ func TestCopyUserCode(t *testing.T) {
 			Decls: []goast.Decl{},
 		}
 
-		copyUserCode(fileAST, nil, nil)
+		require.NoError(t, copyUserCode(fileAST, nil, nil))
 
 		assert.Empty(t, fileAST.Decls, "Should handle nil component gracefully")
 	})
@@ -375,7 +376,8 @@ func TestBuildImportBlock_PrunesUnused(t *testing.T) {
 	result := createMinimalAnnotationResult("test")
 	mainComponent := result.VirtualModule.ComponentsByHash["test"]
 
-	decl := em.buildImportBlock(result, mainComponent, fileASTUsing("used"))
+	decl, err := em.buildImportBlock(result, mainComponent, fileASTUsing("used"))
+	require.NoError(t, err)
 
 	assert.Len(t, importSpecsForPath(decl, "example.com/used"), 1, "referenced import kept")
 	assert.Empty(t, importSpecsForPath(decl, "example.com/unused"), "unreferenced import pruned")
@@ -414,7 +416,8 @@ func TestBuildImportBlock_DualPath(t *testing.T) {
 
 	t.Run("both qualifiers referenced emits two specs", func(t *testing.T) {
 		t.Parallel()
-		decl := newEmitter().buildImportBlock(result, mainComponent(), fileASTUsing("tdto", "dto"))
+		decl, err := newEmitter().buildImportBlock(result, mainComponent(), fileASTUsing("tdto", "dto"))
+		require.NoError(t, err)
 
 		specs := importSpecsForPath(decl, path)
 		assert.Len(t, specs, 2, "both the user alias and the canonical-name spec are emitted")
@@ -434,7 +437,8 @@ func TestBuildImportBlock_DualPath(t *testing.T) {
 
 	t.Run("only user alias referenced emits one spec", func(t *testing.T) {
 		t.Parallel()
-		decl := newEmitter().buildImportBlock(result, mainComponent(), fileASTUsing("tdto"))
+		decl, err := newEmitter().buildImportBlock(result, mainComponent(), fileASTUsing("tdto"))
+		require.NoError(t, err)
 
 		specs := importSpecsForPath(decl, path)
 		assert.Len(t, specs, 1, "the unreferenced canonical-name spec is pruned")

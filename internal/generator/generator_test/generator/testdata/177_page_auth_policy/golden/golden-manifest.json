@@ -1,0 +1,20 @@
+{
+  "pages": {
+    "pages/main.pk": {
+      "routePatterns": {
+        "en": "/main"
+      },
+      "i18nStrategy": "disabled",
+      "packagePath": "testcase_177_page_auth_policy/dist/pages/pages_main_594861c5",
+      "authPolicyFuncName": "AuthPolicy",
+      "originalSourcePath": "pages/main.pk",
+      "hasCachePolicy": false,
+      "hasMiddleware": false,
+      "hasSupportedLocales": false,
+      "hasAuthPolicy": true
+    }
+  },
+  "partials": {},
+  "emails": {},
+  "pdfs": {}
+}

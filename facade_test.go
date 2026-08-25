@@ -54,9 +54,12 @@ func TestFacadeAPI(t *testing.T) {
 		"WithFrontendModule":         WithFrontendModule,
 		"WithI18nService":            WithI18nService,
 		"WithJSONTypeInspectorCache": WithJSONTypeInspectorCache,
-		"WithMemoryRegistryCache":    WithMemoryRegistryCache,
-		"WithOrchestratorService":    WithOrchestratorService,
-		"WithRegistryService":        WithRegistryService,
+
+		"SetActionInput":          SetActionInput,
+		"ActionInput":             ActionInput[NoProps],
+		"WithMemoryRegistryCache": WithMemoryRegistryCache,
+		"WithOrchestratorService": WithOrchestratorService,
+		"WithRegistryService":     WithRegistryService,
 
 		"New":         New,
 		"WithSymbols": ((*SSRServer)(nil)).WithSymbols,

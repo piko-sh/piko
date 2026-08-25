@@ -1,0 +1,7 @@
+{
+    "description": "Tests that an action declared in package main is reported instead of emitting a registry that imports an unimportable package",
+    "packageName": "action_package_main_error_test",
+    "isPage": true,
+    "shouldError": true,
+    "errorContains": "declared in package main"
+}

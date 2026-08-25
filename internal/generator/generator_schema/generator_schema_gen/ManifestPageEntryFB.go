@@ -314,8 +314,28 @@ func (rcv *ManifestPageEntryFB) MutateUsesCaptcha(n bool) bool {
 	return rcv._tab.MutateBoolSlot(38, n)
 }
 
+func (rcv *ManifestPageEntryFB) HasAuthPolicy() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *ManifestPageEntryFB) MutateHasAuthPolicy(n bool) bool {
+	return rcv._tab.MutateBoolSlot(40, n)
+}
+
+func (rcv *ManifestPageEntryFB) AuthPolicyFuncName() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func ManifestPageEntryFBStart(builder *flatbuffers.Builder) {
-	builder.StartObject(18)
+	builder.StartObject(20)
 }
 func ManifestPageEntryFBAddPackagePath(builder *flatbuffers.Builder, packagePath flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(packagePath), 0)
@@ -385,6 +405,12 @@ func ManifestPageEntryFBAddHasPreview(builder *flatbuffers.Builder, hasPreview b
 }
 func ManifestPageEntryFBAddUsesCaptcha(builder *flatbuffers.Builder, usesCaptcha bool) {
 	builder.PrependBoolSlot(17, usesCaptcha, false)
+}
+func ManifestPageEntryFBAddHasAuthPolicy(builder *flatbuffers.Builder, hasAuthPolicy bool) {
+	builder.PrependBoolSlot(18, hasAuthPolicy, false)
+}
+func ManifestPageEntryFBAddAuthPolicyFuncName(builder *flatbuffers.Builder, authPolicyFuncName flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(19, flatbuffers.UOffsetT(authPolicyFuncName), 0)
 }
 func ManifestPageEntryFBEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

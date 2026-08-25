@@ -24,7 +24,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/ast/ast_domain"
 )
 
 func TestKebabToCamel(t *testing.T) {
@@ -895,5 +898,72 @@ func TestTryExtractActionCandidate(t *testing.T) {
 
 		assert.NotNil(t, candidate)
 		assert.Equal(t, "DocumentedAction does something useful.", candidate.DocComment)
+	})
+}
+
+func TestValidateActionCandidate(t *testing.T) {
+	t.Parallel()
+
+	usable := func() *annotator_dto.ActionCandidate {
+		return &annotator_dto.ActionCandidate{
+			FilePath:     "/project/actions/email/contact.go",
+			RelativePath: "actions/email/contact.go",
+			PackagePath:  "project/actions/email",
+			PackageName:  "email",
+			StructName:   "ContactAction",
+			ActionName:   "email.Contact",
+			StructLine:   12,
+		}
+	}
+
+	testCases := []struct {
+		name         string
+		mutate       func(*annotator_dto.ActionCandidate)
+		claimedNames map[string]string
+		wantMessage  string
+	}{
+		{
+			name:        "package main cannot be imported",
+			mutate:      func(c *annotator_dto.ActionCandidate) { c.PackageName = "main" },
+			wantMessage: "declared in package main",
+		},
+		{
+			name:        "unexported struct cannot be referenced",
+			mutate:      func(c *annotator_dto.ActionCandidate) { c.StructName = "contactAction" },
+			wantMessage: "is not exported",
+		},
+		{
+			name:        "struct called Action leaves an empty name",
+			mutate:      func(c *annotator_dto.ActionCandidate) { c.StructName = "Action" },
+			wantMessage: "leaves an empty action name",
+		},
+		{
+			name:         "duplicate action name names the earlier file",
+			mutate:       func(*annotator_dto.ActionCandidate) {},
+			claimedNames: map[string]string{"email.Contact": "actions/email/other.go"},
+			wantMessage:  "already declared in actions/email/other.go",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			candidate := usable()
+			testCase.mutate(candidate)
+
+			diagnostic := validateActionCandidate(candidate, testCase.claimedNames)
+
+			require.NotNil(t, diagnostic, "the candidate must be rejected")
+			assert.Equal(t, ast_domain.Error, diagnostic.Severity)
+			assert.Contains(t, diagnostic.Message, testCase.wantMessage)
+			assert.Equal(t, candidate.RelativePath, diagnostic.SourcePath)
+			assert.Equal(t, candidate.StructLine, diagnostic.Location.Line)
+		})
+	}
+
+	t.Run("a usable candidate is accepted", func(t *testing.T) {
+		t.Parallel()
+		assert.Nil(t, validateActionCandidate(usable(), map[string]string{}))
 	})
 }

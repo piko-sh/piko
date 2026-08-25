@@ -27,6 +27,8 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/goastutil"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -34,6 +36,15 @@ const (
 	// dirPermission is the default permission for directories created by generator adapters.
 	// Uses 0750 to restrict access to owner and group only.
 	dirPermission = 0750
+
+	// collectionsDirName is the directory under the output directory that holds one
+	// generated Go package per static collection.
+	collectionsDirName = "collections"
+
+	// collectionPackageHashFormat joins a sanitised collection name to a short hash of the
+	// name it was sanitised from, so two collections whose names sanitise alike still get
+	// separate packages.
+	collectionPackageHashFormat = "%s_%s"
 )
 
 // DrivenCollectionEmitter implements CollectionEmitterPort.
@@ -103,8 +114,17 @@ func (e *DrivenCollectionEmitter) EmitCollection(
 	items []collection_dto.ContentItem,
 	outputDir string,
 ) (string, error) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	packageName, renamed := collectionPackageName(collectionName)
+	if renamed {
+		l.Warn("Collection name is not usable as a Go package name; the generated package and directory were renamed",
+			logger_domain.String("collection", collectionName),
+			logger_domain.String("package", packageName))
+	}
+
 	relOutputDir := e.sandbox.RelPath(outputDir)
-	collectionDir := filepath.Join(relOutputDir, "collections", collectionName)
+	collectionDir := filepath.Join(relOutputDir, collectionsDirName, packageName)
 	dataFilePath := filepath.Join(collectionDir, "data.bin")
 	goFilePath := filepath.Join(collectionDir, "generated.go")
 
@@ -121,21 +141,56 @@ func (e *DrivenCollectionEmitter) EmitCollection(
 		return "", fmt.Errorf("failed to write binary data for collection %q: %w", collectionName, err)
 	}
 
-	goCode := e.generateGoWrapper(collectionName)
+	goCode := e.generateGoWrapper(packageName, collectionName)
 
 	if err := e.fsWriter.WriteFile(ctx, goFilePath, []byte(goCode)); err != nil {
 		return "", fmt.Errorf("failed to write Go wrapper for collection %q: %w", collectionName, err)
 	}
 
-	packagePath := filepath.Join(e.moduleName, "dist", "collections", collectionName)
+	packagePath := filepath.Join(e.moduleName, "dist", collectionsDirName, packageName)
 
 	return packagePath, nil
 }
 
+// collectionPackageName maps a collection name onto the Go package name, and the
+// directory name, its generated wrapper uses.
+//
+// The p-collection attribute is free text: it reaches the emitter exactly as the author
+// typed it, so "blog-posts", "2024 posts", "range" and "../x" all arrive as-is and used
+// to be written straight into a "package" clause and a directory name, producing a
+// package that could not compile or a directory nobody meant to create. A name that is
+// already a legal, non-predeclared identifier is kept, which leaves every ordinary
+// collection's output byte-for-byte unchanged. Anything else is reduced to a legal
+// package name and given a short hash of the original, because sanitising alone folds
+// "blog-posts" and "blog.posts" onto one package that two collections would then fight
+// over.
+//
+// The raw name stays the runtime registration key, so renaming the package never changes
+// what a template asks for.
+//
+// Takes collectionName (string) which is the raw p-collection attribute value.
+//
+// Returns string which is a legal Go package name, also safe as a directory name.
+// Returns bool which is true when the raw name could not be used as it stood.
+func collectionPackageName(collectionName string) (string, bool) {
+	if goastutil.IsValidGoIdentifier(collectionName) &&
+		!goastutil.IsGoPredeclared(collectionName) &&
+		!goastutil.IsGoPackageNameReserved(collectionName) {
+		return collectionName, false
+	}
+	sanitised := fmt.Sprintf(
+		collectionPackageHashFormat,
+		goastutil.SanitiseGoPackageName(collectionName),
+		goastutil.ShortHash(collectionName),
+	)
+	return sanitised, true
+}
+
 // generateGoWrapper creates the Go source code for the collection wrapper.
 //
-// Takes collectionName (string) which specifies the package name and registry key for the
-// generated code.
+// Takes packageName (string) which is the package clause for the generated file.
+// Takes collectionName (string) which is the raw registry key the runtime registers the
+// blob under, written as a quoted literal so any character in it is escaped.
 //
 // Returns string which contains the complete Go source file.
 //
@@ -143,7 +198,7 @@ func (e *DrivenCollectionEmitter) EmitCollection(
 //   - Uses //go:embed to embed data.bin into the binary
 //   - Registers the blob with the runtime registry in init()
 //   - Is minimal and contains no business logic
-func (*DrivenCollectionEmitter) generateGoWrapper(collectionName string) string {
+func (*DrivenCollectionEmitter) generateGoWrapper(packageName, collectionName string) string {
 	return generator_dto.AnalysisBuildConstraint + fmt.Sprintf(`// Code generated by Piko. DO NOT EDIT.
 // This file embeds the binary collection data and registers it with the
 // runtime.
@@ -162,5 +217,5 @@ var collectionBlob []byte
 func init() {
 	pikoruntime.RegisterStaticCollectionBlob(context.Background(), %q, collectionBlob)
 }
-`, collectionName, collectionName)
+`, packageName, collectionName)
 }
