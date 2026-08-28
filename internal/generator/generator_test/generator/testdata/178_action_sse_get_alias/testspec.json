@@ -1,0 +1,5 @@
+{
+    "description": "Tests that an action declaring SSEGetAlias carries the flag into the generated registry, so its stream is reachable over GET.",
+    "packageName": "action_sse_get_alias_test",
+    "isPage": true
+}

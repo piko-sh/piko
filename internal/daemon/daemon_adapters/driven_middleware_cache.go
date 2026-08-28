@@ -38,12 +38,12 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_dto"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
+	"piko.sh/piko/wdk/goroutine"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"

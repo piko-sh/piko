@@ -25,12 +25,13 @@ func init() {
 }
 
 type ActionHandler struct {
-	Name   string
-	Method string
-	Create func() any
-	Invoke func(ctx context.Context, action any, args map[string]any) (any, error)
-	Bind   func(ctx context.Context, action any, args map[string]any) error
-	HasSSE bool
+	Name        string
+	Method      string
+	Create      func() any
+	Invoke      func(ctx context.Context, action any, args map[string]any) (any, error)
+	Bind        func(ctx context.Context, action any, args map[string]any) error
+	HasSSE      bool
+	SSEGetAlias bool
 }
 
 func Registry() map[string]ActionHandler {

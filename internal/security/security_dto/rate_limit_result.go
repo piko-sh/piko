@@ -25,6 +25,11 @@ type RateLimitOverride struct {
 	// "login" creates a separate limit for login attempts.
 	KeySuffix string
 
+	// Identity replaces the client IP in the rate limit key when non-empty, so an action
+	// keyed on a user is limited per user rather than per user and address. It must already
+	// be sanitised, because it reaches the stored key.
+	Identity string
+
 	// RequestsPerMinute overrides the default rate limit for this action.
 	RequestsPerMinute int
 

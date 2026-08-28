@@ -33,10 +33,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/seo/seo_adapters"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 var (

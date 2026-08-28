@@ -21,7 +21,6 @@ package security_adapters
 import (
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
@@ -34,6 +33,10 @@ const (
 	// defaultRedirectParam holds the default query parameter name for the post-login
 	// redirect target.
 	defaultRedirectParam = "redirect"
+
+	// captchaChallengePath is the endpoint a captcha challenge is fetched from. Proving you
+	// are a person cannot itself require being signed in.
+	captchaChallengePath = "/_piko/captcha/challenge"
 )
 
 // AuthGuardMiddleware enforces authentication on routes not listed in the public paths or
@@ -41,11 +44,9 @@ const (
 // middleware either calls a custom OnUnauthenticated handler or redirects to the login
 // page.
 type AuthGuardMiddleware struct {
-	// loginPath holds the URL path used for login redirects.
-	loginPath string
-
-	// redirectParam holds the query parameter name for the post-login redirect.
-	redirectParam string
+	// publicPaths holds every path the guard never challenges, normalised so a trailing
+	// slash does not change the answer. It always contains the login and captcha paths.
+	publicPaths map[string]struct{}
 
 	// config holds the authentication guard configuration.
 	config daemon_dto.AuthGuardConfig
@@ -63,16 +64,58 @@ func NewAuthGuardMiddleware(config daemon_dto.AuthGuardConfig) *AuthGuardMiddlew
 		loginPath = defaultLoginPath
 	}
 
-	redirectParam := config.RedirectParam
-	if redirectParam == "" {
-		redirectParam = defaultRedirectParam
+	return &AuthGuardMiddleware{
+		config:      config,
+		publicPaths: buildGuardPublicPaths(config, loginPath),
+	}
+}
+
+// buildGuardPublicPaths collects the paths the guard must never challenge.
+//
+// Takes config (daemon_dto.AuthGuardConfig) which supplies the application's public
+// paths.
+// Takes loginPath (string) which is the resolved login path, possibly carrying a query.
+//
+// Returns map[string]struct{} which holds every exempt path, normalised.
+func buildGuardPublicPaths(config daemon_dto.AuthGuardConfig, loginPath string) map[string]struct{} {
+	paths := make(map[string]struct{}, len(config.PublicPaths)+2)
+	for _, path := range config.PublicPaths {
+		paths[normalisePublicPath(path)] = struct{}{}
 	}
 
-	return &AuthGuardMiddleware{
-		config:        config,
-		loginPath:     loginPath,
-		redirectParam: redirectParam,
+	paths[normalisePublicPath(pathComponentOf(loginPath))] = struct{}{}
+	paths[normalisePublicPath(captchaChallengePath)] = struct{}{}
+
+	return paths
+}
+
+// pathComponentOf strips any query string from a configured path.
+//
+// A login path may legitimately carry a query, such as "/login?next=1", but the exemption
+// is matched against a request path, which never does.
+//
+// Takes path (string) which is the configured path.
+//
+// Returns string which is the path without its query.
+func pathComponentOf(path string) string {
+	component, _, _ := strings.Cut(path, "?")
+
+	return component
+}
+
+// normalisePublicPath puts a path in the one form the exemption set is keyed by, so that
+// "/login" and "/login/" are the same entry.
+//
+// Takes path (string) which is the raw configured or requested path.
+//
+// Returns string which is the normalised form.
+func normalisePublicPath(path string) string {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "/" {
+		return trimmed
 	}
+
+	return strings.TrimSuffix(trimmed, "/")
 }
 
 // Handler returns an http.Handler middleware that enforces authentication on non-public
@@ -114,7 +157,7 @@ func (m *AuthGuardMiddleware) Handler(next http.Handler) http.Handler {
 //
 // Returns bool which is true when the path matches a public path or prefix.
 func (m *AuthGuardMiddleware) isPublicPath(path string) bool {
-	if slices.Contains(m.config.PublicPaths, path) {
+	if _, public := m.publicPaths[normalisePublicPath(path)]; public {
 		return true
 	}
 	for _, prefix := range m.config.PublicPrefixes {
@@ -129,13 +172,13 @@ func (m *AuthGuardMiddleware) isPublicPath(path string) bool {
 	return false
 }
 
-// redirectToLogin sends a redirect to the login page, preserving the original path in a
-// query parameter.
+// redirectToLogin answers an unauthenticated request, preserving the original path so the
+// caller returns to it after authenticating.
 //
-// Takes writer (http.ResponseWriter) which receives the redirect response.
+// Takes writer (http.ResponseWriter) which receives the response.
 // Takes request (*http.Request) which provides the original path.
 func (m *AuthGuardMiddleware) redirectToLogin(writer http.ResponseWriter, request *http.Request) {
-	http.Redirect(writer, request, buildLoginRedirect(m.loginPath, m.redirectParam, request), http.StatusSeeOther)
+	RespondUnauthenticated(writer, request, nil, m.config)
 }
 
 // buildLoginRedirect constructs a redirect URL that preserves the full request URI (path

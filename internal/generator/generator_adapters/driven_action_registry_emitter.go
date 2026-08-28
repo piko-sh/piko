@@ -465,7 +465,7 @@ func (*ActionRegistryEmitter) buildPretouchStatements(naming *actionNaming, type
 // locally-typed map the declaration describes, so a field missing here fails to compile.
 //
 // Returns *ast.GenDecl which contains the struct type definition for ActionHandler with
-// fields for Name, Method, Create, Invoke, Bind, and HasSSE.
+// fields for Name, Method, Create, Invoke, Bind, HasSSE, and SSEGetAlias.
 func (e *ActionRegistryEmitter) buildActionHandlerTypeDecl() *ast.GenDecl {
 	return goastutil.GenDeclType(
 		actionHandlerTypeName,
@@ -476,6 +476,7 @@ func (e *ActionRegistryEmitter) buildActionHandlerTypeDecl() *ast.GenDecl {
 			goastutil.Field("Invoke", e.buildInvokeFuncType()),
 			goastutil.Field("Bind", e.buildBindFuncType()),
 			goastutil.Field("HasSSE", goastutil.CachedIdent("bool")),
+			goastutil.Field("SSEGetAlias", goastutil.CachedIdent("bool")),
 		),
 	)
 }
@@ -564,6 +565,10 @@ func (e *ActionRegistryEmitter) buildActionEntry(naming *actionNaming, index int
 	}
 
 	fields = append(fields, goastutil.KeyValueIdent("HasSSE", goastutil.BoolIdent(spec.HasSSE)))
+
+	if spec.SSEGetAlias {
+		fields = append(fields, goastutil.KeyValueIdent("SSEGetAlias", goastutil.BoolIdent(true)))
+	}
 
 	return goastutil.KeyValueExpr(
 		goastutil.StrLit(spec.Name),

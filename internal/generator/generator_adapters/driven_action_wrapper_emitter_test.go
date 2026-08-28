@@ -34,12 +34,12 @@ import (
 
 const (
 	testActionPackagePath = "mymod/actions/test"
-	testTypePackagePath = "mymod/pkg/contracts"
+	testTypePackagePath   = "mymod/pkg/contracts"
 )
 
 var (
 	testActionPackageAlias = goastutil.GoPackageAliasWithStem("test", testActionPackagePath)
-	testTypePackageAlias = goastutil.GoPackageAliasWithStem("contracts", testTypePackagePath)
+	testTypePackageAlias   = goastutil.GoPackageAliasWithStem("contracts", testTypePackagePath)
 )
 
 func TestNewActionWrapperEmitter(t *testing.T) {

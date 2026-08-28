@@ -466,6 +466,13 @@ func (op *routerOperation) getPresignHandlers(ctx context.Context) (uploadHandle
 
 	presignConfig := op.getPresignConfig(storageService)
 
+	if op.rateLimitService != nil {
+		presignConfig.RateLimiter = op.rateLimitService
+	} else if presignConfig.RateLimitPerMinute > 0 {
+		l.Warn("Presign rate limit is configured but no rate limit service is available, so it is not enforced",
+			logger_domain.Int("rate_limit_per_minute", presignConfig.RateLimitPerMinute))
+	}
+
 	publicDownloadHandler = presign_http.NewPublicDownloadHandler(storageService)
 	l.Internal("Public download handler configured at /_piko/storage/public")
 
@@ -716,6 +723,7 @@ func buildRouteSettings(serverConfig *ServerConfig) daemon_adapters.RouteSetting
 		ActionMaxBodyBytes:           deref(serverConfig.Network.ActionMaxBodyBytes, defaultActionMaxBodyBytes),
 		DefaultMaxSSEDurationSeconds: deref(serverConfig.Network.DefaultMaxSSEDurationSeconds, defaultMaxSSEDurationSeconds),
 		MaxMultipartFormBytes:        deref(serverConfig.Network.MaxMultipartFormBytes, defaultMaxMultipartFormBytes),
+		RequestTimeoutSeconds:        deref(serverConfig.Network.RequestTimeoutSeconds, defaultRequestTimeoutSeconds),
 		ActionServePath:              deref(serverConfig.Paths.ActionServePath, "/_piko/actions"),
 		CSRFSecFetchSiteEnforcement:  deref(serverConfig.Security.CSRF.SecFetchSiteEnforcement, true),
 	}

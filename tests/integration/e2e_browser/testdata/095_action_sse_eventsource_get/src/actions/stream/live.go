@@ -37,6 +37,8 @@ func (a *LiveAction) Call(_ LiveInput) (LiveOutput, error) {
 	return LiveOutput{Active: true}, nil
 }
 
+func (a *LiveAction) SSEGetAlias() {}
+
 func (a *LiveAction) StreamProgress(stream *piko.SSEStream) error {
 	for i := 0; i < 3; i++ {
 		if err := stream.Send("tick", map[string]int{"count": i}); err != nil {

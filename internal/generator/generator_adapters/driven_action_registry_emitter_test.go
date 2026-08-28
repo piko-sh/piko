@@ -662,7 +662,8 @@ func TestEmitRegistry_SSEActionCarriesBindField(t *testing.T) {
 
 	source := string(output)
 
-	assert.Contains(t, source, "Bind   func(ctx context.Context, action any, args map[string]any) error",
+	assert.Regexp(t,
+		`Bind\s+func\(ctx context\.Context, action any, args map\[string\]any\) error`, source,
 		"the locally declared handler struct must carry Bind or the registry literal will not compile")
 	assert.Contains(t, source, "Bind: bindStreamExport")
 	assert.NotContains(t, source, "Bind: bindUserCreate", "an action without SSE needs no bind function")

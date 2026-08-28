@@ -91,7 +91,11 @@ type AuthGuardConfig = daemon_dto.AuthGuardConfig
 //
 //	func (a DeleteAction) Call(id int64) (DeleteResponse, error) {
 //	    ctx := a.Ctx()
-//	    userID := a.Request().Session.UserID
+//	    auth := a.Auth()
+//	    if auth == nil || !auth.IsAuthenticated() {
+//	        return DeleteResponse{}, errors.New("not signed in")
+//	    }
+//	    userID := auth.UserID()
 //	    a.Response().AddHelper("showToast", "Deleted", "success")
 //	    return DeleteResponse{Success: true}, nil
 //	}
@@ -124,6 +128,19 @@ type SSECapable = daemon_domain.SSECapable
 
 // SSEStream provides methods for sending Server-Sent Events.
 type SSEStream = daemon_domain.SSEStream
+
+// SSEGetAliasable is implemented by a streaming action whose stream may also be reached
+// over GET, so a browser EventSource can consume it.
+//
+// EventSource issues GET and can set no headers, so it can never carry a CSRF token pair.
+// The GET route is therefore exempt from the CSRF check, and implementing it is how an
+// action declares that reaching it cross-site is safe. An action that changes state must
+// not implement it.
+//
+// Example:
+//
+//	func (a StatusAction) SSEGetAlias() {}
+type SSEGetAliasable = daemon_domain.SSEGetAliasable
 
 // Transport represents a supported transport mechanism for actions.
 type Transport = daemon_domain.Transport

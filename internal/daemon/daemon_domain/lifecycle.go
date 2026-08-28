@@ -33,11 +33,9 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/netutil"
-
-	"golang.org/x/sync/errgroup"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -110,48 +108,160 @@ func (ds *daemonService) runDaemonMain(ctx context.Context) error {
 
 	l.Internal("Daemon main process starting...")
 
-	serverErrChan := ds.startHTTPServers(ctx)
+	servers := ds.startHTTPServers(ctx)
 
-	return ds.waitForShutdown(ctx, span, serverErrChan)
+	return ds.waitForShutdown(ctx, span, servers)
+}
+
+var (
+	// errServersStopped is the cause given when the servers were released without any
+	// failure.
+	errServersStopped = errors.New("servers stopped")
+)
+
+// runningServers reports on the servers a daemon launched.
+type runningServers struct {
+	// failed carries the first fatal server failure.
+	failed chan error
+
+	// stopped closes once every server goroutine has returned.
+	stopped chan struct{}
 }
 
 // startHTTPServers launches the main and health servers.
 //
-// Returns chan error which receives any server startup errors, and is closed when all
-// servers have stopped.
+// Returns runningServers which reports failure and completion.
 //
-// Concurrent goroutines are spawned via an errgroup that runs each server in its own
-// goroutine.
-func (ds *daemonService) startHTTPServers(ctx context.Context) chan error {
-	serverErrChan := make(chan error, 1)
+// Concurrency: starts one goroutine per server, tracked by a WaitGroup; a further
+// goroutine closes the stopped channel once they have all returned. That last one is
+// deliberately not tracked by the WaitGroup it waits on, or it would be waiting for
+// itself.
+func (ds *daemonService) startHTTPServers(ctx context.Context) runningServers {
+	servers := runningServers{
+		failed:  make(chan error, 1),
+		stopped: make(chan struct{}),
+	}
+
+	serveCtx, abortServers := context.WithCancelCause(context.WithoutCancel(ctx))
+
+	var running sync.WaitGroup
+
+	healthSettled := make(chan struct{})
+
+	if ds.shouldStartHealthServer() {
+		ds.launchAuxiliary(ctx, &running, "daemon.startHealthServer", func() error {
+			return ds.startHealthServer(serveCtx)
+		}, healthSettled)
+	} else {
+		close(healthSettled)
+	}
+
+	if ds.shouldStartTLSRedirect() {
+		ds.launchAuxiliary(ctx, &running, "daemon.startTLSRedirectServer", func() error {
+			return ds.startTLSRedirectServer(serveCtx)
+		}, nil)
+	}
+
+	ds.launch(ctx, &running, servers, abortServers, "daemon.startMainServer", func() error {
+		ds.waitForHealthServer(serveCtx, healthSettled)
+
+		return ds.startMainServer(serveCtx)
+	})
 
 	go func() {
-		defer close(serverErrChan)
-		defer goroutine.RecoverPanicToChannel(ctx, "daemon.startHTTPServers", serverErrChan)
-		g, gCtx := errgroup.WithContext(ctx)
+		defer goroutine.RecoverPanic(ctx, "daemon.serversStoppedWatcher")
 
-		g.Go(func() error {
-			return ds.startMainServer(gCtx)
-		})
-
-		if ds.shouldStartHealthServer() {
-			g.Go(func() error {
-				return ds.startHealthServer(gCtx)
-			})
-		}
-
-		if ds.shouldStartTLSRedirect() {
-			g.Go(func() error {
-				return ds.startTLSRedirectServer(gCtx)
-			})
-		}
-
-		if err := g.Wait(); err != nil {
-			serverErrChan <- err
-		}
+		running.Wait()
+		abortServers(errServersStopped)
+		close(servers.stopped)
 	}()
 
-	return serverErrChan
+	return servers
+}
+
+// launch runs a server whose failure brings the daemon down.
+//
+// Takes running (*sync.WaitGroup) which tracks the server goroutine.
+// Takes servers (runningServers) which receives the failure.
+// Takes abort (context.CancelCauseFunc) which stops the surviving servers.
+// Takes component (string) which names the server in logs and panic reports.
+// Takes run (func() error) which runs the server.
+func (ds *daemonService) launch(
+	ctx context.Context,
+	running *sync.WaitGroup,
+	servers runningServers,
+	abort context.CancelCauseFunc,
+	component string,
+	run func() error,
+) {
+	running.Go(func() {
+		if err := goroutine.SafeCall(ctx, component, run); err != nil {
+			ds.reportServerFailure(ctx, servers.failed, abort, err)
+		}
+	})
+}
+
+// launchAuxiliary runs a server whose failure the daemon survives.
+//
+// Takes running (*sync.WaitGroup) which tracks the server goroutine.
+// Takes component (string) which names the server in logs and panic reports.
+// Takes run (func() error) which runs the server.
+// Takes settled (chan struct{}) which is closed when the server exits, and may be nil.
+func (*daemonService) launchAuxiliary(
+	ctx context.Context,
+	running *sync.WaitGroup,
+	component string,
+	run func() error,
+	settled chan struct{},
+) {
+	running.Go(func() {
+		if settled != nil {
+			defer close(settled)
+		}
+
+		if err := goroutine.SafeCall(ctx, component, run); err != nil {
+			_, l := logger_domain.From(ctx, log)
+			l.Error("Auxiliary server stopped; the application continues to serve without it",
+				logger_domain.String(logger_domain.FieldStrComponent, component),
+				logger_domain.Error(err),
+			)
+		}
+	})
+}
+
+// reportServerFailure records the first fatal server failure and stops the rest.
+//
+// Takes failed (chan error) which receives the error, and keeps only the first.
+// Takes abort (context.CancelCauseFunc) which stops the surviving servers.
+// Takes err (error) which is the failure.
+func (ds *daemonService) reportServerFailure(
+	ctx context.Context,
+	failed chan error,
+	abort context.CancelCauseFunc,
+	err error,
+) {
+	abort(err)
+	ds.signalDrain(ctx)
+
+	select {
+	case failed <- err:
+	default:
+	}
+}
+
+// waitForHealthServer holds the main server until the health probe has bound or given up.
+//
+// Takes settled (chan struct{}) which closes when the health server exits.
+func (ds *daemonService) waitForHealthServer(ctx context.Context, settled <-chan struct{}) {
+	if !ds.shouldStartHealthServer() || ds.healthServer == nil {
+		return
+	}
+
+	select {
+	case <-ds.healthServer.Bound():
+	case <-settled:
+	case <-ctx.Done():
+	}
 }
 
 // startMainServer sets up and starts the main HTTP server.
@@ -200,29 +310,58 @@ func (ds *daemonService) shouldStartHealthServer() bool {
 // waitForShutdown blocks until a shutdown signal or error is received.
 //
 // Takes span (trace.Span) which records the shutdown status.
-// Takes serverErrChan (chan error) which receives server errors.
+// Takes servers (runningServers) which carries the failure and stop signals.
 //
-// Returns error when the server channel sends an error.
+// Returns error when a server reported a fatal failure.
 func (ds *daemonService) waitForShutdown(
 	ctx context.Context,
 	span trace.Span,
-	serverErrChan chan error,
+	servers runningServers,
 ) error {
 	ctx, l := logger_domain.From(ctx, log)
 	select {
 	case <-ctx.Done():
 		l.Internal("Shutdown signal received (context cancelled or OS signal).")
 		span.SetStatus(codes.Ok, "Shutdown signal received")
+
 		return nil
 
-	case err := <-serverErrChan:
+	case err := <-servers.failed:
 		return ds.handleServerError(ctx, span, err)
+
+	case <-servers.stopped:
+		return ds.handleServersStopped(ctx, span, servers)
 
 	case <-ds.stopChan:
 		l.Internal("Stop() called, initiating shutdown.")
 		span.SetStatus(codes.Ok, "Stop called")
+
 		return nil
 	}
+}
+
+// handleServersStopped decides what it means for every server to have returned.
+//
+// Takes span (trace.Span) which records the outcome.
+// Takes servers (runningServers) which may still hold a failure.
+//
+// Returns error when a server failed, or nil for a clean stop.
+func (ds *daemonService) handleServersStopped(
+	ctx context.Context,
+	span trace.Span,
+	servers runningServers,
+) error {
+	select {
+	case err := <-servers.failed:
+		return ds.handleServerError(ctx, span, err)
+	default:
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	l.Internal("All servers stopped.")
+	span.SetStatus(codes.Ok, "Servers stopped")
+
+	return nil
 }
 
 // handleServerError processes errors from the HTTP server.
@@ -295,7 +434,7 @@ func (ds *daemonService) tryStartOnPort(ctx context.Context, span trace.Span, ha
 	ctx, l := logger_domain.From(ctx, log)
 	for i := range maxPortRetries {
 		currentPort := initialPort + i
-		addr := fmt.Sprintf(":%d", currentPort)
+		addr := net.JoinHostPort("", strconv.Itoa(currentPort))
 
 		if i > 0 {
 			l.Notice("HTTP server using alternative port",
@@ -307,7 +446,7 @@ func (ds *daemonService) tryStartOnPort(ctx context.Context, span trace.Span, ha
 				logger_domain.String(keyAddress, addr))
 		}
 
-		listenErr := ds.serverAdapter.ListenAndServe(addr, handler)
+		listenErr := ds.serverAdapter.ListenAndServe(ctx, addr, handler)
 		result := ds.handleServerListenResult(ctx, span, listenErr, addr, autoNextPort, i, serverKindMain)
 
 		if result == nil || !errors.Is(result, errContinueRetry) {
@@ -403,22 +542,24 @@ func (*daemonService) reportNoPortAvailable(ctx context.Context, span trace.Span
 //
 // Returns error when the port setting is invalid or the server cannot start.
 func (ds *daemonService) startHealthServer(ctx context.Context) error {
-	ctx, span, l := log.Span(ctx, "startHealthServer")
+	ctx, span, _ := log.Span(ctx, "startHealthServer")
 	defer span.End()
 
 	config := ds.daemonConfig
 
 	initialPort, err := strconv.Atoi(config.HealthPort)
 	if err != nil {
-		l.Error("Invalid initial port in health probe configuration",
-			logger_domain.Error(err),
-			logger_domain.String(keyPort, config.HealthPort))
-		return fmt.Errorf("invalid health probe port in config: %w", err)
+		return fmt.Errorf("invalid health probe port %q in config: %w", config.HealthPort, err)
 	}
 
-	ds.logHealthServerStartupConfig(ctx, config.HealthBindAddress, initialPort, config.HealthAutoNextPort)
+	bindAddress := normaliseBindAddress(config.HealthBindAddress)
+	if err := validateBindAddress(bindAddress, "WithHealthProbePort"); err != nil {
+		return fmt.Errorf("invalid health probe bind address %q: %w", config.HealthBindAddress, err)
+	}
 
-	return ds.tryStartHealthServerOnPort(ctx, span, config.HealthBindAddress, initialPort, config.HealthAutoNextPort, config.HealthLivePath, config.HealthReadyPath)
+	ds.logHealthServerStartupConfig(ctx, bindAddress, initialPort, config.HealthAutoNextPort)
+
+	return ds.tryStartHealthServerOnPort(ctx, span, bindAddress, initialPort, config.HealthAutoNextPort, config.HealthLivePath, config.HealthReadyPath)
 }
 
 // logHealthServerStartupConfig writes the health server settings to the log.
@@ -472,7 +613,7 @@ func (ds *daemonService) tryStartHealthServerOnPort(ctx context.Context, span tr
 				logger_domain.String("ready_path", readyPath))
 		}
 
-		listenErr := ds.healthServer.ListenAndServe(addr, ds.healthRouter)
+		listenErr := ds.healthServer.ListenAndServe(ctx, addr, ds.healthRouter)
 		result := ds.handleServerListenResult(ctx, span, listenErr, addr, autoNextPort, i, serverKindHealth)
 
 		if result == nil || !errors.Is(result, errContinueRetry) {
@@ -640,7 +781,7 @@ func (ds *daemonService) startTLSRedirectServer(ctx context.Context) error {
 		http.Redirect(w, r, target, http.StatusMovedPermanently) //nolint:gosec // target host derived from r.Host which the server validates upstream
 	})
 
-	listenErr := ds.tlsRedirectServer.ListenAndServe(addr, handler)
+	listenErr := ds.tlsRedirectServer.ListenAndServe(ctx, addr, handler)
 	result := ds.handleServerListenResult(ctx, span, listenErr, addr, false, 0, serverKindTLSRedirect)
 	if result == nil || !errors.Is(result, errContinueRetry) {
 		return result

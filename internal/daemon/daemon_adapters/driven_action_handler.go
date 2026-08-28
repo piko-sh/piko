@@ -19,11 +19,13 @@
 package daemon_adapters
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -75,6 +77,9 @@ const (
 	// the structural decoder allocates reflective storage.
 	defaultMaxJSONBodyDepth = 32
 
+	// mediaTypeEventStream is the media type a client asks for to receive a stream.
+	mediaTypeEventStream = "text/event-stream"
+
 	// defaultSSEWriteTimeout bounds how long a single SSE write may block before the
 	// underlying connection is forcibly closed. The deadline is reset before every write so
 	// a healthy client can stream indefinitely while a slow-loris peer is dropped within
@@ -110,9 +115,17 @@ type ActionHandler struct {
 	// registry maps action names to their handler entries.
 	registry map[string]ActionHandlerEntry
 
+	// rateLimitWarned records the actions already reported as declaring an unenforced rate
+	// limit, so the warning is emitted once per action rather than once per request.
+	rateLimitWarned sync.Map
+
 	// rateLimitMw applies per-action rate limiting. Nil when rate limiting is disabled
 	// globally.
 	rateLimitMw *rateLimitMiddleware
+
+	// actionSlots holds one buffered channel per action that declares MaxConcurrent, used as
+	// a semaphore.
+	actionSlots sync.Map
 
 	// maxBodyBytes is the maximum request body size in bytes.
 	maxBodyBytes int64
@@ -120,6 +133,10 @@ type ActionHandler struct {
 	// defaultMaxSSEDuration is the default maximum lifetime for SSE connections. Zero means
 	// unlimited; individual actions can override via ResourceLimits.
 	defaultMaxSSEDuration time.Duration
+
+	// requestTimeout bounds a single non-streaming action call when the action declares no
+	// timeout of its own. Zero means unlimited.
+	requestTimeout time.Duration
 
 	// maxMultipartFormBytes is the maximum in-memory size for multipart form data.
 	maxMultipartFormBytes int64
@@ -152,6 +169,14 @@ type ActionHandlerEntry struct {
 
 	// HasSSE indicates if the action supports SSE streaming.
 	HasSSE bool
+
+	// SSEGetAlias registers a GET route alongside the action's declared method.
+	//
+	// A browser EventSource issues GET and can set no headers, so that route carries no CSRF
+	// token and is exempt from the CSRF check. Declaring the alias is therefore an assertion
+	// that the action is safe to reach cross-site, which a mutating action is not. It is off
+	// unless the action opts in.
+	SSEGetAlias bool
 }
 
 // NewActionHandler creates a new action handler.
@@ -228,7 +253,7 @@ func (h *ActionHandler) Mount(r chi.Router, basePath string) {
 
 		r.Method(entry.Method, routePattern, handler)
 
-		if entry.HasSSE && entry.Method != http.MethodGet {
+		if entry.HasSSE && entry.SSEGetAlias && entry.Method != http.MethodGet {
 			r.Method(http.MethodGet, routePattern, handler)
 		}
 	}
@@ -294,7 +319,7 @@ func (*ActionHandler) shouldUseSSE(request *http.Request, entry ActionHandlerEnt
 	if !entry.HasSSE {
 		return false
 	}
-	return request.Header.Get("Accept") == "text/event-stream"
+	return security_dto.AcceptsMediaType(request.Header.Get("Accept"), mediaTypeEventStream)
 }
 
 // handleHTTP processes a standard HTTP action request.
@@ -310,57 +335,60 @@ func (h *ActionHandler) handleHTTP(
 	entry ActionHandlerEntry,
 	span trace.Span,
 ) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	action := entry.Create()
-	startTime := time.Now()
-
-	ctx, cancel, bodyLimit, slowThreshold := h.applyResourceLimits(ctx, action)
-	if cancel != nil {
-		defer cancel()
-	}
-
-	request = request.WithContext(ctx)
-	h.injectMetadata(request, action)
-	request.Body = http.MaxBytesReader(w, request.Body, bodyLimit)
-
-	arguments, err := h.parseRequestBody(request)
-	if err != nil {
-		l.ReportError(span, err, "Failed to parse request body")
-		h.writeError(w, http.StatusBadRequest, "Invalid request body", err, isDevelopmentModeFromContext(ctx))
+	prepared, release, ok := h.prepareAction(ctx, w, request, entry, span)
+	if !ok {
 		return
 	}
+	defer release()
 
-	if !h.runSecurityValidation(ctx, w, request, action, arguments, entry) {
-		return
-	}
+	ctx, l := logger_domain.From(prepared.Ctx, log)
 
-	if h.handleCachedAction(ctx, w, request, cachedActionParams{
-		Action:        action,
-		Entry:         entry,
-		Args:          arguments,
-		Span:          span,
-		StartTime:     startTime,
-		SlowThreshold: slowThreshold,
+	if h.handleCachedAction(ctx, w, prepared.Request, cachedActionParams{
+		Action:          prepared.Action,
+		Entry:           entry,
+		Args:            prepared.Arguments,
+		Span:            span,
+		StartTime:       prepared.StartTime,
+		SlowThreshold:   prepared.Limits.SlowThreshold,
+		MaxResponseSize: prepared.Limits.MaxResponseSize,
 	}) {
 		return
 	}
 
-	result, err := entry.Invoke(ctx, action, arguments)
+	result, err := entry.Invoke(ctx, prepared.Action, prepared.Arguments)
 	if err != nil {
 		if !isRequestFault(err) {
 			l.ReportError(span, err, "Action execution failed")
 		}
-		h.handleActionError(w, request, action, err)
-		h.recordSlowAction(ctx, entry.Name, startTime, slowThreshold)
+		h.handleActionError(w, prepared.Request, prepared.Action, err)
+		h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
+
 		return
 	}
 
-	h.applyResponseMetadata(w, action)
-	response := h.buildFullResponse(action, result)
-	h.writeJSON(w, http.StatusOK, response)
+	h.applyResponseMetadata(w, prepared.Action)
+	response := h.buildFullResponse(prepared.Action, result)
+	if !h.writeActionResponse(ctx, w, entry.Name, response, prepared.Limits.MaxResponseSize) {
+		h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
+
+		return
+	}
 	span.SetStatus(codes.Ok, "Action completed successfully")
-	h.recordSlowAction(ctx, entry.Name, startTime, slowThreshold)
+	h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
+}
+
+// isSSEGetAliasRequest reports whether a request arrived over an action's opt-in GET
+// stream alias.
+//
+// Takes request (*http.Request) which supplies the method and Accept header.
+// Takes entry (ActionHandlerEntry) which says whether the alias was opted into.
+//
+// Returns bool which is true when the request came over the alias as a stream.
+func isSSEGetAliasRequest(request *http.Request, entry ActionHandlerEntry) bool {
+	return entry.HasSSE &&
+		entry.SSEGetAlias &&
+		request.Method == http.MethodGet &&
+		security_dto.AcceptsMediaType(request.Header.Get("Accept"), mediaTypeEventStream)
 }
 
 // runSecurityValidation performs CSRF, rate limit, and captcha checks for an incoming
@@ -385,13 +413,16 @@ func (h *ActionHandler) runSecurityValidation(
 ) bool {
 	ctx, l := logger_domain.From(ctx, log)
 
-	if csrfErr := h.validateCSRF(request, arguments); csrfErr != nil {
-		l.Warn("CSRF validation failed",
-			logger_domain.String(attributeKeyAction, entry.Name),
-			logger_domain.Error(csrfErr),
-		)
-		h.writeCSRFError(w, csrfErr)
-		return false
+	if !isSSEGetAliasRequest(request, entry) {
+		if csrfErr := h.validateCSRF(request, arguments); csrfErr != nil {
+			l.Warn("CSRF validation failed",
+				logger_domain.String(attributeKeyAction, entry.Name),
+				logger_domain.Error(csrfErr),
+			)
+			h.writeCSRFError(w, csrfErr)
+
+			return false
+		}
 	}
 
 	if !h.checkRateLimit(ctx, w, request, action, entry) {
@@ -423,25 +454,208 @@ func (h *ActionHandler) runSecurityValidation(
 	return true
 }
 
-// applyResourceLimits reads resource limits from the action and returns the adjusted
-// context, cancel function, body limit, and slow threshold.
+// writeActionResponse writes an action's response, refusing one that exceeds the action's
+// declared size limit.
 //
-// Takes action (any) which may implement daemon_domain.ResourceLimitable.
+// Takes w (http.ResponseWriter) which receives the response.
+// Takes actionName (string) which names the action in the log.
+// Takes response (any) which is the value to encode.
+// Takes maxResponseSize (int64) which is the limit, or zero for none.
 //
-// Returns context.Context which may have a timeout applied.
-// Returns context.CancelFunc which cancels the timeout, or nil.
-// Returns int64 which is the maximum request body size.
-// Returns time.Duration which is the slow action threshold.
-func (h *ActionHandler) applyResourceLimits(ctx context.Context, action any) (context.Context, context.CancelFunc, int64, time.Duration) {
-	limits := h.resolveActionLimits(action)
+// Returns bool which is false when the response was refused and an error written.
+func (h *ActionHandler) writeActionResponse(
+	ctx context.Context,
+	w http.ResponseWriter,
+	actionName string,
+	response any,
+	maxResponseSize int64,
+) bool {
+	if maxResponseSize <= 0 {
+		h.writeJSON(w, http.StatusOK, response)
 
-	var cancel context.CancelFunc
-	if limits.Timeout > 0 {
-		ctx, cancel = context.WithTimeoutCause(ctx, limits.Timeout,
-			fmt.Errorf("action execution exceeded %s timeout", limits.Timeout))
+		return true
 	}
 
-	return ctx, cancel, limits.BodyLimit, limits.SlowThreshold
+	encoded, ok := h.encodeActionResponse(ctx, w, actionName, response, maxResponseSize)
+	if !ok {
+		return false
+	}
+
+	w.Header().Set(headerContentType, "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(encoded)
+
+	return true
+}
+
+// encodeActionResponse encodes a response and refuses one larger than the action allows.
+//
+// Takes w (http.ResponseWriter) which receives the error response on failure.
+// Takes actionName (string) which names the action in logs.
+// Takes response (any) which is the value to encode.
+// Takes maxResponseSize (int64) which bounds the encoded size, or zero for no bound.
+//
+// Returns []byte which is the encoded response.
+// Returns bool which is false when an error response has already been written.
+func (h *ActionHandler) encodeActionResponse(
+	ctx context.Context,
+	w http.ResponseWriter,
+	actionName string,
+	response any,
+	maxResponseSize int64,
+) ([]byte, bool) {
+	encoded, err := json.ConfigDefault.Marshal(response)
+	if err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Error("Failed to encode the action response",
+			logger_domain.String(attributeKeyAction, actionName),
+			logger_domain.Error(err),
+		)
+		h.writeError(w, http.StatusInternalServerError, "Failed to encode response", err,
+			isDevelopmentModeFromContext(ctx))
+
+		return nil, false
+	}
+
+	if maxResponseSize > 0 && int64(len(encoded)) > maxResponseSize {
+		_, l := logger_domain.From(ctx, log)
+		l.Error("Action response exceeds its declared size limit",
+			logger_domain.String(attributeKeyAction, actionName),
+			logger_domain.Int("response_bytes", len(encoded)),
+			logger_domain.Int64("max_response_bytes", maxResponseSize),
+		)
+		h.writeError(w, http.StatusInternalServerError, "Response too large", nil,
+			isDevelopmentModeFromContext(ctx))
+
+		return nil, false
+	}
+
+	return encoded, true
+}
+
+// acquireActionSlot claims one of an action's concurrent execution slots.
+//
+// Takes actionName (string) which names the action the slot belongs to.
+// Takes maxConcurrent (int) which is the bound, or zero for no bound.
+//
+// Returns func() which releases the slot, and is never nil when admitted.
+// Returns bool which is false when the action is already at its bound.
+func (h *ActionHandler) acquireActionSlot(actionName string, maxConcurrent int) (func(), bool) {
+	if maxConcurrent <= 0 {
+		return func() {}, true
+	}
+
+	slots, found := h.actionSlots.Load(actionName)
+	if !found {
+		slots, _ = h.actionSlots.LoadOrStore(actionName, make(chan struct{}, maxConcurrent))
+	}
+
+	semaphore, ok := slots.(chan struct{})
+	if !ok {
+		return func() {}, true
+	}
+
+	select {
+	case semaphore <- struct{}{}:
+		return func() { <-semaphore }, true
+	default:
+		return nil, false
+	}
+}
+
+// writeConcurrencyLimitError reports that an action is already running as many calls as
+// it allows.
+//
+// Takes w (http.ResponseWriter) which receives the response.
+func (h *ActionHandler) writeConcurrencyLimitError(w http.ResponseWriter) {
+	w.Header().Set("Retry-After", "1")
+	h.writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+		"error":   "concurrency_limit",
+		"message": "This action is handling as many requests as it allows. Retry shortly.",
+	})
+}
+
+// preparedAction holds everything both transports need once a request has been admitted.
+type preparedAction struct {
+	// StartTime marks when the request began, for slow-action reporting.
+	StartTime time.Time
+
+	// Ctx is the request context after any limit has been applied. It replaces the caller's
+	// context for the rest of the request.
+	Ctx context.Context
+
+	// Action is the instance the transport dispatches to.
+	Action any
+
+	// Request is the request re-bound to Ctx, with its body already capped.
+	Request *http.Request
+
+	// Arguments holds the parsed request arguments.
+	Arguments map[string]any
+
+	// Limits holds the resource limits resolved for this action.
+	Limits actionLimits
+}
+
+// prepareAction runs every step both transports share, in the order both need.
+//
+// Takes w (http.ResponseWriter) which receives any rejection response.
+// Takes request (*http.Request) which is the incoming request.
+// Takes entry (ActionHandlerEntry) which creates the action and names it.
+// Takes span (trace.Span) which records failures.
+//
+// Returns preparedAction which holds the admitted request, valid only when ok is true.
+// Returns func() which releases the action's concurrency slot.
+// Returns bool which is false when a response has already been written.
+func (h *ActionHandler) prepareAction(
+	ctx context.Context,
+	w http.ResponseWriter,
+	request *http.Request,
+	entry ActionHandlerEntry,
+	span trace.Span,
+) (preparedAction, func(), bool) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	action := entry.Create()
+	prepared := preparedAction{Action: action, StartTime: time.Now()}
+	prepared.Limits = h.resolveActionLimits(action)
+
+	releaseSlot, admitted := h.acquireActionSlot(entry.Name, prepared.Limits.MaxConcurrent)
+	if !admitted {
+		h.writeConcurrencyLimitError(w)
+
+		return preparedAction{}, nil, false
+	}
+
+	ctx, request, cancelDeadline := h.applyTransportDeadline(ctx, request, entry, prepared.Limits)
+	release := func() {
+		cancelDeadline()
+		releaseSlot()
+	}
+
+	h.injectMetadata(request, action)
+	request.Body = http.MaxBytesReader(w, request.Body, prepared.Limits.BodyLimit)
+
+	arguments, err := h.parseRequestBody(request)
+	if err != nil {
+		release()
+		l.ReportError(span, err, "Failed to parse request body")
+		h.writeError(w, http.StatusBadRequest, "Invalid request body", err, isDevelopmentModeFromContext(ctx))
+
+		return preparedAction{}, nil, false
+	}
+
+	if !h.runSecurityValidation(ctx, w, request, action, arguments, entry) {
+		release()
+
+		return preparedAction{}, nil, false
+	}
+
+	prepared.Ctx = ctx
+	prepared.Request = request
+	prepared.Arguments = arguments
+
+	return prepared, release, true
 }
 
 // actionLimits holds the resource limits that apply to one action call.
@@ -454,6 +668,54 @@ type actionLimits struct {
 
 	// SlowThreshold is the duration past which a call is recorded as slow.
 	SlowThreshold time.Duration
+
+	// MaxSSEDuration bounds a stream from this action, or zero to take the handler default.
+	MaxSSEDuration time.Duration
+
+	// MaxResponseSize bounds the encoded response, or zero for no bound.
+	MaxResponseSize int64
+
+	// MaxConcurrent bounds how many calls to this action may run at once, or zero for no
+	// per-action bound.
+	MaxConcurrent int
+}
+
+// applyTransportDeadline bounds a request according to the transport it is answered over.
+//
+// A streaming request lives as long as the stream does, so it takes the SSE duration
+// rather than the call timeout. Applying the call timeout would cut every stream at it
+// and put any longer streaming limit out of reach. A JSON request takes the call timeout.
+//
+// Takes request (*http.Request) which is rebound to the returned context.
+// Takes entry (ActionHandlerEntry) which says whether this call streams.
+// Takes limits (actionLimits) which supplies the durations.
+//
+// Returns context.Context which carries the deadline, if any.
+// Returns *http.Request which is the request bound to that context.
+// Returns context.CancelFunc which releases the deadline, and is never nil.
+func (h *ActionHandler) applyTransportDeadline(
+	ctx context.Context,
+	request *http.Request,
+	entry ActionHandlerEntry,
+	limits actionLimits,
+) (context.Context, *http.Request, context.CancelFunc) {
+	if h.shouldUseSSE(request, entry) {
+		ctx, request, cancel := h.applySSEDurationLimit(ctx, request, limits)
+		if cancel == nil {
+			cancel = func() {}
+		}
+
+		return ctx, request, cancel
+	}
+
+	if limits.Timeout <= 0 {
+		return ctx, request.WithContext(ctx), func() {}
+	}
+
+	ctx, cancel := context.WithTimeoutCause(ctx, limits.Timeout,
+		fmt.Errorf("action execution exceeded %s timeout", limits.Timeout))
+
+	return ctx, request.WithContext(ctx), cancel
 }
 
 // resolveActionLimits reads the resource limits an action declares.
@@ -462,7 +724,7 @@ type actionLimits struct {
 //
 // Returns actionLimits which holds the handler defaults with any action override applied.
 func (h *ActionHandler) resolveActionLimits(action any) actionLimits {
-	limits := actionLimits{BodyLimit: h.maxBodyBytes}
+	limits := actionLimits{BodyLimit: h.maxBodyBytes, Timeout: h.requestTimeout}
 
 	limitable, ok := action.(daemon_domain.ResourceLimitable)
 	if !ok {
@@ -477,8 +739,11 @@ func (h *ActionHandler) resolveActionLimits(action any) actionLimits {
 	if declared.MaxRequestBodySize > 0 {
 		limits.BodyLimit = declared.MaxRequestBodySize
 	}
-	limits.Timeout = declared.Timeout
+	limits.Timeout = cmp.Or(declared.Timeout, limits.Timeout)
 	limits.SlowThreshold = declared.SlowThreshold
+	limits.MaxSSEDuration = declared.MaxSSEDuration
+	limits.MaxConcurrent = declared.MaxConcurrent
+	limits.MaxResponseSize = declared.MaxResponseSize
 
 	return limits
 }
@@ -502,6 +767,11 @@ type cachedActionParams struct {
 
 	// SlowThreshold is the duration after which the action is considered slow.
 	SlowThreshold time.Duration
+
+	// MaxResponseSize bounds the encoded response, or zero for no bound. It applies before
+	// the response is cached, so an over-sized body is never stored and then served to every
+	// later caller.
+	MaxResponseSize int64
 }
 
 // handleCachedAction checks whether the action is cacheable and, if so, serves the
@@ -560,16 +830,52 @@ func (h *ActionHandler) handleCachedAction(
 		return true
 	}
 
+	h.storeAndWriteCachedResponse(ctx, w, cacheKey, cc.TTL, result, p)
+
+	return true
+}
+
+// storeAndWriteCachedResponse caches an action's response and sends it.
+//
+// Takes w (http.ResponseWriter) which receives the response.
+// Takes cacheKey (string) which identifies the cache entry.
+// Takes ttl (time.Duration) which is how long the entry lives.
+// Takes result (any) which is the action's return value.
+// Takes p (cachedActionParams) which carries the action and its limits.
+func (h *ActionHandler) storeAndWriteCachedResponse(
+	ctx context.Context,
+	w http.ResponseWriter,
+	cacheKey string,
+	ttl time.Duration,
+	result any,
+	p cachedActionParams,
+) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	h.applyResponseMetadata(w, p.Action)
+
 	response := h.buildFullResponse(p.Action, result)
-	jsonBytes, _ := json.Marshal(response)
-	_ = h.responseCache.SetWithTTL(ctx, cacheKey, jsonBytes, cc.TTL)
+
+	encoded, encodedOK := h.encodeActionResponse(ctx, w, p.Entry.Name, response, p.MaxResponseSize)
+	if !encodedOK {
+		h.recordSlowAction(ctx, p.Entry.Name, p.StartTime, p.SlowThreshold)
+
+		return
+	}
+
+	if err := h.responseCache.SetWithTTL(ctx, cacheKey, encoded, ttl); err != nil {
+		l.Warn("Failed to cache the action response",
+			logger_domain.String(attributeKeyAction, p.Entry.Name),
+			logger_domain.Error(err),
+		)
+	}
 
 	w.Header().Set("X-Action-Cache", "MISS")
-	h.writeJSON(w, http.StatusOK, response)
+	w.Header().Set(headerContentType, "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(encoded)
 	p.Span.SetStatus(codes.Ok, "Action completed, response cached")
 	h.recordSlowAction(ctx, p.Entry.Name, p.StartTime, p.SlowThreshold)
-	return true
 }
 
 // handleSSE processes an SSE action request.
@@ -585,42 +891,35 @@ func (h *ActionHandler) handleSSE(
 	entry ActionHandlerEntry,
 	span trace.Span,
 ) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	if request.Method != http.MethodGet {
-		emptyArgs := make(map[string]any)
-		if csrfErr := h.validateCSRF(request, emptyArgs); csrfErr != nil {
-			l.Warn("CSRF validation failed for SSE request",
-				logger_domain.String(attributeKeyAction, entry.Name),
-				logger_domain.Error(csrfErr),
-			)
-			h.writeCSRFError(w, csrfErr)
-			return
-		}
+	prepared, release, ok := h.prepareAction(ctx, w, request, entry, span)
+	if !ok {
+		return
 	}
+	defer release()
 
-	action := entry.Create()
-	h.injectMetadata(request, action)
+	ctx, l := logger_domain.From(prepared.Ctx, log)
 
-	ctx, request, cancel := h.applySSEDurationLimit(ctx, request, action)
-	if cancel != nil {
-		defer cancel()
-	}
+	if !h.bindSSEInput(ctx, w, prepared.Request, prepared.Action, prepared.Arguments, entry, span) {
+		h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
 
-	if !h.bindSSEInput(ctx, w, request, action, entry, span) {
 		return
 	}
 
+	h.applyResponseMetadata(w, prepared.Action)
 	h.writeSSEHeaders(w)
 
-	h.executeSSEStream(ctx, w, request, action, entry, span, l)
+	h.executeSSEStream(ctx, w, prepared.Request, prepared.Action, entry, span, l)
+	h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
 }
 
 // bindSSEInput records the request's arguments on a streaming action.
 //
+// Actions with no generated bind function are left alone.
+//
 // Takes w (http.ResponseWriter) which receives an error response when binding fails.
-// Takes request (*http.Request) which carries the body to read the arguments from.
+// Takes request (*http.Request) which is named in the error response.
 // Takes action (any) which is the action instance the arguments are recorded on.
+// Takes arguments (map[string]any) which the shared prologue already parsed.
 // Takes entry (ActionHandlerEntry) which supplies the generated bind function.
 // Takes span (trace.Span) which records the failure.
 //
@@ -631,6 +930,7 @@ func (h *ActionHandler) bindSSEInput(
 	w http.ResponseWriter,
 	request *http.Request,
 	action any,
+	arguments map[string]any,
 	entry ActionHandlerEntry,
 	span trace.Span,
 ) bool {
@@ -640,20 +940,12 @@ func (h *ActionHandler) bindSSEInput(
 
 	ctx, l := logger_domain.From(ctx, log)
 
-	request.Body = http.MaxBytesReader(w, request.Body, h.resolveActionLimits(action).BodyLimit)
-
-	arguments, err := h.parseRequestBody(request)
-	if err != nil {
-		l.ReportError(span, err, "Failed to parse SSE request body")
-		h.writeError(w, http.StatusBadRequest, "Invalid request body", err, isDevelopmentModeFromContext(ctx))
-		return false
-	}
-
 	if bindErr := entry.Bind(ctx, action, arguments); bindErr != nil {
 		if !isRequestFault(bindErr) {
 			l.ReportError(span, bindErr, "SSE input binding failed")
 		}
 		h.handleActionError(w, request, action, bindErr)
+
 		return false
 	}
 
@@ -672,33 +964,30 @@ func (*ActionHandler) writeSSEHeaders(w http.ResponseWriter) {
 	w.Header().Set("Connection", "keep-alive")
 }
 
-// applySSEDurationLimit applies a timeout to the context if the action or handler
-// specifies a maximum SSE duration. The caller must defer the returned cancel function
-// when it is non-nil.
+// applySSEDurationLimit bounds how long a stream may run.
 //
-// Takes request (*http.Request) which provides the request to update.
-// Takes action (any) which may implement daemon_domain.ResourceLimitable.
+// The caller must call the returned cancel function when it is non-nil.
 //
-// Returns context.Context which may have a timeout applied.
-// Returns *http.Request which is updated with the new context if needed.
-// Returns context.CancelFunc which cancels the timeout, or nil.
-func (h *ActionHandler) applySSEDurationLimit(ctx context.Context, request *http.Request, action any) (context.Context, *http.Request, context.CancelFunc) {
-	sseDuration := h.defaultMaxSSEDuration
-	if rl, ok := action.(daemon_domain.ResourceLimitable); ok {
-		if limits := rl.ResourceLimits(); limits != nil && limits.MaxSSEDuration > 0 {
-			sseDuration = limits.MaxSSEDuration
-		}
+// Takes request (*http.Request) which is rebound to the returned context.
+// Takes limits (actionLimits) which supplies the action's streaming duration.
+//
+// Returns context.Context which may carry the duration limit.
+// Returns *http.Request which is bound to that context.
+// Returns context.CancelFunc which releases the limit, or nil when none applies.
+func (h *ActionHandler) applySSEDurationLimit(
+	ctx context.Context,
+	request *http.Request,
+	limits actionLimits,
+) (context.Context, *http.Request, context.CancelFunc) {
+	sseDuration := cmp.Or(limits.MaxSSEDuration, h.defaultMaxSSEDuration)
+	if sseDuration <= 0 {
+		return ctx, request, nil
 	}
 
-	if sseDuration > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeoutCause(ctx, sseDuration,
-			fmt.Errorf("SSE stream exceeded %s duration limit", sseDuration))
-		request = request.WithContext(ctx)
-		return ctx, request, cancel
-	}
+	ctx, cancel := context.WithTimeoutCause(ctx, sseDuration,
+		fmt.Errorf("SSE stream exceeded %s duration limit", sseDuration))
 
-	return ctx, request, nil
+	return ctx, request.WithContext(ctx), cancel
 }
 
 // executeSSEStream runs the SSE stream on the given action.
@@ -723,7 +1012,7 @@ func (*ActionHandler) executeSSEStream(
 	span trace.Span,
 	l logger_domain.Logger,
 ) {
-	watchCtx, cancelWatch := context.WithCancelCause(request.Context())
+	watchCtx, cancelWatch := context.WithCancelCause(ctx)
 	defer cancelWatch(errors.New("sse handler returned"))
 
 	done := make(chan struct{})
@@ -747,14 +1036,21 @@ func (*ActionHandler) executeSSEStream(
 		l.Error("Response writer does not support flushing for SSE", logger_domain.String(attributeKeyAction, entry.Name))
 		return
 	}
-	stream.SetDevelopmentModeFromContext(request.Context())
+	stream.SetDevelopmentModeFromContext(ctx)
 
 	if err := sseCapable.StreamProgress(stream); err != nil {
 		l.ReportError(span, err, "SSE streaming failed")
+
+		if sendErr := stream.SendError(err); sendErr != nil {
+			l.Warn("Failed to report the streaming failure to the client",
+				logger_domain.String(attributeKeyAction, entry.Name),
+				logger_domain.Error(sendErr),
+			)
+		}
+
 		return
 	}
 
-	_ = ctx
 	span.SetStatus(codes.Ok, "SSE streaming completed")
 }
 

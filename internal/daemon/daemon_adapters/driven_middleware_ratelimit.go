@@ -21,11 +21,14 @@ package daemon_adapters
 import (
 	"cmp"
 	"context"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
@@ -49,6 +52,10 @@ const (
 	// defaultActionKeySuffix is the rate-limit key suffix used for generic action requests
 	// without an action-specific override.
 	defaultActionKeySuffix = "action"
+
+	// rateLimitUnknownClient keys a caller whose address could not be determined at all, so
+	// the bucket still exists rather than every such caller being unlimited.
+	rateLimitUnknownClient = "unknown"
 )
 
 // rateLimitMiddleware limits HTTP requests based on client IP address. It reads the
@@ -63,6 +70,11 @@ type rateLimitMiddleware struct {
 
 	// config holds the rate limiting settings for global and action requests.
 	config security_dto.RateLimitValues
+
+	// missingClientIPOnce guards the warning about an unresolvable client IP. That is a
+	// deployment-wide condition, so reporting it per request would emit one line for every
+	// request for as long as it lasts.
+	missingClientIPOnce sync.Once
 }
 
 // rateLimitMiddlewareOption sets options for a rate limit middleware.
@@ -82,7 +94,7 @@ func (m *rateLimitMiddleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		clientIP := security_dto.ClientIPFromRequest(r)
+		clientIP := m.resolveClientIdentity(r)
 
 		result := m.checkRateLimit(r.Context(), clientIP, "global", m.config.Global)
 
@@ -119,7 +131,7 @@ func (m *rateLimitMiddleware) ActionHandler(
 	r *http.Request,
 	override *security_dto.RateLimitOverride,
 ) bool {
-	clientIP := security_dto.ClientIPFromRequest(r)
+	clientIP := m.resolveClientIdentity(r)
 
 	tierConfig := m.config.Actions
 	keySuffix := defaultActionKeySuffix
@@ -132,6 +144,7 @@ func (m *rateLimitMiddleware) ActionHandler(
 			tierConfig.BurstSize = override.BurstSize
 		}
 		keySuffix = cmp.Or(override.KeySuffix, defaultActionKeySuffix)
+		clientIP = cmp.Or(override.Identity, clientIP)
 	}
 
 	result := m.checkRateLimit(r.Context(), clientIP, keySuffix, tierConfig)
@@ -163,7 +176,7 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 	r *http.Request,
 	override *security_dto.RateLimitOverride,
 ) bool {
-	clientIP := security_dto.ClientIPFromRequest(r)
+	clientIP := m.resolveClientIdentity(r)
 
 	tierConfig := m.config.Actions
 	keySuffix := defaultActionKeySuffix
@@ -176,6 +189,7 @@ func (m *rateLimitMiddleware) CheckActionAllowed(
 			tierConfig.BurstSize = override.BurstSize
 		}
 		keySuffix = cmp.Or(override.KeySuffix, defaultActionKeySuffix)
+		clientIP = cmp.Or(override.Identity, clientIP)
 	}
 
 	result := m.checkRateLimit(r.Context(), clientIP, keySuffix, tierConfig)
@@ -281,4 +295,32 @@ func newRateLimitMiddleware(
 	}
 
 	return m
+}
+
+// resolveClientIdentity returns the address a request is rate limited by.
+//
+// Takes r (*http.Request) which supplies the request identity.
+//
+// Returns string which identifies the caller, never empty.
+func (m *rateLimitMiddleware) resolveClientIdentity(r *http.Request) string {
+	if clientIP := security_dto.ClientIPFromRequest(r); clientIP != "" {
+		return clientIP
+	}
+
+	m.missingClientIPOnce.Do(func() {
+		_, l := logger_domain.From(r.Context(), log)
+
+		l.Warn("Rate limiting could not resolve a client IP, so it is keying on the peer address",
+			logger_domain.String(logFieldPath, r.URL.Path))
+	})
+
+	if r.RemoteAddr != "" {
+		if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil && host != "" {
+			return host
+		}
+
+		return r.RemoteAddr
+	}
+
+	return rateLimitUnknownClient
 }

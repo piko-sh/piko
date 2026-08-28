@@ -37,7 +37,7 @@ func TestMockServerAdapter_ListenAndServe(t *testing.T) {
 
 		mock := &MockServerAdapter{}
 
-		err := mock.ListenAndServe(":8080", http.DefaultServeMux)
+		err := mock.ListenAndServe(context.Background(), ":8080", http.DefaultServeMux)
 
 		require.NoError(t, err)
 		assert.Equal(t, int64(1), mock.ListenAndServeCallCount.Load())
@@ -58,7 +58,7 @@ func TestMockServerAdapter_ListenAndServe(t *testing.T) {
 		}
 
 		handler := http.NewServeMux()
-		err := mock.ListenAndServe(":9090", handler)
+		err := mock.ListenAndServe(context.Background(), ":9090", handler)
 
 		require.NoError(t, err)
 		assert.Equal(t, ":9090", capturedAddress)
@@ -75,7 +75,7 @@ func TestMockServerAdapter_ListenAndServe(t *testing.T) {
 			},
 		}
 
-		err := mock.ListenAndServe(":8080", nil)
+		err := mock.ListenAndServe(context.Background(), ":8080", nil)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, http.ErrServerClosed)
@@ -140,7 +140,7 @@ func TestMockServerAdapter_ZeroValueIsUsable(t *testing.T) {
 
 	var mock MockServerAdapter
 
-	err := mock.ListenAndServe(":8080", nil)
+	err := mock.ListenAndServe(context.Background(), ":8080", nil)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), mock.ListenAndServeCallCount.Load())
 
@@ -161,7 +161,7 @@ func TestMockServerAdapter_ConcurrentAccess(t *testing.T) {
 	for range goroutines {
 		go func() {
 			defer wg.Done()
-			_ = mock.ListenAndServe(":8080", nil)
+			_ = mock.ListenAndServe(context.Background(), ":8080", nil)
 		}()
 		go func() {
 			defer wg.Done()
@@ -180,9 +180,9 @@ func TestMockServerAdapter_CallCountsAreIndependent(t *testing.T) {
 
 	mock := &MockServerAdapter{}
 
-	_ = mock.ListenAndServe(":8080", nil)
-	_ = mock.ListenAndServe(":8080", nil)
-	_ = mock.ListenAndServe(":8080", nil)
+	_ = mock.ListenAndServe(context.Background(), ":8080", nil)
+	_ = mock.ListenAndServe(context.Background(), ":8080", nil)
+	_ = mock.ListenAndServe(context.Background(), ":8080", nil)
 	_ = mock.Shutdown(context.Background())
 
 	assert.Equal(t, int64(3), mock.ListenAndServeCallCount.Load())

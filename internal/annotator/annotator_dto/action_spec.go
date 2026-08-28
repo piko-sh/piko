@@ -79,6 +79,9 @@ type ActionSpec struct {
 	// HasSSE indicates if the action implements SSECapable.
 	HasSSE bool
 
+	// SSEGetAlias indicates the action's stream is also reachable over GET.
+	SSEGetAlias bool
+
 	// HasRateLimit indicates if the action implements RateLimitable.
 	HasRateLimit bool
 

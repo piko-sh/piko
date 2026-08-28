@@ -67,7 +67,14 @@ type ServerAdapter interface {
 	// Takes handler (http.Handler) which processes incoming HTTP requests.
 	//
 	// Returns error when the server fails to start or encounters a fatal error.
-	ListenAndServe(address string, handler http.Handler) error
+	ListenAndServe(ctx context.Context, address string, handler http.Handler) error
+
+	// Bound reports when the listener is accepting connections.
+	//
+	// It may be called before ListenAndServe and from any goroutine.
+	//
+	// Returns <-chan struct{} which closes once the listener is bound.
+	Bound() <-chan struct{}
 
 	// Shutdown stops the service in a controlled way.
 	//

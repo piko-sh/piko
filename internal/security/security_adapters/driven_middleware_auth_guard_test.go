@@ -158,3 +158,140 @@ func TestAuthGuardMiddleware_DefaultLoginPath(t *testing.T) {
 	assert.Equal(t, http.StatusSeeOther, recorder.Code)
 	assert.Contains(t, recorder.Header().Get("Location"), "/login")
 }
+
+func TestAuthGuardDoesNotLoopOnItsOwnLoginPage(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		config    daemon_dto.AuthGuardConfig
+		path      string
+		expectHit bool
+	}{
+		{name: "default config exempts /login", config: daemon_dto.AuthGuardConfig{}, path: "/login", expectHit: true},
+		{
+			name:      "a custom login path is exempt",
+			config:    daemon_dto.AuthGuardConfig{LoginPath: "/sign-in"},
+			path:      "/sign-in",
+			expectHit: true,
+		},
+		{
+			name:      "a login path carrying a query is exempt by its path",
+			config:    daemon_dto.AuthGuardConfig{LoginPath: "/sign-in?next=1"},
+			path:      "/sign-in",
+			expectHit: true,
+		},
+		{name: "trailing slash matches", config: daemon_dto.AuthGuardConfig{}, path: "/login/", expectHit: true},
+		{name: "the captcha challenge is exempt", config: daemon_dto.AuthGuardConfig{}, path: captchaChallengePath, expectHit: true},
+		{name: "an ordinary page is still guarded", config: daemon_dto.AuthGuardConfig{}, path: "/dashboard", expectHit: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			reached := false
+			guard := NewAuthGuardMiddleware(testCase.config)
+			handler := guard.Handler(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				reached = true
+				writer.WriteHeader(http.StatusOK)
+			}))
+
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, testCase.path, nil))
+
+			assert.Equal(t, testCase.expectHit, reached,
+				"a guarded login page redirects to itself, which loops until the browser gives up")
+		})
+	}
+}
+
+func TestRespondUnauthenticatedNegotiates(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		headers    map[string]string
+		wantStatus int
+	}{
+		{
+			name:       "a browser navigation is redirected",
+			headers:    map[string]string{"Sec-Fetch-Dest": "document", "Accept": "text/html"},
+			wantStatus: http.StatusSeeOther,
+		},
+		{
+			name:       "a fetch call gets a status it can read",
+			headers:    map[string]string{"Sec-Fetch-Dest": "empty"},
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "a stream gets a status",
+			headers:    map[string]string{"Accept": "text/event-stream"},
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "a JSON client gets a status",
+			headers:    map[string]string{"Accept": "application/json"},
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "a browser asking for both prefers the page",
+			headers:    map[string]string{"Accept": "text/html,application/json"},
+			wantStatus: http.StatusSeeOther,
+		},
+		{
+			name:       "an XHR gets a status",
+			headers:    map[string]string{"X-Requested-With": "XMLHttpRequest"},
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "a JSON post gets a status",
+			headers:    map[string]string{"Content-Type": "application/json"},
+			wantStatus: http.StatusUnauthorized,
+		},
+		{name: "an unmarked request is redirected", headers: nil, wantStatus: http.StatusSeeOther},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			request := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+			for header, value := range testCase.headers {
+				request.Header.Set(header, value)
+			}
+
+			recorder := httptest.NewRecorder()
+			RespondUnauthenticated(recorder, request, nil, daemon_dto.AuthGuardConfig{})
+
+			assert.Equal(t, testCase.wantStatus, recorder.Code)
+
+			if testCase.wantStatus == http.StatusUnauthorized {
+				assert.Contains(t, recorder.Body.String(), `"login"`,
+					"a machine caller needs to be told where to authenticate")
+				assert.Equal(t, "no-store", recorder.Header().Get("Cache-Control"))
+			}
+		})
+	}
+}
+
+func TestRespondUnauthenticatedPrefersACustomHandler(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	config := daemon_dto.AuthGuardConfig{
+		OnUnauthenticated: func(writer http.ResponseWriter, _ *http.Request, _ daemon_dto.AuthContext) {
+			called = true
+			writer.WriteHeader(http.StatusTeapot)
+		},
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
+	request.Header.Set("Accept", "application/json")
+	recorder := httptest.NewRecorder()
+
+	RespondUnauthenticated(recorder, request, nil, config)
+
+	assert.True(t, called)
+	assert.Equal(t, http.StatusTeapot, recorder.Code)
+}

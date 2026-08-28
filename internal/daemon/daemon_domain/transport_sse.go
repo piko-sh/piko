@@ -44,6 +44,12 @@ type SSECapable interface {
 	StreamProgress(stream *SSEStream) error
 }
 
+// SSEGetAliasable is implemented by a streaming action that may also be reached over GET.
+type SSEGetAliasable interface {
+	// SSEGetAlias declares that this action's stream is safe to reach over GET.
+	SSEGetAlias()
+}
+
 // SSEStream provides an interface for sending Server-Sent Events to the client. It wraps
 // the underlying HTTP response writer with SSE-specific methods.
 type SSEStream struct {

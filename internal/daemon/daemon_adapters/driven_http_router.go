@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"html"
 	"net/http"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -46,6 +45,7 @@ import (
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/internal/route_pattern"
 	"piko.sh/piko/internal/safeerror"
+	"piko.sh/piko/internal/security/security_adapters"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
@@ -57,6 +57,9 @@ const (
 	// buildHeadersMaxParts is the maximum number of parts in a Link header (URL + rel + as +
 	// type + crossorigin).
 	buildHeadersMaxParts = 5
+
+	// authRolesKey is the AuthContext key a provider publishes the caller's roles under.
+	authRolesKey = "roles"
 )
 
 // contextKey is a custom type for context keys to avoid conflicts.
@@ -75,6 +78,9 @@ type RouteSettings struct {
 
 	// DefaultMaxSSEDurationSeconds caps server-sent event streams.
 	DefaultMaxSSEDurationSeconds int
+
+	// RequestTimeoutSeconds bounds a single non-streaming request.
+	RequestTimeoutSeconds int
 
 	// E2EMode enables end-to-end test routes in the server.
 	E2EMode bool
@@ -151,6 +157,10 @@ type routeRegistrationDeps struct {
 	// authGuardConfig holds the auth guard config for page-level AuthPolicy enforcement. Nil
 	// when no auth guard is configured.
 	authGuardConfig *daemon_dto.AuthGuardConfig
+
+	// requestTimeout bounds how long a page or partial route may take, or zero to leave it
+	// unbounded.
+	requestTimeout time.Duration
 
 	// e2eModeEnabled indicates whether E2E test mode is active; when false, E2E-only pages
 	// and partials return a 404 error.
@@ -282,6 +292,7 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 		siteSettings:    mountConfig.SiteSettings,
 		cacheMiddleware: mountConfig.CacheMiddleware,
 		authGuardConfig: mountConfig.AuthGuardConfig,
+		requestTimeout:  routeRequestTimeout(mountConfig.RouteSettings),
 		e2eModeEnabled:  e2eModeEnabled,
 	}
 
@@ -429,6 +440,7 @@ func registerPageRouteForLocale(
 
 	baseHandler := buildPageRouteHandler(regDeps, entry, locale, routePattern, aliasedParamName)
 	finalHandler := applyMiddlewares(baseHandler, entry, regDeps.cacheMiddleware, regDeps.authGuardConfig)
+	finalHandler = applyRequestTimeout(finalHandler, regDeps.requestTimeout)
 	if entry.GetIsE2EOnly() && !regDeps.e2eModeEnabled {
 		finalHandler = e2eGuardMiddleware(finalHandler)
 	}
@@ -543,6 +555,7 @@ func registerPartialRoute(ctx context.Context, regDeps *routeRegistrationDeps, e
 	})
 
 	finalHandler := applyMiddlewares(baseHandler, entry, regDeps.cacheMiddleware, regDeps.authGuardConfig)
+	finalHandler = applyRequestTimeout(finalHandler, regDeps.requestTimeout)
 
 	if entry.GetIsE2EOnly() && !regDeps.e2eModeEnabled {
 		finalHandler = e2eGuardMiddleware(finalHandler)
@@ -550,6 +563,39 @@ func registerPartialRoute(ctx context.Context, regDeps *routeRegistrationDeps, e
 
 	regDeps.router.Method(methodGET, routePattern, finalHandler)
 	regDeps.router.Method(methodPOST, routePattern, finalHandler)
+}
+
+// routeRequestTimeout reads the per-route request timeout from the route settings.
+//
+// Takes settings (RouteSettings) which carries the configured seconds.
+//
+// Returns time.Duration which is the timeout, or zero when none is configured.
+func routeRequestTimeout(settings RouteSettings) time.Duration {
+	if settings.RequestTimeoutSeconds <= 0 {
+		return 0
+	}
+
+	return time.Duration(settings.RequestTimeoutSeconds) * time.Second
+}
+
+// applyRequestTimeout bounds how long a route may take to respond.
+//
+// Takes handler (http.Handler) which is the route being bounded.
+// Takes timeout (time.Duration) which is the bound, or zero to leave the route unbounded.
+//
+// Returns http.Handler which is the handler, wrapped when a bound applies.
+func applyRequestTimeout(handler http.Handler, timeout time.Duration) http.Handler {
+	if timeout <= 0 {
+		return handler
+	}
+
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		ctx, cancel := context.WithTimeoutCause(request.Context(), timeout,
+			fmt.Errorf("request exceeded %s timeout", timeout))
+		defer cancel()
+
+		handler.ServeHTTP(writer, request.WithContext(ctx))
+	})
 }
 
 // applyMiddlewares wraps a handler with cache and page middlewares.
@@ -566,12 +612,20 @@ func applyMiddlewares(
 	cacheMiddleware func(next http.Handler) http.Handler,
 	authGuardConfig *daemon_dto.AuthGuardConfig,
 ) http.Handler {
+	hasAuthPolicy := entry.GetHasAuthPolicy()
+
 	finalHandler := baseHandler
-	if cacheMiddleware != nil {
+
+	if cacheMiddleware != nil && !hasAuthPolicy {
 		finalHandler = cacheMiddleware(baseHandler)
 	}
-	if entry.GetHasAuthPolicy() && authGuardConfig != nil {
-		finalHandler = authPolicyMiddleware(finalHandler, entry, authGuardConfig)
+
+	if hasAuthPolicy {
+		guardConfig := daemon_dto.AuthGuardConfig{}
+		if authGuardConfig != nil {
+			guardConfig = *authGuardConfig
+		}
+		finalHandler = authPolicyMiddleware(finalHandler, entry, guardConfig)
 	}
 	if entry.GetHasMiddleware() {
 		middlewares := entry.GetMiddlewares()
@@ -590,14 +644,14 @@ func applyMiddlewares(
 // succeeds.
 // Takes entry (templater_domain.PageEntryView) which provides the page's declared auth
 // policy and role requirements.
-// Takes guardConfig (*daemon_dto.AuthGuardConfig) which supplies the unauthenticated
+// Takes guardConfig (daemon_dto.AuthGuardConfig) which supplies the unauthenticated
 // handler and login redirect settings.
 //
 // Returns http.Handler which wraps the downstream handler with auth checks.
 func authPolicyMiddleware(
 	next http.Handler,
 	entry templater_domain.PageEntryView,
-	guardConfig *daemon_dto.AuthGuardConfig,
+	guardConfig daemon_dto.AuthGuardConfig,
 ) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		policy := entry.GetAuthPolicy(nil)
@@ -610,7 +664,7 @@ func authPolicyMiddleware(
 		auth := resolveAuthContext(request)
 
 		if (policy.Required || len(policy.Roles) > 0) && (auth == nil || !auth.IsAuthenticated()) {
-			handleUnauthenticated(writer, request, auth, guardConfig)
+			security_adapters.RespondUnauthenticated(writer, request, auth, guardConfig)
 			return
 		}
 
@@ -644,44 +698,6 @@ func resolveAuthContext(request *http.Request) daemon_dto.AuthContext {
 	return auth
 }
 
-// handleUnauthenticated responds to an unauthenticated request by delegating to the
-// guard's custom handler or falling back to a login redirect.
-//
-// Takes writer (http.ResponseWriter) which receives the redirect or custom response.
-// Takes request (*http.Request) which provides the original URI for the redirect
-// parameter.
-// Takes auth (daemon_dto.AuthContext) which is passed to the custom handler if one is
-// configured.
-// Takes guardConfig (*daemon_dto.AuthGuardConfig) which supplies the login path, redirect
-// parameter name, and optional custom handler.
-func handleUnauthenticated(
-	writer http.ResponseWriter,
-	request *http.Request,
-	auth daemon_dto.AuthContext,
-	guardConfig *daemon_dto.AuthGuardConfig,
-) {
-	if guardConfig.OnUnauthenticated != nil {
-		guardConfig.OnUnauthenticated(writer, request, auth)
-		return
-	}
-	loginPath := guardConfig.LoginPath
-	if loginPath == "" {
-		loginPath = "/login"
-	}
-	redirectParam := guardConfig.RedirectParam
-	if redirectParam == "" {
-		redirectParam = "redirect"
-	}
-	parsed, err := url.Parse(loginPath)
-	if err != nil {
-		parsed = &url.URL{Path: loginPath}
-	}
-	query := parsed.Query()
-	query.Set(redirectParam, request.URL.RequestURI())
-	parsed.RawQuery = query.Encode()
-	http.Redirect(writer, request, parsed.String(), http.StatusSeeOther)
-}
-
 // authHasRequiredRole reports whether the given AuthContext holds at least one of the
 // required roles.
 //
@@ -691,11 +707,32 @@ func handleUnauthenticated(
 //
 // Returns bool which is true when the user holds at least one required role.
 func authHasRequiredRole(auth daemon_dto.AuthContext, requiredRoles []string) bool {
-	userRoles, ok := auth.Get("roles").([]string)
-	if !ok {
-		return false
+	return hasAnyRole(rolesFromAuthValue(auth.Get(authRolesKey)), requiredRoles)
+}
+
+// rolesFromAuthValue reads a role claim into a list of role names.
+//
+// Takes value (any) which is the raw claim.
+//
+// Returns []string which are the role names, empty when the claim holds none.
+func rolesFromAuthValue(value any) []string {
+	switch typed := value.(type) {
+	case []string:
+		return typed
+	case string:
+		return []string{typed}
+	case fmt.Stringer:
+		return []string{typed.String()}
+	case []any:
+		roles := make([]string, 0, len(typed))
+		for _, entry := range typed {
+			roles = append(roles, rolesFromAuthValue(entry)...)
+		}
+
+		return roles
+	default:
+		return nil
 	}
-	return hasAnyRole(userRoles, requiredRoles)
 }
 
 // hasAnyRole checks whether userRoles contains at least one of the required roles.
@@ -1318,6 +1355,8 @@ func mountActionRoutes(cfg *MountRoutesConfig) {
 		cfg.ActionResponseCache, cfg.CaptchaService,
 	)
 	handler.spamdetectService = cfg.SpamDetectService
+	handler.requestTimeout = routeRequestTimeout(cfg.RouteSettings)
+
 	if cfg.RouteSettings.DefaultMaxSSEDurationSeconds > 0 {
 		handler.defaultMaxSSEDuration = time.Duration(cfg.RouteSettings.DefaultMaxSSEDurationSeconds) * time.Second
 	}

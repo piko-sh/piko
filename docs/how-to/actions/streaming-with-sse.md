@@ -96,6 +96,18 @@ Pick a payload shape and use it on both sides. The example above uses `{ done, t
 
 The callback receives `(data, eventType)`: `data` is the payload for a single event, and `eventType` is the event name passed to `stream.Send`. The final value from `.call()` is the typed response the action returned (usually via `stream.SendComplete`).
 
+## Reach a stream with `EventSource`
+
+`.withOnProgress(...).call()` sends a POST with `Accept: text/event-stream`, so it carries the CSRF token pair like any other action call and needs nothing extra.
+
+The browser `EventSource` API is different: it can only issue GET and can set no headers, so it can never carry that token pair. An action therefore gets a GET route only if it asks for one, by implementing `piko.SSEGetAliasable`:
+
+```go
+func (a *NotifyAction) SSEGetAlias() {}
+```
+
+This also applies to `piko.sse.subscribe()`, which is built on `EventSource`. Without the declaration the connection fails.
+
 ## Resume after a dropped connection
 
 SSE clients can resume from the last received event ID. Send an event ID on each message:

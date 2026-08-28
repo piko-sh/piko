@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"io"
 	"math/rand/v2"
+	"net"
+	"net/netip"
 	"os"
 	"regexp"
 	"strings"
@@ -171,6 +173,66 @@ type StartupBannerInfo struct {
 	LargeMascot bool
 }
 
+// IsExposedBindAddress reports whether a bind address publishes on every interface.
+//
+// Takes address (string) which is the configured bind address.
+//
+// Returns bool which is true when the address publishes on every interface.
+func IsExposedBindAddress(address string) bool {
+	trimmed := strings.TrimSpace(address)
+	if trimmed == "" {
+		return true
+	}
+
+	parsed, err := netip.ParseAddr(NormaliseBindAddressForCheck(trimmed))
+	if err != nil {
+		return false
+	}
+
+	return parsed.Unmap().IsUnspecified()
+}
+
+// NormaliseBindAddressForCheck strips the brackets around a literal IPv6 address.
+//
+// Takes address (string) which is the address to examine.
+//
+// Returns string which is the address without surrounding brackets.
+func NormaliseBindAddressForCheck(address string) string {
+	if len(address) > 1 && strings.HasPrefix(address, "[") && strings.HasSuffix(address, "]") {
+		return address[1 : len(address)-1]
+	}
+
+	return address
+}
+
+// IsExposedHostPort reports whether a bound listener address publishes on every
+// interface.
+//
+// Takes address (string) which is the bound "host:port" or a bare host.
+//
+// Returns bool which is true when the address publishes on every interface.
+func IsExposedHostPort(address string) bool {
+	host, _, err := net.SplitHostPort(strings.TrimSpace(address))
+	if err != nil {
+		return IsExposedBindAddress(address)
+	}
+
+	return IsExposedBindAddress(host)
+}
+
+// BannerScheme returns the URL scheme a server is reachable over.
+//
+// Takes tlsEnabled (bool) which is true when the server terminates TLS.
+//
+// Returns string which is "https" or "http".
+func BannerScheme(tlsEnabled bool) string {
+	if tlsEnabled {
+		return "https"
+	}
+
+	return "http"
+}
+
 // BuildStartupBannerInfo builds the startup banner details from the resolved daemon
 // configuration and run mode.
 //
@@ -194,10 +256,9 @@ func BuildStartupBannerInfo(config DaemonConfig, mode string, version string) St
 	}
 
 	if config.HealthEnabled {
-		info.HealthProbeURL = fmt.Sprintf("http://%s:%s", config.HealthBindAddress, config.HealthPort)
 		info.LivePath = config.HealthLivePath
 		info.ReadyPath = config.HealthReadyPath
-		info.HealthExposed = config.HealthBindAddress == "0.0.0.0"
+		info.HealthExposed = IsExposedBindAddress(config.HealthBindAddress)
 	}
 
 	return info

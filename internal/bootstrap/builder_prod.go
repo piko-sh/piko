@@ -43,6 +43,7 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/templater/templater_adapters"
 	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/wdk/clock"
 )
 
 const (
@@ -68,6 +69,9 @@ type prodDaemonBuilder struct {
 
 	// renderRegistry holds the set of available renderers.
 	renderRegistry render_domain.RegistryPort
+
+	// serverAdapter serves the main traffic.
+	serverAdapter daemon_domain.ServerAdapter
 
 	// store holds the manifest store view that is built during setup.
 	store templater_domain.ManifestStoreView
@@ -97,6 +101,10 @@ func (b *prodDaemonBuilder) build(ctx context.Context) (daemon_domain.DaemonServ
 
 	if err := b.buildTemplater(ctx); err != nil {
 		return nil, fmt.Errorf("building production templater: %w", err)
+	}
+
+	if err := b.buildMainServer(ctx); err != nil {
+		return nil, err
 	}
 
 	b.wireMonitoringInspectors()
@@ -224,6 +232,9 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 		seoService = nil
 	}
 
+	daemonConfig := b.newDaemonConfig()
+	serverAdapter := b.serverAdapter
+
 	healthServer, healthRouter, drainSignaller, err := setupHealthProbeServer(b.c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup health probe server: %w", err)
@@ -242,23 +253,6 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 	}
 
 	runInitialTasksInBackground(appCtx, l, lifecycleService)
-
-	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
-	if b.c.serverConfig.HealthProbe.ShutdownDrainDelay == nil {
-		daemonConfig.ShutdownDrainDelay = defaultShutdownDrainDelay
-	}
-	serverAdapter, tlsCleanup, err := daemon_adapters.NewServerAdapterFromTLSConfig(
-		ctx,
-		daemonConfig.TLS,
-		daemon_adapters.ServerPurposeMain,
-		b.c.createSandbox,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("initialising server TLS: %w", err)
-	}
-	shutdown.Register(ctx, "TLSCertificateLoader", func(_ context.Context) error {
-		return tlsCleanup()
-	})
 
 	return daemon_domain.NewService(ctx, &daemon_domain.DaemonServiceDeps{
 		DaemonConfig:      daemonConfig,
@@ -309,4 +303,60 @@ func buildProdDaemon(ctx context.Context, c *Container, deps *Dependencies) (dae
 		deps: deps,
 	}
 	return builder.build(ctx)
+}
+
+// newDaemonConfig resolves the daemon settings from the container configuration.
+//
+// Returns daemon_domain.DaemonConfig which is the resolved configuration.
+func (b *prodDaemonBuilder) newDaemonConfig() daemon_domain.DaemonConfig {
+	daemonConfig := NewDaemonConfig(&b.c.serverConfig)
+	if b.c.serverConfig.HealthProbe.ShutdownDrainDelay == nil {
+		daemonConfig.ShutdownDrainDelay = defaultShutdownDrainDelay
+	}
+
+	return daemonConfig
+}
+
+// buildMainServer creates the main server adapter and keeps it for the daemon.
+//
+// Returns error when the adapter cannot be created.
+func (b *prodDaemonBuilder) buildMainServer(ctx context.Context) error {
+	serverAdapter, err := b.buildMainServerAdapter(ctx, b.newDaemonConfig())
+	if err != nil {
+		return err
+	}
+
+	b.serverAdapter = serverAdapter
+
+	return nil
+}
+
+// buildMainServerAdapter creates the main server adapter and registers its readiness
+// probe.
+//
+// Takes daemonConfig (daemon_domain.DaemonConfig) which supplies the TLS settings.
+//
+// Returns daemon_domain.ServerAdapter which serves the main traffic.
+// Returns error when the TLS configuration cannot be applied.
+func (b *prodDaemonBuilder) buildMainServerAdapter(
+	ctx context.Context,
+	daemonConfig daemon_domain.DaemonConfig,
+) (daemon_domain.ServerAdapter, error) {
+	serverAdapter, tlsCleanup, err := daemon_adapters.NewServerAdapterFromTLSConfig(
+		ctx,
+		daemonConfig.TLS,
+		daemon_adapters.ServerPurposeMain,
+		b.c.createSandbox,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("initialising server TLS: %w", err)
+	}
+
+	shutdown.Register(ctx, "TLSCertificateLoader", func(_ context.Context) error {
+		return tlsCleanup()
+	})
+
+	b.c.AddCustomHealthProbe(daemon_domain.NewMainListenerProbe(serverAdapter.Bound(), clock.RealClock()))
+
+	return serverAdapter, nil
 }

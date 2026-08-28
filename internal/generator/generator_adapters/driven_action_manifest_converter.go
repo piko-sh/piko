@@ -65,8 +65,9 @@ func convertActionDefinitionToSpec(action *annotator_dto.ActionDefinition) annot
 		ReturnType: convertActionTypeInfoToTypeSpec(action.OutputType),
 		HasError:   action.HasError,
 
-		HasSSE:     action.Capabilities.HasSSE,
-		Transports: deriveTransports(action.Capabilities),
+		HasSSE:      action.Capabilities.HasSSE,
+		SSEGetAlias: action.Capabilities.SSEGetAlias,
+		Transports:  deriveTransports(action.Capabilities),
 
 		HTTPMethod:        action.HTTPMethod,
 		HasMiddlewares:    action.Capabilities.HasMiddlewares,

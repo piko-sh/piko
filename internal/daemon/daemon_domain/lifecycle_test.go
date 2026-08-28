@@ -59,12 +59,12 @@ func TestStartHTTPServers_StartsMainServer(t *testing.T) {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), time.Second, fmt.Errorf("test: startHTTPServers exceeded %s timeout", time.Second))
 	defer cancel()
 
-	errChan := service.startHTTPServers(ctx)
+	servers := service.startHTTPServers(ctx)
 
 	select {
 	case <-serverStarted:
 
-	case err := <-errChan:
+	case err := <-servers.failed:
 		assert.NoError(t, err, "Unexpected error")
 	case <-ctx.Done():
 		assert.Fail(t, "Timeout waiting for server to start")
@@ -152,10 +152,10 @@ func TestStartHTTPServers_SkipsHealthServer_WhenNotConfigured(t *testing.T) {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), 100*time.Millisecond, fmt.Errorf("test: SkipsHealthServer timeout"))
 	defer cancel()
 
-	errChan := service.startHTTPServers(ctx)
+	servers := service.startHTTPServers(ctx)
 
 	select {
-	case <-errChan:
+	case <-servers.failed:
 
 	case <-ctx.Done():
 
@@ -408,13 +408,13 @@ func TestWaitForShutdown_ReturnsNil_OnContextDone(t *testing.T) {
 	service := mustBuildDaemonService(t, deps)
 
 	ctx, cancel := context.WithCancelCause(context.Background())
-	serverErrChan := make(chan error, 1)
+	servers := runningServers{failed: make(chan error, 1), stopped: make(chan struct{})}
 
 	var wg sync.WaitGroup
 	var result error
 
 	wg.Go(func() {
-		result = service.waitForShutdown(ctx, getNoopSpan(), serverErrChan)
+		result = service.waitForShutdown(ctx, getNoopSpan(), servers)
 	})
 
 	cancel(fmt.Errorf("test: simulating cancelled context"))
@@ -430,12 +430,12 @@ func TestWaitForShutdown_ReturnsError_OnServerError(t *testing.T) {
 
 	service := mustBuildDaemonService(t, deps)
 
-	serverErrChan := make(chan error, 1)
+	servers := runningServers{failed: make(chan error, 1), stopped: make(chan struct{})}
 
 	serverErr := errors.New("server error")
-	serverErrChan <- serverErr
+	servers.failed <- serverErr
 
-	result := service.waitForShutdown(context.Background(), getNoopSpan(), serverErrChan)
+	result := service.waitForShutdown(context.Background(), getNoopSpan(), servers)
 
 	assert.ErrorIs(t, result, serverErr, "Expected server error")
 }
@@ -447,13 +447,13 @@ func TestWaitForShutdown_ReturnsNil_OnStopChan(t *testing.T) {
 
 	service := mustBuildDaemonService(t, deps)
 
-	serverErrChan := make(chan error, 1)
+	servers := runningServers{failed: make(chan error, 1), stopped: make(chan struct{})}
 
 	var wg sync.WaitGroup
 	var result error
 
 	wg.Go(func() {
-		result = service.waitForShutdown(context.Background(), getNoopSpan(), serverErrChan)
+		result = service.waitForShutdown(context.Background(), getNoopSpan(), servers)
 	})
 
 	close(service.stopChan)
@@ -1357,4 +1357,92 @@ func TestShutdown_DrainWaitRespectsContextDeadline(t *testing.T) {
 	elapsed := time.Since(start)
 
 	assert.Less(t, elapsed, 2*time.Second, "drain wait should respect context deadline, not wait full 10s")
+}
+
+func waitClosed(t *testing.T, settled <-chan struct{}, reason string) {
+	t.Helper()
+
+	select {
+	case <-settled:
+	case <-time.After(5 * time.Second):
+		t.Fatal(reason)
+	}
+}
+
+func TestLaunchAuxiliaryKeepsTheDaemonRunning(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		run  func() error
+	}{
+		{
+			name: "a returned error",
+			run:  func() error { return errors.New("health port already in use") },
+		},
+		{
+			name: "a panic",
+			run:  func() error { panic("health server exploded") },
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			service := &daemonService{}
+			servers := runningServers{failed: make(chan error, 1), stopped: make(chan struct{})}
+
+			var running sync.WaitGroup
+			settled := make(chan struct{})
+
+			service.launchAuxiliary(context.Background(), &running, "test.auxiliary", testCase.run, settled)
+
+			running.Wait()
+			waitClosed(t, settled, "the auxiliary gate must open even when the server failed, "+
+				"or the main server waits for a listener that will never bind")
+
+			select {
+			case err := <-servers.failed:
+				t.Fatalf("an auxiliary failure reached the fatal channel and would stop the "+
+					"daemon: %v", err)
+			default:
+			}
+
+			select {
+			case <-servers.stopped:
+				t.Fatal("an auxiliary failure must not signal that every server stopped")
+			default:
+			}
+		})
+	}
+}
+
+func TestLaunchReportsAFatalFailureOnce(t *testing.T) {
+	t.Parallel()
+
+	service := &daemonService{}
+	servers := runningServers{failed: make(chan error, 1), stopped: make(chan struct{})}
+
+	_, abort := context.WithCancelCause(context.Background())
+
+	var running sync.WaitGroup
+
+	service.launch(context.Background(), &running, servers, abort, "test.main", func() error {
+		return errors.New("address already in use")
+	})
+	running.Wait()
+
+	service.launch(context.Background(), &running, servers, abort, "test.main", func() error {
+		return errors.New("a second, later failure")
+	})
+	running.Wait()
+
+	select {
+	case err := <-servers.failed:
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "address already in use", "the first failure is the one kept")
+	default:
+		t.Fatal("a fatal failure must be published")
+	}
 }

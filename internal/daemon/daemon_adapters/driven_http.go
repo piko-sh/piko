@@ -34,7 +34,6 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/singleflight"
@@ -46,9 +45,16 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/security/security_adapters"
-	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/wdk/goroutine"
+)
+
+const (
+	// presignUploadPath is the route a presigned upload is sent to.
+	presignUploadPath = "/_piko/storage/upload"
+
+	// presignDownloadPath is the route a presigned download is fetched from.
+	presignDownloadPath = "/_piko/storage/download"
 )
 
 // HTTPRouterBuilder builds the main HTTP router with all system middleware and route
@@ -86,7 +92,7 @@ func (builder *HTTPRouterBuilder) BuildRouter(
 	routerConfig *daemon_domain.RouterConfig,
 	deps daemon_domain.RouterDependencies,
 ) (http.Handler, error) {
-	_, span, l := log.Span(context.Background(), "BuildRouter",
+	ctx, span, l := log.Span(context.Background(), "BuildRouter",
 		logger_domain.String("port", routerConfig.Port),
 	)
 	defer span.End()
@@ -95,8 +101,8 @@ func (builder *HTTPRouterBuilder) BuildRouter(
 	mainRouter := chi.NewRouter()
 
 	builder.setupBaseMiddleware(mainRouter, routerConfig, deps.CSPConfig)
-	builder.setupStaticRoutes(mainRouter, routerConfig, deps.RegistryService, deps.VariantGenerator, deps.PresignUploadHandler, deps.PresignDownloadHandler, deps.PublicDownloadHandler)
-	if err := builder.setupDynamicRoutes(mainRouter, routerConfig, deps); err != nil {
+	builder.setupStaticRoutes(mainRouter, routerConfig, deps.RegistryService, deps.VariantGenerator, deps.PublicDownloadHandler)
+	if err := builder.setupDynamicRoutes(ctx, mainRouter, routerConfig, deps); err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return nil, fmt.Errorf("setting up dynamic routes: %w", err)
 	}
@@ -158,10 +164,6 @@ func (*HTTPRouterBuilder) setupBaseMiddleware(
 // registry data.
 // Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates image
 // variants on demand.
-// Takes presignUploadHandler (http.Handler) which handles presigned URL uploads; may be
-// nil if presigned uploads are not enabled.
-// Takes presignDownloadHandler (http.Handler) which handles presigned URL downloads; may
-// be nil if presigned downloads are not enabled.
 // Takes publicDownloadHandler (http.Handler) which handles public file downloads without
 // authentication; may be nil if not enabled.
 func (builder *HTTPRouterBuilder) setupStaticRoutes(
@@ -169,8 +171,6 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	routerConfig *daemon_domain.RouterConfig,
 	registryService registry_domain.RegistryService,
 	variantGenerator daemon_domain.OnDemandVariantGenerator,
-	presignUploadHandler http.Handler,
-	presignDownloadHandler http.Handler,
 	publicDownloadHandler http.Handler,
 ) {
 	noCache := routerConfig.DisableHTTPCache
@@ -185,16 +185,6 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	router.Get("/_piko/video/{artefactID}/master.m3u8", builder.serveVideoMasterPlaylist(registryService, noCache))
 	router.Get("/_piko/video/{artefactID}/{quality}/manifest.m3u8", builder.serveVideoVariantPlaylist(registryService, noCache))
 	router.Get("/_piko/video/{artefactID}/{quality}/{chunk}", builder.serveVideoChunk(registryService))
-
-	if presignUploadHandler != nil {
-		router.Put("/_piko/storage/upload", presignUploadHandler.ServeHTTP)
-		router.Post("/_piko/storage/upload", presignUploadHandler.ServeHTTP)
-	}
-
-	if presignDownloadHandler != nil {
-		router.Get("/_piko/storage/download", presignDownloadHandler.ServeHTTP)
-		router.Head("/_piko/storage/download", presignDownloadHandler.ServeHTTP)
-	}
 
 	if publicDownloadHandler != nil {
 		router.Get("/_piko/storage/public/*", publicDownloadHandler.ServeHTTP)
@@ -214,8 +204,8 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	}
 }
 
-// setupDynamicRoutes adds routes with the full middleware stack including CORS, logging,
-// and timeouts.
+// setupDynamicRoutes adds routes with the full middleware stack including CORS and
+// logging.
 //
 // Takes router (*chi.Mux) which is the router to configure.
 // Takes routerConfig (*daemon_domain.RouterConfig) which provides timeout and CORS
@@ -225,6 +215,7 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 //
 // Returns error when the trusted proxy configuration is invalid.
 func (builder *HTTPRouterBuilder) setupDynamicRoutes(
+	ctx context.Context,
 	router *chi.Mux,
 	routerConfig *daemon_domain.RouterConfig,
 	deps daemon_domain.RouterDependencies,
@@ -249,82 +240,20 @@ func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 		builder.setupRateLimiting(r, routerConfig, deps.RateLimitService)
 		builder.setupCORS(r, routerConfig)
 
-		if routerConfig.MaxConcurrentRequests > 0 {
-			r.Use(middleware.Throttle(routerConfig.MaxConcurrentRequests))
-		}
+		r.Use(streamAwareThrottle(
+			routerConfig.MaxConcurrentRequests,
+			time.Duration(routerConfig.RequestTimeoutSeconds)*time.Second,
+		))
 
-		if routerConfig.RequestTimeoutSeconds > 0 {
-			r.Use(middleware.Timeout(time.Duration(routerConfig.RequestTimeoutSeconds) * time.Second))
-		}
+		builder.setupPresignRoutes(r, deps)
 
-		if deps.AuthGuardConfig != nil {
-			authGuard := security_adapters.NewAuthGuardMiddleware(*deps.AuthGuardConfig)
-			r.Use(authGuard.Handler)
-		}
+		builder.setupAuthGuard(ctx, r, deps)
 
 		if deps.UserRouter != nil {
 			r.Handle("/*", deps.UserRouter)
 		}
 	})
 	return setupErr
-}
-
-// setupRealIP adds the RealIP middleware that extracts the client IP and creates a
-// request ID, storing both in the request context. This must run before rate limiting and
-// other middleware that need the client IP or request ID.
-//
-// Takes r (chi.Router) which receives the RealIP middleware.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides trusted proxy settings.
-//
-// Returns error when the trusted proxy configuration is invalid.
-func (*HTTPRouterBuilder) setupRealIP(r chi.Router, routerConfig *daemon_domain.RouterConfig) error {
-	ipExtractor, err := security_adapters.NewTrustedProxyIPExtractor(
-		routerConfig.RateLimit.TrustedProxies,
-		routerConfig.RateLimit.CloudflareEnabled,
-	)
-	if err != nil {
-		return fmt.Errorf("creating IP extractor: %w", err)
-	}
-	realIPMiddleware := security_adapters.NewRealIPMiddleware(ipExtractor)
-	r.Use(realIPMiddleware.Handler)
-	return nil
-}
-
-// setupRateLimiting adds rate limiting middleware to the router if enabled. The rate
-// limiter reads the client IP from context, set by RealIP middleware.
-//
-// Takes r (chi.Router) which receives the rate limiting middleware.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides rate limit settings.
-// Takes rateLimitService (security_domain.RateLimitService) which handles rate limit
-// checks.
-func (*HTTPRouterBuilder) setupRateLimiting(
-	r chi.Router,
-	routerConfig *daemon_domain.RouterConfig,
-	rateLimitService security_domain.RateLimitService,
-) {
-	if !routerConfig.RateLimit.Enabled {
-		return
-	}
-	rateLimitMiddleware := newRateLimitMiddleware(
-		routerConfig.RateLimit,
-		rateLimitService,
-	)
-	r.Use(rateLimitMiddleware.Handler)
-}
-
-// setupCORS sets up CORS middleware to handle cross-origin requests.
-//
-// Takes r (chi.Router) which receives the CORS middleware.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides the allowed origins.
-func (*HTTPRouterBuilder) setupCORS(r chi.Router, routerConfig *daemon_domain.RouterConfig) {
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   buildAllowedOrigins(routerConfig),
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"},
-		AllowedHeaders:   []string{"Accept", "Authorization", headerContentType, "X-CSRF-Token", "X-CSRF-Action-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
 }
 
 // staticArtefactConfig holds settings for serving static files.
@@ -1593,4 +1522,37 @@ func findChunkByID(variant *registry_dto.Variant, chunkID string) *registry_dto.
 		}
 	}
 	return nil
+}
+
+// setupPresignRoutes registers the presigned upload and download routes.
+//
+// They sit inside the middleware group so they receive real client IPs, rate limiting and
+// CORS, and above the auth guard because the presigned token in the URL is the
+// credential: putting them behind the guard would redirect an upload to a login page.
+//
+// The routes go on a nested group of their own. Registering a route directly on the
+// caller's group would fix that group's handler, and chi then panics on the next Use,
+// which is exactly what installing the auth guard does straight afterwards.
+//
+// Each route gets an explicit OPTIONS handler so a preflight is answered by the CORS
+// middleware in this group rather than falling through to the catch-all route.
+//
+// Takes router (chi.Router) which is the middleware group to register on.
+// Takes deps (daemon_domain.RouterDependencies) which supplies the handlers.
+func (*HTTPRouterBuilder) setupPresignRoutes(router chi.Router, deps daemon_domain.RouterDependencies) {
+	if deps.PresignUploadHandler == nil && deps.PresignDownloadHandler == nil {
+		return
+	}
+
+	router.Group(func(presign chi.Router) {
+		if deps.PresignUploadHandler != nil {
+			presign.Put(presignUploadPath, deps.PresignUploadHandler.ServeHTTP)
+			presign.Post(presignUploadPath, deps.PresignUploadHandler.ServeHTTP)
+		}
+
+		if deps.PresignDownloadHandler != nil {
+			presign.Get(presignDownloadPath, deps.PresignDownloadHandler.ServeHTTP)
+			presign.Head(presignDownloadPath, deps.PresignDownloadHandler.ServeHTTP)
+		}
+	})
 }

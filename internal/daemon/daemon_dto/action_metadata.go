@@ -207,6 +207,45 @@ type RequestMetadata struct {
 	SpamReasons []string
 }
 
+// Ctx returns the request context, or context.Background when there is no request.
+//
+// Returns context.Context which carries the per-request state the accessors read.
+func (r *RequestMetadata) Ctx() context.Context {
+	if r != nil && r.RawRequest != nil {
+		return r.RawRequest.Context()
+	}
+
+	return context.Background()
+}
+
+// ClientIP returns the real client IP resolved by the trusted proxy chain.
+//
+// This is the address to key a rate limit on: RemoteAddr is the immediate peer, which
+// behind a proxy is the proxy, so every caller shares one bucket.
+//
+// Returns string which is the resolved client IP, empty when RealIP has not run.
+func (r *RequestMetadata) ClientIP() string {
+	if pctx := PikoRequestCtxFromContext(r.Ctx()); pctx != nil {
+		return pctx.ClientIP
+	}
+
+	return ""
+}
+
+// Auth returns the authentication context resolved for this request.
+//
+// Returns AuthContext which is nil when no provider is configured or the request is
+// unauthenticated.
+func (r *RequestMetadata) Auth() AuthContext {
+	if pctx := PikoRequestCtxFromContext(r.Ctx()); pctx != nil {
+		if auth, ok := pctx.CachedAuth.(AuthContext); ok {
+			return auth
+		}
+	}
+
+	return nil
+}
+
 // Session contains session data for the current request.
 type Session struct {
 	// Data contains arbitrary session data.

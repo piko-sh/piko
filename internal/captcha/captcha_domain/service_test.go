@@ -20,7 +20,6 @@ package captcha_domain
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -819,56 +818,6 @@ func TestService_ChallengeRateLimitFailsClosedOnStorageError(t *testing.T) {
 
 	assert.False(t, innerCalled, "challenge handler must not run when rate limiter fails")
 	assert.Equal(t, http.StatusTooManyRequests, recorder.Code)
-}
-
-func TestSanitiseRateLimitIP_ValidIP_PassesThrough(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		input string
-		want  string
-	}{
-		{input: "127.0.0.1", want: "127.0.0.1"},
-		{input: "  10.0.0.1  ", want: "10.0.0.1"},
-		{input: "::1", want: "::1"},
-		{input: "2001:db8::1", want: "2001:db8::1"},
-	}
-	for _, c := range cases {
-		got := sanitiseRateLimitIP(c.input)
-		assert.Equal(t, c.want, got, "input=%q", c.input)
-	}
-}
-
-func TestSanitiseRateLimitIP_MalformedReturnsHash(t *testing.T) {
-	t.Parallel()
-
-	malformed := []string{
-		"not-an-ip\nX-Forwarded-For: 1.2.3.4",
-		"127.0.0.1:8080",
-		"\x00\x01\x02control",
-		"::garbage::",
-		"",
-	}
-	for _, input := range malformed {
-		got := sanitiseRateLimitIP(input)
-		assert.Len(t, got, 64, "expected 64-char hex digest for %q", input)
-		_, err := hex.DecodeString(got)
-		assert.NoError(t, err, "expected hex-decodable digest for %q", input)
-		assert.NotContains(t, got, "\n", "must not preserve injection bytes")
-		assert.NotContains(t, got, ":", "must not preserve key separator")
-	}
-}
-
-func TestSanitiseRateLimitIP_StableForSameInput(t *testing.T) {
-	t.Parallel()
-
-	malformed := "attacker\nspoof-header"
-	first := sanitiseRateLimitIP(malformed)
-	second := sanitiseRateLimitIP(malformed)
-	assert.Equal(t, first, second, "expected stable bucket key for the same malformed input")
-
-	other := sanitiseRateLimitIP("attacker\nspoof-header2")
-	assert.NotEqual(t, first, other, "different inputs must yield different buckets")
 }
 
 func TestVerifyRateLimit_UsesSanitisedIPInKey(t *testing.T) {

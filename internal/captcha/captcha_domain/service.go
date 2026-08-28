@@ -20,22 +20,19 @@ package captcha_domain
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/netip"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/sony/gobreaker/v2"
 	"piko.sh/piko/internal/captcha/captcha_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
+	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -61,12 +58,6 @@ const (
 	// maxActionLength is the maximum allowed length of an action name at the service level.
 	// This provides defence-in-depth above the provider layer.
 	maxActionLength = 256
-
-	// rateLimitKeyMaxLength caps the length of the IP segment in rate limit keys to prevent
-	// oversized inputs from bloating storage. SHA-256 hex is 64 characters and a parsed
-	// netip.Addr canonical form is well below this, so any caller-supplied value beyond this
-	// length is truncated.
-	rateLimitKeyMaxLength = 64
 )
 
 var (
@@ -426,35 +417,6 @@ func (s *captchaService) Close(ctx context.Context) error {
 	return s.registry.CloseAll(ctx)
 }
 
-// sanitiseRateLimitIP normalises an IP string for use as a rate-limit key.
-//
-// Whitespace is trimmed and the input is validated with netip.ParseAddr so unparseable
-// values cannot be used to inject key separators or otherwise spoof distinct buckets.
-// Inputs that fail to parse fall back to the SHA-256 hex of the trimmed value, which
-// yields a stable bucket per attacker without leaking attacker-controlled bytes into the
-// key. The result is capped at rateLimitKeyMaxLength characters.
-//
-// Takes ip (string) which is the raw IP candidate, typically from
-// ClientIPExtractor.ExtractClientIP or http.Request.RemoteAddr.
-//
-// Returns string which is the sanitised key segment.
-func sanitiseRateLimitIP(ip string) string {
-	trimmed := strings.TrimSpace(ip)
-	if addr, err := netip.ParseAddr(trimmed); err == nil {
-		canonical := addr.String()
-		if len(canonical) > rateLimitKeyMaxLength {
-			return canonical[:rateLimitKeyMaxLength]
-		}
-		return canonical
-	}
-	digest := sha256.Sum256([]byte(trimmed))
-	hashed := hex.EncodeToString(digest[:])
-	if len(hashed) > rateLimitKeyMaxLength {
-		return hashed[:rateLimitKeyMaxLength]
-	}
-	return hashed
-}
-
 // checkVerifyRateLimit enforces the per-IP captcha verification limit.
 //
 // Storage failures are treated as fail-closed (the request is rate limited) so an
@@ -470,7 +432,7 @@ func (s *captchaService) checkVerifyRateLimit(ctx context.Context, remoteIP stri
 		return nil
 	}
 	ctx, l := logger_domain.From(ctx, log)
-	keyIP := sanitiseRateLimitIP(remoteIP)
+	keyIP := security_dto.SanitiseRateLimitKey(remoteIP)
 	allowed, err := s.rateLimiter.IsAllowed(ctx,
 		"captcha:verify:"+keyIP, s.config.VerifyRateLimit, time.Minute)
 	if err != nil {
@@ -505,7 +467,7 @@ func (s *captchaService) wrapChallengeRateLimit(next http.Handler) http.Handler 
 			clientIP = s.ipExtractor.ExtractClientIP(r)
 		}
 		ctx, l := logger_domain.From(r.Context(), log)
-		keyIP := sanitiseRateLimitIP(clientIP)
+		keyIP := security_dto.SanitiseRateLimitKey(clientIP)
 		allowed, err := s.rateLimiter.IsAllowed(ctx,
 			"captcha:challenge:"+keyIP, s.config.ChallengeRateLimit, time.Minute)
 		if err != nil {

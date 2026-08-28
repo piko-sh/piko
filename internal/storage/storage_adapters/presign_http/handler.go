@@ -25,15 +25,18 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
-	"piko.sh/piko/wdk/contextaware"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
+	"piko.sh/piko/wdk/contextaware"
 )
 
 const (
@@ -58,6 +61,19 @@ const (
 
 	// httpStatusInternalError indicates a storage write failure.
 	httpStatusInternalError = http.StatusInternalServerError
+
+	// httpStatusTooManyRequests indicates the caller exceeded the presign upload limit.
+	httpStatusTooManyRequests = http.StatusTooManyRequests
+
+	// presignRateLimitWindow is the window the configured per-minute limit applies over.
+	presignRateLimitWindow = time.Minute
+
+	// refusedBodyDrainLimit bounds how much of a refused upload is read before the response
+	// is sent, so the connection can be reused without reading an unbounded body.
+	refusedBodyDrainLimit = 1 << 20
+
+	// presignRateLimitKeyPrefix namespaces presign buckets away from every other limit.
+	presignRateLimitKeyPrefix = "ratelimit:presign:upload:"
 
 	// headerContentType is the HTTP header name for content type.
 	headerContentType = "Content-Type"
@@ -188,6 +204,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, l := logger_domain.From(r.Context(), log)
 	tokenData, providerName, ok := h.validateUploadRequest(w, r)
 	if !ok {
+		return
+	}
+
+	if !h.checkRateLimit(ctx, w, r) {
+		drainRefusedBody(r)
+
 		return
 	}
 
@@ -868,4 +890,80 @@ func determineDisposition(contentType string, metadata map[string]string) string
 		return "inline"
 	}
 	return "attachment"
+}
+
+// checkRateLimit enforces the configured per-caller presign upload limit.
+//
+// Takes w (http.ResponseWriter) which receives the 429 and its Retry-After.
+// Takes r (*http.Request) which identifies the caller.
+//
+// Returns bool which is true when the request may proceed.
+func (h *Handler) checkRateLimit(ctx context.Context, w http.ResponseWriter, r *http.Request) bool {
+	if h.config.RateLimiter == nil || h.config.RateLimitPerMinute <= 0 {
+		return true
+	}
+
+	ctx, l := logger_domain.From(ctx, log)
+
+	key := presignRateLimitKeyPrefix + security_dto.SanitiseRateLimitKey(presignClientIdentity(r))
+
+	result, err := h.config.RateLimiter.CheckLimit(
+		ctx, key, h.config.RateLimitPerMinute, presignRateLimitWindow,
+	)
+	if err != nil {
+		l.Warn("Presign rate limiter failed, denying the upload",
+			logger_domain.Error(err))
+
+		h.writeRateLimited(ctx, w, presignRateLimitWindow)
+
+		return false
+	}
+
+	if !result.Allowed {
+		h.writeRateLimited(ctx, w, result.RetryAfter)
+
+		return false
+	}
+
+	return true
+}
+
+// writeRateLimited sends the 429 a limited caller receives.
+//
+// Takes w (http.ResponseWriter) which receives the response.
+// Takes retryAfter (time.Duration) which tells the caller when to try again.
+func (h *Handler) writeRateLimited(ctx context.Context, w http.ResponseWriter, retryAfter time.Duration) {
+	seconds := max(int(retryAfter/time.Second), 1)
+
+	w.Header().Set("Retry-After", strconv.Itoa(seconds))
+	h.writeError(ctx, w, httpStatusTooManyRequests, "rate_limited",
+		"Too many upload requests. Please try again later.")
+}
+
+// presignClientIdentity returns the address a presign upload is counted against.
+//
+// Takes r (*http.Request) which supplies the request identity.
+//
+// Returns string which identifies the caller.
+func presignClientIdentity(r *http.Request) string {
+	if clientIP := security_dto.ClientIPFromRequest(r); clientIP != "" {
+		return clientIP
+	}
+
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil && host != "" {
+		return host
+	}
+
+	return r.RemoteAddr
+}
+
+// drainRefusedBody consumes a bounded part of a body that will not be read.
+//
+// Takes r (*http.Request) which carries the body to drain.
+func drainRefusedBody(r *http.Request) {
+	if r.Body == nil {
+		return
+	}
+
+	_, _ = io.Copy(io.Discard, io.LimitReader(r.Body, refusedBodyDrainLimit))
 }

@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -1654,4 +1655,132 @@ func TestBuildRouter_InstallsNotFoundHandlerOnMainRouter(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 	assert.Contains(t, recorder.Body.String(), customNotFoundBody)
+}
+
+func TestApplyRequestTimeoutBoundsARoute(t *testing.T) {
+	t.Parallel()
+
+	t.Run("a bounded route sees a deadline", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			hadDeadline bool
+			cause       error
+		)
+		handler := applyRequestTimeout(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+			_, hadDeadline = request.Context().Deadline()
+			<-request.Context().Done()
+			cause = context.Cause(request.Context())
+		}), 10*time.Millisecond)
+
+		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+
+		assert.True(t, hadDeadline, "the route must carry the configured deadline")
+		require.Error(t, cause)
+		assert.Contains(t, cause.Error(), "request exceeded")
+	})
+
+	t.Run("zero leaves the route unbounded", func(t *testing.T) {
+		t.Parallel()
+
+		var hadDeadline bool
+		handler := applyRequestTimeout(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+			_, hadDeadline = request.Context().Deadline()
+		}), 0)
+
+		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+
+		assert.False(t, hadDeadline)
+	})
+}
+
+func TestRouteRequestTimeout(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, 30*time.Second, routeRequestTimeout(RouteSettings{RequestTimeoutSeconds: 30}))
+	assert.Zero(t, routeRequestTimeout(RouteSettings{}))
+	assert.Zero(t, routeRequestTimeout(RouteSettings{RequestTimeoutSeconds: -1}))
+}
+
+func TestApplyMiddlewaresEnforcesAuthPolicyWithoutAGuard(t *testing.T) {
+	t.Parallel()
+
+	protectedPage := func() *templater_domain.MockPageEntryView {
+		return &templater_domain.MockPageEntryView{
+			GetHasAuthPolicyFunc: func() bool { return true },
+			GetAuthPolicyFunc: func(*templater_dto.RequestData) daemon_dto.AuthPolicy {
+				return daemon_dto.AuthPolicy{Required: true}
+			},
+		}
+	}
+
+	served := false
+	base := http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		served = true
+		writer.WriteHeader(http.StatusOK)
+	})
+
+	handler := applyMiddlewares(base, protectedPage(), nil, nil)
+
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/dashboard", nil))
+
+	assert.False(t, served,
+		"a page declaring AuthPolicy{Required: true} must not be served to an unauthenticated caller "+
+			"just because the application configured no auth guard")
+	assert.Equal(t, http.StatusSeeOther, recorder.Code)
+}
+
+func TestApplyMiddlewaresDoesNotCacheAnIdentityVaryingPage(t *testing.T) {
+	t.Parallel()
+
+	cacheApplied := false
+	cacheMiddleware := func(next http.Handler) http.Handler {
+		cacheApplied = true
+
+		return next
+	}
+
+	protected := &templater_domain.MockPageEntryView{
+		GetHasAuthPolicyFunc: func() bool { return true },
+		GetAuthPolicyFunc: func(*templater_dto.RequestData) daemon_dto.AuthPolicy {
+			return daemon_dto.AuthPolicy{Required: true}
+		},
+	}
+
+	base := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+	applyMiddlewares(base, protected, cacheMiddleware, nil)
+
+	assert.False(t, cacheApplied,
+		"the shared cache key does not vary on identity, so a page behind an AuthPolicy must bypass it")
+
+	public := &templater_domain.MockPageEntryView{GetHasAuthPolicyFunc: func() bool { return false }}
+	applyMiddlewares(base, public, cacheMiddleware, nil)
+
+	assert.True(t, cacheApplied, "an ordinary page is still cached")
+}
+
+func TestRolesFromAuthValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		value any
+		want  []string
+	}{
+		{name: "a typed slice", value: []string{"admin", "editor"}, want: []string{"admin", "editor"}},
+		{name: "a single role", value: "admin", want: []string{"admin"}},
+		{name: "a decoded JSON claim", value: []any{"admin", "editor"}, want: []string{"admin", "editor"}},
+		{name: "a mixed claim keeps the strings", value: []any{"admin", 7}, want: []string{"admin"}},
+		{name: "no claim", value: nil, want: nil},
+		{name: "an unusable claim", value: 42, want: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.want, rolesFromAuthValue(testCase.value))
+		})
+	}
 }

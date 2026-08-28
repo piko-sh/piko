@@ -27,7 +27,6 @@ import (
 	"net/http"
 	"os"
 	"reflect"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -761,7 +760,7 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 	if profilingConfig := container.GetProfilingConfig(); profilingConfig != nil {
 		addr := profiler.ServerAddress(*profilingConfig)
 		bannerInfo.ProfilingURL = "http://" + addr + profiler.BasePath + "/debug/pprof/"
-		bannerInfo.ProfilingExposed = profilingConfig.BindAddress == "0.0.0.0"
+		bannerInfo.ProfilingExposed = daemon_domain.IsExposedBindAddress(profilingConfig.BindAddress)
 	}
 
 	var healthAddress atomic.Value
@@ -771,18 +770,23 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 	})
 
 	container.SetOnServerBound(func(address string) {
-		bannerInfo.ServerURL = fmt.Sprintf("http://localhost%s", address)
+		bannerInfo.ServerURL = fmt.Sprintf(
+			"%s://localhost%s", daemon_domain.BannerScheme(daemonConfig.TLS.Enabled()), address,
+		)
 		bannerInfo.AutoPort = false
 
 		if resolved, ok := healthAddress.Load().(string); ok && resolved != "" {
-			bannerInfo.HealthProbeURL = fmt.Sprintf("http://%s", resolved)
+			bannerInfo.HealthProbeURL = fmt.Sprintf(
+				"%s://%s", daemon_domain.BannerScheme(daemonConfig.HealthTLS.Enabled()), resolved,
+			)
 			bannerInfo.LivePath = daemonConfig.HealthLivePath
 			bannerInfo.ReadyPath = daemonConfig.HealthReadyPath
+			bannerInfo.HealthExposed = daemon_domain.IsExposedHostPort(resolved)
 		}
 
 		if monitoringService := container.GetMonitoringService(); monitoringService != nil {
 			bannerInfo.MonitoringURL = monitoringService.Address()
-			bannerInfo.MonitoringExposed = strings.HasPrefix(monitoringService.Address(), "0.0.0.0")
+			bannerInfo.MonitoringExposed = daemon_domain.IsExposedHostPort(monitoringService.Address())
 		}
 
 		daemon_domain.PrintStartupBanner(ctx, bannerEnabled, bannerInfo)

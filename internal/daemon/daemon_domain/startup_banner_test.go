@@ -61,7 +61,9 @@ func TestBuildStartupBannerInfo(t *testing.T) {
 
 		info := BuildStartupBannerInfo(config, "prod", "2.0.0")
 
-		assert.Equal(t, "http://127.0.0.1:9090", info.HealthProbeURL, "expected 'http://127.0.0.1:9090'")
+		assert.Empty(t, info.HealthProbeURL,
+			"the URL is filled from the listener that bound, not from config, so a health probe "+
+				"that never bound advertises nothing")
 		assert.Equal(t, "/live", info.LivePath, "expected '/live'")
 		assert.Equal(t, "/ready", info.ReadyPath, "expected '/ready'")
 		assert.False(t, info.HealthExposed, "expected HealthExposed=false for 127.0.0.1")
@@ -438,4 +440,78 @@ func TestBuildBannerLines(t *testing.T) {
 
 		assert.GreaterOrEqual(t, len(lines), 9, "expected at least 9 lines with health")
 	})
+}
+
+func TestIsExposedBindAddress(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		address  string
+		expected bool
+	}{
+		{name: "Empty", address: "", expected: true},
+		{name: "Whitespace", address: "  ", expected: true},
+		{name: "IPv4Wildcard", address: "0.0.0.0", expected: true},
+		{name: "IPv6Wildcard", address: "::", expected: true},
+		{name: "IPv6WildcardBracketed", address: "[::]", expected: true},
+		{name: "Loopback", address: "127.0.0.1", expected: false},
+		{name: "IPv6Loopback", address: "::1", expected: false},
+		{name: "Hostname", address: "internal.example.com", expected: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.expected, IsExposedBindAddress(testCase.address))
+		})
+	}
+}
+
+func TestIsExposedHostPort(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		address  string
+		expected bool
+	}{
+		{name: "IPv4Wildcard", address: "0.0.0.0:9090", expected: true},
+		{name: "IPv6Wildcard", address: "[::]:9090", expected: true},
+		{name: "PortOnly", address: ":9090", expected: true},
+		{name: "Loopback", address: "127.0.0.1:9090", expected: false},
+		{name: "IPv6Loopback", address: "[::1]:9090", expected: false},
+		{name: "BareHostNoPort", address: "0.0.0.0", expected: true},
+		{name: "BareLoopbackNoPort", address: "127.0.0.1", expected: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, testCase.expected, IsExposedHostPort(testCase.address))
+		})
+	}
+}
+
+func TestBannerScheme(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "https", BannerScheme(true))
+	assert.Equal(t, "http", BannerScheme(false))
+}
+
+func TestIsExposedBindAddressCoversEverySpelling(t *testing.T) {
+	t.Parallel()
+
+	exposed := []string{"", "0.0.0.0", "::", "[::]", "::0", "[::0]", "0:0:0:0:0:0:0:0", "::ffff:0.0.0.0"}
+	for _, address := range exposed {
+		assert.True(t, IsExposedBindAddress(address), "address %q publishes on every interface", address)
+	}
+
+	private := []string{"127.0.0.1", "::1", "[::1]", "10.0.0.5", "192.168.1.1", "internal.example.com"}
+	for _, address := range private {
+		assert.False(t, IsExposedBindAddress(address), "address %q does not publish everywhere", address)
+	}
 }

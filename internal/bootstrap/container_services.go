@@ -875,10 +875,17 @@ func (c *Container) createDefaultHealthProbeService() {
 // /ready endpoints.
 //
 // Takes probe (healthprobe_domain.Probe) which is the health probe to register.
-//
-// The probe is registered when the HealthProbeService starts.
 func (c *Container) AddCustomHealthProbe(probe healthprobe_domain.Probe) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
+
+	if c.healthProbeService != nil {
+		l.Error("Health probe added after the health probe service was built, so it will never "+
+			"run; register it earlier in the build",
+			logger_domain.String("probe_name", probe.Name()))
+
+		return
+	}
+
 	c.customHealthProbes = append(c.customHealthProbes, probe)
 	l.Internal("Custom health probe registered", logger_domain.String("probe_name", probe.Name()))
 }

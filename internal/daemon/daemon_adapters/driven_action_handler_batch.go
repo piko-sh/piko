@@ -189,6 +189,20 @@ func (h *ActionHandler) executeSingleAction(
 
 	action := entry.Create()
 
+	admittedCtx, releaseSlot, admitted := h.admitBatchAction(ctx, entry.Name, action)
+	if !admitted {
+		return daemon_dto.BatchActionResult{
+			Name:   item.Name,
+			Status: http.StatusServiceUnavailable,
+			Error:  "This action is handling as many requests as it allows. Retry shortly.",
+			Code:   "CONCURRENCY_LIMIT",
+		}
+	}
+
+	defer releaseSlot()
+
+	ctx = admittedCtx
+
 	h.injectMetadata(request, action)
 
 	if !h.checkBatchActionRateLimit(ctx, request, action, entry) {
@@ -205,17 +219,8 @@ func (h *ActionHandler) executeSingleAction(
 		arguments = make(map[string]any)
 	}
 
-	if captchaErr := h.validateCaptcha(ctx, request, action, arguments, item.Name); captchaErr != nil {
-		return buildBatchCaptchaResult(l, item.Name, captchaErr)
-	}
-
-	if spamErr := h.validateSpamDetect(ctx, request, action, arguments, item.Name); spamErr != nil {
-		return daemon_dto.BatchActionResult{
-			Name:   item.Name,
-			Status: http.StatusForbidden,
-			Error:  "Submission flagged by spam filter",
-			Code:   "SPAM_DETECTED",
-		}
+	if rejection, rejected := h.screenBatchAction(ctx, request, action, arguments, item.Name, l); rejected {
+		return rejection
 	}
 
 	result, err := entry.Invoke(ctx, action, arguments)
@@ -487,4 +492,71 @@ func (*ActionHandler) recordSlowAction(
 		logger_domain.String("elapsed", elapsed.String()),
 		logger_domain.String("threshold", threshold.String()),
 	)
+}
+
+// admitBatchAction applies an action's concurrency limit and timeout to a batched call.
+//
+// Takes actionName (string) which keys the concurrency slots.
+// Takes action (any) which may declare resource limits.
+//
+// Returns context.Context which carries any timeout.
+// Returns func() which releases the slot, and is only valid when admitted.
+// Returns bool which is false when the action is already at its limit.
+func (h *ActionHandler) admitBatchAction(
+	ctx context.Context,
+	actionName string,
+	action any,
+) (context.Context, func(), bool) {
+	limits := h.resolveActionLimits(action)
+
+	releaseSlot, admitted := h.acquireActionSlot(actionName, limits.MaxConcurrent)
+	if !admitted {
+		return ctx, nil, false
+	}
+
+	if limits.Timeout <= 0 {
+		return ctx, releaseSlot, true
+	}
+
+	timedCtx, cancel := context.WithTimeoutCause(ctx, limits.Timeout,
+		fmt.Errorf("action execution exceeded %s timeout", limits.Timeout))
+
+	return timedCtx, func() {
+		cancel()
+		releaseSlot()
+	}, true
+}
+
+// screenBatchAction runs the captcha and spam checks for a batched call.
+//
+// Takes request (*http.Request) which carries the submission.
+// Takes action (any) which may declare captcha or spam protection.
+// Takes arguments (map[string]any) which holds the parsed arguments.
+// Takes name (string) which identifies the action.
+// Takes l (logger_domain.Logger) which receives the structured warning.
+//
+// Returns daemon_dto.BatchActionResult which describes the rejection.
+// Returns bool which is true when the call was rejected.
+func (h *ActionHandler) screenBatchAction(
+	ctx context.Context,
+	request *http.Request,
+	action any,
+	arguments map[string]any,
+	name string,
+	l logger_domain.Logger,
+) (daemon_dto.BatchActionResult, bool) {
+	if captchaErr := h.validateCaptcha(ctx, request, action, arguments, name); captchaErr != nil {
+		return buildBatchCaptchaResult(l, name, captchaErr), true
+	}
+
+	if spamErr := h.validateSpamDetect(ctx, request, action, arguments, name); spamErr != nil {
+		return daemon_dto.BatchActionResult{
+			Name:   name,
+			Status: http.StatusForbidden,
+			Error:  "Submission flagged by spam filter",
+			Code:   "SPAM_DETECTED",
+		}, true
+	}
+
+	return daemon_dto.BatchActionResult{}, false
 }

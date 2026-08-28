@@ -27,15 +27,25 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/mem"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
+)
+
+const (
+	// disabledWarningKey marks the warning about a declared but unenforced rate limit.
+	disabledWarningKey = "disabled"
+
+	// emptyIdentityWarningKey marks the warning about a key func returning no identity.
+	emptyIdentityWarningKey = "empty-identity"
 )
 
 // validateCSRF extracts CSRF tokens from the request and validates them. The ephemeral
@@ -434,14 +444,10 @@ func (*ActionHandler) parseRawBody(request *http.Request, arguments map[string]a
 // Returns *security_dto.RateLimitOverride which contains the resolved rate limit
 // settings, or nil when no limit applies.
 func (h *ActionHandler) buildActionRateLimitOverride(
-	_ *http.Request,
+	request *http.Request,
 	action any,
 	entry ActionHandlerEntry,
 ) *security_dto.RateLimitOverride {
-	if h.rateLimitMw == nil {
-		return nil
-	}
-
 	rateLimitable, ok := action.(daemon_domain.RateLimitable)
 	if !ok {
 		return nil
@@ -452,22 +458,59 @@ func (h *ActionHandler) buildActionRateLimitOverride(
 		return nil
 	}
 
-	keySuffix := entry.Name
-	if rl.KeyFunc != nil {
-		if getter, ok := action.(interface {
-			Request() *daemon_dto.RequestMetadata
-		}); ok {
-			if reqMeta := getter.Request(); reqMeta != nil {
-				keySuffix = entry.Name + ":" + rl.KeyFunc(reqMeta)
-			}
-		}
+	if h.rateLimitMw == nil {
+		h.warnRateLimitDisabled(request, entry)
+
+		return nil
 	}
 
 	return &security_dto.RateLimitOverride{
-		KeySuffix:         keySuffix,
+		KeySuffix:         entry.Name,
+		Identity:          h.resolveRateLimitIdentity(request, action, rl, entry),
 		RequestsPerMinute: rl.RequestsPerMinute,
 		BurstSize:         rl.BurstSize,
 	}
+}
+
+// resolveRateLimitIdentity returns the identity an action is rate limited by.
+//
+// Takes request (*http.Request) which supplies the fallback identity.
+// Takes action (any) which may expose its request metadata.
+// Takes rl (*daemon_domain.RateLimit) which supplies the key func.
+// Takes entry (ActionHandlerEntry) which names the action in logs.
+//
+// Returns string which is the sanitised identity, empty to key on the client address.
+func (h *ActionHandler) resolveRateLimitIdentity(
+	request *http.Request,
+	action any,
+	rl *daemon_domain.RateLimit,
+	entry ActionHandlerEntry,
+) string {
+	if rl.KeyFunc == nil {
+		return ""
+	}
+
+	getter, ok := action.(interface {
+		Request() *daemon_dto.RequestMetadata
+	})
+	if !ok {
+		return ""
+	}
+
+	reqMeta := getter.Request()
+	if reqMeta == nil {
+		return ""
+	}
+
+	identity := rl.KeyFunc(reqMeta)
+	if strings.TrimSpace(identity) == "" {
+		h.warnOncePerAction(request, entry, emptyIdentityWarningKey,
+			"Rate limit key func returned no identity, falling back to the client address")
+
+		return ""
+	}
+
+	return security_dto.SanitiseRateLimitKey(identity)
 }
 
 // checkRateLimit enforces per-action rate limiting using the action's RateLimitable
@@ -526,4 +569,39 @@ func (h *ActionHandler) checkBatchActionRateLimit(
 			metric.WithAttributes(attribute.String(attributeKeyAction, entry.Name)))
 	}
 	return allowed
+}
+
+// warnRateLimitDisabled reports once that a declared rate limit is not enforced.
+//
+// Takes request (*http.Request) which carries the logger.
+// Takes entry (ActionHandlerEntry) which names the action.
+func (h *ActionHandler) warnRateLimitDisabled(request *http.Request, entry ActionHandlerEntry) {
+	h.warnOncePerAction(request, entry, disabledWarningKey,
+		"Action declares a rate limit but rate limiting is disabled, so it is not enforced")
+}
+
+// warnOncePerAction reports a rate limit misconfiguration once for a given action.
+//
+// Takes request (*http.Request) which carries the logger.
+// Takes entry (ActionHandlerEntry) which names the action.
+// Takes warningKey (string) which separates one warning from another for the same action.
+// Takes message (string) which is the text to report.
+func (h *ActionHandler) warnOncePerAction(
+	request *http.Request,
+	entry ActionHandlerEntry,
+	warningKey string,
+	message string,
+) {
+	warned, _ := h.rateLimitWarned.LoadOrStore(entry.Name+"\x00"+warningKey, &sync.Once{})
+
+	once, ok := warned.(*sync.Once)
+	if !ok {
+		return
+	}
+
+	once.Do(func() {
+		_, l := logger_domain.From(request.Context(), log)
+
+		l.Warn(message, logger_domain.String(attributeKeyAction, entry.Name))
+	})
 }

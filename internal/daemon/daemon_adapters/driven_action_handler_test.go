@@ -564,23 +564,188 @@ func TestActionHandler_WriteError(t *testing.T) {
 	})
 }
 
-func TestActionHandler_MountRegistersGETForSSE(t *testing.T) {
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
-	handler.Register(ActionHandlerEntry{
-		Name:   "stream.Events",
-		Method: "POST",
-		HasSSE: true,
-		Create: func() any { return &struct{}{} },
-		Invoke: func(_ context.Context, action any, arguments map[string]any) (any, error) { return nil, nil },
+func TestActionHandler_MountGETAliasIsOptIn(t *testing.T) {
+	mountStreamAction := func(t *testing.T, alias bool) *chi.Mux {
+		t.Helper()
+
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+		handler.Register(ActionHandlerEntry{
+			Name:        "stream.Events",
+			Method:      "POST",
+			HasSSE:      true,
+			SSEGetAlias: alias,
+			Create:      func() any { return &struct{}{} },
+			Invoke:      func(_ context.Context, _ any, _ map[string]any) (any, error) { return nil, nil },
+		})
+
+		router := chi.NewRouter()
+		handler.Mount(router, "/_piko/actions")
+
+		return router
+	}
+
+	t.Run("a streaming action gets no GET route by default", func(t *testing.T) {
+		router := mountStreamAction(t, false)
+
+		request := httptest.NewRequest(http.MethodGet, "/_piko/actions/stream.Events", nil)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, recorder.Code,
+			"a mutating action must not answer GET unless it opted in")
 	})
 
-	r := chi.NewRouter()
-	handler.Mount(r, "/_piko/actions")
+	t.Run("opting in registers the GET route", func(t *testing.T) {
+		router := mountStreamAction(t, true)
+
+		request := httptest.NewRequest(http.MethodGet, "/_piko/actions/stream.Events", nil)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		assert.NotEqual(t, http.StatusMethodNotAllowed, recorder.Code)
+	})
+
+	t.Run("the declared method still answers either way", func(t *testing.T) {
+		router := mountStreamAction(t, false)
+
+		request := httptest.NewRequest(http.MethodPost, "/_piko/actions/stream.Events", nil)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, request)
+
+		assert.NotEqual(t, http.StatusMethodNotAllowed, recorder.Code)
+	})
+}
+
+func TestIsSSEGetAliasRequest(t *testing.T) {
+	streamEntry := ActionHandlerEntry{Method: http.MethodPost, HasSSE: true, SSEGetAlias: true}
+
+	testCases := []struct {
+		name     string
+		entry    ActionHandlerEntry
+		method   string
+		accept   string
+		expected bool
+	}{
+		{
+			name:     "GET asking for a stream over an opted-in alias",
+			entry:    streamEntry,
+			method:   http.MethodGet,
+			accept:   "text/event-stream",
+			expected: true,
+		},
+		{
+			name:     "a ranked Accept still selects the stream",
+			entry:    streamEntry,
+			method:   http.MethodGet,
+			accept:   "text/event-stream, */*;q=0.1",
+			expected: true,
+		},
+		{
+			name:     "a GET that does not ask for a stream is not exempt",
+			entry:    streamEntry,
+			method:   http.MethodGet,
+			accept:   "*/*",
+			expected: false,
+		},
+		{
+			name:     "a GET with no Accept header is not exempt",
+			entry:    streamEntry,
+			method:   http.MethodGet,
+			accept:   "",
+			expected: false,
+		},
+		{
+			name:     "a browser navigation is not exempt",
+			entry:    streamEntry,
+			method:   http.MethodGet,
+			accept:   "text/html,application/xhtml+xml",
+			expected: false,
+		},
+		{
+			name:     "the declared method is never the alias",
+			entry:    streamEntry,
+			method:   http.MethodPost,
+			accept:   "text/event-stream",
+			expected: false,
+		},
+		{
+			name:     "GET without the opt-in",
+			entry:    ActionHandlerEntry{Method: http.MethodPost, HasSSE: true},
+			method:   http.MethodGet,
+			accept:   "text/event-stream",
+			expected: false,
+		},
+		{
+			name:     "GET on a non-streaming action",
+			entry:    ActionHandlerEntry{Method: http.MethodPost, SSEGetAlias: true},
+			method:   http.MethodGet,
+			accept:   "text/event-stream",
+			expected: false,
+		},
+		{
+			name:     "an action already declared as GET still gets the exemption it opted into",
+			entry:    ActionHandlerEntry{Method: http.MethodGet, HasSSE: true, SSEGetAlias: true},
+			method:   http.MethodGet,
+			accept:   "text/event-stream",
+			expected: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			request := httptest.NewRequest(testCase.method, "/_piko/actions/stream.Events", nil)
+			if testCase.accept != "" {
+				request.Header.Set("Accept", testCase.accept)
+			}
+
+			assert.Equal(t, testCase.expected, isSSEGetAliasRequest(request, testCase.entry))
+		})
+	}
+}
+
+func TestSSEGetAliasDoesNotExemptAPlainGetFromCSRF(t *testing.T) {
+	validated := false
+
+	handler := NewActionHandler(
+		&security_domain.MockCSRFTokenService{
+			ValidateCSRFPairFunc: func(*http.Request, string, []byte) (bool, error) {
+				validated = true
+
+				return false, nil
+			},
+		},
+		1<<20, nil, security_dto.RateLimitValues{}, true, nil, nil,
+	)
+
+	invoked := false
+	handler.Register(ActionHandlerEntry{
+		Name:        "stream.Events",
+		Method:      http.MethodPost,
+		HasSSE:      true,
+		SSEGetAlias: true,
+		Create:      func() any { return &struct{}{} },
+		Invoke: func(context.Context, any, map[string]any) (any, error) {
+			invoked = true
+
+			return nil, nil
+		},
+		Bind: func(context.Context, any, map[string]any) error { return nil },
+	})
+
+	router := chi.NewRouter()
+	handler.Mount(router, "/_piko/actions")
 
 	request := httptest.NewRequest(http.MethodGet, "/_piko/actions/stream.Events", nil)
+	request.Header.Set("Accept", "*/*")
+	request.Header.Set("Sec-Fetch-Site", "cross-site")
+	request.Header.Set("X-CSRF-Action-Token", "forged")
+
 	recorder := httptest.NewRecorder()
-	r.ServeHTTP(recorder, request)
-	assert.NotEqual(t, http.StatusMethodNotAllowed, recorder.Code)
+	router.ServeHTTP(recorder, request)
+
+	assert.True(t, validated, "a plain GET must still reach CSRF validation")
+	assert.False(t, invoked, "the action must not run when CSRF validation fails")
+	assert.Equal(t, http.StatusForbidden, recorder.Code)
 }
 
 func TestActionHandler_HandleBatch(t *testing.T) {

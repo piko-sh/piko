@@ -27,6 +27,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -35,6 +36,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // serverPurpose identifies the role of an HTTP server for logging.
@@ -87,8 +89,18 @@ type driverHTTPServerAdapter struct {
 	// receiving the resolved listen address.
 	onBound func(address string)
 
+	// boundChan closes once the listener is bound, and never closes when the bind fails.
+	boundChan chan struct{}
+
 	// purpose indicates whether this server handles health probes or main traffic.
 	purpose serverPurpose
+
+	// boundMu guards boundChan and boundClosed.
+	boundMu sync.Mutex
+
+	// boundClosed records that boundChan has been closed, so closing is idempotent. The port
+	// retry loop can bind more than once.
+	boundClosed bool
 }
 
 var (
@@ -103,17 +115,18 @@ var (
 //
 // Returns error when the address cannot be bound or the server fails.
 func (a *driverHTTPServerAdapter) ListenAndServe(
+	ctx context.Context,
 	address string,
 	handler http.Handler,
 ) error {
-	ctx, span, l := log.Span(context.Background(), "driverHTTPServerAdapter.ListenAndServe",
+	spanCtx, span, l := log.Span(context.WithoutCancel(ctx), "driverHTTPServerAdapter.ListenAndServe",
 		logger_domain.String("address", address),
 	)
 	defer span.End()
 
 	l.Internal("Configuring HTTP server")
 
-	server := a.buildServer(ctx, address, handler)
+	server := a.buildServer(spanCtx, address, handler)
 	a.server.Store(server)
 
 	a.recordServerSpanAttributes(span, server)
@@ -128,14 +141,18 @@ func (a *driverHTTPServerAdapter) ListenAndServe(
 	if a.onBound != nil {
 		a.onBound(address)
 	}
+	a.markBound()
+
+	stopWatching := a.closeOnContextCancel(ctx, server)
+	defer stopWatching()
 
 	startTime := time.Now()
 	err = server.Serve(listener)
 	duration := time.Since(startTime)
 
-	serverStartupDuration.Record(ctx, float64(duration.Milliseconds()))
+	serverStartupDuration.Record(spanCtx, float64(duration.Milliseconds()))
 	span.SetAttributes(attribute.Int64("durationMs", duration.Milliseconds()))
-	recordServerCompletion(ctx, span, err)
+	recordServerCompletion(spanCtx, span, err)
 	if err != nil {
 		return fmt.Errorf("serving HTTP: %w", err)
 	}
@@ -181,12 +198,80 @@ func (a *driverHTTPServerAdapter) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// Bound reports when the listener is accepting connections.
+//
+// Returns <-chan struct{} which closes once the listener is bound.
+//
+// Concurrency: safe for concurrent use; the channel is created under boundMu.
+func (a *driverHTTPServerAdapter) Bound() <-chan struct{} {
+	a.boundMu.Lock()
+	defer a.boundMu.Unlock()
+
+	return a.ensureBoundChanLocked()
+}
+
 // SetOnBound registers a callback invoked after the server binds successfully.
 //
 // Takes fn (func(address string)) which is the callback receiving the resolved listen
 // address.
 func (a *driverHTTPServerAdapter) SetOnBound(fn func(address string)) {
 	a.onBound = fn
+}
+
+// markBound signals that the listener is accepting connections.
+//
+// Concurrency: safe for concurrent use; guarded by boundMu.
+func (a *driverHTTPServerAdapter) markBound() {
+	a.boundMu.Lock()
+	defer a.boundMu.Unlock()
+
+	channel := a.ensureBoundChanLocked()
+	if a.boundClosed {
+		return
+	}
+	a.boundClosed = true
+	close(channel)
+}
+
+// ensureBoundChanLocked returns the bound channel, creating it when Bound has not yet
+// been called. The caller must hold boundMu.
+//
+// Returns chan struct{} which closes once the listener binds.
+func (a *driverHTTPServerAdapter) ensureBoundChanLocked() chan struct{} {
+	if a.boundChan == nil {
+		a.boundChan = make(chan struct{})
+	}
+
+	return a.boundChan
+}
+
+// closeOnContextCancel closes the server when the context is cancelled.
+//
+// Takes server (*http.Server) which is closed on cancellation.
+//
+// Returns func() which stops the watcher and waits for it.
+//
+// Concurrency: starts one goroutine; the returned function waits for it to exit, so it
+// cannot outlive the call.
+func (*driverHTTPServerAdapter) closeOnContextCancel(ctx context.Context, server *http.Server) func() {
+	stopped := make(chan struct{})
+	done := make(chan struct{})
+
+	go func() {
+		defer goroutine.RecoverPanic(ctx, "daemon.serverCancelWatcher")
+		defer close(done)
+
+		select {
+		case <-ctx.Done():
+			_ = server.Close()
+		case <-stopped:
+		}
+	}()
+
+	return func() {
+		close(stopped)
+		<-done
+	}
 }
 
 // buildServer constructs the HTTP server, including its HTTP/2 configuration.

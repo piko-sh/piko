@@ -37,6 +37,8 @@ func (a *NotifyAction) Call(_ NotifyInput) (NotifyOutput, error) {
 	return NotifyOutput{Ready: true}, nil
 }
 
+func (a *NotifyAction) SSEGetAlias() {}
+
 func (a *NotifyAction) StreamProgress(stream *piko.SSEStream) error {
 	for i := 0; i < 2; i++ {
 		if err := stream.Send("notification", map[string]string{

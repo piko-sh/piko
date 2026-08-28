@@ -430,6 +430,8 @@ func detectActionCapabilities(t *inspector_dto.Type) annotator_dto.ActionCapabil
 		switch method.Name {
 		case "StreamProgress":
 			caps.HasSSE = true
+		case "SSEGetAlias":
+			caps.SSEGetAlias = true
 		case "Middlewares":
 			caps.HasMiddlewares = true
 		case "RateLimit":

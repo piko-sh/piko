@@ -19,6 +19,7 @@
 package daemon_domain
 
 import (
+	"net"
 	"time"
 
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
@@ -27,6 +28,10 @@ import (
 )
 
 const (
+	// rateLimitUnknownIdentity keys a caller whose address could not be determined at all,
+	// so the bucket still exists rather than every such caller being unlimited.
+	rateLimitUnknownIdentity = "unknown"
+
 	// TransportHTTP is the HTTP transport protocol.
 	TransportHTTP Transport = "http"
 
@@ -137,23 +142,30 @@ type RateLimitKeyFunc func(request *daemon_dto.RequestMetadata) string
 var (
 	// RateLimitByIP limits requests by client IP address.
 	RateLimitByIP RateLimitKeyFunc = func(request *daemon_dto.RequestMetadata) string {
-		return request.RemoteAddr
+		return rateLimitClientIdentity(request)
 	}
 
-	// RateLimitByUser limits requests by authenticated user ID.
+	// RateLimitByUser limits requests by authenticated user ID. It reads the identity Piko
+	// resolves, falling back to the client address for a caller who is not signed in,
+	// because there is no other identity to key on and no limit at all is the worse answer.
 	RateLimitByUser RateLimitKeyFunc = func(request *daemon_dto.RequestMetadata) string {
-		if request.Session != nil && request.Session.UserID != "" {
-			return request.Session.UserID
+		if auth := request.Auth(); auth != nil && auth.IsAuthenticated() && auth.UserID() != "" {
+			return "user:" + auth.UserID()
 		}
-		return request.RemoteAddr
+		return rateLimitClientIdentity(request)
 	}
 
-	// RateLimitBySession limits requests by session ID.
+	// RateLimitBySession limits requests by session ID, then by authenticated user, then by
+	// client address. Piko never populates the session itself; it is there for applications
+	// that manage their own.
 	RateLimitBySession RateLimitKeyFunc = func(request *daemon_dto.RequestMetadata) string {
 		if request.Session != nil && request.Session.ID != "" {
-			return request.Session.ID
+			return "session:" + request.Session.ID
 		}
-		return request.RemoteAddr
+		if auth := request.Auth(); auth != nil && auth.IsAuthenticated() && auth.UserID() != "" {
+			return "user:" + auth.UserID()
+		}
+		return rateLimitClientIdentity(request)
 	}
 )
 
@@ -205,3 +217,24 @@ type SpamConfig struct {
 
 // Transport represents a supported transport mechanism for actions.
 type Transport string
+
+// rateLimitClientIdentity returns the address a rate limit falls back to.
+//
+// Takes request (*daemon_dto.RequestMetadata) which supplies the request identity.
+//
+// Returns string which identifies the caller.
+func rateLimitClientIdentity(request *daemon_dto.RequestMetadata) string {
+	if clientIP := request.ClientIP(); clientIP != "" {
+		return clientIP
+	}
+
+	if request.RemoteAddr != "" {
+		if host, _, err := net.SplitHostPort(request.RemoteAddr); err == nil && host != "" {
+			return host
+		}
+
+		return request.RemoteAddr
+	}
+
+	return rateLimitUnknownIdentity
+}

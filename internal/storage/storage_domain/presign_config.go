@@ -23,6 +23,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"time"
+
+	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 )
 
 const (
@@ -49,6 +51,10 @@ const (
 // PresignConfig holds configuration for service-level presigned URLs. This is used when a
 // storage provider does not support native presigned URLs.
 type PresignConfig struct {
+	// RateLimiter enforces RateLimitPerMinute. Nil disables rate limiting regardless of the
+	// configured limit, because there is nothing to count with.
+	RateLimiter PresignRateLimiter
+
 	// RIDCache holds the cache for replay protection using random identifiers. Initialised
 	// automatically during service construction via EnsureRIDCache.
 	RIDCache *PresignRIDCache
@@ -79,6 +85,14 @@ type PresignConfig struct {
 	// RateLimitPerMinute is the per-IP rate limit for upload requests. Set to 0 to disable
 	// rate limiting.
 	RateLimitPerMinute int
+}
+
+// PresignRateLimiter counts presigned upload requests against a per-caller budget.
+type PresignRateLimiter interface {
+	// CheckLimit records a request against a key and reports whether it is within the limit.
+	CheckLimit(
+		ctx context.Context, key string, limit int, window time.Duration,
+	) (ratelimiter_dto.Result, error)
 }
 
 // Validate checks the configuration and applies defaults where needed.

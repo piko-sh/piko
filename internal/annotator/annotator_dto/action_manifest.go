@@ -152,6 +152,10 @@ type ActionCapabilities struct {
 	// HasSSE indicates if the action implements SSECapable (StreamProgress method).
 	HasSSE bool
 
+	// SSEGetAlias indicates the action implements SSEGetAliasable, so its stream is also
+	// reachable over GET without a CSRF token.
+	SSEGetAlias bool
+
 	// HasMiddlewares indicates if the action implements MiddlewareCapable (Middlewares
 	// method).
 	HasMiddlewares bool
