@@ -129,22 +129,34 @@ type MenuItem struct {
 type PanelGroup interface {
 	// ID returns the stable group identifier used for state look-ups and command-palette
 	// navigation.
+	//
+	// Returns GroupID which is the stable identifier for this group.
 	ID() GroupID
 
 	// Title returns the short human label rendered in the top tab bar.
+	//
+	// Returns string which is the label shown in the tab bar.
 	Title() string
 
 	// Hotkey returns the rune that activates this group when pressed.
+	//
+	// Returns rune which is the key that activates this group.
 	Hotkey() rune
 
 	// Items returns the ordered list of menu items shown in the left column when this group
 	// is active.
+	//
+	// Returns []MenuItem which are the menu items in display order.
 	Items() []MenuItem
 
 	// DefaultItemID returns the menu item that should be active when the group is first
 	// opened.
+	//
+	// Returns ItemID which identifies the item to activate first.
 	DefaultItemID() ItemID
 
 	// Visible reports whether this group should appear in the tab bar.
+	//
+	// Returns bool which reports whether the group appears in the tab bar.
 	Visible() bool
 }

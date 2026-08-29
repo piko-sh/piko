@@ -54,7 +54,7 @@
 // globally initialised service:
 //
 //	myCache, err := cache.NewCacheFromDefault(
-//	    cache.Options[string, string]{MaximumSize: 1000},
+//	    cache.Options[string, string]{MaximumEntries: 1000},
 //	)
 //
 // # Search

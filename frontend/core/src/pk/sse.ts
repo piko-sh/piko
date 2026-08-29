@@ -47,7 +47,11 @@ export interface SSESubscription {
     unsubscribe: () => void;
     /** Current connection state. */
     readonly state: 'connecting' | 'open' | 'closed' | 'error';
-    /** Number of reconnection attempts. */
+    /**
+     * Reconnection attempts since the connection was last open. A successful open resets
+     * it, so it reads as the consecutive-failure budget that maxReconnects caps rather
+     * than a lifetime total.
+     */
     readonly reconnectCount: number;
 }
 
@@ -169,6 +173,20 @@ function createErrorHandler(
  * @returns Cleanup function to stop listening.
  */
 export function subscribeToUpdates(name: string, options: SSEOptions): () => void {
+    return startConnection(name, options).unsubscribe;
+}
+
+/**
+ * Opens an SSE connection and returns both its teardown function and its live state.
+ *
+ * @param name - Partial name to reload on message.
+ * @param options - SSE configuration options.
+ * @returns The teardown function and the mutable connection state it drives.
+ */
+function startConnection(
+    name: string,
+    options: SSEOptions
+): {unsubscribe: () => void; state: SSEConnectionState} {
     const {
         url,
         onMessage,
@@ -215,7 +233,7 @@ export function subscribeToUpdates(name: string, options: SSEOptions): () => voi
 
     connect();
 
-    return () => {
+    const unsubscribe = (): void => {
         state.stopped = true;
         if (state.reconnectTimeout) {
             clearTimeout(state.reconnectTimeout);
@@ -223,6 +241,8 @@ export function subscribeToUpdates(name: string, options: SSEOptions): () => voi
         state.eventSource?.close();
         onClose?.();
     };
+
+    return {unsubscribe, state};
 }
 
 /**
@@ -235,30 +255,27 @@ export function subscribeToUpdates(name: string, options: SSEOptions): () => voi
  * @returns An SSESubscription with state tracking.
  */
 export function createSSESubscription(name: string, options: SSEOptions): SSESubscription {
-    let state: 'connecting' | 'open' | 'closed' | 'error' = 'connecting';
-    let reconnectCount = 0;
+    let connectionState: 'connecting' | 'open' | 'closed' | 'error' = 'connecting';
 
-    const unsubscribe = subscribeToUpdates(name, {
+    const connection = startConnection(name, {
         ...options,
         onOpen: () => {
-            state = 'open';
-            reconnectCount = 0;
+            connectionState = 'open';
             options.onOpen?.();
         },
         onClose: () => {
-            state = 'closed';
+            connectionState = 'closed';
             options.onClose?.();
-        },
-        onError: options.onError
+        }
     });
 
     return {
-        unsubscribe,
+        unsubscribe: connection.unsubscribe,
         get state() {
-            return state;
+            return connectionState;
         },
         get reconnectCount() {
-            return reconnectCount;
+            return connection.state.reconnectCount;
         }
     };
 }

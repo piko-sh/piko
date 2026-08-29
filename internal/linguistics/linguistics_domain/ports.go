@@ -53,6 +53,8 @@ type AnalyserPort interface {
 	AnalyseToPhonetic(text string) []string
 
 	// GetStemmer returns the underlying stemmer for direct use.
+	//
+	// Returns StemmerPort which provides direct access to the stemmer.
 	GetStemmer() StemmerPort
 
 	// GetPhoneticEncoder returns the phonetic encoder for direct use.
@@ -61,6 +63,8 @@ type AnalyserPort interface {
 	GetPhoneticEncoder() PhoneticEncoderPort
 
 	// GetMode returns the current analysis mode.
+	//
+	// Returns AnalysisMode which is the mode the analyser is set to.
 	GetMode() AnalysisMode
 }
 
@@ -113,6 +117,8 @@ type StemmerPort interface {
 	Stem(word string) string
 
 	// GetLanguage returns the language used by this stemmer.
+	//
+	// Returns string which is the language the stemmer is built for.
 	GetLanguage() string
 }
 

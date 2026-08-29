@@ -1183,7 +1183,7 @@ func NewOtterDAL(config Config, opts ...Option) (registry_dal.RegistryDALWithTx,
 		}
 
 		cacheOpts := cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-			MaximumSize: int(capacity),
+			MaximumEntries: int(capacity),
 		}
 
 		cache, err := provider_otter.OtterProviderFactory(cacheOpts)

@@ -43,6 +43,11 @@ type treeItem[K comparable] struct {
 
 	// value holds the data stored in this tree item.
 	value any
+
+	// isPivot marks a search bound rather than a stored entry. Ties on value are otherwise
+	// broken by key, so a bound carrying the zero key would sort after any stored entry with
+	// a smaller key and a seek would skip it.
+	isPivot bool
 }
 
 // Less implements the btree.Item interface for B-tree ordering. Items are sorted by value
@@ -60,6 +65,10 @@ func (a *treeItem[K]) Less(b btree.Item) bool {
 	valueCmp := compareValues(a.value, bItem.value)
 	if valueCmp != 0 {
 		return valueCmp < 0
+	}
+
+	if a.isPivot != bItem.isPivot {
+		return a.isPivot
 	}
 
 	aKey := any(a.key)
@@ -492,6 +501,11 @@ func (idx *SortedIndex[K]) KeysBetween(minValue, maxValue any, ascending bool) [
 
 // collectRangeAscending gathers keys within a range in ascending order.
 //
+// The walk seeks to the start of the range rather than beginning at the smallest item, so
+// the cost is proportional to the size of the range instead of the size of the index.
+// That is what makes an equality probe, expressed as a range of one value, an O(log n)
+// lookup.
+//
 // Takes minValue (any) which sets the lower bound of the range.
 // Takes maxValue (any) which sets the upper bound of the range.
 //
@@ -500,7 +514,7 @@ func (idx *SortedIndex[K]) KeysBetween(minValue, maxValue any, ascending bool) [
 // The caller must hold a read lock.
 func (idx *SortedIndex[K]) collectRangeAscending(minValue, maxValue any) []K {
 	result := make([]K, 0)
-	idx.tree.Ascend(func(i btree.Item) bool {
+	idx.tree.AscendGreaterOrEqual(&treeItem[K]{value: minValue, isPivot: true}, func(i btree.Item) bool {
 		item, ok := i.(*treeItem[K])
 		if !ok {
 			return true

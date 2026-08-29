@@ -88,6 +88,8 @@ type StyleTarget struct {
 // decoupled from concrete component implementations.
 type Component interface {
 	// TagName returns the name of the component tag (e.g., "pml-row").
+	//
+	// Returns string which is the component's tag name.
 	TagName() string
 
 	// IsEndingTag determines if the component's children should be treated as raw HTML
@@ -97,7 +99,11 @@ type Component interface {
 	IsEndingTag() bool
 
 	// AllowedParents returns a list of tag names that are allowed to be direct parents of
-	// this component. An empty slice means any parent is allowed.
+	// this component.
+	//
+	// An empty slice means any parent is allowed.
+	//
+	// Returns []string which are the tag names allowed as direct parents.
 	AllowedParents() []string
 
 	// AllowedAttributes returns a map defining all valid attributes for this component and

@@ -137,6 +137,8 @@ type AsyncResultHandler func(submissionID string, result *AnalysisResult)
 // SchemaEntry is implemented by anything that can configure a Schema during construction.
 type SchemaEntry interface {
 	// applyToSchema applies this entry's configuration to the schema.
+	//
+	// Takes schema (*Schema) which receives the configuration.
 	applyToSchema(schema *Schema)
 }
 

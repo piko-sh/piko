@@ -46,7 +46,11 @@ func TestCacheFacadeAPI(t *testing.T) {
 
 		"Builder": (*cache.Builder[string, string])(nil),
 
-		"Options": cache.Options[string, string]{},
+		"Options":          cache.Options[string, string]{},
+		"CauseRejected":    cache.CauseRejected,
+		"ErrDoNotStore":    cache.ErrDoNotStore,
+		"NoLimit":          cache.NoLimit,
+		"ErrEntryTooLarge": cache.ErrEntryTooLarge,
 
 		"Entry": cache.Entry[string, string]{},
 
@@ -72,7 +76,8 @@ func TestCacheFacadeAPI(t *testing.T) {
 
 		"TransformConfig": cache.TransformConfig{},
 
-		"Stats": cache.Stats{},
+		"Stats":           cache.Stats{},
+		"AggregateWeight": cache.AggregateWeight{},
 
 		"StatsRecorder": (*cache.StatsRecorder)(nil),
 

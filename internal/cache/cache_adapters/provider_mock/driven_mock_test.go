@@ -492,3 +492,39 @@ func TestMockAdapter_SetRefreshableAfter_RecordsCalls(t *testing.T) {
 	adapter := provider_mock.NewMockAdapter[string, string]()
 	require.NoError(t, adapter.SetRefreshableAfter(ctx, "k", time.Minute))
 }
+
+func TestMockAdapter_InvalidateByTags_DoesNotStrandKeysInTheirOtherTags(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	adapter := provider_mock.NewMockAdapter[string, string]()
+
+	require.NoError(t, adapter.Set(ctx, "a", "1", "alpha", "beta"))
+
+	count, err := adapter.InvalidateByTags(ctx, "alpha")
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
+
+	remaining, err := adapter.InvalidateByTags(ctx, "beta")
+	require.NoError(t, err)
+	require.Zero(t, remaining, "the key was already invalidated out of alpha and must not linger under beta")
+}
+
+func TestMockAdapter_Set_UnlinksTheTagsOfTheEntryItReplaces(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	adapter := provider_mock.NewMockAdapter[string, string]()
+
+	require.NoError(t, adapter.Set(ctx, "a", "1", "alpha"))
+	require.NoError(t, adapter.Set(ctx, "a", "2", "beta"))
+
+	count, err := adapter.InvalidateByTags(ctx, "alpha")
+	require.NoError(t, err)
+	require.Zero(t, count, "the entry was re-tagged to beta and no longer carries alpha")
+
+	value, found, err := adapter.GetIfPresent(ctx, "a")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, "2", value)
+}

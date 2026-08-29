@@ -55,6 +55,11 @@ type diagnosticContext struct {
 // more SourceError diagnostics. Passes are run sequentially by the diagnosticAnalyser.
 type diagnosticPass interface {
 	// Analyse inspects the query context and returns zero or more diagnostics.
+	//
+	// Takes context (*diagnosticContext) which carries the query and scope information for
+	// the pass.
+	//
+	// Returns []querier_dto.SourceError which holds the diagnostics the pass produced.
 	Analyse(context *diagnosticContext) []querier_dto.SourceError
 }
 

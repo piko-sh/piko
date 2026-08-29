@@ -61,10 +61,9 @@ const (
 type Summariser interface {
 	// Complete sends a completion request to generate a summary.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
-	// Returns *llm_dto.CompletionResponse containing the model's response.
+	// Returns *llm_dto.CompletionResponse which is the model's response.
 	// Returns error when the request fails.
 	Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
 }
@@ -74,16 +73,14 @@ type Summariser interface {
 type MemoryStorePort interface {
 	// Load retrieves the conversation state for the given ID.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes conversationID (string) which identifies the conversation.
 	//
-	// Returns *llm_dto.ConversationState containing the conversation state.
+	// Returns *llm_dto.ConversationState which is the stored conversation state.
 	// Returns error when the state cannot be loaded.
 	Load(ctx context.Context, conversationID string) (*llm_dto.ConversationState, error)
 
 	// Save persists the conversation state.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes state (*llm_dto.ConversationState) which is the state to persist.
 	//
 	// Returns error when the state cannot be saved.
@@ -91,7 +88,6 @@ type MemoryStorePort interface {
 
 	// Delete removes the conversation state.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes conversationID (string) which identifies the conversation.
 	//
 	// Returns error when the state cannot be deleted.
@@ -99,10 +95,9 @@ type MemoryStorePort interface {
 
 	// List returns conversation IDs matching the pattern.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes pattern (string) which is the pattern to match (supports * wildcard).
 	//
-	// Returns []string containing matching conversation IDs.
+	// Returns []string which are the conversation IDs that match the pattern.
 	// Returns error when the list cannot be retrieved.
 	List(ctx context.Context, pattern string) ([]string, error)
 }
@@ -111,35 +106,32 @@ type MemoryStorePort interface {
 type Memory interface {
 	// Load retrieves the conversation state for the given ID.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes conversationID (string) which identifies the conversation.
 	//
-	// Returns *llm_dto.ConversationState containing the conversation state.
+	// Returns *llm_dto.ConversationState which is the stored conversation state.
 	// Returns error when the state cannot be loaded.
 	Load(ctx context.Context, conversationID string) (*llm_dto.ConversationState, error)
 
 	// AddMessage adds a message to the conversation and persists it.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes conversationID (string) which identifies the conversation.
 	// Takes message (llm_dto.Message) which is the message to add.
 	//
 	// Returns error when the message cannot be added.
 	AddMessage(ctx context.Context, conversationID string, message llm_dto.Message) error
 
-	// GetMessages retrieves the messages for a conversation. The messages returned may be
-	// filtered or summarised based on the memory type.
+	// GetMessages retrieves the messages for a conversation.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
+	// The messages returned may be filtered or summarised based on the memory type.
+	//
 	// Takes conversationID (string) which identifies the conversation.
 	//
-	// Returns []llm_dto.Message containing the conversation messages.
+	// Returns []llm_dto.Message which are the conversation messages.
 	// Returns error when the messages cannot be retrieved.
 	GetMessages(ctx context.Context, conversationID string) ([]llm_dto.Message, error)
 
 	// Clear removes all messages from a conversation.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes conversationID (string) which identifies the conversation.
 	//
 	// Returns error when the conversation cannot be cleared.

@@ -26,8 +26,8 @@ import (
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 var (
@@ -217,6 +217,8 @@ func (m *MockAdapter[K, V]) Set(_ context.Context, key K, value V, tags ...strin
 		return m.errToReturn
 	}
 
+	m.unlinkTagsUnsafe(key)
+
 	entry := &mockEntry[V]{value: value, expiresAt: time.Time{}, tags: nil}
 	m.storage[key] = entry
 
@@ -280,11 +282,26 @@ func (m *MockAdapter[K, V]) Invalidate(_ context.Context, key K) error {
 
 	m.invalidateCalls = append(m.invalidateCalls, key)
 
-	entry, ok := m.storage[key]
-	if !ok {
+	if _, ok := m.storage[key]; !ok {
 		return nil
 	}
 
+	m.unlinkTagsUnsafe(key)
+	delete(m.storage, key)
+
+	return nil
+}
+
+// unlinkTagsUnsafe removes a key from every tag bucket it currently occupies.
+//
+// Takes key (any) which identifies the entry whose tag links are removed.
+//
+// Must be called with m.mu held.
+func (m *MockAdapter[K, V]) unlinkTagsUnsafe(key any) {
+	entry, ok := m.storage[key]
+	if !ok {
+		return
+	}
 	for tag := range entry.tags {
 		if keys, ok := m.tagIndex[tag]; ok {
 			delete(keys, key)
@@ -293,10 +310,6 @@ func (m *MockAdapter[K, V]) Invalidate(_ context.Context, key K) error {
 			}
 		}
 	}
-
-	delete(m.storage, key)
-
-	return nil
 }
 
 // Compute computes a new value atomically based on the current value.
@@ -527,6 +540,7 @@ func (m *MockAdapter[K, V]) InvalidateByTags(_ context.Context, tags ...string) 
 	}
 
 	for keyAny := range keysToInvalidate {
+		m.unlinkTagsUnsafe(keyAny)
 		delete(m.storage, keyAny)
 	}
 

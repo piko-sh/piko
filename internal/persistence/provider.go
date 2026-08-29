@@ -380,7 +380,7 @@ func (p *Provider) createPersistentCaches(registryCapacity, orchestratorCapacity
 	snapshotThreshold := valueOrDefault(config.SnapshotThreshold, defaultSnapshotThreshold)
 
 	registryOpts := cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-		MaximumSize: int(registryCapacity),
+		MaximumEntries: int(registryCapacity),
 		ProviderSpecific: cache_adapters_otter.PersistenceConfig[string, *registry_dto.ArtefactMeta]{
 			Enabled:    true,
 			WALConfig:  buildWALConfig(walDir, "registry", syncMode, snapshotThreshold),
@@ -395,7 +395,7 @@ func (p *Provider) createPersistentCaches(registryCapacity, orchestratorCapacity
 	}
 
 	orchestratorOpts := cache_dto.Options[string, *orchestrator_domain.Task]{
-		MaximumSize: int(orchestratorCapacity),
+		MaximumEntries: int(orchestratorCapacity),
 		ProviderSpecific: cache_adapters_otter.PersistenceConfig[string, *orchestrator_domain.Task]{
 			Enabled:    true,
 			WALConfig:  buildWALConfig(walDir, "orchestrator", syncMode, snapshotThreshold),

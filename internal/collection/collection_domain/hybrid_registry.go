@@ -118,8 +118,8 @@ func init() {
 // Returns error which wraps any factory failure.
 func newDefaultHybridCache(namespace string) (cache_domain.Cache[string, HybridCacheValue], error) {
 	c, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, HybridCacheValue]{
-		Namespace:   namespace,
-		MaximumSize: defaultHybridCacheMaxEntries,
+		Namespace:      namespace,
+		MaximumEntries: defaultHybridCacheMaxEntries,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating otter hybrid cache for %q: %w", namespace, err)
@@ -257,9 +257,21 @@ func (h *defaultHybridRegistry) TriggerRevalidation(ctx context.Context, provide
 // hybridCapableProvider defines the interface for providers that support hybrid mode.
 type hybridCapableProvider interface {
 	// ValidateETag checks whether the expected ETag matches the current state.
+	//
+	// Takes collectionName (string) which names the collection to check.
+	// Takes expectedETag (string) which is the ETag the caller already holds.
+	//
+	// Returns string which is the current ETag of the collection.
+	// Returns bool which reports whether the content has changed.
+	// Returns error when the check fails.
 	ValidateETag(ctx context.Context, collectionName, expectedETag string) (string, bool, error)
 
 	// FetchStaticContent retrieves all static content items from a collection.
+	//
+	// Takes collectionName (string) which names the collection to read.
+	//
+	// Returns []collection_dto.ContentItem which are the collection's static items.
+	// Returns error when the fetch fails.
 	FetchStaticContent(ctx context.Context, collectionName string) ([]collection_dto.ContentItem, error)
 }
 

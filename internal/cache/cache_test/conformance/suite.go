@@ -197,14 +197,14 @@ func RunSearchSuite(t *testing.T, config ProductConfig) {
 
 func defaultStringOptions() cache_dto.Options[string, string] {
 	return cache_dto.Options[string, string]{
-		MaximumSize:      1000,
+		MaximumEntries:   1000,
 		ExpiryCalculator: &variableExpiryCalculator[string, string]{},
 	}
 }
 
 func defaultProductOptions() cache_dto.Options[string, Product] {
 	return cache_dto.Options[string, Product]{
-		MaximumSize:      1000,
+		MaximumEntries:   1000,
 		ExpiryCalculator: &variableExpiryCalculator[string, Product]{},
 		SearchSchema: cache_dto.NewSearchSchema(
 			cache_dto.TextField("name"),

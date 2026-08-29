@@ -114,5 +114,7 @@ type Snapshot struct {
 // an internal type.
 type Probe interface {
 	// CheckReadiness runs piko's readiness checks and returns a flattened Snapshot.
+	//
+	// Returns Snapshot which holds the overall readiness state and its dependencies.
 	CheckReadiness(ctx context.Context) Snapshot
 }

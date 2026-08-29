@@ -37,11 +37,26 @@ type FileSetInterpreterPort interface {
 	// CompileProgram compiles a multi-package Go program rooted at modulePath.
 	//
 	// The packages map is keyed by relative package path, each value a filename-to-source
-	// map. Returns the compiled program for subsequent ExecuteEntrypoint calls.
+	// map. The compiled program is then used for subsequent ExecuteEntrypoint calls.
+	//
+	// Takes modulePath (string) which is the module root the program is compiled under.
+	// Takes packages (map[string]map[string]string) which maps each package path to its
+	// filename-to-source map.
+	//
+	// Returns *interp_domain.CompiledFileSet which is the compiled program.
+	// Returns error when compilation fails.
 	CompileProgram(ctx context.Context, modulePath string, packages map[string]map[string]string) (*interp_domain.CompiledFileSet, error)
 
-	// ExecuteEntrypoint runs the named function in cfs and returns its result. Variable
-	// initialisers and init functions run before the entrypoint, in package-init order.
+	// ExecuteEntrypoint runs the named function in cfs and returns its result.
+	//
+	// Variable initialisers and init functions run before the entrypoint, in package-init
+	// order.
+	//
+	// Takes cfs (*interp_domain.CompiledFileSet) which is the compiled program to run.
+	// Takes entrypoint (string) which names the function to invoke.
+	//
+	// Returns any which is the value the entrypoint returned.
+	// Returns error when the entrypoint is missing or fails.
 	ExecuteEntrypoint(ctx context.Context, cfs *interp_domain.CompiledFileSet, entrypoint string) (any, error)
 }
 

@@ -223,8 +223,11 @@ func (fingerprint forStmtFingerprint) signature() forStmtFingerprintSignature {
 // aborts compilation.
 type forStmtRecogniser interface {
 	// Name returns a short stable identifier for diagnostics and disassembler annotations.
+	//
 	// Use a dotted namespace prefix (`simd.dot_product_f64`, `loop.unroll`) so multiple
 	// recognisers from the same consumer share an obvious tag.
+	//
+	// Returns string which is the stable recogniser identifier.
 	Name() string
 
 	// Priority returns the bucket tiebreaker rank.
@@ -239,8 +242,13 @@ type forStmtRecogniser interface {
 	Priority() int
 
 	// AcceptedSignatures returns every fingerprint signature this recogniser is willing to
-	// consider. The registry indexes recognisers by these signatures at registration time so
-	// dispatch is O(1) per node regardless of how many recognisers are registered.
+	// consider.
+	//
+	// The registry indexes recognisers by these signatures at registration time so dispatch
+	// is O(1) per node regardless of how many recognisers are registered.
+	//
+	// Returns []forStmtFingerprintSignature which holds every signature the recogniser
+	// accepts.
 	AcceptedSignatures() []forStmtFingerprintSignature
 
 	// Match performs targeted per-pattern validation.

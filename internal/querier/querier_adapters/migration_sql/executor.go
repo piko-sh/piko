@@ -89,15 +89,38 @@ const (
 // held.
 type queryRunner interface {
 	// ExecContext executes a query without returning rows.
+	//
+	// Takes query (string) which is the SQL statement to run.
+	// Takes args (...any) which are the bind parameters for the statement.
+	//
+	// Returns sql.Result which reports the rows affected and any generated identifier.
+	// Returns error when the statement cannot be run.
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 
 	// QueryContext executes a query that returns rows.
+	//
+	// Takes query (string) which is the SQL statement to run.
+	// Takes args (...any) which are the bind parameters for the statement.
+	//
+	// Returns *sql.Rows which holds the result set, and which the caller must close.
+	// Returns error when the query cannot be run.
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 
 	// QueryRowContext executes a query expected to return at most one row.
+	//
+	// Takes query (string) which is the SQL statement to run.
+	// Takes args (...any) which are the bind parameters for the statement.
+	//
+	// Returns *sql.Row which carries the single row, or the deferred error raised by Scan.
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 
 	// BeginTx starts a new transaction with the given options.
+	//
+	// Takes opts (*sql.TxOptions) which sets the isolation level and read-only flag. May be
+	// nil to accept the driver defaults.
+	//
+	// Returns *sql.Tx which is the started transaction.
+	// Returns error when the transaction cannot be started.
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
@@ -107,6 +130,12 @@ type queryRunner interface {
 // connection/pool (the non-transactional engines such as ClickHouse).
 type execContextRunner interface {
 	// ExecContext executes a query without returning rows.
+	//
+	// Takes query (string) which is the SQL statement to run.
+	// Takes args (...any) which are the bind parameters for the statement.
+	//
+	// Returns sql.Result which reports the rows affected and any generated identifier.
+	// Returns error when the statement cannot be run.
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 

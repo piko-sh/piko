@@ -37,7 +37,7 @@ import (
 func cacheControlForArtefact(disableHTTPCache, foundByStorageKey bool, variant *registry_dto.Variant) string {
 	switch {
 	case foundByStorageKey:
-		return cacheControlForMode(disableHTTPCache, cacheControlLongLived)
+		return cacheControlForMode(disableHTTPCache, cacheControlImmutable)
 	case isCosmeticMediaVariant(variant):
 		return cacheControlForMode(disableHTTPCache, cacheControlMutableAsset)
 	default:

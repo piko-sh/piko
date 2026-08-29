@@ -131,11 +131,21 @@ type TaskDispatcher interface {
 	Start(ctx context.Context) error
 
 	// Stats returns the current dispatcher statistics for monitoring.
+	//
+	// Returns DispatcherStats which is a snapshot of queue and worker counters.
 	Stats() DispatcherStats
 
-	// IsIdle returns true when the dispatcher has no work remaining: - All dispatched tasks
-	// have completed or failed - All queues are empty - No delayed tasks are pending - No
-	// workers are actively processing Used for build completion detection.
+	// IsIdle returns true when the dispatcher has no work remaining.
+	//
+	// The dispatcher counts as idle when all of the following hold:
+	//   - All dispatched tasks have completed or failed
+	//   - All queues are empty
+	//   - No delayed tasks are pending
+	//   - No workers are actively processing
+	//
+	// Used for build completion detection.
+	//
+	// Returns bool which reports whether the dispatcher has no work left.
 	IsIdle() bool
 
 	// FailedTasks returns a summary of all tasks currently in the FAILED state. When a build
@@ -146,10 +156,16 @@ type TaskDispatcher interface {
 	FailedTasks(ctx context.Context) ([]FailedTaskSummary, error)
 
 	// SetBuildTag sets an optional tag that scopes newly dispatched tasks to a particular
-	// build run. Pass an empty string to clear the tag.
+	// build run.
+	//
+	// Pass an empty string to clear the tag.
+	//
+	// Takes tag (string) which scopes newly dispatched tasks to one build run.
 	SetBuildTag(tag string)
 
 	// BuildTag returns the current build tag, or empty if none is set.
+	//
+	// Returns string which is the current build tag, or empty when none is set.
 	BuildTag() string
 }
 

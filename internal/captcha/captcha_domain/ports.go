@@ -58,6 +58,8 @@ type ClientIPExtractor interface {
 // CaptchaProvider defines the interface for captcha verification adapters.
 type CaptchaProvider interface {
 	// Type returns the provider type for identification and logging.
+	//
+	// Returns captcha_dto.ProviderType which identifies the kind of provider.
 	Type() captcha_dto.ProviderType
 
 	// Verify verifies a captcha token and returns the verification result.
@@ -187,9 +189,13 @@ type CaptchaServicePort interface {
 	SetDefaultProvider(name string) error
 
 	// GetProviders returns a sorted list of all registered provider names.
+	//
+	// Returns []string which lists the registered provider names in sorted order.
 	GetProviders(ctx context.Context) []string
 
 	// HasProvider checks if a provider with the given name has been registered.
+	//
+	// Takes name (string) which identifies the provider to look for.
 	//
 	// Returns bool which is true if the provider exists.
 	HasProvider(name string) bool

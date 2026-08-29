@@ -128,6 +128,10 @@ type DatabaseHealthDiagnostic struct {
 // discovers this via type assertion on EngineConfig.Engine.
 type DatabaseHealthChecker interface {
 	// CheckHealth performs engine-specific health diagnostics on a database connection.
+	//
+	// Takes database (*sql.DB) which is the connection to diagnose.
+	//
+	// Returns []DatabaseHealthDiagnostic which are the diagnostics the engine reported.
 	CheckHealth(ctx context.Context, database *sql.DB) []DatabaseHealthDiagnostic
 }
 
@@ -136,12 +140,29 @@ type DatabaseHealthChecker interface {
 // *sql.Tx.
 type DBTX interface {
 	// ExecContext executes a query without returning any rows.
+	//
+	// Takes query (string) which is the SQL query to execute.
+	// Takes args (...any) which are the query parameters.
+	//
+	// Returns sql.Result which holds the execution result.
+	// Returns error when the query fails.
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 
 	// QueryContext executes a query that returns rows.
+	//
+	// Takes query (string) which is the SQL query to execute.
+	// Takes args (...any) which are the query parameters.
+	//
+	// Returns *sql.Rows which holds the query result rows.
+	// Returns error when the query fails.
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 
 	// QueryRowContext executes a query that returns at most one row.
+	//
+	// Takes query (string) which is the SQL query to execute.
+	// Takes args (...any) which are the query parameters.
+	//
+	// Returns *sql.Row which holds the single result row.
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 

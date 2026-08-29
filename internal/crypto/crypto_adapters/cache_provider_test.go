@@ -65,7 +65,7 @@ func TestCacheCreationViaFactoryBlueprint(t *testing.T) {
 		cache, err := cache_domain.NewCacheBuilder[string, *crypto_dto.SecureBytes](service).
 			FactoryBlueprint("crypto-secure-bytes").
 			Namespace("test-secure-bytes").
-			MaximumSize(100).
+			MaximumEntries(100).
 			Build(context.Background())
 
 		require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestCacheCreationViaFactoryBlueprint(t *testing.T) {
 		cache, err := cache_domain.NewCacheBuilder[string, *crypto_dto.SecureBytes](service).
 			FactoryBlueprint("crypto-secure-bytes").
 			Namespace("test-interface").
-			MaximumSize(100).
+			MaximumEntries(100).
 			Build(context.Background())
 
 		require.NoError(t, err)
@@ -186,7 +186,7 @@ func TestOnDeletionCallback(t *testing.T) {
 		cache, err := cache_domain.NewCacheBuilder[string, *crypto_dto.SecureBytes](service).
 			FactoryBlueprint("crypto-secure-bytes").
 			Namespace("test-ondeletion").
-			MaximumSize(100).
+			MaximumEntries(100).
 			OnDeletion(func(e cache_dto.DeletionEvent[string, *crypto_dto.SecureBytes]) {
 				deletedKey = e.Key
 				deletedValue = e.Value
@@ -225,7 +225,7 @@ func TestOnDeletionCallback(t *testing.T) {
 		cache, err := cache_domain.NewCacheBuilder[string, *crypto_dto.SecureBytes](service).
 			FactoryBlueprint("crypto-secure-bytes").
 			Namespace("test-close-ondeletion").
-			MaximumSize(100).
+			MaximumEntries(100).
 			OnDeletion(func(e cache_dto.DeletionEvent[string, *crypto_dto.SecureBytes]) {
 				if e.Value != nil {
 					_ = e.Value.Close()
@@ -307,7 +307,7 @@ func setupTestCache(t *testing.T) cache_domain.Cache[string, *crypto_dto.SecureB
 	cache, err := cache_domain.NewCacheBuilder[string, *crypto_dto.SecureBytes](service).
 		FactoryBlueprint("crypto-secure-bytes").
 		Namespace("test-" + t.Name()).
-		MaximumSize(1000).
+		MaximumEntries(1000).
 		Build(context.Background())
 
 	require.NoError(t, err)

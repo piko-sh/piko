@@ -369,6 +369,8 @@ type EmailTemplateService interface {
 // template.
 type PageEntryView interface {
 	// GetHasMiddleware reports whether the handler has middleware attached.
+	//
+	// Returns bool which reports whether middleware is attached.
 	GetHasMiddleware() bool
 
 	// GetMiddlewareFuncName returns the name of the middleware function.
@@ -400,6 +402,8 @@ type PageEntryView interface {
 	GetMiddlewares() []func(http.Handler) http.Handler
 
 	// GetHasAuthPolicy reports whether the page declares auth requirements.
+	//
+	// Returns bool which reports whether an auth policy is declared.
 	GetHasAuthPolicy() bool
 
 	// GetAuthPolicy returns the auth policy for the given request.
@@ -410,6 +414,8 @@ type PageEntryView interface {
 	GetAuthPolicy(r *templater_dto.RequestData) daemon_dto.AuthPolicy
 
 	// GetIsPage reports whether the element represents a page.
+	//
+	// Returns bool which reports whether the element is a page rather than a partial.
 	GetIsPage() bool
 
 	// GetRoutePattern returns the first route pattern for partials and logging.
@@ -451,6 +457,8 @@ type PageEntryView interface {
 	GetASTRootWithProps(*templater_dto.RequestData, any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata)
 
 	// GetStyling returns the styling settings as a string.
+	//
+	// Returns string which holds the styling settings for the entry.
 	GetStyling() string
 
 	// GetAssetRefs returns the asset references associated with this entity.
@@ -501,9 +509,13 @@ type PageEntryView interface {
 
 	// GetHasPreview reports whether this component defines a Preview function for dev-mode
 	// previewing.
+	//
+	// Returns bool which reports whether a Preview function is defined.
 	GetHasPreview() bool
 
 	// GetPreviewScenarios returns the preview scenarios for this component.
-	// Returns nil if the component has no Preview function.
+	//
+	// Returns []templater_dto.PreviewScenario which are the scenarios to render, or nil if
+	// the component has no Preview function.
 	GetPreviewScenarios() []templater_dto.PreviewScenario
 }

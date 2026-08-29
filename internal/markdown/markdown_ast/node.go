@@ -400,7 +400,8 @@ type Attributable interface {
 	//
 	// Takes name (string) which is the attribute key.
 	//
-	// Returns any which is the value, and bool which is true when found.
+	// Returns any which is the attribute value.
+	// Returns bool which reports whether the attribute was found.
 	AttributeString(name string) (any, bool)
 
 	// SetAttributeString sets a named attribute.

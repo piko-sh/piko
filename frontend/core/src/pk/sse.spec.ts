@@ -563,5 +563,62 @@ describe('sse (Server-Sent Events)', () => {
 
             sub.unsubscribe();
         });
+
+        it('should report each reconnection attempt', () => {
+            const sub = createSSESubscription('my-partial', {
+                url: '/events',
+                reconnectDelay: 100,
+                maxReconnects: 5
+            });
+            lastMockInstance!.triggerOpen();
+            expect(sub.reconnectCount).toBe(0);
+
+            lastMockInstance!.triggerError();
+            expect(sub.reconnectCount).toBe(1);
+
+            vi.advanceTimersByTime(100);
+            lastMockInstance!.triggerError();
+            expect(sub.reconnectCount).toBe(2);
+
+            sub.unsubscribe();
+        });
+
+        it('should reset the count once the connection is open again', () => {
+            const sub = createSSESubscription('my-partial', {
+                url: '/events',
+                reconnectDelay: 100,
+                maxReconnects: 5
+            });
+            lastMockInstance!.triggerOpen();
+
+            lastMockInstance!.triggerError();
+            expect(sub.reconnectCount).toBe(1);
+
+            vi.advanceTimersByTime(100);
+            lastMockInstance!.triggerOpen();
+
+            expect(sub.state).toBe('open');
+            expect(sub.reconnectCount).toBe(0);
+
+            sub.unsubscribe();
+        });
+
+        it('should honour a stop-on-error strategy passed through options', () => {
+            const onClose = vi.fn();
+            const sub = createSSESubscription('my-partial', {
+                url: '/events',
+                onError: 'stop',
+                onClose
+            });
+            lastMockInstance!.triggerOpen();
+
+            lastMockInstance!.triggerError();
+
+            expect(sub.reconnectCount).toBe(0);
+            expect(onClose).toHaveBeenCalledTimes(1);
+            expect(sub.state).toBe('closed');
+
+            sub.unsubscribe();
+        });
     });
 });

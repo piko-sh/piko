@@ -29,9 +29,9 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/crypto/crypto_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -346,7 +346,7 @@ func NewCryptoService(ctx context.Context, cacheService cache_domain.Service, co
 		dkCache, err := cache_domain.NewCacheBuilder[string, *crypto_dto.SecureBytes](cacheService).
 			FactoryBlueprint("crypto-secure-bytes").
 			Namespace("crypto-datakeys").
-			MaximumSize(config.DataKeyCacheMaxSize).
+			MaximumEntries(config.DataKeyCacheMaxSize).
 			Expiration(config.DataKeyCacheTTL).
 			OnDeletion(func(e cache_dto.DeletionEvent[string, *crypto_dto.SecureBytes]) {
 				if e.Value != nil {

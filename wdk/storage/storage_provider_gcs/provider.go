@@ -766,8 +766,13 @@ type (
 	// jobResult represents the outcome of an upload or delete operation.
 	jobResult interface {
 		// Key returns the unique identifier for this configuration entry.
+		//
+		// Returns string which is the unique identifier for the entry.
 		Key() string
+
 		// Error returns the underlying error that caused this failure.
+		//
+		// Returns error when the operation failed, otherwise nil.
 		Error() error
 	}
 

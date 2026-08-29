@@ -40,7 +40,7 @@ func TestNewMetadataCache(t *testing.T) {
 		t.Parallel()
 
 		cache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-			MaximumSize: 100,
+			MaximumEntries: 100,
 		})
 		require.NoError(t, err)
 		defer func() { _ = cache.Close(context.Background()) }()
@@ -344,7 +344,7 @@ func setupTestCache(t *testing.T) (cache_domain.Cache[string, *registry_dto.Arte
 	t.Helper()
 
 	otterProvider, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 	})
 	require.NoError(t, err)
 

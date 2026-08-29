@@ -119,7 +119,7 @@ func InitCache(ctx context.Context) error {
 
     customerCache, err = cache.CreateNamespace[string, Customer](
         ctx, service, "memory", "customer",
-        cache.Options[string, Customer]{MaximumSize: 10000},
+        cache.Options[string, Customer]{MaximumEntries: 10000},
     )
     return err
 }
@@ -191,8 +191,8 @@ schema := cache.NewSearchSchema(
 )
 
 opts := cache.Options[string, Customer]{
-    MaximumSize:  10000,
-    SearchSchema: schema,
+    MaximumEntries: 10000,
+    SearchSchema:   schema,
 }
 ```
 
@@ -244,7 +244,7 @@ if err != nil {
 customerCache, err := builder.
     Provider("memory").
     Namespace("customer").
-    MaximumSize(10000).
+    MaximumEntries(10000).
     Compression().
     Encryption().
     Build(ctx)
@@ -263,7 +263,7 @@ zstdConfig := cache_transformer_zstd.DefaultConfig()
 customerCache, err := builder.
     Provider("memory").
     Namespace("customer").
-    MaximumSize(10000).
+    MaximumEntries(10000).
     Transformer("zstd", zstdConfig).
     Transformer("crypto-service").
     Build(ctx)

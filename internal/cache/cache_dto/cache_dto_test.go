@@ -21,6 +21,12 @@ package cache_dto
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+)
+
+const (
+	ratioTolerance = 1e-9
 )
 
 func TestDeletionEvent_WasEvicted(t *testing.T) {
@@ -30,14 +36,14 @@ func TestDeletionEvent_WasEvicted(t *testing.T) {
 	}{
 		{cause: CauseInvalidation, want: false},
 		{cause: CauseReplacement, want: false},
+		{cause: CauseRejected, want: false},
 		{cause: CauseOverflow, want: true},
 		{cause: CauseExpiration, want: true},
 	}
 	for _, tt := range tests {
 		de := DeletionEvent[string, int]{Cause: tt.cause}
-		if got := de.WasEvicted(); got != tt.want {
-			t.Errorf("WasEvicted(cause=%d) = %v, want %v", tt.cause, got, tt.want)
-		}
+		assert.Equal(t, tt.want, de.WasEvicted(),
+			"a refused entry was never admitted, so it cannot have been evicted (cause=%d)", tt.cause)
 	}
 }
 
@@ -55,23 +61,24 @@ func TestStats_HitRatio(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := Stats{Hits: tt.hits, Misses: tt.misses}
-			if got := s.HitRatio(); got != tt.want {
-				t.Errorf("HitRatio() = %f, want %f", got, tt.want)
-			}
+			got, ok := s.HitRatio()
+			assert.InDelta(t, tt.want, got, ratioTolerance)
+			assert.Equal(t, tt.hits+tt.misses > 0, ok,
+				"a cache with no requests has no ratio to report")
 		})
 	}
 }
 
 func TestStats_MissRatio(t *testing.T) {
 	s := Stats{Hits: 75, Misses: 25}
-	if got := s.MissRatio(); got != 0.25 {
-		t.Errorf("MissRatio() = %f, want 0.25", got)
-	}
+	got, ok := s.MissRatio()
+	assert.InDelta(t, 0.25, got, ratioTolerance)
+	assert.True(t, ok)
 
 	empty := Stats{}
-	if got := empty.MissRatio(); got != 0.0 {
-		t.Errorf("MissRatio() on empty = %f, want 0.0", got)
-	}
+	got, ok = empty.MissRatio()
+	assert.Zero(t, got)
+	assert.False(t, ok, "a cache with no requests has no ratio to report")
 }
 
 func TestStats_AverageLoadPenalty(t *testing.T) {
@@ -80,15 +87,14 @@ func TestStats_AverageLoadPenalty(t *testing.T) {
 		LoadFailureCount: 2,
 		TotalLoadTime:    10 * time.Second,
 	}
-	got := s.AverageLoadPenalty()
-	if got != time.Second {
-		t.Errorf("AverageLoadPenalty() = %v, want 1s", got)
-	}
+	got, ok := s.AverageLoadPenalty()
+	assert.Equal(t, time.Second, got)
+	assert.True(t, ok)
 
 	empty := Stats{}
-	if got := empty.AverageLoadPenalty(); got != 0 {
-		t.Errorf("AverageLoadPenalty() on empty = %v, want 0", got)
-	}
+	got, ok = empty.AverageLoadPenalty()
+	assert.Zero(t, got)
+	assert.False(t, ok, "a cache that has never loaded has no penalty to report")
 }
 
 func TestSearchResult_Keys(t *testing.T) {

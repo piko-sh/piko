@@ -1723,6 +1723,9 @@ function createErrorHandler(state, url, onError, reconnectDelay, maxReconnects, 
   };
 }
 function subscribeToUpdates(name, options) {
+  return startConnection(name, options).unsubscribe;
+}
+function startConnection(name, options) {
   const {
     url,
     onMessage,
@@ -1768,7 +1771,7 @@ function subscribeToUpdates(name, options) {
     }
   };
   connect();
-  return () => {
+  const unsubscribe = () => {
     state.stopped = true;
     if (state.reconnectTimeout) {
       clearTimeout(state.reconnectTimeout);
@@ -1776,30 +1779,28 @@ function subscribeToUpdates(name, options) {
     state.eventSource?.close();
     onClose?.();
   };
+  return { unsubscribe, state };
 }
 function createSSESubscription(name, options) {
-  let state = "connecting";
-  let reconnectCount = 0;
-  const unsubscribe = subscribeToUpdates(name, {
+  let connectionState = "connecting";
+  const connection = startConnection(name, {
     ...options,
     onOpen: () => {
-      state = "open";
-      reconnectCount = 0;
+      connectionState = "open";
       options.onOpen?.();
     },
     onClose: () => {
-      state = "closed";
+      connectionState = "closed";
       options.onClose?.();
-    },
-    onError: options.onError
+    }
   });
   return {
-    unsubscribe,
+    unsubscribe: connection.unsubscribe,
     get state() {
-      return state;
+      return connectionState;
     },
     get reconnectCount() {
-      return reconnectCount;
+      return connection.state.reconnectCount;
     }
   };
 }
@@ -3192,6 +3193,12 @@ function getCSRFTokenFromMeta() {
 function getCSRFEphemeralFromMeta() {
   return document.querySelector(`meta[name="${CSRF_EPHEMERAL_META_NAME}"]`)?.content ?? null;
 }
+function getCSRFTokensFromMeta() {
+  return {
+    actionToken: getCSRFTokenFromMeta(),
+    ephemeralToken: getCSRFEphemeralFromMeta()
+  };
+}
 const HTTP_STATUS_UNPROCESSABLE$1 = 422;
 const HTTP_STATUS_FORBIDDEN$1 = 403;
 const CSRF_ERROR_EXPIRED = "csrf_expired";
@@ -4335,16 +4342,31 @@ function getActionFunction(name) {
   return actionFunctionRegistry.get(name);
 }
 async function batch(...actions) {
+  return batchWith({}, ...actions);
+}
+async function batchWith(options, ...actions) {
+  const { actionToken, ephemeralToken } = getCSRFTokensFromMeta();
+  const headers = { "Content-Type": "application/json" };
+  if (actionToken) {
+    headers["X-CSRF-Action-Token"] = actionToken;
+  }
+  const body = {
+    actions: actions.map((a) => ({
+      name: a.action,
+      args: marshalActionArgs(a.args ?? [])
+    }))
+  };
+  if (ephemeralToken) {
+    body["_csrf_ephemeral_token"] = ephemeralToken;
+  }
+  if (options.parallel) {
+    body["parallel"] = true;
+  }
   const response = await fetch("/_piko/actions/_batch", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     credentials: "same-origin",
-    body: JSON.stringify({
-      actions: actions.map((a) => ({
-        name: a.action,
-        args: marshalActionArgs(a.args ?? [])
-      }))
-    })
+    body: JSON.stringify(body)
   });
   if (!response.ok) {
     throw createActionError(
@@ -7068,6 +7090,7 @@ export {
   _registerLifecycle,
   _runPageCleanup,
   batch,
+  batchWith,
   bus,
   createActionBuilder,
   getGlobalPageContext,

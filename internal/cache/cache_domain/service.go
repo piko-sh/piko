@@ -28,9 +28,9 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/cache/cache_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -59,7 +59,11 @@ type service struct {
 	// defaultProvider is the name of the provider to use when none is specified.
 	defaultProvider string
 
-	// mu guards access to providers and defaultProvider.
+	// weightBudget is the advisory envelope declared for every in-process cache; 0 means
+	// none.
+	weightBudget uint64
+
+	// mu guards access to providers, defaultProvider and weightBudget.
 	mu sync.RWMutex
 }
 
@@ -390,5 +394,5 @@ func createCacheFromProvider[K comparable, V any](
 		return nil, fmt.Errorf("provider '%s' returned invalid cache type for namespace '%s'", providerName, namespace)
 	}
 
-	return cache, nil
+	return newAdmissionGate(cache, options), nil
 }

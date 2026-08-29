@@ -250,5 +250,10 @@ type OrchestratorDALWithTx interface {
 	//
 	// The provided TaskStore is scoped to the transaction; all reads and writes through it
 	// are atomic. If fn returns an error (or panics), all mutations are rolled back.
+	//
+	// Takes fn (func(ctx context.Context, transactionStore orchestrator_domain.TaskStore) error)
+	// which is the work to run inside the transaction.
+	//
+	// Returns error when fn fails or the transaction cannot be committed.
 	RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore orchestrator_domain.TaskStore) error) error
 }

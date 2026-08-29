@@ -1327,6 +1327,95 @@ func staticByIDRegistry(artefactID, mimeType, etag, body string) *registry_domai
 	}
 }
 
+func contentAddressedRegistry(storageKey, mimeType, body string) *registry_domain.MockRegistryService {
+	tags := registry_dto.Tags{}
+	tags.Set(registry_dto.TagEtag, `"content-addressed"`)
+	artefact := &registry_dto.ArtefactMeta{
+		ID:     "logical-id",
+		Status: registry_dto.VariantStatusReady,
+		ActualVariants: []registry_dto.Variant{
+			{
+				VariantID:    variantSource,
+				MimeType:     mimeType,
+				StorageKey:   storageKey,
+				SizeBytes:    int64(len(body)),
+				Status:       registry_dto.VariantStatusReady,
+				MetadataTags: tags,
+			},
+		},
+	}
+	return &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			return nil, registry_domain.ErrArtefactNotFound
+		},
+		FindArtefactByVariantStorageKeyFunc: func(_ context.Context, key string) (*registry_dto.ArtefactMeta, error) {
+			if key != storageKey {
+				return nil, registry_domain.ErrArtefactNotFound
+			}
+			return artefact, nil
+		},
+		GetVariantDataFunc: func(_ context.Context, _ *registry_dto.Variant) (io.ReadCloser, error) {
+			return io.NopCloser(strings.NewReader(body)), nil
+		},
+	}
+}
+
+func TestServeArtefact_ContentAddressedURLIsImmutableInProduction(t *testing.T) {
+	t.Parallel()
+
+	const storageKey = "generated/app_a1b2c3d4e5f60718.js"
+	const body = "export const value = 1;"
+
+	registry := contentAddressedRegistry(storageKey, "application/javascript", body)
+
+	builder := &HTTPRouterBuilder{}
+	t.Cleanup(builder.Close)
+	router := chi.NewRouter()
+	router.Get("/_piko/assets/*", builder.serveArtefact(registry, daemon_domain.OnDemandVariantGenerator(nil), false))
+
+	request := httptest.NewRequest(http.MethodGet, "/_piko/assets/"+storageKey, nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, cacheControlImmutable, recorder.Header().Get(headerCacheControl),
+		"a URL that names its own bytes can never need revalidating")
+	assert.Equal(t, headerAcceptEncoding, recorder.Header().Get("Vary"),
+		"a compressed sibling may be served for the same URL, so Vary is required")
+
+	etag := recorder.Header().Get(headerETag)
+	require.NotEmpty(t, etag)
+
+	conditional := httptest.NewRequest(http.MethodGet, "/_piko/assets/"+storageKey, nil)
+	conditional.Header.Set(headerIfNoneMatch, etag)
+	conditionalRecorder := httptest.NewRecorder()
+	router.ServeHTTP(conditionalRecorder, conditional)
+
+	require.Equal(t, http.StatusNotModified, conditionalRecorder.Code)
+	assert.Equal(t, cacheControlImmutable, conditionalRecorder.Header().Get(headerCacheControl),
+		"the 304 must carry the same policy as the 200")
+}
+
+func TestServeArtefact_ContentAddressedURLRevalidatesInDevelopment(t *testing.T) {
+	t.Parallel()
+
+	const storageKey = "generated/app_a1b2c3d4e5f60718.js"
+	registry := contentAddressedRegistry(storageKey, "application/javascript", "export const value = 1;")
+
+	builder := &HTTPRouterBuilder{}
+	t.Cleanup(builder.Close)
+	router := chi.NewRouter()
+	router.Get("/_piko/assets/*", builder.serveArtefact(registry, daemon_domain.OnDemandVariantGenerator(nil), true))
+
+	request := httptest.NewRequest(http.MethodGet, "/_piko/assets/"+storageKey, nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, cacheControlNoCache, recorder.Header().Get(headerCacheControl),
+		"dev mode must not pin an asset for a year")
+}
+
 func TestServeArtefact_CacheControlAndVaryHeaders(t *testing.T) {
 	t.Parallel()
 

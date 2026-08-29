@@ -409,6 +409,6 @@ type StaticPrerenderer interface {
 	// render.
 	//
 	// Returns []byte which contains the rendered HTML.
-	// Returns error if rendering fails (should not happen for valid static nodes).
+	// Returns error when rendering fails, which should not happen for valid static nodes.
 	RenderStaticNode(node *ast_domain.TemplateNode) ([]byte, error)
 }

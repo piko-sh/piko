@@ -200,7 +200,7 @@ func createBenchCacheWithCodec(b *testing.B, walEnabled bool, syncMode wal_domai
 	}
 
 	opts := cache_dto.Options[string, benchArticle]{
-		MaximumSize:      100_000,
+		MaximumEntries:   100_000,
 		ProviderSpecific: providerSpecific,
 	}
 
@@ -547,7 +547,7 @@ func benchmarkCheckpoint(b *testing.B, stateSize int) {
 		walConfig.SnapshotThreshold = stateSize * 2
 
 		opts := cache_dto.Options[string, benchArticle]{
-			MaximumSize: int(stateSize * 2),
+			MaximumEntries: int(stateSize * 2),
 			ProviderSpecific: PersistenceConfig[string, benchArticle]{
 				Enabled:    true,
 				WALConfig:  walConfig,
@@ -609,7 +609,7 @@ func benchmarkRecovery(b *testing.B, entryCount int, withSnapshot bool) {
 		walConfig.SnapshotThreshold = entryCount * 2
 
 		opts := cache_dto.Options[string, benchArticle]{
-			MaximumSize: int(entryCount * 2),
+			MaximumEntries: int(entryCount * 2),
 			ProviderSpecific: PersistenceConfig[string, benchArticle]{
 				Enabled:    true,
 				WALConfig:  walConfig,

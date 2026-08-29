@@ -17,6 +17,7 @@
 // strip others of their rights and dignity.
 
 import {callServerActionDirect, marshalActionArgs, type DirectCallResponse} from '@/core/ActionExecutor';
+import {getCSRFTokensFromMeta} from '@/core/CSRFUtils';
 
 /** HTTP status code for validation errors. */
 const HTTP_STATUS_UNPROCESSABLE = 422;
@@ -731,6 +732,12 @@ export interface BatchActionResponse<T extends unknown[]> {
     success: boolean;
 }
 
+/** Options for a batch action request. */
+export interface BatchOptions {
+    /** Runs the batch entries concurrently. Results stay in request order either way. */
+    parallel?: boolean;
+}
+
 /**
  * Executes multiple actions in a single HTTP request.
  *
@@ -743,16 +750,45 @@ export interface BatchActionResponse<T extends unknown[]> {
 export async function batch<T extends unknown[]>(
     ...actions: { [K in keyof T]: ActionDescriptor<T[K]> }
 ): Promise<BatchActionResponse<T>> {
+    return batchWith<T>({}, ...actions);
+}
+
+/**
+ * Executes multiple actions in a single HTTP request, with batch-level options.
+ *
+ * @param options - Batch options such as parallel execution.
+ * @param actions - ActionBuilders to execute.
+ * @returns Promise resolving to batch response with all results.
+ */
+export async function batchWith<T extends unknown[]>(
+    options: BatchOptions,
+    ...actions: { [K in keyof T]: ActionDescriptor<T[K]> }
+): Promise<BatchActionResponse<T>> {
+    const {actionToken, ephemeralToken} = getCSRFTokensFromMeta();
+
+    const headers: Record<string, string> = {'Content-Type': 'application/json'};
+    if (actionToken) {
+        headers['X-CSRF-Action-Token'] = actionToken;
+    }
+
+    const body: Record<string, unknown> = {
+        actions: actions.map(a => ({
+            name: a.action,
+            args: marshalActionArgs(a.args ?? [])
+        }))
+    };
+    if (ephemeralToken) {
+        body['_csrf_ephemeral_token'] = ephemeralToken;
+    }
+    if (options.parallel) {
+        body['parallel'] = true;
+    }
+
     const response = await fetch('/_piko/actions/_batch', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers,
         credentials: 'same-origin',
-        body: JSON.stringify({
-            actions: actions.map(a => ({
-                name: a.action,
-                args: marshalActionArgs(a.args ?? [])
-            }))
-        })
+        body: JSON.stringify(body)
     });
 
     if (!response.ok) {

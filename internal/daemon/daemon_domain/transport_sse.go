@@ -39,8 +39,13 @@ var (
 // (SSE) streaming. When an action implements SSECapable, clients can request SSE
 // transport for progressive updates.
 type SSECapable interface {
-	// StreamProgress handles SSE streaming for the action. The stream is automatically
-	// closed when the call returns.
+	// StreamProgress handles SSE streaming for the action.
+	//
+	// The stream is automatically closed when the call returns.
+	//
+	// Takes stream (*SSEStream) which is the open stream to write progress events to.
+	//
+	// Returns error when the stream cannot be written.
 	StreamProgress(stream *SSEStream) error
 }
 

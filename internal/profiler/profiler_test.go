@@ -142,51 +142,6 @@ func TestCheckBuildFlags_ReturnsString(t *testing.T) {
 	assert.IsType(t, "", result)
 }
 
-func TestServerAddress_FormatsCorrectly(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name     string
-		config   Config
-		expected string
-	}{
-		{
-			name: "default address",
-			config: Config{
-				BindAddress: DefaultBindAddress,
-				Port:        DefaultPort,
-			},
-			expected: "localhost:6060",
-		},
-		{
-			name: "custom address",
-			config: Config{
-				BindAddress: "0.0.0.0",
-				Port:        8080,
-			},
-			expected: "0.0.0.0:8080",
-		},
-		{
-			name: "empty bind address",
-			config: Config{
-				BindAddress: "",
-				Port:        9090,
-			},
-			expected: ":9090",
-		},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := ServerAddress(testCase.config)
-
-			assert.Equal(t, testCase.expected, result)
-		})
-	}
-}
-
 func TestConfig_ZeroValueHasExpectedDefaults(t *testing.T) {
 	t.Parallel()
 

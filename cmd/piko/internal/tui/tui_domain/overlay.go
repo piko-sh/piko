@@ -29,6 +29,8 @@ import (
 type Overlay interface {
 	// ID identifies the overlay for diagnostic purposes and to allow callers to query the
 	// stack for a specific kind.
+	//
+	// Returns string which is the stable identifier of the overlay.
 	ID() string
 
 	// Render returns the framed overlay body.
@@ -36,24 +38,45 @@ type Overlay interface {
 	// The OverlayManager is responsible for compositing this body over the background; the
 	// Overlay itself just produces the inner content. The supplied dimensions are the
 	// overlay's own width and height, not the screen.
+	//
+	// Takes width (int) which is the overlay's own width in cells.
+	// Takes height (int) which is the overlay's own height in cells.
+	//
+	// Returns string which is the rendered overlay body.
 	Render(width, height int) string
 
 	// Update processes a message and returns the (possibly updated) Overlay plus any
-	// commands. Returning a different value from the receiver allows immutable update
-	// patterns; returning the receiver is the conventional in-place form.
+	// commands.
+	//
+	// Returning a different value from the receiver allows immutable update patterns;
+	// returning the receiver is the conventional in-place form.
+	//
+	// Takes msg (tea.Msg) which is the message to process.
+	//
+	// Returns Overlay which is the overlay to keep on the stack.
+	// Returns tea.Cmd which is any command the overlay wants to run.
 	Update(msg tea.Msg) (Overlay, tea.Cmd)
 
 	// KeyMap returns key bindings the overlay accepts; surfaced in the help screen and the
 	// status bar hint area.
+	//
+	// Returns []KeyBinding which are the bindings the overlay handles.
 	KeyMap() []KeyBinding
 
 	// Dismiss reports whether the overlay should be popped after the most recent Update.
+	//
 	// Implementations typically set an internal flag on Esc/Enter and return it here.
+	//
+	// Returns bool which reports whether the overlay is finished.
 	Dismiss() bool
 
-	// MinSize suggests the smallest dimensions at which the overlay remains usable. The
-	// OverlayManager grows the overlay to fit its content but will not shrink it below this
-	// minimum.
+	// MinSize suggests the smallest dimensions at which the overlay remains usable.
+	//
+	// The OverlayManager grows the overlay to fit its content but will not shrink it below
+	// this minimum.
+	//
+	// Returns int which is the minimum width in cells.
+	// Returns int which is the minimum height in cells.
 	MinSize() (width, height int)
 }
 

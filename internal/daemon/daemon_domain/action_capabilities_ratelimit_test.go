@@ -30,7 +30,7 @@ import (
 )
 
 type rateLimitStubAuth struct {
-	userID string
+	userID        string
 	authenticated bool
 }
 

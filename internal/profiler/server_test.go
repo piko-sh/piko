@@ -22,9 +22,11 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -120,10 +122,14 @@ func TestServerHandler_RollingTraceWriteErrorReturnsOKWithEmptyBody(t *testing.T
 	assert.Empty(t, body)
 }
 
+const (
+	shutdownSettleWindow = 200 * time.Millisecond
+)
+
 func TestStartServer_AppliesExpectedTimeouts(t *testing.T) {
 	t.Parallel()
 
-	handle, err := StartServer(Config{
+	handle, err := StartServer(t.Context(), Config{
 		BindAddress: DefaultBindAddress,
 		Port:        0,
 	})
@@ -197,18 +203,24 @@ func TestProfilerServer_PanicInHandlerIsContained(t *testing.T) {
 	assert.Equal(t, "ok", string(body))
 }
 
-func TestStartServer_GoroutineRecoversFromListenAndServePanic(t *testing.T) {
+func TestStartServer_ShutsDownWithoutLeavingTheServeGoroutineBehind(t *testing.T) {
 	t.Parallel()
 
-	handle, err := StartServer(Config{
+	handle, err := StartServer(t.Context(), Config{
 		BindAddress: DefaultBindAddress,
 		Port:        0,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, handle)
 
-	require.NoError(t, handle.Shutdown(context.Background()),
-		"shutdown must complete even though the listener goroutine is panic-protected")
+	reported := make(chan error, 1)
+	handle.SetErrorHandler(func(err error) { reported <- err })
+
+	require.NoError(t, handle.Shutdown(t.Context()))
+
+	require.Never(t, func() bool { return len(reported) > 0 }, shutdownSettleWindow, time.Millisecond,
+		"http.ErrServerClosed is how a listener reports a deliberate stop, so the serve "+
+			"goroutine must swallow it rather than raise it as a server failure")
 }
 
 type fakeTraceRecorder struct {
@@ -250,4 +262,140 @@ func captureStdout(t *testing.T, fn func()) string {
 	require.NoError(t, reader.Close())
 
 	return strings.TrimSpace(string(data))
+}
+
+func TestStartServer_ReportsABindFailureSynchronously(t *testing.T) {
+	t.Parallel()
+
+	held, err := net.Listen("tcp", net.JoinHostPort(DefaultBindAddress, "0"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = held.Close() })
+
+	port := listenerPort(t, held)
+
+	handle, err := StartServer(t.Context(), Config{
+		BindAddress: DefaultBindAddress,
+		Port:        port,
+	})
+
+	require.Error(t, err, "a port collision must be reported to the caller, not logged later from a goroutine")
+	assert.Nil(t, handle)
+}
+
+func TestStartServer_AdvancesToTheNextPortWhenAutoNextPortIsSet(t *testing.T) {
+	t.Parallel()
+
+	held, err := net.Listen("tcp", net.JoinHostPort(DefaultBindAddress, "0"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = held.Close() })
+
+	port := listenerPort(t, held)
+
+	handle, err := StartServer(t.Context(), Config{
+		BindAddress:  DefaultBindAddress,
+		Port:         port,
+		AutoNextPort: true,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, handle)
+	t.Cleanup(func() { _ = handle.Shutdown(t.Context()) })
+
+	_, boundPort, splitErr := net.SplitHostPort(handle.Address())
+	require.NoError(t, splitErr)
+	assert.NotEqual(t, strconv.Itoa(port), boundPort,
+		"the held port must be skipped, and Address must name the port actually bound")
+}
+
+func TestStartServer_ReportsTheOSAssignedPortWhenPortIsZero(t *testing.T) {
+	t.Parallel()
+
+	handle, err := StartServer(t.Context(), Config{
+		BindAddress: DefaultBindAddress,
+		Port:        0,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = handle.Shutdown(t.Context()) })
+
+	_, boundPort, splitErr := net.SplitHostPort(handle.Address())
+	require.NoError(t, splitErr)
+	assert.NotEmpty(t, boundPort)
+	assert.NotEqual(t, "0", boundPort, "Address must report the port the OS chose, not the placeholder")
+}
+
+func listenerPort(t *testing.T, listener net.Listener) int {
+	t.Helper()
+
+	addr, ok := listener.Addr().(*net.TCPAddr)
+	require.True(t, ok, "the test listener must be a TCP listener")
+
+	return addr.Port
+}
+
+func TestListenForServer_RefusesAPortOutsideTheValidRange(t *testing.T) {
+	t.Parallel()
+
+	for _, port := range []int{-1, maxTCPPort + 1} {
+		listener, err := listenForServer(t.Context(), Config{
+			BindAddress:  DefaultBindAddress,
+			Port:         port,
+			AutoNextPort: true,
+		})
+
+		require.ErrorIs(t, err, errProfilingPortOutOfRange, "port %d", port)
+		assert.Nil(t, listener)
+	}
+}
+
+func TestListenForServer_ReportsABindFailureThatIsNotAPortCollision(t *testing.T) {
+	t.Parallel()
+
+	listener, err := listenForServer(t.Context(), Config{
+		BindAddress:  "this-host-does-not-resolve.invalid",
+		Port:         6060,
+		AutoNextPort: true,
+	})
+
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, errNoProfilingPort,
+		"walking a hundred ports on a bad bind address would bury the real error")
+	assert.Nil(t, listener)
+}
+
+func TestListenForServer_GivesUpAtTheEndOfThePortRange(t *testing.T) {
+	t.Parallel()
+
+	held, err := net.Listen("tcp", net.JoinHostPort(DefaultBindAddress, strconv.Itoa(maxTCPPort)))
+	if err != nil {
+		t.Skip("the last TCP port is not available on this machine")
+	}
+	t.Cleanup(func() { _ = held.Close() })
+
+	listener, err := listenForServer(t.Context(), Config{
+		BindAddress:  DefaultBindAddress,
+		Port:         maxTCPPort,
+		AutoNextPort: true,
+	})
+
+	require.ErrorIs(t, err, errNoProfilingPort)
+	assert.Nil(t, listener)
+}
+
+func TestListenForServer_StopsWhenTheCallerGoesAway(t *testing.T) {
+	t.Parallel()
+
+	held, err := net.Listen("tcp", net.JoinHostPort(DefaultBindAddress, "0"))
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = held.Close() })
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	listener, err := listenForServer(ctx, Config{
+		BindAddress:  DefaultBindAddress,
+		Port:         listenerPort(t, held),
+		AutoNextPort: true,
+	})
+
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, listener)
 }

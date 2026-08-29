@@ -645,6 +645,9 @@ type Container struct {
 	// profilingConfig holds pprof server settings; nil when profiling is disabled.
 	profilingConfig *profiler.Config
 
+	// profilingServer is the running pprof server; nil until it starts.
+	profilingServer *profiler.ServerHandle
+
 	// onHealthBound is an optional callback invoked after the health server binds to a port.
 	onHealthBound func(address string)
 
@@ -1349,6 +1352,13 @@ func (c *Container) GetProfilingConfig() *profiler.Config {
 	return c.profilingConfig
 }
 
+// GetProfilingAddress returns the address the profiling server bound to.
+//
+// Returns string which is empty when profiling is disabled or the server failed to start.
+func (c *Container) GetProfilingAddress() string {
+	return c.profilingServer.Address()
+}
+
 // SetProfilingConfig stores the pprof server configuration. This is called by
 // WithProfiling during container initialisation.
 //
@@ -1503,7 +1513,7 @@ func (c *Container) StartProfilingServer() {
 		l.Warn(warning)
 	}
 
-	server, err := profiler.StartServer(*profilingConfig)
+	server, err := profiler.StartServer(c.GetAppContext(), *profilingConfig)
 	if err != nil {
 		l.Error("Failed to start profiling server",
 			logger_domain.Error(err))
@@ -1512,7 +1522,8 @@ func (c *Container) StartProfilingServer() {
 	server.SetErrorHandler(func(err error) {
 		l.Error("Profiling server error", logger_domain.Error(err))
 	})
-	addr := profiler.ServerAddress(*profilingConfig)
+	c.profilingServer = server
+	addr := server.Address()
 
 	shutdown.Register(c.GetAppContext(), "ProfilingServer", func(ctx context.Context) error {
 		return server.Shutdown(ctx)

@@ -253,6 +253,7 @@ func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache
 	var candidateKeys []K
 	var keyScores map[K]float64
 	var keysAreTrusted bool
+	var candidatesAreWholeCache bool
 
 	if a.invertedIndex != nil && query != "" {
 		scored := a.invertedIndex.SearchScored(query)
@@ -278,6 +279,7 @@ func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache
 		}
 		candidateKeys = a.getAllKeys()
 		keysAreTrusted = false
+		candidatesAreWholeCache = true
 	}
 
 	if len(candidateKeys) == 0 {
@@ -289,7 +291,7 @@ func (a *OtterAdapter[K, V]) Search(_ context.Context, query string, opts *cache
 		}, nil
 	}
 
-	filteredKeys := a.applyFiltersWithTrust(candidateKeys, opts.Filters, keysAreTrusted)
+	filteredKeys := a.applyFilters(candidateKeys, opts.Filters, keysAreTrusted, candidatesAreWholeCache)
 
 	sortedKeys := a.sortKeys(filteredKeys, opts.SortBy, opts.SortOrder)
 
@@ -322,7 +324,7 @@ func (a *OtterAdapter[K, V]) Query(_ context.Context, opts *cache_dto.QueryOptio
 		}, nil
 	}
 
-	filteredKeys := a.applyFiltersWithTrust(candidateKeys, opts.Filters, false)
+	filteredKeys := a.applyFilters(candidateKeys, opts.Filters, false, true)
 
 	sortedKeys := a.sortKeys(filteredKeys, opts.SortBy, opts.SortOrder)
 
@@ -354,36 +356,55 @@ func (a *OtterAdapter[K, V]) getAllKeys() []K {
 	return keys
 }
 
-// applyFiltersWithTrust filters keys based on the provided filter conditions.
+// applyFilters narrows a candidate set, using an index when one can serve a filter.
 //
-// When trustKeys is true, skips existence validation as keys from InvertedIndex are
-// trusted. Optimises range filters by using SortedIndex B-tree range queries when
-// available.
-//
-// Takes keys ([]K) which specifies the keys to filter.
+// Takes keys ([]K) which specifies the candidate keys.
 // Takes filters ([]cache_dto.Filter) which provides the filter conditions.
 // Takes trustKeys (bool) which indicates whether to skip existence validation.
+// Takes candidatesAreWholeCache (bool) which reports that keys covers every live entry,
+// so an index lookup answers the same question as scanning them.
 //
-// Returns []K which contains the keys that match all filter conditions.
-func (a *OtterAdapter[K, V]) applyFiltersWithTrust(keys []K, filters []cache_dto.Filter, trustKeys bool) []K {
+// Returns []K which contains the keys matching every filter.
+func (a *OtterAdapter[K, V]) applyFilters(
+	keys []K,
+	filters []cache_dto.Filter,
+	trustKeys bool,
+	candidatesAreWholeCache bool,
+) []K {
 	if len(filters) == 0 || a.fieldExtractor == nil {
 		return keys
 	}
 
-	if len(filters) == 1 && len(keys) == a.client.EstimatedSize() {
-		if optimisedKeys := a.tryRangeQueryFilter(filters[0]); optimisedKeys != nil {
-			return optimisedKeys
+	remaining := filters
+	if candidatesAreWholeCache {
+		for i, filter := range filters {
+			optimisedKeys := a.tryRangeQueryFilter(filter)
+			if optimisedKeys == nil {
+				continue
+			}
+
+			keys = optimisedKeys
+			trustKeys = false
+			remaining = make([]cache_dto.Filter, 0, len(filters)-1)
+			remaining = append(remaining, filters[:i]...)
+			remaining = append(remaining, filters[i+1:]...)
+
+			break
 		}
+	}
+
+	if len(remaining) == 0 {
+		return keys
 	}
 
 	result := make([]K, 0, len(keys))
 	for _, key := range keys {
 		value, ok := a.client.GetIfPresent(key)
-		if !trustKeys && !ok {
+		if !ok && !trustKeys {
 			continue
 		}
 
-		if a.matchesAllFilters(value, filters) {
+		if a.matchesAllFilters(value, remaining) {
 			result = append(result, key)
 		}
 	}
@@ -421,6 +442,10 @@ func (a *OtterAdapter[K, V]) tryRangeQueryFilter(filter cache_dto.Filter) []K {
 			return index.KeysBetween(filter.Values[0], filter.Values[1], true)
 		}
 		return nil
+	case cache_dto.FilterOpEq:
+		return index.KeysBetween(filter.Value, filter.Value, true)
+	case cache_dto.FilterOpIn:
+		return unionOfEqualityProbes(index, filter.Values)
 	default:
 		return nil
 	}
@@ -849,6 +874,10 @@ func applyPagination[T any](items []T, offset, limit int) ([]T, int) {
 		}
 	}
 
+	if limit == cache_dto.NoLimit {
+		return items, len(items)
+	}
+
 	if limit <= 0 {
 		limit = defaultSearchLimit
 	}
@@ -858,4 +887,31 @@ func applyPagination[T any](items []T, offset, limit int) ([]T, int) {
 	items = items[:limit]
 
 	return items, limit
+}
+
+// unionOfEqualityProbes collects the keys matching any of the given values.
+//
+// Takes index (*SortedIndex[K]) which serves the probes.
+// Takes values ([]any) which are the values to match.
+//
+// Returns []K which contains the deduplicated union, or nil when no values were given.
+func unionOfEqualityProbes[K comparable](index *SortedIndex[K], values []any) []K {
+	if len(values) == 0 {
+		return nil
+	}
+
+	seen := make(map[K]struct{})
+	union := make([]K, 0)
+
+	for _, value := range values {
+		for _, key := range index.KeysBetween(value, value, true) {
+			if _, duplicate := seen[key]; duplicate {
+				continue
+			}
+			seen[key] = struct{}{}
+			union = append(union, key)
+		}
+	}
+
+	return union
 }

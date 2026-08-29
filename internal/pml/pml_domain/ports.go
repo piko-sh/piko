@@ -93,7 +93,7 @@ type ComponentRegistry interface {
 	// Takes tagName (string) which is the HTML tag name, such as "pml-row".
 	//
 	// Returns Component which is the matching component.
-	// Returns error wrapping ErrComponentNotFound when not registered.
+	// Returns error when the tag name is not registered, wrapping ErrComponentNotFound.
 	Lookup(tagName string) (Component, error)
 
 	// GetAll returns all registered components.

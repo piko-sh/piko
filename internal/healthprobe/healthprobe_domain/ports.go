@@ -28,6 +28,8 @@ import (
 // or adapter that needs health checking must implement Probe.
 type Probe interface {
 	// Name returns the unique, human-readable name of the component being checked.
+	//
+	// Returns string which is the name of the component being checked.
 	Name() string
 
 	// Check performs the actual health check and returns a status. The context should be
@@ -49,6 +51,8 @@ type Registry interface {
 	Register(probe Probe)
 
 	// GetAll returns all registered probes.
+	//
+	// Returns []Probe which are all the probes currently registered.
 	GetAll() []Probe
 }
 

@@ -63,6 +63,11 @@ var (
 	// back to a verbatim copy because the content was oversized or could not be parsed.
 	svgTransformFallbackCount metric.Int64Counter
 
+	// componentModuleScanFailureCount tracks the number of components whose compiled
+	// JavaScript could not be read or parsed for module preloads. Those components still
+	// render, so this counter is the only signal that the preloads have gone quiet.
+	componentModuleScanFailureCount metric.Int64Counter
+
 	// componentLoadDuration records the duration of component load operations.
 	componentLoadDuration metric.Float64Histogram
 
@@ -148,6 +153,14 @@ func init() {
 	svgTransformFallbackCount, err = meter.Int64Counter(
 		"render.adapters.svg_transform_fallback_count",
 		metric.WithDescription("Number of SVG assets whose sprite transform fell back to a verbatim copy"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	componentModuleScanFailureCount, err = meter.Int64Counter(
+		"render.adapters.component_module_scan_failure_count",
+		metric.WithDescription("Number of components whose module preloads could not be derived"),
 	)
 	if err != nil {
 		otel.Handle(err)

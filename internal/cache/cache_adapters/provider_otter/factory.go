@@ -28,9 +28,9 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/vectormaths"
 	"piko.sh/piko/internal/wal/wal_adapters/driven_disk"
 	"piko.sh/piko/internal/wal/wal_domain"
+	"piko.sh/vectormaths"
 )
 
 // entryData holds the final state of a cache entry after replay.
@@ -55,9 +55,19 @@ type entryData[V any] struct {
 // Returns cache_domain.ProviderPort[K, V] which is the configured Otter cache adapter.
 // Returns error when the otter cache instance cannot be created.
 func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) (cache_domain.ProviderPort[K, V], error) {
+	if err := cache_domain.ValidateOptions(options); err != nil {
+		return nil, err
+	}
+
+	cache_domain.WarnUnbounded(context.Background(), options)
+
 	adapter := &OtterAdapter[K, V]{
-		client:   nil,
-		tagIndex: newTagIndex[K](),
+		client:         nil,
+		tagIndex:       newTagIndex[K](),
+		weigher:        options.Weigher,
+		onDeletion:     options.OnDeletion,
+		maxEntryWeight: options.MaxEntryWeight,
+		weightBounded:  options.Weigher != nil && options.MaximumWeight > 0,
 	}
 
 	if options.SearchSchema != nil {
@@ -149,12 +159,14 @@ func initialisePersistence[K comparable, V any](ctx context.Context, options cac
 
 	codec := driven_disk.NewBinaryCodec(persistConfig.KeyCodec, persistConfig.ValueCodec)
 
-	wal, err := driven_disk.NewDiskWAL(ctx, persistConfig.WALConfig, codec)
+	walConfig := persistConfig.WALConfig.WithDefaults()
+
+	wal, err := driven_disk.NewDiskWAL(ctx, walConfig, codec)
 	if err != nil {
 		return fmt.Errorf("creating WAL: %w", err)
 	}
 
-	snapshot, err := driven_disk.NewDiskSnapshot(ctx, persistConfig.WALConfig, codec)
+	snapshot, err := driven_disk.NewDiskSnapshot(ctx, walConfig, codec)
 	if err != nil {
 		_ = wal.Close()
 		return fmt.Errorf("creating snapshot store: %w", err)
@@ -163,7 +175,8 @@ func initialisePersistence[K comparable, V any](ctx context.Context, options cac
 	adapter.wal = wal
 	adapter.snapshot = snapshot
 	adapter.walEnabled = true
-	adapter.snapshotThreshold = persistConfig.WALConfig.SnapshotThreshold
+	adapter.snapshotThreshold = walConfig.SnapshotThreshold
+	adapter.maxWALSize = walConfig.MaxWALSize
 
 	if err := recoverFromPersistence(adapter); err != nil {
 		_ = wal.Close()
@@ -325,7 +338,7 @@ func applyEntryToState[K comparable, V any](state map[K]entryData[V], entry wal_
 // Returns *otter.Options[K, V] which contains the converted otter configuration.
 func buildOtterOptions[K comparable, V any](options cache_dto.Options[K, V], adapter *OtterAdapter[K, V]) *otter.Options[K, V] {
 	otterOpts := &otter.Options[K, V]{
-		MaximumSize:       options.MaximumSize,
+		MaximumSize:       options.MaximumEntries,
 		MaximumWeight:     options.MaximumWeight,
 		InitialCapacity:   options.InitialCapacity,
 		Weigher:           options.Weigher,

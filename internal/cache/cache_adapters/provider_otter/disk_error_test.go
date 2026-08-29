@@ -39,7 +39,7 @@ func TestDiskError_DirectoryNotExist(t *testing.T) {
 	walConfig.SyncMode = wal_domain.SyncModeEveryWrite
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -71,7 +71,7 @@ func TestDiskError_ReadOnlyDirectory(t *testing.T) {
 	walConfig.SyncMode = wal_domain.SyncModeEveryWrite
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -92,7 +92,7 @@ func TestDiskError_PartialCorruption(t *testing.T) {
 	walConfig.SnapshotThreshold = 1000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -151,7 +151,7 @@ func TestDiskError_TruncatedWAL(t *testing.T) {
 	walConfig.SnapshotThreshold = 1000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -213,7 +213,7 @@ func TestDiskError_EmptyWALFile(t *testing.T) {
 	walConfig.SyncMode = wal_domain.SyncModeEveryWrite
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -244,7 +244,7 @@ func TestDiskError_SnapshotReadFails(t *testing.T) {
 	walConfig.SnapshotThreshold = 20
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -294,7 +294,7 @@ func TestDiskError_MissingSnapshotWithWAL(t *testing.T) {
 	walConfig.SnapshotThreshold = 1000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -343,7 +343,7 @@ func TestDiskError_RecoveryAfterCleanShutdown(t *testing.T) {
 	walConfig.SnapshotThreshold = 100
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -387,7 +387,7 @@ func TestDiskError_RecoveryAfterCrash(t *testing.T) {
 	walConfig.SnapshotThreshold = 1000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -434,7 +434,7 @@ func TestDiskError_InvalidConfig_EmptyDir(t *testing.T) {
 	}
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -452,7 +452,7 @@ func TestDiskError_InvalidConfig_NilKeyCodec(t *testing.T) {
 	walConfig := wal_domain.DefaultConfig(directory)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -470,7 +470,7 @@ func TestDiskError_InvalidConfig_NilValueCodec(t *testing.T) {
 	walConfig := wal_domain.DefaultConfig(directory)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -491,7 +491,7 @@ func TestDiskError_MultipleOpenClose(t *testing.T) {
 	walConfig.SnapshotThreshold = 100
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -536,7 +536,7 @@ func TestDiskError_CacheStillWorksAfterWALError(t *testing.T) {
 	walConfig.SyncMode = wal_domain.SyncModeEveryWrite
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,

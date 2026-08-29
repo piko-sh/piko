@@ -90,6 +90,13 @@ type PresignConfig struct {
 // PresignRateLimiter counts presigned upload requests against a per-caller budget.
 type PresignRateLimiter interface {
 	// CheckLimit records a request against a key and reports whether it is within the limit.
+	//
+	// Takes key (string) which identifies the caller the budget belongs to.
+	// Takes limit (int) which is the number of requests allowed in the window.
+	// Takes window (time.Duration) which is the period the limit applies over.
+	//
+	// Returns ratelimiter_dto.Result which reports the decision and the remaining budget.
+	// Returns error when the check fails.
 	CheckLimit(
 		ctx context.Context, key string, limit int, window time.Duration,
 	) (ratelimiter_dto.Result, error)

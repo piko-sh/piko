@@ -54,9 +54,9 @@ type CacheTokenBucketStoreConfig struct {
 	// Namespace is the key prefix for all entries. Defaults to "ratelimiter:tb".
 	Namespace string
 
-	// MaximumSize is the maximum number of entries for in-memory providers, ignored by
+	// MaximumEntries is the maximum number of entries for in-memory providers, ignored by
 	// remote providers and defaulting to 10000.
-	MaximumSize int
+	MaximumEntries int
 }
 
 // CacheTokenBucketStore implements TokenBucketStorePort using a cache backend. It uses
@@ -87,7 +87,7 @@ func NewCacheTokenBucketStore(ctx context.Context, config CacheTokenBucketStoreC
 		Blueprint:        "ratelimiter-token-bucket",
 		Namespace:        config.Namespace,
 		DefaultNamespace: defaultTokenBucketNamespace,
-		MaximumSize:      config.MaximumSize,
+		MaximumEntries:   config.MaximumEntries,
 		DefaultMaxSize:   defaultTokenBucketMaxSize,
 	})
 	if err != nil {

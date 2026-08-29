@@ -33,7 +33,7 @@ func createTestCache(t *testing.T) cache.Cache[string, int64] {
 	t.Helper()
 
 	cacheInstance, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, int64]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 	})
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)

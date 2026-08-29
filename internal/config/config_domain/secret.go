@@ -442,6 +442,8 @@ type secretCloser interface {
 	Close() error
 
 	// isResolved reports whether the secret has been resolved at least once.
+	//
+	// Returns bool which is true when the secret has been resolved at least once.
 	isResolved() bool
 }
 

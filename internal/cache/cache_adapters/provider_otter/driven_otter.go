@@ -21,6 +21,7 @@ package provider_otter
 import (
 	"context"
 	"errors"
+	"fmt"
 	"iter"
 	"maps"
 	"slices"
@@ -30,9 +31,15 @@ import (
 	"github.com/maypok86/otter/v2"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/wal/wal_domain"
+	"piko.sh/piko/wdk/goroutine"
+)
+
+const (
+	// invalidateChunkSize bounds how many keys one tag invalidation removes while holding
+	// the checkpoint read lock.
+	invalidateChunkSize = 256
 )
 
 var (
@@ -88,8 +95,8 @@ func (ti *TagIndex[K]) Add(key K, tags []string) {
 	ti.keyToTags[key] = tagSet
 }
 
-// Invalidate finds all keys associated with the given tags, removes them from the index,
-// and returns the list of keys to be invalidated from the main cache.
+// Invalidate finds all keys associated with the given tags, removes them from the index
+// entirely, and returns the list of keys to be invalidated from the main cache.
 //
 // Takes tags ([]string) which contains the tags whose associated keys should be
 // invalidated.
@@ -120,7 +127,7 @@ func (ti *TagIndex[K]) Invalidate(tags []string) []K {
 
 	result := slices.Collect(maps.Keys(keysToInvalidate))
 	for _, key := range result {
-		delete(ti.keyToTags, key)
+		ti.removeKeyUnsafe(key)
 	}
 	return result
 }
@@ -284,9 +291,24 @@ type OtterAdapter[K comparable, V any] struct {
 	// tagIndex maps tags to cache keys for tag-based invalidation.
 	tagIndex *TagIndex[K]
 
+	// weigher measures a loaded value against maxEntryWeight; nil when no ceiling is set.
+	weigher func(K, V) uint32
+
+	// onDeletion reports entries leaving the cache, and values refused admission by the
+	// per-entry ceiling. It may be nil.
+	onDeletion func(cache_dto.DeletionEvent[K, V])
+
+	// maxEntryWeight is the largest weight a single entry may have; 0 means no ceiling.
+	maxEntryWeight uint32
+
 	// snapshotThreshold is the number of WAL entries before a checkpoint is made. When this
 	// limit is reached, a snapshot is saved and the WAL is cleared.
 	snapshotThreshold int
+
+	// maxWALSize is the WAL size in bytes before a checkpoint is made. An entry count alone
+	// cannot bound a log of variable-size values, so a cache of large entries would grow the
+	// WAL far past any stated limit before the count trigger fired.
+	maxWALSize int64
 
 	// checkpointMu coordinates checkpoint and write operations. Writes acquire RLock,
 	// checkpoint acquires Lock, ensuring the snapshot contains all WAL entries before
@@ -296,6 +318,10 @@ type OtterAdapter[K comparable, V any] struct {
 	// closeOnce guards single execution of Close to prevent double-checkpoint and
 	// double-close on the WAL or snapshot store.
 	closeOnce sync.Once
+
+	// weightBounded records that the cache was configured with a weigher and a weight bound,
+	// so its WeightedSize is a byte total rather than an entry count.
+	weightBounded bool
 
 	// walEnabled indicates whether write-ahead log persistence is active.
 	walEnabled bool
@@ -322,7 +348,7 @@ func (a *OtterAdapter[K, V]) GetIfPresent(_ context.Context, key K) (V, bool, er
 // Returns V which is the cached or newly loaded value.
 // Returns error when the loader fails or the cache operation fails.
 func (a *OtterAdapter[K, V]) Get(ctx context.Context, key K, loader cache_dto.Loader[K, V]) (V, error) {
-	return a.client.Get(ctx, key, loader)
+	return unwrapLoadOutcome(a.client.Get(ctx, key, a.wrapLoader(loader)))
 }
 
 // Set stores a value in the cache with optional tags.
@@ -419,18 +445,9 @@ func (a *OtterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 // Safe for concurrent use. Uses a read lock during WAL operations to allow concurrent
 // invalidations while blocking checkpoints.
 func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
-	ctx, l := logger_domain.From(ctx, log)
-
 	if a.walEnabled && a.wal != nil {
 		a.checkpointMu.RLock()
-		entry := wal_domain.Entry[K, V]{
-			Operation: wal_domain.OpDelete,
-			Key:       key,
-			Timestamp: time.Now().UnixNano(),
-		}
-		if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
-			l.Warn("Failed to append delete to WAL", logger_domain.Error(err))
-		}
+		a.appendDeleteToWAL(ctx, key)
 		a.tagIndex.RemoveKey(key)
 		a.removeFromSearchIndex(key)
 		a.client.Invalidate(key)
@@ -443,6 +460,25 @@ func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	a.removeFromSearchIndex(key)
 	a.client.Invalidate(key)
 	return nil
+}
+
+// appendDeleteToWAL records the removal of a key so it survives a restart. Without it the
+// log replays the original write and the entry returns from the dead.
+//
+// Takes key (K) which identifies the entry being removed.
+//
+// Must be called with checkpointMu held for reading.
+func (a *OtterAdapter[K, V]) appendDeleteToWAL(ctx context.Context, key K) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	entry := wal_domain.Entry[K, V]{
+		Operation: wal_domain.OpDelete,
+		Key:       key,
+		Timestamp: time.Now().UnixNano(),
+	}
+	if err := a.wal.Append(context.WithoutCancel(ctx), entry); err != nil {
+		l.Warn("Failed to append delete to WAL", logger_domain.Error(err))
+	}
 }
 
 // Compute computes and atomically updates the value in the cache using the provided
@@ -528,7 +564,7 @@ func (a *OtterAdapter[K, V]) ComputeWithTTL(_ context.Context, key K, computeFun
 // Returns map[K]V which contains the retrieved or loaded values.
 // Returns error when the bulk load operation fails.
 func (a *OtterAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoader cache_dto.BulkLoader[K, V]) (map[K]V, error) {
-	return a.client.BulkGet(ctx, keys, bulkLoader)
+	return a.client.BulkGet(ctx, keys, a.wrapBulkLoader(bulkLoader))
 }
 
 // BulkSet stores multiple key-value pairs in the cache with optional tags. Optimised to
@@ -598,17 +634,69 @@ func (a *OtterAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...strin
 		return 0, nil
 	}
 
-	for _, key := range keys {
-		a.client.Invalidate(key)
-	}
+	removed, err := a.invalidateKeys(ctx, keys)
 
 	tagInvalidationsTotal.Add(ctx, 1)
-	invalidatedKeysByTagTotal.Add(ctx, int64(len(keys)))
+	invalidatedKeysByTagTotal.Add(ctx, int64(removed))
 	l.Trace("Invalidated keys by tags",
 		logger_domain.Int("tag_count", len(tags)),
-		logger_domain.Int("key_count", len(keys)))
+		logger_domain.Int("key_count", removed))
 
-	return len(keys), nil
+	return removed, err
+}
+
+// invalidateKeys removes a set of keys, logging each removal when persistence is enabled.
+//
+// The work is done in bounded chunks. A tag can name any number of keys, and the write
+// lock that checkpoints and shutdown take is the same one held here, so a single large
+// invalidation would otherwise stall both for the length of the whole run. Chunking also
+// gives the WAL a chance to compact partway through rather than growing past both
+// triggers before anything checks.
+//
+// Takes keys ([]K) which identifies the entries to remove.
+//
+// Returns int which is how many keys were removed before the context ended.
+// Returns error which is the context's error when the run was cut short.
+func (a *OtterAdapter[K, V]) invalidateKeys(ctx context.Context, keys []K) (int, error) {
+	if !a.walEnabled || a.wal == nil {
+		for _, key := range keys {
+			a.client.Invalidate(key)
+		}
+
+		return len(keys), nil
+	}
+
+	removed := 0
+	for start := 0; start < len(keys); start += invalidateChunkSize {
+		if err := ctx.Err(); err != nil {
+			return removed, fmt.Errorf("invalidating tagged keys: %w", err)
+		}
+
+		end := min(start+invalidateChunkSize, len(keys))
+		a.invalidateChunkLocked(ctx, keys[start:end])
+		removed = end
+
+		a.maybeCheckpoint()
+	}
+
+	return removed, nil
+}
+
+// invalidateChunkLocked removes one chunk of keys under a single read lock.
+//
+// Takes chunk ([]K) which identifies the entries to remove.
+//
+// Concurrency: the caller holds checkpointMu for reading across this call and releases it
+// between chunks. Chunking exists so a tag matching a million keys cannot hold that lock
+// for the whole sweep and stall every checkpoint behind it.
+func (a *OtterAdapter[K, V]) invalidateChunkLocked(ctx context.Context, chunk []K) {
+	a.checkpointMu.RLock()
+	defer a.checkpointMu.RUnlock()
+
+	for _, key := range chunk {
+		a.appendDeleteToWAL(ctx, key)
+		a.client.Invalidate(key)
+	}
 }
 
 // InvalidateAll clears all entries from the cache.
@@ -646,7 +734,7 @@ func (a *OtterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads fresh values for the keys.
 func (a *OtterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache_dto.BulkLoader[K, V]) {
-	a.client.BulkRefresh(ctx, keys, bulkLoader)
+	a.client.BulkRefresh(ctx, keys, a.wrapBulkLoader(bulkLoader))
 }
 
 // Refresh asynchronously reloads a single key using the provided loader.
@@ -659,7 +747,7 @@ func (a *OtterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoad
 // Safe for concurrent use. Spawns a goroutine that converts the otter result channel into
 // a DTO result channel.
 func (a *OtterAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dto.Loader[K, V]) <-chan cache_dto.LoadResult[V] {
-	otterResultChan := a.client.Refresh(ctx, key, loader)
+	otterResultChan := a.client.Refresh(ctx, key, a.wrapLoader(loader))
 
 	if otterResultChan == nil {
 		ch := make(chan cache_dto.LoadResult[V], 1)
@@ -672,9 +760,10 @@ func (a *OtterAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dt
 		defer close(dtoResultChan)
 		defer goroutine.RecoverPanic(ctx, "cache.otterRefresh")
 		otterResult := <-otterResultChan
+		value, err := unwrapLoadOutcome(otterResult.Value, otterResult.Err)
 		dtoResultChan <- cache_dto.LoadResult[V]{
-			Value: otterResult.Value,
-			Err:   otterResult.Err,
+			Value: value,
+			Err:   err,
 		}
 	}()
 	return dtoResultChan
@@ -748,8 +837,8 @@ func (a *OtterAdapter[K, V]) Stats() cache_dto.Stats {
 		Hits:             otterStats.Hits,
 		Misses:           otterStats.Misses,
 		Evictions:        otterStats.Evictions,
-		LoadSuccessCount: 0,
-		LoadFailureCount: 0,
+		LoadSuccessCount: otterStats.LoadSuccesses,
+		LoadFailureCount: otterStats.LoadFailures,
 		TotalLoadTime:    otterStats.TotalLoadTime,
 	}
 }
@@ -765,22 +854,29 @@ func (a *OtterAdapter[K, V]) maybeCheckpoint() {
 		return
 	}
 
-	if a.snapshotThreshold <= 0 {
-		return
-	}
-
-	if a.wal.EntryCount() < a.snapshotThreshold {
+	if !a.checkpointDue() {
 		return
 	}
 
 	a.checkpointMu.Lock()
 	defer a.checkpointMu.Unlock()
 
-	if a.wal.EntryCount() < a.snapshotThreshold {
+	if !a.checkpointDue() {
 		return
 	}
 
 	_ = a.performCheckpointLocked()
+}
+
+// checkpointDue reports whether the WAL has passed either compaction trigger.
+//
+// Returns bool which is true when a checkpoint should be taken.
+func (a *OtterAdapter[K, V]) checkpointDue() bool {
+	if a.snapshotThreshold > 0 && a.wal.EntryCount() >= a.snapshotThreshold {
+		return true
+	}
+
+	return a.maxWALSize > 0 && a.wal.Size() >= a.maxWALSize
 }
 
 // Checkpoint unconditionally writes a snapshot of the current cache state and truncates
@@ -940,6 +1036,15 @@ func (a *OtterAdapter[K, V]) SetMaximum(size uint64) {
 // Returns uint64 which is the total weighted size of cached entries.
 func (a *OtterAdapter[K, V]) WeightedSize() uint64 {
 	return a.client.WeightedSize()
+}
+
+// IsWeightBounded reports whether this cache is bounded by weight rather than entry
+// count.
+//
+// Returns bool which is true when the cache was configured with a weigher and a weight
+// bound.
+func (a *OtterAdapter[K, V]) IsWeightBounded() bool {
+	return a.weightBounded
 }
 
 // SetRefreshableAfter sets the duration after which a key becomes refreshable.

@@ -30,15 +30,24 @@ import (
 // rolling trace behaviour without depending on the global runtime hook.
 type traceRecorder interface {
 	// Enabled reports whether the recorder is actively capturing trace data.
+	//
+	// Returns bool which reports whether capture is active.
 	Enabled() bool
 
 	// Start begins trace capture.
+	//
+	// Returns error when capture cannot be started.
 	Start() error
 
 	// Stop ends trace capture.
 	Stop()
 
 	// WriteTo writes the captured trace data to the provided writer.
+	//
+	// Takes w (io.Writer) which receives the captured trace data.
+	//
+	// Returns int64 which is the number of bytes written.
+	// Returns error when writing fails.
 	WriteTo(w io.Writer) (n int64, err error)
 }
 

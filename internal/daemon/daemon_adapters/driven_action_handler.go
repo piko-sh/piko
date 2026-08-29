@@ -72,6 +72,14 @@ const (
 	// This bounds CPU and memory usage regardless of the body size limit.
 	maxBatchActions = 100
 
+	// defaultParallelBatchWorkers bounds how many entries of one parallel batch run at once
+	// when an operator has set no bound. Without it a full batch on a busy server could
+	// multiply the configured request concurrency by the batch size.
+	defaultParallelBatchWorkers = 8
+
+	// actionBatchComponent names the batch executor in panic recovery reports.
+	actionBatchComponent = "daemon_adapters.actionBatch"
+
 	// defaultMaxJSONBodyDepth is the maximum nesting depth permitted when decoding action
 	// request bodies. Pre-decoding the byte stream guards against stack-blow attacks before
 	// the structural decoder allocates reflective storage.
@@ -140,6 +148,13 @@ type ActionHandler struct {
 
 	// maxMultipartFormBytes is the maximum in-memory size for multipart form data.
 	maxMultipartFormBytes int64
+
+	// maxParallelBatchWorkers bounds how many entries of one parallel batch run at once; 0
+	// uses defaultParallelBatchWorkers.
+	maxParallelBatchWorkers int
+
+	// compressResponses negotiates gzip or brotli for action responses.
+	compressResponses bool
 
 	// enforceSecFetchSite requires CSRF tokens on browser requests identified by the
 	// Sec-Fetch-Site header.
@@ -242,6 +257,8 @@ func (h *ActionHandler) RegisterAll(entries map[string]ActionHandlerEntry) {
 // Takes r (chi.Router) which receives the action routes.
 // Takes basePath (string) which is the base path for actions (e.g., "/_piko/actions").
 func (h *ActionHandler) Mount(r chi.Router, basePath string) {
+	compress := actionCompressMiddleware(h.compressResponses)
+
 	for _, entry := range h.registry {
 		routePattern := fmt.Sprintf("%s/%s", basePath, entry.Name)
 
@@ -251,6 +268,8 @@ func (h *ActionHandler) Mount(r chi.Router, basePath string) {
 			handler = middleware(handler)
 		}
 
+		handler = compress(handler)
+
 		r.Method(entry.Method, routePattern, handler)
 
 		if entry.HasSSE && entry.SSEGetAlias && entry.Method != http.MethodGet {
@@ -258,7 +277,7 @@ func (h *ActionHandler) Mount(r chi.Router, basePath string) {
 		}
 	}
 
-	r.Post(fmt.Sprintf("%s/_batch", basePath), h.handleBatch)
+	r.Method(http.MethodPost, fmt.Sprintf("%s/_batch", basePath), compress(http.HandlerFunc(h.handleBatch)))
 }
 
 // createHandler creates an HTTP handler for an action entry.
@@ -634,7 +653,7 @@ func (h *ActionHandler) prepareAction(
 	}
 
 	h.injectMetadata(request, action)
-	request.Body = http.MaxBytesReader(w, request.Body, prepared.Limits.BodyLimit)
+	request.Body = http.MaxBytesReader(baseResponseWriter(w), request.Body, prepared.Limits.BodyLimit)
 
 	arguments, err := h.parseRequestBody(request)
 	if err != nil {

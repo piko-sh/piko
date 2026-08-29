@@ -51,8 +51,8 @@ type Config struct {
 	// Namespace is the key prefix for all budget entries.
 	Namespace string
 
-	// MaximumSize is the maximum number of scope entries.
-	MaximumSize int
+	// MaximumEntries is the maximum number of scope entries.
+	MaximumEntries int
 }
 
 // Store provides an LLM budget store using the internal cache service. It implements
@@ -294,7 +294,7 @@ func New(ctx context.Context, config Config) (*Store, error) {
 		namespace = DefaultNamespace
 	}
 
-	maximumSize := config.MaximumSize
+	maximumSize := config.MaximumEntries
 	if maximumSize <= 0 {
 		maximumSize = DefaultMaximumSize
 	}
@@ -302,7 +302,7 @@ func New(ctx context.Context, config Config) (*Store, error) {
 	c, err := cache_domain.NewCacheBuilder[string, *llm_dto.BudgetData](config.CacheService).
 		FactoryBlueprint(FactoryBlueprintName).
 		Namespace(namespace).
-		MaximumSize(maximumSize).
+		MaximumEntries(maximumSize).
 		Build(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create budget cache: %w", err)

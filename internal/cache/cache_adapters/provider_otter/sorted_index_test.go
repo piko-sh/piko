@@ -19,7 +19,11 @@
 package provider_otter
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSortedIndex_Add_Ascending(t *testing.T) {
@@ -530,4 +534,32 @@ func TestSortedIndex_RangeQueries(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestSortedIndex_KeysBetween_FindsEntriesWithKeysBelowTheZeroValue(t *testing.T) {
+	index := NewSortedIndex[int]()
+
+	index.Add(-5, 10.0)
+	index.Add(0, 10.0)
+	index.Add(7, 10.0)
+	index.Add(-3, 20.0)
+
+	keys := index.KeysBetween(10.0, 10.0, true)
+
+	require.Len(t, keys, 3,
+		"the range seek must not skip entries whose key sorts below the search bound's zero key")
+	assert.ElementsMatch(t, []int{-5, 0, 7}, keys)
+}
+
+func TestSortedIndex_KeysBetween_SeeksFromTheRangeStart(t *testing.T) {
+	index := NewSortedIndex[string]()
+
+	for value := range 100 {
+		index.Add(fmt.Sprintf("k%d", value), float64(value))
+	}
+
+	keys := index.KeysBetween(40.0, 44.0, true)
+
+	require.Len(t, keys, 5)
+	assert.ElementsMatch(t, []string{"k40", "k41", "k42", "k43", "k44"}, keys)
 }

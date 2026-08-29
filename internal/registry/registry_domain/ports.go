@@ -149,7 +149,13 @@ type MetadataStore interface {
 	DecrementBlobRefCount(ctx context.Context, storageKey string) (newRefCount int, shouldDelete bool, err error)
 
 	// GetBlobRefCount returns the current reference count for a blob.
-	// Returns 0 if the blob doesn't exist (not an error).
+	//
+	// A blob that does not exist reports a count of 0, which is not treated as an error.
+	//
+	// Takes storageKey (string) which identifies the blob.
+	//
+	// Returns int which is the blob's current reference count.
+	// Returns error when the lookup fails.
 	GetBlobRefCount(ctx context.Context, storageKey string) (int, error)
 
 	// RunAtomic executes fn within a transaction.

@@ -715,6 +715,30 @@ func WithActionServePath(path string) Option {
 	}
 }
 
+// WithActionCompression compresses action responses when the client accepts gzip or
+// brotli. Enabled by default; streaming responses are never compressed.
+//
+// Takes enabled (bool) which turns action response compression on or off.
+//
+// Returns Option which configures action response compression.
+func WithActionCompression(enabled bool) Option {
+	return func(c *Container) {
+		c.ensureOverrides().Network.ActionCompression = &enabled
+	}
+}
+
+// WithMaxParallelBatchWorkers bounds how many entries of one parallel action batch run at
+// once. A batch asks for parallelism; this decides how much of it the server will give.
+//
+// Takes workers (int) which is the bound; 0 restores the default.
+//
+// Returns Option which configures the parallel batch bound.
+func WithMaxParallelBatchWorkers(workers int) Option {
+	return func(c *Container) {
+		c.ensureOverrides().Network.MaxParallelBatchWorkers = &workers
+	}
+}
+
 // WithLibServePath sets the URL path prefix for serving internal library files.
 //
 // Takes path (string) which is the value to apply.

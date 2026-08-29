@@ -156,6 +156,7 @@ type RenderService interface {
 	// Takes siteConfig (*config.WebsiteConfig) which provides site-specific settings.
 	//
 	// Returns []render_dto.LinkHeader which contains link headers for the response.
+	// Returns *render_dto.ProbeData which carries the probe data gathered for the page.
 	// Returns error when metadata collection fails.
 	CollectMetadata(ctx context.Context, request *http.Request, metadata *templater_dto.InternalMetadata, siteConfig *config.WebsiteConfig) ([]render_dto.LinkHeader, *render_dto.ProbeData, error)
 

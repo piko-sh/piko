@@ -192,6 +192,10 @@ type ASTBinder struct {
 // on any particular validation library.
 type StructValidator interface {
 	// Struct validates s and returns an error describing every failed constraint.
+	//
+	// Takes s (any) which is the populated struct to validate.
+	//
+	// Returns error when a constraint fails.
 	Struct(s any) error
 }
 

@@ -25,6 +25,7 @@ import {
     registerActionFunction,
     getActionFunction,
     batch,
+    batchWith,
     ActionBuilder,
     type ActionDescriptor,
     type RetryStreamConfig
@@ -797,6 +798,74 @@ describe('action (PK Action Descriptor)', () => {
 
         afterEach(() => {
             globalThis.fetch = originalFetch;
+        });
+
+        it('should send the CSRF header and ephemeral token from the page meta tags', async () => {
+            document.head.innerHTML =
+                '<meta name="csrf-token" content="action-token-value">' +
+                '<meta name="csrf-ephemeral" content="ephemeral-token-value">';
+
+            let capturedInit: RequestInit | undefined;
+            globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+                capturedInit = init;
+                return new Response(JSON.stringify({results: [], success: true}), {
+                    status: 200,
+                    headers: {'Content-Type': 'application/json'}
+                });
+            });
+
+            await batch(action('user.Create'));
+
+            const headers = capturedInit!.headers as Record<string, string>;
+            expect(headers['X-CSRF-Action-Token']).toBe('action-token-value');
+            expect(JSON.parse(capturedInit!.body as string)._csrf_ephemeral_token).toBe('ephemeral-token-value');
+        });
+
+        it('should omit CSRF material when the page carries no meta tags', async () => {
+            let capturedInit: RequestInit | undefined;
+            globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+                capturedInit = init;
+                return new Response(JSON.stringify({results: [], success: true}), {
+                    status: 200,
+                    headers: {'Content-Type': 'application/json'}
+                });
+            });
+
+            await batch(action('user.Create'));
+
+            const headers = capturedInit!.headers as Record<string, string>;
+            expect(headers['X-CSRF-Action-Token']).toBeUndefined();
+            expect(JSON.parse(capturedInit!.body as string)).not.toHaveProperty('_csrf_ephemeral_token');
+        });
+
+        it('should omit the parallel flag by default', async () => {
+            let capturedBody: string | undefined;
+            globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+                capturedBody = init.body as string;
+                return new Response(JSON.stringify({results: [], success: true}), {
+                    status: 200,
+                    headers: {'Content-Type': 'application/json'}
+                });
+            });
+
+            await batch(action('user.Create'));
+
+            expect(JSON.parse(capturedBody!)).not.toHaveProperty('parallel');
+        });
+
+        it('should send parallel true when batchWith requests it', async () => {
+            let capturedBody: string | undefined;
+            globalThis.fetch = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+                capturedBody = init.body as string;
+                return new Response(JSON.stringify({results: [], success: true}), {
+                    status: 200,
+                    headers: {'Content-Type': 'application/json'}
+                });
+            });
+
+            await batchWith({parallel: true}, action('user.Create'));
+
+            expect(JSON.parse(capturedBody!).parallel).toBe(true);
         });
 
         it('should marshal args exactly as a single action call does', async () => {

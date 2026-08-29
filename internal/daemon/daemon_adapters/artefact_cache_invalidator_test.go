@@ -84,8 +84,8 @@ func newSwitchableRegistry() (*registry_domain.MockRegistryService, *atomic.Poin
 func newRealArtefactCache(t *testing.T) cache_domain.Cache[string, *registry_dto.ArtefactMeta] {
 	t.Helper()
 	otterCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-		Namespace:   "invalidator-test-artefact-metadata",
-		MaximumSize: 100,
+		Namespace:      "invalidator-test-artefact-metadata",
+		MaximumEntries: 100,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = otterCache.Close(context.Background()) })

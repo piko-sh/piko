@@ -136,12 +136,26 @@ func (t Token) Kind() TokenKind { return t.kind }
 type StatementExtension interface {
 	// Classify inspects the leading tokens of a candidate statement and returns a non-zero
 	// StatementKind in the extension's reserved range when this extension claims the
-	// statement, or 0 to decline. Must not mutate the input slice.
+	// statement, or 0 to decline.
+	//
+	// Must not mutate the input slice.
+	//
+	// Takes tokens ([]Token) which are the leading tokens of the candidate statement.
+	//
+	// Returns StatementKind which is the claimed kind, or 0 when the extension declines.
 	Classify(tokens []Token) StatementKind
 
 	// Parse runs after classification, driving the supplied parser context to consume tokens
-	// and producing a CatalogueMutation. The kind argument is the value previously returned
-	// by Classify, so a single extension can serve multiple statement shapes.
+	// and producing a CatalogueMutation.
+	//
+	// The kind argument is the value previously returned by Classify, so a single extension
+	// can serve multiple statement shapes.
+	//
+	// Takes p (ParserContext) which drives token consumption for the statement.
+	// Takes kind (StatementKind) which is the value previously returned by Classify.
+	//
+	// Returns *querier_dto.CatalogueMutation which is the parsed catalogue change.
+	// Returns error when the statement cannot be parsed.
 	Parse(p ParserContext, kind StatementKind) (*querier_dto.CatalogueMutation, error)
 }
 
@@ -170,43 +184,68 @@ type PostParseHook func(p ParserContext, kind StatementKind, mutation *querier_d
 // advances them after the built-in handler has consumed its tokens corrupts subsequent
 // hooks in the chain.
 type ParserContext interface {
-	// MustKeyword consumes the next token, requiring it to be the named keyword. Panics (via
-	// the parser's internal mechanism) if the token does not match; the engine's ApplyDDL
-	// recovers panics into a wrapped error.
+	// MustKeyword consumes the next token, requiring it to be the named keyword.
+	//
+	// Takes name (string) which is the keyword the next token must match.
+	//
+	// Panics (via the parser's internal mechanism) if the token does not match; the engine's
+	// ApplyDDL recovers panics into a wrapped error.
 	MustKeyword(name string)
 
 	// MatchKeyword consumes the current token only if it matches the supplied keyword
-	// (case-insensitive). Returns true on consume.
+	// (case-insensitive).
+	//
+	// Takes name (string) which is the keyword to match, ignoring case.
+	//
+	// Returns bool which reports whether the keyword was consumed.
 	MatchKeyword(name string) bool
 
-	// MatchIfNotExists consumes a trailing `IF NOT EXISTS` clause if present. Returns true
-	// on consume.
+	// MatchIfNotExists consumes a trailing `IF NOT EXISTS` clause if present.
+	//
+	// Returns bool which reports whether the clause was consumed.
 	MatchIfNotExists() bool
 
-	// MatchIfExists consumes a trailing `IF EXISTS` clause if present. Returns true on
-	// consume.
+	// MatchIfExists consumes a trailing `IF EXISTS` clause if present.
+	//
+	// Returns bool which reports whether the clause was consumed.
 	MatchIfExists() bool
 
-	// CurrentToken returns the token at the cursor without consuming it. Returns an EOF
-	// sentinel when the cursor is past the end.
+	// CurrentToken returns the token at the cursor without consuming it.
+	//
+	// Returns Token which is the token at the cursor, or an EOF sentinel when the cursor is
+	// past the end.
 	CurrentToken() Token
 
-	// Peek returns the token one past the cursor without consuming it. Returns an EOF
-	// sentinel when out of range.
+	// Peek returns the token one past the cursor without consuming it.
+	//
+	// Returns Token which is the token one past the cursor, or an EOF sentinel when out of
+	// range.
 	Peek() Token
 
 	// Advance consumes and returns the current token.
+	//
+	// Returns Token which is the token that was consumed.
 	Advance() Token
 
 	// AtEnd reports whether the cursor has reached end of input.
+	//
+	// Returns bool which reports whether the cursor sits at end of input.
 	AtEnd() bool
 
 	// ParseQualifiedName parses an optionally schema-qualified name (`schema.name` or
-	// `name`). Returns the parsed parts.
+	// `name`).
+	//
+	// Returns string which is the schema part, empty when the name carries no qualifier.
+	// Returns string which is the object name.
+	// Returns error when the name cannot be parsed.
 	ParseQualifiedName() (schema string, name string, err error)
 
-	// ParseColumnList parses a `(col1, col2, ...)` identifier list. The opening paren must
-	// be at the cursor; the closing paren is consumed.
+	// ParseColumnList parses a `(col1, col2, ...)` identifier list.
+	//
+	// The opening paren must be at the cursor; the closing paren is consumed.
+	//
+	// Returns []string which are the parsed column names.
+	// Returns error when the list cannot be parsed.
 	ParseColumnList() ([]string, error)
 
 	// ParseColumnType parses and normalises the column type at the cursor, consuming the
@@ -226,6 +265,9 @@ type ParserContext interface {
 	// The opening paren must be at the cursor; the closing paren is consumed. Values are
 	// returned as raw text (single-quoted strings are unwrapped) and keys are
 	// case-preserved.
+	//
+	// Returns map[string]string which maps each reloption key to its raw text value.
+	// Returns error when the body cannot be parsed.
 	ParseReloptionList() (map[string]string, error)
 
 	// ConsumeRemainder advances the cursor to end of input. Used by extensions that capture
@@ -237,11 +279,20 @@ type ParserContext interface {
 	//
 	// It is useful for capturing opaque statement bodies for replay (e.g. async data
 	// mutations or function bodies). Identifier quoting is preserved when needed.
+	//
+	// Returns string which is the source text of the tokens that were consumed.
 	ConsumeRemainderAsText() string
 
 	// EngineSpecificFromTokens returns the raw textual reconstruction of the tokens starting
-	// at startIndex and ending one past endIndex. Convenience for hooks that captured a body
-	// and want to round-trip it into EngineSpecific metadata.
+	// at startIndex and ending one past endIndex.
+	//
+	// Convenience for hooks that captured a body and want to round-trip it into
+	// EngineSpecific metadata.
+	//
+	// Takes startIndex (int) which is the index of the first token to include.
+	// Takes endIndex (int) which marks the end of the token range.
+	//
+	// Returns string which is the reconstructed source text.
 	EngineSpecificFromTokens(startIndex, endIndex int) string
 
 	// Tokens returns the read-only token slice that backs the parser context.
@@ -252,17 +303,27 @@ type ParserContext interface {
 	// Advance is unsafe to call. Hooks that want to lift trailing reloption bodies (for
 	// example TimescaleDB's `CREATE TABLE foo (...) WITH (tsdb.hypertable, ...)` form) walk
 	// the slice without mutating parser state.
+	//
+	// Returns []Token which is the read-only token slice backing the parser context.
 	Tokens() []Token
 
 	// AnalyseViewBody analyses the SELECT body at the cursor and returns its parsed
 	// RawQueryAnalysis without consuming any tokens, so a caller can set the resulting
 	// definition on a CreateView mutation (giving the catalogue typed columns) and then
-	// still consume the body itself. It returns nil when the body cannot be parsed.
+	// still consume the body itself.
+	//
+	// It returns nil when the body cannot be parsed.
 	//
 	// The optional columnNames overlay the inferred projection names with an explicit column
 	// list (the `CREATE VIEW v (a, b) AS ...` form); pass nil to keep the inferred names. It
 	// is used by extensions such as TimescaleDB continuous aggregates, whose `AS SELECT`
 	// body must be typed exactly like a plain view.
+	//
+	// Takes columnNames ([]string) which overlay the inferred projection names, or nil to
+	// keep the inferred names.
+	//
+	// Returns *querier_dto.RawQueryAnalysis which is the parsed view body, or nil when the
+	// body cannot be parsed.
 	AnalyseViewBody(columnNames []string) *querier_dto.RawQueryAnalysis
 }
 

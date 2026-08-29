@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -40,6 +41,7 @@ import (
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/safeerror"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // handleBatch processes a batch action request (continue all, report failures).
@@ -47,7 +49,7 @@ import (
 // Takes w (http.ResponseWriter) which receives the JSON response.
 // Takes request (*http.Request) which contains the batch action request body.
 func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request) {
-	request.Body = http.MaxBytesReader(w, request.Body, h.maxBodyBytes)
+	request.Body = http.MaxBytesReader(baseResponseWriter(w), request.Body, h.maxBodyBytes)
 
 	ctx := extractOTelContext(request)
 	ctx, span := tracer.Start(ctx, "handleBatchActionRequest")
@@ -74,7 +76,7 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 	}
 
 	span.SetAttributes(attribute.Int("batch.action_count", len(batchReq.Actions)))
-	results, allSuccess := h.executeBatchActions(ctx, request, batchReq.Actions)
+	results, allSuccess := h.executeBatchActions(ctx, w, request, batchReq.Actions, batchReq.Parallel)
 
 	l.Trace("Batch action request completed",
 		logger_domain.Int("total_actions", len(batchReq.Actions)),
@@ -144,24 +146,167 @@ func (*ActionHandler) trackBatchMetrics(ctx context.Context, request *http.Reque
 	)
 }
 
-// executeBatchActions executes all actions in the batch and returns results.
+// executeBatchActions executes every entry in the batch and applies each action's
+// response metadata to the shared response, in request order.
 //
+// Takes w (http.ResponseWriter) which receives the cookies and headers the actions set.
 // Takes request (*http.Request) which provides the original request context.
 // Takes actions ([]daemon_dto.BatchActionItem) which contains the actions to execute.
+// Takes parallel (bool) which runs the entries concurrently, bounded by
+// maxParallelBatchWorkers.
 //
 // Returns []daemon_dto.BatchActionResult which contains the result for each action in the
 // same order as the input.
 // Returns bool which indicates whether all actions succeeded.
-func (h *ActionHandler) executeBatchActions(ctx context.Context, request *http.Request, actions []daemon_dto.BatchActionItem) ([]daemon_dto.BatchActionResult, bool) {
+func (h *ActionHandler) executeBatchActions(
+	ctx context.Context,
+	w http.ResponseWriter,
+	request *http.Request,
+	actions []daemon_dto.BatchActionItem,
+	parallel bool,
+) ([]daemon_dto.BatchActionResult, bool) {
 	results := make([]daemon_dto.BatchActionResult, len(actions))
+	instances := make([]any, len(actions))
+
+	if parallel {
+		h.runBatchEntriesConcurrently(ctx, request, actions, results, instances)
+	} else {
+		h.runBatchEntriesSequentially(ctx, request, actions, results, instances)
+	}
+
 	allSuccess := true
-	for i, item := range actions {
-		results[i] = h.executeSingleAction(ctx, request, item)
+	for i := range results {
+		if instances[i] != nil {
+			h.applyResponseMetadata(w, instances[i])
+		}
 		if results[i].Status >= httpErrorStatusThreshold {
 			allSuccess = false
 		}
 	}
+
 	return results, allSuccess
+}
+
+// runBatchEntriesSequentially runs every entry in turn, writing each result and action
+// instance to its own index.
+//
+// Takes request (*http.Request) which provides the original request context.
+// Takes actions ([]daemon_dto.BatchActionItem) which contains the actions to execute.
+// Takes results ([]daemon_dto.BatchActionResult) which receives the outcome per index.
+// Takes instances ([]any) which receives the action instance per index.
+func (h *ActionHandler) runBatchEntriesSequentially(
+	ctx context.Context,
+	request *http.Request,
+	actions []daemon_dto.BatchActionItem,
+	results []daemon_dto.BatchActionResult,
+	instances []any,
+) {
+	for i, item := range actions {
+		if ctx.Err() != nil {
+			results[i] = cancelledBatchResult(item.Name)
+
+			continue
+		}
+
+		results[i], instances[i] = h.executeGuardedBatchEntry(ctx, request, item)
+	}
+}
+
+// cancelledBatchResult describes an entry the server abandoned because the caller went
+// away.
+//
+// Takes name (string) which identifies the action that did not run.
+//
+// Returns daemon_dto.BatchActionResult reporting the abandonment.
+func cancelledBatchResult(name string) daemon_dto.BatchActionResult {
+	return daemon_dto.BatchActionResult{
+		Name:   name,
+		Status: http.StatusServiceUnavailable,
+		Error:  "The request ended before this action ran.",
+		Code:   "CANCELLED",
+	}
+}
+
+// runBatchEntriesConcurrently runs the entries through a bounded worker pool, writing
+// each result and action instance to its own index so request order is preserved.
+//
+// Takes request (*http.Request) which provides the original request context.
+// Takes actions ([]daemon_dto.BatchActionItem) which contains the actions to execute.
+// Takes results ([]daemon_dto.BatchActionResult) which receives the outcome per index.
+// Takes instances ([]any) which receives the action instance per index.
+func (h *ActionHandler) runBatchEntriesConcurrently(
+	ctx context.Context,
+	request *http.Request,
+	actions []daemon_dto.BatchActionItem,
+	results []daemon_dto.BatchActionResult,
+	instances []any,
+) {
+	semaphore := make(chan struct{}, h.parallelBatchWorkers())
+	var waitGroup sync.WaitGroup
+
+	for i, item := range actions {
+		waitGroup.Go(func() {
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				results[i] = cancelledBatchResult(item.Name)
+
+				return
+			}
+
+			if ctx.Err() != nil {
+				results[i] = cancelledBatchResult(item.Name)
+
+				return
+			}
+
+			results[i], instances[i] = h.executeGuardedBatchEntry(ctx, request, item)
+		})
+	}
+
+	waitGroup.Wait()
+}
+
+// parallelBatchWorkers reports how many entries of one parallel batch may run at once.
+//
+// The caller asks for parallelism but does not get to choose how much of it: one request
+// otherwise multiplies into as many concurrent executions as the batch is long.
+//
+// Returns int which is the configured bound, or the default when none is set.
+func (h *ActionHandler) parallelBatchWorkers() int {
+	if h.maxParallelBatchWorkers > 0 {
+		return h.maxParallelBatchWorkers
+	}
+
+	return defaultParallelBatchWorkers
+}
+
+// executeGuardedBatchEntry runs one entry with panic recovery, so a panicking action
+// fails its own entry instead of destroying the whole batch response.
+//
+// Takes request (*http.Request) which provides the original request context.
+// Takes item (daemon_dto.BatchActionItem) which specifies the action to run.
+//
+// Returns daemon_dto.BatchActionResult which contains the action outcome.
+// Returns any which is the action instance whose response metadata the caller applies, or
+// nil when no instance was created.
+func (h *ActionHandler) executeGuardedBatchEntry(
+	ctx context.Context,
+	request *http.Request,
+	item daemon_dto.BatchActionItem,
+) (daemon_dto.BatchActionResult, any) {
+	result, instance, err := goroutine.SafeCall2(ctx, actionBatchComponent,
+		func() (daemon_dto.BatchActionResult, any, error) {
+			batchResult, action := h.executeSingleAction(ctx, request, item)
+
+			return batchResult, action, nil
+		})
+	if err != nil {
+		return h.buildBatchErrorResult(item.Name, err, isDevelopmentModeFromContext(request.Context())), nil
+	}
+
+	return result, instance
 }
 
 // executeSingleAction executes a single action within a batch request.
@@ -170,11 +315,13 @@ func (h *ActionHandler) executeBatchActions(ctx context.Context, request *http.R
 // Takes item (daemon_dto.BatchActionItem) which specifies the action to run.
 //
 // Returns daemon_dto.BatchActionResult which contains the action outcome.
+// Returns any which is the action instance the caller drains, or nil when the action was
+// never created.
 func (h *ActionHandler) executeSingleAction(
 	ctx context.Context,
 	request *http.Request,
 	item daemon_dto.BatchActionItem,
-) daemon_dto.BatchActionResult {
+) (daemon_dto.BatchActionResult, any) {
 	ctx, l := logger_domain.From(ctx, log)
 
 	entry, ok := h.registry[item.Name]
@@ -184,7 +331,7 @@ func (h *ActionHandler) executeSingleAction(
 			Status: http.StatusNotFound,
 			Error:  fmt.Sprintf("action %q not found", item.Name),
 			Code:   "NOT_FOUND",
-		}
+		}, nil
 	}
 
 	action := entry.Create()
@@ -196,7 +343,7 @@ func (h *ActionHandler) executeSingleAction(
 			Status: http.StatusServiceUnavailable,
 			Error:  "This action is handling as many requests as it allows. Retry shortly.",
 			Code:   "CONCURRENCY_LIMIT",
-		}
+		}, nil
 	}
 
 	defer releaseSlot()
@@ -211,7 +358,7 @@ func (h *ActionHandler) executeSingleAction(
 			Status: http.StatusTooManyRequests,
 			Error:  "Rate limit exceeded",
 			Code:   "RATE_LIMITED",
-		}
+		}, action
 	}
 
 	arguments := item.Args
@@ -220,19 +367,19 @@ func (h *ActionHandler) executeSingleAction(
 	}
 
 	if rejection, rejected := h.screenBatchAction(ctx, request, action, arguments, item.Name, l); rejected {
-		return rejection
+		return rejection, action
 	}
 
 	result, err := entry.Invoke(ctx, action, arguments)
 	if err != nil {
-		return h.buildBatchErrorResult(item.Name, err, isDevelopmentModeFromContext(request.Context()))
+		return h.buildBatchErrorResult(item.Name, err, isDevelopmentModeFromContext(request.Context())), action
 	}
 
 	return daemon_dto.BatchActionResult{
 		Name:   item.Name,
 		Status: http.StatusOK,
 		Data:   result,
-	}
+	}, action
 }
 
 // buildBatchCaptchaResult converts a captcha validation error into the matching batch

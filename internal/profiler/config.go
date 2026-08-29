@@ -102,6 +102,11 @@ type Config struct {
 	// MemProfileRate controls the memory profiling sample rate in bytes.
 	MemProfileRate int
 
+	// AutoNextPort tries consecutive ports when the configured one is already in use (server
+	// mode only). Without it a second instance on one machine silently gets no profiling
+	// server at all.
+	AutoNextPort bool
+
 	// EnableRollingTrace enables a bounded in-memory rolling execution trace buffer for
 	// long-running profiling server mode.
 	EnableRollingTrace bool

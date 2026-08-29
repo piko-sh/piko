@@ -61,21 +61,19 @@ type VectorStorePort interface {
 
 	// Search performs a similarity search using the provided query vector.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes request (*llm_dto.VectorSearchRequest) which contains search parameters.
 	//
 	// Returns *llm_dto.VectorSearchResponse which contains matching documents.
-	// Returns error if the operation fails.
+	// Returns error when the operation fails.
 	Search(ctx context.Context, request *llm_dto.VectorSearchRequest) (*llm_dto.VectorSearchResponse, error)
 
 	// Get retrieves a single document by its ID.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the collection/index.
 	// Takes id (string) which is the document ID.
 	//
-	// Returns *llm_dto.VectorDocument which is the document, or nil if not found.
-	// Returns error if the operation fails.
+	// Returns *llm_dto.VectorDocument which is the document, or nil when it is not found.
+	// Returns error when the operation fails.
 	Get(ctx context.Context, namespace, id string) (*llm_dto.VectorDocument, error)
 
 	// Delete removes a document by its ID.
@@ -89,12 +87,11 @@ type VectorStorePort interface {
 
 	// DeleteByFilter removes all documents matching the filter criteria.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the collection/index.
 	// Takes filter (map[string]any) which specifies the filter criteria.
 	//
 	// Returns int which is the number of documents deleted.
-	// Returns error if the operation fails.
+	// Returns error when the operation fails.
 	DeleteByFilter(ctx context.Context, namespace string, filter map[string]any) (int, error)
 
 	// CreateNamespace creates a new namespace or collection with the specified

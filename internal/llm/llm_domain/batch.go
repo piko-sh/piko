@@ -36,28 +36,25 @@ const (
 type BatchProviderPort interface {
 	// CreateBatch submits a batch of completion requests for processing.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes request (*llm_dto.BatchRequest) which contains the batch parameters.
 	//
-	// Returns *llm_dto.BatchResponse containing the initial batch status.
+	// Returns *llm_dto.BatchResponse which is the initial batch status.
 	// Returns error when the batch cannot be created.
 	CreateBatch(ctx context.Context, request *llm_dto.BatchRequest) (*llm_dto.BatchResponse, error)
 
 	// GetBatchStatus retrieves the current status of a batch job.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes batchID (string) which identifies the batch job.
 	//
-	// Returns *llm_dto.BatchResponse containing the current status.
+	// Returns *llm_dto.BatchResponse which is the current batch status.
 	// Returns error when the status cannot be retrieved.
 	GetBatchStatus(ctx context.Context, batchID string) (*llm_dto.BatchResponse, error)
 
 	// GetBatchResults retrieves the completed results of a batch job.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes batchID (string) which identifies the batch job.
 	//
-	// Returns *llm_dto.BatchResponse containing the results.
+	// Returns *llm_dto.BatchResponse which holds the completed batch results.
 	// Returns error when the results cannot be retrieved.
 	GetBatchResults(ctx context.Context, batchID string) (*llm_dto.BatchResponse, error)
 

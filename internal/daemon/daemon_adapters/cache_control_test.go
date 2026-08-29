@@ -43,8 +43,8 @@ func TestCacheControlForArtefact(t *testing.T) {
 		want              string
 	}{
 
-		{"content-addressed stays long-lived", false, true, nil, cacheControlLongLived},
-		{"content-addressed long-lived even for image", false, true, imageVariant, cacheControlLongLived},
+		{"content-addressed is immutable", false, true, nil, cacheControlImmutable},
+		{"content-addressed is immutable even for image", false, true, imageVariant, cacheControlImmutable},
 
 		{"stable-URL JS bundle revalidates", false, false, jsVariant, jitCacheControl},
 		{"stable-URL CSS revalidates", false, false, cssVariant, jitCacheControl},
@@ -100,7 +100,7 @@ func TestCacheControlForMode_EnabledReturnsProdValue(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, cacheControlMutableAsset, cacheControlForMode(false, cacheControlMutableAsset))
-	assert.Equal(t, cacheControlLongLived, cacheControlForMode(false, cacheControlLongLived))
+	assert.Equal(t, cacheControlImmutable, cacheControlForMode(false, cacheControlImmutable))
 }
 
 func TestIsCosmeticMediaVariant(t *testing.T) {

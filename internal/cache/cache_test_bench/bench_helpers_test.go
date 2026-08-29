@@ -34,7 +34,7 @@ func setupOtterCache[K comparable, V any](b *testing.B, maxSize int) cache.Cache
 	b.Helper()
 
 	c, err := provider_otter.OtterProviderFactory(cache.Options[K, V]{
-		MaximumSize: maxSize,
+		MaximumEntries: maxSize,
 	})
 	if err != nil {
 		b.Fatalf("failed to create otter cache: %v", err)

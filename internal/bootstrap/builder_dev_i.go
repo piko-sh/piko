@@ -189,6 +189,7 @@ func (b *interpretedDaemonBuilder) build(ctx context.Context) (daemon_domain.Dae
 		return nil, fmt.Errorf("building templater and runner for interpreted mode: %w", err)
 	}
 
+	enableDevProfilingPortFallback(b.c)
 	b.wireMonitoringInspectors()
 
 	b.buildRouter(ctx)
@@ -630,7 +631,7 @@ func (b *interpretedDaemonBuilder) buildArtefactMetadataCache(ctx context.Contex
 	artefactMetaCache, err := cache_domain.NewCacheBuilder[string, *registry_dto.ArtefactMeta](cacheService).
 		FactoryBlueprint("artefact-metadata").
 		Namespace("artefact-metadata").
-		MaximumSize(defaultArtefactMetadataCacheMaxEntries).
+		MaximumEntries(defaultArtefactMetadataCacheMaxEntries).
 		WriteExpiration(defaultArtefactMetadataCacheTTL).
 		Build(ctx)
 	if err != nil {

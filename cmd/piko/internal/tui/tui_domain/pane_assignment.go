@@ -49,8 +49,16 @@ type PaneAssignment struct {
 // domain-specific pairings (for example, a registry panel paired with a storage panel).
 type PaneAssigner interface {
 	// Assign returns up to maxPanes assignments, ordered for the layout's rendering
-	// convention (left-to-right). The focused panel always appears, occupying the layout's
-	// primary slot.
+	// convention (left-to-right).
+	//
+	// The focused panel always appears, occupying the layout's primary slot.
+	//
+	// Takes panels ([]Panel) which is the ordered list of panels to choose from.
+	// Takes focusedID (string) which identifies the panel that holds focus.
+	// Takes layoutName (string) which names the active layout.
+	// Takes maxPanes (int) which is the greatest number of panes the layout renders.
+	//
+	// Returns []PaneAssignment which pairs each chosen panel with the slot it occupies.
 	Assign(panels []Panel, focusedID string, layoutName string, maxPanes int) []PaneAssignment
 }
 

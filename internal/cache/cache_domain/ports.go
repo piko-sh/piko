@@ -261,9 +261,13 @@ type Cache[K comparable, V any] interface {
 	ProbeEntry(ctx context.Context, key K) (cache_dto.Entry[K, V], bool, error)
 
 	// EstimatedSize returns the approximate number of entries in the cache.
+	//
+	// Returns int which is the approximate number of entries.
 	EstimatedSize() int
 
 	// Stats returns a snapshot of the cache's performance statistics.
+	//
+	// Returns cache_dto.Stats which is the snapshot of performance statistics.
 	Stats() cache_dto.Stats
 
 	// Close releases any resources used by the cache, such as background goroutines.
@@ -274,6 +278,8 @@ type Cache[K comparable, V any] interface {
 	Close(ctx context.Context) error
 
 	// GetMaximum returns the current maximum capacity (size or weight) of the cache.
+	//
+	// Returns uint64 which is the current maximum capacity.
 	GetMaximum() uint64
 
 	// SetMaximum changes the maximum capacity of the cache. If the new capacity is smaller,
@@ -407,8 +413,15 @@ type TransactionCache[K comparable, V any] interface {
 // CreateNamespaceTyped is a non-generic method that uses type erasure (any). Use the
 // standalone CreateNamespace[K, V]() function for type-safe access.
 type Provider interface {
-	// CreateNamespaceTyped creates a namespace with type-erased options. Internal method -
-	// use CreateNamespace[K, V]() instead for type safety.
+	// CreateNamespaceTyped creates a namespace with type-erased options.
+	//
+	// This is an internal method. Use CreateNamespace[K, V]() instead for type safety.
+	//
+	// Takes namespace (string) which names the namespace to create.
+	// Takes options (any) which holds the type-erased namespace options.
+	//
+	// Returns any which is the created namespace, ready to be asserted to its concrete type.
+	// Returns error when the namespace cannot be created.
 	CreateNamespaceTyped(namespace string, options any) (any, error)
 
 	// Close releases all resources managed by this provider, including connections and
@@ -418,6 +431,8 @@ type Provider interface {
 	Close() error
 
 	// Name returns the provider's identifier (e.g., "redis", "otter", "redis-cluster").
+	//
+	// Returns string which is the provider's identifier.
 	Name() string
 }
 
@@ -429,9 +444,10 @@ type Provider interface {
 type Service interface {
 	// RegisterProvider adds a new cache provider implementation to the service.
 	//
-	// Takes ctx (context.Context) which carries logging context.
 	// Takes name (string) which identifies the provider in the registry.
 	// Takes provider (any) which must be a Provider instance.
+	//
+	// Returns error when the provider cannot be registered.
 	RegisterProvider(ctx context.Context, name string, provider any) error
 
 	// GetProvider retrieves a registered Provider by name.
@@ -443,6 +459,8 @@ type Service interface {
 	GetProvider(name string) (Provider, error)
 
 	// GetProviders returns a sorted list of all registered provider names.
+	//
+	// Returns []string which lists the registered provider names in sorted order.
 	GetProviders() []string
 
 	// SetDefaultProvider sets the default cache provider to use when none is specified.
@@ -464,4 +482,18 @@ type Service interface {
 	//
 	// Returns error when any provider fails to close.
 	Close(ctx context.Context) error
+
+	// TotalWeightedSize reports memory accounting summed across every in-process cache the
+	// service can enumerate. Per-cache bounds say nothing about their total, so this is what
+	// tells an operator what the process as a whole has committed to.
+	//
+	// Returns cache_dto.AggregateWeight describing the total and how much of the estate it
+	// covers.
+	TotalWeightedSize(ctx context.Context) cache_dto.AggregateWeight
+
+	// SetWeightBudget declares an advisory memory envelope for the in-process caches, and
+	// warns when the caches' declared maxima already exceed it.
+	//
+	// Takes budget (uint64) which is the envelope in weight units; 0 disables it.
+	SetWeightBudget(ctx context.Context, budget uint64)
 }

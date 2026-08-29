@@ -72,6 +72,8 @@ type DeadLetterPort[T any] interface {
 // letter queue uses Entry to work with any entry type.
 type Entry interface {
 	// GetID returns the unique identifier for this entry.
+	//
+	// Returns string which is the unique identifier of the entry.
 	GetID() string
 
 	// SetID sets the unique identifier for this entry.
@@ -80,6 +82,8 @@ type Entry interface {
 	SetID(id string)
 
 	// GetTimestamp returns when this entry was added to the dead letter queue.
+	//
+	// Returns time.Time which is the moment the entry was added to the queue.
 	GetTimestamp() time.Time
 
 	// SetTimestamp sets the time when this entry was added to the dead letter queue.

@@ -83,6 +83,8 @@ type hybridRegistryAccessor interface {
 	GetETag(providerName, collectionName string) string
 
 	// List returns all registered hybrid collection keys.
+	//
+	// Returns []string which are the keys of every registered hybrid collection.
 	List() []string
 }
 

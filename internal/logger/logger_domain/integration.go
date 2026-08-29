@@ -47,9 +47,11 @@ type Integration interface {
 	// *DatadogConfig). Each integration implementation should type-assert to its expected
 	// config type.
 	//
-	// Returns the configured slog.Handler, or nil if the integration doesn't provide a log
-	// handler.
-	// Returns an error if initialisation fails.
+	// Takes config (any) which is the typed config struct for this integration.
+	//
+	// Returns slog.Handler which is the configured handler, or nil when the integration does
+	// not provide a log handler.
+	// Returns error when initialisation fails.
 	CreateHandler(config any) (slog.Handler, error)
 }
 
@@ -87,6 +89,10 @@ type OtelIntegration interface {
 	// Called during OTEL setup to enable distributed tracing through the external service.
 	// Either or both return values may be nil if the integration doesn't provide that
 	// component.
+	//
+	// Returns SpanProcessor which handles finished spans, or nil when none is provided.
+	// Returns propagation.TextMapPropagator which carries trace context across service
+	// boundaries, or nil when none is provided.
 	OtelComponents() (processor SpanProcessor, propagator propagation.TextMapPropagator)
 }
 

@@ -57,13 +57,20 @@ type PanelSnapshot struct {
 // DataIdentity is consulted to decide whether to keep the cursor or clamp it.
 type Snapshotter interface {
 	// Snapshot returns the current panel state.
+	//
+	// Returns PanelSnapshot which holds the cursor, scroll offset, and other state worth
+	// keeping across a panel switch.
 	Snapshot() PanelSnapshot
 
 	// Restore applies a previously-saved snapshot to the panel.
+	//
+	// Takes snap (PanelSnapshot) which is the state to apply.
 	Restore(snap PanelSnapshot)
 
 	// DataIdentity returns a stable fingerprint of the currently-displayed items so the
 	// restorer can detect data-identity changes.
+	//
+	// Returns uint64 which is the fingerprint of the items on show.
 	DataIdentity() uint64
 }
 
@@ -71,13 +78,23 @@ type Snapshotter interface {
 // the service and shared across panel switches.
 type PanelStateStore interface {
 	// Save records a snapshot for the given panel ID.
+	//
+	// Takes panelID (string) which identifies the panel.
+	// Takes snap (PanelSnapshot) which is the state to record.
 	Save(panelID string, snap PanelSnapshot)
 
 	// Load returns a previously-saved snapshot for the given panel ID, plus a flag
 	// indicating whether one was found.
+	//
+	// Takes panelID (string) which identifies the panel.
+	//
+	// Returns PanelSnapshot which is the saved state, or the zero value when none was found.
+	// Returns bool which reports whether a snapshot was found.
 	Load(panelID string) (PanelSnapshot, bool)
 
 	// Reset removes any saved snapshot for the given panel ID.
+	//
+	// Takes panelID (string) which identifies the panel.
 	Reset(panelID string)
 }
 

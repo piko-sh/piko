@@ -217,7 +217,7 @@ func loadAndPopulateCache[K comparable, V any](
 
 	cache, cacheErr := cache_adapters_otter.OtterProviderFactory(
 		cache_dto.Options[K, V]{
-			MaximumSize: safeconv.Int64ToInt(capacity),
+			MaximumEntries: safeconv.Int64ToInt(capacity),
 		},
 	)
 	if cacheErr != nil {

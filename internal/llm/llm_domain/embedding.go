@@ -34,10 +34,9 @@ import (
 type EmbeddingProviderPort interface {
 	// Embed generates embeddings for the given input texts.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 	//
-	// Returns *llm_dto.EmbeddingResponse containing the generated embeddings.
+	// Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 	// Returns error when the request fails.
 	Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error)
 

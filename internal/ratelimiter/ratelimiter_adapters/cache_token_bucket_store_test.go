@@ -38,7 +38,7 @@ func createTokenBucketStore(t *testing.T, clk clock.Clock) *CacheTokenBucketStor
 	t.Helper()
 
 	cache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, *ratelimiter_domain.TokenBucketState]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 	})
 	require.NoError(t, err)
 

@@ -757,12 +757,6 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 	bannerInfo := daemon_domain.BuildStartupBannerInfo(daemonConfig, runMode, Version)
 	bannerEnabled := container.IsStartupBannerEnabled()
 
-	if profilingConfig := container.GetProfilingConfig(); profilingConfig != nil {
-		addr := profiler.ServerAddress(*profilingConfig)
-		bannerInfo.ProfilingURL = "http://" + addr + profiler.BasePath + "/debug/pprof/"
-		bannerInfo.ProfilingExposed = daemon_domain.IsExposedBindAddress(profilingConfig.BindAddress)
-	}
-
 	var healthAddress atomic.Value
 
 	container.SetOnHealthBound(func(address string) {
@@ -787,6 +781,13 @@ func (s *SSRServer) startAndRunDaemon(ctx context.Context, runMode string, conta
 		if monitoringService := container.GetMonitoringService(); monitoringService != nil {
 			bannerInfo.MonitoringURL = monitoringService.Address()
 			bannerInfo.MonitoringExposed = daemon_domain.IsExposedHostPort(monitoringService.Address())
+		}
+
+		if profilingConfig := container.GetProfilingConfig(); profilingConfig != nil {
+			if profilingAddress := container.GetProfilingAddress(); profilingAddress != "" {
+				bannerInfo.ProfilingURL = "http://" + profilingAddress + profiler.BasePath + "/debug/pprof/"
+				bannerInfo.ProfilingExposed = daemon_domain.IsExposedBindAddress(profilingConfig.BindAddress)
+			}
 		}
 
 		daemon_domain.PrintStartupBanner(ctx, bannerEnabled, bannerInfo)

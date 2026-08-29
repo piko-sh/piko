@@ -42,7 +42,7 @@ The builder returned from `NewCacheBuilder` chains configuration before `Build(c
 myCache, err := builder.
     Provider("otter").
     Namespace("products").
-    MaximumSize(10000).
+    MaximumEntries(10000).
     Compression().
     Build(ctx)
 ```
@@ -52,7 +52,7 @@ Builder method groups:
 | Group | Methods |
 |---|---|
 | Provider / source | `Provider(name)`, `Namespace(ns)`, `FactoryBlueprint(name)`, `MultiLevel(l1, l2)`, `L1Options(any)`, `L2Options(any)`, `L2CircuitBreaker(maxFailures, openTimeout)`, `Options(any)` |
-| Capacity | `MaximumSize(int)`, `MaximumWeight(uint64)`, `InitialCapacity(int)`, `Weigher(func(K, V) uint32)` |
+| Capacity | `MaximumEntries(int)`, `MaximumWeight(uint64)`, `InitialCapacity(int)`, `Weigher(func(K, V) uint32)` |
 | Transformers | `Transformer(name, configs...)`, `Compression()`, `Encryption()`, `EncryptionWithService(any)` |
 | Encoders | `Encoder(AnyEncoder)`, `TypedEncoder(EncoderPort[V])`, `DefaultEncoder(AnyEncoder)` |
 | Time | `Expiration(time.Duration)`, `WriteExpiration(time.Duration)`, `AccessExpiration(time.Duration)`, `ExpiryCalculator(...)`, `RefreshCalculator(...)` |
@@ -122,7 +122,7 @@ Builder method groups:
 | `EstimatedSize() int` | Approximate entry count. |
 | `WeightedSize() uint64` | Total weight (or the same as `EstimatedSize` when weights are off). |
 | `GetMaximum() uint64` / `SetMaximum(size)` | Read or change the cache's max capacity. |
-| `Stats() Stats` | Snapshot counters (hits, misses, evictions, loads, load failures, size). |
+| `Stats() Stats` | Snapshot counters (hits, misses, evictions, load successes, load failures, total load time). For entry and weight totals use `EstimatedSize()` and `WeightedSize()`. |
 | `Close(ctx) error` | Release resources. |
 
 ### Search
@@ -153,6 +153,26 @@ type Transactional[K, V] interface {
 ### Deletion-event hook
 
 Use the builder's `OnDeletion(func(DeletionEvent[K, V]))` (or `OnAtomicDeletion(...)` for stricter ordering guarantees) to observe cache evictions, replacements, and explicit invalidations. The event's `Cause` field is one of the `Cause*` constants below.
+
+### Search performance
+
+Not every operation is index-backed. The table below covers the otter provider. A remote provider delegates to its own engine.
+
+| Operation | Answered from |
+|---|---|
+| `Search` with a non-empty query | Inverted index |
+| `Search` with an empty query | Full enumeration of live keys |
+| `Query` | Full enumeration, then narrowed |
+| `Eq`, `In`, `Gt`, `Ge`, `Lt`, `Le`, `Between` on a `Sortable` field | B-tree seek |
+| The same operations on a field that is not `Sortable` | Linear pass |
+| `Ne`, `Prefix` | Linear pass |
+| Vector search | HNSW index |
+
+Acceleration applies to whichever filter an index can serve. The remaining filters then run linearly over the narrowed set. Piko never intersects two indexes, because choosing which pair to intersect needs selectivity statistics the indexes do not keep.
+
+Sorting on a `Sortable` field walks that field's whole B-tree, so it costs the size of the index, not the size of the result. For a small result set in a large cache, sorting on a non-indexed field is cheaper.
+
+`Limit` defaults to 10 when unset. Pass `cache.NoLimit` to return every match instead of paging through repeated scans.
 
 ## Options and builders
 
@@ -255,7 +275,7 @@ Transformers apply compression or encryption to cached values. They chain, so th
 |---|---|
 | `TransformerPort` | Interface (`Transform`, `Reverse`). |
 | `TransformerType` | Enum of the constants above. |
-| `TransformConfig` | Attachment point on `Options` / builder. |
+| `TransformConfig` | The ordered set of enabled transformers and their settings, assembled by the builder from `Compression()`, `Encryption()` and `Transformer()`. |
 
 Shipped implementations:
 

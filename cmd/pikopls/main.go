@@ -161,7 +161,7 @@ func main() {
 	}
 
 	if *flagPprof {
-		startPprofServer(*flagPprofPort)
+		startPprofServer(ctx, *flagPprofPort)
 	}
 
 	service := initialiseLSP()
@@ -177,7 +177,7 @@ func main() {
 //
 // Runs the server in a separate goroutine. The goroutine runs until the server stops or
 // fails.
-func startPprofServer(port int) {
+func startPprofServer(ctx context.Context, port int) {
 	profilerConfig := profiler.Config{
 		Port:                 port,
 		BindAddress:          profiler.DefaultBindAddress,
@@ -191,7 +191,7 @@ func startPprofServer(port int) {
 		getLog().Warn(warning)
 	}
 
-	server, err := profiler.StartServer(profilerConfig)
+	server, err := profiler.StartServer(ctx, profilerConfig)
 	if err != nil {
 		getLog().Error("Failed to start pprof server", logger.Error(err))
 		return
@@ -200,7 +200,7 @@ func startPprofServer(port int) {
 		getLog().Error("Pprof server error", logger.Error(err))
 	})
 
-	addr := profiler.ServerAddress(profilerConfig)
+	addr := server.Address()
 	getLog().Info("Starting pprof server", logger.String("address", fmt.Sprintf("http://%s%s/debug/pprof/", addr, profiler.BasePath)))
 }
 

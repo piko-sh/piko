@@ -29,7 +29,7 @@
 //	store, err := cache.New(ctx, cache.Config{
 //	    CacheService: cacheService,
 //	    Namespace:    "llm:cache",
-//	    MaximumSize:  10000,
+//	    MaximumEntries:  10000,
 //	})
 //	if err != nil {
 //	    return err

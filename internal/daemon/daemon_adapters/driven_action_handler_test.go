@@ -1663,7 +1663,7 @@ func TestExecuteBatchActions_AllSuccess(t *testing.T) {
 		{Name: "test.action", Args: map[string]any{}},
 	}
 
-	results, allSuccess := handler.executeBatchActions(context.Background(), request, actions)
+	results, allSuccess := handler.executeBatchActions(context.Background(), httptest.NewRecorder(), request, actions, false)
 
 	assert.True(t, allSuccess)
 	require.Len(t, results, 1)
@@ -1680,7 +1680,7 @@ func TestExecuteBatchActions_UnknownAction_NotFound(t *testing.T) {
 		{Name: "nonexistent.action"},
 	}
 
-	results, allSuccess := handler.executeBatchActions(context.Background(), request, actions)
+	results, allSuccess := handler.executeBatchActions(context.Background(), httptest.NewRecorder(), request, actions, false)
 
 	assert.False(t, allSuccess)
 	require.Len(t, results, 1)
@@ -1713,7 +1713,7 @@ func TestExecuteBatchActions_MixedResults(t *testing.T) {
 		{Name: "fail.action"},
 	}
 
-	results, allSuccess := handler.executeBatchActions(context.Background(), request, actions)
+	results, allSuccess := handler.executeBatchActions(context.Background(), httptest.NewRecorder(), request, actions, false)
 
 	assert.False(t, allSuccess)
 	require.Len(t, results, 2)
@@ -1727,7 +1727,7 @@ func TestExecuteSingleAction_NotFound(t *testing.T) {
 	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
-	result := handler.executeSingleAction(context.Background(), request, daemon_dto.BatchActionItem{Name: "missing"})
+	result, _ := handler.executeSingleAction(context.Background(), request, daemon_dto.BatchActionItem{Name: "missing"})
 
 	assert.Equal(t, http.StatusNotFound, result.Status)
 	assert.Contains(t, result.Error, "not found")
@@ -1746,7 +1746,7 @@ func TestExecuteSingleAction_Success(t *testing.T) {
 	})
 
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
-	result := handler.executeSingleAction(context.Background(), request, daemon_dto.BatchActionItem{
+	result, _ := handler.executeSingleAction(context.Background(), request, daemon_dto.BatchActionItem{
 		Name: "test.action",
 		Args: map[string]any{"key": "value"},
 	})
@@ -1795,7 +1795,7 @@ func TestExecuteSingleAction_InvokeError_ReturnsErrorResult(t *testing.T) {
 	})
 
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
-	result := handler.executeSingleAction(context.Background(), request, daemon_dto.BatchActionItem{
+	result, _ := handler.executeSingleAction(context.Background(), request, daemon_dto.BatchActionItem{
 		Name: "test.action",
 	})
 
@@ -2013,8 +2013,8 @@ func TestHandleCachedAction_StoresAndRetrievesFromCache(t *testing.T) {
 	t.Parallel()
 
 	responseCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, []byte]{
-		Namespace:   "test-action-responses",
-		MaximumSize: 100,
+		Namespace:      "test-action-responses",
+		MaximumEntries: 100,
 	})
 	require.NoError(t, err)
 	defer func() { _ = responseCache.Close(context.Background()) }()
@@ -2277,7 +2277,7 @@ func TestExecuteSingleAction_CaptchaRateLimited_Returns429(t *testing.T) {
 	})
 
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
-	result := handler.executeSingleAction(t.Context(), request, daemon_dto.BatchActionItem{
+	result, _ := handler.executeSingleAction(t.Context(), request, daemon_dto.BatchActionItem{
 		Name: "captcha.action",
 		Args: map[string]any{"_captcha_token": "rate-limited-token"},
 	})
@@ -2303,7 +2303,7 @@ func TestExecuteSingleAction_CaptchaFailure_Returns403(t *testing.T) {
 	})
 
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
-	result := handler.executeSingleAction(t.Context(), request, daemon_dto.BatchActionItem{
+	result, _ := handler.executeSingleAction(t.Context(), request, daemon_dto.BatchActionItem{
 		Name: "captcha.action",
 		Args: map[string]any{"_captcha_token": "bad-token"},
 	})

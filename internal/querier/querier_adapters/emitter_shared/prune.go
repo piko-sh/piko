@@ -34,12 +34,26 @@ import (
 // directory.
 type GeneratedOutputDir interface {
 	// ReadDir lists the entries of the directory named name.
+	//
+	// Takes name (string) which is the directory path to list.
+	//
+	// Returns []fs.DirEntry which holds the directory entries.
+	// Returns error when the directory cannot be read.
 	ReadDir(name string) ([]fs.DirEntry, error)
 
 	// Open opens the file named name for reading.
+	//
+	// Takes name (string) which is the path of the file to open.
+	//
+	// Returns safedisk.FileHandle which is the open file, and which the caller must close.
+	// Returns error when the file cannot be opened.
 	Open(name string) (safedisk.FileHandle, error)
 
 	// Remove deletes the file named name.
+	//
+	// Takes name (string) which is the path of the file to delete.
+	//
+	// Returns error when the file cannot be deleted.
 	Remove(name string) error
 }
 

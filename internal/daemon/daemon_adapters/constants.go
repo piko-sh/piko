@@ -104,12 +104,8 @@ const (
 	// Fresh for one hour, stale-while-revalidate for one day.
 	cacheControlMutableAsset = "public, max-age=3600, stale-while-revalidate=86400"
 
-	// cacheControlLongLived is the prod Cache-Control for user artefacts (images, media).
-	// Fresh for one day, stale-while-revalidate for one week.
-	cacheControlLongLived = "public, max-age=86400, stale-while-revalidate=604800"
-
-	// cacheControlImmutable is the Cache-Control for content-addressed assets that never
-	// change (video chunks). Used regardless of dev/prod mode.
+	// cacheControlImmutable is the prod Cache-Control for content-addressed assets, whose
+	// URL names their own bytes so revalidation can never yield a different answer.
 	cacheControlImmutable = "public, max-age=31536000, immutable"
 
 	// contentTypeJSON is the MIME type for JSON content in HTTP responses.

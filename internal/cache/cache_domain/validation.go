@@ -19,23 +19,25 @@
 package cache_domain
 
 import (
+	"context"
 	"fmt"
 
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 // ValidateOptions checks cache settings for invalid or conflicting values.
 //
 // Takes options (cache_dto.Options[K, V]) which specifies the cache settings to check.
 //
-// Returns error when the settings are invalid, such as setting both MaximumSize and
+// Returns error when the settings are invalid, such as setting both MaximumEntries and
 // MaximumWeight, or using a Weigher without MaximumWeight.
 func ValidateOptions[K comparable, V any](options cache_dto.Options[K, V]) error {
-	if options.MaximumSize > 0 && options.MaximumWeight > 0 {
-		return fmt.Errorf("%w: cannot set both MaximumSize and MaximumWeight", errInvalidConfiguration)
+	if options.MaximumEntries > 0 && options.MaximumWeight > 0 {
+		return fmt.Errorf("%w: cannot set both MaximumEntries and MaximumWeight", errInvalidConfiguration)
 	}
-	if options.MaximumSize > 0 && options.Weigher != nil {
-		return fmt.Errorf("%w: cannot set both MaximumSize and a Weigher", errInvalidConfiguration)
+	if options.MaximumEntries > 0 && options.Weigher != nil {
+		return fmt.Errorf("%w: cannot set both MaximumEntries and a Weigher", errInvalidConfiguration)
 	}
 	if options.MaximumWeight > 0 && options.Weigher == nil {
 		return fmt.Errorf("%w: MaximumWeight requires a Weigher function", errInvalidConfiguration)
@@ -44,8 +46,16 @@ func ValidateOptions[K comparable, V any](options cache_dto.Options[K, V]) error
 		return fmt.Errorf("%w: Weigher requires MaximumWeight to be set", errInvalidConfiguration)
 	}
 
-	if options.MaximumSize < 0 {
-		return fmt.Errorf("%w: MaximumSize must be non-negative", errInvalidConfiguration)
+	if options.MaxEntryWeight > 0 && options.Weigher == nil {
+		return fmt.Errorf("%w: MaxEntryWeight requires a Weigher function", errInvalidConfiguration)
+	}
+	if options.MaximumWeight > 0 && uint64(options.MaxEntryWeight) > options.MaximumWeight {
+		return fmt.Errorf("%w: MaxEntryWeight exceeds MaximumWeight, so no value could ever be refused",
+			errInvalidConfiguration)
+	}
+
+	if options.MaximumEntries < 0 {
+		return fmt.Errorf("%w: MaximumEntries must be non-negative", errInvalidConfiguration)
 	}
 	if options.InitialCapacity < 0 {
 		return fmt.Errorf("%w: InitialCapacity must be non-negative", errInvalidConfiguration)
@@ -55,11 +65,25 @@ func ValidateOptions[K comparable, V any](options cache_dto.Options[K, V]) error
 }
 
 // IsUnbounded reports whether the options describe a cache with no declared memory bound
-// (neither MaximumSize nor MaximumWeight set).
+// (neither MaximumEntries nor MaximumWeight set).
 //
 // Takes options (cache_dto.Options[K, V]) which specifies the cache settings to inspect.
 //
 // Returns bool which is true when the cache has no declared bound.
 func IsUnbounded[K comparable, V any](options cache_dto.Options[K, V]) bool {
-	return options.MaximumSize == 0 && options.MaximumWeight == 0
+	return options.MaximumEntries == 0 && options.MaximumWeight == 0
+}
+
+// WarnUnbounded logs a warning when the options describe a cache with no declared bound.
+//
+// Takes options (cache_dto.Options[K, V]) which specifies the cache settings to inspect.
+func WarnUnbounded[K comparable, V any](ctx context.Context, options cache_dto.Options[K, V]) {
+	if !IsUnbounded(options) {
+		return
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("Cache has no declared memory bound (MaximumEntries/MaximumWeight); growth is unbounded",
+		logger_domain.String("namespace", options.Namespace),
+		logger_domain.String("provider", options.Provider))
 }

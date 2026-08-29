@@ -38,12 +38,22 @@ type Base interface {
 	registry_domain.RegistryInspector
 
 	// OwnsArtefact reports whether the base holds an artefact with the given ID.
+	//
+	// Takes artefactID (string) which identifies the artefact.
+	//
+	// Returns bool which reports whether the base holds that artefact.
 	OwnsArtefact(artefactID string) bool
 
 	// OwnsStorageKey reports whether the base owns a variant or chunk stored at the key.
+	//
+	// Takes storageKey (string) which is the key to check.
+	//
+	// Returns bool which reports whether the base owns that key.
 	OwnsStorageKey(storageKey string) bool
 
 	// ArtefactIDs returns every ID the base holds.
+	//
+	// Returns []string which are the artefact IDs the base holds.
 	ArtefactIDs() []string
 }
 

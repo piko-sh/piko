@@ -392,6 +392,11 @@ func (e *gcExecutor) pruneOrphanTracker(backendID string, observedOrphans map[st
 // so the orphan sweep can spare blobs written moments ago.
 type blobAger interface {
 	// StatKey returns when the blob at the given key was last modified.
+	//
+	// Takes key (string) which identifies the blob to inspect.
+	//
+	// Returns time.Time which is the last modification time of the blob.
+	// Returns error when the blob cannot be inspected.
 	StatKey(ctx context.Context, key string) (time.Time, error)
 }
 

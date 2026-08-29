@@ -257,9 +257,9 @@ func (c *Container) configureLLMCache(s llm_domain.Service) error {
 	}
 
 	cacheStore, err := llm_adapters_cache.New(c.GetAppContext(), llm_adapters_cache.Config{
-		CacheService: cacheService,
-		Namespace:    "llm:cache",
-		MaximumSize:  10000,
+		CacheService:   cacheService,
+		Namespace:      "llm:cache",
+		MaximumEntries: 10000,
 	})
 	if err != nil {
 		return fmt.Errorf("creating LLM cache store: %w", err)

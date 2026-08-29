@@ -1460,7 +1460,7 @@ func NewOtterDAL(config Config, opts ...Option) (orchestrator_dal.OrchestratorDA
 		}
 
 		cacheOpts := cache_dto.Options[string, *orchestrator_domain.Task]{
-			MaximumSize: int(capacity),
+			MaximumEntries: int(capacity),
 		}
 
 		cache, err := provider_otter.OtterProviderFactory(cacheOpts)

@@ -156,6 +156,8 @@ type FunctionRegistry interface {
 	Clear()
 
 	// List returns all registered package paths.
+	//
+	// Returns []string which are the registered package paths.
 	List() []string
 }
 

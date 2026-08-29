@@ -46,18 +46,43 @@ type Config struct {
 // API is a frozen JSON configuration providing encode and decode operations.
 type API interface {
 	// Marshal serialises v into JSON bytes.
+	//
+	// Takes v (any) which is the value to serialise.
+	//
+	// Returns []byte which is the JSON-encoded output.
+	// Returns error when serialisation fails.
 	Marshal(v any) ([]byte, error)
 
 	// Unmarshal deserialises JSON data into v.
+	//
+	// Takes data ([]byte) which is the raw JSON input.
+	// Takes v (any) which is the target to populate.
+	//
+	// Returns error when deserialisation fails.
 	Unmarshal(data []byte, v any) error
 
 	// MarshalIndent serialises v into indented JSON bytes.
+	//
+	// Takes v (any) which is the value to serialise.
+	// Takes prefix (string) which is prepended to each line.
+	// Takes indent (string) which is the indentation unit.
+	//
+	// Returns []byte which is the indented JSON output.
+	// Returns error when serialisation fails.
 	MarshalIndent(v any, prefix, indent string) ([]byte, error)
 
 	// NewEncoder creates a streaming JSON encoder writing to w.
+	//
+	// Takes w (io.Writer) which receives the encoded JSON.
+	//
+	// Returns Encoder which wraps the underlying provider.
 	NewEncoder(w io.Writer) Encoder
 
 	// NewDecoder creates a streaming JSON decoder reading from r.
+	//
+	// Takes r (io.Reader) which supplies the raw JSON.
+	//
+	// Returns Decoder which wraps the underlying provider.
 	NewDecoder(r io.Reader) Decoder
 }
 

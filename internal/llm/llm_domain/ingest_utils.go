@@ -137,6 +137,8 @@ type RecursiveFSLoader struct {
 // instead of the fs.FS-relative ".".
 type sourceSetter interface {
 	// setSource records the human-readable origin the loader was created from.
+	//
+	// Takes source (string) which is the human-readable origin, such as a directory path.
 	setSource(source string)
 }
 

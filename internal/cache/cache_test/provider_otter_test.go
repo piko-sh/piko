@@ -54,7 +54,7 @@ func TestOtter_GetSetInvalidate(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key1", "value1")
@@ -77,7 +77,7 @@ func TestOtter_GetWithLoader(t *testing.T) {
 	t.Parallel()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	ctx := context.Background()
@@ -105,7 +105,7 @@ func TestOtter_TagBasedInvalidation(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "user:1", "Alice", "user", "active")
@@ -148,7 +148,7 @@ func TestOtter_TagBasedInvalidation_MultipleTags(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key1", "value1", "tag1", "tag2")
@@ -157,8 +157,13 @@ func TestOtter_TagBasedInvalidation_MultipleTags(t *testing.T) {
 
 	count, _ := cache.InvalidateByTags(ctx, "tag1", "tag3")
 
-	if count < 2 {
-		t.Errorf("expected at least 2 keys invalidated, got %d", count)
+	if count != 3 {
+		t.Errorf("expected 3 keys invalidated, got %d", count)
+	}
+
+	remaining, _ := cache.InvalidateByTags(ctx, "tag2")
+	if remaining != 0 {
+		t.Errorf("expected 0 keys under tag2 after every key carrying it was invalidated, got %d", remaining)
 	}
 }
 
@@ -168,7 +173,7 @@ func TestOtter_InvalidateAll(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	for i := range 10 {
@@ -194,7 +199,7 @@ func TestOtter_MaximumSize(t *testing.T) {
 	const maxSize = 10
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: maxSize,
+		MaximumEntries: maxSize,
 	})
 
 	for i := range maxSize * 2 {
@@ -215,7 +220,7 @@ func TestOtter_Concurrent(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, int]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 	})
 
 	const numGoroutines = 50
@@ -248,7 +253,7 @@ func TestOtter_Stats(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key1", "value1")
@@ -261,8 +266,12 @@ func TestOtter_Stats(t *testing.T) {
 
 	stats := cache.Stats()
 
-	if stats.HitRatio() < 0 || stats.HitRatio() > 1 {
-		t.Errorf("invalid hit ratio: %f", stats.HitRatio())
+	ratio, ok := stats.HitRatio()
+	if !ok {
+		t.Fatal("a cache that served requests must report a hit ratio")
+	}
+	if ratio < 0 || ratio > 1 {
+		t.Errorf("invalid hit ratio: %f", ratio)
 	}
 
 	totalRequests := stats.Hits + stats.Misses
@@ -281,7 +290,7 @@ func TestOtter_EstimatedSize(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	Equal(t, cache.EstimatedSize(), 0, "initial size")
@@ -308,7 +317,7 @@ func TestOtter_Keys(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	expectedKeys := map[string]bool{
@@ -339,7 +348,7 @@ func TestOtter_Values(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key1", "value1")
@@ -362,7 +371,7 @@ func TestOtter_All(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	expected := map[string]string{
@@ -392,7 +401,7 @@ func TestOtter_GetEntry(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key1", "value1")
@@ -412,7 +421,7 @@ func TestOtter_Compute(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, int]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	value, found, _ := cache.Compute(ctx, "counter", func(oldValue int, exists bool) (int, cache_dto.ComputeAction) {
@@ -446,7 +455,7 @@ func TestOtter_ComputeIfAbsent(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	value, computed, _ := cache.ComputeIfAbsent(ctx, "key1", func() string {
@@ -471,7 +480,7 @@ func TestOtter_ComputeIfPresent(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_, found, _ := cache.ComputeIfPresent(ctx, "key1", func(oldValue string) (string, cache_dto.ComputeAction) {
@@ -498,7 +507,7 @@ func TestOtter_SetMaximum(t *testing.T) {
 	t.Parallel()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	initialMax := cache.GetMaximum()
@@ -518,7 +527,7 @@ func TestOtter_BulkGet(t *testing.T) {
 	t.Parallel()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	ctx := context.Background()
@@ -550,7 +559,7 @@ func TestOtter_UpdateExistingValue(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key1", "value1")
@@ -574,7 +583,7 @@ func TestOtter_Close(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key1", "value1")

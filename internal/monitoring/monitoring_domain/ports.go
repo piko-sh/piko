@@ -123,6 +123,8 @@ type MonitoringService interface {
 // retrieve metrics and traces for the monitoring service.
 type TelemetryProvider interface {
 	// GetMetrics returns all current metrics as JSON-serialisable data.
+	//
+	// Returns []MetricData which are all the metrics currently held.
 	GetMetrics() []MetricData
 
 	// GetSpans returns recent spans with optional filtering.
@@ -266,6 +268,8 @@ type MetricsCollectorAdapter interface {
 	Stop()
 
 	// Reader returns the metrics reader for OTEL MeterProvider registration.
+	//
+	// Returns MetricReader which is registered with the OTEL MeterProvider.
 	Reader() MetricReader
 }
 
@@ -328,7 +332,8 @@ type ProviderProbeResolver interface {
 	//
 	// Takes probeName (string) which is the readiness dependency name.
 	//
-	// Returns string which is the matching resource type, and bool which is true on a match.
+	// Returns string which is the matching resource type.
+	// Returns bool which reports whether such a descriptor exists.
 	ResourceTypeForProbe(ctx context.Context, probeName string) (string, bool)
 }
 
@@ -453,8 +458,12 @@ type QueryObservation struct {
 // layer passes the concrete observer opaquely from the WithQueryObserver option to the
 // instrumented DBTX wrapper.
 type QueryObserver interface {
-	// ObserveQuery records one database statement execution. The observation is passed by
-	// pointer to avoid copying it on the hot path; the callee must not retain it.
+	// ObserveQuery records one database statement execution.
+	//
+	// The observation is passed by pointer to avoid copying it on the hot path; the callee
+	// must not retain it.
+	//
+	// Takes obs (*QueryObservation) which describes the statement that was executed.
 	ObserveQuery(ctx context.Context, obs *QueryObservation)
 }
 
@@ -462,14 +471,15 @@ type QueryObserver interface {
 // controls the lifecycle of the pprof HTTP server and Go runtime profiling rates, with
 // mandatory auto-disable after a configured duration.
 type ProfilingController interface {
-	// Enable starts the pprof HTTP server and sets Go runtime profiling rates. If already
-	// enabled, it extends the expiry deadline without restarting the server.
+	// Enable starts the pprof HTTP server and sets Go runtime profiling rates.
+	//
+	// If already enabled, it extends the expiry deadline without restarting the server.
 	//
 	// Takes opts (ProfilingEnableOpts) which configures the profiling session duration,
 	// port, and sampling rates.
 	//
-	// Returns *ProfilingStatus with the current state after enabling. The AlreadyEnabled
-	// field is set when profiling was already active.
+	// Returns *ProfilingStatus which is the state after enabling; its AlreadyEnabled field
+	// is set when profiling was already active.
 	// Returns error when the server fails to start or the duration exceeds the maximum
 	// allowed.
 	Enable(ctx context.Context, opts ProfilingEnableOpts) (*ProfilingStatus, error)

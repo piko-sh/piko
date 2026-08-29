@@ -48,16 +48,16 @@ type CollectionServicePort interface {
 	//
 	// Receives semantic information extracted from the Piko AST.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation
-	//   - collectionName: Name of the collection (e.g., "blog")
-	//   - targetTypeName: Name of the target struct type (e.g., "Post")
-	//   - targetTypeExpr: Go AST expression for the target type
-	//   - options: Fetch options (provider, locale, filters, etc.)
+	// Takes collectionName (string) which is the name of the collection, such as "blog".
+	// Takes targetTypeName (string) which is the name of the target struct type, such as
+	// "Post".
+	// Takes targetTypeExpr (goast.Expr) which is the Go AST expression for the target type.
+	// Takes options (any) which holds the fetch options, such as the provider, the locale
+	// and any filters.
 	//
-	// Returns:
-	//   - A GoGeneratorAnnotation with instructions for code generation
-	//   - An error if processing fails
+	// Returns *ast_domain.GoGeneratorAnnotation which holds the instructions for code
+	// generation.
+	// Returns error when processing fails.
 	ProcessGetCollectionCall(
 		ctx context.Context,
 		collectionName string,
@@ -72,13 +72,12 @@ type CollectionServicePort interface {
 	// directive. Returns virtual entry points for each content item (for static providers)
 	// or a single dynamic route entry point (for dynamic providers).
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - directive: Parsed information from the p-collection directive
+	// Takes directive (*collection_dto.CollectionDirectiveInfo) which is the parsed
+	// information from the p-collection directive.
 	//
-	// Returns:
-	//   - A slice of CollectionEntryPoint (one per content item for static providers)
-	//   - An error if expansion fails
+	// Returns []*collection_dto.CollectionEntryPoint which holds one entry point per content
+	// item for static providers.
+	// Returns error when expansion fails.
 	ProcessCollectionDirective(
 		ctx context.Context,
 		directive *collection_dto.CollectionDirectiveInfo,

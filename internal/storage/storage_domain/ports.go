@@ -69,7 +69,7 @@ type Service interface {
 
 	// GetProviders returns a sorted list of all registered provider names.
 	//
-	// Takes ctx (context.Context) for cancellation and logging propagation.
+	// Returns []string which are the registered provider names, sorted.
 	GetProviders(ctx context.Context) []string
 
 	// HasProvider checks whether a provider with the given name is registered.
@@ -96,6 +96,8 @@ type Service interface {
 	RegisterTransformer(ctx context.Context, transformer StreamTransformerPort) error
 
 	// GetTransformers returns a sorted list of all registered transformer names.
+	//
+	// Returns []string which are the registered transformer names, sorted.
 	GetTransformers() []string
 
 	// HasTransformer checks if a transformer with the given name is registered.
@@ -224,6 +226,8 @@ type Service interface {
 	Close(ctx context.Context) error
 
 	// GetStats returns a snapshot of current service statistics.
+	//
+	// Returns *ServiceStats which is the snapshot of service statistics.
 	GetStats(ctx context.Context) *ServiceStats
 
 	// RegisterPublicRepository registers a repository as publicly accessible. Public
@@ -388,8 +392,12 @@ type StorageProviderPort interface {
 	Close(ctx context.Context) error
 
 	// SupportsMultipart returns true if the provider has a native, efficient multipart
-	// upload API. The service layer uses this to decide whether to automatically enable
-	// multipart for large files.
+	// upload API.
+	//
+	// The service layer uses this to decide whether to automatically enable multipart for
+	// large files.
+	//
+	// Returns bool which reports whether native multipart upload is available.
 	SupportsMultipart() bool
 
 	// SupportsRetry returns true if the provider handles retries internally with its own

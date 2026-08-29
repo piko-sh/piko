@@ -177,7 +177,7 @@ func NewIntrospectionCache(ctx context.Context, cacheService cache_domain.Servic
 	c, err := cache_domain.NewCacheBuilder[string, *coordinator_domain.IntrospectionCacheEntry](cacheService).
 		FactoryBlueprint(BlueprintIntrospection).
 		Namespace("coordinator-introspection").
-		MaximumSize(defaultIntrospectionCacheSize).
+		MaximumEntries(defaultIntrospectionCacheSize).
 		Build(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("building introspection cache: %w", err)

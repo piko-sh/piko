@@ -61,6 +61,8 @@ type LocalProviderFactory interface {
 //   - hashicorp_vault.Provider: HashiCorp Vault
 type EncryptionProvider interface {
 	// Type returns the provider type for identification and logging.
+	//
+	// Returns crypto_dto.ProviderType which identifies the kind of provider.
 	Type() crypto_dto.ProviderType
 
 	// Encrypt encrypts plaintext and returns authenticated ciphertext. The returned
@@ -128,13 +130,19 @@ type EncryptionProvider interface {
 	// Returns error when encryption setup fails.
 	EncryptStream(ctx context.Context, output io.Writer, request *crypto_dto.EncryptRequest) (plaintextWriter io.WriteCloser, err error)
 
-	// DecryptStream decrypts a data stream. The caller reads plaintext from the returned
-	// ReadCloser.
+	// DecryptStream decrypts a data stream.
+	//
+	// The caller reads plaintext from the returned ReadCloser.
 	//
 	// The method automatically detects and parses the streaming envelope format, extracting
 	// metadata and setting up the decryption pipeline.
 	//
 	// Memory usage is constant regardless of stream size.
+	//
+	// Takes input (io.Reader) which supplies the encrypted data.
+	//
+	// Returns io.ReadCloser which yields the decrypted plaintext.
+	// Returns error when the decryption setup fails.
 	DecryptStream(ctx context.Context, input io.Reader) (plaintextReader io.ReadCloser, err error)
 }
 
@@ -244,11 +252,17 @@ type CryptoServicePort interface {
 	// Returns error when the key cannot be found or encryption setup fails.
 	EncryptStream(ctx context.Context, output io.Writer, keyID string) (io.WriteCloser, error)
 
-	// DecryptStream decrypts a data stream. The caller reads plaintext from the returned
-	// ReadCloser.
+	// DecryptStream decrypts a data stream.
+	//
+	// The caller reads plaintext from the returned ReadCloser.
 	//
 	// Automatically detects the envelope format (v1 or v2) and sets up the appropriate
 	// decryption pipeline. Suitable for decrypting large files.
+	//
+	// Takes input (io.Reader) which supplies the encrypted data.
+	//
+	// Returns io.ReadCloser which yields the decrypted plaintext.
+	// Returns error when the decryption setup fails.
 	DecryptStream(ctx context.Context, input io.Reader) (io.ReadCloser, error)
 
 	// NewEncrypt creates a new encryption builder.
@@ -299,7 +313,7 @@ type CryptoServicePort interface {
 
 	// GetProviders returns a sorted list of all registered provider names.
 	//
-	// Takes ctx (context.Context) which carries cancellation and tracing.
+	// Returns []string which holds the registered provider names in sorted order.
 	GetProviders(ctx context.Context) []string
 
 	// HasProvider checks if a provider with the given name has been registered.

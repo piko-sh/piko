@@ -127,16 +127,6 @@ func (*astBuilder) buildLocalTranslationsMapLiteral(translations i18n_domain.Tra
 //  1. Calls pikoruntime.GetContentAST(r.CollectionData) to get the content AST
 //  2. If not nil, appends all content nodes to the parent's children
 //
-// Parameters:
-//   - ctx: Context for cancellation
-//   - node: The <piko:content /> AST node
-//   - parentSliceExpr: The parent's Children slice to append to
-//
-// Returns:
-//   - statements: Go statements that fetch and append content at runtime
-//   - nodesConsumed: Always 1 (this tag consumes itself)
-//   - diagnostics: Diagnostics (errors/warnings)
-//
 // Takes parentSliceExpr (goast.Expr) which specifies the slice to add content nodes to.
 //
 // Returns []goast.Stmt which contains the generated runtime fetch statements.

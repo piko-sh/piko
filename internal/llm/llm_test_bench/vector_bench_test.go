@@ -91,7 +91,7 @@ func newBenchVectorStore(b *testing.B, dimension int) *vector_cache.Store {
 		return cache_domain.NewCacheBuilder[string, llm_dto.VectorDocument](cacheService).
 			FactoryBlueprint(bp).
 			Namespace(ns).
-			MaximumSize(200000).
+			MaximumEntries(200000).
 			Searchable(schema).
 			Build(context.Background())
 	})

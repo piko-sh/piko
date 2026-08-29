@@ -51,7 +51,7 @@ func createConcurrencyTestCache(t *testing.T, walEnabled bool) *OtterAdapter[str
 	}
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100000,
+		MaximumEntries:   100000,
 		ProviderSpecific: providerSpecific,
 	}
 
@@ -150,7 +150,7 @@ func TestRace_ConcurrentCheckpoint(t *testing.T) {
 	walConfig.SnapshotThreshold = 50
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -211,7 +211,7 @@ func TestRace_ConcurrentRecovery(t *testing.T) {
 	walConfig.SnapshotThreshold = 1000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -345,7 +345,7 @@ func TestStress_RapidCheckpoints(t *testing.T) {
 	walConfig.SnapshotThreshold = 10
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -417,7 +417,7 @@ func TestStress_ContinuousWritesDuringCheckpoint(t *testing.T) {
 	walConfig.SnapshotThreshold = 10000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 100000,
+		MaximumEntries: 100000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -485,7 +485,7 @@ func TestDeadlock_SetDuringCheckpoint(t *testing.T) {
 	walConfig.SnapshotThreshold = 10000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -533,7 +533,7 @@ func TestDeadlock_CheckpointDuringBulkSet(t *testing.T) {
 	walConfig.SnapshotThreshold = 10000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -667,7 +667,7 @@ func TestConcurrency_WALAppendOrder(t *testing.T) {
 	walConfig.SnapshotThreshold = 10000
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,

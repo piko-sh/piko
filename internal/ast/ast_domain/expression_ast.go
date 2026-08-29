@@ -163,6 +163,8 @@ var (
 // Expression defines the interface that all expression nodes implement.
 type Expression interface {
 	// String returns the string form of this expression.
+	//
+	// Returns string which is the textual form of the expression.
 	String() string
 
 	// TransformIdentifiers walks the expression tree and applies a transformation function
@@ -201,6 +203,8 @@ type Expression interface {
 	SetGoAnnotation(*GoGeneratorAnnotation)
 
 	// GetSourceLength returns the length of the source content in bytes.
+	//
+	// Returns int which is the span of the node in the source, in bytes.
 	GetSourceLength() int
 }
 

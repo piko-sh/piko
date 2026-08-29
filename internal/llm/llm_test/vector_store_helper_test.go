@@ -65,7 +65,7 @@ func createOtterVectorStore(t *testing.T, dimension int, metric string) *vector_
 		return cache_domain.NewCacheBuilder[string, llm_dto.VectorDocument](cacheService).
 			FactoryBlueprint(bp).
 			Namespace(ns).
-			MaximumSize(100000).
+			MaximumEntries(100000).
 			Searchable(schema).
 			Build(context.Background())
 	})

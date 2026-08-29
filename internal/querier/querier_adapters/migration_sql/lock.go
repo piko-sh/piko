@@ -395,6 +395,8 @@ type mysqlNumberedError interface {
 	error
 
 	// Number returns the driver-assigned MySQL error number.
+	//
+	// Returns uint16 which is the driver-assigned MySQL error number.
 	Number() uint16
 }
 
@@ -409,6 +411,8 @@ type postgresSQLStateError interface {
 	error
 
 	// SQLState returns the five-character SQLSTATE code reported by the server.
+	//
+	// Returns string which is the five-character SQLSTATE code.
 	SQLState() string
 }
 

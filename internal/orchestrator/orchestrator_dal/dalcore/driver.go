@@ -32,91 +32,238 @@ import (
 // shapes.
 type Driver interface {
 	// WithTx returns a driver whose queries run inside tx.
+	//
+	// Takes tx (*sql.Tx) which is the open transaction the queries join.
+	//
+	// Returns Driver which runs every query inside that transaction.
 	WithTx(tx *sql.Tx) Driver
 
 	// CreateTask inserts a single task.
+	//
+	// Takes params (CreateTaskParams) which carries the fields of the task to insert.
+	//
+	// Returns error when the insert fails.
 	CreateTask(ctx context.Context, params CreateTaskParams) error
 
 	// CreateTasksBatch inserts a batch of tasks with automatic chunking.
+	//
+	// Takes params ([]CreateTaskBatchParams) which carries the fields of each task.
+	//
+	// Returns error when the insert fails.
 	CreateTasksBatch(ctx context.Context, params []CreateTaskBatchParams) error
 
 	// UpdateTask updates an existing task.
+	//
+	// Takes params (UpdateTaskParams) which carries the new field values for the task.
+	//
+	// Returns error when the update fails.
 	UpdateTask(ctx context.Context, params UpdateTaskParams) error
 
-	// CreateWithDedup creates a task honouring its deduplication key. It returns created ==
-	// false when an active task with the same key already exists.
+	// CreateWithDedup creates a task honouring its deduplication key.
+	//
+	// It returns created == false when an active task with the same key already exists.
+	//
+	// Takes params (CreateTaskParams) which carries the fields of the task to insert.
+	// Takes deduplicationKey (string) which identifies duplicate work.
+	//
+	// Returns bool which is true when the task was created.
+	// Returns error when the insert fails.
 	CreateWithDedup(ctx context.Context, params CreateTaskParams, deduplicationKey string) (created bool, err error)
 
 	// FetchDueTasks returns tasks that are due to run.
+	//
+	// Takes params (FetchDueTasksParams) which carries the filter for the fetch.
+	//
+	// Returns []FetchDueTaskRow which holds the tasks that are due.
+	// Returns error when the query fails.
 	FetchDueTasks(ctx context.Context, params FetchDueTasksParams) ([]FetchDueTaskRow, error)
 
 	// MarkTasksAsProcessing marks the given task IDs as processing.
+	//
+	// Takes updatedAt (int64) which is the update time in Unix seconds.
+	// Takes ids ([]string) which are the tasks to mark.
+	//
+	// Returns error when the update fails.
 	MarkTasksAsProcessing(ctx context.Context, updatedAt int64, ids []string) error
 
 	// GetWorkflowStatus reports whether the workflow still has incomplete tasks.
+	//
+	// Takes workflowID (string) which identifies the workflow.
+	//
+	// Returns bool which is true when the workflow still has incomplete tasks.
+	// Returns error when the query fails.
 	GetWorkflowStatus(ctx context.Context, workflowID string) (hasIncomplete bool, err error)
 
 	// PromoteScheduledTasks promotes ready scheduled tasks to pending and returns the count.
+	//
+	// Takes updatedAt (int64) which is the update time in Unix seconds.
+	// Takes executeAt (int64) which is the upper bound of scheduled execution time in Unix
+	// seconds.
+	//
+	// Returns int64 which is the number of tasks promoted.
+	// Returns error when the update fails.
 	PromoteScheduledTasks(ctx context.Context, updatedAt, executeAt int64) (int64, error)
 
 	// PendingTaskCount returns the number of pending tasks.
+	//
+	// Returns int64 which is the number of pending tasks.
+	// Returns error when the query fails.
 	PendingTaskCount(ctx context.Context) (int64, error)
 
 	// RecoverStale resets stale processing tasks to retrying or failed and returns the
 	// count.
+	//
+	// Takes maxRetries (int32) which is the attempt limit before a task is failed.
+	// Takes recoveryError (*string) which is the error message recorded on the task, if any.
+	// Takes nowUnix (int64) which is the current time in Unix seconds.
+	// Takes staleThresholdUnix (int64) which is the time before which a task counts as
+	// stale.
+	//
+	// Returns int64 which is the number of tasks recovered.
+	// Returns error when the update fails.
 	RecoverStale(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix, staleThresholdUnix int64) (int64, error)
 
 	// GetStaleProcessingTaskCount returns the number of tasks stuck in processing past the
 	// threshold.
+	//
+	// Takes staleThresholdUnix (int64) which is the time before which a task counts as
+	// stale.
+	//
+	// Returns int64 which is the number of stale processing tasks.
+	// Returns error when the query fails.
 	GetStaleProcessingTaskCount(ctx context.Context, staleThresholdUnix int64) (int64, error)
 
 	// UpdateTaskHeartbeat updates the heartbeat timestamp for a processing task.
+	//
+	// Takes updatedAt (int64) which is the heartbeat time in Unix seconds.
+	// Takes taskID (string) which identifies the task.
+	//
+	// Returns error when the update fails.
 	UpdateTaskHeartbeat(ctx context.Context, updatedAt int64, taskID string) error
 
 	// GetStaleTasksForRecovery returns candidate stale tasks for recovery claiming.
+	//
+	// Takes staleThresholdUnix (int64) which is the time before which a task counts as
+	// stale.
+	// Takes recoveryExpiresAt (*int64) which is the time an existing recovery lease expires,
+	// if any.
+	// Takes limit (int) which caps the number of candidates returned.
+	//
+	// Returns []StaleTaskRow which holds the candidate tasks.
+	// Returns error when the query fails.
 	GetStaleTasksForRecovery(ctx context.Context, staleThresholdUnix int64, recoveryExpiresAt *int64, limit int) ([]StaleTaskRow, error)
 
 	// ClaimTaskForRecovery attempts to claim a single stale task and returns rows affected.
+	//
+	// Takes recoveryNodeID (*string) which identifies the node making the claim, if any.
+	// Takes leaseExpiresAt (*int64) which is the lease expiry in Unix seconds, if any.
+	// Takes taskID (string) which identifies the task to claim.
+	// Takes nowUnix (*int64) which is the current time in Unix seconds, if any.
+	//
+	// Returns int64 which is the number of rows the claim affected.
+	// Returns error when the update fails.
 	ClaimTaskForRecovery(ctx context.Context, recoveryNodeID *string, leaseExpiresAt *int64, taskID string, nowUnix *int64) (int64, error)
 
 	// RecoverClaimed recovers all tasks previously claimed by a node and returns the count.
+	//
+	// Takes maxRetries (int32) which is the attempt limit before a task is failed.
+	// Takes recoveryError (*string) which is the error message recorded on the task, if any.
+	// Takes nowUnix (int64) which is the current time in Unix seconds.
+	// Takes nodeID (*string) which identifies the node holding the claims, if any.
+	//
+	// Returns int64 which is the number of tasks recovered.
+	// Returns error when the update fails.
 	RecoverClaimed(ctx context.Context, maxRetries int32, recoveryError *string, nowUnix int64, nodeID *string) (int64, error)
 
 	// ReleaseRecoveryLeases releases all recovery leases held by a node and returns the
 	// count.
+	//
+	// Takes nodeID (*string) which identifies the node holding the leases, if any.
+	//
+	// Returns int64 which is the number of leases released.
+	// Returns error when the update fails.
 	ReleaseRecoveryLeases(ctx context.Context, nodeID *string) (int64, error)
 
 	// CreateWorkflowReceipt creates a workflow-completion receipt.
+	//
+	// Takes params (CreateWorkflowReceiptParams) which carries the fields of the receipt.
+	//
+	// Returns error when the insert fails.
 	CreateWorkflowReceipt(ctx context.Context, params CreateWorkflowReceiptParams) error
 
 	// ResolveWorkflowReceipts marks a workflow's pending receipts as resolved and returns
 	// the count.
+	//
+	// Takes workflowID (string) which identifies the workflow.
+	// Takes errorMessage (*string) which is the failure message stored on the receipts, if
+	// any.
+	// Takes nowUnix (int64) which is the resolution time in Unix seconds.
+	//
+	// Returns int64 which is the number of receipts resolved.
+	// Returns error when the update fails.
 	ResolveWorkflowReceipts(ctx context.Context, workflowID string, errorMessage *string, nowUnix int64) (int64, error)
 
 	// GetPendingReceiptsByNode returns the pending receipts created by a node.
+	//
+	// Takes nodeID (string) which identifies the node.
+	//
+	// Returns []PendingReceiptRow which holds the pending receipts.
+	// Returns error when the query fails.
 	GetPendingReceiptsByNode(ctx context.Context, nodeID string) ([]PendingReceiptRow, error)
 
 	// GetPendingReceiptsByWorkflow returns the pending receipts for a workflow.
+	//
+	// Takes workflowID (string) which identifies the workflow.
+	//
+	// Returns []PendingReceiptRow which holds the pending receipts.
+	// Returns error when the query fails.
 	GetPendingReceiptsByWorkflow(ctx context.Context, workflowID string) ([]PendingReceiptRow, error)
 
 	// CleanupOldResolvedReceipts deletes resolved receipts older than the cutoff and returns
 	// the count.
+	//
+	// Takes olderThanUnix (*int64) which is the cutoff time in Unix seconds, if any.
+	//
+	// Returns int64 which is the number of receipts deleted.
+	// Returns error when the delete fails.
 	CleanupOldResolvedReceipts(ctx context.Context, olderThanUnix *int64) (int64, error)
 
 	// TimeoutStaleReceipts marks very old pending receipts as timed out and returns the
 	// count.
+	//
+	// Takes updatedAt (int64) which is the update time in Unix seconds.
+	// Takes olderThanUnix (int64) which is the cutoff time in Unix seconds.
+	//
+	// Returns int64 which is the number of receipts timed out.
+	// Returns error when the update fails.
 	TimeoutStaleReceipts(ctx context.Context, updatedAt, olderThanUnix int64) (int64, error)
 
 	// ListFailedTasks returns all tasks in the failed state.
+	//
+	// Returns []FailedTaskRow which holds the failed tasks.
+	// Returns error when the query fails.
 	ListFailedTasks(ctx context.Context) ([]FailedTaskRow, error)
 
 	// ListTaskStatusCounts returns task counts grouped by status.
+	//
+	// Returns []TaskStatusCountRow which pairs each status with its task count.
+	// Returns error when the query fails.
 	ListTaskStatusCounts(ctx context.Context) ([]TaskStatusCountRow, error)
 
 	// ListRecentTasks returns the most recently updated tasks.
+	//
+	// Takes limit (int) which caps the number of tasks returned.
+	//
+	// Returns []RecentTaskRow which holds the recently updated tasks.
+	// Returns error when the query fails.
 	ListRecentTasks(ctx context.Context, limit int) ([]RecentTaskRow, error)
 
 	// ListWorkflowSummary returns per-workflow aggregates.
+	//
+	// Takes limit (int) which caps the number of workflows returned.
+	//
+	// Returns []WorkflowSummaryRow which holds the per-workflow aggregates.
+	// Returns error when the query fails.
 	ListWorkflowSummary(ctx context.Context, limit int) ([]WorkflowSummaryRow, error)
 }
 

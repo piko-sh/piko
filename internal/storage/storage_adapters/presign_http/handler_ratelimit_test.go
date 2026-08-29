@@ -35,8 +35,8 @@ import (
 )
 
 type stubPresignRateLimiter struct {
-	err error
-	key string
+	err     error
+	key     string
 	allowed bool
 }
 

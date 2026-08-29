@@ -37,7 +37,7 @@ import (
 )
 
 type keyFuncAction struct {
-	request *daemon_dto.RequestMetadata
+	request  *daemon_dto.RequestMetadata
 	identity string
 }
 

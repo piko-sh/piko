@@ -331,7 +331,7 @@ func (op *routerOperation) buildArtefactMetadataCache(ctx context.Context) cache
 	artefactMetaCache, err := cache_domain.NewCacheBuilder[string, *registry_dto.ArtefactMeta](cacheService).
 		FactoryBlueprint("artefact-metadata").
 		Namespace("artefact-metadata").
-		MaximumSize(defaultArtefactMetadataCacheMaxEntries).
+		MaximumEntries(defaultArtefactMetadataCacheMaxEntries).
 		WriteExpiration(defaultArtefactMetadataCacheTTL).
 		Build(ctx)
 	if err != nil {
@@ -726,5 +726,7 @@ func buildRouteSettings(serverConfig *ServerConfig) daemon_adapters.RouteSetting
 		RequestTimeoutSeconds:        deref(serverConfig.Network.RequestTimeoutSeconds, defaultRequestTimeoutSeconds),
 		ActionServePath:              deref(serverConfig.Paths.ActionServePath, "/_piko/actions"),
 		CSRFSecFetchSiteEnforcement:  deref(serverConfig.Security.CSRF.SecFetchSiteEnforcement, true),
+		ActionCompression:            deref(serverConfig.Network.ActionCompression, true),
+		MaxParallelBatchWorkers:      deref(serverConfig.Network.MaxParallelBatchWorkers, 0),
 	}
 }

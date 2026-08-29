@@ -31,9 +31,9 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -397,7 +397,7 @@ func (c *Controller) startProfilingServer(
 	}
 	SetRuntimeRates(config)
 
-	server, err := StartServer(config)
+	server, err := StartServer(ctx, config)
 	if err != nil {
 		runtime.SetBlockProfileRate(0)
 		runtime.SetMutexProfileFraction(originalMutexFraction)

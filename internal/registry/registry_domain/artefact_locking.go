@@ -28,6 +28,11 @@ import (
 type ArtefactLocker interface {
 	// GetArtefactForUpdate reads an artefact under a row-level lock held for the enclosing
 	// transaction.
+	//
+	// Takes artefactID (string) which identifies the artefact to read.
+	//
+	// Returns *registry_dto.ArtefactMeta which is the locked artefact metadata.
+	// Returns error when the artefact cannot be read.
 	GetArtefactForUpdate(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error)
 }
 

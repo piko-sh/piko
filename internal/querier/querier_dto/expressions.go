@@ -30,6 +30,8 @@ package querier_dto
 // nullable=true.
 type Expression interface {
 	// expressionKind returns a string tag identifying the concrete expression form.
+	//
+	// Returns string which holds the expression kind tag.
 	expressionKind() string
 }
 

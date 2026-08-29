@@ -34,7 +34,8 @@ export {
 export {_createPKContext} from './context';
 export type {PKContext} from './context';
 
-export {action, batch, isActionDescriptor, createActionError, createActionBuilder, ActionBuilder, registerActionFunction, getActionFunction} from './action';
+export {action, batch, batchWith, isActionDescriptor, createActionError, createActionBuilder, ActionBuilder, registerActionFunction, getActionFunction} from './action';
+export type {BatchOptions} from './action';
 export type {ActionDescriptor, ActionError, ActionMethod, RetryConfig, RetryBackoff, BatchActionResult, BatchActionResponse} from './action';
 
 export {

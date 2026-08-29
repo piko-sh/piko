@@ -534,9 +534,9 @@ func TestNewCache_InvalidOptions(t *testing.T) {
 	}
 
 	options := cache_dto.Options[string, string]{
-		Provider:      "mock",
-		MaximumSize:   100,
-		MaximumWeight: 1000,
+		Provider:       "mock",
+		MaximumEntries: 100,
+		MaximumWeight:  1000,
 	}
 
 	cache, err := NewCache[string, string](service, options)
@@ -800,8 +800,8 @@ func TestCreateNamespace_InvalidOptions(t *testing.T) {
 		t.Fatalf("registration failed: %v", err)
 	}
 	opts := cache_dto.Options[string, string]{
-		MaximumSize:   100,
-		MaximumWeight: 1000,
+		MaximumEntries: 100,
+		MaximumWeight:  1000,
 	}
 	_, err := CreateNamespace[string, string](context.Background(), service, "mock", "ns", opts)
 	if err == nil {

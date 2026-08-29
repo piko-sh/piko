@@ -83,49 +83,111 @@ func (m Mode) String() string {
 // The default implementation is *File, which wraps os.File.
 type FileHandle interface {
 	// Name returns the relative path of the file within the sandbox.
+	//
+	// Returns string which is the file's path relative to the sandbox root.
 	Name() string
 
-	// AbsolutePath returns the absolute path of the file on disk. This should only be used
-	// for logging/debugging.
+	// AbsolutePath returns the absolute path of the file on disk.
+	//
+	// This should only be used for logging and debugging, not for further file operations.
+	//
+	// Returns string which is the file's absolute path on disk.
 	AbsolutePath() string
 
 	// Read reads up to len(p) bytes into p.
+	//
+	// Takes p ([]byte) which is the buffer to read data into.
+	//
+	// Returns int which is the number of bytes read.
+	// Returns error when the read fails.
 	Read(p []byte) (n int, err error)
 
 	// ReadAt reads len(p) bytes starting at offset off.
+	//
+	// Takes p ([]byte) which is the buffer to read data into.
+	// Takes off (int64) which is the byte offset to start reading from.
+	//
+	// Returns int which is the number of bytes read.
+	// Returns error when the read fails.
 	ReadAt(p []byte, off int64) (n int, err error)
 
 	// Write writes len(p) bytes from p to the file.
+	//
+	// Takes p ([]byte) which holds the data to write.
+	//
+	// Returns int which is the number of bytes written.
+	// Returns error when the write fails.
 	Write(p []byte) (n int, err error)
 
 	// WriteAt writes len(p) bytes starting at offset off.
+	//
+	// Takes p ([]byte) which holds the data to write.
+	// Takes off (int64) which is the byte offset to start writing at.
+	//
+	// Returns int which is the number of bytes written.
+	// Returns error when the write fails.
 	WriteAt(p []byte, off int64) (n int, err error)
 
 	// WriteString writes a string to the file.
+	//
+	// Takes s (string) which is the text to write.
+	//
+	// Returns int which is the number of bytes written.
+	// Returns error when the write fails.
 	WriteString(s string) (n int, err error)
 
 	// Seek sets the offset for the next Read or Write.
+	//
+	// Takes offset (int64) which is the position relative to whence.
+	// Takes whence (int) which is the reference point: 0 for the start, 1 for the current
+	// position, 2 for the end of the file.
+	//
+	// Returns int64 which is the new offset from the start of the file.
+	// Returns error when the seek fails.
 	Seek(offset int64, whence int) (int64, error)
 
 	// Sync saves the file's contents to stable storage.
+	//
+	// Returns error when the sync fails.
 	Sync() error
 
 	// Truncate changes the size of the file.
+	//
+	// Takes size (int64) which is the new length in bytes.
+	//
+	// Returns error when the file cannot be resized.
 	Truncate(size int64) error
 
 	// Stat returns information about the file.
+	//
+	// Returns fs.FileInfo which describes the file's metadata.
+	// Returns error when the file information cannot be read.
 	Stat() (fs.FileInfo, error)
 
 	// Chmod changes the file's permissions.
+	//
+	// Takes mode (fs.FileMode) which is the new permission bits.
+	//
+	// Returns error when the permission change fails.
 	Chmod(mode fs.FileMode) error
 
 	// Close releases all resources held by the file.
+	//
+	// Returns error when closing the underlying file fails.
 	Close() error
 
-	// ReadDir reads the directory contents (if this is a directory).
+	// ReadDir reads the directory contents when this handle is a directory.
+	//
+	// Takes n (int) which limits how many entries are returned. When n is zero or less, all
+	// entries are returned.
+	//
+	// Returns []fs.DirEntry which holds the directory entries.
+	// Returns error when the handle is not a directory or the read fails.
 	ReadDir(n int) ([]fs.DirEntry, error)
 
 	// Fd returns the underlying file descriptor.
+	//
+	// Returns uintptr which is the operating system file descriptor.
 	Fd() uintptr
 }
 
@@ -172,8 +234,8 @@ type Sandbox interface {
 	//
 	// Returns []byte which contains the file content (up to maxBytes).
 	// Returns int64 which is the stat-reported file size at stat time.
-	// Returns error wrapping ErrFileExceedsLimit when the file is larger than maxBytes, or
-	// any underlying stat / read error.
+	// Returns error when the file is larger than maxBytes, wrapping ErrFileExceedsLimit, or
+	// when the underlying stat or read fails.
 	ReadFileLimit(name string, maxBytes int64) ([]byte, int64, error)
 
 	// Stat returns file information for a path within the sandbox.
@@ -321,6 +383,8 @@ type Sandbox interface {
 	MkdirTemp(directory, pattern string) (string, error)
 
 	// Root returns the absolute path of the sandbox root directory.
+	//
+	// Returns string which is the absolute path of the sandbox root.
 	Root() string
 
 	// Mode returns whether this sandbox allows file changes.
@@ -328,7 +392,9 @@ type Sandbox interface {
 	// Returns Mode which shows if access is read-only or read-write.
 	Mode() Mode
 
-	// IsReadOnly returns true if the sandbox does not allow write operations.
+	// IsReadOnly reports whether the sandbox forbids write operations.
+	//
+	// Returns bool which is true when the sandbox does not allow write operations.
 	IsReadOnly() bool
 
 	// Close releases any resources held by the sandbox. After Close is called, all

@@ -56,8 +56,8 @@ import (
 func createTestArtefactCache(t *testing.T) *artefactMetadataCache {
 	t.Helper()
 	otterCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-		Namespace:   "test-artefact-metadata",
-		MaximumSize: 100,
+		Namespace:      "test-artefact-metadata",
+		MaximumEntries: 100,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = otterCache.Close(context.Background()) })
@@ -68,8 +68,8 @@ func Test_newArtefactMetadataCache_CreatesCache(t *testing.T) {
 	t.Parallel()
 
 	otterCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-		Namespace:   "test-artefact-metadata",
-		MaximumSize: 100,
+		Namespace:      "test-artefact-metadata",
+		MaximumEntries: 100,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = otterCache.Close(context.Background()) })

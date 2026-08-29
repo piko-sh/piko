@@ -134,7 +134,7 @@ func NewBuildResultCache(ctx context.Context, cacheService cache_domain.Service)
 	c, err := cache_domain.NewCacheBuilder[string, *annotator_dto.ProjectAnnotationResult](cacheService).
 		FactoryBlueprint(BlueprintBuildResults).
 		Namespace("coordinator-build-results").
-		MaximumSize(defaultCacheSize).
+		MaximumEntries(defaultCacheSize).
 		Build(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("building build result cache: %w", err)

@@ -78,13 +78,17 @@ type LifecycleComponent interface {
 	// start.
 	OnStart(ctx context.Context) error
 
-	// OnStop is called when the server is shutting down gracefully. Use this to close
-	// connections, flush caches, save state, etc.
+	// OnStop is called when the server is shutting down gracefully.
+	//
+	// Use this to close connections, flush caches, save state, etc.
 	//
 	// The context will have a timeout applied. If OnStop does not complete within the
 	// timeout, the server will forcefully terminate.
 	//
 	// Return an error to log the issue, but shutdown will continue.
+	//
+	// Returns error when the shutdown work fails; the error is logged and shutdown carries
+	// on.
 	OnStop(ctx context.Context) error
 
 	// Name returns a readable name for this component, used for logging and identification.

@@ -34,6 +34,8 @@ import (
 // or secret management systems.
 type Resolver interface {
 	// GetPrefix returns the prefix string for this rule.
+	//
+	// Returns string which is the prefix for this rule.
 	GetPrefix() string
 
 	// Resolve converts the given value to its final form.

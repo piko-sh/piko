@@ -50,8 +50,8 @@ func otterFactory(namespace string, config *llm_domain.VectorNamespaceConfig) (c
 	)
 
 	opts := cache_dto.Options[string, llm_dto.VectorDocument]{
-		MaximumSize:  10000,
-		SearchSchema: schema,
+		MaximumEntries: 10000,
+		SearchSchema:   schema,
 	}
 
 	return provider_otter.OtterProviderFactory(opts)

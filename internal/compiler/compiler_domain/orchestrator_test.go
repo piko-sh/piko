@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -773,4 +774,45 @@ const state = { rows: [{ id: "a", label: "Apple" }] };
 			}
 		})
 	}
+}
+
+func TestCompileSFCBytes_DynamicImportTransformation(t *testing.T) {
+	t.Parallel()
+
+	const moduleName = "github.com/user/project"
+
+	sfcContent := `<template name="dynamic-import-test"><div>Test</div></template>
+<script>
+import { helper } from '@/lib/helper.js';
+
+async function loadHeavy() {
+	const module = await import('@/lib/heavy.js');
+	return module.default;
+}
+
+class DynamicImportTestElement extends PPElement {
+	connectedCallback() {
+		helper();
+		loadHeavy();
+	}
+}
+</script>`
+
+	ctx := context.Background()
+	orchestrator := NewCompilerOrchestrator(nil, nil, WithOrchestratorModuleName(moduleName))
+
+	artefact, err := orchestrator.CompileSFCBytes(ctx, "dynamic-import-test.pkc", []byte(sfcContent))
+	require.NoError(t, err)
+	require.NotNil(t, artefact)
+
+	mainJS := artefact.Files[artefact.BaseJSPath]
+
+	assert.Equal(t, 1, strings.Count(mainJS, "import("),
+		"a dynamic import must not also be hoisted to the top level as an eager fetch")
+	assert.Contains(t, mainJS, `import("/_piko/assets/github.com/user/project/lib/heavy.js")`,
+		"the dynamic import specifier must be resolved to its served URL")
+	assert.NotContains(t, mainJS, "@/lib/heavy.js",
+		"no unresolved @/ specifier may reach the browser")
+	assert.Contains(t, mainJS, `import { helper } from "/_piko/assets/github.com/user/project/lib/helper.js"`,
+		"the static import must still be hoisted and resolved")
 }

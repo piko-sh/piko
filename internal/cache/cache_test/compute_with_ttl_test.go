@@ -34,7 +34,7 @@ func TestOtter_ComputeWithTTL_SetsValueWithCustomTTL(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, int64]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	value, ok, err := cache.ComputeWithTTL(ctx, "counter", func(oldValue int64, found bool) cache_dto.ComputeResult[int64] {
@@ -69,7 +69,7 @@ func TestOtter_ComputeWithTTL_ZeroTTLUsesDefault(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	value, ok, err := cache.ComputeWithTTL(ctx, "key", func(oldValue string, found bool) cache_dto.ComputeResult[string] {
@@ -101,7 +101,7 @@ func TestOtter_ComputeWithTTL_IncrementExistingWithoutChangingTTL(t *testing.T) 
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, int64]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_, ok, err := cache.ComputeWithTTL(ctx, "counter", func(oldValue int64, found bool) cache_dto.ComputeResult[int64] {
@@ -144,7 +144,7 @@ func TestOtter_ComputeWithTTL_DeleteAction(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key", "value")
@@ -178,7 +178,7 @@ func TestOtter_ComputeWithTTL_NoopAction(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, string]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	_ = cache.Set(ctx, "key", "original")
@@ -208,7 +208,7 @@ func TestOtter_ComputeWithTTL_ConcurrentOperations(t *testing.T) {
 	ctx := context.Background()
 
 	cache := createOtterCache(t, cache_dto.Options[string, int64]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	})
 
 	const numGoroutines = 50
@@ -284,7 +284,7 @@ func createMockCache[K comparable, V any](t *testing.T) *provider_otter.OtterAda
 	t.Helper()
 
 	cache, err := provider_otter.OtterProviderFactory(cache_dto.Options[K, V]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 	})
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)

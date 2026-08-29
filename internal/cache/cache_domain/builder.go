@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -166,6 +167,9 @@ type CacheBuilder[K comparable, V any] struct {
 	// l2MaxFailures is the number of failures before the L2 cache is disabled.
 	l2MaxFailures int
 
+	// maxEntryWeight is the largest weight a single entry may have; 0 means no ceiling.
+	maxEntryWeight uint32
+
 	// isMultiLevel indicates whether the cache uses more than one storage layer.
 	isMultiLevel bool
 }
@@ -228,12 +232,6 @@ func (b *CacheBuilder[K, V]) FactoryBlueprint(name string) *CacheBuilder[K, V] {
 // high-level convenience method that handles the complex construction of a multi-level
 // cache with circuit breaker protection for the L2 layer.
 //
-// Parameters:
-//   - l1Provider: The name of the local/fast cache provider (e.g., "otter")
-//   - l2Provider: The name of the remote/distributed cache provider (e.g., "redis")
-//
-// Advanced configuration can be done with L1Options and L2Options.
-//
 // Takes l1Provider (string) which names the local/fast cache provider.
 // Takes l2Provider (string) which names the remote/distributed cache provider.
 //
@@ -279,10 +277,6 @@ func (b *CacheBuilder[K, V]) L2Options(options any) *CacheBuilder[K, V] {
 // protects your application from cascading failures if the remote cache becomes
 // unavailable.
 //
-// Parameters:
-//   - maxFailures: Number of consecutive failures before opening the circuit
-//   - openTimeout: How long to wait before attempting to close the circuit
-//
 // Takes maxFailures (int) which is the number of consecutive failures before opening the
 // circuit.
 // Takes openTimeout (time.Duration) which is how long to wait before attempting to close
@@ -306,14 +300,24 @@ func (b *CacheBuilder[K, V]) Options(options any) *CacheBuilder[K, V] {
 	return b
 }
 
-// MaximumSize sets the maximum number of entries the cache may contain. The cache will
+// MaximumEntries sets the maximum number of entries the cache may contain. The cache will
 // evict entries that are less likely to be used as it approaches this limit.
 //
 // Takes size (int) which is the maximum number of entries allowed.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
-func (b *CacheBuilder[K, V]) MaximumSize(size int) *CacheBuilder[K, V] {
+func (b *CacheBuilder[K, V]) MaximumEntries(size int) *CacheBuilder[K, V] {
 	b.maximumSize = size
+	return b
+}
+
+// MaxEntryWeight refuses any single entry heavier than the given weight.
+//
+// Takes weight (uint32) which is the largest weight a single entry may have.
+//
+// Returns *CacheBuilder[K, V] for method chaining.
+func (b *CacheBuilder[K, V]) MaxEntryWeight(weight uint32) *CacheBuilder[K, V] {
+	b.maxEntryWeight = weight
 	return b
 }
 
@@ -352,10 +356,6 @@ func (b *CacheBuilder[K, V]) Weigher(weigher func(key K, value V) uint32) *Cache
 
 // Transformer adds a cache value transformer by name from globally registered blueprints,
 // callable multiple times to chain transformers that execute in priority order.
-//
-// Parameters:
-//   - name: The transformer name (e.g., "zstd", "crypto-service")
-//   - config: Optional configuration (variadic, can be omitted or a single config value)
 //
 // Takes name (string) which identifies the registered transformer blueprint.
 // Takes transformerConfig (...any) which is optional configuration for the transformer.
@@ -720,7 +720,9 @@ func (b *CacheBuilder[K, V]) Build(ctx context.Context) (Cache[K, V], error) {
 		return nil, fmt.Errorf("validating search schema: %w", err)
 	}
 
-	b.warnIfUnbounded(ctx)
+	if err := ValidateOptions(b.baseOptions()); err != nil {
+		return nil, err
+	}
 
 	if b.factoryBlueprint != "" {
 		return b.buildFromBlueprint(ctx)
@@ -764,8 +766,9 @@ func (b *CacheBuilder[K, V]) buildFromBlueprint(ctx context.Context) (Cache[K, V
 		Provider:          b.providerName,
 		Namespace:         b.namespace,
 		ProviderSpecific:  b.providerOptions,
-		MaximumSize:       b.maximumSize,
+		MaximumEntries:    b.maximumSize,
 		MaximumWeight:     b.maximumWeight,
+		MaxEntryWeight:    b.maxEntryWeight,
 		InitialCapacity:   b.initialCapacity,
 		Weigher:           b.weigher,
 		ExpiryCalculator:  b.expiryCalculator,
@@ -804,26 +807,7 @@ func (b *CacheBuilder[K, V]) buildFromBlueprint(ctx context.Context) (Cache[K, V
 // Returns Cache[K, V] which is the directly created cache instance.
 // Returns error when cache creation fails.
 func (b *CacheBuilder[K, V]) buildSimpleCache(_ context.Context) (Cache[K, V], error) {
-	options := cache_dto.Options[K, V]{
-		Provider:          b.providerName,
-		Namespace:         b.namespace,
-		ProviderSpecific:  b.providerOptions,
-		MaximumSize:       b.maximumSize,
-		MaximumWeight:     b.maximumWeight,
-		InitialCapacity:   b.initialCapacity,
-		Weigher:           b.weigher,
-		ExpiryCalculator:  b.expiryCalculator,
-		OnDeletion:        b.onDeletion,
-		OnAtomicDeletion:  b.onAtomicDeletion,
-		RefreshCalculator: b.refreshCalculator,
-		Executor:          b.executor,
-		Clock:             b.clock,
-		Logger:            b.cacheLogger,
-		StatsRecorder:     b.statsRecorder,
-		SearchSchema:      b.searchSchema,
-	}
-
-	cache, err := NewCache[K, V](b.service, options)
+	cache, err := NewCache[K, V](b.service, b.baseOptions())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cache: %w", err)
 	}
@@ -916,7 +900,7 @@ func (b *CacheBuilder[K, V]) createBaseByteCache(_ context.Context) (ProviderPor
 		Provider:          b.providerName,
 		Namespace:         b.namespace,
 		ProviderSpecific:  b.providerOptions,
-		MaximumSize:       b.maximumSize,
+		MaximumEntries:    b.maximumSize,
 		MaximumWeight:     b.maximumWeight,
 		InitialCapacity:   b.initialCapacity,
 		Weigher:           b.adaptWeigher(),
@@ -972,6 +956,10 @@ func (b *CacheBuilder[K, V]) selectEncoderForWrapper(registry *EncodingRegistry)
 // transformation logic.
 // Returns error when registry setup, base cache creation, or wrapper construction fails.
 func (b *CacheBuilder[K, V]) buildWrappedCache(ctx context.Context) (*transformerWrapper[K, V], error) {
+	if err := b.validateTransformerCompatibility(); err != nil {
+		return nil, err
+	}
+
 	b.warnAboutTransformerLimitations(ctx)
 
 	transformerRegistry, transformConfig, err := b.setupTransformerRegistry(ctx)
@@ -1056,7 +1044,7 @@ func (b *CacheBuilder[K, V]) buildL1Options() cache_dto.Options[K, V] {
 	return cache_dto.Options[K, V]{
 		Provider:          b.l1ProviderName,
 		ProviderSpecific:  b.l1ProviderOptions,
-		MaximumSize:       b.maximumSize,
+		MaximumEntries:    b.maximumSize,
 		MaximumWeight:     b.maximumWeight,
 		InitialCapacity:   b.initialCapacity,
 		Weigher:           b.weigher,
@@ -1142,22 +1130,30 @@ func (b *CacheBuilder[K, V]) createMultiLevelAdapter(
 	return multilevelAdapter, nil
 }
 
-// warnIfUnbounded logs a WARN at Build time when the cache has neither a MaximumSize nor
-// a MaximumWeight set. Unbounded caches are the most common cache-related memory hazard,
-// so we surface them at startup so operators can audit which namespaces have opted out of
-// bounding.
+// baseOptions assembles the canonical cache options from the builder's configured fields.
 //
-// Multi-level (L1+L2) caches use buildL1Options/buildL2Options paths; the L2 layer is
-// intentionally exempt because remote caches enforce their own eviction policy
-// server-side.
-func (b *CacheBuilder[K, V]) warnIfUnbounded(ctx context.Context) {
-	if b.maximumSize > 0 || b.maximumWeight > 0 {
-		return
+// Returns cache_dto.Options[K, V] describing the cache the builder was configured to
+// make.
+func (b *CacheBuilder[K, V]) baseOptions() cache_dto.Options[K, V] {
+	return cache_dto.Options[K, V]{
+		Provider:          b.providerName,
+		Namespace:         b.namespace,
+		ProviderSpecific:  b.providerOptions,
+		MaximumEntries:    b.maximumSize,
+		MaximumWeight:     b.maximumWeight,
+		MaxEntryWeight:    b.maxEntryWeight,
+		InitialCapacity:   b.initialCapacity,
+		Weigher:           b.weigher,
+		ExpiryCalculator:  b.expiryCalculator,
+		OnDeletion:        b.onDeletion,
+		OnAtomicDeletion:  b.onAtomicDeletion,
+		RefreshCalculator: b.refreshCalculator,
+		Executor:          b.executor,
+		Clock:             b.clock,
+		Logger:            b.cacheLogger,
+		StatsRecorder:     b.statsRecorder,
+		SearchSchema:      b.searchSchema,
 	}
-	_, l := logger_domain.From(ctx, log)
-	l.Warn("Cache has no declared memory bound (MaximumSize/MaximumWeight); growth is unbounded",
-		logger_domain.String("namespace", b.namespace),
-		logger_domain.String("provider", b.providerName))
 }
 
 // warnAboutTransformerLimitations logs warnings when features are set up that will not
@@ -1172,45 +1168,48 @@ func (b *CacheBuilder[K, V]) warnAboutTransformerLimitations(ctx context.Context
 			logger_domain.String("behaviour", "Search() and Query() will return ErrSearchNotSupported"))
 	}
 
-	if b.weigher != nil {
-		l.Warn("WithWeigher is not supported when transformers are used and will be ignored",
-			logger_domain.String(logKeyReason, "weighing requires decoded values"),
-			logger_domain.String("alternative", "weight-based eviction will use byte size if supported by provider"))
+	if b.maximumWeight > 0 && b.weigher == nil {
+		l.Warn("MaximumWeight is set but no weigher is configured",
+			logger_domain.String("behaviour", "the provider weighs every entry as 1, so the bound counts entries"))
+	}
+}
+
+// validateTransformerCompatibility reports the options that cannot cross an encoder.
+//
+// Returns error naming every unsupported option, or nil when the configuration can be
+// built.
+func (b *CacheBuilder[K, V]) validateTransformerCompatibility() error {
+	var unsupported []string
+
+	if b.weigher != nil || b.maximumWeight > 0 || b.maxEntryWeight > 0 {
+		unsupported = append(unsupported, "MaximumWeight/MaxEntryWeight/Weigher")
 	}
 
-	if b.expiryCalculator != nil {
-		isBuiltIn := false
-		switch b.expiryCalculator.(type) {
-		case *writeExpiryCalculator[K, V], *accessExpiryCalculator[K, V]:
-			isBuiltIn = true
-		}
-
-		if !isBuiltIn {
-			l.Warn("Custom ExpiryCalculators have limited support with transformers",
-				logger_domain.String(logKeyReason, "calculators require decoded values"),
-				logger_domain.String("recommendation", "use WithWriteExpiration or WithAccessExpiration for simple TTL needs"))
-		}
-	}
-
-	if b.onDeletion != nil {
-		l.Warn("WithOnDeletion callbacks are not supported when transformers are used and will be ignored",
-			logger_domain.String(logKeyReason, "callbacks require decoded values"))
-	}
-
-	if b.onAtomicDeletion != nil {
-		l.Warn("WithOnAtomicDeletion callbacks are not supported when transformers are used and will be ignored",
-			logger_domain.String(logKeyReason, "callbacks require decoded values"))
+	switch b.expiryCalculator.(type) {
+	case nil, *writeExpiryCalculator[K, V], *accessExpiryCalculator[K, V]:
+	default:
+		unsupported = append(unsupported, "ExpiryCalculator")
 	}
 
 	if b.refreshCalculator != nil {
-		l.Warn("WithRefreshCalculator is not supported when transformers are used and will be ignored",
-			logger_domain.String(logKeyReason, "refresh logic requires decoded values"))
+		unsupported = append(unsupported, "RefreshCalculator")
+	}
+	if b.onDeletion != nil {
+		unsupported = append(unsupported, "OnDeletion")
+	}
+	if b.onAtomicDeletion != nil {
+		unsupported = append(unsupported, "OnAtomicDeletion")
 	}
 
-	if b.maximumWeight > 0 && b.weigher == nil {
-		l.Warn("WithMaximumWeight is set but no weigher is configured",
-			logger_domain.String("behaviour", "provider will use default byte-based weighing if supported"))
+	if len(unsupported) == 0 {
+		return nil
 	}
+
+	return fmt.Errorf(
+		"%w: %s cannot be used with transformers or encoders, which store encoded bytes the "+
+			"provider cannot interpret; use Expiration, WriteExpiration or AccessExpiration for "+
+			"time-based eviction, and MaximumEntries to bound entry count",
+		errInvalidConfiguration, strings.Join(unsupported, ", "))
 }
 
 // resolveConvenienceTransformer creates transformer instances using the global blueprint
@@ -1235,59 +1234,51 @@ func (*CacheBuilder[K, V]) resolveConvenienceTransformer(name string, config any
 	return transformer, nil
 }
 
-// adaptWeigher returns a weigher function for byte slice values.
+// adaptWeigher returns nil because a caller's weigher cannot be honoured below an
+// encoder.
 //
-// Returns func(key K, value []byte) uint32 which is always nil because the wrapped cache
-// weighs based on byte size rather than the original typed values.
-func (b *CacheBuilder[K, V]) adaptWeigher() func(key K, value []byte) uint32 {
-	if b.weigher == nil {
-		return nil
-	}
+// Returns func(key K, value []byte) uint32 which is always nil.
+func (*CacheBuilder[K, V]) adaptWeigher() func(key K, value []byte) uint32 {
 	return nil
 }
 
-// adaptExpiryCalculator returns nil because expiry calculators cannot be adapted for
-// byte-level caches without deserialising the value.
+// adaptExpiryCalculator re-types the built-in TTL calculators for the byte cache that
+// sits underneath a transformer or encoder.
 //
-// Returns cache_dto.ExpiryCalculator[K, []byte] which is always nil.
+// Returns cache_dto.ExpiryCalculator[K, []byte] which is the re-typed built-in, or nil
+// when no expiry was configured.
 func (b *CacheBuilder[K, V]) adaptExpiryCalculator() cache_dto.ExpiryCalculator[K, []byte] {
-	if b.expiryCalculator == nil {
+	switch calculator := b.expiryCalculator.(type) {
+	case *writeExpiryCalculator[K, V]:
+		return &writeExpiryCalculator[K, []byte]{duration: calculator.duration}
+	case *accessExpiryCalculator[K, V]:
+		return &accessExpiryCalculator[K, []byte]{duration: calculator.duration}
+	default:
 		return nil
 	}
-	return nil
 }
 
-// adaptOnDeletion returns a deletion callback adapter.
+// adaptOnDeletion returns nil because a deletion event carries an encoded value the
+// callback was never written to read. Build rejects the combination.
 //
-// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil because deletion
-// callbacks cannot be adapted without deserialisation.
-func (b *CacheBuilder[K, V]) adaptOnDeletion() func(e cache_dto.DeletionEvent[K, []byte]) {
-	if b.onDeletion == nil {
-		return nil
-	}
+// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil.
+func (*CacheBuilder[K, V]) adaptOnDeletion() func(e cache_dto.DeletionEvent[K, []byte]) {
 	return nil
 }
 
-// adaptOnAtomicDeletion returns nil because atomic deletion callbacks cannot be adapted
-// without deserialisation.
+// adaptOnAtomicDeletion returns nil for the same reason as adaptOnDeletion. Build rejects
+// the combination.
 //
-// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil for this
-// builder.
-func (b *CacheBuilder[K, V]) adaptOnAtomicDeletion() func(e cache_dto.DeletionEvent[K, []byte]) {
-	if b.onAtomicDeletion == nil {
-		return nil
-	}
+// Returns func(e cache_dto.DeletionEvent[K, []byte]) which is always nil.
+func (*CacheBuilder[K, V]) adaptOnAtomicDeletion() func(e cache_dto.DeletionEvent[K, []byte]) {
 	return nil
 }
 
-// adaptRefreshCalculator returns nil because refresh calculators cannot be adapted for
-// byte-level caches without deserialising the value.
+// adaptRefreshCalculator returns nil because a refresh decision reads the value, which at
+// this level is an encoded blob. Build rejects the combination.
 //
 // Returns cache_dto.RefreshCalculator[K, []byte] which is always nil.
-func (b *CacheBuilder[K, V]) adaptRefreshCalculator() cache_dto.RefreshCalculator[K, []byte] {
-	if b.refreshCalculator == nil {
-		return nil
-	}
+func (*CacheBuilder[K, V]) adaptRefreshCalculator() cache_dto.RefreshCalculator[K, []byte] {
 	return nil
 }
 

@@ -36,6 +36,10 @@ const (
 
 	// CauseExpiration means the entry's expiration timestamp has passed.
 	CauseExpiration
+
+	// CauseRejected means the entry was refused admission for exceeding MaxEntryWeight, so
+	// it was never stored.
+	CauseRejected
 )
 
 const (
@@ -76,11 +80,15 @@ type DeletionEvent[K comparable, V any] struct {
 	Cause DeletionCause
 }
 
-// WasEvicted reports whether the deletion was automatic rather than manual.
+// WasEvicted reports whether the entry was automatically removed after being stored.
 //
-// Returns bool which is true when the cause is not invalidation or replacement.
+// A rejected entry was never admitted, so counting it as an eviction would inflate the
+// eviction rate with entries that never occupied the cache.
+//
+// Returns bool which is true when the cause is not invalidation, replacement or
+// rejection.
 func (de DeletionEvent[K, V]) WasEvicted() bool {
-	return de.Cause != CauseInvalidation && de.Cause != CauseReplacement
+	return de.Cause != CauseInvalidation && de.Cause != CauseReplacement && de.Cause != CauseRejected
 }
 
 // ComputeAction represents the action to be taken after a compute function executes.
@@ -103,6 +111,10 @@ type ComputeResult[V any] struct {
 var (
 	// ErrNotFound is returned by a Loader when a value is missing from the data source.
 	ErrNotFound = errors.New("key not found")
+
+	// ErrDoNotStore is returned by a Loader alongside a valid value to signal that the value
+	// was loaded correctly but must not be admitted to the cache.
+	ErrDoNotStore = errors.New("loaded value must not be cached")
 )
 
 // Entry is a fixed snapshot of a key-value pair in the cache.
@@ -293,6 +305,8 @@ type RefreshCalculator[K comparable, V any] interface {
 // time-dependent code deterministically.
 type Clock interface {
 	// Now returns the current time.
+	//
+	// Returns time.Time which is the current time.
 	Now() time.Time
 }
 
@@ -373,10 +387,6 @@ type Options[K comparable, V any] struct {
 	// OnAtomicDeletion is a callback called when an entry is removed from the cache.
 	OnAtomicDeletion func(e DeletionEvent[K, V])
 
-	// TransformConfig specifies how to change cached values, such as compression or
-	// encryption. If nil, values are stored without changes.
-	TransformConfig *TransformConfig
-
 	// SearchSchema defines which fields are searchable for query operations. If nil,
 	// Search() and Query() return ErrSearchNotSupported.
 	SearchSchema *SearchSchema
@@ -395,8 +405,11 @@ type Options[K comparable, V any] struct {
 	// MaximumWeight is the maximum total weight allowed; 0 means no limit.
 	MaximumWeight uint64
 
-	// MaximumSize is the largest allowed size in bytes; 0 means no limit.
-	MaximumSize int
+	// MaxEntryWeight is the largest weight a single entry may have; 0 means no ceiling.
+	MaxEntryWeight uint32
+
+	// MaximumEntries is the largest number of entries the cache may hold; 0 means no limit.
+	MaximumEntries int
 }
 
 // DefaultTransformConfig returns a TransformConfig with no transformations enabled.

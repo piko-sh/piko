@@ -39,11 +39,10 @@ type ProvidersInspector interface {
 
 	// DescribeProvider returns full detail for a single provider.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes resourceType (string) which is the provider's resource type.
 	// Takes name (string) which is the provider name.
 	//
-	// Returns *ProviderDetail with sections and sub-resources.
+	// Returns *ProviderDetail which holds the sections and sub-resources.
 	// Returns error when the call fails or the provider is unknown.
 	DescribeProvider(ctx context.Context, resourceType, name string) (*ProviderDetail, error)
 }
@@ -118,19 +117,16 @@ type DLQInspector interface {
 
 	// DispatcherSummaries returns one summary per dispatcher type.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
-	// Returns []DispatcherSummary.
+	// Returns []DispatcherSummary which is one summary per dispatcher type.
 	// Returns error when the call fails.
 	DispatcherSummaries(ctx context.Context) ([]DispatcherSummary, error)
 
 	// ListDLQEntries returns the dead-letter-queue entries for a dispatcher type.
 	//
-	// Takes ctx (context.Context) for cancellation.
 	// Takes dispatcherType (string) which selects the dispatcher.
 	// Takes limit (int) which caps the returned slice.
 	//
-	// Returns []DLQEntry.
+	// Returns []DLQEntry which are the dead-letter-queue entries.
 	// Returns error when the call fails.
 	ListDLQEntries(ctx context.Context, dispatcherType string, limit int) ([]DLQEntry, error)
 }
@@ -194,9 +190,7 @@ type RateLimiterInspector interface {
 
 	// GetStatus returns the current rate-limiter status.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
-	// Returns *RateLimiterStatus.
+	// Returns *RateLimiterStatus which is the current rate-limiter status.
 	// Returns error when the call fails.
 	GetStatus(ctx context.Context) (*RateLimiterStatus, error)
 }
@@ -235,9 +229,7 @@ type ProfilingInspector interface {
 
 	// Status returns the current profiling enable/disable state.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
-	// Returns *ProfilingStatus.
+	// Returns *ProfilingStatus which is the current profiling state.
 	// Returns error when the call fails.
 	Status(ctx context.Context) (*ProfilingStatus, error)
 
@@ -259,12 +251,12 @@ type ProfilingInspector interface {
 
 	// Capture takes a one-shot profile and returns the raw bytes.
 	//
-	// Takes ctx (context.Context) for cancellation; the call also observes duration as a
-	// deadline.
+	// The call also observes duration as a deadline.
+	//
 	// Takes profile (string) which is the profile kind ("cpu", "heap", ...).
 	// Takes duration (time.Duration) which is the sampling window.
 	//
-	// Returns []byte with the pprof-encoded profile data.
+	// Returns []byte which is the pprof-encoded profile data.
 	// Returns error when the call fails.
 	Capture(ctx context.Context, profile string, duration time.Duration) ([]byte, error)
 }

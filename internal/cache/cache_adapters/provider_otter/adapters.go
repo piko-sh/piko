@@ -111,17 +111,32 @@ func (a *refreshCalculatorAdapter[K, V]) RefreshAfterReloadFailure(entry otter.E
 }
 
 // statsRecorderAdapter wraps a StatsRecorder to provide the otter stats.Recorder
-// interface.
+// interface, and keeps its own counter so the cache can report a snapshot.
 type statsRecorderAdapter struct {
-	// recorder tracks cache statistics such as hits, misses, and evictions.
+	// recorder tracks cache statistics such as hits, misses, and evictions. It is nil when
+	// the caller configured no recorder of their own.
 	recorder cache_dto.StatsRecorder
+
+	// counter accumulates the same events so Snapshot has something to report.
+	counter *stats.Counter
+}
+
+// Snapshot returns the statistics accumulated since the cache was created.
+//
+// Returns stats.Stats which is otter's snapshot of hits, misses, evictions and loads.
+func (a *statsRecorderAdapter) Snapshot() stats.Stats {
+	return a.counter.Snapshot()
 }
 
 // RecordHits records the given number of cache hits.
 //
 // Takes count (int) which specifies how many hits to record.
 func (a *statsRecorderAdapter) RecordHits(count int) {
-	if count > 0 {
+	if count <= 0 {
+		return
+	}
+	a.counter.RecordHits(count)
+	if a.recorder != nil {
 		a.recorder.RecordHits(safeconv.IntToUint64(count))
 	}
 }
@@ -130,28 +145,43 @@ func (a *statsRecorderAdapter) RecordHits(count int) {
 //
 // Takes count (int) which specifies the number of misses to record.
 func (a *statsRecorderAdapter) RecordMisses(count int) {
-	if count > 0 {
+	if count <= 0 {
+		return
+	}
+	a.counter.RecordMisses(count)
+	if a.recorder != nil {
 		a.recorder.RecordMisses(safeconv.IntToUint64(count))
 	}
 }
 
 // RecordEviction records a cache eviction event.
-func (a *statsRecorderAdapter) RecordEviction(_ uint32) {
-	a.recorder.RecordEviction()
+//
+// Takes weight (uint32) which is the weight the evicted entry contributed.
+func (a *statsRecorderAdapter) RecordEviction(weight uint32) {
+	a.counter.RecordEviction(weight)
+	if a.recorder != nil {
+		a.recorder.RecordEviction()
+	}
 }
 
 // RecordLoadSuccess records a successful load event.
 //
 // Takes loadTime (time.Duration) which specifies how long the load took.
 func (a *statsRecorderAdapter) RecordLoadSuccess(loadTime time.Duration) {
-	a.recorder.RecordLoadSuccess(loadTime)
+	a.counter.RecordLoadSuccess(loadTime)
+	if a.recorder != nil {
+		a.recorder.RecordLoadSuccess(loadTime)
+	}
 }
 
 // RecordLoadFailure records a failed load event.
 //
 // Takes loadTime (time.Duration) which is the time spent before the failure.
 func (a *statsRecorderAdapter) RecordLoadFailure(loadTime time.Duration) {
-	a.recorder.RecordLoadFailure(loadTime)
+	a.counter.RecordLoadFailure(loadTime)
+	if a.recorder != nil {
+		a.recorder.RecordLoadFailure(loadTime)
+	}
 }
 
 // clockAdapter wraps a cache_dto.Clock to implement the otter.Clock interface.
@@ -296,17 +326,15 @@ func wrapOnAtomicDeletion[K comparable, V any](callback func(e cache_dto.Deletio
 	}
 }
 
-// wrapStatsRecorder wraps a StatsRecorder to work with otter's stats system.
+// wrapStatsRecorder adapts a StatsRecorder for otter, and supplies a counter even when
+// the caller configured no recorder at all.
 //
-// Takes recorder (cache_dto.StatsRecorder) which provides the stats recording interface
-// to adapt.
+// Takes recorder (cache_dto.StatsRecorder) which is the caller's recorder, or nil.
 //
-// Returns stats.Recorder which is the adapted recorder, or nil if the input is nil.
+// Returns stats.Recorder which records into a counter and, when present, the caller's
+// recorder too.
 func wrapStatsRecorder(recorder cache_dto.StatsRecorder) stats.Recorder {
-	if recorder == nil {
-		return nil
-	}
-	return &statsRecorderAdapter{recorder: recorder}
+	return &statsRecorderAdapter{recorder: recorder, counter: stats.NewCounter()}
 }
 
 // wrapClock wraps a cache_dto.Clock to work with otter.

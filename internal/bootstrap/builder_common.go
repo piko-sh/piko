@@ -88,6 +88,16 @@ func wireMonitoringInspectors(c *Container, renderRegistry render_domain.Registr
 	c.StartProfilingServer()
 }
 
+// enableDevProfilingPortFallback lets a development server take the next free profiling
+// port instead of failing to profile at all.
+//
+// Takes c (*Container) which holds the profiling configuration.
+func enableDevProfilingPortFallback(c *Container) {
+	if profilingConfig := c.GetProfilingConfig(); profilingConfig != nil {
+		profilingConfig.AutoNextPort = true
+	}
+}
+
 // buildDaemonWithWatcher is a common helper for building a daemon that requires a
 // filesystem watcher, typically for development modes.
 //

@@ -87,11 +87,16 @@ type WAL[K comparable, V any] interface {
 	// Returns error when the close fails.
 	Close() error
 
-	// EntryCount returns the number of entries currently in the WAL. This is approximate and
-	// may not reflect entries not yet synced.
+	// EntryCount returns the number of entries currently in the WAL.
+	//
+	// This is approximate and may not reflect entries not yet synced.
+	//
+	// Returns int which is the number of entries held in the log.
 	EntryCount() int
 
 	// Size returns the current size of the WAL file in bytes.
+	//
+	// Returns int64 which is the size of the log file in bytes.
 	Size() int64
 }
 
@@ -113,12 +118,11 @@ type SnapshotStore[K comparable, V any] interface {
 
 	// Load returns an iterator over snapshot entries without loading all into memory.
 	//
-	// Takes ctx (context.Context) for cancellation and timeout.
+	// The iterator yields ErrSnapshotNotFound if no snapshot exists, which is not
+	// necessarily an error as it may indicate a fresh start.
 	//
-	// Returns iter.Seq2[Entry[K, V], error] yielding entries and any error. The iteration
-	// stops on first error or when all entries are consumed.
-	// Returns ErrSnapshotNotFound if no snapshot exists, which is not necessarily an error
-	// as it may indicate a fresh start.
+	// Returns iter.Seq2[Entry[K, V], error] which yields entries and any error. The
+	// iteration stops on first error or when all entries are consumed.
 	//
 	// Concurrency: The iterator holds a lock on the snapshot store. Callers should consume
 	// all entries promptly or break out of the loop to release the lock.
@@ -141,6 +145,8 @@ type SnapshotStore[K comparable, V any] interface {
 	Close() error
 
 	// Exists returns true if a snapshot file exists.
+	//
+	// Returns bool which reports whether a snapshot file is present.
 	Exists() bool
 }
 
@@ -177,9 +183,19 @@ type Codec[K comparable, V any] interface {
 // custom encoding.
 type KeyCodec[K comparable] interface {
 	// EncodeKey serialises a key to bytes.
+	//
+	// Takes key (K) which is the key to encode.
+	//
+	// Returns []byte which is the encoded key.
+	// Returns error when encoding fails.
 	EncodeKey(key K) ([]byte, error)
 
 	// DecodeKey deserialises bytes to a key.
+	//
+	// Takes data ([]byte) which is the encoded key.
+	//
+	// Returns K which is the decoded key.
+	// Returns error when decoding fails.
 	DecodeKey(data []byte) (K, error)
 }
 
@@ -187,9 +203,19 @@ type KeyCodec[K comparable] interface {
 // requires custom encoding.
 type ValueCodec[V any] interface {
 	// EncodeValue serialises a value to bytes.
+	//
+	// Takes value (V) which is the value to encode.
+	//
+	// Returns []byte which is the encoded value.
+	// Returns error when encoding fails.
 	EncodeValue(value V) ([]byte, error)
 
 	// DecodeValue deserialises bytes to a value.
+	//
+	// Takes data ([]byte) which is the encoded value.
+	//
+	// Returns V which is the decoded value.
+	// Returns error when decoding fails.
 	DecodeValue(data []byte) (V, error)
 }
 
@@ -206,18 +232,32 @@ type ValueCodec[V any] interface {
 type FastKeyCodec[K comparable] interface {
 	KeyCodec[K]
 
-	// KeySize returns the encoded size of a key without actually encoding it. Used to
-	// pre-calculate buffer sizes.
+	// KeySize returns the encoded size of a key without actually encoding it.
+	//
+	// Used to pre-calculate buffer sizes.
+	//
+	// Takes key (K) which is the key to measure.
+	//
+	// Returns int which is the number of bytes the encoded key needs.
 	KeySize(key K) int
 
-	// EncodeKeyTo encodes a key directly into the provided buffer. The buffer is guaranteed
-	// to have at least KeySize(key) bytes available.
+	// EncodeKeyTo encodes a key directly into the provided buffer.
 	//
-	// Returns the number of bytes written.
-	// Returns error if encoding fails.
+	// The buffer is guaranteed to have at least KeySize(key) bytes available.
+	//
+	// Takes key (K) which is the key to encode.
+	// Takes buffer ([]byte) which receives the encoded bytes.
+	//
+	// Returns int which is the number of bytes written.
+	// Returns error when encoding fails.
 	EncodeKeyTo(key K, buffer []byte) (int, error)
 
 	// DecodeKeyFrom decodes a key without allocating.
+	//
+	// Takes data ([]byte) which holds the encoded key.
+	//
+	// Returns K which is the decoded key.
+	// Returns error when decoding fails.
 	//
 	// SAFETY: The returned key may reference the input data buffer. The caller must ensure
 	// the buffer outlives the key, or make a copy if the key will be stored beyond the
@@ -238,18 +278,32 @@ type FastKeyCodec[K comparable] interface {
 type FastValueCodec[V any] interface {
 	ValueCodec[V]
 
-	// ValueSize returns the encoded size of a value without actually encoding it. Used to
-	// pre-calculate buffer sizes.
+	// ValueSize returns the encoded size of a value without actually encoding it.
+	//
+	// Used to pre-calculate buffer sizes.
+	//
+	// Takes value (V) which is the value to measure.
+	//
+	// Returns int which is the number of bytes the encoded value needs.
 	ValueSize(value V) int
 
-	// EncodeValueTo encodes a value directly into the provided buffer. The buffer is
-	// guaranteed to have at least ValueSize(value) bytes available.
+	// EncodeValueTo encodes a value directly into the provided buffer.
 	//
-	// Returns the number of bytes written.
-	// Returns error if encoding fails.
+	// The buffer is guaranteed to have at least ValueSize(value) bytes available.
+	//
+	// Takes value (V) which is the value to encode.
+	// Takes buffer ([]byte) which receives the encoded bytes.
+	//
+	// Returns int which is the number of bytes written.
+	// Returns error when encoding fails.
 	EncodeValueTo(value V, buffer []byte) (int, error)
 
 	// DecodeValueFrom decodes a value without allocating.
+	//
+	// Takes data ([]byte) which holds the encoded value.
+	//
+	// Returns V which is the decoded value.
+	// Returns error when decoding fails.
 	//
 	// SAFETY: The returned value may reference the input data buffer. The caller must ensure
 	// the buffer outlives the value, or make a copy if the value will be stored beyond the

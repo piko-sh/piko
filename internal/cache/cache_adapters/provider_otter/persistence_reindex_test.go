@@ -71,7 +71,7 @@ func TestReindex_TextSearch(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -148,7 +148,7 @@ func TestReindex_BM25ScoreOrdering(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -201,7 +201,7 @@ func TestReindex_CustomTextAnalyser(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -236,7 +236,7 @@ func TestReindex_SortedIndex(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -290,7 +290,7 @@ func TestReindex_FilterQueries(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -340,7 +340,7 @@ func TestReindex_InvalidatedEntryNotSearchable(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -374,7 +374,7 @@ func TestReindex_UpdatedEntryReflectsNewTerms(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -412,7 +412,7 @@ func TestReindex_ClearBeforeRestartEmptiesSearch(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -445,7 +445,7 @@ func TestReindex_ClearThenAddBeforeRestart(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -485,7 +485,7 @@ func TestReindex_VectorIndex(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testVecDocument]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newVecPersistenceConfig(directory),
 	}
@@ -525,7 +525,7 @@ func TestReindex_QueryWithSortedIndex(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
@@ -567,7 +567,7 @@ func TestReindex_MultipleRestarts(t *testing.T) {
 	)
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		SearchSchema:     schema,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}

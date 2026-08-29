@@ -104,7 +104,7 @@ type WorkspacePort interface {
 type TypeInspectorPort interface {
 	// ResolveExprToNamedType resolves an expression to its named type.
 	//
-	// Takes expr (goast.Expr) which is the expression to resolve.
+	// Takes expression (goast.Expr) which is the expression to resolve.
 	// Takes importerPackagePath (string) which is the package path of the importer.
 	// Takes importerFilePath (string) which is the file path of the importer.
 	//

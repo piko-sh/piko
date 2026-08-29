@@ -23,12 +23,19 @@ package linguistics_domain
 // gibberish or random text.
 type BigramAnalyserPort interface {
 	// BigramFrequencyRatio returns the ratio of uncommon character bigrams to total bigrams
-	// in the text. Higher values indicate more random or nonsensical character patterns.
+	// in the text.
 	//
-	// Returns the ratio (0.0 to 1.0) and whether analysis was performed (false when the text
-	// is too short).
+	// Higher values indicate more random or nonsensical character patterns.
+	//
+	// Takes text (string) which is the text to analyse.
+	//
+	// Returns float64 which is the ratio of uncommon bigrams, from 0.0 to 1.0.
+	// Returns bool which reports whether analysis was performed; it is false when the text is
+	// too short.
 	BigramFrequencyRatio(text string) (ratio float64, analysed bool)
 
 	// GetLanguage returns the language this analyser is configured for.
+	//
+	// Returns string which is the language this analyser is configured for.
 	GetLanguage() string
 }

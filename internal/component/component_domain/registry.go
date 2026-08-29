@@ -32,20 +32,33 @@ import (
 type ComponentRegistry interface {
 	// Register adds a component definition to the registry.
 	//
+	// Registration is idempotent: re-registering the same tag name with the same source path
+	// silently succeeds.
+	//
 	// Takes definition (component_dto.ComponentDefinition) which is the component to add.
 	//
-	// Registration is idempotent: re-registering the same tag name with the same source path
-	// silently succeeds. Returns error when validation fails (no hyphen, shadows HTML,
-	// reserved prefix) or when a different source path is already registered for the same
-	// tag name.
+	// Returns error when validation fails (no hyphen, shadows HTML, reserved prefix) or when
+	// a different source path is already registered for the same tag name.
 	Register(definition component_dto.ComponentDefinition) error
 
-	// RegisterBatch registers multiple components atomically. If any registration fails, no
-	// components are registered and the first error is returned.
+	// RegisterBatch registers multiple components atomically.
+	//
+	// If any registration fails, no components are registered and the first error is
+	// returned.
+	//
+	// Takes definitions ([]component_dto.ComponentDefinition) which are the components to
+	// add.
+	//
+	// Returns error when any one of the registrations fails.
 	RegisterBatch(definitions []component_dto.ComponentDefinition) error
 
-	// IsRegistered checks if a tag name is a known registered component. The lookup is
-	// case-insensitive.
+	// IsRegistered checks if a tag name is a known registered component.
+	//
+	// The lookup is case-insensitive.
+	//
+	// Takes tagName (string) which is the tag to look up.
+	//
+	// Returns bool which reports whether the tag name is registered.
 	IsRegistered(tagName string) bool
 
 	// Get retrieves a component definition by tag name.
@@ -57,14 +70,22 @@ type ComponentRegistry interface {
 	// Returns bool which is true if the definition was found, false otherwise.
 	Get(tagName string) (*component_dto.ComponentDefinition, bool)
 
-	// All returns all registered component definitions. The returned slice is a copy and
-	// safe to modify.
+	// All returns all registered component definitions.
+	//
+	// The returned slice is a copy and safe to modify.
+	//
+	// Returns []component_dto.ComponentDefinition which are all the registered definitions.
 	All() []component_dto.ComponentDefinition
 
 	// Count returns the number of registered components.
+	//
+	// Returns int which is the number of registered components.
 	Count() int
 
-	// TagNames returns a sorted list of all registered tag names. Intended for debugging and
-	// diagnostics.
+	// TagNames returns a sorted list of all registered tag names.
+	//
+	// Intended for debugging and diagnostics.
+	//
+	// Returns []string which are the registered tag names in sorted order.
 	TagNames() []string
 }

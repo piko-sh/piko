@@ -79,12 +79,18 @@ type IndexReaderPort interface {
 	GetDocMetadata(documentID uint32) (DocMetadataInfo, error)
 
 	// GetCorpusStats returns global statistics needed for BM25 scoring.
+	//
+	// Returns CorpusStats which holds the corpus-wide scoring statistics.
 	GetCorpusStats() CorpusStats
 
 	// GetMode returns the search mode this index was built with.
+	//
+	// Returns search_fb.SearchMode which is the mode the index was built with.
 	GetMode() search_fb.SearchMode
 
 	// GetLanguage returns the language this index was built with.
+	//
+	// Returns string which is the language the index was built with.
 	GetLanguage() string
 
 	// FindPhoneticTerms returns all terms that match a phonetic code. Only works with Smart

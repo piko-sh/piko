@@ -44,6 +44,12 @@ const (
 	// CauseExpiration means the entry's expiration time has passed.
 	CauseExpiration = cache_dto.CauseExpiration
 
+	// CauseRejected means the entry was refused admission for exceeding MaxEntryWeight.
+	CauseRejected = cache_dto.CauseRejected
+
+	// NoLimit asks a search or query to return every match rather than a page of them.
+	NoLimit = cache_dto.NoLimit
+
 	// ComputeActionSet indicates the computed value should be stored in the cache.
 	ComputeActionSet = cache_dto.ComputeActionSet
 
@@ -212,6 +218,9 @@ type TransformConfig = cache_dto.TransformConfig
 // Stats represents a snapshot of cache statistics at a point in time.
 type Stats = cache_dto.Stats
 
+// AggregateWeight is a snapshot of memory accounting across every in-process cache.
+type AggregateWeight = cache_dto.AggregateWeight
+
 // StatsRecorder is an interface for recording cache statistics.
 type StatsRecorder = cache_dto.StatsRecorder
 
@@ -222,6 +231,13 @@ var (
 	// ErrSearchNotSupported is returned when a provider does not support search operations.
 	// Check the provider documentation for search capabilities.
 	ErrSearchNotSupported = cache_domain.ErrSearchNotSupported
+
+	// ErrEntryTooLarge is returned when a value exceeds the cache's MaxEntryWeight.
+	ErrEntryTooLarge = cache_domain.ErrEntryTooLarge
+
+	// ErrDoNotStore is returned by a Loader alongside a valid value to signal that the value
+	// was loaded correctly but must not be admitted to the cache.
+	ErrDoNotStore = cache_dto.ErrDoNotStore
 )
 
 // TextAnalyseFunc transforms text into a slice of index terms, handling tokenisation,
@@ -480,7 +496,7 @@ func NewService(defaultProvider string) Service {
 //
 // Example:
 //
-//	opts := cache.Options[string, User]{MaximumSize: 10000}
+//	opts := cache.Options[string, User]{MaximumEntries: 10000}
 //	userCache, err := cache.CreateNamespace[string, User](service, "redis", "users", opts)
 func CreateNamespace[K comparable, V any](ctx context.Context, service Service, providerName, namespace string, options Options[K, V]) (Cache[K, V], error) {
 	return cache_domain.CreateNamespace[K, V](ctx, service, providerName, namespace, options)
@@ -500,7 +516,7 @@ func CreateNamespace[K comparable, V any](ctx context.Context, service Service, 
 //	opts := cache.Options[string, string]{
 //	    Provider: "otter",
 //	    Namespace: "users",
-//	    MaximumSize: 1000,
+//	    MaximumEntries: 1000,
 //	}
 //	myCache, err := cache.NewCache(service, opts)
 func NewCache[K comparable, V any](service Service, options Options[K, V]) (Cache[K, V], error) {
@@ -576,7 +592,7 @@ func GetDefaultService() (Service, error) {
 //
 // Example:
 //
-//	opts := cache.Options[string, string]{MaximumSize: 1000}
+//	opts := cache.Options[string, string]{MaximumEntries: 1000}
 //	myCache, err := cache.NewCacheFromDefault(opts)
 func NewCacheFromDefault[K comparable, V any](options Options[K, V]) (Cache[K, V], error) {
 	service, err := GetDefaultService()

@@ -36,7 +36,7 @@ func createCounterStore(t *testing.T, clk clock.Clock) *CacheCounterStore {
 	t.Helper()
 
 	cache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, *counterEntry]{
-		MaximumSize: 1000,
+		MaximumEntries: 1000,
 	})
 	require.NoError(t, err)
 

@@ -62,27 +62,59 @@ const (
 // Takes T which is the self-referential numeric type.
 type arithmeticComparable[T any] interface {
 	// Add returns the sum of the receiver and the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns T which is the sum.
 	Add(T) T
 
 	// Subtract returns the difference of the receiver minus the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns T which is the difference.
 	Subtract(T) T
 
 	// Multiply returns the product of the receiver and the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns T which is the product.
 	Multiply(T) T
 
 	// Divide returns the quotient of the receiver divided by the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns T which is the quotient.
 	Divide(T) T
 
 	// Modulus returns the remainder of the receiver divided by the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns T which is the remainder.
 	Modulus(T) T
 
 	// CheckGreaterThan reports whether the receiver is greater than the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns bool which reports whether the receiver is greater.
 	CheckGreaterThan(T) bool
 
 	// CheckLessThan reports whether the receiver is less than the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns bool which reports whether the receiver is smaller.
 	CheckLessThan(T) bool
 
 	// CheckEquals reports whether the receiver is equal to the operand.
+	//
+	// Takes operand (T) which is the value applied to the receiver.
+	//
+	// Returns bool which reports whether the two values are equal.
 	CheckEquals(T) bool
 }
 

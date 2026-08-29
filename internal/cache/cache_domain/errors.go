@@ -35,6 +35,10 @@ var (
 	// errInvalidConfiguration is returned when the options provided to NewCache are invalid.
 	errInvalidConfiguration = errors.New("invalid cache configuration")
 
+	// ErrEntryTooLarge is returned when a value exceeds the cache's MaxEntryWeight and is
+	// therefore refused admission.
+	ErrEntryTooLarge = errors.New("cache entry exceeds MaxEntryWeight")
+
 	// ErrTransactionFinalised is returned when an operation is attempted on a transaction
 	// that has already been committed or rolled back.
 	ErrTransactionFinalised = errors.New("transaction already finalised")

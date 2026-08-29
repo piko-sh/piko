@@ -109,6 +109,8 @@ type callGoplsResult[T any] struct {
 // only on this, so callGopls can be exercised without a live child.
 type goplsChildSignal interface {
 	// Done returns a channel that is closed when the gopls child dies.
+	//
+	// Returns <-chan struct{} which is closed once the gopls child has died.
 	Done() <-chan struct{}
 }
 

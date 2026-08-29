@@ -267,6 +267,11 @@ func (a *BlobStoreAdapter) StatKey(ctx context.Context, key string) (time.Time, 
 // enumeration for garbage collection.
 type keyLister interface {
 	// ListKeys returns all storage keys in the given repository.
+	//
+	// Takes repository (string) which names the repository to enumerate.
+	//
+	// Returns []string which contains every key in the repository.
+	// Returns error when the listing fails.
 	ListKeys(ctx context.Context, repository string) ([]string, error)
 }
 

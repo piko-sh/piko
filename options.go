@@ -1893,6 +1893,16 @@ func WithWatchdogProfileUploader(uploader WatchdogProfileUploader) MonitoringOpt
 	return bootstrap.WithWatchdogProfileUploader(uploader)
 }
 
+// WithProfilingAutoNextPort enables automatic port selection for the pprof HTTP server
+// when the configured port is already in use. Development mode enables it on its own.
+//
+// Takes enabled (bool) which turns automatic port selection on or off.
+//
+// Returns ProfilingOption which configures automatic port selection.
+func WithProfilingAutoNextPort(enabled bool) ProfilingOption {
+	return bootstrap.WithProfilingAutoNextPort(enabled)
+}
+
 // WithProfilingPort sets the port for the pprof HTTP server.
 //
 // Takes port (int) which specifies the port number to listen on.
@@ -3579,6 +3589,26 @@ func WithPartialServePath(path string) Option {
 // Returns Option which the bootstrap consumes when applied.
 func WithActionServePath(path string) Option {
 	return bootstrap.WithActionServePath(path)
+}
+
+// WithActionCompression compresses action responses when the client accepts gzip or
+// brotli. Enabled by default; streaming responses are never compressed.
+//
+// Takes enabled (bool) which turns action response compression on or off.
+//
+// Returns Option which configures action response compression.
+func WithActionCompression(enabled bool) Option {
+	return bootstrap.WithActionCompression(enabled)
+}
+
+// WithMaxParallelBatchWorkers bounds how many entries of one parallel action batch run at
+// once. A batch asks for parallelism; this decides how much of it the server will give.
+//
+// Takes workers (int) which is the bound; 0 restores the default.
+//
+// Returns Option which configures the parallel batch bound.
+func WithMaxParallelBatchWorkers(workers int) Option {
+	return bootstrap.WithMaxParallelBatchWorkers(workers)
 }
 
 // WithLibServePath sets the URL path prefix for serving internal library files.

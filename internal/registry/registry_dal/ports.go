@@ -113,7 +113,13 @@ type MetadataDAL interface {
 	DecrementBlobRefCount(ctx context.Context, storageKey string) (newRefCount int, shouldDelete bool, err error)
 
 	// GetBlobRefCount returns the current reference count for a blob.
-	// Returns 0 if the blob doesn't exist (not an error).
+	//
+	// The count is 0 when the blob does not exist, which is not an error.
+	//
+	// Takes storageKey (string) which identifies the blob.
+	//
+	// Returns int which is the current reference count.
+	// Returns error when the lookup fails.
 	GetBlobRefCount(ctx context.Context, storageKey string) (int, error)
 }
 
@@ -141,5 +147,10 @@ type RegistryDALWithTx interface {
 	//
 	// The provided MetadataStore is scoped to the transaction; all reads and writes through
 	// it are atomic. If fn returns an error (or panics), all mutations are rolled back.
+	//
+	// Takes fn (func(ctx context.Context, transactionStore registry_domain.MetadataStore)
+	// error) which performs the atomic work against the scoped store.
+	//
+	// Returns error when fn fails or the transaction cannot be committed.
 	RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error
 }

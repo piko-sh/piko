@@ -35,6 +35,8 @@ type ActionError interface {
 	StatusCode() int
 
 	// ErrorCode returns the error code as a string.
+	//
+	// Returns string which is the machine readable error code for the client.
 	ErrorCode() string
 }
 

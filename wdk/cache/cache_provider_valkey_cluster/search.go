@@ -83,8 +83,11 @@ func (a *ValkeyClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) erro
 	return nil
 }
 
-// createIndex creates the Valkey Search index using FT.CREATE. TEXT and GEO fields are
-// skipped as Valkey Search does not yet support them.
+// createIndex creates the Valkey Search index using FT.CREATE.
+//
+// TEXT, GEO and VECTOR fields are skipped, because this adapter does not yet map them to
+// an FT.CREATE schema. Each one is logged rather than dropped in silence, so a schema that
+// declares a field this index cannot serve is visible instead of quietly returning nothing.
 //
 // Returns error when the index creation command fails.
 func (a *ValkeyClusterAdapter[K, V]) createIndex(ctx context.Context) error {
@@ -119,11 +122,15 @@ func (a *ValkeyClusterAdapter[K, V]) createIndex(ctx context.Context) error {
 			l.Internal("Skipping GEO field in Valkey Search index (not supported)",
 				logger.String("field", field.Name),
 				logger.String(logKeyIndex, a.indexName))
+		case cache.FieldTypeVector:
+			l.Internal("Skipping VECTOR field in Valkey Search index (not supported)",
+				logger.String("field", field.Name),
+				logger.String(logKeyIndex, a.indexName))
 		}
 	}
 
 	if fieldCount == 0 {
-		return fmt.Errorf("no supported fields for Valkey Search index %s (TEXT and GEO fields are not supported)", a.indexName)
+		return fmt.Errorf("no supported fields for Valkey Search index %s (TEXT, GEO and VECTOR fields are not supported)", a.indexName)
 	}
 
 	if err := a.client.Do(ctx, command.Build()).Error(); err != nil {

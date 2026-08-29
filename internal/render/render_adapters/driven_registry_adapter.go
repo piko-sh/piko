@@ -27,6 +27,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/maypok86/otter/v2"
@@ -41,6 +42,8 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/render/render_dto"
+	"piko.sh/piko/wdk/contextaware"
+	"piko.sh/piko/wdk/safeconv"
 )
 
 const (
@@ -69,9 +72,21 @@ const (
 	// time rather than in parallel. Small batches run faster without the extra cost of
 	// starting goroutines.
 	sequentialSVGThreshold = 5
+
+	// sequentialComponentScanThreshold is the batch size at or below which component
+	// JavaScript is read one blob at a time. Below it the coordination costs more than the
+	// overlap saves.
+	sequentialComponentScanThreshold = 3
+
+	// minifiedVariantID names the variant served once subresource integrity is enabled.
+	minifiedVariantID = "minified"
 )
 
 var (
+	// errVariantTooLarge reports a variant whose blob exceeds the scan limit, so callers can
+	// tell a refusal apart from a read failure instead of parsing a truncated file.
+	errVariantTooLarge = errors.New("variant is too large to scan")
+
 	// svgBufferPool reuses byte-slice buffers to reduce allocation pressure during SVG
 	// content assembly.
 	svgBufferPool = sync.Pool{
@@ -451,9 +466,262 @@ func createComponentBulkLoader(
 			}
 
 			requestedTypes := buildLookupSet(componentTypes)
-			return buildComponentResults(artefacts, requestedTypes, artefactServePath), nil
+			results := buildComponentResults(artefacts, requestedTypes, artefactServePath)
+			attachRequiredModules(ctx, registryService, artefacts, results)
+
+			return results, nil
 		},
 	)
+}
+
+// attachRequiredModules fills in each component's library imports by reading its compiled
+// JavaScript.
+//
+// Takes registryService (registry_domain.RegistryService) which provides variant data.
+// Takes artefacts ([]*registry_dto.ArtefactMeta) which supply the component JavaScript.
+// Takes results (map[string]*render_dto.ComponentMetadata) which receive the module
+// lists.
+func attachRequiredModules(
+	ctx context.Context,
+	registryService registry_domain.RegistryService,
+	artefacts []*registry_dto.ArtefactMeta,
+	results map[string]*render_dto.ComponentMetadata,
+) {
+	scans := collectComponentModuleScans(artefacts, results)
+	if len(scans) == 0 {
+		return
+	}
+
+	var failures int
+	if len(scans) <= sequentialComponentScanThreshold {
+		failures = scanComponentModulesSequentially(ctx, registryService, scans)
+	} else {
+		failures = scanComponentModulesConcurrently(ctx, registryService, scans)
+	}
+
+	if failures > 0 {
+		ctx, l := logger_domain.From(ctx, log)
+		componentModuleScanFailureCount.Add(ctx, int64(failures))
+		l.Warn("Some components could not be scanned for module preloads",
+			logger_domain.Int("failed_count", failures),
+			logger_domain.Int("total_requested", len(scans)))
+	}
+}
+
+// collectComponentModuleScans pairs each requested component with the variant whose bytes
+// the browser will receive, discarding artefacts nobody asked for.
+//
+// Takes artefacts ([]*registry_dto.ArtefactMeta) which supply the variants.
+// Takes results (map[string]*render_dto.ComponentMetadata) which say which are wanted.
+//
+// Returns []componentModuleScan which contains one entry per component worth reading.
+func collectComponentModuleScans(
+	artefacts []*registry_dto.ArtefactMeta,
+	results map[string]*render_dto.ComponentMetadata,
+) []componentModuleScan {
+	scans := make([]componentModuleScan, 0, len(artefacts))
+
+	for _, artefact := range artefacts {
+		jsVariant := findJSVariant(artefact.ActualVariants)
+		if jsVariant == nil {
+			continue
+		}
+
+		meta, wanted := results[jsVariant.MetadataTags.Get(registry_dto.TagTagName)]
+		if !wanted || meta == nil {
+			continue
+		}
+
+		serveVariant := selectComponentServeVariant(artefact, jsVariant)
+		if serveVariant == nil {
+			continue
+		}
+
+		scans = append(scans, componentModuleScan{
+			artefactID: artefact.ID,
+			variant:    serveVariant,
+			meta:       meta,
+		})
+	}
+
+	return scans
+}
+
+// scanComponentModulesSequentially reads each component in turn, which is cheaper than
+// coordinating workers for the handful of components a typical page uses.
+//
+// Takes registryService (registry_domain.RegistryService) which provides variant data.
+// Takes scans ([]componentModuleScan) which name the components to read.
+//
+// Returns int which counts the components that could not be scanned.
+func scanComponentModulesSequentially(
+	ctx context.Context,
+	registryService registry_domain.RegistryService,
+	scans []componentModuleScan,
+) int {
+	var failures int
+
+	for _, scan := range scans {
+		if ctx.Err() != nil {
+			break
+		}
+
+		if !scanComponentModules(ctx, registryService, scan) {
+			failures++
+		}
+	}
+
+	return failures
+}
+
+// scanComponentModulesConcurrently reads the components through a bounded worker pool.
+//
+// Takes registryService (registry_domain.RegistryService) which provides variant data.
+// Takes scans ([]componentModuleScan) which name the components to read.
+//
+// Returns int which counts the components that could not be scanned.
+func scanComponentModulesConcurrently(
+	ctx context.Context,
+	registryService registry_domain.RegistryService,
+	scans []componentModuleScan,
+) int {
+	var failures atomic.Int64
+
+	group := new(errgroup.Group)
+	group.SetLimit(runtime.GOMAXPROCS(0))
+
+	for _, scan := range scans {
+		group.Go(func() error {
+			if ctx.Err() != nil {
+				return nil
+			}
+
+			if !scanComponentModules(ctx, registryService, scan) {
+				failures.Add(1)
+			}
+
+			return nil
+		})
+	}
+
+	_ = group.Wait()
+
+	return safeconv.Int64ToInt(failures.Load())
+}
+
+// scanComponentModules reads one component's served JavaScript and records the library
+// modules it imports.
+//
+// Takes registryService (registry_domain.RegistryService) which provides variant data.
+// Takes scan (componentModuleScan) which names the component and its served variant.
+//
+// Returns bool which is false when the component could not be read.
+func scanComponentModules(
+	ctx context.Context,
+	registryService registry_domain.RegistryService,
+	scan componentModuleScan,
+) bool {
+	componentJS, err := readVariantString(ctx, registryService, scan.variant, maxComponentJSBytes)
+	if err != nil {
+		logComponentModuleReadFailure(ctx, scan.artefactID, err)
+
+		return false
+	}
+
+	scan.meta.RequiredModules = extractRequiredModules(ctx, componentJS)
+
+	return true
+}
+
+// selectComponentServeVariant returns the variant whose bytes the browser will actually
+// receive for a component.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which owns the variants.
+// Takes jsVariant (*registry_dto.Variant) which is the component entrypoint.
+//
+// Returns *registry_dto.Variant which is the variant served to the browser.
+func selectComponentServeVariant(
+	artefact *registry_dto.ArtefactMeta,
+	jsVariant *registry_dto.Variant,
+) *registry_dto.Variant {
+	if !daemon_frontend.IsSRIEnabled() {
+		return jsVariant
+	}
+
+	for i := range artefact.ActualVariants {
+		if artefact.ActualVariants[i].VariantID == minifiedVariantID {
+			return &artefact.ActualVariants[i]
+		}
+	}
+
+	return jsVariant
+}
+
+// logComponentModuleReadFailure reports why a component's modules could not be read.
+//
+// Takes artefactID (string) which names the component.
+// Takes err (error) which is the read failure.
+func logComponentModuleReadFailure(ctx context.Context, artefactID string, err error) {
+	_, l := logger_domain.From(ctx, log)
+
+	if errors.Is(err, registry_domain.ErrBlobNotFound) {
+		l.Trace("Component JavaScript not written yet, skipping module preloads",
+			logger_domain.String("artefactId", artefactID))
+
+		return
+	}
+
+	l.Warn("Could not read component JavaScript for module preloading",
+		logger_domain.String("artefactId", artefactID),
+		logger_domain.Error(err))
+}
+
+// readVariantString reads a variant's blob into a string, refusing anything larger than
+// the given limit.
+//
+// Takes registryService (registry_domain.RegistryService) which provides the data stream.
+// Takes variant (*registry_dto.Variant) which identifies the blob to read.
+// Takes limit (int) which is the largest blob that will be accepted.
+//
+// Returns string which is the variant's content.
+// Returns error when the blob cannot be opened, read, or is over the limit.
+func readVariantString(
+	ctx context.Context,
+	registryService registry_domain.RegistryService,
+	variant *registry_dto.Variant,
+	limit int,
+) (string, error) {
+	stream, err := registryService.GetVariantData(ctx, variant)
+	if err != nil {
+		return "", fmt.Errorf("opening variant data: %w", err)
+	}
+	defer func() { _ = stream.Close() }()
+
+	bounded := io.LimitReader(contextaware.NewReader(ctx, stream), int64(limit)+1)
+
+	content, err := io.ReadAll(bounded)
+	if err != nil {
+		return "", fmt.Errorf("reading variant data: %w", err)
+	}
+
+	if len(content) > limit {
+		return "", fmt.Errorf("%w: variant exceeds %d bytes", errVariantTooLarge, limit)
+	}
+
+	return string(content), nil
+}
+
+// componentModuleScan pairs a component's metadata with the variant whose imports
+// describe it, so the read and the write can be handed to a worker as one unit.
+type componentModuleScan struct {
+	// meta receives the module list once the variant has been read.
+	meta *render_dto.ComponentMetadata
+
+	// variant is the blob the browser will download for this component.
+	variant *registry_dto.Variant
+
+	// artefactID names the component in failure reports.
+	artefactID string
 }
 
 // buildLookupSet creates a set for fast membership checks.
@@ -525,15 +793,7 @@ func extractComponentMetadata(
 		return nil
 	}
 
-	serveVariant := jsVariant
-	if daemon_frontend.IsSRIEnabled() {
-		for i := range artefact.ActualVariants {
-			if artefact.ActualVariants[i].VariantID == "minified" {
-				serveVariant = &artefact.ActualVariants[i]
-				break
-			}
-		}
-	}
+	serveVariant := selectComponentServeVariant(artefact, jsVariant)
 
 	return &render_dto.ComponentMetadata{
 		TagName:         tagName,

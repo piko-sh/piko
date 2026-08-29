@@ -305,8 +305,14 @@ type WatchdogStatusInfo struct {
 // WatchdogNotifier delivers watchdog event notifications to external systems such as
 // Slack, PagerDuty, or webhooks. Implementations must be safe for concurrent use.
 type WatchdogNotifier interface {
-	// Notify sends a watchdog event notification. Implementations should be non-blocking or
-	// use internal queuing to avoid delaying the watchdog evaluation loop.
+	// Notify sends a watchdog event notification.
+	//
+	// Implementations should be non-blocking or use internal queuing to avoid delaying the
+	// watchdog evaluation loop.
+	//
+	// Takes event (WatchdogEvent) which describes what the watchdog observed.
+	//
+	// Returns error when the notification cannot be sent.
 	Notify(ctx context.Context, event WatchdogEvent) error
 }
 
@@ -314,7 +320,13 @@ type WatchdogNotifier interface {
 // backend for preservation across pod restarts. Implementations must be safe for
 // concurrent use.
 type WatchdogProfileUploader interface {
-	// Upload stores a compressed profile with the given metadata. The data parameter
-	// contains the gzip-compressed pprof profile bytes.
+	// Upload stores a compressed profile with the given metadata.
+	//
+	// Takes profileType (string) which names the profile category, such as "heap" or "cpu".
+	// Takes data ([]byte) which holds the gzip-compressed pprof profile bytes.
+	// Takes metadata (map[string]string) which carries the labels stored alongside the
+	// profile.
+	//
+	// Returns error when the upload fails.
 	Upload(ctx context.Context, profileType string, data []byte, metadata map[string]string) error
 }

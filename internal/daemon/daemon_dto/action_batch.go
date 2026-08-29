@@ -25,6 +25,10 @@ type BatchActionRequest struct {
 
 	// Actions is the list of actions to execute in this batch.
 	Actions []BatchActionItem `json:"actions"`
+
+	// Parallel runs the entries concurrently instead of one after another. Results stay in
+	// request order either way.
+	Parallel bool `json:"parallel,omitempty"`
 }
 
 // BatchActionItem represents a single action within a batch request.

@@ -47,12 +47,18 @@ const (
 // generation.
 type Action interface {
 	// Ctx returns the request context.
+	//
+	// Returns any which is the request context.
 	Ctx() any
 
 	// Request returns the request metadata.
+	//
+	// Returns *daemon_dto.RequestMetadata which describes the incoming request.
 	Request() *daemon_dto.RequestMetadata
 
 	// Response returns the response writer.
+	//
+	// Returns *daemon_dto.ResponseWriter which the action writes its reply to.
 	Response() *daemon_dto.ResponseWriter
 }
 
@@ -60,6 +66,8 @@ type Action interface {
 // limits for protection against denial-of-service and resource exhaustion.
 type ResourceLimitable interface {
 	// ResourceLimits returns the resource limit configuration for this action.
+	//
+	// Returns *ResourceLimits which holds the limits applied to this action.
 	ResourceLimits() *ResourceLimits
 }
 
@@ -99,6 +107,8 @@ type ResourceLimits struct {
 // behaviour.
 type Cacheable interface {
 	// CacheConfig returns the caching configuration for this action.
+	//
+	// Returns *CacheConfig which holds the caching behaviour for this action.
 	CacheConfig() *CacheConfig
 }
 
@@ -120,6 +130,8 @@ type CacheConfig struct {
 // the action.
 type RateLimitable interface {
 	// RateLimit returns the rate limit configuration for this action.
+	//
+	// Returns *RateLimit which holds the rate limiting settings for this action.
 	RateLimit() *RateLimit
 }
 
@@ -173,6 +185,8 @@ var (
 // verification before execution.
 type CaptchaProtected interface {
 	// CaptchaConfig returns the captcha verification configuration for this action.
+	//
+	// Returns *CaptchaConfig which holds the captcha settings for this action.
 	CaptchaConfig() *CaptchaConfig
 }
 
@@ -196,8 +210,12 @@ type CaptchaConfig struct {
 // detection before execution. The returned schema declares which form fields to analyse
 // and what detection signals apply to each field.
 type SpamProtected interface {
-	// SpamSchema returns the spam detection schema for this action. The schema defines which
-	// form argument keys to extract and which detectors should analyse each field.
+	// SpamSchema returns the spam detection schema for this action.
+	//
+	// The schema defines which form argument keys to extract and which detectors should
+	// analyse each field.
+	//
+	// Returns *spamdetect_dto.Schema which describes the fields and detectors to apply.
 	SpamSchema() *spamdetect_dto.Schema
 }
 
@@ -205,6 +223,8 @@ type SpamProtected interface {
 // service-level spam detection settings per action.
 type SpamConfigurable interface {
 	// SpamConfig returns the per-action spam detection configuration.
+	//
+	// Returns *SpamConfig which overrides the service-level spam detection settings.
 	SpamConfig() *SpamConfig
 }
 

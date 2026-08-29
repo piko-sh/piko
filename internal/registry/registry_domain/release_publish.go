@@ -117,43 +117,103 @@ type ReleaseLease struct {
 // racing nodes), and the lease is a single coordination row claimed with ClaimRelease.
 type ReleasePublisher interface {
 	// InsertArtefactLayerIfAbsent writes one immutable release layer of an artefact when its
-	// (id, release) is not already present, returning true only when a row was newly written
-	// so the caller increments blob reference counts exactly once per published layer.
+	// (id, release) is not already present.
+	//
+	// A row is written only when it is absent, so the caller increments blob reference counts
+	// exactly once per published layer.
+	//
+	// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact layer to write.
+	//
+	// Returns bool which reports whether a row was newly written.
+	// Returns error when the write fails.
 	InsertArtefactLayerIfAbsent(ctx context.Context, artefact *registry_dto.ArtefactMeta) (bool, error)
 
 	// DeleteArtefactLayersForRelease removes every artefact layer of a release, retiring it.
+	//
+	// Takes releaseID (string) which identifies the release to retire.
+	//
+	// Returns error when the delete fails.
 	DeleteArtefactLayersForRelease(ctx context.Context, releaseID string) error
 
 	// ReclaimArtefactLayersForRelease removes every artefact layer of a release and returns
 	// the deleted layers, so the caller can decrement the blob references those layers held.
+	//
 	// The delete-and-return is atomic per statement: exactly one of two racing reapers
 	// observes the rows and decrements.
+	//
+	// Takes releaseID (string) which identifies the release to reclaim.
+	//
+	// Returns []*registry_dto.ArtefactMeta which are the artefact layers that were deleted.
+	// Returns error when the reclaim fails.
 	ReclaimArtefactLayersForRelease(ctx context.Context, releaseID string) ([]*registry_dto.ArtefactMeta, error)
 
-	// ClaimRelease claims publishing rights for a release, returning true when this caller
-	// won the claim (inserted the lease row) and false when another caller already holds it.
+	// ClaimRelease claims publishing rights for a release.
+	//
+	// This caller wins the claim when it inserts the lease row, and loses when another caller
+	// already holds it.
+	//
+	// Takes releaseID (string) which identifies the release to claim.
+	// Takes publishDigest (string) which fingerprints the content being published.
+	// Takes firstSeenAt (int64) which is when the release was first claimed, in Unix seconds.
+	// Takes heartbeatAt (int64) which is the first heartbeat to stamp, in Unix seconds.
+	//
+	// Returns bool which reports whether this caller won the claim.
+	// Returns error when the claim fails.
 	ClaimRelease(ctx context.Context, releaseID, publishDigest string, firstSeenAt, heartbeatAt int64) (bool, error)
 
 	// GetRelease returns a release lease and whether it exists.
+	//
+	// Takes releaseID (string) which identifies the release.
+	//
+	// Returns ReleaseLease which is the stored lease, or the zero value when it is absent.
+	// Returns bool which reports whether the lease exists.
+	// Returns error when the lookup fails.
 	GetRelease(ctx context.Context, releaseID string) (ReleaseLease, bool, error)
 
 	// MarkReleasePublished flips a release lease to published and stamps its timestamps.
+	//
+	// Takes releaseID (string) which identifies the release.
+	// Takes publishedAt (int64) which is when the release finished publishing, in Unix seconds.
+	// Takes heartbeatAt (int64) which is the heartbeat to stamp, in Unix seconds.
+	//
+	// Returns error when the update fails.
 	MarkReleasePublished(ctx context.Context, releaseID string, publishedAt, heartbeatAt int64) error
 
-	// HeartbeatRelease advances a release's heartbeat when the new value is more recent. The
-	// update is monotonic, so an out-of-order heartbeat cannot rewind a fresher one.
+	// HeartbeatRelease advances a release's heartbeat when the new value is more recent.
+	//
+	// The update is monotonic, so an out-of-order heartbeat cannot rewind a fresher one.
+	//
+	// Takes releaseID (string) which identifies the release.
+	// Takes heartbeatAt (int64) which is the new heartbeat, in Unix seconds.
+	//
+	// Returns error when the update fails.
 	HeartbeatRelease(ctx context.Context, releaseID string, heartbeatAt int64) error
 
 	// ListExpiredReleases returns published releases whose heartbeat predates the cutoff,
 	// excluding the caller's own release so a node never reaps the release it is serving.
+	//
+	// Takes cutoff (int64) which is the heartbeat cutoff, in Unix seconds.
+	// Takes ownRelease (string) which is the caller's own release, which is never listed.
+	//
+	// Returns []string which are the identifiers of the expired releases.
+	// Returns error when the listing fails.
 	ListExpiredReleases(ctx context.Context, cutoff int64, ownRelease string) ([]string, error)
 
 	// DeleteReleaseLease removes a release lease row, so a retired release can be re-claimed
 	// by a later deploy and the reaper's expiry listing converges.
+	//
+	// Takes releaseID (string) which identifies the release.
+	//
+	// Returns error when the delete fails.
 	DeleteReleaseLease(ctx context.Context, releaseID string) error
 
 	// DeleteStalePublishingLease removes a publishing lease whose heartbeat predates
 	// staleBefore, so a publish that died mid-flight can be re-claimed by another node.
+	//
+	// Takes releaseID (string) which identifies the release.
+	// Takes staleBefore (int64) which is the heartbeat cutoff, in Unix seconds.
+	//
+	// Returns error when the delete fails.
 	DeleteStalePublishingLease(ctx context.Context, releaseID string, staleBefore int64) error
 }
 

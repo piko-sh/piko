@@ -153,9 +153,7 @@ type ResourceProvider interface {
 
 	// Summary returns aggregate counts by status for each kind.
 	//
-	// Takes ctx (context.Context) for cancellation.
-	//
-	// Returns map[string]map[ResourceStatus]int with counts per kind and status.
+	// Returns map[string]map[ResourceStatus]int which holds the counts per kind and status.
 	// Returns error when the summary cannot be generated.
 	Summary(ctx context.Context) (map[string]map[ResourceStatus]int, error)
 }

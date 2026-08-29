@@ -672,3 +672,82 @@ func TestBuildSvgSpriteSheet_HandlesMixedNilData(t *testing.T) {
 	assert.Contains(t, spriteSheet, `<symbol id="icon-a"`)
 	assert.NotContains(t, spriteSheet, `icon-missing`)
 }
+
+func TestBuildPreloadLogic_PreloadsRequiredModules(t *testing.T) {
+	ro := NewTestOrchestratorBuilder().Build()
+	rctx := NewTestRenderContextBuilder().Build()
+	rctx.componentMetadata = map[string]*render_dto.ComponentMetadata{
+		"comp-a": {
+			BaseJSPath:      "/js/comp-a.js",
+			RequiredModules: []string{"/_piko/assets/mod/lib/shared.js", "/_piko/assets/mod/lib/only-a.js"},
+		},
+		"comp-b": {
+			BaseJSPath:      "/js/comp-b.js",
+			RequiredModules: []string{"/_piko/assets/mod/lib/shared.js"},
+		},
+	}
+
+	preload, script := ro.buildPreloadLogic([]string{"comp-a", "comp-b"}, false, rctx)
+
+	assert.Equal(t, 1, strings.Count(preload, `href="/_piko/assets/mod/lib/shared.js"`),
+		"a module two components share must be preloaded once")
+	assert.Contains(t, preload, `<link rel="modulepreload" href="/_piko/assets/mod/lib/only-a.js">`)
+
+	assert.NotContains(t, script, "/_piko/assets/mod/lib/",
+		"a library module is not an entry point and must not get a script tag")
+
+	lastComponent := strings.LastIndex(preload, `href="/js/comp-b.js"`)
+	firstModule := strings.Index(preload, `href="/_piko/assets/mod/lib/`)
+	assert.Less(t, lastComponent, firstModule,
+		"component entry points must precede library modules in the preload scanner's path")
+}
+
+func TestBuildPreloadLogic_SortsRequiredModulesDeterministically(t *testing.T) {
+	ro := NewTestOrchestratorBuilder().Build()
+
+	renderOnce := func(componentTypes []string) string {
+		rctx := NewTestRenderContextBuilder().Build()
+		rctx.componentMetadata = map[string]*render_dto.ComponentMetadata{
+			"comp-a": {BaseJSPath: "/js/comp-a.js", RequiredModules: []string{"/lib/z.js", "/lib/m.js"}},
+			"comp-b": {BaseJSPath: "/js/comp-b.js", RequiredModules: []string{"/lib/a.js"}},
+		}
+		preload, _ := ro.buildPreloadLogic(componentTypes, false, rctx)
+		return preload
+	}
+
+	forward := renderOnce([]string{"comp-a", "comp-b"})
+	reversed := renderOnce([]string{"comp-b", "comp-a"})
+
+	assert.Equal(t, forward, reversed, "output must not depend on the order components were discovered")
+	assert.Less(t, strings.Index(forward, "/lib/a.js"), strings.Index(forward, "/lib/m.js"))
+	assert.Less(t, strings.Index(forward, "/lib/m.js"), strings.Index(forward, "/lib/z.js"))
+}
+
+func TestBuildPreloadLogic_DoesNotPreloadAComponentTwiceAsAModule(t *testing.T) {
+	ro := NewTestOrchestratorBuilder().Build()
+	rctx := NewTestRenderContextBuilder().Build()
+	rctx.componentMetadata = map[string]*render_dto.ComponentMetadata{
+		"comp-a": {BaseJSPath: "/js/comp-b.js", RequiredModules: []string{"/js/comp-b.js"}},
+		"comp-b": {BaseJSPath: "/js/comp-b.js"},
+	}
+
+	preload, _ := ro.buildPreloadLogic([]string{"comp-a", "comp-b"}, false, rctx)
+
+	assert.Equal(t, 2, strings.Count(preload, `href="/js/comp-b.js"`),
+		"the two entry points still preload, but the module must not add a third")
+}
+
+func TestBuildPreloadLogic_LeavesTheCachedModuleListAlone(t *testing.T) {
+	ro := NewTestOrchestratorBuilder().Build()
+	rctx := NewTestRenderContextBuilder().Build()
+
+	cached := []string{"/lib/z.js", "/lib/a.js"}
+	rctx.componentMetadata = map[string]*render_dto.ComponentMetadata{
+		"comp-a": {BaseJSPath: "/js/comp-a.js", RequiredModules: cached},
+	}
+
+	_, _ = ro.buildPreloadLogic([]string{"comp-a"}, false, rctx)
+
+	assert.Equal(t, []string{"/lib/z.js", "/lib/a.js"}, cached,
+		"the module list belongs to a shared cache entry and must not be sorted in place")
+}

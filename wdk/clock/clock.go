@@ -83,6 +83,8 @@ type ChannelTimer interface {
 	Timer
 
 	// C returns the channel that delivers the time.
+	//
+	// Returns <-chan time.Time which receives the expiry time when the timer fires.
 	C() <-chan time.Time
 
 	// Reset changes the timer to expire after duration d.
@@ -98,6 +100,8 @@ type ChannelTimer interface {
 // the clock.Ticker interface.
 type Ticker interface {
 	// C returns the channel that receives tick events.
+	//
+	// Returns <-chan time.Time which receives the tick events.
 	C() <-chan time.Time
 
 	// Stop disables the ticker. After Stop, no more ticks will be sent.

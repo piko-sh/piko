@@ -37,20 +37,18 @@ type Service interface {
 
 	// Complete sends a completion request to the default or specified provider.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
-	// Returns *llm_dto.CompletionResponse containing the model's response.
+	// Returns *llm_dto.CompletionResponse which contains the model's response.
 	// Returns error when the request fails or the provider is not found.
 	Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
 
 	// CompleteWithProvider sends a completion request to a specific provider.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes providerName (string) which identifies the provider to use.
 	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
-	// Returns *llm_dto.CompletionResponse containing the model's response.
+	// Returns *llm_dto.CompletionResponse which contains the model's response.
 	// Returns error when the request fails or the provider is not found.
 	CompleteWithProvider(ctx context.Context, providerName string, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
 
@@ -126,8 +124,8 @@ type Service interface {
 	// Takes ctx (context.Context) which controls cancellation.
 	// Takes scope (string) which identifies the budget scope.
 	//
-	// Returns *llm_dto.BudgetStatus containing the current state.
-	// Returns error if the status cannot be retrieved.
+	// Returns *llm_dto.BudgetStatus which contains the current state.
+	// Returns error when the status cannot be retrieved.
 	GetBudgetStatus(ctx context.Context, scope string) (*llm_dto.BudgetStatus, error)
 
 	// SetPricingTable replaces the pricing table used for cost calculation.
@@ -143,6 +141,8 @@ type Service interface {
 	SetRateLimits(scope string, requestsPerMinute, tokensPerMinute int)
 
 	// GetCostCalculator returns the cost calculator for this instance.
+	//
+	// Returns *CostCalculator which works out the cost of a request from the pricing table.
 	GetCostCalculator() *CostCalculator
 
 	// GetBudgetManager returns the budget manager.
@@ -189,20 +189,18 @@ type Service interface {
 
 	// Embed generates embeddings using the default provider.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 	//
-	// Returns *llm_dto.EmbeddingResponse containing the generated embeddings.
+	// Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 	// Returns error when the request fails.
 	Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error)
 
 	// EmbedWithProvider generates embeddings using a specific provider.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes providerName (string) which identifies the provider to use.
 	// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 	//
-	// Returns *llm_dto.EmbeddingResponse containing the generated embeddings.
+	// Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 	// Returns error when the request fails.
 	EmbedWithProvider(ctx context.Context, providerName string, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error)
 
@@ -277,9 +275,7 @@ type Document struct {
 type LoaderPort interface {
 	// Load retrieves documents from the source.
 	//
-	// Takes ctx (context.Context) which controls cancellation.
-	//
-	// Returns []Document containing the loaded content.
+	// Returns []Document which contains the loaded content.
 	// Returns error when loading fails.
 	Load(ctx context.Context) ([]Document, error)
 }
@@ -291,7 +287,7 @@ type SplitterPort interface {
 	//
 	// Takes document (Document) which is the document to split.
 	//
-	// Returns []Document containing the resulting chunks.
+	// Returns []Document which contains the resulting chunks.
 	Split(document Document) []Document
 }
 
@@ -301,10 +297,9 @@ type SplitterPort interface {
 type LLMProviderPort interface {
 	// Complete sends a completion request to the provider.
 	//
-	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
-	// Returns *llm_dto.CompletionResponse containing the model's response.
+	// Returns *llm_dto.CompletionResponse which contains the model's response.
 	// Returns error when the request fails.
 	Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
 

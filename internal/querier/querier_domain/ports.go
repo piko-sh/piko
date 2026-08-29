@@ -190,6 +190,8 @@ type EngineCataloguePort interface {
 	// TableValuedFunctionColumns returns the output column schema for a known table-valued
 	// function (e.g. json_each, generate_series), or nil if the function is not recognised.
 	//
+	// Takes functionName (string) which is the table-valued function to look up.
+	//
 	// Returns []querier_dto.ScopedColumn which holds the output columns, or nil for unknown
 	// functions.
 	TableValuedFunctionColumns(functionName string) []querier_dto.ScopedColumn
@@ -212,6 +214,8 @@ type EngineMetadataPort interface {
 
 	// Dialect returns an opaque string identifying this engine adapter (e.g. "postgres",
 	// "sqlite", "mysql").
+	//
+	// Returns string which names the engine adapter.
 	Dialect() string
 
 	// SupportsAsyncMutations reports whether the engine surfaces mutations whose completion
@@ -245,8 +249,11 @@ type CatalogueFunctionResolverPort interface {
 	// TableValuedFunctionColumnsFromCatalogue resolves the output columns of a user-defined
 	// table-valued function by looking up its signature and return type in the catalogue.
 	//
-	// Returns nil when the function is not found or its return type cannot be expanded into
-	// columns.
+	// Takes catalogue (*querier_dto.Catalogue) which is the schema to look the function up in.
+	// Takes functionName (string) which is the table-valued function to resolve.
+	//
+	// Returns []querier_dto.ScopedColumn which are the output columns, and nil when the
+	// function is not found or its return type cannot be expanded into columns.
 	TableValuedFunctionColumnsFromCatalogue(
 		catalogue *querier_dto.Catalogue,
 		functionName string,
@@ -263,12 +270,12 @@ type FunctionResolverPort interface {
 	// could not match. The engine can inspect the argument types and catalogue context to
 	// compute a dynamic return type.
 	//
-	// Takes catalogue (*querier_dto.Catalogue) for schema context.
+	// Takes catalogue (*querier_dto.Catalogue) which is the schema context.
 	// Takes name (string) which is the function name.
 	// Takes schema (string) which is the function schema, if specified.
 	// Takes argumentTypes ([]querier_dto.SQLType) which are the resolved argument types.
 	//
-	// Returns *querier_dto.FunctionResolution with the resolved result.
+	// Returns *querier_dto.FunctionResolution which is the resolved function call.
 	// Returns error when the function cannot be resolved.
 	ResolveFunctionCall(
 		catalogue *querier_dto.Catalogue,
@@ -290,7 +297,8 @@ type MultiStatementAnalyserPort interface {
 	// Takes statements ([]querier_dto.ParsedStatement) which are all parsed statements in
 	// the block.
 	//
-	// Returns *querier_dto.RawQueryAnalysis for the primary (last) statement.
+	// Returns *querier_dto.RawQueryAnalysis which is the analysis of the primary (last)
+	// statement.
 	// Returns error when analysis fails.
 	AnalyseMultiStatement(
 		catalogue *querier_dto.Catalogue,
@@ -302,7 +310,11 @@ type MultiStatementAnalyserPort interface {
 // definitions for SQL extensions (e.g. CREATE EXTENSION pgcrypto).
 type ExtensionLoaderPort interface {
 	// LoadExtensionFunctions returns function signatures provided by the named extension.
-	// Returns nil if the extension is unknown.
+	//
+	// Takes name (string) which is the extension to load functions from.
+	//
+	// Returns []*querier_dto.FunctionSignature which are the extension's function signatures,
+	// and nil when the extension is unknown.
 	LoadExtensionFunctions(name string) []*querier_dto.FunctionSignature
 }
 

@@ -81,9 +81,12 @@ type ServerAdapter interface {
 	// Returns error when the shutdown fails or the context is cancelled.
 	Shutdown(ctx context.Context) error
 
-	// SetOnBound registers an optional callback that is invoked after the server
-	// successfully binds to a port, before it starts serving requests. The callback receives
-	// the resolved listen address.
+	// SetOnBound registers an optional callback that runs once the server has bound a port.
+	//
+	// The callback is invoked after the server successfully binds to a port, before it starts
+	// serving requests. The callback receives the resolved listen address.
+	//
+	// Takes callback (func(address string)) which is invoked with the resolved listen address.
 	SetOnBound(func(address string))
 }
 
@@ -211,12 +214,16 @@ type RouterConfig struct {
 // DevAPIHandlerPort defines the interface for mounting dev API routes.
 type DevAPIHandlerPort interface {
 	// Mount registers the dev API routes on the given router.
+	//
+	// Takes router (chi.Router) which receives the route registrations.
 	Mount(router chi.Router)
 }
 
 // DevPreviewHandlerPort defines the interface for mounting dev preview routes.
 type DevPreviewHandlerPort interface {
 	// Mount registers the preview API and render routes on the given router.
+	//
+	// Takes router (chi.Router) which receives the route registrations.
 	Mount(router chi.Router)
 }
 

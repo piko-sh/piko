@@ -95,6 +95,8 @@ type RenderedPane struct {
 // together (Compose).
 type Layout interface {
 	// Name returns the registered layout identifier.
+	//
+	// Returns string which is the registered layout identifier.
 	Name() string
 
 	// Allocate splits a layout rectangle into per-pane rectangles.
@@ -102,13 +104,29 @@ type Layout interface {
 	// Splits the area between header and status bar. The returned slice has length
 	// min(paneCount, MaxPanes) where MaxPanes depends on the layout. The supplied paneCount
 	// may be larger than the layout supports; surplus panes are dropped.
+	//
+	// Takes width (int) which is the width of the layout rectangle in cells.
+	// Takes height (int) which is the height of the layout rectangle in cells.
+	// Takes paneCount (int) which is the number of panes the caller wants to show.
+	//
+	// Returns []PaneRect which holds one rectangle per allocated pane.
 	Allocate(width, height, paneCount int) []PaneRect
 
-	// Compose stitches rendered pane bodies into the final layout string. The number of
-	// panes must equal the number of rectangles Allocate returned for the same dimensions.
+	// Compose stitches rendered pane bodies into the final layout string.
+	//
+	// The number of panes must equal the number of rectangles Allocate returned for the same
+	// dimensions.
+	//
+	// Takes panes ([]RenderedPane) which holds the already-rendered pane bodies.
+	// Takes width (int) which is the width of the layout rectangle in cells.
+	// Takes height (int) which is the height of the layout rectangle in cells.
+	//
+	// Returns string which is the composed layout image.
 	Compose(panes []RenderedPane, width, height int) string
 
 	// MaxPanes is the maximum number of panes this layout renders.
+	//
+	// Returns int which is the greatest number of panes this layout renders.
 	MaxPanes() int
 }
 

@@ -22,9 +22,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/cache/cache_dto"
@@ -58,7 +60,7 @@ func TestCacheBuilder_MethodChaining(t *testing.T) {
 
 	builder := NewCacheBuilder[string, string](service).
 		Provider("otter").
-		MaximumSize(1000).
+		MaximumEntries(1000).
 		InitialCapacity(100)
 
 	require.NotNil(t, builder, "method chaining should return non-nil builder")
@@ -68,7 +70,7 @@ func TestCacheBuilder_MaximumSize(t *testing.T) {
 	service := NewService("")
 	builder := NewCacheBuilder[string, string](service)
 
-	result := builder.MaximumSize(1000)
+	result := builder.MaximumEntries(1000)
 
 	if result != builder {
 		t.Error("WithMaximumSize should return the same builder instance")
@@ -233,7 +235,7 @@ func TestCacheBuilder_Clone(t *testing.T) {
 
 	original := NewCacheBuilder[string, string](service).
 		Provider("redis").
-		MaximumSize(1000).
+		MaximumEntries(1000).
 		InitialCapacity(100)
 
 	clone := original.Clone()
@@ -244,7 +246,7 @@ func TestCacheBuilder_Clone(t *testing.T) {
 		t.Error("cloned builder should be a different instance")
 	}
 
-	clone.MaximumSize(2000)
+	clone.MaximumEntries(2000)
 }
 
 func TestCacheBuilder_BuildWithMockProvider(t *testing.T) {
@@ -257,7 +259,7 @@ func TestCacheBuilder_BuildWithMockProvider(t *testing.T) {
 	}
 
 	builder := NewCacheBuilder[string, string](service).
-		MaximumSize(100)
+		MaximumEntries(100)
 
 	cache, err := builder.Build(context.Background())
 	if err != nil {
@@ -294,7 +296,7 @@ func TestCacheBuilder_BuildWithInvalidConfig(t *testing.T) {
 	}
 
 	builder := NewCacheBuilder[string, string](service).
-		MaximumSize(100).
+		MaximumEntries(100).
 		MaximumWeight(1000).
 		Weigher(func(k, v string) uint32 { return 1 })
 
@@ -306,7 +308,7 @@ func TestCacheBuilder_BuildWithInvalidConfig(t *testing.T) {
 		t.Fatal("expected validation error for conflicting config, got nil")
 	}
 
-	expectedMessage := "MaximumSize"
+	expectedMessage := "MaximumEntries"
 	if !contains(err.Error(), expectedMessage) {
 		t.Errorf("error should relate to configuration conflict, got: %v", err)
 	}
@@ -349,7 +351,7 @@ func TestCacheBuilder_ComplexConfiguration(t *testing.T) {
 
 	builder := NewCacheBuilder[string, string](service).
 		Provider("mock").
-		MaximumSize(5000).
+		MaximumEntries(5000).
 		InitialCapacity(1000)
 
 	cache, err := builder.Build(context.Background())
@@ -760,14 +762,103 @@ func TestAdaptExpiryCalculator(t *testing.T) {
 			t.Error("expected nil")
 		}
 	})
-	t.Run("non-nil returns nil", func(t *testing.T) {
+	t.Run("custom calculator returns nil", func(t *testing.T) {
 		builder := NewCacheBuilder[string, string](service)
 		builder.expiryCalculator = &mockExpiryCalculator[string, string]{}
 		if builder.adaptExpiryCalculator() != nil {
-			t.Error("expected nil (documented limitation)")
+			t.Error("a custom calculator reads the value and cannot be re-typed; Build rejects it instead")
+		}
+	})
+	t.Run("write expiration survives the byte cache", func(t *testing.T) {
+		builder := NewCacheBuilder[string, string](service)
+		builder.WriteExpiration(5 * time.Minute)
+
+		adapted := builder.adaptExpiryCalculator()
+		if adapted == nil {
+			t.Fatal("the built-in TTL calculator ignores the value and must survive encoding")
+		}
+		if got := adapted.ExpireAfterCreate(cache_dto.Entry[string, []byte]{}); got != 5*time.Minute {
+			t.Errorf("ExpireAfterCreate() = %v, want 5m", got)
+		}
+	})
+	t.Run("access expiration survives the byte cache", func(t *testing.T) {
+		builder := NewCacheBuilder[string, string](service)
+		builder.AccessExpiration(90 * time.Second)
+
+		adapted := builder.adaptExpiryCalculator()
+		if adapted == nil {
+			t.Fatal("the built-in sliding TTL calculator must survive encoding")
+		}
+		if got := adapted.ExpireAfterRead(cache_dto.Entry[string, []byte]{}); got != 90*time.Second {
+			t.Errorf("ExpireAfterRead() = %v, want 90s", got)
 		}
 	})
 }
+
+func TestBuild_RejectsOptionsThatCannotCrossAnEncoder(t *testing.T) {
+	service := NewService("mock")
+	require.NoError(t, service.RegisterProvider(context.Background(), "mock", newMockTestProvider("mock")))
+
+	cases := []struct {
+		name      string
+		configure func(*CacheBuilder[string, string])
+	}{
+		{"weigher", func(b *CacheBuilder[string, string]) {
+			b.MaximumWeight(1 << 20).Weigher(func(_ string, value string) uint32 { return uint32(len(value)) })
+		}},
+		{"custom expiry calculator", func(b *CacheBuilder[string, string]) {
+			b.ExpiryCalculator(&mockExpiryCalculator[string, string]{})
+		}},
+		{"refresh calculator", func(b *CacheBuilder[string, string]) {
+			b.RefreshCalculator(&mockRefreshCalculator[string, string]{})
+		}},
+		{"deletion callback", func(b *CacheBuilder[string, string]) {
+			b.OnDeletion(func(cache_dto.DeletionEvent[string, string]) {})
+		}},
+		{"atomic deletion callback", func(b *CacheBuilder[string, string]) {
+			b.OnAtomicDeletion(func(cache_dto.DeletionEvent[string, string]) {})
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			builder := NewCacheBuilder[string, string](service).DefaultEncoder(passthroughEncoder{})
+			tc.configure(builder)
+
+			_, err := builder.Build(context.Background())
+
+			require.Error(t, err, "an option the encoder path silently dropped must now be refused")
+			assert.ErrorIs(t, err, errInvalidConfiguration)
+		})
+	}
+}
+
+func TestBuild_AcceptsBuiltInExpirationWithAnEncoder(t *testing.T) {
+	service := NewService("mock")
+	require.NoError(t, service.RegisterProvider(context.Background(), "mock", newMockTestProvider("mock")))
+
+	_, err := NewCacheBuilder[string, string](service).
+		MaximumEntries(100).
+		Expiration(10 * time.Minute).
+		DefaultEncoder(passthroughEncoder{}).
+		Build(context.Background())
+
+	require.NoError(t, err, "a built-in TTL is adaptable and must still build")
+}
+
+type passthroughEncoder struct{}
+
+func (passthroughEncoder) MarshalAny(value any) ([]byte, error) {
+	text, ok := value.(string)
+	if !ok {
+		return nil, fmt.Errorf("passthroughEncoder handles strings, got %T", value)
+	}
+	return []byte(text), nil
+}
+
+func (passthroughEncoder) UnmarshalAny(data []byte) (any, error) { return string(data), nil }
+
+func (passthroughEncoder) HandlesType() reflect.Type { return reflect.TypeFor[string]() }
 
 func TestAdaptOnDeletion(t *testing.T) {
 	service := NewService("")

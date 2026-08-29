@@ -82,8 +82,16 @@ type RouteSettings struct {
 	// RequestTimeoutSeconds bounds a single non-streaming request.
 	RequestTimeoutSeconds int
 
+	// MaxParallelBatchWorkers bounds how many entries of one parallel batch run at once; 0
+	// uses the built-in default.
+	MaxParallelBatchWorkers int
+
 	// E2EMode enables end-to-end test routes in the server.
 	E2EMode bool
+
+	// ActionCompression negotiates gzip or brotli for action responses. Action payloads are
+	// routinely an order of magnitude larger than their compressed form.
+	ActionCompression bool
 
 	// CSRFSecFetchSiteEnforcement requires CSRF tokens on browser requests identified by the
 	// Sec-Fetch-Site header.
@@ -1355,6 +1363,8 @@ func mountActionRoutes(cfg *MountRoutesConfig) {
 		cfg.ActionResponseCache, cfg.CaptchaService,
 	)
 	handler.spamdetectService = cfg.SpamDetectService
+	handler.compressResponses = cfg.RouteSettings.ActionCompression
+	handler.maxParallelBatchWorkers = cfg.RouteSettings.MaxParallelBatchWorkers
 	handler.requestTimeout = routeRequestTimeout(cfg.RouteSettings)
 
 	if cfg.RouteSettings.DefaultMaxSSEDurationSeconds > 0 {

@@ -389,6 +389,8 @@ func isDecimalNotNegative(fl validator.FieldLevel) bool {
 // comparison - currently maths.Money and maths.Decimal.
 type numericValidator interface {
 	// Err returns any error stored in the numeric value.
+	//
+	// Returns error when the numeric value carries a stored error.
 	Err() error
 }
 

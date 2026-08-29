@@ -53,9 +53,9 @@ type Config struct {
 	// Namespace is the key prefix for all cache entries (e.g. "llm:cache").
 	Namespace string
 
-	// MaximumSize is the maximum number of entries for in-memory providers. Remote providers
-	// ignore this value.
-	MaximumSize int
+	// MaximumEntries is the maximum number of entries for in-memory providers. Remote
+	// providers ignore this value.
+	MaximumEntries int
 }
 
 // Store provides an LLM cache using the internal cache service. It implements
@@ -208,7 +208,7 @@ func New(ctx context.Context, config Config, options ...StoreOption) (*Store, er
 
 		namespace := cmp.Or(config.Namespace, "llm:cache")
 
-		maximumSize := config.MaximumSize
+		maximumSize := config.MaximumEntries
 		if maximumSize <= 0 {
 			maximumSize = DefaultCacheMaximumSize
 		}
@@ -216,7 +216,7 @@ func New(ctx context.Context, config Config, options ...StoreOption) (*Store, er
 		cache, err := cache_domain.NewCacheBuilder[string, *llm_dto.CacheEntry](config.CacheService).
 			FactoryBlueprint(FactoryBlueprintName).
 			Namespace(namespace).
-			MaximumSize(maximumSize).
+			MaximumEntries(maximumSize).
 			Build(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create cache: %w", err)

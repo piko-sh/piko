@@ -1090,6 +1090,18 @@ func WithWatchdogProfileUploader(uploader monitoring_domain.WatchdogProfileUploa
 	}
 }
 
+// WithProfilingAutoNextPort enables automatic port selection for the pprof HTTP server
+// when the configured port is already in use.
+//
+// Takes enabled (bool) which turns automatic port selection on or off.
+//
+// Returns ProfilingOption which configures automatic port selection.
+func WithProfilingAutoNextPort(enabled bool) ProfilingOption {
+	return func(c *profiler.Config) {
+		c.AutoNextPort = enabled
+	}
+}
+
 // WithProfilingPort sets the port for the pprof HTTP server.
 //
 // Takes port (int) which specifies the port number to listen on.

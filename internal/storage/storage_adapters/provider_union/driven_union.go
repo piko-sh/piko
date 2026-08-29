@@ -39,21 +39,35 @@ var (
 // on StorageProviderPort, so the union forwards it by type assertion.
 type keyLister interface {
 	// ListKeys returns every storage key in the repository.
+	//
+	// Takes repository (string) which names the repository to scan.
+	//
+	// Returns []string which are the storage keys found.
+	// Returns error when the listing fails.
 	ListKeys(ctx context.Context, repository string) ([]string, error)
 }
 
 // manyRemover is the optional batch-remove capability, forwarded by type assertion.
 type manyRemover interface {
 	// RemoveMany deletes the batch of keys and reports the outcome.
+	//
+	// Takes params (storage_dto.RemoveManyParams) which describes the objects to remove.
+	//
+	// Returns *storage_dto.BatchResult which reports the outcome of each removal.
+	// Returns error when the batch removal fails.
 	RemoveMany(ctx context.Context, params storage_dto.RemoveManyParams) (*storage_dto.BatchResult, error)
 }
 
 // providerDescriber is the optional provider-metadata capability, forwarded by assertion.
 type providerDescriber interface {
 	// GetProviderType names the underlying provider.
+	//
+	// Returns string which is the provider name.
 	GetProviderType() string
 
 	// GetProviderMetadata describes the underlying provider.
+	//
+	// Returns map[string]any which holds the provider's descriptive fields.
 	GetProviderMetadata() map[string]any
 }
 
@@ -61,12 +75,16 @@ type providerDescriber interface {
 // assertion.
 type batchSupporter interface {
 	// SupportsBatchOperations reports whether the provider has native batch operations.
+	//
+	// Returns bool which reports whether native batch operations exist.
 	SupportsBatchOperations() bool
 }
 
 // presignSupporter is the optional presigned-URL capability, forwarded by type assertion.
 type presignSupporter interface {
 	// SupportsPresignedURLs reports whether the provider can generate presigned URLs.
+	//
+	// Returns bool which reports whether presigned URLs can be generated.
 	SupportsPresignedURLs() bool
 }
 

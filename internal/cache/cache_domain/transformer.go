@@ -34,10 +34,14 @@ import (
 // byte slices for efficiency with in-memory cache values.
 type CacheTransformerPort interface {
 	// Name returns the unique name of this transformer (e.g. "zstd", "crypto-service").
+	//
+	// Returns string which is the unique transformer name.
 	Name() string
 
 	// Type returns the category of this transformer, such as compression, encryption, or
 	// custom.
+	//
+	// Returns cache_dto.TransformerType which is the category of the transformer.
 	Type() cache_dto.TransformerType
 
 	// Priority returns the order in which this processor runs.

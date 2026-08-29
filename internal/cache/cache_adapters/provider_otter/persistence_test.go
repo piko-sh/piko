@@ -21,6 +21,8 @@ package provider_otter
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,7 +85,7 @@ func TestOtterAdapter_Persistence_BasicSetGet(t *testing.T) {
 	directory := t.TempDir()
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
 
@@ -123,7 +125,7 @@ func TestOtterAdapter_Persistence_Delete(t *testing.T) {
 	directory := t.TempDir()
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
 
@@ -150,11 +152,124 @@ func TestOtterAdapter_Persistence_Delete(t *testing.T) {
 	assert.Equal(t, "Second", val2.Title)
 }
 
+func TestOtterAdapter_Persistence_InvalidateByTags(t *testing.T) {
+	directory := t.TempDir()
+
+	opts := cache_dto.Options[string, testArticle]{
+		MaximumEntries:   100,
+		ProviderSpecific: newPersistenceConfig(directory),
+	}
+
+	adapter, err := OtterProviderFactory(opts)
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	require.NoError(t, adapter.Set(ctx, "article-1", testArticle{Title: "First", Views: 100}, "blog"))
+	require.NoError(t, adapter.Set(ctx, "article-2", testArticle{Title: "Second", Views: 200}, "blog"))
+	require.NoError(t, adapter.Set(ctx, "article-3", testArticle{Title: "Third", Views: 300}, "archive"))
+
+	otterAdapter, isOtter := adapter.(*OtterAdapter[string, testArticle])
+	require.True(t, isOtter)
+	entriesBefore := otterAdapter.wal.EntryCount()
+
+	count, err := adapter.InvalidateByTags(ctx, "blog")
+	require.NoError(t, err)
+	require.Equal(t, 2, count)
+
+	assert.Equal(t, entriesBefore+2, otterAdapter.wal.EntryCount(),
+		"each tag invalidation must be logged, or a crash before the next checkpoint replays the original writes")
+
+	_ = adapter.Close(ctx)
+
+	adapter2, err := OtterProviderFactory(opts)
+	require.NoError(t, err)
+	defer func() { _ = adapter2.Close(ctx) }()
+
+	_, ok, _ := adapter2.GetIfPresent(ctx, "article-1")
+	assert.False(t, ok, "article-1 was invalidated by tag and must not return after recovery")
+
+	_, ok, _ = adapter2.GetIfPresent(ctx, "article-2")
+	assert.False(t, ok, "article-2 was invalidated by tag and must not return after recovery")
+
+	val3, ok, _ := adapter2.GetIfPresent(ctx, "article-3")
+	require.True(t, ok, "article-3 carried a different tag and should survive")
+	assert.Equal(t, "Third", val3.Title)
+}
+
+func TestOtterAdapter_Persistence_CompactsOnWALSize(t *testing.T) {
+	directory := t.TempDir()
+
+	walConfig := newPersistenceConfig(directory).WALConfig
+	walConfig.SnapshotThreshold = 1_000_000
+	walConfig.MaxWALSize = 4096
+
+	opts := cache_dto.Options[string, testArticle]{
+		MaximumEntries: 100,
+		ProviderSpecific: PersistenceConfig[string, testArticle]{
+			Enabled:    true,
+			WALConfig:  walConfig,
+			KeyCodec:   stringKeyCodec{},
+			ValueCodec: jsonArticleCodec{},
+		},
+	}
+
+	adapter, err := OtterProviderFactory(opts)
+	require.NoError(t, err)
+	ctx := context.Background()
+	defer func() { _ = adapter.Close(ctx) }()
+
+	otterAdapter, isOtter := adapter.(*OtterAdapter[string, testArticle])
+	require.True(t, isOtter)
+
+	bulky := strings.Repeat("x", 512)
+	for index := range 40 {
+		require.NoError(t, adapter.Set(ctx, fmt.Sprintf("article-%d", index),
+			testArticle{Title: "Bulky", Content: bulky, Views: index}))
+	}
+
+	assert.LessOrEqual(t, otterAdapter.wal.Size(), int64(walConfig.MaxWALSize),
+		"the WAL must be compacted once it passes its size bound, well before the entry count trigger")
+
+	value, ok, _ := adapter.GetIfPresent(ctx, "article-39")
+	require.True(t, ok, "compaction must not lose live entries")
+	assert.Equal(t, 39, value.Views)
+}
+
+func TestOtterAdapter_Persistence_DefaultsAHandBuiltConfig(t *testing.T) {
+	directory := t.TempDir()
+
+	opts := cache_dto.Options[string, testArticle]{
+		MaximumEntries: 100,
+		ProviderSpecific: PersistenceConfig[string, testArticle]{
+			Enabled: true,
+			WALConfig: wal_domain.Config{
+				Dir:              directory,
+				CompressionLevel: 1,
+			},
+			KeyCodec:   stringKeyCodec{},
+			ValueCodec: jsonArticleCodec{},
+		},
+	}
+
+	adapter, err := OtterProviderFactory(opts)
+	require.NoError(t, err)
+	ctx := context.Background()
+	defer func() { _ = adapter.Close(ctx) }()
+
+	otterAdapter, isOtter := adapter.(*OtterAdapter[string, testArticle])
+	require.True(t, isOtter)
+
+	assert.Positive(t, otterAdapter.snapshotThreshold,
+		"a config built without a threshold must still compact, not silently never compact")
+	assert.Positive(t, otterAdapter.maxWALSize,
+		"a config built without a size bound must still compact")
+}
+
 func TestOtterAdapter_Persistence_Clear(t *testing.T) {
 	directory := t.TempDir()
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
 
@@ -189,7 +304,7 @@ func TestOtterAdapter_Persistence_Clear(t *testing.T) {
 func TestOtterAdapter_Persistence_Disabled(t *testing.T) {
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		ProviderSpecific: nil,
 	}
 
@@ -216,7 +331,7 @@ func TestOtterAdapter_Persistence_WithCompression(t *testing.T) {
 	config.WALConfig.EnableCompression = true
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		ProviderSpecific: config,
 	}
 
@@ -420,7 +535,7 @@ func TestOtterAdapter_Close_Idempotent(t *testing.T) {
 
 	directory := t.TempDir()
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		ProviderSpecific: newPersistenceConfig(directory),
 	}
 
@@ -444,7 +559,7 @@ func TestOtterAdapter_Close_Idempotent_NoPersistence(t *testing.T) {
 	t.Parallel()
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize:      100,
+		MaximumEntries:   100,
 		ProviderSpecific: nil,
 	}
 

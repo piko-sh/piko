@@ -29,6 +29,8 @@ import (
 type SymbolProviderPort interface {
 	// Exports returns the complete symbol export table keyed by Go import path (e.g. "fmt",
 	// "encoding/json").
+	//
+	// Returns SymbolExports which maps each import path to its registered symbols.
 	Exports() SymbolExports
 }
 

@@ -21,11 +21,19 @@ package json
 // Encoder writes JSON values to an output stream.
 type Encoder interface {
 	// Encode serialises v as JSON and writes it to the underlying stream.
+	//
+	// Takes v (any) which is the value to serialise.
+	//
+	// Returns error when the value cannot be serialised or written.
 	Encode(v any) error
 }
 
 // Decoder reads JSON values from an input stream.
 type Decoder interface {
 	// Decode reads the next JSON value from the underlying stream into v.
+	//
+	// Takes v (any) which is a pointer to the destination value.
+	//
+	// Returns error when the stream cannot be read or the value cannot be parsed.
 	Decode(v any) error
 }

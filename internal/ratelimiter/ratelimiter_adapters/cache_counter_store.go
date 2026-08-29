@@ -64,9 +64,9 @@ type CacheCounterStoreConfig struct {
 	// Namespace is the key prefix for all entries. Defaults to "ratelimiter:fw".
 	Namespace string
 
-	// MaximumSize is the maximum entry count for in-memory providers; remote providers
+	// MaximumEntries is the maximum entry count for in-memory providers; remote providers
 	// ignore this. Defaults to 100000.
-	MaximumSize int
+	MaximumEntries int
 }
 
 // CacheCounterStore implements CounterStorePort using a cache backend. It uses the
@@ -97,7 +97,7 @@ func NewCacheCounterStore(ctx context.Context, config CacheCounterStoreConfig) (
 		Blueprint:        "ratelimiter-counter",
 		Namespace:        config.Namespace,
 		DefaultNamespace: defaultCounterNamespace,
-		MaximumSize:      config.MaximumSize,
+		MaximumEntries:   config.MaximumEntries,
 		DefaultMaxSize:   defaultCounterMaxSize,
 	})
 	if err != nil {
@@ -180,10 +180,10 @@ type cacheStoreParams struct {
 	// DefaultNamespace is the fallback namespace when Namespace is empty.
 	DefaultNamespace string
 
-	// MaximumSize is the maximum number of entries for in-memory providers.
-	MaximumSize int
+	// MaximumEntries is the maximum number of entries for in-memory providers.
+	MaximumEntries int
 
-	// DefaultMaxSize is the fallback maximum size when MaximumSize is zero.
+	// DefaultMaxSize is the fallback maximum size when MaximumEntries is zero.
 	DefaultMaxSize int
 }
 
@@ -206,7 +206,7 @@ func newCacheStore[V any](ctx context.Context, params cacheStoreParams) (cache_d
 		namespace = params.DefaultNamespace
 	}
 
-	maximumSize := params.MaximumSize
+	maximumSize := params.MaximumEntries
 	if maximumSize <= 0 {
 		maximumSize = params.DefaultMaxSize
 	}
@@ -219,7 +219,7 @@ func newCacheStore[V any](ctx context.Context, params cacheStoreParams) (cache_d
 	cache, err := cache_domain.NewCacheBuilder[string, V](params.CacheService).
 		FactoryBlueprint(params.Blueprint).
 		Namespace(namespace).
-		MaximumSize(maximumSize).
+		MaximumEntries(maximumSize).
 		Build(ctx)
 	if err != nil {
 		var zero cache_domain.Cache[string, V]

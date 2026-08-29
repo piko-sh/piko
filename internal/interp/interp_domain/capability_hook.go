@@ -48,55 +48,100 @@ type CapabilityHook interface {
 	// "(*bytes.Buffer).Write". args are the reflected argument values about to be passed;
 	// implementations may inspect them but must not mutate them.
 	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes fnPath (string) which is the dotted package.symbol identifier of the target.
+	// Takes args ([]reflect.Value) which are the arguments about to be passed.
+	//
 	// Returns error when the call must be aborted.
 	CheckFunctionCall(ctx context.Context, modulePath, fnPath string, args []reflect.Value) error
 
 	// CheckFileOpen is consulted before os.Open, os.OpenFile, os.ReadFile, and other
-	// open-style operations. flag and mode mirror the os.OpenFile parameters; for read-only
-	// opens, flag is os.O_RDONLY and mode may be zero.
+	// open-style operations.
+	//
+	// flag and mode mirror the os.OpenFile parameters; for read-only opens, flag is
+	// os.O_RDONLY and mode may be zero.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes path (string) which is the file path the caller wants to open.
+	// Takes flag (int) which is the os.OpenFile flag set.
+	// Takes mode (os.FileMode) which is the permission bits used when the file is created.
 	//
 	// Returns error when the open must be denied.
 	CheckFileOpen(ctx context.Context, modulePath, path string, flag int, mode os.FileMode) error
 
 	// CheckFileWrite is consulted before write-side file operations that do not naturally
 	// flow through CheckFileOpen, such as os.WriteFile, os.Mkdir, os.Remove, os.Rename.
-	// Hosts that want a unified policy may inspect modulePath + path identically across both
-	// methods.
+	//
+	// Hosts that want a unified policy may inspect modulePath and path identically across
+	// both methods.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes path (string) which is the file path the caller wants to write.
 	//
 	// Returns error when the write must be denied.
 	CheckFileWrite(ctx context.Context, modulePath, path string) error
 
-	// CheckExec is consulted before os/exec process creation (exec.Command, exec.LookPath
-	// through Cmd). name is the command being invoked (resolved or not, as supplied by the
-	// caller); argv is the full argument list including the command name in argv[0] when
-	// present.
+	// CheckExec is consulted before os/exec process creation such as exec.Command or
+	// exec.LookPath through Cmd.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes name (string) which is the command being invoked, resolved or not, as supplied by
+	// the caller.
+	// Takes argv ([]string) which is the full argument list, including the command name in
+	// argv[0] when present.
 	//
 	// Returns error when exec must be denied.
 	CheckExec(ctx context.Context, modulePath, name string, argv []string) error
 
-	// CheckNetDial is consulted before outbound network connections (net.Dial,
-	// net.DialTimeout, http.Client.Do, etc.). network is the Go network argument ("tcp",
-	// "udp", "unix", ...) and address is the destination as supplied by the caller.
+	// CheckNetDial is consulted before outbound network connections such as net.Dial,
+	// net.DialTimeout, or http.Client.Do.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes network (string) which is the Go network argument, such as "tcp", "udp", or
+	// "unix".
+	// Takes address (string) which is the destination as supplied by the caller.
 	//
 	// Returns error when the dial must be denied.
 	CheckNetDial(ctx context.Context, modulePath, network, address string) error
 
-	// CheckNetListen is consulted before inbound network listeners (net.Listen,
-	// http.Server). network and address mirror the net.Listen parameters.
+	// CheckNetListen is consulted before inbound network listeners such as net.Listen or
+	// http.Server.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes network (string) which is the net.Listen network argument.
+	// Takes address (string) which is the net.Listen address argument.
 	//
 	// Returns error when the listen must be denied.
 	CheckNetListen(ctx context.Context, modulePath, network, address string) error
 
-	// CheckGetenv is consulted before os.Getenv, os.LookupEnv, and os.Environ entries. For
-	// Environ, the hook is consulted per variable; entries the hook denies are omitted from
-	// the returned slice.
+	// CheckGetenv is consulted before os.Getenv, os.LookupEnv, and os.Environ entries.
+	//
+	// For Environ, the hook is consulted per variable; entries the hook denies are omitted
+	// from the returned slice.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes name (string) which is the environment variable being read.
 	//
 	// Returns error when the read must be denied.
 	CheckGetenv(ctx context.Context, modulePath, name string) error
 
-	// CheckSetenv is consulted before os.Setenv, os.Unsetenv, os.Clearenv. For Clearenv the
-	// hook is consulted with name == "" and the implementation may either deny outright or
-	// audit.
+	// CheckSetenv is consulted before os.Setenv, os.Unsetenv, and os.Clearenv.
+	//
+	// For Clearenv the hook is consulted with name == "" and the implementation may either
+	// deny outright or audit.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes name (string) which is the environment variable being changed, empty for
+	// Clearenv.
+	// Takes value (string) which is the new value, empty when the variable is being unset.
 	//
 	// Returns error when the mutation must be denied.
 	CheckSetenv(ctx context.Context, modulePath, name, value string) error
@@ -105,6 +150,11 @@ type CapabilityHook interface {
 	//
 	// Covers paths outside the os/exec.Command flow (e.g. syscall.ForkExec, runtime hooks).
 	// For os/exec.Command-based flows, CheckExec is used instead.
+	//
+	// Takes modulePath (string) which names the loaded module making the call, empty for the
+	// main policy or script body.
+	// Takes name (string) which is the program being spawned.
+	// Takes argv ([]string) which is the full argument list for the new process.
 	//
 	// Returns error when the spawn must be denied.
 	CheckSubprocess(ctx context.Context, modulePath, name string, argv []string) error

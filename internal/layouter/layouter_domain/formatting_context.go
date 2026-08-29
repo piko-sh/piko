@@ -57,6 +57,12 @@ type formattingContextResult struct {
 type FormattingContext interface {
 	// Layout performs the formatting-context-specific layout algorithm on the given box and
 	// returns a result with child fragments, content height, and margin information.
+	//
+	// Takes box (*LayoutBox) which is the box to lay out.
+	// Takes input (layoutInput) which supplies the resolved sizes and constraints.
+	//
+	// Returns formattingContextResult which holds the child fragments, content height, and
+	// margin information.
 	Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult
 }
 

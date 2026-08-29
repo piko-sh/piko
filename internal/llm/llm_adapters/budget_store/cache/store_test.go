@@ -40,10 +40,10 @@ func newTestStore(t *testing.T) (*Store, *clock.MockClock) {
 	cacheService := cache_domain.NewService("otter")
 
 	store, err := New(context.Background(), Config{
-		CacheService: cacheService,
-		Clock:        mockClock,
-		Namespace:    "test:budget",
-		MaximumSize:  1000,
+		CacheService:   cacheService,
+		Clock:          mockClock,
+		Namespace:      "test:budget",
+		MaximumEntries: 1000,
 	})
 	require.NoError(t, err)
 

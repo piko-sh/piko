@@ -19,6 +19,7 @@
 package cache_domain
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -41,7 +42,7 @@ func TestValidateOptions_ValidConfigurations(t *testing.T) {
 		{
 			name: "only maximum size",
 			options: cache_dto.Options[string, string]{
-				MaximumSize: 100,
+				MaximumEntries: 100,
 			},
 		},
 		{
@@ -60,14 +61,14 @@ func TestValidateOptions_ValidConfigurations(t *testing.T) {
 		{
 			name: "maximum size with initial capacity",
 			options: cache_dto.Options[string, string]{
-				MaximumSize:     100,
+				MaximumEntries:  100,
 				InitialCapacity: 50,
 			},
 		},
 		{
 			name: "zero maximum size (unlimited)",
 			options: cache_dto.Options[string, string]{
-				MaximumSize: 0,
+				MaximumEntries: 0,
 			},
 		},
 		{
@@ -101,7 +102,7 @@ func TestIsUnbounded(t *testing.T) {
 		},
 		{
 			name:    "maximum size set",
-			options: cache_dto.Options[string, string]{MaximumSize: 100},
+			options: cache_dto.Options[string, string]{MaximumEntries: 100},
 			want:    false,
 		},
 		{
@@ -125,21 +126,21 @@ func TestIsUnbounded(t *testing.T) {
 
 func TestValidateOptions_MaximumSizeAndWeight(t *testing.T) {
 	options := cache_dto.Options[string, string]{
-		MaximumSize:   100,
-		MaximumWeight: 1000,
-		Weigher:       mockWeigher[string, string],
+		MaximumEntries: 100,
+		MaximumWeight:  1000,
+		Weigher:        mockWeigher[string, string],
 	}
 
 	err := ValidateOptions(options)
 	if err == nil {
-		t.Fatal("expected error when both MaximumSize and MaximumWeight are set, got nil")
+		t.Fatal("expected error when both MaximumEntries and MaximumWeight are set, got nil")
 	}
 
 	if !errors.Is(err, errInvalidConfiguration) {
 		t.Errorf("expected errInvalidConfiguration, got: %v", err)
 	}
 
-	expectedMessage := "cannot set both MaximumSize and MaximumWeight"
+	expectedMessage := "cannot set both MaximumEntries and MaximumWeight"
 	if !contains(err.Error(), expectedMessage) {
 		t.Errorf("error should contain %q, got: %v", expectedMessage, err)
 	}
@@ -147,20 +148,20 @@ func TestValidateOptions_MaximumSizeAndWeight(t *testing.T) {
 
 func TestValidateOptions_MaximumSizeAndWeigher(t *testing.T) {
 	options := cache_dto.Options[string, string]{
-		MaximumSize: 100,
-		Weigher:     mockWeigher[string, string],
+		MaximumEntries: 100,
+		Weigher:        mockWeigher[string, string],
 	}
 
 	err := ValidateOptions(options)
 	if err == nil {
-		t.Fatal("expected error when both MaximumSize and Weigher are set, got nil")
+		t.Fatal("expected error when both MaximumEntries and Weigher are set, got nil")
 	}
 
 	if !errors.Is(err, errInvalidConfiguration) {
 		t.Errorf("expected errInvalidConfiguration, got: %v", err)
 	}
 
-	expectedMessage := "cannot set both MaximumSize and a Weigher"
+	expectedMessage := "cannot set both MaximumEntries and a Weigher"
 	if !contains(err.Error(), expectedMessage) {
 		t.Errorf("error should contain %q, got: %v", expectedMessage, err)
 	}
@@ -210,19 +211,19 @@ func TestValidateOptions_WeigherWithoutMaximumWeight(t *testing.T) {
 
 func TestValidateOptions_NegativeMaximumSize(t *testing.T) {
 	options := cache_dto.Options[string, string]{
-		MaximumSize: -100,
+		MaximumEntries: -100,
 	}
 
 	err := ValidateOptions(options)
 	if err == nil {
-		t.Fatal("expected error for negative MaximumSize, got nil")
+		t.Fatal("expected error for negative MaximumEntries, got nil")
 	}
 
 	if !errors.Is(err, errInvalidConfiguration) {
 		t.Errorf("expected errInvalidConfiguration, got: %v", err)
 	}
 
-	expectedMessage := "MaximumSize must be non-negative"
+	expectedMessage := "MaximumEntries must be non-negative"
 	if !contains(err.Error(), expectedMessage) {
 		t.Errorf("error should contain %q, got: %v", expectedMessage, err)
 	}
@@ -250,9 +251,9 @@ func TestValidateOptions_NegativeInitialCapacity(t *testing.T) {
 
 func TestValidateOptions_MultipleViolations(t *testing.T) {
 	options := cache_dto.Options[string, string]{
-		MaximumSize:   100,
-		MaximumWeight: 1000,
-		Weigher:       mockWeigher[string, string],
+		MaximumEntries: 100,
+		MaximumWeight:  1000,
+		Weigher:        mockWeigher[string, string],
 	}
 
 	err := ValidateOptions(options)
@@ -260,7 +261,7 @@ func TestValidateOptions_MultipleViolations(t *testing.T) {
 		t.Fatal("expected error for invalid configuration, got nil")
 	}
 
-	expectedMessage := "cannot set both MaximumSize and MaximumWeight"
+	expectedMessage := "cannot set both MaximumEntries and MaximumWeight"
 	if !contains(err.Error(), expectedMessage) {
 		t.Errorf("error should contain %q, got: %v", expectedMessage, err)
 	}
@@ -275,7 +276,7 @@ func TestValidateOptions_EdgeCases(t *testing.T) {
 		{
 			name: "maximum size exactly 1",
 			options: cache_dto.Options[string, string]{
-				MaximumSize: 1,
+				MaximumEntries: 1,
 			},
 			wantError: false,
 		},
@@ -297,14 +298,14 @@ func TestValidateOptions_EdgeCases(t *testing.T) {
 		{
 			name: "maximum size exactly 0 (means unlimited)",
 			options: cache_dto.Options[string, string]{
-				MaximumSize: 0,
+				MaximumEntries: 0,
 			},
 			wantError: false,
 		},
 		{
 			name: "maximum size -1 (boundary)",
 			options: cache_dto.Options[string, string]{
-				MaximumSize: -1,
+				MaximumEntries: -1,
 			},
 			wantError: true,
 		},
@@ -328,5 +329,27 @@ func TestValidateOptions_EdgeCases(t *testing.T) {
 				t.Errorf("expected no error, got: %v", err)
 			}
 		})
+	}
+}
+
+func TestWarnUnbounded_NamesTheNamespaceAndProvider(t *testing.T) {
+	options := cache_dto.Options[string, string]{Namespace: "sessions", Provider: "otter"}
+
+	if !IsUnbounded(options) {
+		t.Fatal("a cache with neither bound is unbounded")
+	}
+
+	WarnUnbounded(context.Background(), options)
+}
+
+func TestWarnUnbounded_SilentWhenBounded(t *testing.T) {
+	for _, options := range []cache_dto.Options[string, string]{
+		{MaximumEntries: 100},
+		{MaximumWeight: 1024, Weigher: func(string, string) uint32 { return 1 }},
+	} {
+		if IsUnbounded(options) {
+			t.Errorf("options %+v declare a bound and must not be reported unbounded", options)
+		}
+		WarnUnbounded(context.Background(), options)
 	}
 }

@@ -106,6 +106,7 @@ func (b *devDaemonBuilder) build(ctx context.Context) (daemon_domain.DaemonServi
 		return nil, fmt.Errorf("building dev mode templater: %w", err)
 	}
 
+	enableDevProfilingPortFallback(b.c)
 	b.wireMonitoringInspectors()
 
 	if b.c.IsDevWidgetEnabled() || b.c.IsDevHotreloadEnabled() {

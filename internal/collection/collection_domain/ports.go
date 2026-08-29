@@ -141,13 +141,11 @@ type CollectionProvider interface {
 	//
 	// This is called during project initialisation and validation.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - config: Provider configuration from piko.config.yaml
+	// Takes config (collection_dto.ProviderConfig) which is the provider configuration from
+	// piko.config.yaml.
 	//
-	// Returns:
-	//   - A slice of CollectionInfo describing each discovered collection
-	//   - An error if discovery fails
+	// Returns []collection_dto.CollectionInfo which describes each discovered collection.
+	// Returns error when discovery fails.
 	DiscoverCollections(ctx context.Context, config collection_dto.ProviderConfig) ([]collection_dto.CollectionInfo, error)
 
 	// ValidateTargetType checks if a user's target struct is compatible with this provider's
@@ -156,48 +154,34 @@ type CollectionProvider interface {
 	// This is called during type resolution for GetCollection() calls to ensure the user's
 	// struct can be populated from the provider's data.
 	//
-	// Parameters:
-	//   - targetType: Go AST expression for the user's struct type
-	//
-	// Returns:
-	//   - nil if the type is valid
-	//   - An error describing the incompatibility
-	//
 	// This is for validation only. Actual field mapping happens later.
+	//
+	// Takes targetType (ast.Expr) which is the Go AST expression for the user's struct type.
+	//
+	// Returns error when the type is not compatible, describing the incompatibility. Returns
+	// nil when the type is valid.
 	ValidateTargetType(targetType ast.Expr) error
 
-	// FetchStaticContent retrieves all content from a collection at BUILD TIME.
+	// FetchStaticContent retrieves all content from a collection at build time.
 	//
-	// Called for Static and Hybrid providers during the build process. Must return ALL items
-	// in the collection, as they will be embedded in the compiled binary.
+	// Called for Static and Hybrid providers during the build process. Must return every
+	// item in the collection, because they are embedded in the compiled binary.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - collectionName: The collection to fetch (e.g., "blog", "products")
-	//   - source: Where the content files are located (local or external module)
+	// Dynamic providers should return an error saying this operation is not supported.
 	//
-	// Returns:
-	//   - A slice of ContentItem (one per item in the collection)
-	//   - An error if fetching fails
+	// Takes collectionName (string) which is the collection to fetch, such as "blog" or
+	// "products".
+	// Takes source (collection_dto.ContentSource) which is where the content files live,
+	// either locally or in an external module.
 	//
-	// For Dynamic providers: Should return an error indicating this operation is not
-	// supported.
+	// Returns []collection_dto.ContentItem which contains one entry per collection item.
+	// Returns error when fetching fails.
 	FetchStaticContent(ctx context.Context, collectionName string, source collection_dto.ContentSource) ([]collection_dto.ContentItem, error)
 
-	// GenerateRuntimeFetcher generates Go code for fetching data at RUNTIME.
+	// GenerateRuntimeFetcher generates Go code for fetching data at runtime.
 	//
 	// Called for Dynamic and Hybrid providers during the build process. Must generate a
 	// complete, compilable Go function that fetches data when the compiled application runs.
-	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - collectionName: The collection to fetch (e.g., "products")
-	//   - targetType: Go AST expression for the user's target struct
-	//   - options: Fetch options (locale, caching, filters, etc.)
-	//
-	// Returns:
-	//   - RuntimeFetcherCode containing the generated function and metadata
-	//   - An error if code generation fails
 	//
 	// The generated function should:
 	//  1. Check cache (if caching enabled)
@@ -206,8 +190,17 @@ type CollectionProvider interface {
 	//  4. Handle errors gracefully
 	//  5. Update cache
 	//
-	// For Static providers: Should return an error indicating this operation is not
-	// supported.
+	// Static providers should return an error saying this operation is not supported.
+	//
+	// Takes collectionName (string) which is the collection to fetch, such as "products".
+	// Takes targetType (ast.Expr) which is the Go AST expression for the user's target
+	// struct.
+	// Takes options (collection_dto.FetchOptions) which holds the fetch settings such as
+	// locale, caching and filters.
+	//
+	// Returns *collection_dto.RuntimeFetcherCode which holds the generated function and its
+	// metadata.
+	// Returns error when code generation fails.
 	GenerateRuntimeFetcher(
 		ctx context.Context,
 		collectionName string,
@@ -215,33 +208,32 @@ type CollectionProvider interface {
 		options collection_dto.FetchOptions,
 	) (*collection_dto.RuntimeFetcherCode, error)
 
+	// ComputeETag computes a content fingerprint for hybrid mode staleness detection.
 	//
-	// These methods support Incremental Static Regeneration (ISR). They are used by hybrid
-	// providers to enable ETag-based staleness detection and background revalidation.
+	// ComputeETag and the methods below support Incremental Static Regeneration (ISR). They
+	// are used by hybrid providers to enable ETag-based staleness detection and background
+	// revalidation.
 	//
-	// Implementation is OPTIONAL for pure static or pure dynamic providers. Default
-	// implementations that return errors are acceptable. ComputeETag computes a content
-	// fingerprint for hybrid mode staleness detection.
+	// Implementation is optional for pure static or pure dynamic providers. Default
+	// implementations that return errors are acceptable.
 	//
 	// Called at build time to create an ETag that represents the current state of the
 	// collection. At runtime, the ETag is compared against the current content to detect
 	// changes.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - collectionName: The collection to compute ETag for
-	//   - source: Where the content files are located (local or external module)
-	//
-	// Returns:
-	//   - An ETag string (format varies by provider)
-	//   - An error if computation fails
-	//
 	// ETag format conventions:
-	//   - Markdown: "md-{xxhash64 hex}" (e.g., "md-a1b2c3d4e5f67890")
+	//   - Markdown: "md-{xxhash64 hex}" (e.g. "md-a1b2c3d4e5f67890")
 	//   - CMS/API: Pass through the provider's ETag header
 	//   - Database: "db-{hash of row versions}"
 	//
-	// For pure Static/Dynamic providers: May return ("", ErrNotSupported)
+	// Pure static or dynamic providers may return ("", ErrNotSupported).
+	//
+	// Takes collectionName (string) which is the collection to compute the ETag for.
+	// Takes source (collection_dto.ContentSource) which is where the content files live,
+	// either locally or in an external module.
+	//
+	// Returns string which is the ETag, whose format varies by provider.
+	// Returns error when computation fails.
 	ComputeETag(ctx context.Context, collectionName string, source collection_dto.ContentSource) (string, error)
 
 	// ValidateETag checks if the current content matches an expected ETag.
@@ -249,38 +241,28 @@ type CollectionProvider interface {
 	// Called at runtime during background revalidation to determine if content has changed
 	// since the last check.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - collectionName: The collection to validate
-	//   - expectedETag: The ETag from the last known good state
-	//
-	// Returns:
-	//   - currentETag: The current ETag (same as expected if unchanged)
-	//   - changed: true if the content has changed
-	//   - error: If validation fails
-	//
 	// Implementations should be efficient:
 	//   - For files: Check modification times (avoid reading content)
 	//   - For APIs: Use conditional requests (If-None-Match header)
 	//   - For databases: Check row versions without full scan
 	//
-	// For pure Static/Dynamic providers: May return ("", false, ErrNotSupported)
+	// Pure static or dynamic providers may return ("", false, ErrNotSupported).
+	//
+	// Takes collectionName (string) which is the collection to validate.
+	// Takes expectedETag (string) which is the ETag from the last known good state.
+	// Takes source (collection_dto.ContentSource) which is where the content files live,
+	// either locally or in an external module.
+	//
+	// Returns currentETag (string) which is the current ETag, the same as the expected one
+	// when nothing has changed.
+	// Returns changed (bool) which is true when the content has changed.
+	// Returns err (error) when validation fails.
 	ValidateETag(ctx context.Context, collectionName string, expectedETag string, source collection_dto.ContentSource) (currentETag string, changed bool, err error)
 
 	// GenerateRevalidator generates Go code for runtime ETag validation and refresh.
 	//
 	// Called at build time for hybrid providers to generate the code that runs in background
 	// goroutines to revalidate stale content.
-	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - collectionName: The collection to revalidate
-	//   - targetType: Go AST expression for the user's target struct
-	//   - config: Hybrid configuration (TTL, stale-if-error, etc.)
-	//
-	// Returns:
-	//   - RuntimeFetcherCode containing the revalidation function
-	//   - An error if code generation fails
 	//
 	// The generated function should:
 	//  1. Call ValidateETag() to check for changes
@@ -289,7 +271,16 @@ type CollectionProvider interface {
 	//  4. Serialise new content to FlatBuffer
 	//  5. Update the hybrid registry
 	//
-	// For pure Static/Dynamic providers: May return (nil, ErrNotSupported)
+	// Pure static or dynamic providers may return (nil, ErrNotSupported).
+	//
+	// Takes collectionName (string) which is the collection to revalidate.
+	// Takes targetType (ast.Expr) which is the Go AST expression for the user's target
+	// struct.
+	// Takes config (collection_dto.HybridConfig) which holds the hybrid settings such as TTL
+	// and stale-if-error.
+	//
+	// Returns *collection_dto.RuntimeFetcherCode which holds the revalidation function.
+	// Returns error when code generation fails.
 	GenerateRevalidator(
 		ctx context.Context,
 		collectionName string,
@@ -324,22 +315,20 @@ type RuntimeProvider interface {
 
 	// Fetch retrieves live data and unmarshals it into the target slice.
 	//
-	// Parameters:
-	//   - ctx: Request context (for cancellation, tracing, etc.)
-	//   - collectionName: The collection to fetch
-	//   - options: Fetch options (locale, caching, filters, etc.)
-	//   - target: Pointer to a slice of the user's struct type (e.g., *[]Post)
-	//
-	// Returns:
-	//   - nil on success (target slice is populated)
-	//   - An error if fetching fails
-	//
 	// Implementation notes:
 	//   - Check cache first (if caching enabled)
 	//   - Make API call / database query
 	//   - Use reflection to populate target slice
 	//   - Update cache on successful fetch
 	//   - Log errors for observability
+	//
+	// Takes collectionName (string) which is the collection to fetch.
+	// Takes options (*collection_dto.FetchOptions) which holds the fetch settings such as
+	// locale, caching and filters.
+	// Takes target (any) which is a pointer to a slice of the user's struct type, such as
+	// *[]Post.
+	//
+	// Returns error when fetching fails. On success the target slice is populated.
 	Fetch(
 		ctx context.Context,
 		collectionName string,
@@ -371,18 +360,16 @@ type CollectionEncoderPort interface {
 	//  3. Allows lazy decoding of individual items
 	//  4. Minimises memory overhead (zero-copy access)
 	//
-	// Parameters:
-	//   - items: Slice of content items to encode
-	//
-	// Returns:
-	//   - Binary blob containing the encoded collection
-	//   - An error if encoding fails
-	//
 	// Implementation requirements:
 	//   - MUST sort items by route (ascending) before encoding
 	//   - MUST encode metadata as JSON bytes
 	//   - MUST encode ASTs using ast_adapters.EncodeAST()
 	//   - MUST produce a format compatible with DecodeCollectionItem()
+	//
+	// Takes items ([]collection_dto.ContentItem) which are the content items to encode.
+	//
+	// Returns []byte which is the binary blob holding the encoded collection.
+	// Returns error when encoding fails.
 	EncodeCollection(items []collection_dto.ContentItem) ([]byte, error)
 
 	// DecodeCollectionItem extracts a single item from an encoded collection.
@@ -416,13 +403,11 @@ type CollectionEncoderPort interface {
 type ProviderRegistryPort interface {
 	// Register adds a provider to the registry.
 	//
-	// Parameters:
-	//   - provider: The provider to register
+	// Takes provider (CollectionProvider) which is the provider to register.
 	//
-	// Returns:
-	//   - An error if registration fails (e.g., duplicate name)
+	// Returns error when registration fails, such as when the name is already taken.
 	//
-	// Thread-safety: Must be safe to call from multiple goroutines during startup.
+	// Concurrency: must be safe to call from multiple goroutines during startup.
 	Register(provider CollectionProvider) error
 
 	// Get retrieves a provider by name.
@@ -468,14 +453,6 @@ type CollectionService interface {
 	// Called by the Coordinator when it encounters a .pk file with a p-collection directive.
 	// Orchestrates the provider to generate virtual entry points for each content item.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - directive: Parsed information from the p-collection directive
-	//
-	// Returns:
-	//   - A slice of virtual entry points (one per content item for static providers)
-	//   - An error if expansion fails
-	//
 	// Workflow:
 	//  1. Look up provider by name
 	//  2. Check provider type
@@ -484,6 +461,13 @@ type CollectionService interface {
 	//  5. For Hybrid: Do both
 	//
 	// See: internal/collection/design.md Section 9.1 for integration details
+	//
+	// Takes directive (*collection_dto.CollectionDirectiveInfo) which is the parsed
+	// information from the p-collection directive.
+	//
+	// Returns []*collection_dto.CollectionEntryPoint which holds the virtual entry points,
+	// one per content item for static providers.
+	// Returns error when expansion fails.
 	ProcessCollectionDirective(
 		ctx context.Context,
 		directive *collection_dto.CollectionDirectiveInfo,
@@ -495,17 +479,6 @@ type CollectionService interface {
 	// Receives semantic information extracted from the Piko AST and generates the
 	// appropriate annotation for the Generator.
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - collectionName: Name of the collection (e.g., "blog", "products")
-	//   - targetTypeName: Name of the target struct type (e.g., "Post", "Product")
-	//   - targetTypeExpr: Go AST expression for the target type (for validation)
-	//   - options: Fetch options (provider, locale, filters, sorting, pagination)
-	//
-	// Returns:
-	//   - A GoGeneratorAnnotation with instructions for the Generator
-	//   - An error if processing fails
-	//
 	// Workflow:
 	//  1. Look up provider from options (or use default)
 	//  2. Validate target type compatibility with provider
@@ -514,6 +487,19 @@ type CollectionService interface {
 	//  5. For Hybrid: Generate hybrid annotation (snapshot + revalidation)
 	//
 	// See: internal/collection/design.md Section 9.2 for integration details
+	//
+	// Takes collectionName (string) which is the name of the collection, such as "blog" or
+	// "products".
+	// Takes targetTypeName (string) which is the name of the target struct type, such as
+	// "Post" or "Product".
+	// Takes targetTypeExpr (ast.Expr) which is the Go AST expression for the target type,
+	// used for validation.
+	// Takes options (any) which holds the fetch settings such as provider, locale, filters,
+	// sorting and pagination.
+	//
+	// Returns *ast_domain.GoGeneratorAnnotation which carries instructions for the
+	// Generator.
+	// Returns error when processing fails.
 	ProcessGetCollectionCall(
 		ctx context.Context,
 		collectionName string,
@@ -529,13 +515,10 @@ type CollectionService interface {
 	//   - Provider configurations are valid
 	//   - Collections exist and are accessible
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeouts
-	//   - config: The complete project configuration
+	// Takes config (*Config) which is the complete project configuration.
 	//
-	// Returns:
-	//   - nil if all configurations are valid
-	//   - An error describing any validation failures
+	// Returns error when any configuration is invalid, describing the validation failures.
+	// Returns nil when every configuration is valid.
 	ValidateConfiguration(ctx context.Context, config *Config) error
 
 	// Close releases resources held by the service.
@@ -682,23 +665,23 @@ type HybridRegistryPort interface {
 	// This is called from generated init() functions to register the embedded FlatBuffer
 	// blob and its ETag for hybrid mode operation.
 	//
-	// Parameters:
-	//   - ctx: Context for logging and trace propagation
-	//   - providerName: The provider that generated this snapshot
-	//   - collectionName: The collection this snapshot belongs to
-	//   - blob: The FlatBuffer-serialised content (from //go:embed)
-	//   - etag: The content fingerprint at build time
-	//   - config: Hybrid mode configuration (TTL, stale-if-error, etc.)
+	// Takes providerName (string) which is the provider that generated this snapshot.
+	// Takes collectionName (string) which is the collection this snapshot belongs to.
+	// Takes blob ([]byte) which is the FlatBuffer-serialised content from //go:embed.
+	// Takes etag (string) which is the content fingerprint at build time.
+	// Takes config (collection_dto.HybridConfig) which holds the hybrid mode settings such
+	// as TTL and stale-if-error.
 	Register(ctx context.Context, providerName, collectionName string, blob []byte, etag string, config collection_dto.HybridConfig)
 
 	// GetBlob returns the current FlatBuffer blob and whether revalidation is needed.
 	//
-	// Parameters:
-	//   - ctx: Context for logging and trace propagation
+	// Takes providerName (string) which identifies the data provider.
+	// Takes collectionName (string) which identifies the collection to query.
 	//
-	// Returns:
-	//   - blob: The current FlatBuffer blob (nil if not registered)
-	//   - needsRevalidation: True if TTL has expired and revalidation should run
+	// Returns blob ([]byte) which is the current FlatBuffer blob, or nil when the collection
+	// is not registered.
+	// Returns needsRevalidation (bool) which is true when the TTL has expired and
+	// revalidation should run.
 	GetBlob(ctx context.Context, providerName, collectionName string) (blob []byte, needsRevalidation bool)
 
 	// GetETag returns the current ETag for a hybrid collection.
@@ -757,12 +740,7 @@ type HybridPersistencePort interface {
 	//   - Corrupted file: Log warning, registry starts empty
 	//   - Read error: Return error for caller to handle
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and tracing
-	//
-	// Returns:
-	//   - nil on success (including when file doesn't exist)
-	//   - An error if loading fails
+	// Returns error when loading fails. A missing file is not a failure.
 	Load(ctx context.Context) error
 
 	// Persist writes current hybrid state from the registry to storage.
@@ -774,12 +752,7 @@ type HybridPersistencePort interface {
 	//  1. Write to temporary file
 	//  2. Rename temp file to target (atomic on POSIX)
 	//
-	// Parameters:
-	//   - ctx: Context for cancellation and tracing
-	//
-	// Returns:
-	//   - nil on success
-	//   - An error if persisting fails
+	// Returns error when persisting fails.
 	Persist(ctx context.Context) error
 }
 
@@ -801,9 +774,7 @@ type StaticCollectionRegistryPort interface {
 	// This is called by generated code in init() functions (from //go:embed directives) to
 	// register the embedded binary data for runtime access.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request ID
-	// propagation.
-	// Takes collectionName (string) which identifies the collection (e.g., "docs", "blog").
+	// Takes collectionName (string) which identifies the collection (e.g. "docs", "blog").
 	// Takes data ([]byte) which is the FlatBuffer binary blob embedded via //go:embed.
 	Register(ctx context.Context, collectionName string, data []byte)
 
@@ -811,26 +782,22 @@ type StaticCollectionRegistryPort interface {
 	//
 	// This performs an O(log n) binary search lookup in the FlatBuffer blob.
 	//
-	// Parameters:
-	//   - ctx: Context for logging and trace propagation
-	//   - collectionName: The collection identifier
-	//   - route: The URL/route to look up (e.g., "/docs/actions")
+	// Takes collectionName (string) which is the collection identifier.
+	// Takes route (string) which is the URL or route to look up, such as "/docs/actions".
 	//
-	// Returns:
-	//   - CollectionItemResult containing metadata and ASTs
-	//   - An error if the collection or route is not found
+	// Returns *CollectionItemResult which holds the item metadata and ASTs.
+	// Returns error when the collection or route is not found.
 	GetItem(ctx context.Context, collectionName, route string) (*CollectionItemResult, error)
 
 	// GetAllItems retrieves all items from a static collection.
 	//
 	// This is used for search operations that need to scan all items.
 	//
-	// Parameters:
-	//   - collectionName: The collection identifier
+	// Takes collectionName (string) which is the collection identifier.
 	//
-	// Returns:
-	//   - A slice of metadata maps (excluding ASTs for efficiency)
-	//   - An error if the collection is not found
+	// Returns []map[string]any which holds one metadata map per item, leaving out the ASTs
+	// for efficiency.
+	// Returns error when the collection is not found.
 	GetAllItems(collectionName string) ([]map[string]any, error)
 
 	// Has checks whether a static collection with the given name is registered.
@@ -841,6 +808,8 @@ type StaticCollectionRegistryPort interface {
 	Has(collectionName string) bool
 
 	// List returns all registered static collection names.
+	//
+	// Returns []string which contains the registered static collection names.
 	List() []string
 }
 
@@ -859,11 +828,9 @@ type StaticCollectionRegistryPort interface {
 type RuntimeProviderRegistryPort interface {
 	// Register adds a runtime provider to the registry.
 	//
-	// Parameters:
-	//   - provider: The runtime provider to register
+	// Takes provider (RuntimeProvider) which is the runtime provider to register.
 	//
-	// Returns:
-	//   - An error if provider name conflicts with existing provider
+	// Returns error when the provider name clashes with an existing provider.
 	Register(provider RuntimeProvider) error
 
 	// Get retrieves a runtime provider by name.
@@ -875,6 +842,8 @@ type RuntimeProviderRegistryPort interface {
 	Get(name string) (RuntimeProvider, error)
 
 	// List returns all registered runtime provider names.
+	//
+	// Returns []string which contains the registered runtime provider names.
 	List() []string
 
 	// Has checks whether a runtime provider with the given name exists.
@@ -888,15 +857,13 @@ type RuntimeProviderRegistryPort interface {
 	//
 	// This is the runtime entry point for dynamic collections.
 	//
-	// Parameters:
-	//   - ctx: Request context for cancellation and tracing
-	//   - providerName: Name of the provider to use
-	//   - collectionName: Name of the collection to fetch
-	//   - options: Fetch options (locale, filters, cache config, etc.)
-	//   - target: Pointer to slice to populate (e.g., *[]Post)
+	// Takes providerName (string) which is the name of the provider to use.
+	// Takes collectionName (string) which is the name of the collection to fetch.
+	// Takes options (*collection_dto.FetchOptions) which holds the fetch settings such as
+	// locale, filters and cache configuration.
+	// Takes target (any) which is a pointer to the slice to populate, such as *[]Post.
 	//
-	// Returns:
-	//   - An error if fetch fails or provider not found
+	// Returns error when the fetch fails or the provider is not found.
 	Fetch(ctx context.Context, providerName, collectionName string, options *collection_dto.FetchOptions, target any) error
 }
 
@@ -912,25 +879,20 @@ type RuntimeProviderRegistryPort interface {
 type ASTDecoderPort interface {
 	// Decode converts FlatBuffer bytes into a TemplateAST.
 	//
-	// Parameters:
-	//   - ctx: context for logging and cancellation propagation
-	//   - data: FlatBuffer-encoded AST bytes
+	// Takes data ([]byte) which is the FlatBuffer-encoded AST bytes.
 	//
-	// Returns:
-	//   - The decoded TemplateAST
-	//   - An error if decoding fails
+	// Returns *ast_domain.TemplateAST which is the decoded AST.
+	// Returns error when decoding fails.
 	Decode(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error)
 
 	// DecodeForRender converts FlatBuffer bytes into a TemplateAST optimised for rendering.
+	//
 	// Location and range fields are skipped since the renderer never reads them.
 	//
-	// Parameters:
-	//   - ctx: context for logging and cancellation propagation
-	//   - data: FlatBuffer-encoded AST bytes
+	// Takes data ([]byte) which is the FlatBuffer-encoded AST bytes.
 	//
-	// Returns:
-	//   - The decoded TemplateAST
-	//   - An error if decoding fails
+	// Returns *ast_domain.TemplateAST which is the decoded AST.
+	// Returns error when decoding fails.
 	DecodeForRender(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error)
 }
 
@@ -942,13 +904,12 @@ type ASTDecoderPort interface {
 type SearchIndexLoaderPort interface {
 	// GetIndex retrieves a search index reader for a collection and search mode.
 	//
-	// Parameters:
-	//   - collectionName: The collection to search (e.g., "docs", "blog")
-	//   - searchMode: The search mode ("fast" or "smart")
+	// Takes collectionName (string) which is the collection to search, such as "docs" or
+	// "blog".
+	// Takes searchMode (string) which is the search mode, either "fast" or "smart".
 	//
-	// Returns:
-	//   - A search_domain.IndexReaderPort for querying the index
-	//   - An error if the index is not found or cannot be loaded
+	// Returns any which is a search_domain.IndexReaderPort for querying the index.
+	// Returns error when the index is not found or cannot be loaded.
 	GetIndex(collectionName, searchMode string) (any, error)
 }
 
@@ -958,12 +919,11 @@ type SearchIndexLoaderPort interface {
 type CollectionItemsLoaderPort interface {
 	// GetAllItems retrieves all items from a static collection.
 	//
-	// Parameters:
-	//   - collectionName: The collection identifier
+	// Takes collectionName (string) which is the collection identifier.
 	//
-	// Returns:
-	//   - A slice of metadata maps (excluding ASTs for efficiency)
-	//   - An error if the collection is not found
+	// Returns []map[string]any which holds one metadata map per item, leaving out the ASTs
+	// for efficiency.
+	// Returns error when the collection is not found.
 	GetAllItems(collectionName string) ([]map[string]any, error)
 }
 

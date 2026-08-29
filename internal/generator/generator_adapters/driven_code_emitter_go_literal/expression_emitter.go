@@ -105,7 +105,7 @@ var (
 type ExpressionEmitter interface {
 	// emit converts a domain expression into Go AST representation.
 	//
-	// Takes expression (ast_domain.Expression) which is the expression to convert.
+	// Takes expr (ast_domain.Expression) which is the expression to convert.
 	//
 	// Returns goast.Expr which is the converted Go expression.
 	// Returns []goast.Stmt which contains any statements needed before the expression.

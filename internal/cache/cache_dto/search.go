@@ -22,6 +22,11 @@ package cache_dto
 type FieldType int
 
 const (
+	// NoLimit asks a search or query to return every match rather than a page of them.
+	NoLimit = -1
+)
+
+const (
 	// FieldTypeText supports full-text search with tokenization. Values are split into words
 	// and indexed for partial matching.
 	FieldTypeText FieldType = iota + 1
@@ -192,8 +197,7 @@ type SearchOptions struct {
 	// similarity matching.
 	Vector []float32
 
-	// Limit is the maximum number of results to return. Default is 10, maximum depends on
-	// provider.
+	// Limit is the maximum number of results to return.
 	Limit int
 
 	// Offset is the starting position for pagination. Use with Limit for paging through
@@ -232,8 +236,7 @@ type QueryOptions struct {
 	// similarity matching.
 	Vector []float32
 
-	// Limit is the maximum number of results to return. Default is 10, maximum depends on
-	// provider.
+	// Limit is the maximum number of results to return.
 	Limit int
 
 	// Offset is the starting position for pagination. Use with Limit for paging through

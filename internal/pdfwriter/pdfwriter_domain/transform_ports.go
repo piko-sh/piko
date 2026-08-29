@@ -36,6 +36,8 @@ import (
 type PdfTransformerPort interface {
 	// Name returns the unique identifier for this transformer (e.g. "watermark", "aes-256",
 	// "pades-b-b", "linearise").
+	//
+	// Returns string which is the transformer's unique identifier.
 	Name() string
 
 	// Type returns the transformer's category for grouping and validation.

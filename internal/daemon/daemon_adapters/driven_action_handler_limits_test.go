@@ -39,9 +39,9 @@ import (
 )
 
 type limitedAction struct {
-	limits *daemon_domain.ResourceLimits
-	entered chan struct{}
-	release chan struct{}
+	limits   *daemon_domain.ResourceLimits
+	entered  chan struct{}
+	release  chan struct{}
 	response any
 }
 
@@ -307,8 +307,8 @@ func TestCacheableActionRespectsTheResponseSizeLimit(t *testing.T) {
 	}
 
 	responseCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, []byte]{
-		Namespace:   "limits-action-responses",
-		MaximumSize: 16,
+		Namespace:      "limits-action-responses",
+		MaximumEntries: 16,
 	})
 	require.NoError(t, err)
 

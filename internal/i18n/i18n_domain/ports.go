@@ -35,5 +35,7 @@ type Service interface {
 	GetStrBufPool() *StrBufPool
 
 	// DefaultLocale returns the default locale for fallback resolution.
+	//
+	// Returns string which is the default locale tag.
 	DefaultLocale() string
 }

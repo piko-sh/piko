@@ -47,6 +47,8 @@ var (
 // an io.Reader to apply on-the-fly transformations like compression or encryption.
 type StreamTransformerPort interface {
 	// Name returns the unique name of this transformer (e.g. "zstd", "aes-256-gcm").
+	//
+	// Returns string which is the unique transformer name.
 	Name() string
 
 	// Type returns the transformer's category, such as compression, encryption, or custom.

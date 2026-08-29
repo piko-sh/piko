@@ -55,6 +55,8 @@ type Provider interface {
 	Router() *message.Router
 
 	// Publisher returns the Watermill Publisher for sending messages.
+	//
+	// Returns message.Publisher which sends messages to topics.
 	Publisher() message.Publisher
 
 	// Subscriber returns the Watermill Subscriber for subscribing to topics.
@@ -62,7 +64,9 @@ type Provider interface {
 	// Returns message.Subscriber which handles message subscriptions.
 	Subscriber() message.Subscriber
 
-	// Reports whether the router has been started and is still active.
+	// Running reports whether the router has been started and is still active.
+	//
+	// Returns bool which reports whether the router is running.
 	Running() bool
 
 	// Close shuts down the provider and all its parts in a safe way. It closes the router,

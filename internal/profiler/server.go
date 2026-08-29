@@ -31,8 +31,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/netutil"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -42,6 +44,10 @@ const (
 )
 
 const (
+	// maxPortRetries is the number of consecutive ports tried when AutoNextPort is set. It
+	// matches the health server's allowance so both behave the same on a busy machine.
+	maxPortRetries = 100
+
 	// serverReadTimeout bounds the total time spent reading a profiler request.
 	serverReadTimeout = 10 * time.Second
 
@@ -59,6 +65,16 @@ const (
 	// RollingTracePath downloads the current rolling trace snapshot when rolling trace
 	// capture is enabled.
 	RollingTracePath = BasePath + "/profiler/trace/recent"
+)
+
+var (
+	// errNoProfilingPort reports that every port in the retry walk was already in use, which
+	// callers can tell apart from a configuration mistake.
+	errNoProfilingPort = errors.New("no free port for the profiling server")
+
+	// errProfilingPortOutOfRange reports a configured port that no TCP listener could ever
+	// bind, so it is refused before any bind is attempted.
+	errProfilingPortOutOfRange = errors.New("profiling port is outside the valid TCP range")
 )
 
 var (
@@ -132,25 +148,47 @@ type ServerHandle struct {
 
 	// onError is the optional callback invoked when an asynchronous server error occurs.
 	onError func(error)
+
+	// address is the address the listener actually bound, which differs from the configured
+	// port when AutoNextPort advanced past one already in use.
+	address string
+}
+
+// Address returns the address the profiling server is listening on.
+//
+// Returns string which is the bound network address.
+func (s *ServerHandle) Address() string {
+	if s == nil {
+		return ""
+	}
+
+	return s.address
 }
 
 // StartServer creates and starts a pprof HTTP server on the address specified in config.
 // The server runs in a background goroutine and exposes the standard pprof endpoints
 // under /_piko/debug/pprof/.
 //
-// Takes config (Config) which provides Port and BindAddress.
+// Takes config (Config) which provides Port, BindAddress and AutoNextPort.
 //
-// Returns *ServerHandle which can be used for graceful shutdown.
-// Returns error when optional rolling trace capture could not be started.
-func StartServer(config Config) (*ServerHandle, error) {
-	rollingTrace, err := newRollingTraceRecorder(config)
+// Returns *ServerHandle which is the running server, whose Address reports the port that
+// was actually bound.
+// Returns error when no port could be bound or rolling trace capture could not start.
+func StartServer(ctx context.Context, config Config) (*ServerHandle, error) {
+	listener, err := listenForServer(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
-	addr := net.JoinHostPort(config.BindAddress, strconv.Itoa(config.Port))
+	rollingTrace, recorderErr := newRollingTraceRecorder(config)
+	if recorderErr != nil {
+		_ = listener.Close()
+
+		return nil, recorderErr
+	}
+
 	server := &http.Server{
-		Addr:              addr,
+		Addr:              listener.Addr().String(),
 		Handler:           newServerHandler(rollingTrace),
 		ReadTimeout:       serverReadTimeout,
 		WriteTimeout:      serverWriteTimeout,
@@ -161,16 +199,90 @@ func StartServer(config Config) (*ServerHandle, error) {
 	handle := &ServerHandle{
 		server:       server,
 		rollingTrace: rollingTrace,
+		address:      listener.Addr().String(),
 	}
 
+	serveCtx := context.WithoutCancel(ctx)
+
 	go func() {
-		defer goroutine.RecoverPanic(context.Background(), "profiler.httpServer")
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		defer goroutine.RecoverPanic(serveCtx, "profiler.httpServer")
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			handle.reportError(fmt.Errorf("profiling server failed: %w", err))
 		}
 	}()
 
 	return handle, nil
+}
+
+// listenForServer binds the profiler listener, advancing to the next port when
+// AutoNextPort is set and the configured one is already in use.
+//
+// Takes config (Config) which provides BindAddress, Port and AutoNextPort.
+//
+// Returns net.Listener which is the bound listener.
+// Returns error when the port is unavailable and no alternative was found or allowed.
+func listenForServer(ctx context.Context, config Config) (net.Listener, error) {
+	_, l := logger_domain.From(ctx, log)
+
+	if config.Port < 0 || config.Port > maxTCPPort {
+		return nil, fmt.Errorf("%w: %d", errProfilingPortOutOfRange, config.Port)
+	}
+
+	if !config.AutoNextPort {
+		return listenOnPort(config.BindAddress, config.Port)
+	}
+
+	var lastErr error
+	for attempt := range maxPortRetries {
+		currentPort := config.Port + attempt
+		if currentPort > maxTCPPort {
+			break
+		}
+
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("selecting a profiling port: %w", err)
+		}
+
+		listener, err := listenOnPort(config.BindAddress, currentPort)
+		if err == nil {
+			if attempt > 0 {
+				l.Notice("Profiling server using alternative port",
+					logger_domain.Int("port", currentPort),
+					logger_domain.Int("requestedPort", config.Port))
+			}
+
+			return listener, nil
+		}
+
+		if !netutil.IsPortInUseError(err) {
+			return nil, err
+		}
+
+		lastErr = err
+		l.Trace("Profiling port in use, trying the next one",
+			logger_domain.Int("port", currentPort))
+	}
+
+	return nil, fmt.Errorf("%w: none free from %d onwards: %w", errNoProfilingPort, config.Port, lastErr)
+}
+
+// listenOnPort binds one TCP port, naming the address in any failure so the caller does
+// not have to rebuild it to report the error.
+//
+// Takes bindAddress (string) which is the host to bind.
+// Takes port (int) which is the port to bind.
+//
+// Returns net.Listener which is the bound listener.
+// Returns error when the address could not be bound.
+func listenOnPort(bindAddress string, port int) (net.Listener, error) {
+	addr := net.JoinHostPort(bindAddress, strconv.Itoa(port))
+
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, fmt.Errorf("listening on %s: %w", addr, err)
+	}
+
+	return listener, nil
 }
 
 // Shutdown gracefully stops the profiler HTTP server and any auxiliary rolling trace
@@ -317,13 +429,4 @@ func writeRollingTrace(w http.ResponseWriter, rollingTrace *rollingTraceRecorder
 	if _, err := rollingTrace.WriteTo(w); err != nil {
 		_, _ = fmt.Fprintf(getErrorOutput(), "rolling trace write error: %v\n", err)
 	}
-}
-
-// ServerAddress returns the formatted address string for the pprof server.
-//
-// Takes config (Config) which provides BindAddress and Port.
-//
-// Returns string which is the address in "host:port" format.
-func ServerAddress(config Config) string {
-	return net.JoinHostPort(config.BindAddress, strconv.Itoa(config.Port))
 }

@@ -21,6 +21,7 @@ package conformance
 import (
 	"context"
 	"errors"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"piko.sh/piko/internal/cache/cache_dto"
@@ -507,9 +508,21 @@ func testStats(t *testing.T, config StringConfig) {
 
 	cache := config.ProviderFactory(t, defaultStringOptions())
 
+	require.NoError(t, cache.Set(t.Context(), "stats-key", "stats-value"))
+
+	if _, _, err := cache.GetIfPresent(t.Context(), "stats-key"); err != nil {
+		t.Fatalf("GetIfPresent failed: %v", err)
+	}
+	if _, _, err := cache.GetIfPresent(t.Context(), "stats-missing"); err != nil {
+		t.Fatalf("GetIfPresent failed: %v", err)
+	}
+
 	stats := cache.Stats()
 
-	ratio := stats.HitRatio()
+	ratio, ok := stats.HitRatio()
+	if !ok {
+		t.Skip("provider does not report request statistics")
+	}
 	if ratio < 0 || ratio > 1 {
 		t.Errorf("Invalid hit ratio: %f", ratio)
 	}
@@ -542,7 +555,7 @@ func testGetMaximum(t *testing.T, config StringConfig) {
 	t.Helper()
 
 	opts := defaultStringOptions()
-	opts.MaximumSize = 100
+	opts.MaximumEntries = 100
 	cache := config.ProviderFactory(t, opts)
 
 	maxSize := cache.GetMaximum()
@@ -559,7 +572,7 @@ func testSetMaximum(t *testing.T, config StringConfig) {
 	t.Helper()
 
 	opts := defaultStringOptions()
-	opts.MaximumSize = 100
+	opts.MaximumEntries = 100
 	cache := config.ProviderFactory(t, opts)
 
 	cache.SetMaximum(200)

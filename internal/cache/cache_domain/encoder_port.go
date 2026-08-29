@@ -57,7 +57,14 @@ type AnyEncoder interface {
 	MarshalAny(value any) ([]byte, error)
 
 	// UnmarshalAny takes a byte slice and unmarshals it into a zero value of the encoder's
-	// target type. The caller must type-assert the returned value.
+	// target type.
+	//
+	// The caller must type-assert the returned value.
+	//
+	// Takes data ([]byte) which is the encoded payload to decode.
+	//
+	// Returns any which is the decoded value of the encoder's target type.
+	// Returns error when unmarshalling fails.
 	UnmarshalAny(data []byte) (any, error)
 
 	// HandlesType returns the reflect.Type that this encoder handles. This lets the registry

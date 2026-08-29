@@ -278,7 +278,11 @@ declare interface SSESubscription {
     unsubscribe: () => void;
     /** Current connection state. */
     readonly state: 'connecting' | 'open' | 'closed' | 'error';
-    /** Number of reconnection attempts. */
+    /**
+     * Reconnection attempts since the connection was last open. A successful open resets
+     * it, so it reads as the consecutive-failure budget that maxReconnects caps rather
+     * than a lifetime total.
+     */
     readonly reconnectCount: number;
 }
 

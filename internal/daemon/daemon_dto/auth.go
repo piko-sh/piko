@@ -31,13 +31,24 @@ import (
 // values.
 type AuthContext interface {
 	// IsAuthenticated reports whether the request has a valid authentication session.
+	//
+	// Returns bool which reports whether the request has a valid session.
 	IsAuthenticated() bool
 
 	// UserID returns the unique identifier of the authenticated user, or empty string if not
 	// authenticated.
+	//
+	// Returns string which is the authenticated user's identifier, or empty when there is no
+	// authenticated user.
 	UserID() string
 
-	// Get returns an arbitrary auth value by key. Returns nil if the key is not recognised.
+	// Get returns an arbitrary auth value by key.
+	//
+	// The value is nil if the key is not recognised.
+	//
+	// Takes key (string) which names the value to look up.
+	//
+	// Returns any which is the stored auth value, or nil when the key is not recognised.
 	Get(key string) any
 }
 
@@ -49,6 +60,12 @@ type AuthContext interface {
 // the error and treat the request as unauthenticated.
 type AuthProvider interface {
 	// Authenticate resolves the authentication state from an HTTP request.
+	//
+	// Takes r (*http.Request) which is the request to inspect.
+	//
+	// Returns AuthContext which holds the resolved authentication state, or nil when the
+	// request is unauthenticated.
+	// Returns error when the state cannot be resolved.
 	Authenticate(ctx context.Context, r *http.Request) (AuthContext, error)
 }
 

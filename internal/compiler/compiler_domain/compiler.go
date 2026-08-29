@@ -38,6 +38,7 @@ import (
 	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/esbuild/logger"
+	"piko.sh/piko/internal/jsimport"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/sfcparser"
 	"piko.sh/piko/wdk/safeconv"
@@ -65,6 +66,12 @@ type sfcCompiler struct {
 	// Used to resolve @/ aliases in asset paths.
 	moduleName string
 }
+
+const (
+	// noMergedImportRecord marks a rebuilt statement that carries no import record of its
+	// own, so there is nothing in the component's record list for it to resolve.
+	noMergedImportRecord = -1
+)
 
 var (
 	_ SFCCompiler = (*sfcCompiler)(nil)
@@ -540,6 +547,8 @@ func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) {
 		cc.addCustomElementsDefine(ctx)
 	}
 
+	jsimport.RewriteImportRecords(cc.jsAST.ImportRecords, cc.moduleName)
+
 	l.Trace("Prepending preamble to AST")
 	cc.jsDependencies = prependPreambleToAST(ctx, cc.jsAST, cc.scriptCode, cc.enabledBehaviours, cc.moduleName, cc.registry)
 
@@ -898,6 +907,12 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 //   - Range data to find import paths in source
 //   - Knowing how many imports exist
 //
+// Only ImportStmt records are hoisted. A dynamic import() belongs where the author wrote
+// it, and require-style records carry a Range pointing at a string literal too, so
+// searching backwards from one would find an unrelated import keyword. Hoisting either
+// kind emits a second, eager fetch of a module the component meant to load lazily or not
+// at all.
+//
 // But it rebuilds imports from source text to keep:
 //   - Named imports: `import { foo, bar as baz } from '...'`
 //   - Default imports: `import foo from '...'`
@@ -911,7 +926,6 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 // Returns []js_ast.Stmt which holds the built import statements.
 // Returns []compiler_dto.JSDependency which holds dependencies for the registry.
 func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sourceCode string, moduleName string) ([]js_ast.Stmt, []compiler_dto.JSDependency) {
-	ctx, l := logger_domain.From(ctx, log)
 	if tree == nil || len(tree.ImportRecords) == 0 {
 		return nil, nil
 	}
@@ -920,42 +934,110 @@ func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sour
 	dependencies := make([]compiler_dto.JSDependency, 0)
 
 	for i, record := range tree.ImportRecords {
-		importText := extractImportTextFromSource(sourceCode, record)
-		if importText == "" {
-			l.Trace("Could not extract import text",
-				logger_domain.Int("recordIndex", i),
-				logger_domain.String("path", record.Path.Text))
+		if record.Kind != ast.ImportStmt {
 			continue
 		}
 
-		statement, statementAST, err := parseModuleLevelStatement(ctx, importText)
-		if err != nil || statement.Data == nil {
-			l.Trace("Failed to parse import statement",
-				logger_domain.String("import", importText),
-				logger_domain.Int("recordIndex", i))
+		statement, recordIndex, ok := rebuildImportStatement(ctx, tree, sourceCode, record, i)
+		if !ok {
 			continue
 		}
 
-		if simport, ok := statement.Data.(*js_ast.SImport); ok && len(statementAST.ImportRecords) > 0 {
-			originalPath := statementAST.ImportRecords[0].Path.Text
-			transformedPath, dependency := TransformJSImportPath(ctx, originalPath, moduleName)
-			if dependency != nil {
-				statementAST.ImportRecords[0].Path.Text = transformedPath
-				dependencies = append(dependencies, *dependency)
-				l.Trace("Transformed import path",
-					logger_domain.String("original", originalPath),
-					logger_domain.String("transformed", transformedPath))
-			}
-
-			mergeImportRecords(tree, statementAST, &statement)
-
-			simport.ImportRecordIndex = safeconv.IntToUint32(len(tree.ImportRecords) - 1)
+		if dependency := resolveStatementImportPath(ctx, tree, recordIndex, moduleName); dependency != nil {
+			dependencies = append(dependencies, *dependency)
 		}
 
 		statements = append(statements, statement)
 	}
 
 	return statements, dependencies
+}
+
+// rebuildImportStatement recovers one import statement from the original source text.
+//
+// Takes tree (*js_ast.AST) which receives the merged import record.
+// Takes sourceCode (string) which is the original source.
+// Takes record (ast.ImportRecord) which locates the import in that source.
+// Takes recordIndex (int) which identifies the record in trace output.
+//
+// Returns js_ast.Stmt which is the rebuilt statement.
+// Returns int which is the index of the record merged into tree for this statement, or
+// noMergedImportRecord when the statement carries no record of its own.
+// Returns bool which is false when the statement could not be recovered.
+func rebuildImportStatement(
+	ctx context.Context,
+	tree *js_ast.AST,
+	sourceCode string,
+	record ast.ImportRecord,
+	recordIndex int,
+) (js_ast.Stmt, int, bool) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	importText := extractImportTextFromSource(sourceCode, record)
+	if importText == "" {
+		l.Trace("Could not extract import text",
+			logger_domain.Int("recordIndex", recordIndex),
+			logger_domain.String("path", record.Path.Text))
+
+		return js_ast.Stmt{}, noMergedImportRecord, false
+	}
+
+	statement, statementAST, err := parseModuleLevelStatement(ctx, importText)
+	if err != nil || statement.Data == nil {
+		l.Trace("Failed to parse import statement",
+			logger_domain.String("import", importText),
+			logger_domain.Int("recordIndex", recordIndex))
+
+		return js_ast.Stmt{}, noMergedImportRecord, false
+	}
+
+	simport, ok := statement.Data.(*js_ast.SImport)
+	if !ok || len(statementAST.ImportRecords) == 0 {
+		return statement, noMergedImportRecord, true
+	}
+
+	mergeImportRecords(tree, statementAST, &statement)
+	mergedIndex := len(tree.ImportRecords) - 1
+	simport.ImportRecordIndex = safeconv.IntToUint32(mergedIndex)
+
+	return statement, mergedIndex, true
+}
+
+// resolveStatementImportPath rewrites a hoisted import's specifier to its served URL.
+//
+// Takes tree (*js_ast.AST) which holds the merged record the statement points at.
+// Takes recordIndex (int) which is the record rebuildImportStatement merged, or
+// noMergedImportRecord when there is nothing to resolve.
+// Takes moduleName (string) which resolves the @/ alias.
+//
+// Returns *compiler_dto.JSDependency describing the resolved module, or nil when the
+// specifier needed no rewriting.
+func resolveStatementImportPath(
+	ctx context.Context,
+	tree *js_ast.AST,
+	recordIndex int,
+	moduleName string,
+) *compiler_dto.JSDependency {
+	ctx, l := logger_domain.From(ctx, log)
+
+	if recordIndex == noMergedImportRecord || recordIndex >= len(tree.ImportRecords) {
+		return nil
+	}
+
+	recordSlot := &tree.ImportRecords[recordIndex]
+	originalPath := recordSlot.Path.Text
+
+	transformedPath, dependency := TransformJSImportPath(ctx, originalPath, moduleName)
+	if dependency == nil {
+		return nil
+	}
+
+	recordSlot.Path.Text = transformedPath
+	l.Trace("Transformed import path",
+		logger_domain.String("original", originalPath),
+		logger_domain.String("transformed", transformedPath))
+
+	return dependency
 }
 
 // usedIdentifierCollector is an AST visitor that records the name of every identifier

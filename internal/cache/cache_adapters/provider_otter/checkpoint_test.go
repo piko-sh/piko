@@ -43,7 +43,7 @@ func createCheckpointTestCache(t *testing.T, directory string, threshold int) *O
 	walConfig.SnapshotThreshold = threshold
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -147,7 +147,7 @@ func TestCheckpoint_StatePreserved(t *testing.T) {
 	walConfig.SnapshotThreshold = threshold
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -217,7 +217,7 @@ func TestCheckpoint_CrashSafety_WritesDuringCheckpoint(t *testing.T) {
 	walConfig.SnapshotThreshold = threshold
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -268,7 +268,7 @@ func TestCheckpoint_CrashSafety_NoDataLoss(t *testing.T) {
 	walConfig.SnapshotThreshold = threshold
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -524,7 +524,7 @@ func TestCheckpoint_SingleEntry(t *testing.T) {
 	walConfig.SnapshotThreshold = threshold
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,
@@ -598,7 +598,7 @@ func TestCheckpoint_WithTags(t *testing.T) {
 	walConfig.SnapshotThreshold = threshold
 
 	opts := cache_dto.Options[string, testArticle]{
-		MaximumSize: 10000,
+		MaximumEntries: 10000,
 		ProviderSpecific: PersistenceConfig[string, testArticle]{
 			Enabled:    true,
 			WALConfig:  walConfig,

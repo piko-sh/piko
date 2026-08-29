@@ -79,8 +79,8 @@ func TestOtterAdapter_Search_BasicFullText(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -177,8 +177,8 @@ func TestOtterAdapter_Search_Pagination(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -285,8 +285,8 @@ func TestOtterAdapter_Search_Filters(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -419,8 +419,8 @@ func TestOtterAdapter_Search_Sorting(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -506,8 +506,8 @@ func TestOtterAdapter_Query_NoSearch(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -565,8 +565,8 @@ func TestOtterAdapter_Search_EmptyQuery(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -612,8 +612,8 @@ func TestOtterAdapter_Search_UpdateIndex(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -660,8 +660,8 @@ func TestOtterAdapter_Search_InvalidateRemovesFromIndex(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -700,7 +700,7 @@ func TestOtterAdapter_Search_InvalidateRemovesFromIndex(t *testing.T) {
 
 func TestOtterAdapter_Search_WithoutSchema(t *testing.T) {
 	options := cache_dto.Options[string, Product]{
-		MaximumSize: 100,
+		MaximumEntries: 100,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -735,8 +735,8 @@ func TestOtterAdapter_Search_CaseInsensitive(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -768,8 +768,8 @@ func TestOtterAdapter_Search_DefaultLimit(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -828,8 +828,8 @@ func TestOtterAdapter_Search_WithTextAnalyser(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -881,8 +881,8 @@ func TestOtterAdapter_Search_WithTextAnalyser_ScoresOrdered(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)

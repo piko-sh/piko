@@ -39,6 +39,8 @@ const (
 // globals.
 type ThemeAware interface {
 	// SetTheme replaces the panel's active colour theme.
+	//
+	// Takes theme (*Theme) which is the new theme to apply.
 	SetTheme(theme *Theme)
 }
 

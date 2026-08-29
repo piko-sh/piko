@@ -65,8 +65,8 @@ func createSearchableCache(b *testing.B, size int) *OtterAdapter[string, Product
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  size * 2,
-		SearchSchema: schema,
+		MaximumEntries: size * 2,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)

@@ -190,23 +190,51 @@ type HybridRevalidationResult = collection_dto.HybridRevalidationResult
 // with AST-based code generation.
 type SimpleProvider interface {
 	// Name returns the unique name for this provider.
+	//
+	// Returns string which is the provider's unique name.
 	Name() string
 
 	// Type returns how this provider's data should be handled.
+	//
+	// Returns ProviderType which says how the provider's data is handled.
 	Type() ProviderType
 
 	// DiscoverCollections scans the provider's data source and returns information about
 	// available collections.
+	//
+	// Takes config (ProviderConfig) which holds the provider settings.
+	//
+	// Returns []CollectionInfo which describes the collections that were found.
+	// Returns error when the scan fails.
 	DiscoverCollections(ctx context.Context, config ProviderConfig) ([]CollectionInfo, error)
 
 	// FetchContent retrieves all content from a collection.
+	//
+	// Takes collectionName (string) which identifies the collection to read.
+	// Takes opts (*FetchOptions) which holds the filter, sort, and pagination settings.
+	//
+	// Returns []ContentItem which holds every item in the collection.
+	// Returns error when the content cannot be fetched.
 	FetchContent(ctx context.Context, collectionName string, opts *FetchOptions) ([]ContentItem, error)
 
 	// ComputeETag computes a content fingerprint for staleness detection.
-	// Returns empty string if not supported.
+	//
+	// The fingerprint is an empty string when the provider does not support it.
+	//
+	// Takes collectionName (string) which identifies the collection to fingerprint.
+	//
+	// Returns string which is the content fingerprint, or empty when it is not supported.
+	// Returns error when the fingerprint cannot be computed.
 	ComputeETag(ctx context.Context, collectionName string) (string, error)
 
 	// ValidateETag checks if the current content matches an expected ETag.
+	//
+	// Takes collectionName (string) which identifies the collection to check.
+	// Takes expectedETag (string) which is the ETag to compare against.
+	//
+	// Returns string which is the current ETag of the collection content.
+	// Returns bool which reports whether the content has changed.
+	// Returns error when the check cannot be performed.
 	ValidateETag(ctx context.Context, collectionName string, expectedETag string) (currentETag string, changed bool, err error)
 }
 

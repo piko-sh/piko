@@ -115,6 +115,13 @@ type NetworkConfig struct {
 	// ActionMaxBodyBytes is the maximum size in bytes for action request bodies.
 	ActionMaxBodyBytes *int64 `json:"actionMaxBodyBytes" yaml:"actionMaxBodyBytes" default:"1048576" env:"PIKO_ACTION_MAX_BODY_BYTES" flag:"actionMaxBodyBytes" usage:"Maximum size in bytes for action request bodies."`
 
+	// ActionCompression compresses action responses when the client accepts gzip or brotli.
+	// Streaming responses are always served through uncompressed.
+	ActionCompression *bool `json:"actionCompression" yaml:"actionCompression" default:"true" env:"PIKO_ACTION_COMPRESSION" flag:"actionCompression" usage:"Compress action responses when the client accepts gzip or brotli."`
+
+	// MaxParallelBatchWorkers bounds how many entries of one parallel batch run at once.
+	MaxParallelBatchWorkers *int `json:"maxParallelBatchWorkers" yaml:"maxParallelBatchWorkers" default:"8" env:"PIKO_MAX_PARALLEL_BATCH_WORKERS" flag:"maxParallelBatchWorkers" usage:"Maximum entries of one parallel action batch that run at once."`
+
 	// AutoNextPort enables automatic port selection when the default port is in. use.
 	AutoNextPort *bool `json:"autoNextPort" yaml:"autoNextPort" default:"false" env:"PIKO_AUTO_PORT" flag:"autoNextPort" usage:"Automatically find the next port if the default is in use."`
 

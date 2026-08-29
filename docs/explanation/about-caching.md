@@ -53,7 +53,7 @@ For data that must be strictly consistent across instances, use L2 directly with
 
 Transformers run on the value bytes during write and reverse during read. Each transformer is a pair of functions that agree on a transformation direction. A compression transformer writes zstd-compressed bytes and reads them back by decompressing. An encryption transformer encrypts on write and decrypts on read.
 
-Transformers chain. `Options.TransformConfig.EnabledTransformers` is an ordered list of registered transformer names. Writes run forward through the list, and reads run backward. A natural chain puts compression first, then encryption. Small data ciphertext stays small. Reversing the order (encryption first, then compression) is pointless because encrypted output is incompressible.
+Transformers chain. The builder assembles an ordered list of registered transformer names from the `Compression()`, `Encryption()` and `Transformer()` calls. Writes run forward through the list, and reads run backward. A natural chain puts compression first, then encryption. Small data ciphertext stays small. Reversing the order (encryption first, then compression) is pointless because encrypted output is incompressible.
 
 Chaining keeps each transformer small. `cache_transformer_zstd` does one job (zstd). `cache_transformer_crypto` does one job (AES-GCM). A custom transformer for domain-specific serialisation (for example, FlatBuffers) joins the same chain without either built-in transformer knowing about it.
 
@@ -75,7 +75,7 @@ Tags are not a replacement for keys. A value still has exactly one key. Tags are
 
 Most caches are pure key-value. Piko's cache supports an optional search index because some use cases conflate the two. A product catalogue cache benefits from a free-text query over `title` alongside the ability to fetch a single product by ID. Splitting the two (a cache for by-ID reads and a separate search index) duplicates the data and the invalidation logic.
 
-Providers that ship a search index (Redis with RediSearch, some Valkey builds) expose it through Piko's `Search(ctx, query, opts)` method. The query string is positional and `*SearchOptions` carries pagination, sort, and structured filters. A sibling `Query(ctx, opts)` method handles structured filtering without a free-text term. Providers without search return `ErrSearchNotSupported`. Callers declare the schema at cache creation, and the provider indexes on write. Typed constructors (`Eq`, `Gt`, `Between`, `SortDesc`) build filters and sort orders instead of raw strings, keeping the query vocabulary small and verifiable at compile time.
+Providers that ship a search index (Redis with RediSearch, some Valkey builds) expose it through Piko's `Search(ctx, query, opts)` method. The query string is positional and `*SearchOptions` carries pagination, sort, and structured filters. A sibling `Query(ctx, opts)` method handles structured filtering without a free-text term. Providers without search return `ErrSearchNotSupported`. Callers declare the schema at cache creation, and the provider indexes on write, including on the read-through `Get` path. Typed constructors (`Eq`, `Gt`, `Between`, `SortDesc`) build filters and sort orders instead of raw strings, keeping the query vocabulary small and verifiable at compile time.
 
 ## Why typed namespaces
 
@@ -94,7 +94,7 @@ The trade-off is that domain packages usually initialise their caches at startup
 
 ## Stats and observation
 
-Every cache instance tracks hits, misses, evictions, loads, and size. `Stats()` returns a snapshot. A production deployment plugs a `StatsRecorder` into `Options.StatsRecorder` to stream the counters into the metrics pipeline. Cache hit ratio matters more than cache size. A cache with 100 percent hit ratio at 10 MB does more useful work than a cache with 30 percent hit ratio at 10 GB.
+Every cache instance tracks hits, misses, evictions and loads, with or without a recorder. `Stats()` returns a snapshot of those counters. Entry and weight totals sit apart from them, in `EstimatedSize()` and `WeightedSize()`. `HitRatio()`, `MissRatio()` and `AverageLoadPenalty()` each return a second boolean that is false when the cache has counted nothing yet, so an idle cache reads differently from a failing one. A production deployment plugs a `StatsRecorder` into `Options.StatsRecorder` to stream the same counters into the metrics pipeline. Cache hit ratio matters more than cache size. A cache with 100 percent hit ratio at 10 MB does more useful work than a cache with 30 percent hit ratio at 10 GB.
 
 Eviction events carry a cause (`CauseOverflow`, `CauseExpiration`, `CauseInvalidation`, `CauseReplacement`). Sustained `CauseOverflow` evictions mean the cache is too small. Sustained `CauseExpiration` evictions on values that should be long-lived mean the TTL is too tight.
 

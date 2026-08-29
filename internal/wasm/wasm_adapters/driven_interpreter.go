@@ -148,6 +148,12 @@ func (w *interpreterInstance) Unwrap() any {
 type batchCompiler interface {
 	// CompileAndExecuteWASM compiles and executes all packages at once within the WASM
 	// environment.
+	//
+	// Takes mainCode (string) which is the generated Go source of the main package.
+	// Takes packagePath (string) which is the import path of the main package.
+	// Takes dependencies (map[string]string) which maps each package path to its source.
+	//
+	// Returns error when compilation or execution fails.
 	CompileAndExecuteWASM(ctx context.Context, mainCode, packagePath string, dependencies map[string]string) error
 }
 

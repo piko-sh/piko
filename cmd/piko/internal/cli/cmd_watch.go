@@ -55,6 +55,8 @@ var (
 // watchUpdate is the interface shared by all streaming watch update messages.
 type watchUpdate interface {
 	// GetTimestampMs returns the update timestamp in milliseconds since the Unix epoch.
+	//
+	// Returns int64 which is the timestamp in milliseconds since the Unix epoch.
 	GetTimestampMs() int64
 }
 
@@ -62,6 +64,9 @@ type watchUpdate interface {
 // loop can work with different update types.
 type watchStream[T watchUpdate] interface {
 	// Recv receives the next update from the stream.
+	//
+	// Returns T which is the next update read from the stream.
+	// Returns error when the stream fails or has finished.
 	Recv() (T, error)
 }
 
@@ -69,9 +74,13 @@ type watchStream[T watchUpdate] interface {
 // share Status and Count fields.
 type statusSummary interface {
 	// GetStatus returns the status label for this summary entry.
+	//
+	// Returns string which is the status label.
 	GetStatus() string
 
 	// GetCount returns the number of items with this status.
+	//
+	// Returns int64 which is the number of items with this status.
 	GetCount() int64
 }
 

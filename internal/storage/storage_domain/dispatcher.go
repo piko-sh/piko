@@ -132,6 +132,8 @@ var (
 // handling.
 type queuedOperation interface {
 	// getKey returns the unique identifier for this element.
+	//
+	// Returns string which is the storage key the operation acts on.
 	getKey() string
 
 	// getAttempts returns the number of retry attempts made.

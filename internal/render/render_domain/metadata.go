@@ -346,12 +346,19 @@ func (*RenderOrchestrator) buildPreloadLogic(
 	preloadBuf := rctx.getBuffer()
 	scriptBuf := rctx.getBuffer()
 
+	var candidateModules []string
+
 	for _, compTag := range sortedCompTags {
 		meta, ok := rctx.componentMetadata[compTag]
 		if !ok || meta == nil || meta.BaseJSPath == "" {
 			continue
 		}
 		appendPreloadTags(preloadBuf, scriptBuf, meta.BaseJSPath, meta.SRIHash)
+		candidateModules = append(candidateModules, meta.RequiredModules...)
+	}
+
+	for _, module := range uniqueUnpreloadedModules(candidateModules, sortedCompTags, rctx) {
+		appendModulePreloadTag(preloadBuf, module)
 	}
 
 	preloadHTML = rctx.freezeToString(preloadBuf)
@@ -593,6 +600,46 @@ func appendPreloadTags(preload, script *[]byte, jsFile, sriHash string) {
 		*script = append(*script, `" crossorigin="anonymous"`...)
 	}
 	*script = append(*script, `></script>`...)
+}
+
+// uniqueUnpreloadedModules sorts the gathered library URLs, drops repeats, and drops any
+// that a component entry point has already claimed.
+//
+// Takes modules ([]string) which are the library URLs gathered from every component.
+// Takes sortedCompTags ([]string) which name the components already preloaded.
+//
+// Returns []string which contains the modules to preload, in a stable order.
+func uniqueUnpreloadedModules(modules, sortedCompTags []string, rctx *renderContext) []string {
+	if len(modules) == 0 {
+		return nil
+	}
+
+	preloadedHrefs := make(map[string]struct{}, len(sortedCompTags))
+	for _, compTag := range sortedCompTags {
+		if meta, ok := rctx.componentMetadata[compTag]; ok && meta != nil {
+			preloadedHrefs[meta.BaseJSPath] = struct{}{}
+		}
+	}
+
+	slices.SortFunc(modules, strings.Compare)
+	modules = slices.Compact(modules)
+
+	return slices.DeleteFunc(modules, func(module string) bool {
+		_, preloaded := preloadedHrefs[module]
+
+		return preloaded
+	})
+}
+
+// appendModulePreloadTag emits a modulepreload link for a library module a component
+// imports.
+//
+// Takes preload (*[]byte) which receives the modulepreload link tag.
+// Takes moduleURL (string) which is the served URL of the module.
+func appendModulePreloadTag(preload *[]byte, moduleURL string) {
+	*preload = append(*preload, `<link rel="modulepreload" href="`...)
+	*preload = append(*preload, escapeIfNeeded(moduleURL)...)
+	*preload = append(*preload, `">`...)
 }
 
 // escapeIfNeeded returns the HTML-escaped version of s only if s contains characters that

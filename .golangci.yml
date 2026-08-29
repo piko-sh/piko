@@ -300,6 +300,10 @@ linters:
         linters: [revive]
         text: "add-constant"
 
+      - path: ^options\.go$
+        linters: [revive]
+        text: "file-length-limit"
+
       - path: _test\.go$
         linters: [revive]
         text: "line-length-limit|file-length-limit|function-length|argument-limit|function-result-limit|cyclomatic|cognitive-complexity|max-public-structs|max-control-nesting|empty-lines|superfluous-else|early-return|indent-error-flow|unnecessary-stmt|var-declaration|comment-spacings|use-any|increment-decrement|bare-return|bool-literal-in-expr|empty-block|var-naming|receiver-naming|error-naming|exported|package-comments|package-directory-mismatch|time-naming|unhandled-error|error-strings|blank-imports|dot-imports|unused-parameter|unused-receiver|confusing-results|unexported-return|modifies-parameter|confusing-naming|modifies-value-receiver|add-constant|use-slices-sort|epoch-naming|use-errors-new|use-fmt-print|unnecessary-format|unnecessary-if|if-return|useless-break|redundant-import-alias|redundant-build-tag|redundant-test-main-exit|inefficient-map-lookup|time-date|range|optimize-operands-order|struct-tag|context-as-argument|call-to-gc"

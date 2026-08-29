@@ -48,13 +48,25 @@ type PseudoStyleMap map[*ast_domain.TemplateNode]map[PseudoType]*ComputedStyle
 // LayoutService is the primary driving port for the layout engine.
 type LayoutService interface {
 	// Layout performs the full layout pipeline: style resolution, box tree construction,
-	// layout, and pagination. Returns a LayoutResult containing positioned boxes assigned to
-	// pages.
+	// layout, and pagination.
+	//
+	// Takes tree (*ast_domain.TemplateAST) which is the template to lay out.
+	// Takes styling (string) which is the CSS applied to the template.
+	// Takes config (layouter_dto.LayoutConfig) which sets the page and layout options.
+	//
+	// Returns *layouter_dto.LayoutResult which holds the positioned boxes assigned to pages.
+	// Returns error when the layout fails.
 	Layout(ctx context.Context, tree *ast_domain.TemplateAST, styling string, config layouter_dto.LayoutConfig) (*layouter_dto.LayoutResult, error)
 
 	// LayoutToBoxTree performs style resolution, box tree construction, and layout without
-	// pagination. Returns the root LayoutBox of the positioned box tree on an infinite
-	// canvas.
+	// pagination.
+	//
+	// Takes tree (*ast_domain.TemplateAST) which is the template to lay out.
+	// Takes styling (string) which is the CSS applied to the template.
+	// Takes config (layouter_dto.LayoutConfig) which sets the page and layout options.
+	//
+	// Returns *LayoutBox which is the root of the positioned box tree on an infinite canvas.
+	// Returns error when the layout fails.
 	LayoutToBoxTree(ctx context.Context, tree *ast_domain.TemplateAST, styling string, config layouter_dto.LayoutConfig) (*LayoutBox, error)
 }
 
@@ -63,23 +75,52 @@ type LayoutService interface {
 type FontMetricsPort interface {
 	// MeasureText returns the width in points of the given text string when rendered with
 	// the specified font, size, and text direction.
+	//
+	// Takes font (FontDescriptor) which is the font the text is rendered with.
+	// Takes size (float64) which is the font size in points.
+	// Takes text (string) which is the text to measure.
+	// Takes direction (DirectionType) which is the direction the text runs in.
+	//
+	// Returns float64 which is the text width in points.
 	MeasureText(font FontDescriptor, size float64, text string, direction DirectionType) float64
 
 	// ShapeText produces positioned glyphs for the given text, applying kerning and ligature
 	// substitutions with the given text direction.
+	//
+	// Takes font (FontDescriptor) which is the font the text is shaped with.
+	// Takes size (float64) which is the font size in points.
+	// Takes text (string) which is the text to shape.
+	// Takes direction (DirectionType) which is the direction the text runs in.
+	//
+	// Returns []GlyphPosition which are the shaped glyphs and their positions.
 	ShapeText(font FontDescriptor, size float64, text string, direction DirectionType) []GlyphPosition
 
 	// GetMetrics returns the vertical metrics (ascent, descent, line gap) for the specified
 	// font at the given size.
+	//
+	// Takes font (FontDescriptor) which is the font to report on.
+	// Takes size (float64) which is the font size in points.
+	//
+	// Returns FontMetrics which holds the ascent, descent, and line gap.
 	GetMetrics(font FontDescriptor, size float64) FontMetrics
 
 	// ResolveFallback returns a font descriptor for a font that contains the given
 	// character, walking the fallback chain if the primary font lacks coverage.
+	//
+	// Takes font (FontDescriptor) which is the primary font to try first.
+	// Takes character (rune) which is the character that must be covered.
+	//
+	// Returns FontDescriptor which is the font that covers the character.
 	ResolveFallback(font FontDescriptor, character rune) FontDescriptor
 
-	// SplitGraphemeClusters segments text into grapheme clusters (user-perceived
-	// characters). A grapheme cluster may span multiple runes, for example emoji with ZWJ
-	// sequences or base characters followed by combining marks.
+	// SplitGraphemeClusters segments text into grapheme clusters (user-perceived characters).
+	//
+	// A grapheme cluster may span multiple runes, for example emoji with ZWJ sequences or
+	// base characters followed by combining marks.
+	//
+	// Takes text (string) which is the text to segment.
+	//
+	// Returns []string which are the grapheme clusters, in order.
 	SplitGraphemeClusters(text string) []string
 }
 
@@ -91,6 +132,14 @@ type StylesheetPort interface {
 	//
 	// The styling parameter is the primary CSS string (e.g. from a <style> block).
 	// Additional stylesheets from the LayoutConfig are also applied.
+	//
+	// Takes tree (*ast_domain.TemplateAST) which is the template whose nodes are styled.
+	// Takes styling (string) which is the primary CSS string.
+	// Takes additionalStylesheets ([]string) which are the extra CSS strings to apply.
+	//
+	// Returns StyleMap which holds the computed style of every node.
+	// Returns PseudoStyleMap which holds the computed pseudo-element styles.
+	// Returns error when the CSS cannot be parsed or resolved.
 	ResolveStyles(ctx context.Context, tree *ast_domain.TemplateAST, styling string, additionalStylesheets []string) (StyleMap, PseudoStyleMap, error)
 }
 
@@ -99,5 +148,11 @@ type StylesheetPort interface {
 type ImageResolverPort interface {
 	// GetImageDimensions returns the natural width and height in points for the image at the
 	// given source path or URL.
+	//
+	// Takes source (string) which is the image path or URL.
+	//
+	// Returns float64 which is the natural width in points.
+	// Returns float64 which is the natural height in points.
+	// Returns error when the image cannot be read or measured.
 	GetImageDimensions(ctx context.Context, source string) (width, height float64, err error)
 }

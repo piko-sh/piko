@@ -38,8 +38,8 @@ func newRRFTestAdapter(t *testing.T) *OtterAdapter[string, Product] {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -185,8 +185,8 @@ func TestRRFFusion_WithFilters(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -249,8 +249,8 @@ func TestHybridSearch_VectorPlusText(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -305,8 +305,8 @@ func TestHybridSearch_PureVectorFallback(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)
@@ -339,8 +339,8 @@ func TestHybridSearch_TextNoVectorMatch(t *testing.T) {
 	)
 
 	options := cache_dto.Options[string, Product]{
-		MaximumSize:  100,
-		SearchSchema: schema,
+		MaximumEntries: 100,
+		SearchSchema:   schema,
 	}
 
 	adapter, err := OtterProviderFactory[string, Product](options)

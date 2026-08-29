@@ -45,6 +45,8 @@ type ResolverPort interface {
 	GetModuleName() string
 
 	// GetBaseDir returns the absolute path to the folder that contains go.mod.
+	//
+	// Returns string which is the absolute path to the folder that contains go.mod.
 	GetBaseDir() string
 
 	// ResolvePKPath resolves a Piko component import path to an absolute filesystem path.
