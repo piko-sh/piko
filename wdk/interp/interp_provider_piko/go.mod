@@ -2,7 +2,7 @@ module piko.sh/piko/wdk/interp/interp_provider_piko
 
 go 1.26.0
 
-require piko.sh/piko v0.0.0
+require piko.sh/piko v0.0.0-alpha.37
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.2 // indirect
