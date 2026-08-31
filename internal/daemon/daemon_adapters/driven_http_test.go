@@ -22,11 +22,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -44,7 +42,6 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
-	"piko.sh/piko/internal/testutil/leakcheck"
 )
 
 func TestFrontendAssetHandlerWithFullMiddlewareStack(t *testing.T) {
@@ -172,21 +169,6 @@ func TestFrontendAssetHandlerWithFullMiddlewareStack(t *testing.T) {
 			})
 		}
 	})
-}
-
-func TestMain(m *testing.M) {
-	if err := daemon_frontend.InitAssetStore(context.Background()); err != nil {
-		panic("failed to initialise embedded asset store: " + err.Error())
-	}
-
-	code := m.Run()
-	if code == 0 {
-		if err := leakcheck.FindLeaks(); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "goleak: %v\n", err)
-			os.Exit(1)
-		}
-	}
-	os.Exit(code)
 }
 
 func TestFrontendAssetHandler(t *testing.T) {

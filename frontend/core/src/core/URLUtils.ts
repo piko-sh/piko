@@ -17,6 +17,30 @@
 // strip others of their rights and dignity.
 
 /**
+ * Resolves a possibly-relative URL the way the browser resolves a hyperlink on the
+ * current page.
+ *
+ * @param urlValue - The URL to resolve.
+ * @returns The resolved absolute URL.
+ */
+function resolveAgainstDocument(urlValue: string): URL {
+    return new URL(urlValue, globalThis.location?.href ?? '');
+}
+
+/**
+ * Appends a query parameter to a URL string without parsing it.
+ *
+ * @param urlValue - The URL to append to.
+ * @param name - The parameter name.
+ * @param value - The parameter value.
+ * @returns The URL with the parameter appended.
+ */
+function appendRawQuery(urlValue: string, name: string, value: string): string {
+    const separator = urlValue.includes('?') ? '&' : '?';
+    return `${urlValue}${separator}${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+}
+
+/**
  * Adds the fragment query parameter (_f=1) to a URL.
  *
  * This parameter signals to the server that a fragment response is expected.
@@ -26,14 +50,11 @@
  */
 export function addFragmentQuery(urlValue: string): string {
     try {
-        const parsedUrl = new URL(urlValue, window.location.origin);
+        const parsedUrl = resolveAgainstDocument(urlValue);
         parsedUrl.searchParams.set('_f', '1');
         return parsedUrl.toString();
     } catch {
-        if (urlValue.includes('?')) {
-            return `${urlValue}&_f=1`;
-        }
-        return `${urlValue}?_f=1`;
+        return appendRawQuery(urlValue, '_f', '1');
     }
 }
 
@@ -47,7 +68,17 @@ export function addFragmentQuery(urlValue: string): string {
  * @returns The complete URL with all query parameters.
  */
 export function buildRemoteUrl(base: string, args: Record<string, string | number>): string {
-    const urlObj = new URL(base, window.location.origin);
+    let urlObj: URL;
+    try {
+        urlObj = resolveAgainstDocument(base);
+    } catch {
+        let raw = appendRawQuery(base, '_f', '1');
+        for (const [paramName, paramValue] of Object.entries(args)) {
+            raw = appendRawQuery(raw, paramName, String(paramValue));
+        }
+        return raw;
+    }
+
     urlObj.searchParams.set('_f', '1');
     for (const [paramName, paramValue] of Object.entries(args)) {
         urlObj.searchParams.set(paramName, String(paramValue));
@@ -65,4 +96,23 @@ export function buildRemoteUrl(base: string, args: Record<string, string | numbe
  */
 export function isSameDomain(loc: Location | HTMLAnchorElement): boolean {
     return loc.hostname === window.location.hostname;
+}
+
+/**
+ * Checks whether an absolute URL is on the same origin as the current page.
+ *
+ * @param urlValue - The absolute URL to check.
+ * @returns True if the URL is on the page's own origin, false otherwise.
+ */
+export function isSameOriginUrl(urlValue: string): boolean {
+    const pageOrigin = globalThis.location?.origin;
+    if (!pageOrigin) {
+        return false;
+    }
+
+    try {
+        return new URL(urlValue).origin === pageOrigin;
+    } catch {
+        return false;
+    }
 }

@@ -24,6 +24,7 @@
 #
 # Usage:
 #   ./hack/generate/dal.sh
+#   ./hack/generate/dal.sh --validate
 
 # shellcheck source=../lib/init.sh
 source "$(dirname "$0")/../lib/init.sh"
@@ -67,8 +68,48 @@ generate_dal() {
     done
 }
 
-# main generates DAL code.
+# validate_dal regenerates the DAL and fails when the result differs from what is checked in.
+# Globals:
+#   DAL_TARGETS - Read
+#   PIKO_ROOT - Read
+validate_dal() {
+    local generated_paths=()
+    local target base_dir package_name
+    for target in "${DAL_TARGETS[@]}"; do
+        IFS=':' read -r base_dir package_name _ <<< "$target"
+        generated_paths+=("${base_dir}/${package_name}")
+    done
+
+    local dirty
+    dirty=$(cd "$PIKO_ROOT" && git status --porcelain -- "${generated_paths[@]}")
+    if [[ -n "$dirty" ]]; then
+        piko::log::error "Generated DAL directories are already modified; validate needs a clean tree"
+        printf '%s\n' "$dirty"
+        return 1
+    fi
+
+    generate_dal
+
+    dirty=$(cd "$PIKO_ROOT" && git status --porcelain -- "${generated_paths[@]}")
+    if [[ -n "$dirty" ]]; then
+        piko::log::error "Generated DAL code is out of date; run 'make generate-dal' and commit the result"
+        printf '%s\n' "$dirty"
+        return 1
+    fi
+
+    piko::log::success "Generated DAL code is up to date"
+}
+
+# main generates DAL code, or validates that what is checked in matches the generator.
 main() {
+    if [[ "${1:-}" == "--validate" ]]; then
+        piko::log::header "Validating generated DAL code"
+        validate_dal || exit 1
+        piko::log::footer
+
+        return
+    fi
+
     piko::log::header "Generating DAL code"
 
     generate_dal

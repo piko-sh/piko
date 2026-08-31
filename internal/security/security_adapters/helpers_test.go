@@ -20,6 +20,7 @@ package security_adapters
 
 import (
 	"errors"
+	"net"
 	"net/http"
 )
 
@@ -48,6 +49,15 @@ func (m *mockClientIPExtractor) ExtractClientIP(r *http.Request) string {
 		return m.extractFunc(r)
 	}
 	return r.RemoteAddr
+}
+
+func (m *mockClientIPExtractor) ResolveClient(r *http.Request) (string, bool) {
+	remoteIP := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(remoteIP); err == nil {
+		remoteIP = host
+	}
+
+	return m.ExtractClientIP(r), m.IsTrustedProxy(remoteIP)
 }
 
 func (m *mockClientIPExtractor) IsTrustedProxy(ip string) bool {

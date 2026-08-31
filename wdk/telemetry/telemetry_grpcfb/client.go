@@ -125,6 +125,9 @@ type Config struct {
 	// Source labels the producing component, stamped on every batch.
 	Source string
 
+	// Identity describes the emitting process and is stamped on every batch.
+	Identity Identity
+
 	// FlushSize is the event count that triggers a size-based flush; 0 uses the default.
 	FlushSize int
 
@@ -133,6 +136,35 @@ type Config struct {
 
 	// MaxQueuedBatches bounds the send queue; 0 uses the default.
 	MaxQueuedBatches int
+}
+
+// Identity describes the process producing a telemetry stream.
+type Identity struct {
+	// InstanceID identifies this process among sibling replicas of the same service, stable
+	// for the process lifetime.
+	InstanceID string
+
+	// Hostname is the emitting machine's hostname.
+	Hostname string
+
+	// ServiceName is the deployed service's name.
+	ServiceName string
+
+	// ServiceVersion is the running build's version.
+	ServiceVersion string
+
+	// Environment is the deployment environment ("production", "staging").
+	Environment string
+
+	// Region is the SERVICE's cloud region, not the user's: a user region needs licensed
+	// GeoIP and cannot be derived here.
+	Region string
+
+	// StartedAtMs is when the process started, in epoch milliseconds.
+	StartedAtMs int64
+
+	// PID is the operating-system process identifier.
+	PID int32
 }
 
 // BreakerConfig tunes the send-path circuit breaker.
@@ -426,7 +458,7 @@ func (c *Client) add(ctx context.Context, mutate func(*Batch)) {
 	}
 	c.mu.Lock()
 	if c.currentBatch == nil {
-		c.currentBatch = &Batch{SiteID: c.config.SiteID, APIKey: c.config.APIKey, Source: c.config.Source}
+		c.currentBatch = newBatch(&c.config)
 	}
 	mutate(c.currentBatch)
 	c.currentEventCount++
@@ -538,7 +570,7 @@ func (c *Client) runFlusher(ctx context.Context) {
 
 // streamSession is one long-lived client stream plus its unacknowledged event count.
 //
-// Counting is deferred to reconcile: a batch is NOT counted Sent the instant SendMsg
+// Counting is deferred to reconcile: a batch is not counted Sent the instant SendMsg
 // buffers it, because the stream may still error before the terminal IngestAck.
 // reconcile, called on every stream close (whether by mid-stream error or normal
 // half-close), reads the ack and settles the pending events into sent, dropped or
@@ -792,5 +824,21 @@ func newClient(clientConnection *grpc.ClientConn, ownsConnection bool, config Co
 				return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 			},
 		}),
+	}
+}
+
+// newBatch starts a frame carrying the site, key, source and the emitter's identity.
+//
+// Takes config (*Config) which holds the values stamped on every frame.
+//
+// Returns *Batch which is an empty frame ready for events.
+func newBatch(config *Config) *Batch {
+	identity := config.Identity
+	return &Batch{
+		SiteID: config.SiteID, APIKey: config.APIKey, Source: config.Source,
+		InstanceID: identity.InstanceID, Hostname: identity.Hostname,
+		ServiceName: identity.ServiceName, ServiceVersion: identity.ServiceVersion,
+		Environment: identity.Environment, Region: identity.Region,
+		StartedAtMs: identity.StartedAtMs, PID: identity.PID,
 	}
 }

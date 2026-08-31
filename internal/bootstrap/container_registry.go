@@ -407,20 +407,20 @@ func (c *Container) RetireRegistryRelease(ctx context.Context, release string) e
 // Returns registry_domain.MetadataStore which is the querier-backed metadata store.
 // Returns error when the database connection cannot be obtained.
 func (c *Container) createQuerierRegistryDAL() (registry_domain.MetadataStore, error) {
-	database, driver, err := c.resolveQuerierDatabase(DatabaseNameRegistry, "registry")
+	database, observed, driver, err := c.resolveQuerierDatabase(DatabaseNameRegistry, "registry")
 	if err != nil {
 		return nil, err
 	}
 
 	if isPostgresDriver(driver) {
-		dal := registry_querier_postgres.New(database)
+		dal := registry_querier_postgres.NewObserved(database, observed)
 		if inspector, ok := dal.(registry_domain.RegistryInspector); ok {
 			c.registryInspector = inspector
 		}
 		return dal, nil
 	}
 
-	dal := registry_querier_sqlite.New(database)
+	dal := registry_querier_sqlite.NewObserved(database, observed)
 	if inspector, ok := dal.(registry_domain.RegistryInspector); ok {
 		c.registryInspector = inspector
 	}

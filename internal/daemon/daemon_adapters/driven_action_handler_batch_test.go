@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -355,4 +356,77 @@ func TestParallelBatchWorkers_FallsBackToTheDefault(t *testing.T) {
 	handler.maxParallelBatchWorkers = -1
 	assert.Equal(t, defaultParallelBatchWorkers, handler.parallelBatchWorkers(),
 		"a nonsensical bound must not disable the pool")
+}
+
+func batchRequestBody(t *testing.T, count int) string {
+	t.Helper()
+
+	actions := make([]string, 0, count)
+	for index := range count {
+		actions = append(actions, `{"name":"a`+strconv.Itoa(index)+`","args":{}}`)
+	}
+	return `{"actions":[` + strings.Join(actions, ",") + `]}`
+}
+
+func TestHandleBatch_OverCapDoesNoAttribution(t *testing.T) {
+	handler := &ActionHandler{maxBodyBytes: 1 << 20}
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	defer daemon_dto.ReleasePikoRequestCtx(pctx)
+
+	body := batchRequestBody(t, maxBatchActions+1)
+	request := httptest.NewRequest(http.MethodPost, "/_batch", strings.NewReader(body))
+	request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), pctx))
+	recorder := httptest.NewRecorder()
+
+	handler.handleBatch(recorder, request)
+
+	require.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Empty(t, pctx.AnalyticsActionName, "a rejected batch is not attributed")
+	assert.NotContains(t, pctx.AnalyticsProperties, "batch.actions",
+		"a rejected batch does not build the joined action list")
+}
+
+func TestHandleBatch_WithinCapIsAttributed(t *testing.T) {
+	handler := &ActionHandler{maxBodyBytes: 1 << 20}
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	defer daemon_dto.ReleasePikoRequestCtx(pctx)
+
+	request := httptest.NewRequest(http.MethodPost, "/_batch",
+		strings.NewReader(batchRequestBody(t, 2)))
+	request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), pctx))
+
+	handler.handleBatch(httptest.NewRecorder(), request)
+
+	assert.Equal(t, batchActionName, pctx.AnalyticsActionName)
+	assert.Equal(t, "2", pctx.AnalyticsProperties["batch.count"])
+	assert.Equal(t, "a0,a1", pctx.AnalyticsProperties["batch.actions"])
+}
+
+func TestExecuteBatchActions_ParallelEntriesMayRecordAnalytics(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	defer daemon_dto.ReleasePikoRequestCtx(pctx)
+
+	for _, name := range []string{"first", "second", "third", "fourth"} {
+		registerMetadataAction(handler, name, func(action any) (any, error) {
+			pctx.SetAnalyticsProperty(name, "recorded", 64)
+			pctx.SetAnalyticsAction(name)
+
+			return action, nil
+		})
+	}
+
+	request := batchRequestFor(true, "first", "second", "third", "fourth")
+	request = request.WithContext(daemon_dto.WithPikoRequestCtx(request.Context(), pctx))
+
+	handler.handleBatch(httptest.NewRecorder(), request)
+
+	for _, name := range []string{"first", "second", "third", "fourth"} {
+		assert.Equal(t, "recorded", pctx.AnalyticsProperties[name],
+			"every entry records its own property")
+	}
 }

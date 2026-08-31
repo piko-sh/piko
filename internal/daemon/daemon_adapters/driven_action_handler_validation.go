@@ -293,6 +293,39 @@ func (h *ActionHandler) parseRequestBody(request *http.Request) (map[string]any,
 	return arguments, nil
 }
 
+// queryArguments lifts a request's query string into the argument map an action binds
+// from.
+//
+// Takes request (*http.Request) which supplies the query string.
+//
+// Returns map[string]any which holds at most maxQueryArgumentKeys parameters.
+func queryArguments(request *http.Request) map[string]any {
+	query := request.URL.Query()
+	arguments := make(map[string]any, min(len(query), maxQueryArgumentKeys))
+
+	for key, values := range query {
+		if len(arguments) >= maxQueryArgumentKeys {
+			break
+		}
+		if len(values) == 0 || key == csrfEphemeralTokenKey {
+			continue
+		}
+		if len(values) == 1 {
+			arguments[key] = values[0]
+
+			continue
+		}
+
+		repeated := make([]any, len(values))
+		for i, value := range values {
+			repeated[i] = value
+		}
+		arguments[key] = repeated
+	}
+
+	return arguments
+}
+
 // validateJSONStructuralDepth scans a JSON byte stream and ensures the maximum
 // brace/bracket nesting does not exceed maxDepth. The check is performed before any
 // reflective decoding so attacker payloads that would otherwise blow the stack are

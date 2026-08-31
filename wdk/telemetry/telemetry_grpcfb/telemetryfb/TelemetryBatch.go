@@ -289,8 +289,80 @@ func (rcv *TelemetryBatch) EmailEventsLength() int {
 	return 0
 }
 
+func (rcv *TelemetryBatch) InstanceId() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *TelemetryBatch) Hostname() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *TelemetryBatch) ServiceName() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *TelemetryBatch) ServiceVersion() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *TelemetryBatch) Environment() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *TelemetryBatch) Region() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *TelemetryBatch) StartedAtMs() int64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
+	if o != 0 {
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *TelemetryBatch) MutateStartedAtMs(n int64) bool {
+	return rcv._tab.MutateInt64Slot(46, n)
+}
+
+func (rcv *TelemetryBatch) Pid() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *TelemetryBatch) MutatePid(n int32) bool {
+	return rcv._tab.MutateInt32Slot(48, n)
+}
+
 func TelemetryBatchStart(builder *flatbuffers.Builder) {
-	builder.StartObject(15)
+	builder.StartObject(23)
 }
 func TelemetryBatchAddSiteId(builder *flatbuffers.Builder, siteId flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(siteId), 0)
@@ -366,6 +438,30 @@ func TelemetryBatchAddEmailEvents(builder *flatbuffers.Builder, emailEvents flat
 }
 func TelemetryBatchStartEmailEventsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func TelemetryBatchAddInstanceId(builder *flatbuffers.Builder, instanceId flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(instanceId), 0)
+}
+func TelemetryBatchAddHostname(builder *flatbuffers.Builder, hostname flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(hostname), 0)
+}
+func TelemetryBatchAddServiceName(builder *flatbuffers.Builder, serviceName flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(serviceName), 0)
+}
+func TelemetryBatchAddServiceVersion(builder *flatbuffers.Builder, serviceVersion flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(serviceVersion), 0)
+}
+func TelemetryBatchAddEnvironment(builder *flatbuffers.Builder, environment flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(19, flatbuffers.UOffsetT(environment), 0)
+}
+func TelemetryBatchAddRegion(builder *flatbuffers.Builder, region flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(20, flatbuffers.UOffsetT(region), 0)
+}
+func TelemetryBatchAddStartedAtMs(builder *flatbuffers.Builder, startedAtMs int64) {
+	builder.PrependInt64Slot(21, startedAtMs, 0)
+}
+func TelemetryBatchAddPid(builder *flatbuffers.Builder, pid int32) {
+	builder.PrependInt32Slot(22, pid, 0)
 }
 func TelemetryBatchEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

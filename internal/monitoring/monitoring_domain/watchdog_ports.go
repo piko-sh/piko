@@ -201,6 +201,12 @@ type WatchdogStatusInfo struct {
 	// ProfileDirectory is the filesystem path where profiles are stored.
 	ProfileDirectory string
 
+	// Hostname is the machine the process runs on, empty when it cannot be resolved.
+	Hostname string
+
+	// Version is the running build's version string.
+	Version string
+
 	// ContinuousProfilingTypes lists the profile categories the routine loop captures each
 	// interval (when ContinuousProfilingEnabled is true).
 	ContinuousProfilingTypes []string
@@ -239,6 +245,10 @@ type WatchdogStatusInfo struct {
 	// contention diagnostics.
 	ContentionDiagnosticCooldown time.Duration
 
+	// GomemlimitBytes is the soft memory limit the runtime is enforcing, as resolved at
+	// Start.
+	GomemlimitBytes int64
+
 	// HeapThresholdBytes is the initial heap allocation threshold in bytes.
 	HeapThresholdBytes uint64
 
@@ -250,11 +260,30 @@ type WatchdogStatusInfo struct {
 	// FD-pressure warning is emitted.
 	FDPressureThresholdPercent float64
 
+	// PID is the operating-system process identifier.
+	PID int
+
 	// GoroutineThreshold is the goroutine count above which a profile capture is triggered.
 	GoroutineThreshold int
 
 	// GoroutineSafetyCeiling is the goroutine count above which captures are suppressed.
 	GoroutineSafetyCeiling int
+
+	// GCPressureThreshold is the fraction of time spent in GC above which a pressure warning
+	// is raised.
+	GCPressureThreshold float64
+
+	// RSSThresholdPercent is the share of the memory limit above which an RSS warning is
+	// raised.
+	RSSThresholdPercent float64
+
+	// TrendWindowSize is how many samples the heap trend is fitted over. Zero disables trend
+	// detection entirely, which is why it belongs in a report meant to explain silence.
+	TrendWindowSize int
+
+	// TrendWarningHorizon is how far ahead a projected exhaustion must fall before a trend
+	// warning is raised.
+	TrendWarningHorizon time.Duration
 
 	// MaxProfilesPerType is the maximum number of profile files retained per profile type.
 	MaxProfilesPerType int

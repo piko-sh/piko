@@ -1816,6 +1816,19 @@ func WithWatchdogContinuousProfilingNotify() WatchdogOption {
 	return bootstrap.WithWatchdogContinuousProfilingNotify()
 }
 
+// WithWatchdogContinuousProfilingUpload sends each routine capture to the configured
+// profile uploader as well as storing it locally.
+//
+// Default behaviour is local storage only. The uploader is shared with the threshold and
+// pre-death captures, which are rare and budgeted, while routine captures recur for the
+// life of the process on every replica, so sending them is a deliberate choice about
+// volume.
+//
+// Returns WatchdogOption which enables uploading routine captures.
+func WithWatchdogContinuousProfilingUpload() WatchdogOption {
+	return bootstrap.WithWatchdogContinuousProfilingUpload()
+}
+
 // WithWatchdogContentionDiagnosticWindow sets the duration during which block + mutex
 // profiling are active during a contention diagnostic.
 //

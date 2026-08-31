@@ -126,20 +126,17 @@ type SecureCookieWriter interface {
 // trusted proxy headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP) when the request
 // originates from a trusted proxy CIDR range.
 type ClientIPExtractor interface {
-	// ExtractClientIP returns the real client IP address from the request, trusting
-	// forwarding headers when the request originates from a trusted proxy and using the
-	// direct remote address otherwise.
+	// ResolveClient reports the client IP and whether the request arrived through a trusted
+	// proxy, from a single parse of the remote address.
+	//
+	// The two answers are derived from the same work, and asking for them separately made
+	// the middleware parse the remote address three times on every request. That is why this
+	// is the only method here: the separate accessors it replaced have no caller left, and a
+	// port that still offered them would invite the pattern back.
 	//
 	// Takes r (*http.Request) which is the HTTP request.
 	//
 	// Returns string which is the client IP address.
-	ExtractClientIP(r *http.Request) string
-
-	// IsTrustedProxy checks whether the given IP address is within a trusted proxy CIDR
-	// range.
-	//
-	// Takes ip (string) which is the IP address to check.
-	//
-	// Returns bool which is true if the IP is from a trusted proxy.
-	IsTrustedProxy(ip string) bool
+	// Returns bool which is true when the request came from a trusted proxy.
+	ResolveClient(r *http.Request) (string, bool)
 }

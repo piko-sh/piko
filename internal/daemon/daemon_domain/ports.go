@@ -83,10 +83,11 @@ type ServerAdapter interface {
 
 	// SetOnBound registers an optional callback that runs once the server has bound a port.
 	//
-	// The callback is invoked after the server successfully binds to a port, before it starts
-	// serving requests. The callback receives the resolved listen address.
+	// The callback is invoked after the server successfully binds to a port, before it
+	// starts serving requests. The callback receives the resolved listen address.
 	//
-	// Takes callback (func(address string)) which is invoked with the resolved listen address.
+	// Takes callback (func(address string)) which is invoked with the resolved listen
+	// address.
 	SetOnBound(func(address string))
 }
 

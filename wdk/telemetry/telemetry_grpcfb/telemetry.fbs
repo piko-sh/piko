@@ -154,21 +154,29 @@ table EmailEvent {
 }
 
 table TelemetryBatch {
-  site_id:string;
-  api_key:string;
-  source:string;
-  sent_at_ms:long;
-  seq:long;
-  analytics:[AnalyticsEvent];
-  watchdog:[WatchdogEvent];
-  logs:[LogLine];
-  spans:[Span];
-  metrics:[MetricPoint];
-  errors:[ErrorEvent];
-  profiles:[ProfileMeta];
-  workers:[WorkerEvent];
-  query_stats:[QueryStat];
-  email_events:[EmailEvent];
+  site_id:string (id: 0);
+  api_key:string (id: 1);
+  source:string (id: 2);
+  sent_at_ms:long (id: 3);
+  seq:long (id: 4);
+  analytics:[AnalyticsEvent] (id: 5);
+  watchdog:[WatchdogEvent] (id: 6);
+  logs:[LogLine] (id: 7);
+  spans:[Span] (id: 8);
+  metrics:[MetricPoint] (id: 9);
+  errors:[ErrorEvent] (id: 10);
+  profiles:[ProfileMeta] (id: 11);
+  workers:[WorkerEvent] (id: 12);
+  query_stats:[QueryStat] (id: 13);
+  email_events:[EmailEvent] (id: 14);
+  instance_id:string (id: 15);
+  hostname:string (id: 16);
+  service_name:string (id: 17);
+  service_version:string (id: 18);
+  environment:string (id: 19);
+  region:string (id: 20);
+  started_at_ms:long (id: 21);
+  pid:int (id: 22);
 }
 
 table IngestAck {

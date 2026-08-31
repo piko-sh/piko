@@ -34,12 +34,12 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/internal/querier/querier_domain"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (
@@ -887,25 +887,31 @@ func isPostgresDriver(driver string) bool {
 // Takes name (string) which identifies the database registered via AddDatabase.
 // Takes subsystem (string) which names the owning subsystem for error messages.
 //
-// Returns *sql.DB which is the database connection.
+// Returns *sql.DB which is the raw connection, for transactions and health checks.
+// Returns DBTX which executes non-transactional statements, instrumented when enabled.
 // Returns string which is the resolved database/sql driver name.
 // Returns error when migration, connection, or driver resolution fails.
-func (c *Container) resolveQuerierDatabase(name, subsystem string) (*sql.DB, string, error) {
+func (c *Container) resolveQuerierDatabase(name, subsystem string) (*sql.DB, DBTX, string, error) {
 	if err := c.runMigrationsIfConfigured(name); err != nil {
-		return nil, "", fmt.Errorf("failed to migrate %s database: %w", subsystem, err)
+		return nil, nil, "", fmt.Errorf("failed to migrate %s database: %w", subsystem, err)
 	}
 
 	database, err := c.GetDatabaseConnection(name)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get %s database connection: %w", subsystem, err)
+		return nil, nil, "", fmt.Errorf("failed to get %s database connection: %w", subsystem, err)
+	}
+
+	observed, err := c.GetDatabaseWriter(name)
+	if err != nil {
+		return nil, nil, "", fmt.Errorf("failed to resolve %s database writer: %w", subsystem, err)
 	}
 
 	driver, err := c.GetDatabaseDriver(name)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to resolve %s database driver: %w", subsystem, err)
+		return nil, nil, "", fmt.Errorf("failed to resolve %s database driver: %w", subsystem, err)
 	}
 
-	return database, driver, nil
+	return database, observed, driver, nil
 }
 
 // GetDatabaseReader returns the DBTX for reading from a named database, where replicas
@@ -1165,10 +1171,7 @@ func verifyPreOpenedConnection(ctx context.Context, name string, database *sql.D
 // Returns error when no driver is configured, the connection cannot be opened, or the
 // ping fails.
 func openNewConnection(ctx context.Context, name string, reg *DatabaseRegistration) (*sql.DB, error) {
-	driverName := reg.DriverName
-	if driverName == "" {
-		driverName = reg.EngineConfig.DriverName
-	}
+	driverName := cmp.Or(reg.DriverName, reg.EngineConfig.DriverName)
 	if driverName == "" {
 		return nil, ErrNoDriverConfigured
 	}
@@ -1221,9 +1224,10 @@ func applyPoolSettings(database *sql.DB, reg *DatabaseRegistration) {
 //
 // Returns string which is the OTel db.system value.
 func resolveDBSystem(reg *DatabaseRegistration) string {
-	driver := reg.DriverName
-	if driver == "" {
-		driver = reg.EngineConfig.DriverName
+	driver := cmp.Or(reg.DriverName, reg.EngineConfig.DriverName)
+
+	if driver == "" && reg.EngineConfig.Engine != nil {
+		driver = reg.EngineConfig.Engine.Dialect()
 	}
 	switch driver {
 	case "postgres", "pgx":
@@ -1280,10 +1284,7 @@ func (c *Container) attachReplicas(
 		return nil
 	}
 
-	replicaDriverName := reg.DriverName
-	if replicaDriverName == "" {
-		replicaDriverName = reg.EngineConfig.DriverName
-	}
+	replicaDriverName := cmp.Or(reg.DriverName, reg.EngineConfig.DriverName)
 
 	replicaConnections, balancerPool, replicaError := c.openReplicas(ctx, name, replicaDriverName, reg)
 	if replicaError != nil {
@@ -1322,10 +1323,7 @@ func (*Container) createMigrationServiceForInstance(
 		dialect = reg.EngineConfig.MigrationDialect
 	}
 
-	directory := reg.MigrationDirectory
-	if directory == "" {
-		directory = "."
-	}
+	directory := cmp.Or(reg.MigrationDirectory, ".")
 
 	fileReader := migration_sql.NewFSFileReader(reg.MigrationFS)
 	executor := migration_sql.NewExecutor(database, dialect)
@@ -1365,10 +1363,7 @@ func (*Container) createSeedServiceForInstance(
 		dialect = reg.EngineConfig.MigrationDialect
 	}
 
-	directory := reg.SeedDirectory
-	if directory == "" {
-		directory = "."
-	}
+	directory := cmp.Or(reg.SeedDirectory, ".")
 
 	fileReader := migration_sql.NewFSFileReader(reg.SeedFS)
 	executor := migration_sql.NewSeedExecutor(database, dialect)

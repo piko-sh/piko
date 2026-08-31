@@ -203,7 +203,8 @@ type BytecodeArchitecturePort interface {
 	// instruction word into the destination register.
 	//
 	// Takes emitter (*asmgen.Emitter) which receives the emitted instructions.
-	// Takes destination (string) which is the register that receives the combined BC operand.
+	// Takes destination (string) which is the register that receives the combined BC
+	// operand.
 	ExtractWideBC(emitter *asmgen.Emitter, destination string)
 
 	// ExtractSignedBC emits instructions to extract a signed 16-bit offset from the BC
@@ -522,7 +523,8 @@ type BytecodeArchitecturePort interface {
 	// Takes emitter (*asmgen.Emitter) which receives the emitted instructions.
 	// Takes indexRegister (string) which holds the uint bank slot index.
 	// Takes destinationRegister (string) which receives the loaded value.
-	// Takes baseScratch (string) which is a scratch register that holds the loaded bank base.
+	// Takes baseScratch (string) which is a scratch register that holds the loaded bank
+	// base.
 	LoadFromUintBank(emitter *asmgen.Emitter, indexRegister, destinationRegister, baseScratch string)
 
 	// StoreToUintBank emits instructions to store a uint64 from the source register into the
@@ -533,7 +535,8 @@ type BytecodeArchitecturePort interface {
 	// Takes emitter (*asmgen.Emitter) which receives the emitted instructions.
 	// Takes sourceRegister (string) which holds the value to store.
 	// Takes indexRegister (string) which holds the uint bank slot index.
-	// Takes baseScratch (string) which is a scratch register that holds the loaded bank base.
+	// Takes baseScratch (string) which is a scratch register that holds the loaded bank
+	// base.
 	StoreToUintBank(emitter *asmgen.Emitter, sourceRegister, indexRegister, baseScratch string)
 
 	// LoadFromBoolBank emits instructions to load a single bool byte from the bool register
@@ -545,7 +548,8 @@ type BytecodeArchitecturePort interface {
 	// Takes emitter (*asmgen.Emitter) which receives the emitted instructions.
 	// Takes indexRegister (string) which holds the bool bank slot index.
 	// Takes destinationRegister (string) which receives the loaded byte.
-	// Takes baseScratch (string) which is a scratch register that holds the loaded bank base.
+	// Takes baseScratch (string) which is a scratch register that holds the loaded bank
+	// base.
 	LoadFromBoolBank(emitter *asmgen.Emitter, indexRegister, destinationRegister, baseScratch string)
 
 	// StoreToBoolBank emits instructions to store the low byte of the source register into
@@ -554,7 +558,8 @@ type BytecodeArchitecturePort interface {
 	// Takes emitter (*asmgen.Emitter) which receives the emitted instructions.
 	// Takes sourceRegister (string) which holds the value whose low byte is stored.
 	// Takes indexRegister (string) which holds the bool bank slot index.
-	// Takes baseScratch (string) which is a scratch register that holds the loaded bank base.
+	// Takes baseScratch (string) which is a scratch register that holds the loaded bank
+	// base.
 	StoreToBoolBank(emitter *asmgen.Emitter, sourceRegister, indexRegister, baseScratch string)
 
 	// BitwiseNotInPlace emits a bitwise complement of the given register, writing the result

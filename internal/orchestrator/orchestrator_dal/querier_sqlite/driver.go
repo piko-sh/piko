@@ -56,6 +56,17 @@ func New(db orchestrator_db.DBTX) orchestrator_dal.OrchestratorDALWithTx {
 	return dalcore.New(sqlDB, &driver{queries: orchestrator_db.New(db)})
 }
 
+// NewObserved builds an orchestrator DAL whose statements run through queryDB while
+// transactions and health checks use database directly.
+//
+// Takes database (*sql.DB) which owns BeginTx and PingContext.
+// Takes queryDB (orchestrator_db.DBTX) which executes non-transactional statements.
+//
+// Returns orchestrator_dal.OrchestratorDALWithTx which is ready for use.
+func NewObserved(database *sql.DB, queryDB orchestrator_db.DBTX) orchestrator_dal.OrchestratorDALWithTx {
+	return dalcore.New(database, &driver{queries: orchestrator_db.New(queryDB)})
+}
+
 // WithTx returns a driver whose queries run inside tx.
 //
 // Takes tx (*sql.Tx) which is the transaction to scope queries to.

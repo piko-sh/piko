@@ -42,10 +42,12 @@ func (*SQLEmitter) EmitQuerier(packageName string, _ querier_dto.QueryCapabiliti
 
 	declarations := []ast.Decl{
 		buildDBTXInterface(),
+		buildDBTXWrapperInterface(),
 		buildQueriesStruct(),
 		buildNewFunction(),
 		buildNewWithReplicaFunction(),
 		buildWithTxMethod(),
+		buildWrapDBTXMethod(),
 		buildRunInTxMethod(),
 	}
 
@@ -145,6 +147,7 @@ func buildQueriesStruct() *ast.GenDecl {
 	return goastutil.GenDeclType(emitter_shared.IdentQueries, goastutil.StructType(
 		goastutil.Field(emitter_shared.IdentReader, goastutil.CachedIdent(identDBTX)),
 		goastutil.Field(emitter_shared.IdentWriter, goastutil.CachedIdent(identDBTX)),
+		goastutil.Field(identWrapper, goastutil.CachedIdent(identDBTXWrapper)),
 	))
 }
 
@@ -161,12 +164,14 @@ func buildNewFunction() *ast.FuncDecl {
 			goastutil.Field("", goastutil.StarExpr(goastutil.CachedIdent(emitter_shared.IdentQueries))),
 		),
 		goastutil.BlockStmt(
+			resolveWrapperStmt(emitter_shared.IdentDB),
 			goastutil.ReturnStmt(
 				goastutil.AddressExpr(
 					goastutil.CompositeLit(
 						goastutil.CachedIdent(emitter_shared.IdentQueries),
 						goastutil.KeyValueIdent(emitter_shared.IdentReader, goastutil.CachedIdent(emitter_shared.IdentDB)),
 						goastutil.KeyValueIdent(emitter_shared.IdentWriter, goastutil.CachedIdent(emitter_shared.IdentDB)),
+						goastutil.KeyValueIdent(identWrapper, goastutil.CachedIdent(identWrapper)),
 					),
 				),
 			),
@@ -189,12 +194,14 @@ func buildNewWithReplicaFunction() *ast.FuncDecl {
 			goastutil.Field("", goastutil.StarExpr(goastutil.CachedIdent(emitter_shared.IdentQueries))),
 		),
 		goastutil.BlockStmt(
+			resolveWrapperStmt(emitter_shared.IdentWriter),
 			goastutil.ReturnStmt(
 				goastutil.AddressExpr(
 					goastutil.CompositeLit(
 						goastutil.CachedIdent(emitter_shared.IdentQueries),
 						goastutil.KeyValueIdent(emitter_shared.IdentReader, goastutil.CachedIdent(emitter_shared.IdentReader)),
 						goastutil.KeyValueIdent(emitter_shared.IdentWriter, goastutil.CachedIdent(emitter_shared.IdentWriter)),
+						goastutil.KeyValueIdent(identWrapper, goastutil.CachedIdent(identWrapper)),
 					),
 				),
 			),
@@ -221,12 +228,40 @@ func buildWithTxMethod() *ast.FuncDecl {
 			),
 		},
 		Body: goastutil.BlockStmt(
+
+			goastutil.IfStmt(nil,
+				&ast.BinaryExpr{
+					X:  goastutil.CachedIdent(emitter_shared.IdentQueriesReceiver),
+					Op: token.EQL,
+					Y:  goastutil.NilIdent(),
+				},
+				goastutil.BlockStmt(goastutil.ReturnStmt(
+					goastutil.AddressExpr(
+						goastutil.CompositeLit(
+							goastutil.CachedIdent(emitter_shared.IdentQueries),
+							goastutil.KeyValueIdent(emitter_shared.IdentReader,
+								goastutil.CachedIdent(emitter_shared.IdentTransaction)),
+							goastutil.KeyValueIdent(emitter_shared.IdentWriter,
+								goastutil.CachedIdent(emitter_shared.IdentTransaction)),
+							goastutil.KeyValueExpr(goastutil.CachedIdent(identWrapper), goastutil.NilIdent()),
+						),
+					),
+				)),
+			),
+			goastutil.DefineStmt(emitter_shared.IdentDB, goastutil.CallExpr(
+				goastutil.SelectorExprFrom(
+					goastutil.CachedIdent(emitter_shared.IdentQueriesReceiver), identWrapHelper),
+				goastutil.CachedIdent(emitter_shared.IdentTransaction),
+			)),
 			goastutil.ReturnStmt(
 				goastutil.AddressExpr(
 					goastutil.CompositeLit(
 						goastutil.CachedIdent(emitter_shared.IdentQueries),
-						goastutil.KeyValueIdent(emitter_shared.IdentReader, goastutil.CachedIdent(emitter_shared.IdentTransaction)),
-						goastutil.KeyValueIdent(emitter_shared.IdentWriter, goastutil.CachedIdent(emitter_shared.IdentTransaction)),
+						goastutil.KeyValueIdent(emitter_shared.IdentReader, goastutil.CachedIdent(emitter_shared.IdentDB)),
+						goastutil.KeyValueIdent(emitter_shared.IdentWriter, goastutil.CachedIdent(emitter_shared.IdentDB)),
+						goastutil.KeyValueIdent(identWrapper,
+							goastutil.SelectorExprFrom(
+								goastutil.CachedIdent(emitter_shared.IdentQueriesReceiver), identWrapper)),
 					),
 				),
 			),

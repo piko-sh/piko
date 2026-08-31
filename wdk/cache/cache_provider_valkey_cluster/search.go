@@ -86,8 +86,9 @@ func (a *ValkeyClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) erro
 // createIndex creates the Valkey Search index using FT.CREATE.
 //
 // TEXT, GEO and VECTOR fields are skipped, because this adapter does not yet map them to
-// an FT.CREATE schema. Each one is logged rather than dropped in silence, so a schema that
-// declares a field this index cannot serve is visible instead of quietly returning nothing.
+// an FT.CREATE schema. Each one is logged rather than dropped in silence, so a schema
+// that declares a field this index cannot serve is visible instead of quietly returning
+// nothing.
 //
 // Returns error when the index creation command fails.
 func (a *ValkeyClusterAdapter[K, V]) createIndex(ctx context.Context) error {

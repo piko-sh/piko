@@ -302,3 +302,37 @@ func dial(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	require.NoError(t, err)
 	return conn
 }
+
+func TestObserveQueryReportsTheDatabaseEngine(t *testing.T) {
+	cases := map[string]struct {
+		system string
+
+		wantAttrs []telemetry_grpcfb.KV
+	}{
+		"a known engine is carried": {
+			system:    "sqlite",
+			wantAttrs: []telemetry_grpcfb.KV{{Key: "db.system", Value: "sqlite"}},
+		},
+		"an unset engine is absent, not an empty-valued attribute": {
+			system:    "",
+			wantAttrs: nil,
+		},
+	}
+
+	for name, testCase := range cases {
+		t.Run(name, func(t *testing.T) {
+			h := newHarness(t)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			h.col.ObserveQuery(ctx, &piko.QueryObservation{
+				Connection: "registry", Statement: "SELECT 1", System: testCase.system,
+			})
+			h.drain(ctx, t)
+
+			stats := h.snk.queryStats()
+			require.Len(t, stats, 1)
+			assert.Equal(t, testCase.wantAttrs, stats[0].Attrs)
+		})
+	}
+}

@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -74,6 +75,8 @@ func (h *ActionHandler) handleBatch(w http.ResponseWriter, request *http.Request
 			fmt.Sprintf("batch exceeds maximum of %d actions", maxBatchActions), nil, isDevelopmentModeFromContext(ctx))
 		return
 	}
+
+	attributeBatchAnalytics(request, batchReq)
 
 	span.SetAttributes(attribute.Int("batch.action_count", len(batchReq.Actions)))
 	results, allSuccess := h.executeBatchActions(ctx, w, request, batchReq.Actions, batchReq.Parallel)
@@ -706,4 +709,41 @@ func (h *ActionHandler) screenBatchAction(
 	}
 
 	return daemon_dto.BatchActionResult{}, false
+}
+
+// attributeBatchAnalytics attributes the request's single analytics event to the batch
+// endpoint and records which actions it dispatched.
+//
+// Takes request (*http.Request) which carries the per-request analytics state.
+// Takes batchReq (daemon_dto.BatchActionRequest) which lists the dispatched actions.
+func attributeBatchAnalytics(request *http.Request, batchReq daemon_dto.BatchActionRequest) {
+	pctx := daemon_dto.PikoRequestCtxFromContext(request.Context())
+	if pctx == nil {
+		return
+	}
+
+	pctx.SetAnalyticsAction(batchActionName)
+
+	names := make([]string, 0, len(batchReq.Actions))
+	joinedLength := 0
+	truncated := false
+	for i := range batchReq.Actions {
+		name, wasClamped := daemon_dto.ClampAnalyticsName(batchReq.Actions[i].Name)
+		truncated = truncated || wasClamped
+
+		if joinedLength+len(name)+1 > maxBatchActionsPropertyLen {
+			truncated = true
+
+			break
+		}
+		joinedLength += len(name) + 1
+		names = append(names, name)
+	}
+
+	pctx.SetAnalyticsProperty("batch.count", strconv.Itoa(len(batchReq.Actions)), maxBatchAnalyticsProperties)
+	pctx.SetAnalyticsProperty("batch.actions", strings.Join(names, ","), maxBatchAnalyticsProperties)
+
+	if truncated {
+		pctx.SetAnalyticsProperty("batch.actions_truncated", "true", maxBatchAnalyticsProperties)
+	}
 }

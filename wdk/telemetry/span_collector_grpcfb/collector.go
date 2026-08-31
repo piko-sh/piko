@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -93,11 +95,27 @@ type Collector struct {
 	// redact decides how each span attribute is emitted to the remote sink.
 	redact AttributeRedactor
 
+	// filter decides whether a finished span is forwarded at all; nil forwards every span.
+	filter SpanFilter
+
+	// panics counts spans lost to a recovered panic, so a single bad span is tellable from a
+	// filter that panics on every one.
+	panics atomic.Int64
+
+	// filtered counts the spans the filter dropped. Shedding that nothing counts is
+	// indistinguishable from a broken pipe: the operator who narrowed the filter to cut
+	// volume has no way to tell a working filter from a collector that stopped exporting.
+	filtered atomic.Int64
+
 	// maxAttributes caps how many attributes are copied from a single span.
 	maxAttributes int
 
 	// maxAttrValueLen bounds a single attribute value (UTF-8 safe) before it leaves the box.
 	maxAttrValueLen int
+
+	// panicReportOnce keeps the panic report to one line: OnEnd runs per span, so a
+	// deterministic panic would otherwise flood the log at the span rate.
+	panicReportOnce sync.Once
 
 	// ownsClient reports whether Shutdown should close client rather than no-op.
 	ownsClient bool
@@ -195,12 +213,26 @@ func (c *Collector) OnEnd(s sdktrace.ReadOnlySpan) {
 	}
 
 	defer func() {
-		if r := recover(); r != nil {
-			_, l := logger_domain.From(context.Background(), log)
-			l.Error("span_collector_grpcfb recovered from panic in OnEnd",
-				logger_domain.String("panic", fmt.Sprint(r)))
+		recovered := recover()
+		if recovered == nil {
+			return
 		}
+
+		c.panics.Add(1)
+		spanFilterPanicCount.Add(context.Background(), 1)
+		c.panicReportOnce.Do(func() {
+			_, l := logger_domain.From(context.Background(), log)
+			l.Error("span_collector_grpcfb recovered from panic in OnEnd; "+
+				"read Panics for the running total",
+				logger_domain.String("panic", fmt.Sprint(recovered)))
+		})
 	}()
+
+	if c.filter != nil && !c.filter(s) {
+		c.filtered.Add(1)
+		spansFilteredCount.Add(context.Background(), 1)
+		return
+	}
 
 	span := telemetry_grpcfb.Span{
 		TraceID:    s.SpanContext().TraceID().String(),
@@ -218,6 +250,27 @@ func (c *Collector) OnEnd(s sdktrace.ReadOnlySpan) {
 	span.Attributes = c.collectAttributes(s)
 
 	c.client.AddSpan(context.Background(), span)
+}
+
+// Filtered reports how many finished spans the configured filter has dropped since the
+// collector was created. It is zero when no filter is installed.
+//
+// Returns int64 which is the cumulative count of spans dropped by the filter.
+func (c *Collector) Filtered() int64 {
+	if c == nil {
+		return 0
+	}
+	return c.filtered.Load()
+}
+
+// Recovered reports how many spans the collector has lost to a recovered panic.
+//
+// Returns int64 which is the cumulative count of recovered panics.
+func (c *Collector) Recovered() int64 {
+	if c == nil {
+		return 0
+	}
+	return c.panics.Load()
 }
 
 // Shutdown releases the processor. For a shared client it is a no-op (the client owner
@@ -337,7 +390,7 @@ func statusToString(code codes.Code) string {
 // New wraps an existing, shared telemetry client.
 //
 // Takes client (*telemetry_grpcfb.Client) which is the shared telemetry transport.
-// Takes opts (...Option) which override the default attribute redactor.
+// Takes opts (...Option) which configure the redactor, the attribute caps and the filter.
 //
 // Returns *Collector which is the configured processor wrapping the shared client.
 func New(client *telemetry_grpcfb.Client, opts ...Option) *Collector {
@@ -357,24 +410,28 @@ func New(client *telemetry_grpcfb.Client, opts ...Option) *Collector {
 
 // Dial creates a span collector backed by its own telemetry client and connection.
 //
-// Its Shutdown drains and closes that client. The default attribute redactor is applied.
+// Its Shutdown drains and closes that client.
 //
 // Takes target (string) which is the telemetry sink address to dial.
 // Takes config (telemetry_grpcfb.Config) which configures the new telemetry client.
+// Takes opts ([]Option) which configure the collector itself.
 // Takes dialOpts (...grpc.DialOption) which are passed to the underlying gRPC dial.
 //
 // Returns *Collector which owns the dialled telemetry client.
 // Returns error which wraps any failure to dial the sink.
-func Dial(target string, config telemetry_grpcfb.Config, dialOpts ...grpc.DialOption) (*Collector, error) {
+func Dial(
+	target string,
+	config telemetry_grpcfb.Config,
+	opts []Option,
+	dialOpts ...grpc.DialOption,
+) (*Collector, error) {
 	client, err := telemetry_grpcfb.Dial(target, config, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("span_collector_grpcfb: dial %q: %w", target, err)
 	}
-	return &Collector{
-		client:          client,
-		redact:          defaultRedactAttribute,
-		maxAttributes:   defaultMaxAttributes,
-		maxAttrValueLen: defaultMaxAttrValueLen,
-		ownsClient:      true,
-	}, nil
+
+	collector := New(client, opts...)
+	collector.ownsClient = true
+
+	return collector, nil
 }

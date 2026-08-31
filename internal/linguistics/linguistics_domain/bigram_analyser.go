@@ -30,8 +30,8 @@ type BigramAnalyserPort interface {
 	// Takes text (string) which is the text to analyse.
 	//
 	// Returns float64 which is the ratio of uncommon bigrams, from 0.0 to 1.0.
-	// Returns bool which reports whether analysis was performed; it is false when the text is
-	// too short.
+	// Returns bool which reports whether analysis was performed; it is false when the text
+	// is too short.
 	BigramFrequencyRatio(text string) (ratio float64, analysed bool)
 
 	// GetLanguage returns the language this analyser is configured for.

@@ -38,6 +38,13 @@ const (
 
 	// baseDecimal is the base value for formatting numbers as decimal strings.
 	baseDecimal = 10
+
+	// maxForwardedRequestIDLength bounds an id accepted from a proxy.
+	maxForwardedRequestIDLength = 128
+
+	// forwardedRequestIDPrefix marks an id that came from a client rather than from this
+	// process, so a reader tracing an incident can tell which ids the server issued.
+	forwardedRequestIDPrefix = "fwd/"
 )
 
 var (
@@ -99,4 +106,52 @@ func init() {
 	b64 = strings.NewReplacer("+", "", "/", "").Replace(b64)
 
 	requestIDPrefix = hostname + "/" + b64[:requestIDPrefixLength]
+}
+
+// AcceptForwardedRequestID reports whether a request id received from a proxy may be used
+// as-is, and returns it unchanged when it may.
+//
+// Takes forwarded (string) which is the raw header value.
+//
+// Returns string which is the accepted id, empty when the value was rejected.
+// Returns bool which reports whether the value was accepted.
+func AcceptForwardedRequestID(forwarded string) (string, bool) {
+	if forwarded == "" || len(forwarded) > maxForwardedRequestIDLength {
+		return "", false
+	}
+
+	for index := range len(forwarded) {
+		if !isRequestIDByte(forwarded[index]) {
+			return "", false
+		}
+	}
+
+	return forwardedRequestIDPrefix + forwarded, true
+}
+
+// IsForwardedRequestID reports whether a request id came from a client rather than being
+// issued by this process.
+//
+// Takes requestID (string) which is the id to classify.
+//
+// Returns bool which is true when the id was forwarded by a trusted proxy.
+func IsForwardedRequestID(requestID string) bool {
+	return strings.HasPrefix(requestID, forwardedRequestIDPrefix)
+}
+
+// isRequestIDByte reports whether a byte may appear in an accepted request id.
+//
+// Takes candidate (byte) which is the byte to classify.
+//
+// Returns bool which is true for the accepted character set.
+func isRequestIDByte(candidate byte) bool {
+	switch {
+	case candidate >= 'a' && candidate <= 'z',
+		candidate >= 'A' && candidate <= 'Z',
+		candidate >= '0' && candidate <= '9':
+		return true
+	default:
+
+		return candidate == '-' || candidate == '_' || candidate == '.'
+	}
 }

@@ -6006,20 +6006,33 @@ function createFetchClient(deps = {}) {
     }
   };
 }
+function resolveAgainstDocument(urlValue) {
+  return new URL(urlValue, globalThis.location?.href ?? "");
+}
+function appendRawQuery(urlValue, name, value) {
+  const separator = urlValue.includes("?") ? "&" : "?";
+  return `${urlValue}${separator}${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+}
 function addFragmentQuery(urlValue) {
   try {
-    const parsedUrl = new URL(urlValue, window.location.origin);
+    const parsedUrl = resolveAgainstDocument(urlValue);
     parsedUrl.searchParams.set("_f", "1");
     return parsedUrl.toString();
   } catch {
-    if (urlValue.includes("?")) {
-      return `${urlValue}&_f=1`;
-    }
-    return `${urlValue}?_f=1`;
+    return appendRawQuery(urlValue, "_f", "1");
   }
 }
 function buildRemoteUrl(base, args) {
-  const urlObj = new URL(base, window.location.origin);
+  let urlObj;
+  try {
+    urlObj = resolveAgainstDocument(base);
+  } catch {
+    let raw = appendRawQuery(base, "_f", "1");
+    for (const [paramName, paramValue] of Object.entries(args)) {
+      raw = appendRawQuery(raw, paramName, String(paramValue));
+    }
+    return raw;
+  }
   urlObj.searchParams.set("_f", "1");
   for (const [paramName, paramValue] of Object.entries(args)) {
     urlObj.searchParams.set(paramName, String(paramValue));
@@ -6028,6 +6041,17 @@ function buildRemoteUrl(base, args) {
 }
 function isSameDomain(loc) {
   return loc.hostname === window.location.hostname;
+}
+function isSameOriginUrl(urlValue) {
+  const pageOrigin = globalThis.location?.origin;
+  if (!pageOrigin) {
+    return false;
+  }
+  try {
+    return new URL(urlValue).origin === pageOrigin;
+  } catch {
+    return false;
+  }
 }
 const PROGRESS_MAX = 100;
 function safeInvokeCallback(callback, url) {
@@ -6464,6 +6488,10 @@ function createRemoteRenderer(deps) {
   const renderTargetDeps = { onDOMUpdated, domOps, hookManager };
   async function render(options) {
     const fullUrl = buildRemoteUrl(options.src, options.args ?? {});
+    if (!isSameOriginUrl(fullUrl)) {
+      console.error("RemoteRenderer: refusing cross-origin fragment:", fullUrl);
+      return;
+    }
     let htmlContent = null;
     try {
       htmlContent = await fetchFragment(fullUrl, options, fetchCtx);

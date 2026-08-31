@@ -22,6 +22,7 @@ import (
 	"context"
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"time"
 
@@ -988,7 +989,7 @@ func WithWatchdogContinuousProfilingInterval(interval time.Duration) WatchdogOpt
 // Returns WatchdogOption which configures the routine capture set.
 func WithWatchdogContinuousProfilingTypes(types ...string) WatchdogOption {
 	return func(c *monitoring_domain.WatchdogConfig) {
-		c.ContinuousProfilingTypes = types
+		c.ContinuousProfilingTypes = slices.Clone(types)
 	}
 }
 
@@ -1011,6 +1012,16 @@ func WithWatchdogContinuousProfilingRetention(count int) WatchdogOption {
 func WithWatchdogContinuousProfilingNotify() WatchdogOption {
 	return func(c *monitoring_domain.WatchdogConfig) {
 		c.ContinuousProfilingNotify = true
+	}
+}
+
+// WithWatchdogContinuousProfilingUpload sends each routine capture to the configured
+// profile uploader as well as storing it locally.
+//
+// Returns WatchdogOption which enables uploading routine captures.
+func WithWatchdogContinuousProfilingUpload() WatchdogOption {
+	return func(c *monitoring_domain.WatchdogConfig) {
+		c.ContinuousProfilingUpload = true
 	}
 }
 

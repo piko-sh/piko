@@ -20,10 +20,12 @@ package telemetry_grpcfb
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"fmt"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"unicode/utf8"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -41,6 +43,31 @@ const (
 
 	// inlineProfileBudget caps the sum of inline pprof blobs carried by one batch.
 	inlineProfileBudget = MaxMessageSize - (2 << 20)
+
+	// maxHostnameLen caps the emitter hostname at the RFC 1035 ceiling for a fully qualified
+	// name, so no real hostname is lost and the field stays tiny against the frame budget.
+	maxHostnameLen = 253
+
+	// maxInstanceIDLen caps the emitter instance identifier, which is a platform-assigned
+	// replica name, the machine hostname, or a generated 36-byte UUID, so only a hostname
+	// past half the RFC 1035 ceiling is shortened.
+	maxInstanceIDLen = 128
+
+	// maxServiceNameLen caps the emitting service's name, an operator-chosen label with no
+	// format of its own, so it gets the same generous 128 bytes as the instance identifier.
+	maxServiceNameLen = 128
+
+	// maxServiceVersionLen caps the emitting build's version, where even a pseudo-version
+	// carrying a timestamp and a commit hash stays well inside 64 bytes.
+	maxServiceVersionLen = 64
+
+	// maxEnvironmentLen caps the deployment environment, a single word such as production or
+	// staging, so 64 bytes is already far more than any real value needs.
+	maxEnvironmentLen = 64
+
+	// maxRegionLen caps the service's cloud region, where the longest real region name runs
+	// to about twenty characters, so 64 bytes leaves headroom for a new one.
+	maxRegionLen = 64
 
 	// blobOmittedFieldKey marks a profile whose inline blob was dropped to keep the batch
 	// under the frame cap; the value records why.
@@ -63,8 +90,17 @@ const (
 
 var (
 	// strTruncWarnOnce guards a single package-level warning when str truncates a string to
-	// maxStringLen, so silent field truncation is detectable without a log storm.
+	// maxStringLen, so a log storm cannot follow from a repeatedly over-long field.
 	strTruncWarnOnce sync.Once
+
+	// identityTruncCount counts identity fields shortened to their cap.
+	identityTruncCount atomic.Uint64
+
+	// warnIdentityTruncatedOnce keeps the identity truncation warning to one line.
+	warnIdentityTruncatedOnce sync.Once
+
+	// strTruncCount counts every truncation, not just the first.
+	strTruncCount atomic.Uint64
 )
 
 var (
@@ -236,6 +272,14 @@ var (
 		{voffset: 28, kind: kVectorTable, elem: workerFields},
 		{voffset: 30, kind: kVectorTable, elem: queryStatFields},
 		{voffset: 32, kind: kVectorTable, elem: emailFields},
+		{voffset: 34, kind: kString},
+		{voffset: 36, kind: kString},
+		{voffset: 38, kind: kString},
+		{voffset: 40, kind: kString},
+		{voffset: 42, kind: kString},
+		{voffset: 44, kind: kString},
+		{voffset: 46, kind: kInt64},
+		{voffset: 48, kind: kInt32},
 	}
 
 	// ackFields is the verifier field spec for an IngestAck table.
@@ -611,6 +655,26 @@ type Batch struct {
 	// Source names the producing subsystem.
 	Source string
 
+	// InstanceID identifies the emitting process among sibling replicas of the same service,
+	// stable for the process lifetime.
+	InstanceID string
+
+	// Hostname is the emitting machine's hostname, empty when it could not be resolved.
+	Hostname string
+
+	// ServiceName is the emitting service's name.
+	ServiceName string
+
+	// ServiceVersion is the emitting build's version.
+	ServiceVersion string
+
+	// Environment is the deployment environment ("production", "staging"), empty when unset.
+	Environment string
+
+	// Region is the SERVICE's cloud region, empty off-cloud. It is not the user's region:
+	// that needs licensed GeoIP and is not derivable here.
+	Region string
+
 	// Analytics holds the analytics events in the frame.
 	Analytics []AnalyticsEvent
 
@@ -646,6 +710,12 @@ type Batch struct {
 
 	// Seq is the per-stream sequence number of the frame.
 	Seq int64
+
+	// StartedAtMs is when the emitting process started, in epoch milliseconds.
+	StartedAtMs int64
+
+	// PID is the emitting process's operating-system identifier.
+	PID int32
 }
 
 // EventCount is the total number of events carried by the batch (all frame types).
@@ -693,6 +763,7 @@ func (bt *Batch) Marshal() ([]byte, error) {
 	site := str(b, bt.SiteID)
 	key := str(b, bt.APIKey)
 	src := str(b, bt.Source)
+	identity := marshalIdentity(b, bt)
 
 	telemetryfb.TelemetryBatchStart(b)
 	addOffset(b, site, telemetryfb.TelemetryBatchAddSiteId)
@@ -710,6 +781,7 @@ func (bt *Batch) Marshal() ([]byte, error) {
 	addOffset(b, wkVec, telemetryfb.TelemetryBatchAddWorkers)
 	addOffset(b, qVec, telemetryfb.TelemetryBatchAddQueryStats)
 	addOffset(b, emVec, telemetryfb.TelemetryBatchAddEmailEvents)
+	addIdentity(b, bt, identity)
 	b.Finish(telemetryfb.TelemetryBatchEnd(b))
 	out := b.FinishedBytes()
 
@@ -745,6 +817,20 @@ func (bt *Batch) Unmarshal(data []byte) error {
 	bt.Workers = unmarshalVector(root.WorkersLength(), root.Workers, readWorker)
 	bt.QueryStats = unmarshalVector(root.QueryStatsLength(), root.QueryStats, readQueryStat)
 	bt.Emails = unmarshalVector(root.EmailEventsLength(), root.EmailEvents, readEmail)
+
+	bt.InstanceID = clip(string(root.InstanceId()), maxInstanceIDLen)
+	bt.Hostname = clip(string(root.Hostname()), maxHostnameLen)
+	bt.ServiceName = clip(string(root.ServiceName()), maxServiceNameLen)
+	bt.ServiceVersion = clip(string(root.ServiceVersion()), maxServiceVersionLen)
+	bt.Environment = clip(string(root.Environment()), maxEnvironmentLen)
+	bt.Region = clip(string(root.Region()), maxRegionLen)
+
+	if startedAt := root.StartedAtMs(); startedAt >= 0 {
+		bt.StartedAtMs = startedAt
+	}
+	if pid := root.Pid(); pid >= 0 {
+		bt.PID = pid
+	}
 	return nil
 }
 
@@ -891,8 +977,11 @@ func str(b *flatbuffers.Builder, s string) flatbuffers.UOffsetT {
 		var truncated bool
 		s, truncated = TruncateUTF8(s, maxStringLen)
 		if truncated {
+			strTruncCount.Add(1)
+			stringsTruncatedCount.Add(context.Background(), 1)
 			strTruncWarnOnce.Do(func() {
-				log.Warn("telemetry string truncated to maxStringLen before encoding",
+				log.Warn("telemetry string truncated to maxStringLen before encoding; "+
+					"read TruncatedStrings for the running total",
 					logger_domain.Int("max_bytes", maxStringLen))
 			})
 		}
@@ -1523,4 +1612,12 @@ func readEmail(e *telemetryfb.EmailEvent) EmailEvent {
 		TsMs:      e.TsMs(),
 		Attrs:     readKVs(e.AttrsLength(), e.Attrs),
 	}
+}
+
+// TruncatedStrings reports how many telemetry strings have been shortened to fit
+// maxStringLen since the process started.
+//
+// Returns uint64 which is the cumulative truncation count.
+func TruncatedStrings() uint64 {
+	return strTruncCount.Load() + identityTruncCount.Load()
 }

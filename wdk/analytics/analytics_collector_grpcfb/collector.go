@@ -23,6 +23,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -30,6 +31,7 @@ import (
 	"piko.sh/piko/wdk/analytics"
 	"piko.sh/piko/wdk/safeconv"
 	"piko.sh/piko/wdk/telemetry/telemetry_grpcfb"
+	"piko.sh/piko/wdk/useragent"
 )
 
 const (
@@ -43,6 +45,44 @@ const (
 	// maxPropertyValueLen bounds each custom property value, so an oversized value cannot
 	// exhaust the frame budget.
 	maxPropertyValueLen = 1024
+
+	// clientClassPrefix namespaces the properties derived from the User-Agent.
+	clientClassPrefix = "client."
+
+	// clientBrowserKey carries the browser family, e.g. "Chrome".
+	clientBrowserKey = clientClassPrefix + "browser"
+
+	// clientBrowserMajorKey carries the browser major version as a decimal string.
+	clientBrowserMajorKey = clientClassPrefix + "browser_major"
+
+	// clientOSKey carries the operating-system family, e.g. "macOS".
+	clientOSKey = clientClassPrefix + "os"
+
+	// clientDeviceKey carries the form factor: desktop, mobile, tablet or bot.
+	clientDeviceKey = clientClassPrefix + "device"
+
+	// propertiesDroppedKey marks an event whose properties hit the count cap; its value is
+	// the number that were not sent.
+	propertiesDroppedKey = clientClassPrefix + "properties_dropped"
+
+	// propertiesTruncatedKey marks an event carrying at least one property value clipped to
+	// maxPropertyValueLen; its value is the number of values shortened.
+	propertiesTruncatedKey = clientClassPrefix + "properties_truncated"
+
+	// propertiesReservedKey reports how many caller properties were dropped for naming the
+	// framework's reserved prefix.
+	propertiesReservedKey = clientClassPrefix + "properties_reserved"
+
+	// maxPropertyMarkers is how many marker entries cappedProperties may append, and so how
+	// many slots it holds back from the cap.
+	maxPropertyMarkers = 3
+
+	// clientBotKey marks a self-identified crawler.
+	clientBotKey = clientClassPrefix + "bot"
+
+	// maxClientClassProps is the largest number of properties userAgentClass can emit. It
+	// sizes the slice; the caller's budget is reduced by the number actually derived.
+	maxClientClassProps = 5
 )
 
 // privacyPolicy controls how client-identifying fields are anonymised before streaming
@@ -60,6 +100,10 @@ type privacyPolicy struct {
 
 	// sendUserID reports whether the raw user id is streamed rather than omitted.
 	sendUserID bool
+
+	// classifyUserAgent reports whether coarse client families are derived from the
+	// User-Agent and shipped as reserved properties.
+	classifyUserAgent bool
 }
 
 // Collector implements analytics.Collector by translating analytics events into telemetry
@@ -103,11 +147,25 @@ func WithURLQuery() Option { return func(c *Collector) { c.privacy.stripURLQuery
 // Returns Option which configures the collector to stream the raw user id.
 func WithUserID() Option { return func(c *Collector) { c.privacy.sendUserID = true } }
 
+// WithoutUserAgentClass stops the collector deriving coarse client families from the
+// User-Agent, so no clientClassPrefix property is emitted.
+//
+// Returns Option which configures the collector to emit no derived client classes.
+func WithoutUserAgentClass() Option {
+	return func(c *Collector) { c.privacy.classifyUserAgent = false }
+}
+
 // defaultPrivacy returns the default policy that hashes PII and strips query strings.
 //
 // Returns privacyPolicy which is the privacy-preserving default policy.
 func defaultPrivacy() privacyPolicy {
-	return privacyPolicy{hashClientIP: true, hashUserAgent: true, stripURLQuery: true, sendUserID: false}
+	return privacyPolicy{
+		hashClientIP:      true,
+		hashUserAgent:     true,
+		stripURLQuery:     true,
+		sendUserID:        false,
+		classifyUserAgent: true,
+	}
 }
 
 // hashPII returns a hex SHA-256 of s, an opaque stable identifier, or "" for "". It lets
@@ -206,31 +264,66 @@ func (c *Collector) Collect(ctx context.Context, e *analytics.Event) error {
 			}
 		}
 	}
-	ev.Properties = cappedProperties(e.Properties)
+
+	derived := c.userAgentClass(e.UserAgent)
+	ev.Properties = append(cappedProperties(e.Properties, maxProperties-len(derived)), derived...)
 	c.client.AddAnalytics(ctx, ev)
 	return nil
 }
 
-// cappedProperties copies at most maxProperties entries, each value UTF-8 truncated to
+// cappedProperties copies at most limit entries, each value UTF-8 truncated to
 // maxPropertyValueLen, so a high-cardinality or oversized property set cannot blow the
 // frame budget. Map iteration order is non-deterministic, acceptable for a lossy,
 // best-effort overflow cap.
 //
 // Takes props (map[string]string) which are the custom event properties to cap.
+// Takes limit (int) which is the most entries to copy, leaving room for derived ones.
 //
 // Returns []telemetry_grpcfb.KV which is the capped, truncated property list, or nil.
-func cappedProperties(props map[string]string) []telemetry_grpcfb.KV {
-	if len(props) == 0 {
+func cappedProperties(props map[string]string, limit int) []telemetry_grpcfb.KV {
+	if len(props) == 0 || limit <= 0 {
 		return nil
 	}
-	out := make([]telemetry_grpcfb.KV, 0, min(len(props), maxProperties))
-	for k, v := range props {
-		if len(out) >= maxProperties {
-			break
+	out := make([]telemetry_grpcfb.KV, 0, min(len(props), limit))
+	dropped, truncated, reserved := 0, 0, 0
+
+	for key, value := range props {
+		if strings.HasPrefix(key, clientClassPrefix) {
+			reserved++
+
+			continue
 		}
-		value, _ := telemetry_grpcfb.TruncateUTF8(v, maxPropertyValueLen)
-		out = append(out, telemetry_grpcfb.KV{Key: k, Value: value})
+
+		if len(out) >= limit-maxPropertyMarkers {
+			dropped++
+
+			continue
+		}
+
+		clipped, wasTruncated := telemetry_grpcfb.TruncateUTF8(value, maxPropertyValueLen)
+		if wasTruncated {
+			truncated++
+		}
+		out = append(out, telemetry_grpcfb.KV{Key: key, Value: clipped})
 	}
+
+	if dropped > 0 {
+		out = append(out, telemetry_grpcfb.KV{
+			Key: propertiesDroppedKey, Value: strconv.Itoa(dropped),
+		})
+	}
+	if truncated > 0 {
+		out = append(out, telemetry_grpcfb.KV{
+			Key: propertiesTruncatedKey, Value: strconv.Itoa(truncated),
+		})
+	}
+
+	if reserved > 0 {
+		out = append(out, telemetry_grpcfb.KV{
+			Key: propertiesReservedKey, Value: strconv.Itoa(reserved),
+		})
+	}
+
 	return out
 }
 
@@ -300,4 +393,37 @@ func Dial(target string, config telemetry_grpcfb.Config, dialOpts ...grpc.DialOp
 		return nil, fmt.Errorf("analytics_collector_grpcfb: dial %q: %w", target, err)
 	}
 	return &Collector{client: client, privacy: defaultPrivacy(), ownsClient: true}, nil
+}
+
+// userAgentClass derives the coarse client families from the raw User-Agent header.
+//
+// Takes rawUserAgent (string) which is the unhashed User-Agent header from the request.
+//
+// Returns []telemetry_grpcfb.KV which are the derived client properties, or nil.
+func (c *Collector) userAgentClass(rawUserAgent string) []telemetry_grpcfb.KV {
+	if !c.privacy.classifyUserAgent || rawUserAgent == "" {
+		return nil
+	}
+	class := useragent.Classify(rawUserAgent)
+	out := make([]telemetry_grpcfb.KV, 0, maxClientClassProps)
+
+	for _, candidate := range [...]telemetry_grpcfb.KV{
+		{Key: clientBrowserKey, Value: class.Browser},
+		{Key: clientBrowserMajorKey, Value: class.BrowserMajor},
+		{Key: clientOSKey, Value: class.OS},
+		{Key: clientDeviceKey, Value: class.Device},
+	} {
+		if candidate.Value == "" {
+			continue
+		}
+		value, _ := telemetry_grpcfb.TruncateUTF8(candidate.Value, maxPropertyValueLen)
+		out = append(out, telemetry_grpcfb.KV{Key: candidate.Key, Value: value})
+	}
+	if class.Bot {
+		out = append(out, telemetry_grpcfb.KV{Key: clientBotKey, Value: "true"})
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

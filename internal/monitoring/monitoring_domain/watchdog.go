@@ -30,6 +30,8 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
+	"slices"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -145,6 +147,10 @@ const (
 	// prevent unbounded disk usage from misconfiguration.
 	maxContinuousProfilingRetention = 100
 
+	// maxContinuousProfilingTypes is the number of distinct profile types the routine loop
+	// may be asked for.
+	maxContinuousProfilingTypes = 3
+
 	// routineProfilePrefix is the prefix used for continuous-profiling captures so their
 	// rotation is independent from threshold-triggered captures.
 	routineProfilePrefix = "routine-"
@@ -212,6 +218,9 @@ const (
 	// profileTypeGoroutine identifies goroutine profile captures.
 	profileTypeGoroutine = "goroutine"
 
+	// profileTypeAllocs identifies allocation profile captures.
+	profileTypeAllocs = "allocs"
+
 	// profileTypeGoroutineLeak identifies goroutine leak profile captures.
 	profileTypeGoroutineLeak = "goroutineleak"
 
@@ -231,6 +240,10 @@ const (
 
 	// uploadTimeout is the maximum time allowed for a single watchdog profile upload.
 	uploadTimeout = 30 * time.Second
+
+	// backgroundDrainTimeout bounds how long Stop waits for outstanding notifications and
+	// uploads.
+	backgroundDrainTimeout = 35 * time.Second
 )
 
 var (
@@ -421,6 +434,10 @@ type WatchdogConfig struct {
 	// capture. Default: false (suppressed) to avoid notifier flooding.
 	ContinuousProfilingNotify bool
 
+	// ContinuousProfilingUpload sends each routine capture to the configured profile
+	// uploader as well as storing it locally.
+	ContinuousProfilingUpload bool
+
 	// ContinuousProfilingEnabled enables low-frequency routine profile captures so
 	// post-mortem operators have recent profiles even when no threshold breach occurred.
 	// Default: false (opt-in).
@@ -494,6 +511,9 @@ type Watchdog struct {
 
 	// clock provides time operations; replaceable for testing.
 	clock clock.Clock
+
+	// memoryLimitFn reads the Go runtime memory limit; replaceable for testing.
+	memoryLimitFn func() int64
 
 	// profilingController captures pprof profiles on demand.
 	//
@@ -695,6 +715,10 @@ func NewWatchdog(config WatchdogConfig, systemCollector *SystemCollector, opts .
 		w.clock = clock.RealClock()
 	}
 
+	if w.memoryLimitFn == nil {
+		w.memoryLimitFn = runtimeMemoryLimit
+	}
+
 	if config.ProfileDirectory == "" {
 		config.ProfileDirectory = filepath.Join(os.TempDir(), "piko-watchdog")
 		w.config.ProfileDirectory = config.ProfileDirectory
@@ -724,6 +748,22 @@ func NewWatchdog(config WatchdogConfig, systemCollector *SystemCollector, opts .
 func WithWatchdogClock(clk clock.Clock) WatchdogOption {
 	return func(w *Watchdog) {
 		w.clock = clk
+	}
+}
+
+// WithWatchdogMemoryLimit sets the source of the Go runtime memory limit. This is
+// intended for testing, where reading the real limit makes the heap rules depend on the
+// environment the tests happen to run in.
+//
+// Takes read (func() int64) which reports the limit in bytes, or math.MaxInt64 for no
+// limit.
+//
+// Returns WatchdogOption which configures the limit source when applied.
+func WithWatchdogMemoryLimit(read func() int64) WatchdogOption {
+	return func(w *Watchdog) {
+		if read != nil {
+			w.memoryLimitFn = read
+		}
 	}
 }
 
@@ -800,17 +840,22 @@ func (w *Watchdog) Start(ctx context.Context) {
 	w.resolveHeapThreshold(ctx)
 	w.checkMemProfileRate(ctx)
 	w.checkProfilingController(ctx)
-	w.startedAt = w.clock.Now()
-	w.lastTrendEvaluation = w.startedAt
+	startedAt := w.clock.Now()
+	leakProfileAvailable := pprof.Lookup(profileTypeGoroutineLeak) != nil
+
+	w.mu.Lock()
+	w.startedAt = startedAt
+	w.lastTrendEvaluation = startedAt
+	if w.config.TrendWindowSize > 0 {
+		w.heapTrendBuffer = newHeapTrendBuffer(w.config.TrendWindowSize)
+	}
+	w.goroutineLeakAvailable = leakProfileAvailable
+	w.mu.Unlock()
 
 	w.cacheCgroupMemoryLimit(ctx)
 	w.processStartupHistory(ctx)
 
-	if w.config.TrendWindowSize > 0 {
-		w.heapTrendBuffer = newHeapTrendBuffer(w.config.TrendWindowSize)
-	}
-
-	w.goroutineLeakAvailable = pprof.Lookup(profileTypeGoroutineLeak) != nil
+	w.sendNotification(ctx, NewWatchdogConfigEvent(w.GetWatchdogStatus(ctx)))
 
 	go w.loop(ctx)
 
@@ -881,7 +926,7 @@ func (w *Watchdog) Stop() {
 
 	w.captureWG.Wait()
 
-	w.backgroundWG.Wait()
+	w.waitBounded(&w.backgroundWG, backgroundDrainTimeout, "background")
 
 	w.closeAllEventSubscribers(context.Background())
 
@@ -1024,14 +1069,19 @@ func (w *Watchdog) GetWatchdogStatus(_ context.Context) *WatchdogStatusInfo {
 	captureWindowUsed := len(w.captureTimestamps)
 	warningWindowUsed := len(w.warningTimestamps)
 	contentionLastRun := w.lastContentionDiagnosticAt
+	startedAt := w.startedAt
+	gomemlimit := w.gomemlimit
+	initialHeapThreshold := w.initialHeapThreshold
 	w.mu.Unlock()
 
-	continuousTypes := append([]string(nil), w.config.ContinuousProfilingTypes...)
+	continuousTypes := slices.Clone(w.config.ContinuousProfilingTypes)
 
 	return &WatchdogStatusInfo{
-		StartedAt:                    w.startedAt,
+		StartedAt:                    startedAt,
 		ContentionDiagnosticLastRun:  contentionLastRun,
 		ProfileDirectory:             w.config.ProfileDirectory,
+		Hostname:                     w.hostname,
+		Version:                      buildVersionString(),
 		ContinuousProfilingTypes:     continuousTypes,
 		CheckInterval:                w.config.CheckInterval,
 		Cooldown:                     w.config.Cooldown,
@@ -1039,12 +1089,18 @@ func (w *Watchdog) GetWatchdogStatus(_ context.Context) *WatchdogStatusInfo {
 		CaptureWindow:                w.config.CaptureWindow,
 		SchedulerLatencyP99Threshold: w.config.SchedulerLatencyP99Threshold,
 		CrashLoopWindow:              w.config.CrashLoopWindow,
+		GCPressureThreshold:          w.config.GCPressureThreshold,
+		RSSThresholdPercent:          w.config.RSSThresholdPercent,
+		TrendWindowSize:              w.config.TrendWindowSize,
+		TrendWarningHorizon:          w.config.TrendWarningHorizon,
 		ContinuousProfilingInterval:  w.config.ContinuousProfilingInterval,
 		ContentionDiagnosticWindow:   w.config.ContentionDiagnosticWindowDuration,
 		ContentionDiagnosticCooldown: w.config.ContentionDiagnosticCooldown,
-		HeapThresholdBytes:           w.initialHeapThreshold,
+		GomemlimitBytes:              gomemlimit,
+		HeapThresholdBytes:           initialHeapThreshold,
 		HeapHighWater:                heapHighWater,
 		FDPressureThresholdPercent:   w.config.FDPressureThresholdPercent,
+		PID:                          os.Getpid(),
 		GoroutineThreshold:           w.config.GoroutineThreshold,
 		GoroutineSafetyCeiling:       w.config.GoroutineSafetyCeiling,
 		MaxProfilesPerType:           w.config.MaxProfilesPerType,
@@ -1062,28 +1118,70 @@ func (w *Watchdog) GetWatchdogStatus(_ context.Context) *WatchdogStatusInfo {
 	}
 }
 
+// waitBounded waits for a wait group, giving up after a timeout so one unresponsive
+// third-party call cannot hold shutdown open indefinitely.
+//
+// Takes group (*sync.WaitGroup) which is the group to drain.
+// Takes timeout (time.Duration) which bounds the wait.
+// Takes name (string) which identifies the group in the warning.
+//
+// Safe for concurrent use; the wait runs on a goroutine spawned per call; that goroutine
+// outlives an abandoned wait and ends when the group drains.
+func (w *Watchdog) waitBounded(group *sync.WaitGroup, timeout time.Duration, name string) {
+	drained := make(chan struct{})
+
+	go func() {
+		defer close(drained)
+		group.Wait()
+	}()
+
+	timer := w.clock.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-drained:
+	case <-timer.C():
+		_, l := logger_domain.From(context.Background(), log)
+		l.Warn("Watchdog shutdown abandoned a wait that did not finish in time",
+			String("wait_group", name),
+			String("timeout", timeout.String()),
+		)
+	}
+}
+
 // resolveHeapThreshold reads the current GOMEMLIMIT from the runtime and computes the
 // initial heap threshold. Called at Start time rather than construction time because
 // automemlimit sets the limit during bootstrap after the watchdog is constructed.
+//
+// Safe for concurrent use; acquires the watchdog's mutex to publish the limit alongside
+// the initial threshold and the high-water mark.
 func (w *Watchdog) resolveHeapThreshold(ctx context.Context) {
-	w.gomemlimit = debug.SetMemoryLimit(-1)
+	limit := w.memoryLimitFn()
+	limitDerived := limit > 0 && limit < math.MaxInt64
 
-	if w.gomemlimit > 0 && w.gomemlimit < math.MaxInt64 {
-		w.initialHeapThreshold = uint64(float64(w.gomemlimit) * w.config.HeapThresholdPercent)
-	} else {
-		w.initialHeapThreshold = w.config.HeapThresholdBytes
-
-		_, l := logger_domain.From(ctx, log)
-		l.Warn("GOMEMLIMIT is not configured; the watchdog will use the absolute heap "+
-			"threshold. In containerised environments, use piko.WithAutoMemoryLimit for "+
-			"accurate OOM-aware monitoring",
-			logger_domain.Uint64("heap_threshold_bytes", w.initialHeapThreshold),
-		)
-
-		w.sendNotification(ctx, NewGomemlimitNotConfiguredEvent())
+	threshold := w.config.HeapThresholdBytes
+	if limitDerived {
+		threshold = uint64(float64(limit) * w.config.HeapThresholdPercent)
 	}
 
-	w.heapHighWater = w.initialHeapThreshold
+	w.mu.Lock()
+	w.gomemlimit = limit
+	w.initialHeapThreshold = threshold
+	w.heapHighWater = threshold
+	w.mu.Unlock()
+
+	if limitDerived {
+		return
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("GOMEMLIMIT is not configured; the watchdog will use the absolute heap "+
+		"threshold. In containerised environments, use piko.WithAutoMemoryLimit for "+
+		"accurate OOM-aware monitoring",
+		logger_domain.Uint64("heap_threshold_bytes", threshold),
+	)
+
+	w.sendNotification(ctx, NewGomemlimitNotConfiguredEvent())
 }
 
 // checkProfilingController warns at startup when the watchdog has no profiling controller
@@ -1113,12 +1211,17 @@ func (w *Watchdog) checkProfilingController(ctx context.Context) {
 
 // checkMemProfileRate disarms heap and allocs captures when the runtime is not sampling,
 // so threshold triggers do not write empty pprofs and burn the cooldown budget.
+//
+// Safe for concurrent use; acquires the watchdog's mutex to set the flag that disarms
+// heap and allocs captures.
 func (w *Watchdog) checkMemProfileRate(ctx context.Context) {
 	if runtime.MemProfileRate != 0 {
 		return
 	}
 
+	w.mu.Lock()
 	w.heapProfilingDisabled = true
+	w.mu.Unlock()
 
 	_, l := logger_domain.From(ctx, log)
 	l.Warn("runtime.MemProfileRate is 0; heap and allocs captures are disarmed. " +
@@ -1437,7 +1540,7 @@ func (w *Watchdog) captureAndStoreProfile(ctx context.Context, profileType strin
 
 	w.writeSidecarMetadata(ctx, profileType, timestamp, capCtx)
 	w.maybeWriteGoroutineStacks(ctx, profileType, timestamp)
-	w.processStoredProfile(ctx, profileType, profileData)
+	w.processStoredProfile(ctx, profileType, profileData, capCtx)
 
 	l.Notice("Watchdog captured and stored diagnostic profile",
 		String(logFieldProfileType, profileType),
@@ -1606,8 +1709,10 @@ func (w *Watchdog) maybeWriteGoroutineStacks(ctx context.Context, profileType, t
 // Takes profileType (string) which identifies the profile that was captured.
 // Takes profileData ([]byte) which is the raw profile bytes to upload and use for delta
 // baselines.
-func (w *Watchdog) processStoredProfile(ctx context.Context, profileType string, profileData []byte) {
-	w.uploadProfile(ctx, profileType, profileData)
+// Takes capCtx (captureContext) which describes the rule that triggered the capture, so
+// the upload can report a trigger.
+func (w *Watchdog) processStoredProfile(ctx context.Context, profileType string, profileData []byte, capCtx captureContext) {
+	w.uploadProfile(ctx, profileType, profileData, capCtx)
 
 	if profileType == profileTypeHeap && w.config.DeltaProfilingEnabled {
 		w.storeHeapBaseline(ctx, profileData)
@@ -1655,7 +1760,7 @@ func (w *Watchdog) captureFlightRecorderSnapshot(ctx context.Context) {
 		return
 	}
 
-	w.uploadProfile(ctx, profileTypeTrace, traceData)
+	w.uploadProfile(ctx, profileTypeTrace, traceData, captureContext{Rule: "flight_recorder"})
 }
 
 // storeHeapBaseline writes the previous heap profile as a baseline file so the user can
@@ -1711,7 +1816,10 @@ func (w *Watchdog) sendNotification(ctx context.Context, event WatchdogEvent) {
 		defer notificationCancel()
 		defer goroutine.RecoverPanic(detachedCtx, "monitoring.watchdogNotification")
 
-		if err := w.notifier.Notify(detachedCtx, event); err != nil {
+		err := goroutine.SafeCall(detachedCtx, "monitoring.watchdogNotifier", func() error {
+			return w.notifier.Notify(detachedCtx, event)
+		})
+		if err != nil {
 			_, l := logger_domain.From(detachedCtx, log)
 			l.Warn("Failed to send watchdog notification",
 				String("event_type", string(event.EventType)),
@@ -1730,9 +1838,13 @@ func (w *Watchdog) sendNotification(ctx context.Context, event WatchdogEvent) {
 // If no uploader is configured, this is a no-op. The upload is best-effort and tracked by
 // backgroundWG so Stop can wait for completion.
 //
-// Takes profileType (string) which identifies the profile category.
+// Takes profileType (string) which identifies the profile category. This is the bare type
+// ("heap", "goroutine", "allocs"), never a storage-layer prefix: a sink filters on it, so
+// a prefixed value silently matches nothing.
 // Takes data ([]byte) which is the raw profile bytes to upload.
-func (w *Watchdog) uploadProfile(ctx context.Context, profileType string, data []byte) {
+// Takes capCtx (captureContext) which describes what triggered the capture, so the sink
+// can show a trigger rather than a blank.
+func (w *Watchdog) uploadProfile(ctx context.Context, profileType string, data []byte, capCtx captureContext) {
 	if w.profileUploader == nil {
 		return
 	}
@@ -1746,13 +1858,26 @@ func (w *Watchdog) uploadProfile(ctx context.Context, profileType string, data [
 		defer goroutine.RecoverPanic(detachedCtx, "monitoring.watchdogUpload."+profileType)
 
 		metadata := map[string]string{
+			"reason":       capCtx.Rule,
+			"host":         w.hostname,
 			"hostname":     w.hostname,
+			"pid":          strconv.Itoa(os.Getpid()),
+			"version":      buildVersionString(),
 			"profile_type": profileType,
-			"gomemlimit":   fmt.Sprintf("%d", w.gomemlimit),
+			"gomemlimit":   strconv.FormatInt(w.gomemlimit, 10),
 			"timestamp":    w.clock.Now().Format("2006-01-02T15:04:05Z"),
 		}
+		if capCtx.Observed != 0 {
+			metadata["observed"] = strconv.FormatUint(capCtx.Observed, 10)
+		}
+		if capCtx.Threshold != 0 {
+			metadata["threshold"] = strconv.FormatUint(capCtx.Threshold, 10)
+		}
 
-		if err := w.profileUploader.Upload(detachedCtx, profileType, data, metadata); err != nil {
+		err := goroutine.SafeCall(detachedCtx, "monitoring.watchdogUploader", func() error {
+			return w.profileUploader.Upload(detachedCtx, profileType, data, metadata)
+		})
+		if err != nil {
 			_, l := logger_domain.From(detachedCtx, log)
 			l.Warn("Failed to upload watchdog profile",
 				String(logFieldProfileType, profileType),
@@ -1766,16 +1891,20 @@ func (w *Watchdog) uploadProfile(ctx context.Context, profileType string, data [
 	})
 }
 
-// buildVersionString returns the application version derived from the build info, falling
-// back to the package-level Version constant when unavailable.
+// buildVersionString returns the running build's version.
+//
+// The precedence is PIKO_SERVICE_VERSION, then the build info, then the Version variable
+// set at link time.
 //
 // Returns string which is the resolved version identifier.
 func buildVersionString() string {
-	if Version != "" && Version != "dev" {
-		return Version
-	}
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
-		return info.Main.Version
-	}
-	return Version
+	return logger_domain.ServiceVersion(Version)
+}
+
+// runtimeMemoryLimit reports the Go runtime memory limit in bytes, or math.MaxInt64 when
+// no limit is set.
+//
+// Returns int64 which is the current limit.
+func runtimeMemoryLimit() int64 {
+	return debug.SetMemoryLimit(-1)
 }

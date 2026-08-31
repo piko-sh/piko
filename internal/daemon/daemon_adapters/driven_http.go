@@ -1379,11 +1379,10 @@ func buildMasterPlaylist(artefact *registry_dto.ArtefactMeta) string {
 
 	for i := range artefact.DesiredProfiles {
 		np := &artefact.DesiredProfiles[i]
-		if !strings.HasPrefix(np.Name, hlsVariantPrefix) {
+		quality, isVariant := strings.CutPrefix(np.Name, hlsVariantPrefix)
+		if !isVariant {
 			continue
 		}
-
-		quality := strings.TrimPrefix(np.Name, hlsVariantPrefix)
 		qualityInfo, ok := hlsQualityConfigs[quality]
 		if !ok {
 			continue

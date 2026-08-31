@@ -19,10 +19,31 @@
 package telemetry_grpcfb
 
 import (
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 var (
 	// log is the package-level logger for the telemetry_grpcfb package.
 	log = logger_domain.GetLogger("piko/wdk/telemetry/telemetry_grpcfb")
+
+	// meter provides OpenTelemetry metrics for the telemetry_grpcfb package.
+	meter = otel.Meter("piko/wdk/telemetry/telemetry_grpcfb")
+
+	// stringsTruncatedCount tracks values shortened to fit their cap.
+	stringsTruncatedCount metric.Int64Counter
 )
+
+func init() {
+	var err error
+
+	stringsTruncatedCount, err = meter.Int64Counter(
+		"telemetry.strings_truncated_count",
+		metric.WithDescription("Number of telemetry values shortened to fit their cap"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+}

@@ -54,7 +54,7 @@ type trustedProxyIPExtractor struct {
 // ExtractClientIP returns the real client IP address from the request.
 //
 // The extraction logic follows this priority:
-//  1. If the direct connection IP is NOT from a trusted proxy, return it directly (do not
+//  1. If the direct connection IP is not from a trusted proxy, return it directly (do not
 //     trust any forwarding headers from untrusted sources).
 //  2. If the direct connection IS from a trusted proxy, check headers in order:
 //     CF-Connecting-IP (only when cloudflareEnabled), X-Real-IP (nginx default),
@@ -66,17 +66,30 @@ type trustedProxyIPExtractor struct {
 //
 // Returns string which is the resolved client IP address.
 func (e *trustedProxyIPExtractor) ExtractClientIP(r *http.Request) string {
+	clientIP, _ := e.ResolveClient(r)
+	return clientIP
+}
+
+// ResolveClient reports the client IP and the trusted-proxy verdict from one parse of the
+// remote address.
+//
+// Takes r (*http.Request) which is the HTTP request.
+//
+// Returns string which is the resolved client IP address.
+// Returns bool which is true when the request arrived through a trusted proxy.
+func (e *trustedProxyIPExtractor) ResolveClient(r *http.Request) (string, bool) {
 	remoteIP, parsedRemote := parseRemoteAddrWithIP(r.RemoteAddr)
 
-	if !e.isTrustedAddr(parsedRemote) {
-		return remoteIP
+	fromTrustedProxy := e.isTrustedAddr(parsedRemote)
+	if !fromTrustedProxy {
+		return remoteIP, false
 	}
 
 	if e.cloudflareEnabled {
 		if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
 			trimmed := strings.TrimSpace(cfIP)
 			if _, err := netip.ParseAddr(trimmed); err == nil {
-				return trimmed
+				return trimmed, true
 			}
 		}
 	}
@@ -84,17 +97,17 @@ func (e *trustedProxyIPExtractor) ExtractClientIP(r *http.Request) string {
 	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
 		trimmed := strings.TrimSpace(realIP)
 		if _, err := netip.ParseAddr(trimmed); err == nil {
-			return trimmed
+			return trimmed, true
 		}
 	}
 
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		if ip := e.extractFromXFF(xff); ip != "" {
-			return ip
+			return ip, true
 		}
 	}
 
-	return remoteIP
+	return remoteIP, true
 }
 
 // IsTrustedProxy checks if the given IP address is within any trusted proxy CIDR range.

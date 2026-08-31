@@ -222,6 +222,10 @@ generate-all: ## Run all code generators (dal, flatc, protoc, qt, interp, asmgen
 generate-dal: ## Generate Go code from SQL using generate_dal
 	@$(HACK_DIR)/generate/dal.sh
 
+.PHONY: generate-dal-validate
+generate-dal-validate: ## Validate generated DAL code is up to date
+	@$(HACK_DIR)/generate/dal.sh --validate
+
 .PHONY: generate-asmgen
 generate-asmgen: ## Generate Plan 9 assembly files for interp and vectormaths
 	@$(HACK_DIR)/generate/asmgen.sh

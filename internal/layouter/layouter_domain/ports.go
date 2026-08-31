@@ -113,7 +113,8 @@ type FontMetricsPort interface {
 	// Returns FontDescriptor which is the font that covers the character.
 	ResolveFallback(font FontDescriptor, character rune) FontDescriptor
 
-	// SplitGraphemeClusters segments text into grapheme clusters (user-perceived characters).
+	// SplitGraphemeClusters segments text into grapheme clusters (user-perceived
+	// characters).
 	//
 	// A grapheme cluster may span multiple runes, for example emoji with ZWJ sequences or
 	// base characters followed by combining marks.

@@ -19,6 +19,7 @@
 package security_adapters
 
 import (
+	"net"
 	"net/http/httptest"
 	"testing"
 
@@ -26,7 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTrustedProxyIPExtractor_ExtractClientIP(t *testing.T) {
+func TestTrustedProxyIPExtractor_ResolvesTheClientIP(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -203,13 +204,13 @@ func TestTrustedProxyIPExtractor_ExtractClientIP(t *testing.T) {
 				r.Header.Set(key, value)
 			}
 
-			result := extractor.ExtractClientIP(r)
+			result, _ := extractor.ResolveClient(r)
 			assert.Equal(t, tc.expected, result)
 		})
 	}
 }
 
-func TestTrustedProxyIPExtractor_IsTrustedProxy(t *testing.T) {
+func TestTrustedProxyIPExtractor_ResolvesProxyTrust(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -263,7 +264,10 @@ func TestTrustedProxyIPExtractor_IsTrustedProxy(t *testing.T) {
 			extractor, err := NewTrustedProxyIPExtractor(tc.trustedProxies, false)
 			require.NoError(t, err)
 
-			result := extractor.IsTrustedProxy(tc.ip)
+			r := httptest.NewRequest("GET", "/", nil)
+			r.RemoteAddr = net.JoinHostPort(tc.ip, "12345")
+
+			_, result := extractor.ResolveClient(r)
 			assert.Equal(t, tc.expected, result)
 		})
 	}

@@ -140,6 +140,10 @@ func validateForensicThresholds(config *WatchdogConfig) error {
 // Returns error wrapping ErrInvalidWatchdogConfig when the interval, retention, or types
 // are unsupported.
 func validateContinuousProfiling(config *WatchdogConfig) error {
+	if err := validateContinuousProfilingTypes(config.ContinuousProfilingTypes); err != nil {
+		return err
+	}
+
 	if !config.ContinuousProfilingEnabled {
 		return nil
 	}
@@ -151,15 +155,39 @@ func validateContinuousProfiling(config *WatchdogConfig) error {
 		return fmt.Errorf("%w: ContinuousProfilingRetention must be in [1, %d], got %d",
 			ErrInvalidWatchdogConfig, maxContinuousProfilingRetention, config.ContinuousProfilingRetention)
 	}
-	for _, profileType := range config.ContinuousProfilingTypes {
+	return nil
+}
+
+// validateContinuousProfilingTypes checks the routine profile type list is supported,
+// duplicate-free and bounded.
+//
+// Takes profileTypes ([]string) which is the candidate list.
+//
+// Returns error wrapping ErrInvalidWatchdogConfig when a type is unsupported, repeated,
+// or there are more than the allowed number.
+func validateContinuousProfilingTypes(profileTypes []string) error {
+	seen := make(map[string]struct{}, maxContinuousProfilingTypes)
+	for _, profileType := range profileTypes {
 		switch profileType {
-		case profileTypeHeap, profileTypeGoroutine, "allocs":
+		case profileTypeHeap, profileTypeGoroutine, profileTypeAllocs:
 
 		default:
 			return fmt.Errorf("%w: ContinuousProfilingTypes contains unsupported type %q (allowed: heap, goroutine, allocs)",
 				ErrInvalidWatchdogConfig, profileType)
 		}
+
+		if _, repeated := seen[profileType]; repeated {
+			return fmt.Errorf("%w: ContinuousProfilingTypes lists %q more than once",
+				ErrInvalidWatchdogConfig, profileType)
+		}
+		seen[profileType] = struct{}{}
 	}
+
+	if len(profileTypes) > maxContinuousProfilingTypes {
+		return fmt.Errorf("%w: ContinuousProfilingTypes may name at most %d types, got %d",
+			ErrInvalidWatchdogConfig, maxContinuousProfilingTypes, len(profileTypes))
+	}
+
 	return nil
 }
 

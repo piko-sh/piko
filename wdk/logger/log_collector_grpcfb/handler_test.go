@@ -43,7 +43,7 @@ import (
 func TestToErrorLiftsFields(t *testing.T) {
 	r := slog.NewRecord(time.Unix(0, 0), slog.LevelError, "boom", 0)
 	line := telemetry_grpcfb.LogLine{Message: "boom", Logger: "svc"}
-	ev := toError(&r, line, nil, extractedFields{culprit: "doThing", stack: "frame1\nframe2", errSuffix: "disk full"}, "")
+	ev := New(nil).toError(&r, line, nil, extractedFields{culprit: "doThing", stack: "frame1\nframe2", errSuffix: "disk full"}, "")
 	assert.Equal(t, "doThing", ev.Culprit)
 	assert.Equal(t, "boom: disk full", ev.Value)
 	assert.NotEmpty(t, ev.StackJSON, "StackJSON should be a JSON array of frames")
@@ -54,7 +54,7 @@ func TestToErrorLiftsFields(t *testing.T) {
 func TestToErrorBoundsStackAndValue(t *testing.T) {
 	r := slog.NewRecord(time.Unix(0, 0), slog.LevelError, strings.Repeat("a", maxErrorValueLen*2), 0)
 	line := telemetry_grpcfb.LogLine{Message: r.Message}
-	ev := toError(&r, line, nil, extractedFields{stack: strings.Repeat("x\n", maxStackLen)}, "")
+	ev := New(nil).toError(&r, line, nil, extractedFields{stack: strings.Repeat("x\n", maxStackLen)}, "")
 	assert.LessOrEqual(t, len(ev.Value), maxErrorValueLen)
 
 	assert.Less(t, len(ev.StackJSON), 4*maxStackLen, "stack is bounded before JSON wrapping")
@@ -64,23 +64,23 @@ func TestRateLimiterBurst(t *testing.T) {
 	l := newRateLimiter(0, 3, clock.RealClock())
 	allowed := 0
 	for range 10 {
-		if l.allow() {
+		if first(l.allow()) {
 			allowed++
 		}
 	}
 	assert.Equal(t, 3, allowed, "burst allowance")
 
 	var nilLimiter *rateLimiter
-	assert.True(t, nilLimiter.allow(), "nil limiter must allow")
+	assert.True(t, first(nilLimiter.allow()), "nil limiter must allow")
 }
 
 func TestRateLimiterRefill(t *testing.T) {
 	mock := clock.NewMockClock(time.Unix(1_700_000_000, 0))
 	l := newRateLimiter(10, 1, mock)
-	assert.True(t, l.allow(), "first call spends the burst token")
-	assert.False(t, l.allow(), "no tokens left without refill")
+	assert.True(t, first(l.allow()), "first call spends the burst token")
+	assert.False(t, first(l.allow()), "no tokens left without refill")
 	mock.Advance(200 * time.Millisecond)
-	assert.True(t, l.allow(), "refilled after advancing the clock")
+	assert.True(t, first(l.allow()), "refilled after advancing the clock")
 }
 
 func TestFingerprintDigitStable(t *testing.T) {

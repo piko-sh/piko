@@ -121,7 +121,33 @@ func TestRealIPMiddleware_Handler_PreservesExistingRequestID_FromTrustedProxy(t 
 
 	mw.Handler(next).ServeHTTP(w, r)
 
-	assert.Equal(t, "existing-request-id", capturedRequestID)
+	assert.Equal(t, "fwd/existing-request-id", capturedRequestID)
+	assert.True(t, daemon_dto.IsForwardedRequestID(capturedRequestID))
+}
+
+func TestRealIPMiddleware_Handler_GeneratesWhenForwardedRequestIDIsRejected(t *testing.T) {
+	t.Parallel()
+
+	extractor := &mockClientIPExtractor{
+		extractFunc:   func(_ *http.Request) string { return "1.2.3.4" },
+		isTrustedFunc: func(_ string) bool { return true },
+	}
+	mw := NewRealIPMiddleware(extractor)
+
+	var capturedRequestID string
+	next := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		capturedRequestID = security_dto.RequestIDFromRequest(r)
+	})
+
+	w := httptest.NewRecorder()
+	r := testRequestWithPikoCtx()
+	r.Header.Set("X-Request-Id", "not a valid id")
+
+	mw.Handler(next).ServeHTTP(w, r)
+
+	assert.NotEmpty(t, capturedRequestID)
+	assert.False(t, daemon_dto.IsForwardedRequestID(capturedRequestID),
+		"a rejected value must not be reported as forwarded")
 }
 
 func TestRealIPMiddleware_Handler_IgnoresRequestID_FromUntrustedClient(t *testing.T) {
@@ -238,4 +264,38 @@ func TestRealIPMiddleware_Handler_CallsNext(t *testing.T) {
 
 	mw.Handler(next).ServeHTTP(w, r)
 	assert.True(t, called)
+}
+
+type countingExtractor struct {
+	resolveCalls int
+	extractCalls int
+	trustedCalls int
+}
+
+func (c *countingExtractor) ExtractClientIP(*http.Request) string {
+	c.extractCalls++
+	return "1.2.3.4"
+}
+
+func (c *countingExtractor) IsTrustedProxy(string) bool {
+	c.trustedCalls++
+	return false
+}
+
+func (c *countingExtractor) ResolveClient(*http.Request) (string, bool) {
+	c.resolveCalls++
+	return "1.2.3.4", true
+}
+
+func TestRealIPMiddleware_ResolvesTheClientOnce(t *testing.T) {
+	extractor := &countingExtractor{}
+	middleware := NewRealIPMiddleware(extractor)
+
+	recorder := httptest.NewRecorder()
+	middleware.Handler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})).
+		ServeHTTP(recorder, testRequestWithPikoCtx())
+
+	assert.Equal(t, 1, extractor.resolveCalls, "one resolve per request")
+	assert.Zero(t, extractor.extractCalls, "the separate lookups are no longer used")
+	assert.Zero(t, extractor.trustedCalls)
 }

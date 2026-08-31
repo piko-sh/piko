@@ -47,6 +47,17 @@ func New(database *sql.DB) registry_dal.RegistryDALWithTx {
 	return dalcore.New(database, &driver{queries: registry_db.New(database)})
 }
 
+// NewObserved builds a registry DAL whose statements run through queryDB while
+// transactions and health checks use database directly.
+//
+// Takes database (*sql.DB) which owns BeginTx and PingContext.
+// Takes queryDB (registry_db.DBTX) which executes non-transactional statements.
+//
+// Returns registry_dal.RegistryDALWithTx which is ready for use.
+func NewObserved(database *sql.DB, queryDB registry_db.DBTX) registry_dal.RegistryDALWithTx {
+	return dalcore.New(database, &driver{queries: registry_db.New(queryDB)})
+}
+
 // WithTx returns a driver whose queries run inside tx.
 //
 // Takes tx (*sql.Tx) which is the transaction to scope queries to.

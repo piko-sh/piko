@@ -101,6 +101,11 @@ const (
 	// WatchdogEventContentionDiagnostic is emitted at the start and end of a contention
 	// diagnostic so external observability sees the change in runtime overhead.
 	WatchdogEventContentionDiagnostic WatchdogEventType = "contention_diagnostic"
+
+	// WatchdogEventConfig is emitted once from Start, reporting the effective configuration
+	// so a remote sink can tell "nothing breached" apart from "the thresholds were never
+	// reachable". It is informational and never indicates a problem.
+	WatchdogEventConfig WatchdogEventType = "watchdog_config"
 )
 
 // WatchdogEventPriority indicates the urgency of a watchdog event.

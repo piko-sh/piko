@@ -38,6 +38,9 @@ const (
 	// cannot bloat a telemetry frame.
 	maxErrorLen = 512
 
+	// maxDBSystemLen bounds the db.system label. Every real value is a short dialect name.
+	maxDBSystemLen = 64
+
 	// rawInputCap bounds the raw statement/error text fed to the redaction regexps before
 	// the final cap is applied.
 	rawInputCap = 16 * maxStatementLen
@@ -53,7 +56,7 @@ var (
 	// quotes).
 	sqlEStringLit = regexp.MustCompile(`[eE]'(?:[^'\\]|''|\\.)*'`)
 	// sqlStringLit matches single-quoted SQL string literals, handling doubled single-quote
-	// escapes. Redacting these to '?' keeps PII in non-parameterized SQL or DB error strings
+	// escapes. Redacting these to '?' keeps PII in non-parameterised SQL or DB error strings
 	// from reaching the remote sink, and tightens grouping.
 	sqlStringLit = regexp.MustCompile(`'(?:[^']|'')*'`)
 
@@ -130,6 +133,14 @@ func (c *Collector) ObserveQuery(ctx context.Context, obs *piko.QueryObservation
 	statement, statementCapped := telemetry_grpcfb.TruncateUTF8(redactSQL(rawStatement), maxStatementLen)
 	if statementTruncated || statementCapped {
 		attrs = append(attrs, telemetry_grpcfb.KV{Key: "truncated", Value: "statement"})
+	}
+
+	if obs.System != "" {
+		system, systemTruncated := telemetry_grpcfb.TruncateUTF8(obs.System, maxDBSystemLen)
+		attrs = append(attrs, telemetry_grpcfb.KV{Key: "db.system", Value: system})
+		if systemTruncated {
+			attrs = append(attrs, telemetry_grpcfb.KV{Key: "truncated", Value: "db.system"})
+		}
 	}
 
 	status, errorMessage := "ok", ""

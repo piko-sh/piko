@@ -19,12 +19,14 @@
 package piko
 
 import (
+	"cmp"
 	"context"
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/maths"
 )
 
@@ -85,7 +87,7 @@ func TrackAnalyticsEvent(ctx context.Context, event *AnalyticsEvent) {
 // Takes revenue (maths.Money) which is the monetary value to record.
 func SetAnalyticsRevenue(ctx context.Context, revenue maths.Money) {
 	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
-		pctx.AnalyticsRevenue = &revenue
+		pctx.SetAnalyticsRevenue(&revenue)
 	}
 }
 
@@ -102,13 +104,13 @@ func AddAnalyticsProperty(ctx context.Context, key, value string) {
 	if pctx == nil {
 		return
 	}
-	if pctx.AnalyticsProperties == nil {
-		pctx.AnalyticsProperties = make(map[string]string)
+	if !pctx.SetAnalyticsProperty(key, value, maxAnalyticsProperties) {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Analytics property dropped; the per-request property limit is full",
+			logger_domain.String("property", key),
+			logger_domain.Int("limit", maxAnalyticsProperties),
+		)
 	}
-	if len(pctx.AnalyticsProperties) >= maxAnalyticsProperties {
-		return
-	}
-	pctx.AnalyticsProperties[key] = value
 }
 
 // SetAnalyticsEventName changes the automatic analytics event from a page view to a named
@@ -119,9 +121,41 @@ func AddAnalyticsProperty(ctx context.Context, key, value string) {
 //
 // Takes name (string) which is the event name.
 func SetAnalyticsEventName(ctx context.Context, name string) {
-	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
-		pctx.AnalyticsEventName = name
+	pctx := daemon_dto.PikoRequestCtxFromContext(ctx)
+	if pctx == nil {
+		return
 	}
+
+	clamped, wasClamped := daemon_dto.ClampAnalyticsName(name)
+	if wasClamped {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Analytics event name shortened to fit the name limit",
+			logger_domain.Int("supplied_bytes", len(name)),
+			logger_domain.String("event_name", clamped),
+		)
+	}
+	pctx.SetAnalyticsEvent(clamped)
+}
+
+// SetAnalyticsActionName attributes the request's automatic analytics event to a named
+// action, promoting it from a page view to an action event.
+//
+// Takes name (string) which is the action to attribute the event to.
+func SetAnalyticsActionName(ctx context.Context, name string) {
+	pctx := daemon_dto.PikoRequestCtxFromContext(ctx)
+	if pctx == nil {
+		return
+	}
+
+	clamped, wasClamped := daemon_dto.ClampAnalyticsName(name)
+	if wasClamped {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Analytics action name shortened to fit the name limit",
+			logger_domain.Int("supplied_bytes", len(name)),
+			logger_domain.String("action_name", clamped),
+		)
+	}
+	pctx.SetAnalyticsAction(clamped)
 }
 
 // enrichEventFromRequestCtx fills in empty event fields from the per-request carrier so
@@ -131,18 +165,12 @@ func SetAnalyticsEventName(ctx context.Context, name string) {
 // Takes event (*AnalyticsEvent) which is the event to enrich.
 // Takes pctx (*daemon_dto.PikoRequestCtx) which provides the request-level values.
 func enrichEventFromRequestCtx(event *AnalyticsEvent, pctx *daemon_dto.PikoRequestCtx) {
-	if event.ClientIP == "" {
-		event.ClientIP = pctx.ClientIP
-	}
-	if event.Locale == "" {
-		event.Locale = pctx.Locale
-	}
-	if event.MatchedPattern == "" {
-		event.MatchedPattern = pctx.MatchedPattern
-	}
-	if event.Hostname == "" {
-		event.Hostname = pctx.Hostname
-	}
+	event.ClientIP = cmp.Or(event.ClientIP, pctx.ClientIP)
+	event.Locale = cmp.Or(event.Locale, pctx.Locale)
+	event.MatchedPattern = cmp.Or(event.MatchedPattern, pctx.MatchedPattern)
+	event.ActionName = cmp.Or(event.ActionName, pctx.AnalyticsActionName)
+	event.Hostname = cmp.Or(event.Hostname, pctx.Hostname)
+
 	if event.UserID == "" {
 		if auth, ok := pctx.CachedAuth.(daemon_dto.AuthContext); ok && auth.IsAuthenticated() {
 			event.UserID = auth.UserID()

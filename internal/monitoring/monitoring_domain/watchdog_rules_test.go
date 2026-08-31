@@ -21,6 +21,7 @@ package monitoring_domain
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -762,4 +763,41 @@ func TestWatchdog_EvaluateGoroutineLeaksDisabled(t *testing.T) {
 	assert.NotPanics(t, func() {
 		watchdog.evaluateGoroutineLeaks(context.Background(), mockClock.Now())
 	})
+}
+
+func TestWatchdog_HeapThresholdDerivesFromTheMemoryLimit(t *testing.T) {
+	t.Parallel()
+
+	const (
+		limit          int64   = 2_000_000_000
+		thresholdShare float64 = 0.85
+		wantThreshold  uint64  = 1_700_000_000
+	)
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	config := DefaultWatchdogConfig()
+	config.HeapThresholdBytes = 100
+	config.HeapThresholdPercent = thresholdShare
+
+	watchdog := newTestWatchdogWithMemoryLimit(t, config, mockClock, func() int64 { return limit })
+	watchdog.resolveHeapThreshold(context.Background())
+
+	assert.Equal(t, wantThreshold, watchdog.initialHeapThreshold,
+		"the threshold follows the limit, not the absolute byte setting")
+	assert.Equal(t, limit, watchdog.gomemlimit)
+	assert.Equal(t, watchdog.initialHeapThreshold, watchdog.heapHighWater)
+}
+
+func TestWatchdog_HeapThresholdFallsBackToTheAbsoluteSetting(t *testing.T) {
+	t.Parallel()
+
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	config := DefaultWatchdogConfig()
+	config.HeapThresholdBytes = 4096
+
+	watchdog := newTestWatchdogWithMemoryLimit(t, config, mockClock,
+		func() int64 { return math.MaxInt64 })
+	watchdog.resolveHeapThreshold(context.Background())
+
+	assert.EqualValues(t, 4096, watchdog.initialHeapThreshold)
 }

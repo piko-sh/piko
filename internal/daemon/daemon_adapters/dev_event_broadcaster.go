@@ -858,11 +858,10 @@ func formatSSEMessage(eventName string, payload any) []byte {
 // Returns string which is the URL route pattern, e.g. "/login".
 // Returns bool which indicates whether the path was a valid page path.
 func pathToRoute(relPath string) (string, bool) {
-	if !strings.HasPrefix(relPath, "pages/") {
+	route, isPage := strings.CutPrefix(relPath, "pages/")
+	if !isPage {
 		return "", false
 	}
-
-	route := strings.TrimPrefix(relPath, "pages/")
 	route = strings.TrimSuffix(route, ".pk")
 	route = "/" + route
 

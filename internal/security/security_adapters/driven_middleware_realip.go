@@ -23,6 +23,7 @@ import (
 
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/security/security_domain"
+	"piko.sh/piko/wdk/useragent"
 )
 
 const (
@@ -75,13 +76,23 @@ func (m *RealIPMiddleware) Handler(next http.Handler) http.Handler {
 			r = r.WithContext(daemon_dto.WithPikoRequestCtx(r.Context(), pctx))
 		}
 
-		remoteIP, _ := parseRemoteAddrWithIP(r.RemoteAddr)
-		pctx.FromTrustedProxy = m.extractor.IsTrustedProxy(remoteIP)
-		pctx.ClientIP = m.extractor.ExtractClientIP(r)
+		pctx.ClientIP, pctx.FromTrustedProxy = m.extractor.ResolveClient(r)
+
+		clampedAgent, wasClamped := useragent.Clamp(r.UserAgent())
+		pctx.UserAgent = clampedAgent
+		if wasClamped {
+			userAgentClampedCount.Add(r.Context(), 1)
+		}
 
 		if pctx.FromTrustedProxy {
-			if fwd := r.Header.Get(requestIDHeader); fwd != "" {
-				pctx.ForwardedRequestID = fwd
+			forwarded := r.Header.Get(requestIDHeader)
+			accepted, ok := daemon_dto.AcceptForwardedRequestID(forwarded)
+			switch {
+			case ok:
+				pctx.ForwardedRequestID = accepted
+			case forwarded != "":
+
+				forwardedRequestIDRejectedCount.Add(r.Context(), 1)
 			}
 		}
 

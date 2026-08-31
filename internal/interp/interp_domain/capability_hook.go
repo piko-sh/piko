@@ -89,8 +89,8 @@ type CapabilityHook interface {
 	//
 	// Takes modulePath (string) which names the loaded module making the call, empty for the
 	// main policy or script body.
-	// Takes name (string) which is the command being invoked, resolved or not, as supplied by
-	// the caller.
+	// Takes name (string) which is the command being invoked, resolved or not, as supplied
+	// by the caller.
 	// Takes argv ([]string) which is the full argument list, including the command name in
 	// argv[0] when present.
 	//

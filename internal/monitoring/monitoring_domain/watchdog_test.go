@@ -22,6 +22,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -82,13 +84,24 @@ func (m *mockProfilingController) getCaptureCalls() []string {
 func newTestWatchdog(t *testing.T, config WatchdogConfig, mockClock *clock.MockClock) *Watchdog {
 	t.Helper()
 
+	return newTestWatchdogWithMemoryLimit(t, config, mockClock, func() int64 { return math.MaxInt64 })
+}
+
+func newTestWatchdogWithMemoryLimit(
+	t *testing.T, config WatchdogConfig, mockClock *clock.MockClock, memoryLimit func() int64,
+) *Watchdog {
+	t.Helper()
+
 	tempDirectory := t.TempDir()
 	sandbox, err := safedisk.NewNoOpSandbox(tempDirectory, safedisk.ModeReadWrite)
 	require.NoError(t, err)
 
 	collector := NewSystemCollector(WithSystemCollectorClock(mockClock))
 
-	watchdog, err := NewWatchdog(config, collector, WithWatchdogClock(mockClock), WithWatchdogSandbox(sandbox))
+	watchdog, err := NewWatchdog(config, collector,
+		WithWatchdogClock(mockClock),
+		WithWatchdogSandbox(sandbox),
+		WithWatchdogMemoryLimit(memoryLimit))
 	require.NoError(t, err)
 
 	watchdog.profileStore.clock = mockClock
@@ -988,4 +1001,41 @@ func TestWatchdog_HandleLoopPanicEmitsCriticalEvent(t *testing.T) {
 	require.Len(t, events, 1)
 	assert.Equal(t, WatchdogPriorityCritical, events[0].Priority)
 	assert.Contains(t, events[0].Fields["panic"], "simulated loop panic")
+}
+
+func TestWatchdog_StatusIsSafeDuringStart(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	watchdog := newTestWatchdog(t, DefaultWatchdogConfig(), clock.NewMockClock(startTime))
+
+	ctx := context.Background()
+	stopReading := make(chan struct{})
+	readersDone := make(chan struct{})
+
+	go func() {
+		defer close(readersDone)
+		for {
+			select {
+			case <-stopReading:
+				return
+			default:
+				assert.NotNil(t, watchdog.GetWatchdogStatus(ctx))
+
+				runtime.Gosched()
+			}
+		}
+	}()
+
+	for range 8 {
+		watchdog.resolveHeapThreshold(ctx)
+	}
+
+	watchdog.Start(ctx)
+	close(stopReading)
+	<-readersDone
+
+	watchdog.backgroundWG.Wait()
+	assert.Positive(t, watchdog.GetWatchdogStatus(ctx).HeapThresholdBytes,
+		"once Start has returned the resolved threshold is visible")
 }

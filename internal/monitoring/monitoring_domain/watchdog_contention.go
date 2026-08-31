@@ -23,8 +23,8 @@ import (
 	"errors"
 	"runtime"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // RunContentionDiagnostic enables block + mutex profiling for the configured window,

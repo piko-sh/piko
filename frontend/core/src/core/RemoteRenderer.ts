@@ -30,7 +30,7 @@ import {
     browserWindowOperations,
     browserHTTPOperations
 } from '@/core/BrowserAPIs';
-import {buildRemoteUrl} from '@/core/URLUtils';
+import {buildRemoteUrl, isSameOriginUrl} from '@/core/URLUtils';
 import {getGlobalPageContext} from '@/services/PageContext';
 import {
     _executeBeforeRender,
@@ -548,6 +548,11 @@ export function createRemoteRenderer(deps: RemoteRendererDependencies): RemoteRe
      */
     async function render(options: RemoteRenderOptions): Promise<void> {
         const fullUrl = buildRemoteUrl(options.src, options.args ?? {});
+
+        if (!isSameOriginUrl(fullUrl)) {
+            console.error('RemoteRenderer: refusing cross-origin fragment:', fullUrl);
+            return;
+        }
 
         let htmlContent: string | null = null;
         try {

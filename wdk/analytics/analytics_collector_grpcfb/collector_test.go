@@ -235,6 +235,7 @@ func TestCollectorRawWithOptions(t *testing.T) {
 func TestCollectorCapsProperties(t *testing.T) {
 	const (
 		maxProperties       = 128
+		maxPropertyMarkers  = 3
 		maxPropertyValueLen = 1024
 	)
 
@@ -253,7 +254,12 @@ func TestCollectorCapsProperties(t *testing.T) {
 			Properties: props,
 		})
 
-		assert.Len(t, got.Properties, maxProperties)
+		const emitted = maxProperties - maxPropertyMarkers
+
+		assert.LessOrEqual(t, len(got.Properties), maxProperties)
+		assert.Equal(t, strconv.Itoa(len(props)-emitted),
+			propertyValue(got, "client.properties_dropped"),
+			"the count that did not fit is reported, not silently lost")
 	})
 
 	t.Run("oversized value truncated to valid UTF-8", func(t *testing.T) {
@@ -270,8 +276,9 @@ func TestCollectorCapsProperties(t *testing.T) {
 			Properties: map[string]string{"big": oversized},
 		})
 
-		require.Len(t, got.Properties, 1)
-		value := got.Properties[0].Value
+		require.Len(t, got.Properties, 2, "the value plus its truncation marker")
+		assert.Equal(t, "1", propertyValue(got, "client.properties_truncated"))
+		value := propertyValue(got, "big")
 		assert.LessOrEqual(t, len(value), maxPropertyValueLen)
 		assert.True(t, utf8.ValidString(value), "truncated value must stay valid UTF-8")
 
@@ -425,4 +432,13 @@ func dial(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	)
 	require.NoError(t, err)
 	return conn
+}
+
+func propertyValue(event telemetry_grpcfb.AnalyticsEvent, key string) string {
+	for _, pair := range event.Properties {
+		if pair.Key == key {
+			return pair.Value
+		}
+	}
+	return ""
 }

@@ -128,6 +128,21 @@ func TestEmitQuerier(t *testing.T) {
 	assert.Contains(t, source, "reader DBTX")
 	assert.Contains(t, source, "writer DBTX")
 
+	assert.Contains(t, source, "type dbtxWrapper interface")
+	assert.Contains(t, source, "WrapDBTX(inner any) any")
+	assert.Contains(t, source, "wrapper dbtxWrapper")
+	assert.Contains(t, source, "wrapper, _ := db.(dbtxWrapper)")
+	assert.Contains(t, source, "wrapper, _ := writer.(dbtxWrapper)")
+	assert.Contains(t, source, "db := queries.wrapDBTX(transaction)")
+	assert.Contains(t, source, "&Queries{reader: db, writer: db, wrapper: queries.wrapper}")
+	assert.Contains(t, source, "func (queries *Queries) wrapDBTX(db DBTX) DBTX")
+	assert.Contains(t, source, "if queries.wrapper == nil {",
+		"wrapDBTX returns the plain connection when the querier is uninstrumented")
+	assert.NotContains(t, source, "if queries == nil || queries.wrapper == nil {",
+		"WithTx already returns early on a nil receiver, so a second check would be unreachable")
+	assert.Contains(t, source, "return &Queries{reader: transaction, writer: transaction, wrapper: nil}",
+		"WithTx on a nil receiver returns a plain transaction-scoped Queries")
+
 	assert.Contains(t, source, "func (queries *Queries) RunInTx(")
 	assert.Contains(t, source, "db.BeginTx(ctx, nil)")
 	assert.Contains(t, source, "defer transaction.Rollback()")

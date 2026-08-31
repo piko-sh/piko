@@ -29,13 +29,16 @@ import (
 // per-request fields from PikoRequestCtx. When no PikoRequestCtx is present in the
 // context (non-request code paths), the handler is a zero-cost passthrough.
 //
-// Fields added (when non-empty):
+// Fields added to every request-scoped record (when non-empty):
 //   - request_id: the formatted request ID (server-generated or forwarded)
 //   - client_ip: the real client IP after trusted-proxy extraction
 //   - locale: the route locale (e.g., "en", "de")
 //
-// The handler uses slog.Record.AddAttrs which leverages the record's inline [5]Attr array
-// for zero-allocation enrichment in the common case (<=5 total attrs).
+// Fields added only at Error and above:
+//   - route: the matched route pattern (e.g., "/blog/{slug}")
+//   - browser, browser_version, os, device: coarse families derived from the User-Agent
+//
+// The raw User-Agent is never added.
 type requestContextHandler struct {
 	// inner is the wrapped handler that receives enriched records.
 	inner slog.Handler
@@ -69,8 +72,39 @@ func (h *requestContextHandler) Handle(ctx context.Context, record slog.Record) 
 		if pctx.Locale != "" {
 			record.AddAttrs(slog.String("locale", pctx.Locale))
 		}
+		if record.Level >= slog.LevelError {
+			addErrorContext(&record, pctx)
+		}
 	}
 	return h.inner.Handle(ctx, record)
+}
+
+// addErrorContext attaches the diagnostic fields that are only worth their allocation on
+// an error: the matched route, and the coarse client families derived from the
+// User-Agent.
+//
+// Takes record (*slog.Record) which is enriched in place.
+// Takes pctx (*daemon_dto.PikoRequestCtx) which carries the request-scoped values.
+func addErrorContext(record *slog.Record, pctx *daemon_dto.PikoRequestCtx) {
+	if pctx.MatchedPattern != "" {
+		record.AddAttrs(slog.String("route", pctx.MatchedPattern))
+	}
+	if pctx.UserAgent == "" {
+		return
+	}
+	class := pctx.UserAgentClass()
+	if class.Browser != "" {
+		record.AddAttrs(slog.String("browser", class.Browser))
+	}
+	if class.BrowserMajor != "" {
+		record.AddAttrs(slog.String("browser_version", class.BrowserMajor))
+	}
+	if class.OS != "" {
+		record.AddAttrs(slog.String("os", class.OS))
+	}
+	if class.Device != "" {
+		record.AddAttrs(slog.String("device", class.Device))
+	}
 }
 
 // WithAttrs returns a new handler wrapping the inner handler's WithAttrs result.

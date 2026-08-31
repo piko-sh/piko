@@ -398,6 +398,7 @@ func TestShutdownOwnedClientClosesIt(t *testing.T) {
 
 	col, err := Dial("passthrough:///bufnet",
 		telemetry_grpcfb.Config{SiteID: "site-x", APIKey: "key-x", FlushSize: 1, FlushInterval: time.Hour},
+		nil,
 		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
 			return lis.DialContext(ctx)
 		}),

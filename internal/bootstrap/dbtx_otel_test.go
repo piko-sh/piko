@@ -28,6 +28,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
+
+	"piko.sh/piko/internal/querier/querier_domain"
 )
 
 type stubDBTX struct {
@@ -133,15 +135,21 @@ func TestOTelDBTX_ResolveOperation_WithResolver(t *testing.T) {
 
 	wrapper := newOTelDBTX(&stubDBTX{}, "sqlite", "testdb", resolver, nil)
 
-	assert.Equal(t, "ListTasks", wrapper.resolveOperation("SELECT * FROM tasks"))
-	assert.Equal(t, "UNKNOWN", wrapper.resolveOperation("SELECT * FROM other"))
+	assert.Equal(t, "ListTasks", wrapper.resolveOperation("SELECT * FROM tasks"),
+		"an explicit resolver wins")
+
+	assert.Equal(t, "SELECT other", wrapper.resolveOperation("SELECT * FROM other"),
+		"a declined statement still derives a usable label")
 }
 
 func TestOTelDBTX_ResolveOperation_NilResolver(t *testing.T) {
 	t.Parallel()
 	wrapper := newOTelDBTX(&stubDBTX{}, "sqlite", "testdb", nil, nil)
 
-	assert.Equal(t, "UNKNOWN", wrapper.resolveOperation("SELECT 1"))
+	assert.Equal(t, "SELECT", wrapper.resolveOperation("SELECT 1"))
+	assert.Equal(t, "SELECT artefact", wrapper.resolveOperation("SELECT id FROM artefact WHERE id = ?"))
+	assert.Equal(t, "UNKNOWN", wrapper.resolveOperation("PRAGMA journal_mode=WAL"),
+		"a statement with no recognised verb is still UNKNOWN")
 }
 
 type captureObserver struct {
@@ -242,4 +250,52 @@ func TestResolveDBSystem(t *testing.T) {
 		result := resolveDBSystem(registration)
 		assert.Equal(t, test.expectedSystem, result, "driver=%q engine=%q", test.driverName, test.engineDriver)
 	}
+}
+
+type dialectEngine struct {
+	querier_domain.EnginePort
+	dialect string
+}
+
+func (e dialectEngine) Dialect() string { return e.dialect }
+
+func TestResolveDBSystem_FallsBackToTheEngineDialect(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		dialect string
+		want    string
+	}{
+		{name: "sqlite normalises to itself", dialect: "sqlite", want: "sqlite"},
+		{name: "postgres normalises to postgresql", dialect: "postgres", want: "postgresql"},
+		{name: "an unrecognised dialect passes through", dialect: "clickhouse", want: "clickhouse"},
+		{name: "an engine with no dialect stays empty", dialect: "", want: ""},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			reg := &DatabaseRegistration{
+				EngineConfig: EngineConfig{Engine: dialectEngine{dialect: tc.dialect}},
+			}
+			assert.Equal(t, tc.want, resolveDBSystem(reg))
+		})
+	}
+}
+
+func TestResolveDBSystem_AnExplicitDriverBeatsTheEngineDialect(t *testing.T) {
+	t.Parallel()
+
+	reg := &DatabaseRegistration{
+		DriverName:   "pgx",
+		EngineConfig: EngineConfig{Engine: dialectEngine{dialect: "sqlite"}},
+	}
+	assert.Equal(t, "postgresql", resolveDBSystem(reg), "the registration's own driver is authoritative")
+}
+
+func TestResolveDBSystem_NoEngineIsNotAPanic(t *testing.T) {
+	t.Parallel()
+
+	assert.Empty(t, resolveDBSystem(&DatabaseRegistration{}))
 }

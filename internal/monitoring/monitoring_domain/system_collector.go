@@ -20,6 +20,7 @@ package monitoring_domain
 
 import (
 	"bufio"
+	"cmp"
 	"context"
 	"os"
 	"runtime"
@@ -29,8 +30,8 @@ import (
 	"sync"
 	"time"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safeconv"
 )
 
@@ -685,10 +686,7 @@ func buildProcessInfo() internalProcessInfo {
 // Returns internalRuntimeConfig which contains the GOGC and GOMEMLIMIT settings from
 // environment variables or their default values.
 func buildRuntimeConfig() internalRuntimeConfig {
-	gogc := os.Getenv("GOGC")
-	if gogc == "" {
-		gogc = defaultGOGC
-	}
+	gogc := cmp.Or(os.Getenv("GOGC"), defaultGOGC)
 
 	gomemlimit := os.Getenv("GOMEMLIMIT")
 	if gomemlimit == "" {

@@ -27,6 +27,9 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
@@ -476,4 +479,56 @@ func TestTruncateField_BoundaryAtMultiByteRune(t *testing.T) {
 	if got != "ab中" {
 		t.Errorf("truncateField(%q, 3) = %q, want %q", input, got, "ab中")
 	}
+}
+
+func trackOneEvent(t *testing.T, prepare func(pctx *daemon_dto.PikoRequestCtx)) analytics_dto.Event {
+	t.Helper()
+
+	collector := &testCollector{}
+	service := analytics_domain.NewService([]analytics_domain.Collector{collector})
+	service.Start(context.Background())
+
+	middleware := NewAnalyticsMiddleware(service)
+	handler := middleware.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	pctx := daemon_dto.AcquirePikoRequestCtx()
+	defer daemon_dto.ReleasePikoRequestCtx(pctx)
+	prepare(pctx)
+
+	handler.ServeHTTP(httptest.NewRecorder(), newRequestWithPctx(http.MethodGet, "/ask", pctx))
+	service.Close(context.Background())
+
+	events := collector.collected()
+	require.Len(t, events, 1)
+	return events[0]
+}
+
+func TestMiddleware_PlainRequestIsPageView(t *testing.T) {
+	event := trackOneEvent(t, func(*daemon_dto.PikoRequestCtx) {})
+
+	assert.Equal(t, analytics_dto.EventPageView, event.Type)
+	assert.Empty(t, event.ActionName)
+}
+
+func TestMiddleware_ActionNamePromotesToAction(t *testing.T) {
+	event := trackOneEvent(t, func(pctx *daemon_dto.PikoRequestCtx) {
+		pctx.AnalyticsActionName = "docsearch.ask"
+	})
+
+	assert.Equal(t, analytics_dto.EventAction, event.Type)
+	assert.Equal(t, "docsearch.ask", event.ActionName)
+}
+
+func TestMiddleware_EventNameOutranksActionName(t *testing.T) {
+	event := trackOneEvent(t, func(pctx *daemon_dto.PikoRequestCtx) {
+		pctx.AnalyticsActionName = "docsearch.ask"
+		pctx.AnalyticsEventName = "checkout.completed"
+	})
+
+	assert.Equal(t, analytics_dto.EventCustom, event.Type)
+	assert.Equal(t, "checkout.completed", event.EventName)
+	assert.Equal(t, "docsearch.ask", event.ActionName,
+		"a custom event fired from an action still records the action that ran")
 }

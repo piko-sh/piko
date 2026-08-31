@@ -24,8 +24,8 @@ import (
 	"slices"
 	"sync"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/provider/provider_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

@@ -99,6 +99,11 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 		ev.Revenue = pctx.AnalyticsRevenue
 		ev.Properties = pctx.AnalyticsProperties
 
+		if pctx.AnalyticsActionName != "" {
+			ev.ActionName = pctx.AnalyticsActionName
+			ev.Type = analytics_dto.EventAction
+		}
+
 		if pctx.AnalyticsEventName != "" {
 			ev.EventName = pctx.AnalyticsEventName
 			ev.Type = analytics_dto.EventCustom

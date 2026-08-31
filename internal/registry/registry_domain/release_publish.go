@@ -119,8 +119,8 @@ type ReleasePublisher interface {
 	// InsertArtefactLayerIfAbsent writes one immutable release layer of an artefact when its
 	// (id, release) is not already present.
 	//
-	// A row is written only when it is absent, so the caller increments blob reference counts
-	// exactly once per published layer.
+	// A row is written only when it is absent, so the caller increments blob reference
+	// counts exactly once per published layer.
 	//
 	// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact layer to write.
 	//
@@ -149,12 +149,13 @@ type ReleasePublisher interface {
 
 	// ClaimRelease claims publishing rights for a release.
 	//
-	// This caller wins the claim when it inserts the lease row, and loses when another caller
-	// already holds it.
+	// This caller wins the claim when it inserts the lease row, and loses when another
+	// caller already holds it.
 	//
 	// Takes releaseID (string) which identifies the release to claim.
 	// Takes publishDigest (string) which fingerprints the content being published.
-	// Takes firstSeenAt (int64) which is when the release was first claimed, in Unix seconds.
+	// Takes firstSeenAt (int64) which is when the release was first claimed, in Unix
+	// seconds.
 	// Takes heartbeatAt (int64) which is the first heartbeat to stamp, in Unix seconds.
 	//
 	// Returns bool which reports whether this caller won the claim.
@@ -173,7 +174,8 @@ type ReleasePublisher interface {
 	// MarkReleasePublished flips a release lease to published and stamps its timestamps.
 	//
 	// Takes releaseID (string) which identifies the release.
-	// Takes publishedAt (int64) which is when the release finished publishing, in Unix seconds.
+	// Takes publishedAt (int64) which is when the release finished publishing, in Unix
+	// seconds.
 	// Takes heartbeatAt (int64) which is the heartbeat to stamp, in Unix seconds.
 	//
 	// Returns error when the update fails.

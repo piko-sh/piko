@@ -240,6 +240,11 @@ func applyHandlerSet() {
 	finalHandler := logger_domain.NewOTelSlogHandler(composedHandler)
 
 	newLogger := slog.New(finalHandler)
+
+	if envAttrs := logger_domain.EnvironmentSlogAttrs(); len(envAttrs) > 0 {
+		newLogger = newLogger.With(logger_domain.SlogAttrsToAny(envAttrs)...)
+	}
+
 	slog.SetDefault(newLogger)
 	logger_domain.InitDefaultFactory(newLogger)
 }

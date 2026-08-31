@@ -80,10 +80,23 @@ const (
 	// actionBatchComponent names the batch executor in panic recovery reports.
 	actionBatchComponent = "daemon_adapters.actionBatch"
 
+	// batchActionName is the action attributed to a batch request's single analytics event.
+	batchActionName = "_batch"
+
+	// maxBatchActionsPropertyLen bounds the joined list of dispatched action names.
+	maxBatchActionsPropertyLen = 1024
+
+	// maxBatchAnalyticsProperties bounds the properties the batch attribution itself adds.
+	maxBatchAnalyticsProperties = 3
+
 	// defaultMaxJSONBodyDepth is the maximum nesting depth permitted when decoding action
 	// request bodies. Pre-decoding the byte stream guards against stack-blow attacks before
 	// the structural decoder allocates reflective storage.
 	defaultMaxJSONBodyDepth = 32
+
+	// maxQueryArgumentKeys bounds how many distinct query parameters are lifted into an
+	// action's arguments.
+	maxQueryArgumentKeys = 64
 
 	// mediaTypeEventStream is the media type a client asks for to receive a stream.
 	mediaTypeEventStream = "text/event-stream"
@@ -307,6 +320,10 @@ func (h *ActionHandler) handleRequest(w http.ResponseWriter, request *http.Reque
 	defer span.End()
 
 	ctx, l := logger_domain.From(ctx, log)
+
+	if pctx := daemon_dto.PikoRequestCtxFromContext(request.Context()); pctx != nil {
+		pctx.SetAnalyticsAction(entry.Name)
+	}
 
 	actionRequestCount.Add(ctx, 1,
 		metric.WithAttributes(
@@ -662,6 +679,10 @@ func (h *ActionHandler) prepareAction(
 		h.writeError(w, http.StatusBadRequest, "Invalid request body", err, isDevelopmentModeFromContext(ctx))
 
 		return preparedAction{}, nil, false
+	}
+
+	if isSSEGetAliasRequest(request, entry) {
+		arguments = queryArguments(request)
 	}
 
 	if !h.runSecurityValidation(ctx, w, request, action, arguments, entry) {

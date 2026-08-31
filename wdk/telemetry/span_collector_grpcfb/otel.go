@@ -19,10 +19,42 @@
 package span_collector_grpcfb
 
 import (
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 var (
 	// log is the package-level logger for the span_collector_grpcfb package.
 	log = logger_domain.GetLogger("piko/wdk/telemetry/span_collector_grpcfb")
+
+	// meter provides OpenTelemetry metrics for the span_collector_grpcfb package.
+	meter = otel.Meter("piko/wdk/telemetry/span_collector_grpcfb")
+
+	// spansFilteredCount tracks spans a configured filter dropped.
+	spansFilteredCount metric.Int64Counter
+
+	// spanFilterPanicCount tracks panics recovered from a caller-supplied filter.
+	spanFilterPanicCount metric.Int64Counter
 )
+
+func init() {
+	var err error
+
+	spansFilteredCount, err = meter.Int64Counter(
+		"span_collector.spans_filtered_count",
+		metric.WithDescription("Number of spans dropped by the configured filter"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+
+	spanFilterPanicCount, err = meter.Int64Counter(
+		"span_collector.filter_panic_count",
+		metric.WithDescription("Number of panics recovered from a caller-supplied span filter"),
+	)
+	if err != nil {
+		otel.Handle(err)
+	}
+}

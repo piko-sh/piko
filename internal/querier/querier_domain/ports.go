@@ -249,7 +249,8 @@ type CatalogueFunctionResolverPort interface {
 	// TableValuedFunctionColumnsFromCatalogue resolves the output columns of a user-defined
 	// table-valued function by looking up its signature and return type in the catalogue.
 	//
-	// Takes catalogue (*querier_dto.Catalogue) which is the schema to look the function up in.
+	// Takes catalogue (*querier_dto.Catalogue) which is the schema to look the function up
+	// in.
 	// Takes functionName (string) which is the table-valued function to resolve.
 	//
 	// Returns []querier_dto.ScopedColumn which are the output columns, and nil when the
@@ -313,8 +314,8 @@ type ExtensionLoaderPort interface {
 	//
 	// Takes name (string) which is the extension to load functions from.
 	//
-	// Returns []*querier_dto.FunctionSignature which are the extension's function signatures,
-	// and nil when the extension is unknown.
+	// Returns []*querier_dto.FunctionSignature which are the extension's function
+	// signatures, and nil when the extension is unknown.
 	LoadExtensionFunctions(name string) []*querier_dto.FunctionSignature
 }
 

@@ -394,20 +394,20 @@ func (c *Container) createOrchestratorTaskStore() (orchestrator_domain.TaskStore
 // Returns orchestrator_domain.TaskStore which is the querier-backed task store.
 // Returns error when the database connection cannot be obtained.
 func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStore, error) {
-	database, driver, err := c.resolveQuerierDatabase(DatabaseNameOrchestrator, "orchestrator")
+	database, observed, driver, err := c.resolveQuerierDatabase(DatabaseNameOrchestrator, "orchestrator")
 	if err != nil {
 		return nil, err
 	}
 
 	if isPostgresDriver(driver) {
-		dal := orchestrator_querier_postgres.New(database)
+		dal := orchestrator_querier_postgres.NewObserved(database, observed)
 		if inspector, ok := dal.(orchestrator_domain.OrchestratorInspector); ok {
 			c.orchestratorInspector = inspector
 		}
 		return dal, nil
 	}
 
-	dal := orchestrator_querier_sqlite.New(database)
+	dal := orchestrator_querier_sqlite.NewObserved(database, observed)
 	if inspector, ok := dal.(orchestrator_domain.OrchestratorInspector); ok {
 		c.orchestratorInspector = inspector
 	}

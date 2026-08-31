@@ -21,6 +21,7 @@ package logger_domain
 import (
 	"log/slog"
 	"os"
+	"runtime/debug"
 	"sync"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -90,6 +91,18 @@ var (
 	// cachedDetection stores the one-time detection result. Both EnvironmentSlogAttrs and
 	// EnvironmentOtelAttrs read from this cache.
 	cachedDetection = sync.OnceValues(detectEnvironment)
+
+	// cachedBuildInfoVersion reads the embedded build-info table once.
+	cachedBuildInfoVersion = sync.OnceValue(func() string {
+		info, ok := debug.ReadBuildInfo()
+		if !ok {
+			return ""
+		}
+		if info.Main.Version == "(devel)" {
+			return ""
+		}
+		return info.Main.Version
+	})
 )
 
 // EnvironmentSlogAttrs returns the detected environment attributes for slog logger
@@ -108,6 +121,45 @@ func EnvironmentSlogAttrs() []slog.Attr {
 func EnvironmentOtelAttrs() []attribute.KeyValue {
 	_, otelAttrs := cachedDetection()
 	return otelAttrs
+}
+
+// RuntimeLabel returns the detected deployment platform label ("kubernetes",
+// "aws-lambda", "cloud-run", "azure-container-apps", "aws-ecs"), or "" when the process
+// is not running on a platform the sentinel table names.
+//
+// Returns string which is the platform label, empty when unrecognised.
+func RuntimeLabel() string {
+	return detectRuntimeLabel()
+}
+
+// detectRuntimeLabel walks the sentinel table and returns the first matching platform
+// label.
+//
+// Returns string which is the platform label, empty when unrecognised.
+func detectRuntimeLabel() string {
+	for _, probe := range runtimeEnvProbes {
+		if value, ok := os.LookupEnv(probe.envKey); ok && value != "" {
+			return probe.label
+		}
+	}
+
+	return ""
+}
+
+// ServiceVersion returns the running build's version.
+//
+// Takes fallback (string) which is returned when neither source names a version.
+//
+// Returns string which is the resolved version.
+func ServiceVersion(fallback string) string {
+	if version := os.Getenv("PIKO_SERVICE_VERSION"); version != "" {
+		return version
+	}
+	if version := cachedBuildInfoVersion(); version != "" {
+		return version
+	}
+
+	return fallback
 }
 
 // EnvironmentOverridesServiceName reports whether the environment provides a service name
@@ -159,12 +211,9 @@ func detectEnvironment() ([]slog.Attr, []attribute.KeyValue) {
 		otelAttrs = append(otelAttrs, m.otelFunction(v))
 	}
 
-	for _, probe := range runtimeEnvProbes {
-		if v, ok := os.LookupEnv(probe.envKey); ok && v != "" {
-			slogAttrs = append(slogAttrs, slog.String(KeyRuntimeEnvironment, probe.label))
-			otelAttrs = append(otelAttrs, attribute.String(KeyRuntimeEnvironment, probe.label))
-			break
-		}
+	if label := detectRuntimeLabel(); label != "" {
+		slogAttrs = append(slogAttrs, slog.String(KeyRuntimeEnvironment, label))
+		otelAttrs = append(otelAttrs, attribute.String(KeyRuntimeEnvironment, label))
 	}
 
 	return slogAttrs, otelAttrs

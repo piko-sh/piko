@@ -22,8 +22,8 @@ import (
 	"bytes"
 	"context"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // continuousProfilingLoop periodically captures routine profile snapshots at the
@@ -110,7 +110,7 @@ func (w *Watchdog) captureRoutineProfiles(ctx context.Context) {
 // Returns bool which is true when the profile depends on runtime.MemProfileRate sampling
 // (heap and allocs).
 func requiresMemProfileRate(profileType string) bool {
-	return profileType == profileTypeHeap || profileType == "allocs"
+	return profileType == profileTypeHeap || profileType == profileTypeAllocs
 }
 
 // captureAndStoreRoutineProfile is the routine-mode counterpart to
@@ -143,24 +143,8 @@ func (w *Watchdog) captureAndStoreRoutineProfile(ctx context.Context, profileTyp
 
 	_, l := logger_domain.From(ctx, log)
 
-	var buffer bytes.Buffer
-	if _, err := controller.CaptureProfile(ctx, profileType, 0, &buffer); err != nil {
-		l.Warn("Routine profile capture failed",
-			String(logFieldProfileType, profileType),
-			logger_domain.Error(err),
-		)
-		watchdogCaptureErrorCount.Add(ctx, 1)
-		return
-	}
-
-	profileData := buffer.Bytes()
-	if int64(len(profileData)) > w.config.MaxProfileSizeBytes {
-		l.Warn("Routine profile capture exceeded MaxProfileSizeBytes; dropping",
-			String(logFieldProfileType, profileType),
-			logger_domain.Int("captured_bytes", len(profileData)),
-			logger_domain.Int64("max_profile_size_bytes", w.config.MaxProfileSizeBytes),
-		)
-		watchdogCaptureErrorCount.Add(ctx, 1)
+	profileData, ok := w.captureRoutineProfileBytes(ctx, controller, profileType)
+	if !ok {
 		return
 	}
 
@@ -178,7 +162,50 @@ func (w *Watchdog) captureAndStoreRoutineProfile(ctx context.Context, profileTyp
 	w.writeSidecarMetadata(ctx, prefixed, timestamp, captureContext{Rule: "routine"})
 	watchdogRoutineProfileCaptureCount.Add(ctx, 1)
 
+	if w.config.ContinuousProfilingUpload {
+		w.uploadProfile(ctx, profileType, profileData, captureContext{Rule: "routine"})
+	}
+
 	if w.config.ContinuousProfilingNotify {
 		w.sendNotification(ctx, NewRoutineProfileCapturedEvent(profileType))
 	}
+}
+
+// captureRoutineProfileBytes takes one routine profile and enforces the size budget.
+//
+// Takes controller (profilingController) which performs the capture.
+// Takes profileType (string) which is the pprof profile type.
+//
+// Returns []byte which is the captured profile, nil when the capture failed or was
+// dropped.
+// Returns bool which is false when the caller should abandon this capture.
+func (w *Watchdog) captureRoutineProfileBytes(
+	ctx context.Context,
+	controller ProfilingController,
+	profileType string,
+) ([]byte, bool) {
+	_, l := logger_domain.From(ctx, log)
+
+	var buffer bytes.Buffer
+	if _, err := controller.CaptureProfile(ctx, profileType, 0, &buffer); err != nil {
+		l.Warn("Routine profile capture failed",
+			String(logFieldProfileType, profileType),
+			logger_domain.Error(err),
+		)
+		watchdogCaptureErrorCount.Add(ctx, 1)
+		return nil, false
+	}
+
+	profileData := buffer.Bytes()
+	if int64(len(profileData)) > w.config.MaxProfileSizeBytes {
+		l.Warn("Routine profile capture exceeded MaxProfileSizeBytes; dropping",
+			String(logFieldProfileType, profileType),
+			logger_domain.Int("captured_bytes", len(profileData)),
+			logger_domain.Int64("max_profile_size_bytes", w.config.MaxProfileSizeBytes),
+		)
+		watchdogCaptureErrorCount.Add(ctx, 1)
+		return nil, false
+	}
+
+	return profileData, true
 }
