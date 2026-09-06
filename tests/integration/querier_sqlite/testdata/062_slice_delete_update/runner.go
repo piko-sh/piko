@@ -49,7 +49,7 @@ func main() {
 	queries := db.New(conn)
 	deleted, err := queries.DeleteByStatusAndIDs(ctx, db.DeleteByStatusAndIDsParams{
 		Status: "PENDING",
-		IDs: []string{"t1", "t2"},
+		IDs:    []string{"t1", "t2"},
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "DeleteByStatusAndIDs:", err)
@@ -57,7 +57,7 @@ func main() {
 	}
 	err = queries.UpdateStatusByIDs(ctx, db.UpdateStatusByIDsParams{
 		Status: "ARCHIVED",
-		IDs: []string{"t3", "t6"},
+		IDs:    []string{"t3", "t6"},
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "UpdateStatusByIDs:", err)

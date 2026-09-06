@@ -36,8 +36,8 @@ import (
 	"piko.sh/piko/internal/collection/collection_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/seo/seo_dto"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

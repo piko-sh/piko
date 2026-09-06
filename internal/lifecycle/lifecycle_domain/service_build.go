@@ -29,9 +29,9 @@ import (
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // handleBuildNotifications listens for build events from the coordinator.

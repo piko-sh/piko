@@ -28,10 +28,10 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/codes"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	clockpkg "piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

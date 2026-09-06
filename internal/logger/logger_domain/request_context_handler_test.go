@@ -31,7 +31,7 @@ import (
 )
 
 type attrSink struct {
-	last map[string]string
+	last  map[string]string
 	count int
 }
 

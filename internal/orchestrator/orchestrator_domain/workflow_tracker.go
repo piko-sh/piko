@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/codes"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // checkAndResolveWorkflow checks if a workflow has finished and resolves its receipt.

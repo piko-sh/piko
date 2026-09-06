@@ -25,7 +25,6 @@ import (
 )
 
 const (
-
 	// dispatchGoOutputDir is the destination directory for generated Go files that pair with
 	// the asmgen-emitted .s files. Same root as the .s output (interp_domain), so the
 	// generated trampolines can reference unexported handle*/tier2DispatchToHandler symbols

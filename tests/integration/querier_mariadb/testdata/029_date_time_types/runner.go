@@ -22,7 +22,6 @@ func mustParseTime(layout string, value string) time.Time {
 	return parsed
 }
 
-
 func main() {
 	connectionString := os.Getenv("DATABASE_URL")
 

@@ -51,8 +51,8 @@ var (
 )
 
 const (
-	schemaPath = "telemetry.fbs"
-	firstVOffset = 4
+	schemaPath    = "telemetry.fbs"
+	firstVOffset  = 4
 	voffsetStride = 2
 )
 

@@ -27,9 +27,9 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 var (

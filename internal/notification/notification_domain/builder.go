@@ -24,8 +24,8 @@ import (
 	"maps"
 	"time"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // NotificationBuilder provides a fluent interface for building notifications.

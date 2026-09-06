@@ -67,7 +67,7 @@ func main() {
 	}
 
 	result := map[string]any{
-		"latest":         latest,
+		"latest":           latest,
 		"latest_before_20": atTime,
 	}
 

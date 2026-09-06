@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/crypto/crypto_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // EncryptStream encrypts a data stream using the specified key, or the active key if

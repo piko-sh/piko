@@ -332,6 +332,7 @@ Passed inside `WithGeneratorProfiling(...)`:
 | `WithSEO(config)` | Generate `sitemap.xml` and `robots.txt`. |
 | `WithAssets(config)` | Image profiles, breakpoints, densities. |
 | `WithWebsiteConfig(config piko.WebsiteConfig)` | Theme colours, fonts, favicons, supported locales, i18n strategy, site name. The single source of website-level metadata. |
+| `WithSRI(enabled)` | Add Subresource Integrity hashes to script and link tags. Enabled by default. |
 
 ## Analytics
 

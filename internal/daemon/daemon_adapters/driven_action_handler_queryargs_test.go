@@ -84,8 +84,8 @@ var (
 )
 
 type aliasStreamInput struct {
-	Repo string `json:"repo" validate:"required"`
-	Limit int `json:"limit"`
+	Repo  string `json:"repo" validate:"required"`
+	Limit int    `json:"limit"`
 }
 
 func TestSSEGetAliasBindsRequiredInputFromTheQueryString(t *testing.T) {

@@ -65,7 +65,7 @@ func run() error {
 
 	combined := strings.Join(lines, "\n")
 	return json.NewEncoder(os.Stdout).Encode(map[string]any{
-		"non_empty":         len(lines) > 0,
+		"non_empty":           len(lines) > 0,
 		"mentions_expression": strings.Contains(combined, "Expression"),
 	})
 }

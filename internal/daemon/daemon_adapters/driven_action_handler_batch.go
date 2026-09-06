@@ -312,6 +312,23 @@ func (h *ActionHandler) executeGuardedBatchEntry(
 	return result, instance
 }
 
+// batchRejection builds the result for a batch entry the framework turned away.
+//
+// Takes name (string) which names the action.
+// Takes status (int) which is the HTTP status describing the refusal.
+// Takes message (string) which explains the refusal to the caller.
+// Takes code (string) which is the machine readable reason.
+//
+// Returns daemon_dto.BatchActionResult which the caller returns for that entry.
+func batchRejection(name string, status int, message, code string) daemon_dto.BatchActionResult {
+	return daemon_dto.BatchActionResult{
+		Name:   name,
+		Status: status,
+		Error:  message,
+		Code:   code,
+	}
+}
+
 // executeSingleAction executes a single action within a batch request.
 //
 // Takes request (*http.Request) which provides the original HTTP request context.
@@ -329,39 +346,29 @@ func (h *ActionHandler) executeSingleAction(
 
 	entry, ok := h.registry[item.Name]
 	if !ok {
-		return daemon_dto.BatchActionResult{
-			Name:   item.Name,
-			Status: http.StatusNotFound,
-			Error:  fmt.Sprintf("action %q not found", item.Name),
-			Code:   "NOT_FOUND",
-		}, nil
+		return batchRejection(item.Name, http.StatusNotFound,
+			fmt.Sprintf("action %q not found", item.Name), "NOT_FOUND"), nil
 	}
 
 	action := entry.Create()
 
 	admittedCtx, releaseSlot, admitted := h.admitBatchAction(ctx, entry.Name, action)
 	if !admitted {
-		return daemon_dto.BatchActionResult{
-			Name:   item.Name,
-			Status: http.StatusServiceUnavailable,
-			Error:  "This action is handling as many requests as it allows. Retry shortly.",
-			Code:   "CONCURRENCY_LIMIT",
-		}, nil
+		return batchRejection(item.Name, http.StatusServiceUnavailable,
+			"This action is handling as many requests as it allows. Retry shortly.",
+			"CONCURRENCY_LIMIT"), nil
 	}
 
 	defer releaseSlot()
 
 	ctx = admittedCtx
+	request = request.WithContext(ctx)
 
 	h.injectMetadata(request, action)
 
 	if !h.checkBatchActionRateLimit(ctx, request, action, entry) {
-		return daemon_dto.BatchActionResult{
-			Name:   item.Name,
-			Status: http.StatusTooManyRequests,
-			Error:  "Rate limit exceeded",
-			Code:   "RATE_LIMITED",
-		}, action
+		return batchRejection(item.Name, http.StatusTooManyRequests,
+			"Rate limit exceeded", "RATE_LIMITED"), action
 	}
 
 	arguments := item.Args
@@ -582,24 +589,87 @@ func (h *ActionHandler) handleActionError(w http.ResponseWriter, request *http.R
 	h.writeJSON(w, http.StatusInternalServerError, response)
 }
 
+// customCacheKey asks the action's own key func for the cache identity.
+//
+// Takes request (*http.Request) which carries the logger for warnings.
+// Takes action (any) which may expose its request metadata.
+// Takes arguments (map[string]any) which holds the parsed request arguments.
+// Takes entry (ActionHandlerEntry) which names the action.
+// Takes cc (*daemon_domain.CacheConfig) which supplies the key func.
+//
+// Returns string which is the custom key, prefixed by the action name.
+// Returns bool which is false when the caller should build the default key.
+func (h *ActionHandler) customCacheKey(
+	request *http.Request,
+	action any,
+	arguments map[string]any,
+	entry ActionHandlerEntry,
+	cc *daemon_domain.CacheConfig,
+) (string, bool) {
+	if cc.KeyFunc == nil {
+		return "", false
+	}
+
+	getter, ok := action.(interface {
+		Request() *daemon_dto.RequestMetadata
+	})
+	if !ok {
+		h.warnOncePerAction(request, entry, unusableCacheKeyWarningKey,
+			"Action declares a cache key func but exposes no request metadata, so the default key is used")
+
+		return "", false
+	}
+
+	metadata := getter.Request()
+	if metadata == nil {
+		h.warnOncePerAction(request, entry, unusableCacheKeyWarningKey,
+			"Action declares a cache key func but has no request metadata yet, so the default key is used")
+
+		return "", false
+	}
+
+	identity, err := goroutine.SafeCall1(request.Context(), actionCacheKeyComponent,
+		func() (string, error) {
+			return cc.KeyFunc(metadata, arguments), nil
+		})
+	if err != nil {
+		return "", false
+	}
+
+	if strings.TrimSpace(identity) == "" {
+		h.warnOncePerAction(request, entry, unusableCacheKeyWarningKey,
+			"Cache key func returned no identity, so the default key is used")
+
+		return "", false
+	}
+
+	return entry.Name + ":" + identity, true
+}
+
 // buildCacheKey constructs a cache key for a cacheable action response.
 //
 // Takes request (*http.Request) which provides headers for VaryHeaders.
+// Takes action (any) which may supply a custom key through the config's key func.
 // Takes arguments (map[string]any) which holds the parsed request arguments.
-// Takes actionName (string) which identifies the action.
+// Takes entry (ActionHandlerEntry) which identifies the action.
 // Takes cc (*daemon_domain.CacheConfig) which provides the cache configuration.
 //
 // Returns string which is the computed cache key.
-func (*ActionHandler) buildCacheKey(
+func (h *ActionHandler) buildCacheKey(
 	request *http.Request,
+	action any,
 	arguments map[string]any,
-	actionName string,
+	entry ActionHandlerEntry,
 	cc *daemon_domain.CacheConfig,
 ) string {
+	if key, ok := h.customCacheKey(request, action, arguments, entry, cc); ok {
+		return key
+	}
+
 	argsJSON, _ := json.Marshal(arguments)
 
 	var b strings.Builder
-	b.WriteString(actionName)
+	b.WriteString(entry.Name)
 	b.WriteByte(':')
 	b.Write(argsJSON)
 
@@ -609,6 +679,7 @@ func (*ActionHandler) buildCacheKey(
 		b.WriteByte('=')
 		b.WriteString(request.Header.Get(header))
 	}
+
 	return b.String()
 }
 

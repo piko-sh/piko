@@ -30,11 +30,11 @@ import (
 
 	"github.com/sony/gobreaker/v2"
 	"piko.sh/piko/internal/email/email_dto"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/retry"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safeconv"
 )
 

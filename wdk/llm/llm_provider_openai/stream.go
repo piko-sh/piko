@@ -26,8 +26,8 @@ import (
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/packages/ssestream"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
 )
 

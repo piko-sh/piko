@@ -1357,7 +1357,7 @@ func TestBuildCacheKey_BasicKey(t *testing.T) {
 	arguments := map[string]any{"name": "test"}
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
 
-	key := handler.buildCacheKey(request, arguments, "user.get", cc)
+	key := handler.buildCacheKey(request, nil, arguments, ActionHandlerEntry{Name: "user.get"}, cc)
 
 	assert.Contains(t, key, "user.get:")
 	assert.Contains(t, key, `"name":"test"`)
@@ -1371,7 +1371,7 @@ func TestBuildCacheKey_EmptyArgs(t *testing.T) {
 	arguments := map[string]any{}
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
 
-	key := handler.buildCacheKey(request, arguments, "user.get", cc)
+	key := handler.buildCacheKey(request, nil, arguments, ActionHandlerEntry{Name: "user.get"}, cc)
 
 	assert.Contains(t, key, "user.get:{}")
 }
@@ -1390,7 +1390,7 @@ func TestBuildCacheKey_WithVaryHeaders(t *testing.T) {
 		VaryHeaders: []string{"Accept-Language", "Accept"},
 	}
 
-	key := handler.buildCacheKey(request, arguments, "user.get", cc)
+	key := handler.buildCacheKey(request, nil, arguments, ActionHandlerEntry{Name: "user.get"}, cc)
 
 	assert.Contains(t, key, "Accept-Language=en-US")
 	assert.Contains(t, key, "Accept=application/json")
@@ -1408,7 +1408,7 @@ func TestBuildCacheKey_VaryHeader_EmptyValue(t *testing.T) {
 		VaryHeaders: []string{"X-Custom-Header"},
 	}
 
-	key := handler.buildCacheKey(request, arguments, "user.get", cc)
+	key := handler.buildCacheKey(request, nil, arguments, ActionHandlerEntry{Name: "user.get"}, cc)
 
 	assert.Contains(t, key, "X-Custom-Header=")
 }
@@ -1421,8 +1421,8 @@ func TestBuildCacheKey_DifferentActions_DifferentKeys(t *testing.T) {
 	arguments := map[string]any{"id": 1}
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
 
-	key1 := handler.buildCacheKey(request, arguments, "user.get", cc)
-	key2 := handler.buildCacheKey(request, arguments, "post.get", cc)
+	key1 := handler.buildCacheKey(request, nil, arguments, ActionHandlerEntry{Name: "user.get"}, cc)
+	key2 := handler.buildCacheKey(request, nil, arguments, ActionHandlerEntry{Name: "post.get"}, cc)
 
 	assert.NotEqual(t, key1, key2)
 }
@@ -1434,8 +1434,8 @@ func TestBuildCacheKey_DifferentArgs_DifferentKeys(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/action", nil)
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
 
-	key1 := handler.buildCacheKey(request, map[string]any{"id": 1}, "user.get", cc)
-	key2 := handler.buildCacheKey(request, map[string]any{"id": 2}, "user.get", cc)
+	key1 := handler.buildCacheKey(request, nil, map[string]any{"id": 1}, ActionHandlerEntry{Name: "user.get"}, cc)
+	key2 := handler.buildCacheKey(request, nil, map[string]any{"id": 2}, ActionHandlerEntry{Name: "user.get"}, cc)
 
 	assert.NotEqual(t, key1, key2)
 }
@@ -2344,4 +2344,147 @@ func TestHandleBatch_CaptchaRateLimited_Returns429InResults(t *testing.T) {
 	assert.Contains(t, responseBody, `"code":"RATE_LIMITED"`)
 	assert.Contains(t, responseBody, `"status":429`)
 	assert.NotContains(t, responseBody, `"code":"CAPTCHA_FAILED"`)
+}
+
+func serveProbeAction(t *testing.T, handler *ActionHandler) *httptest.ResponseRecorder {
+	t.Helper()
+
+	router := chi.NewRouter()
+	handler.Mount(router, "/_piko/actions")
+
+	request := httptest.NewRequest(http.MethodPost, "/_piko/actions/probe.action", strings.NewReader(`{}`))
+	request.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+
+	return recorder
+}
+
+func TestActionHandler_APanickingActionIsContained(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	handler.Register(ActionHandlerEntry{
+		Name:   "probe.action",
+		Method: http.MethodPost,
+		Create: func() any { return &struct{}{} },
+		Invoke: func(_ context.Context, _ any, _ map[string]any) (any, error) {
+			panic("the application's action exploded")
+		},
+	})
+
+	var recorder *httptest.ResponseRecorder
+	require.NotPanics(t, func() {
+		recorder = serveProbeAction(t, handler)
+	}, "a panicking action must not escape the action handler")
+
+	assert.GreaterOrEqual(t, recorder.Code, http.StatusInternalServerError,
+		"a panicking action is reported as a server error")
+}
+
+type keyedAction struct {
+	daemon_dto.ActionMetadata
+}
+
+func newKeyedAction(t *testing.T, request *http.Request) *keyedAction {
+	t.Helper()
+
+	action := &keyedAction{}
+	action.SetRequest(newRequestMetadata(request))
+
+	return action
+}
+
+func TestBuildCacheKey_UsesTheActionsKeyFunc(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/action", nil)
+	request.Header.Set("X-Tenant", "acme")
+
+	cc := &daemon_domain.CacheConfig{
+		TTL: time.Minute,
+		KeyFunc: func(metadata *daemon_dto.RequestMetadata, _ map[string]any) string {
+			return metadata.Headers.Get("X-Tenant")
+		},
+	}
+
+	key := handler.buildCacheKey(request, newKeyedAction(t, request), map[string]any{}, ActionHandlerEntry{Name: "user.get"}, cc)
+
+	assert.Equal(t, "user.get:acme", key, "the key func decides the identity, namespaced by action")
+}
+
+func TestBuildCacheKey_KeyFuncSeparatesTenants(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	cc := &daemon_domain.CacheConfig{
+		TTL: time.Minute,
+		KeyFunc: func(metadata *daemon_dto.RequestMetadata, _ map[string]any) string {
+			return metadata.Headers.Get("X-Tenant")
+		},
+	}
+	entry := ActionHandlerEntry{Name: "user.get"}
+	arguments := map[string]any{"id": 1}
+
+	first := httptest.NewRequest(http.MethodPost, "/action", nil)
+	first.Header.Set("X-Tenant", "acme")
+	second := httptest.NewRequest(http.MethodPost, "/action", nil)
+	second.Header.Set("X-Tenant", "globex")
+
+	keyFirst := handler.buildCacheKey(first, newKeyedAction(t, first), arguments, entry, cc)
+	keySecond := handler.buildCacheKey(second, newKeyedAction(t, second), arguments, entry, cc)
+
+	assert.NotEqual(t, keyFirst, keySecond,
+		"identical arguments from different tenants must not share a cache entry")
+}
+
+func TestBuildCacheKey_FallsBackWhenTheKeyFuncGivesNothing(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/action", nil)
+	cc := &daemon_domain.CacheConfig{
+		TTL:     time.Minute,
+		KeyFunc: func(_ *daemon_dto.RequestMetadata, _ map[string]any) string { return "  " },
+	}
+
+	key := handler.buildCacheKey(request, newKeyedAction(t, request), map[string]any{"id": 1}, ActionHandlerEntry{Name: "user.get"}, cc)
+
+	assert.Contains(t, key, `"id":1`, "the default key is used when the key func gives nothing")
+}
+
+func TestBuildCacheKey_FallsBackWhenTheKeyFuncPanics(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/action", nil)
+	cc := &daemon_domain.CacheConfig{
+		TTL: time.Minute,
+		KeyFunc: func(_ *daemon_dto.RequestMetadata, _ map[string]any) string {
+			panic("the application's key func exploded")
+		},
+	}
+
+	var key string
+	require.NotPanics(t, func() {
+		key = handler.buildCacheKey(request, newKeyedAction(t, request), map[string]any{"id": 1}, ActionHandlerEntry{Name: "user.get"}, cc)
+	}, "a panicking key func must not escape the cache path")
+
+	assert.Contains(t, key, `"id":1`, "the default key is used when the key func panics")
+}
+
+func TestBuildCacheKey_FallsBackWithoutRequestMetadata(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	request := httptest.NewRequest(http.MethodPost, "/action", nil)
+	cc := &daemon_domain.CacheConfig{
+		TTL:     time.Minute,
+		KeyFunc: func(_ *daemon_dto.RequestMetadata, _ map[string]any) string { return "tenant" },
+	}
+
+	key := handler.buildCacheKey(request, &struct{}{}, map[string]any{"id": 1}, ActionHandlerEntry{Name: "user.get"}, cc)
+
+	assert.Contains(t, key, `"id":1`, "the default key is used when the action exposes no metadata")
 }

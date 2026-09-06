@@ -34,6 +34,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/security/security_dto"
@@ -429,4 +430,51 @@ func TestExecuteBatchActions_ParallelEntriesMayRecordAnalytics(t *testing.T) {
 		assert.Equal(t, "recorded", pctx.AnalyticsProperties[name],
 			"every entry records its own property")
 	}
+}
+
+type timedMetadataAction struct {
+	daemon_dto.ActionMetadata
+}
+
+func (*timedMetadataAction) ResourceLimits() *daemon_domain.ResourceLimits {
+	return &daemon_domain.ResourceLimits{Timeout: time.Minute}
+}
+
+func TestHandleBatch_MetadataCarriesTheActionTimeout(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+
+	var (
+		mu          sync.Mutex
+		hasDeadline bool
+	)
+	handler.Register(ActionHandlerEntry{
+		Name:   "timed",
+		Method: http.MethodPost,
+		Create: func() any { return &timedMetadataAction{} },
+		Invoke: func(_ context.Context, action any, _ map[string]any) (any, error) {
+			timed, ok := action.(*timedMetadataAction)
+			if !ok {
+				return nil, errors.New("action was not a timedMetadataAction")
+			}
+
+			_, deadlined := timed.Ctx().Deadline()
+
+			mu.Lock()
+			hasDeadline = deadlined
+			mu.Unlock()
+
+			return "done", nil
+		},
+	})
+
+	router := chi.NewRouter()
+	handler.Mount(router, "/_piko/actions")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, batchRequestFor(false, "timed"))
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	assert.True(t, hasDeadline,
+		"the action's metadata context must carry the per-call timeout on the batch path")
 }

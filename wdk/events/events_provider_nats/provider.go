@@ -29,8 +29,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/ThreeDotsLabs/watermill/message"
 	nc "github.com/nats-io/nats.go"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/events"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
 )
 

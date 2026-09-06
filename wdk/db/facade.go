@@ -23,79 +23,169 @@ import (
 	"io/fs"
 
 	"piko.sh/piko/internal/bootstrap"
-	"piko.sh/piko/internal/querier/querier_adapters/emitter_go_sql"
-	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
-	"piko.sh/piko/internal/querier/querier_domain"
-	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/dbschema"
 )
 
-// MigrationService defines the driving port for database migration operations. It
-// provides methods for applying, rolling back, and inspecting migration state.
-type MigrationService = querier_domain.MigrationServicePort
+// Schema types, aliased from dbschema.
+type (
+	// MigrationService defines the driving port for database migration operations. It
+	// provides methods for applying, rolling back, and inspecting migration state.
+	MigrationService = dbschema.MigrationService
 
-// MigrationExecutor defines the database-specific operations needed by the migration
-// service.
-type MigrationExecutor = querier_domain.MigrationExecutorPort
+	// MigrationExecutor defines the database-specific operations needed by the migration
+	// service.
+	MigrationExecutor = dbschema.MigrationExecutor
 
-// EnginePort defines the aggregate adapter contract for SQL dialect parsers.
-type EnginePort = querier_domain.EnginePort
+	// EnginePort defines the aggregate adapter contract for SQL dialect parsers.
+	EnginePort = dbschema.EnginePort
 
-// CatalogueProviderPort defines the contract for building a schema catalogue from a live
-// database.
-type CatalogueProviderPort = querier_domain.CatalogueProviderPort
+	// CatalogueProviderPort defines the contract for building a schema catalogue from a live
+	// database.
+	CatalogueProviderPort = dbschema.CatalogueProviderPort
 
-// FileReaderPort abstracts filesystem access for reading migration and query SQL files.
-type FileReaderPort = querier_domain.FileReaderPort
+	// FileReaderPort abstracts filesystem access for reading migration and query SQL files.
+	FileReaderPort = dbschema.FileReaderPort
 
-// QuerierServicePort is the SQL code-generation service returned by NewQuerierService.
-type QuerierServicePort = querier_domain.QuerierServicePort
+	// QuerierServicePort is the SQL code-generation service returned by NewQuerierService.
+	QuerierServicePort = dbschema.QuerierServicePort
 
-// QuerierService is the driving port for the querier code generator. It turns SQL
-// migration + query files into Go source code.
-type QuerierService = querier_domain.QuerierServicePort
+	// QuerierService is the driving port for the querier code generator. It turns SQL
+	// migration + query files into Go source code.
+	QuerierService = dbschema.QuerierService
 
-// QuerierPorts groups the adapter ports a QuerierService needs at construction time. Pass
-// it to NewQuerierService.
-type QuerierPorts = querier_domain.QuerierPorts
+	// QuerierPorts groups the adapter ports a QuerierService needs at construction time.
+	// Pass it to NewQuerierService.
+	QuerierPorts = dbschema.QuerierPorts
 
-// CodeEmitterPort is the outbound adapter that turns analysed queries into emitted source
-// files.
-type CodeEmitterPort = querier_domain.CodeEmitterPort
+	// CodeEmitterPort is the outbound adapter that turns analysed queries into emitted
+	// source files.
+	CodeEmitterPort = dbschema.CodeEmitterPort
 
-// GenerationResult holds the output of one QuerierService.GenerateDatabase call: the
-// emitted files, plus any diagnostics produced along the way.
-type GenerationResult = querier_dto.GenerationResult
+	// GenerationResult holds the output of one QuerierService.GenerateDatabase call: the
+	// emitted files, plus any diagnostics produced along the way.
+	GenerationResult = dbschema.GenerationResult
 
-// GeneratedFile is one file in GenerationResult.Files. Callers typically write Content to
-// disk under their chosen output directory.
-type GeneratedFile = querier_dto.GeneratedFile
+	// GeneratedFile is one file in GenerationResult.Files. Callers typically write Content
+	// to disk under their chosen output directory.
+	GeneratedFile = dbschema.GeneratedFile
 
-// SourceError is one diagnostic emitted during catalogue building or query analysis.
-// Diagnostics range from Info ("here's something to know") through Warning to Error
-// ("generation cannot continue").
-type SourceError = querier_dto.SourceError
+	// SourceError is one diagnostic emitted during catalogue building or query analysis.
+	// Diagnostics run from SeverityHint, which is worth knowing, through SeverityWarning to
+	// SeverityError, which stops generation.
+	SourceError = dbschema.SourceError
 
-// Severity classifies a SourceError. Callers gate on SeverityError to decide whether to
-// fail a code-generation run.
-type Severity = querier_dto.ErrorSeverity
+	// Severity classifies a SourceError. Callers gate on SeverityError to decide whether to
+	// fail a code-generation run.
+	Severity = dbschema.Severity
 
-// CustomFunctionConfig describes a user-declared function signature that the analyser
-// should recognise during query type resolution. Use this for SQLite extensions or for
-// functions defined outside the migration files Piko parses.
-type CustomFunctionConfig = querier_dto.CustomFunctionConfig
+	// CustomFunctionConfig describes a user-declared function signature that the analyser
+	// should recognise during query type resolution. Use this for SQLite extensions or for
+	// functions defined outside the migration files Piko parses.
+	CustomFunctionConfig = dbschema.CustomFunctionConfig
+
+	// SeedService defines the driving port for database seed operations.
+	SeedService = dbschema.SeedService
+
+	// SeedExecutorPort defines the database-specific operations needed by the seed service.
+	SeedExecutorPort = dbschema.SeedExecutorPort
+
+	// MigrationServiceOption configures optional behaviour of the migration service.
+	MigrationServiceOption = dbschema.MigrationServiceOption
+
+	// BeforeMigrationHook is called before each individual migration executes.
+	BeforeMigrationHook = dbschema.BeforeMigrationHook
+
+	// AfterMigrationHook is called after each individual migration executes successfully.
+	AfterMigrationHook = dbschema.AfterMigrationHook
+
+	// BeforeRunHook is called before the migration run begins.
+	BeforeRunHook = dbschema.BeforeRunHook
+
+	// AfterRunHook is called after the migration run completes successfully.
+	AfterRunHook = dbschema.AfterRunHook
+
+	// MigrationHookContext provides information about an individual migration being
+	// processed.
+	MigrationHookContext = dbschema.MigrationHookContext
+
+	// MigrationRunHookContext provides information about an entire migration run before it
+	// begins.
+	MigrationRunHookContext = dbschema.MigrationRunHookContext
+
+	// MigrationDirection indicates whether a migration is a forward (up) or rollback (down)
+	// migration.
+	MigrationDirection = dbschema.MigrationDirection
+
+	// MigrationStatus combines a migration file with its applied state.
+	MigrationStatus = dbschema.MigrationStatus
+
+	// MigrationFile represents a parsed migration file with version, direction, and content.
+	MigrationFile = dbschema.MigrationFile
+
+	// AppliedMigration represents a migration that has been applied to the database.
+	AppliedMigration = dbschema.AppliedMigration
+
+	// SeedStatus combines a seed file with its applied state.
+	SeedStatus = dbschema.SeedStatus
+
+	// AppliedSeed represents a seed that has been applied to the database.
+	AppliedSeed = dbschema.AppliedSeed
+
+	// DatabaseConfig is the configuration container for code generation.
+	DatabaseConfig = dbschema.DatabaseConfig
+
+	// TypeOverride maps a SQL type to a Go type for code generation.
+	TypeOverride = dbschema.TypeOverride
+
+	// CustomFunction defines a custom SQL function for code generation.
+	CustomFunction = dbschema.CustomFunction
+
+	// DialectConfig holds dialect-specific SQL and behaviour for the migration executor.
+	DialectConfig = dbschema.DialectConfig
+
+	// ChecksumMismatchError is returned when an applied migration's recorded checksum does
+	// not match the current file on disk.
+	ChecksumMismatchError = dbschema.ChecksumMismatchError
+
+	// DownChecksumMismatchError is returned when a down migration file's checksum does not
+	// match the checksum recorded when the up migration was applied.
+	DownChecksumMismatchError = dbschema.DownChecksumMismatchError
+
+	// MigrationExecutionError wraps an error from executing a migration's SQL content.
+	MigrationExecutionError = dbschema.MigrationExecutionError
+
+	// LockAcquisitionError wraps a failure to acquire the migration advisory lock.
+	LockAcquisitionError = dbschema.LockAcquisitionError
+
+	// MissingMigrationFileError is returned when the database records an applied migration
+	// but no corresponding file exists on disk.
+	MissingMigrationFileError = dbschema.MissingMigrationFileError
+
+	// NoDownMigrationError is returned when a rollback is requested for a version that has
+	// no .down.sql file.
+	NoDownMigrationError = dbschema.NoDownMigrationError
+)
 
 const (
 	// SeverityHint flags a non-fatal suggestion that does not block generation.
-	SeverityHint = querier_dto.SeverityHint
+	SeverityHint = dbschema.SeverityHint
 
 	// SeverityWarning flags a diagnostic that highlights a likely problem but does not block
 	// generation.
-	SeverityWarning = querier_dto.SeverityWarning
+	SeverityWarning = dbschema.SeverityWarning
 
 	// SeverityError flags a diagnostic that prevents successful generation; callers should
 	// fail when one is reported.
-	SeverityError = querier_dto.SeverityError
+	SeverityError = dbschema.SeverityError
 
+	// DirectionUp is a forward migration that applies schema changes.
+	DirectionUp = dbschema.DirectionUp
+
+	// DirectionDown is a rollback migration that reverts schema changes.
+	DirectionDown = dbschema.DirectionDown
+)
+
+const (
 	// DatabaseNameRegistry is the reserved database name for piko's internal registry
 	// subsystem. Register a database with this name to back the registry with a SQL database
 	// instead of the default otter in-memory backend.
@@ -105,12 +195,12 @@ const (
 	// orchestrator subsystem. Register a database with this name to back the orchestrator
 	// with a SQL database instead of the default otter in-memory backend.
 	DatabaseNameOrchestrator = bootstrap.DatabaseNameOrchestrator
+)
 
-	// DirectionUp is a forward migration that applies schema changes.
-	DirectionUp = querier_dto.MigrationDirectionUp
-
-	// DirectionDown is a rollback migration that reverts schema changes.
-	DirectionDown = querier_dto.MigrationDirectionDown
+var (
+	// ErrLockNotAcquired is returned when a non-blocking lock attempt fails because another
+	// process already holds the migration lock.
+	ErrLockNotAcquired = dbschema.ErrLockNotAcquired
 )
 
 // NewSQLEmitter returns the database/sql code emitter. This is the default emitter for
@@ -119,7 +209,7 @@ const (
 //
 // Returns CodeEmitterPort which is ready to inject into a QuerierPorts struct.
 func NewSQLEmitter() CodeEmitterPort {
-	return emitter_go_sql.NewSQLEmitter()
+	return dbschema.NewSQLEmitter()
 }
 
 // NewSQLEmitterForDialect returns the database/sql code emitter for an engine dialect.
@@ -133,7 +223,7 @@ func NewSQLEmitter() CodeEmitterPort {
 //
 // Returns CodeEmitterPort which is ready to inject into a QuerierPorts struct.
 func NewSQLEmitterForDialect(dialect string) CodeEmitterPort {
-	return emitter_go_sql.NewSQLEmitterForDialect(dialect)
+	return dbschema.NewSQLEmitterForDialect(dialect)
 }
 
 // NewQuerierService constructs a QuerierService from the supplied adapter ports.
@@ -144,7 +234,144 @@ func NewSQLEmitterForDialect(dialect string) CodeEmitterPort {
 // Returns QuerierService which is ready to run GenerateDatabase.
 // Returns error when any required port is missing.
 func NewQuerierService(ports QuerierPorts) (QuerierService, error) {
-	return querier_domain.NewQuerierService(ports)
+	return dbschema.NewQuerierService(ports)
+}
+
+// NewCompositeCatalogueProvider wires a CatalogueProviderPort that union-merges the
+// catalogues produced by each upstream provider in order. Use it when query files cross
+// schemas or hexagons and need every upstream schema visible at analysis time.
+//
+// Takes providers ([]CatalogueProviderPort) which is the apply-order chain. Nil and empty
+// slices return an empty catalogue.
+//
+// Returns CatalogueProviderPort which is ready to plug into a
+// QuerierPorts.CatalogueProvider.
+func NewCompositeCatalogueProvider(providers []CatalogueProviderPort) CatalogueProviderPort {
+	return dbschema.NewCompositeCatalogueProvider(providers)
+}
+
+// PostgresDialect returns a DialectConfig for PostgreSQL databases.
+//
+// Returns DialectConfig which carries PostgreSQL SQL and locking behaviour.
+func PostgresDialect() DialectConfig {
+	return dbschema.PostgresDialect()
+}
+
+// PostgresPgBouncerDialect returns a DialectConfig for PostgreSQL via PgBouncer.
+//
+// Configured for PgBouncer transaction mode, using table-based locking instead of
+// advisory locks.
+//
+// Returns DialectConfig which carries PgBouncer-compatible locking behaviour.
+func PostgresPgBouncerDialect() DialectConfig {
+	return dbschema.PostgresPgBouncerDialect()
+}
+
+// MySQLDialect returns a DialectConfig for MySQL databases.
+//
+// Returns DialectConfig which carries MySQL SQL and locking behaviour.
+func MySQLDialect() DialectConfig {
+	return dbschema.MySQLDialect()
+}
+
+// MySQLDialectWithDSN returns a DialectConfig for MySQL databases.
+//
+// Detects whether the DSN includes multiStatements=true. When the driver handles
+// multi-statement execution natively, statement splitting is disabled.
+//
+// Takes dsn (string) which is the MySQL DSN used to probe driver capabilities.
+//
+// Returns DialectConfig which carries MySQL SQL and locking behaviour tuned to the DSN.
+func MySQLDialectWithDSN(dsn string) DialectConfig {
+	return dbschema.MySQLDialectWithDSN(dsn)
+}
+
+// SQLiteDialect returns a DialectConfig for SQLite databases.
+//
+// Returns DialectConfig which carries SQLite SQL and locking behaviour.
+func SQLiteDialect() DialectConfig {
+	return dbschema.SQLiteDialect()
+}
+
+// NewMigrationExecutor creates a SQL-based migration executor from a database connection
+// and dialect configuration.
+//
+// Takes database (*sql.DB) which is the database connection to execute migrations
+// against.
+// Takes dialect (DialectConfig) which provides dialect-specific SQL and locking
+// behaviour.
+//
+// Returns MigrationExecutor which is ready to execute migrations.
+func NewMigrationExecutor(database *sql.DB, dialect DialectConfig) MigrationExecutor {
+	return dbschema.NewMigrationExecutor(database, dialect)
+}
+
+// NewFSFileReader creates a file reader backed by an fs.FS. This is typically used with
+// embed.FS for embedding migration files into the binary, or with os.DirFS for reading
+// from the local filesystem.
+//
+// Takes filesystem (fs.FS) which is the filesystem to read migration files from.
+//
+// Returns FileReaderPort which is ready to read files.
+func NewFSFileReader(filesystem fs.FS) FileReaderPort {
+	return dbschema.NewFSFileReader(filesystem)
+}
+
+// NewSeedExecutor creates a SQL-based seed executor from a database connection and
+// dialect configuration.
+//
+// Takes database (*sql.DB) which is the database connection to execute seeds against.
+// Takes dialect (DialectConfig) which provides dialect-specific SQL.
+//
+// Returns SeedExecutorPort which is ready to execute seeds.
+func NewSeedExecutor(database *sql.DB, dialect DialectConfig) SeedExecutorPort {
+	return dbschema.NewSeedExecutor(database, dialect)
+}
+
+// WithNonBlockingLock configures non-blocking lock acquisition.
+//
+// If the lock is already held, operations return ErrLockNotAcquired immediately instead
+// of waiting.
+//
+// Returns MigrationServiceOption which enables non-blocking lock behaviour.
+func WithNonBlockingLock() MigrationServiceOption {
+	return dbschema.WithNonBlockingLock()
+}
+
+// WithBeforeMigration registers a hook that runs before each migration.
+//
+// Takes hook (BeforeMigrationHook) which observes the upcoming migration.
+//
+// Returns MigrationServiceOption which installs the before-migration hook.
+func WithBeforeMigration(hook BeforeMigrationHook) MigrationServiceOption {
+	return dbschema.WithBeforeMigration(hook)
+}
+
+// WithAfterMigration registers a hook that runs after each migration succeeds.
+//
+// Takes hook (AfterMigrationHook) which observes the completed migration.
+//
+// Returns MigrationServiceOption which installs the after-migration hook.
+func WithAfterMigration(hook AfterMigrationHook) MigrationServiceOption {
+	return dbschema.WithAfterMigration(hook)
+}
+
+// WithBeforeRun registers a hook that runs before the migration run begins.
+//
+// Takes hook (BeforeRunHook) which observes the migration run context.
+//
+// Returns MigrationServiceOption which installs the before-run hook.
+func WithBeforeRun(hook BeforeRunHook) MigrationServiceOption {
+	return dbschema.WithBeforeRun(hook)
+}
+
+// WithAfterRun registers a hook that runs after the migration run completes.
+//
+// Takes hook (AfterRunHook) which observes the migration run context.
+//
+// Returns MigrationServiceOption which installs the after-run hook.
+func WithAfterRun(hook AfterRunHook) MigrationServiceOption {
+	return dbschema.WithAfterRun(hook)
 }
 
 // NewMigrationCatalogueProvider returns the default catalogue provider, which builds a
@@ -161,144 +388,8 @@ func NewMigrationCatalogueProvider(
 	fileReader FileReaderPort,
 	directory string,
 ) CatalogueProviderPort {
-	return querier_domain.NewMigrationCatalogueProvider(engine, fileReader, directory)
+	return dbschema.NewMigrationCatalogueProvider(engine, fileReader, directory)
 }
-
-// NewCompositeCatalogueProvider wires a CatalogueProviderPort that union-merges the
-// catalogues produced by each upstream provider in order. Use it when query files cross
-// schemas or hexagons and need every upstream schema visible at analysis time.
-//
-// Takes providers ([]CatalogueProviderPort) which is the apply-order chain. Nil and empty
-// slices return an empty catalogue.
-//
-// Returns CatalogueProviderPort which is ready to plug into a
-// QuerierPorts.CatalogueProvider.
-func NewCompositeCatalogueProvider(providers []CatalogueProviderPort) CatalogueProviderPort {
-	return querier_domain.NewCompositeCatalogueProvider(providers)
-}
-
-// SeedService defines the driving port for database seed operations.
-type SeedService = querier_domain.SeedServicePort
-
-// SeedExecutorPort defines the database-specific operations needed by the seed service.
-type SeedExecutorPort = querier_domain.SeedExecutorPort
-
-// MigrationServiceOption configures optional behaviour of the migration service.
-type MigrationServiceOption = querier_domain.MigrationServiceOption
-
-// BeforeMigrationHook is called before each individual migration executes.
-type BeforeMigrationHook = querier_domain.BeforeMigrationHook
-
-// AfterMigrationHook is called after each individual migration executes successfully.
-type AfterMigrationHook = querier_domain.AfterMigrationHook
-
-// BeforeRunHook is called before the migration run begins.
-type BeforeRunHook = querier_domain.BeforeRunHook
-
-// AfterRunHook is called after the migration run completes successfully.
-type AfterRunHook = querier_domain.AfterRunHook
-
-// MigrationHookContext provides information about an individual migration being
-// processed.
-type MigrationHookContext = querier_domain.MigrationHookContext
-
-// MigrationRunHookContext provides information about an entire migration run before it
-// begins.
-type MigrationRunHookContext = querier_domain.MigrationRunHookContext
-
-// MigrationDirection indicates whether a migration is a forward (up) or rollback (down)
-// migration.
-type MigrationDirection = querier_dto.MigrationDirection
-
-// MigrationStatus combines a migration file with its applied state.
-type MigrationStatus = querier_dto.MigrationStatus
-
-// MigrationFile represents a parsed migration file with version, direction, and content.
-type MigrationFile = querier_dto.MigrationFile
-
-// AppliedMigration represents a migration that has been applied to the database.
-type AppliedMigration = querier_dto.AppliedMigration
-
-// SeedStatus combines a seed file with its applied state.
-type SeedStatus = querier_dto.SeedStatus
-
-// AppliedSeed represents a seed that has been applied to the database.
-type AppliedSeed = querier_dto.AppliedSeed
-
-// DatabaseConfig is the configuration container for code generation.
-type DatabaseConfig = querier_dto.DatabaseConfig
-
-// TypeOverride maps a SQL type to a Go type for code generation.
-type TypeOverride = querier_dto.TypeOverride
-
-// CustomFunction defines a custom SQL function for code generation.
-type CustomFunction = querier_dto.CustomFunctionConfig
-
-// DialectConfig holds dialect-specific SQL and behaviour for the migration executor.
-type DialectConfig = migration_sql.DialectConfig
-
-// ChecksumMismatchError is returned when an applied migration's recorded checksum does
-// not match the current file on disk.
-type ChecksumMismatchError = querier_domain.ChecksumMismatchError
-
-// DownChecksumMismatchError is returned when a down migration file's checksum does not
-// match the checksum recorded when the up migration was applied.
-type DownChecksumMismatchError = querier_domain.DownChecksumMismatchError
-
-// MigrationExecutionError wraps an error from executing a migration's SQL content.
-type MigrationExecutionError = querier_domain.MigrationExecutionError
-
-// LockAcquisitionError wraps a failure to acquire the migration advisory lock.
-type LockAcquisitionError = querier_domain.LockAcquisitionError
-
-// MissingMigrationFileError is returned when the database records an applied migration
-// but no corresponding file exists on disk.
-type MissingMigrationFileError = querier_domain.MissingMigrationFileError
-
-// NoDownMigrationError is returned when a rollback is requested for a version that has no
-// .down.sql file.
-type NoDownMigrationError = querier_domain.NoDownMigrationError
-
-var (
-	// ErrLockNotAcquired is returned when a non-blocking lock attempt fails because another
-	// process already holds the migration lock.
-	ErrLockNotAcquired = querier_domain.ErrLockNotAcquired
-)
-
-// PostgresDialect returns a DialectConfig for PostgreSQL databases.
-//
-// Returns DialectConfig which carries PostgreSQL SQL and locking behaviour.
-func PostgresDialect() DialectConfig { return migration_sql.PostgresDialect() }
-
-// PostgresPgBouncerDialect returns a DialectConfig for PostgreSQL via PgBouncer.
-//
-// Configured for PgBouncer transaction mode, using table-based locking instead of
-// advisory locks.
-//
-// Returns DialectConfig which carries PgBouncer-compatible locking behaviour.
-func PostgresPgBouncerDialect() DialectConfig { return migration_sql.PostgresPgBouncerDialect() }
-
-// MySQLDialect returns a DialectConfig for MySQL databases.
-//
-// Returns DialectConfig which carries MySQL SQL and locking behaviour.
-func MySQLDialect() DialectConfig { return migration_sql.MySQLDialect() }
-
-// MySQLDialectWithDSN returns a DialectConfig for MySQL databases.
-//
-// Detects whether the DSN includes multiStatements=true. When the driver handles
-// multi-statement execution natively, statement splitting is disabled.
-//
-// Takes dsn (string) which is the MySQL DSN used to probe driver capabilities.
-//
-// Returns DialectConfig which carries MySQL SQL and locking behaviour tuned to the DSN.
-func MySQLDialectWithDSN(dsn string) DialectConfig {
-	return migration_sql.MySQLDialectWithDSN(dsn)
-}
-
-// SQLiteDialect returns a DialectConfig for SQLite databases.
-//
-// Returns DialectConfig which carries SQLite SQL and locking behaviour.
-func SQLiteDialect() DialectConfig { return migration_sql.SQLiteDialect() }
 
 // NewMigrationService creates a migration service for executing database migrations. The
 // service handles applying, rolling back, and inspecting migration state with advisory
@@ -320,31 +411,7 @@ func NewMigrationService(
 	directory string,
 	opts ...MigrationServiceOption,
 ) MigrationService {
-	return querier_domain.NewMigrationService(executor, fileReader, directory, opts...)
-}
-
-// NewMigrationExecutor creates a SQL-based migration executor from a database connection
-// and dialect configuration.
-//
-// Takes database (*sql.DB) which is the database connection to execute migrations
-// against.
-// Takes dialect (DialectConfig) which provides dialect-specific SQL and locking
-// behaviour.
-//
-// Returns MigrationExecutor which is ready to execute migrations.
-func NewMigrationExecutor(database *sql.DB, dialect DialectConfig) MigrationExecutor {
-	return migration_sql.NewExecutor(database, dialect)
-}
-
-// NewFSFileReader creates a file reader backed by an fs.FS. This is typically used with
-// embed.FS for embedding migration files into the binary, or with os.DirFS for reading
-// from the local filesystem.
-//
-// Takes filesystem (fs.FS) which is the filesystem to read migration files from.
-//
-// Returns FileReaderPort which is ready to read files.
-func NewFSFileReader(filesystem fs.FS) FileReaderPort {
-	return migration_sql.NewFSFileReader(filesystem)
+	return dbschema.NewMigrationService(executor, fileReader, directory, opts...)
 }
 
 // NewSeedService creates a seed service for applying database seed files. The service
@@ -362,64 +429,7 @@ func NewSeedService(
 	fileReader FileReaderPort,
 	directory string,
 ) SeedService {
-	return querier_domain.NewSeedService(executor, fileReader, directory)
-}
-
-// NewSeedExecutor creates a SQL-based seed executor from a database connection and
-// dialect configuration.
-//
-// Takes database (*sql.DB) which is the database connection to execute seeds against.
-// Takes dialect (DialectConfig) which provides dialect-specific SQL.
-//
-// Returns SeedExecutorPort which is ready to execute seeds.
-func NewSeedExecutor(database *sql.DB, dialect DialectConfig) SeedExecutorPort {
-	return migration_sql.NewSeedExecutor(database, dialect)
-}
-
-// WithNonBlockingLock configures non-blocking lock acquisition.
-//
-// If the lock is already held, operations return ErrLockNotAcquired immediately instead
-// of waiting.
-//
-// Returns MigrationServiceOption which enables non-blocking lock behaviour.
-func WithNonBlockingLock() MigrationServiceOption {
-	return querier_domain.WithNonBlockingLock()
-}
-
-// WithBeforeMigration registers a hook that runs before each migration.
-//
-// Takes hook (BeforeMigrationHook) which observes the upcoming migration.
-//
-// Returns MigrationServiceOption which installs the before-migration hook.
-func WithBeforeMigration(hook BeforeMigrationHook) MigrationServiceOption {
-	return querier_domain.WithBeforeMigration(hook)
-}
-
-// WithAfterMigration registers a hook that runs after each migration succeeds.
-//
-// Takes hook (AfterMigrationHook) which observes the completed migration.
-//
-// Returns MigrationServiceOption which installs the after-migration hook.
-func WithAfterMigration(hook AfterMigrationHook) MigrationServiceOption {
-	return querier_domain.WithAfterMigration(hook)
-}
-
-// WithBeforeRun registers a hook that runs before the migration run begins.
-//
-// Takes hook (BeforeRunHook) which observes the migration run context.
-//
-// Returns MigrationServiceOption which installs the before-run hook.
-func WithBeforeRun(hook BeforeRunHook) MigrationServiceOption {
-	return querier_domain.WithBeforeRun(hook)
-}
-
-// WithAfterRun registers a hook that runs after the migration run completes.
-//
-// Takes hook (AfterRunHook) which observes the migration run context.
-//
-// Returns MigrationServiceOption which installs the after-run hook.
-func WithAfterRun(hook AfterRunHook) MigrationServiceOption {
-	return querier_domain.WithAfterRun(hook)
+	return dbschema.NewSeedService(executor, fileReader, directory)
 }
 
 // DBTX is the common database interface for read and write operations. It matches the

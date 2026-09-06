@@ -48,7 +48,7 @@ func main() {
 
 	queries := db.New(conn)
 	singleResult, err := queries.FetchByIDsAndStatus(ctx, db.FetchByIDsAndStatusParams{
-		IDs: []string{"t1"},
+		IDs:    []string{"t1"},
 		Status: "PENDING",
 	})
 	if err != nil {
@@ -56,7 +56,7 @@ func main() {
 		os.Exit(1)
 	}
 	multiResult, err := queries.FetchByIDsAndStatus(ctx, db.FetchByIDsAndStatusParams{
-		IDs: []string{"t1", "t2", "t3"},
+		IDs:    []string{"t1", "t2", "t3"},
 		Status: "PENDING",
 	})
 	if err != nil {

@@ -80,6 +80,13 @@ const (
 	// actionBatchComponent names the batch executor in panic recovery reports.
 	actionBatchComponent = "daemon_adapters.actionBatch"
 
+	// actionSingleComponent names the single action executor in panic recovery reports.
+	actionSingleComponent = "daemon_adapters.actionSingle"
+
+	// actionCacheKeyComponent names the application's cache key func in panic recovery
+	// reports.
+	actionCacheKeyComponent = "daemon_adapters.actionCacheKey"
+
 	// batchActionName is the action attributed to a batch request's single analytics event.
 	batchActionName = "_batch"
 
@@ -136,9 +143,9 @@ type ActionHandler struct {
 	// registry maps action names to their handler entries.
 	registry map[string]ActionHandlerEntry
 
-	// rateLimitWarned records the actions already reported as declaring an unenforced rate
-	// limit, so the warning is emitted once per action rather than once per request.
-	rateLimitWarned sync.Map
+	// actionWarned records the misconfigurations already reported for an action, so each
+	// warning is emitted once per action rather than once per request.
+	actionWarned sync.Map
 
 	// rateLimitMw applies per-action rate limiting. Nil when rate limiting is disabled
 	// globally.
@@ -391,7 +398,9 @@ func (h *ActionHandler) handleHTTP(
 		return
 	}
 
-	result, err := entry.Invoke(ctx, prepared.Action, prepared.Arguments)
+	result, err := goroutine.SafeCall1(ctx, actionSingleComponent, func() (any, error) {
+		return entry.Invoke(ctx, prepared.Action, prepared.Arguments)
+	})
 	if err != nil {
 		if !isRequestFault(err) {
 			l.ReportError(span, err, "Action execution failed")
@@ -845,7 +854,7 @@ func (h *ActionHandler) handleCachedAction(
 	}
 
 	ctx, l := logger_domain.From(ctx, log)
-	cacheKey := h.buildCacheKey(request, p.Args, p.Entry.Name, cc)
+	cacheKey := h.buildCacheKey(request, p.Action, p.Args, p.Entry, cc)
 
 	if cached, found, _ := h.responseCache.GetIfPresent(ctx, cacheKey); found {
 		actionCacheHitCount.Add(ctx, 1,
@@ -862,7 +871,9 @@ func (h *ActionHandler) handleCachedAction(
 	actionCacheMissCount.Add(ctx, 1,
 		metric.WithAttributes(attribute.String(attributeKeyAction, p.Entry.Name)))
 
-	result, invokeErr := p.Entry.Invoke(ctx, p.Action, p.Args)
+	result, invokeErr := goroutine.SafeCall1(ctx, actionSingleComponent, func() (any, error) {
+		return p.Entry.Invoke(ctx, p.Action, p.Args)
+	})
 	if invokeErr != nil {
 		l.ReportError(p.Span, invokeErr, "Action execution failed")
 		h.handleActionError(w, request, p.Action, invokeErr)
@@ -1094,7 +1105,24 @@ func (*ActionHandler) executeSSEStream(
 	span.SetStatus(codes.Ok, "SSE streaming completed")
 }
 
-// injectMetadata injects request metadata into the action.
+// newRequestMetadata builds the metadata an action reads about its request.
+//
+// Takes request (*http.Request) which provides the HTTP request details.
+//
+// Returns *daemon_dto.RequestMetadata which describes the request.
+func newRequestMetadata(request *http.Request) *daemon_dto.RequestMetadata {
+	return &daemon_dto.RequestMetadata{
+		Method:      request.Method,
+		Path:        request.URL.Path,
+		Headers:     request.Header,
+		QueryParams: request.URL.Query(),
+		RemoteAddr:  request.RemoteAddr,
+		RawRequest:  request,
+	}
+}
+
+// injectMetadata injects request metadata into the action and gives it a fresh response
+// writer.
 //
 // Takes request (*http.Request) which provides the HTTP request details.
 // Takes action (any) which is the action to inject metadata into.
@@ -1105,14 +1133,7 @@ func (*ActionHandler) injectMetadata(request *http.Request, action any) {
 	}
 
 	if injector, ok := action.(metadataInjector); ok {
-		injector.SetRequest(&daemon_dto.RequestMetadata{
-			Method:      request.Method,
-			Path:        request.URL.Path,
-			Headers:     request.Header,
-			QueryParams: request.URL.Query(),
-			RemoteAddr:  request.RemoteAddr,
-			RawRequest:  request,
-		})
+		injector.SetRequest(newRequestMetadata(request))
 		injector.SetResponse(daemon_dto.NewResponseWriter())
 	}
 }

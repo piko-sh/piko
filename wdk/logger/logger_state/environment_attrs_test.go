@@ -33,7 +33,7 @@ import (
 
 const (
 	envAttrChildMarker = "PIKO_ENV_ATTR_CHILD"
-	envAttrChildPass = "ENV_ATTRS_PRESERVED_OK"
+	envAttrChildPass   = "ENV_ATTRS_PRESERVED_OK"
 )
 
 type captureHandler struct {

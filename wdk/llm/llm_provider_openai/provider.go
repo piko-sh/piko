@@ -32,10 +32,10 @@ import (
 	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/shared"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/internal/safeerror"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
 )
 

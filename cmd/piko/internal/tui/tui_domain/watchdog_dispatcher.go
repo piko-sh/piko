@@ -29,8 +29,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/codes"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	clockpkg "piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // TaskDispatchFunc is called when a delayed task is ready to run. It allows testing

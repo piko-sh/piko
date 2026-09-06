@@ -37,11 +37,11 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"piko.sh/piko/wdk/contextaware"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 	"piko.sh/piko/internal/image/image_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/contextaware"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 )
 

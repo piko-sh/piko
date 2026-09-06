@@ -21,9 +21,9 @@ package orchestrator_domain
 import (
 	"context"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 // batchInsertLoop gathers tasks from a channel and inserts them into the database in

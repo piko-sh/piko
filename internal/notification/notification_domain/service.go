@@ -25,8 +25,8 @@ import (
 	"slices"
 	"sync"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/notification/notification_dto"
+	"piko.sh/piko/wdk/goroutine"
 )
 
 const (

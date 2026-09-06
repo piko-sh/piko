@@ -29,8 +29,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"piko.sh/piko/internal/events/events_domain"
-	"piko.sh/piko/wdk/goroutine"
 	watermilllogger "piko.sh/piko/internal/logger/logger_adapters/integrations/watermill"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/logger"
 )
 

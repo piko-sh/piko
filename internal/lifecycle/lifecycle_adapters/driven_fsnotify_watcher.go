@@ -29,10 +29,10 @@ import (
 	"time"
 
 	"golang.org/x/sync/singleflight"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/lifecycle/lifecycle_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 
 	"github.com/fsnotify/fsnotify"

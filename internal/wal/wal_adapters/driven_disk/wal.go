@@ -32,10 +32,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/wal/wal_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 )
 

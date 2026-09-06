@@ -31,16 +31,16 @@ import (
 )
 
 const (
-	modeWedge      = "wedge"
-	modeCrash      = "crash"
-	modeCrashOnce  = "crashonce"
-	modeOldVersion = "oldversion"
-	modeNullInit   = "nullinit"
-	supportedVersion = "v0.21.0"
-	tooOldVersion    = "v0.11.9"
-	crashDelay = 750 * time.Millisecond
-	crashOnceDelay = 1500 * time.Millisecond
-	crashMarkerEnv = "FAKEGOPLS_CRASH_MARKER"
+	modeWedge                  = "wedge"
+	modeCrash                  = "crash"
+	modeCrashOnce              = "crashonce"
+	modeOldVersion             = "oldversion"
+	modeNullInit               = "nullinit"
+	supportedVersion           = "v0.21.0"
+	tooOldVersion              = "v0.11.9"
+	crashDelay                 = 750 * time.Millisecond
+	crashOnceDelay             = 1500 * time.Millisecond
+	crashMarkerEnv             = "FAKEGOPLS_CRASH_MARKER"
 	syntheticDiagnosticMessage = "fakegopls synthetic diagnostic"
 )
 

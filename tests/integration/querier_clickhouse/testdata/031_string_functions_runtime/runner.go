@@ -16,11 +16,17 @@ import (
 
 func main() {
 	conn, err := sql.Open("clickhouse", os.Getenv("DATABASE_URL"))
-	if err != nil { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	defer conn.Close()
 	ctx := context.Background()
 	queries := db.New(conn)
 	out, err := queries.Formatted(ctx)
-	if err != nil { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	_ = json.NewEncoder(os.Stdout).Encode(out)
 }

@@ -63,8 +63,8 @@ func main() {
 	}
 
 	if err := json.NewEncoder(os.Stdout).Encode(map[string]any{
-		"JobID":      jobID,
-		"reordered":  true,
+		"JobID":     jobID,
+		"reordered": true,
 	}); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

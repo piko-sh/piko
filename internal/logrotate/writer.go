@@ -33,8 +33,8 @@ import (
 	"time"
 
 	"github.com/klauspost/compress/gzip"
-	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 )
 

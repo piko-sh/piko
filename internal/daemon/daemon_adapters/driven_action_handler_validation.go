@@ -46,6 +46,10 @@ const (
 
 	// emptyIdentityWarningKey marks the warning about a key func returning no identity.
 	emptyIdentityWarningKey = "empty-identity"
+
+	// unusableCacheKeyWarningKey marks the warning about a cache key func that produced
+	// nothing usable.
+	unusableCacheKeyWarningKey = "unusable-cache-key"
 )
 
 // validateCSRF extracts CSRF tokens from the request and validates them. The ephemeral
@@ -625,7 +629,7 @@ func (h *ActionHandler) warnOncePerAction(
 	warningKey string,
 	message string,
 ) {
-	warned, _ := h.rateLimitWarned.LoadOrStore(entry.Name+"\x00"+warningKey, &sync.Once{})
+	warned, _ := h.actionWarned.LoadOrStore(entry.Name+"\x00"+warningKey, &sync.Once{})
 
 	once, ok := warned.(*sync.Once)
 	if !ok {
