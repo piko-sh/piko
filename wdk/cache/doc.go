@@ -39,16 +39,20 @@
 //
 //	service := cache.NewService("otter")
 //
-//	myCache, err := cache.NewCacheBuilder[string, []byte](service).
-//	    WithMaximumSize(10000).
-//	    WithCompression().
+//	builder, err := cache.NewCacheBuilder[string, []byte](service)
+//	if err != nil {
+//	    return err
+//	}
+//	myCache, err := builder.
+//	    MaximumEntries(10000).
+//	    Compression().
 //	    Build(ctx)
 //	if err != nil {
 //	    return err
 //	}
 //
-//	myCache.Set("key", []byte("value"))
-//	value, found := myCache.GetIfPresent("key")
+//	err = myCache.Set(ctx, "key", []byte("value"))
+//	value, found, err := myCache.GetIfPresent(ctx, "key")
 //
 // When running inside the Piko framework, use the convenience helpers that retrieve the
 // globally initialised service:

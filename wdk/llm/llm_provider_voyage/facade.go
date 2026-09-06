@@ -20,6 +20,7 @@ package llm_provider_voyage
 
 import (
 	"net/http"
+	"sync"
 
 	"piko.sh/piko/wdk/llm"
 )
@@ -64,6 +65,7 @@ func NewVoyageProvider(config Config) (*VoyageProvider, error) {
 		config:              config,
 		defaultModel:        config.DefaultModel,
 		embeddingDimensions: config.EmbeddingDimensions,
+		closeOnce:           sync.Once{},
 	}
 
 	return &VoyageProvider{voyageProvider: p}, nil

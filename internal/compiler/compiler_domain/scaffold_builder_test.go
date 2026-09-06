@@ -745,7 +745,7 @@ func TestHasInteractivePseudo(t *testing.T) {
 	t.Run("returns false for non-pseudo subclass", func(t *testing.T) {
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSClass{}},
 			},
 		}
 
@@ -832,9 +832,7 @@ func TestTypeMatchesUsedTags(t *testing.T) {
 
 	t.Run("returns true for nil type selector", func(t *testing.T) {
 		selectors := newUsedSelectors()
-		component := css_ast.CompoundSelector{
-			TypeSelector: nil,
-		}
+		component := css_ast.CompoundSelector{}
 
 		assert.True(t, typeMatchesUsedTags(component, selectors))
 	})
@@ -848,7 +846,7 @@ func TestGetClassesFromComponent(t *testing.T) {
 		}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSClass{}},
 				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 1}}}},
 			},
 		}
@@ -864,7 +862,7 @@ func TestGetClassesFromComponent(t *testing.T) {
 		}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSClass{}},
 				{Data: &css_ast.SSPseudoClass{Name: "hover"}},
 			},
 		}
@@ -891,7 +889,7 @@ func TestGetClassesFromComponent(t *testing.T) {
 		}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSClass{}},
 				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 99}}}},
 			},
 		}
@@ -910,7 +908,7 @@ func TestGetIDsFromComponent(t *testing.T) {
 		}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSHash{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSHash{}},
 				{Data: &css_ast.SSHash{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 1}}}},
 			},
 		}
@@ -926,8 +924,8 @@ func TestGetIDsFromComponent(t *testing.T) {
 		}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSHash{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
-				{Data: &css_ast.SSClass{Name: es_ast.LocRef{}}},
+				{Data: &css_ast.SSHash{}},
+				{Data: &css_ast.SSClass{}},
 			},
 		}
 
@@ -953,7 +951,7 @@ func TestGetIDsFromComponent(t *testing.T) {
 		}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSHash{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSHash{}},
 				{Data: &css_ast.SSHash{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 100}}}},
 			},
 		}
@@ -971,7 +969,7 @@ func TestClassMatchesUsedClasses(t *testing.T) {
 		symbols := []es_ast.Symbol{{OriginalName: "btn"}}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSClass{}},
 			},
 		}
 
@@ -984,7 +982,7 @@ func TestClassMatchesUsedClasses(t *testing.T) {
 		symbols := []es_ast.Symbol{{OriginalName: "btn"}}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSClass{}},
 			},
 		}
 
@@ -1009,7 +1007,7 @@ func TestIdMatchesUsedIDs(t *testing.T) {
 		symbols := []es_ast.Symbol{{OriginalName: "header"}}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSHash{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSHash{}},
 			},
 		}
 
@@ -1022,7 +1020,7 @@ func TestIdMatchesUsedIDs(t *testing.T) {
 		symbols := []es_ast.Symbol{{OriginalName: "header"}}
 		component := css_ast.CompoundSelector{
 			SubclassSelectors: []css_ast.SubclassSelector{
-				{Data: &css_ast.SSHash{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+				{Data: &css_ast.SSHash{}},
 			},
 		}
 
@@ -1421,9 +1419,7 @@ func TestWithScaffoldConfig(t *testing.T) {
 	})
 
 	t.Run("stores config with tree shaking disabled", func(t *testing.T) {
-		config := ScaffoldBuilderConfig{
-			CSSTreeShaking: false,
-		}
+		config := ScaffoldBuilderConfig{}
 		ctx := WithScaffoldConfig(context.Background(), config)
 
 		got := GetScaffoldConfig(ctx)
@@ -1433,7 +1429,7 @@ func TestWithScaffoldConfig(t *testing.T) {
 
 	t.Run("later config overrides earlier config", func(t *testing.T) {
 		first := ScaffoldBuilderConfig{CSSTreeShaking: true}
-		second := ScaffoldBuilderConfig{CSSTreeShaking: false}
+		second := ScaffoldBuilderConfig{}
 		ctx := WithScaffoldConfig(context.Background(), first)
 		ctx = WithScaffoldConfig(ctx, second)
 
@@ -1460,7 +1456,7 @@ func TestFilterRules(t *testing.T) {
 							Selectors: []css_ast.CompoundSelector{
 								{
 									SubclassSelectors: []css_ast.SubclassSelector{
-										{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+										{Data: &css_ast.SSClass{}},
 									},
 								},
 							},
@@ -1491,7 +1487,7 @@ func TestFilterRules(t *testing.T) {
 							Selectors: []css_ast.CompoundSelector{
 								{
 									SubclassSelectors: []css_ast.SubclassSelector{
-										{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+										{Data: &css_ast.SSClass{}},
 									},
 								},
 							},
@@ -1675,7 +1671,7 @@ func TestFilterSelectorRule(t *testing.T) {
 					Selectors: []css_ast.CompoundSelector{
 						{
 							SubclassSelectors: []css_ast.SubclassSelector{
-								{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+								{Data: &css_ast.SSClass{}},
 							},
 						},
 					},
@@ -1701,7 +1697,7 @@ func TestFilterSelectorRule(t *testing.T) {
 					Selectors: []css_ast.CompoundSelector{
 						{
 							SubclassSelectors: []css_ast.SubclassSelector{
-								{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+								{Data: &css_ast.SSClass{}},
 							},
 						},
 					},
@@ -1729,7 +1725,7 @@ func TestFilterSelectorRule(t *testing.T) {
 					Selectors: []css_ast.CompoundSelector{
 						{
 							SubclassSelectors: []css_ast.SubclassSelector{
-								{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+								{Data: &css_ast.SSClass{}},
 							},
 						},
 					},
@@ -1765,7 +1761,7 @@ func TestFilterSelectorRule(t *testing.T) {
 					Selectors: []css_ast.CompoundSelector{
 						{
 							SubclassSelectors: []css_ast.SubclassSelector{
-								{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+								{Data: &css_ast.SSClass{}},
 							},
 						},
 					},
@@ -1908,7 +1904,7 @@ func TestFilterMatchingSelectors(t *testing.T) {
 				Selectors: []css_ast.CompoundSelector{
 					{
 						SubclassSelectors: []css_ast.SubclassSelector{
-							{Data: &css_ast.SSClass{Name: es_ast.LocRef{Ref: es_ast.Ref{InnerIndex: 0}}}},
+							{Data: &css_ast.SSClass{}},
 						},
 					},
 				},
@@ -2185,9 +2181,7 @@ func TestBuildStaticScaffoldWithTreeShaking(t *testing.T) {
 	})
 
 	t.Run("preserves all CSS when tree shaking is disabled", func(t *testing.T) {
-		builder := NewScaffoldBuilder(ScaffoldBuilderConfig{
-			CSSTreeShaking: false,
-		})
+		builder := NewScaffoldBuilder(ScaffoldBuilderConfig{})
 		tAST := &ast_domain.TemplateAST{
 			RootNodes: []*ast_domain.TemplateNode{
 				{
@@ -2336,7 +2330,7 @@ func TestNewScaffoldBuilderWithConfig(t *testing.T) {
 
 	t.Run("uses first config when multiple provided", func(t *testing.T) {
 		first := ScaffoldBuilderConfig{CSSTreeShaking: true}
-		second := ScaffoldBuilderConfig{CSSTreeShaking: false}
+		second := ScaffoldBuilderConfig{}
 
 		builder := NewScaffoldBuilder(first, second)
 

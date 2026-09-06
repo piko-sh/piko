@@ -138,19 +138,19 @@ func (e *compilerExecutor) Execute(ctx context.Context, payload map[string]any) 
 		return nil, fmt.Errorf("invalid payload for compilerExecutor: %w", err)
 	}
 
-	ctx = e.enrichContext(ctx, l, p)
+	ctx = e.enrichContext(ctx, p)
 
 	return e.runCompilation(ctx, span, startTime, p)
 }
 
-// enrichContext attaches task-specific fields to the logger and returns the enriched
-// context.
+// enrichContext attaches task-specific fields to the context's logger and returns the
+// enriched context.
 //
-// Takes l (logger_domain.Logger) which is the current logger to enrich.
 // Takes p (*compilerPayload) which provides the task fields to attach.
 //
 // Returns context.Context which carries the enriched logger.
-func (*compilerExecutor) enrichContext(ctx context.Context, l logger_domain.Logger, p *compilerPayload) context.Context {
+func (*compilerExecutor) enrichContext(ctx context.Context, p *compilerPayload) context.Context {
+	ctx, l := logger_domain.From(ctx, log)
 	l = l.With(
 		logger_domain.String(payloadKeyArtefactID, p.ArtefactID),
 		logger_domain.String("capability", p.CapabilityToRun),
@@ -190,7 +190,7 @@ func (e *compilerExecutor) runCompilation(ctx context.Context, span trace.Span, 
 
 	outputStream, err := e.executeCapability(ctx, p, sourceStream)
 	if err != nil {
-		return nil, e.handleCapabilityError(ctx, span, l, p, err)
+		return nil, e.handleCapabilityError(ctx, span, p, err)
 	}
 
 	if closer, ok := outputStream.(io.ReadCloser); ok {
@@ -222,12 +222,12 @@ func (e *compilerExecutor) runCompilation(ctx context.Context, span trace.Span, 
 // it as fatal when appropriate.
 //
 // Takes span (trace.Span) which is the parent tracing span.
-// Takes l (logger_domain.Logger) which logs the failure.
 // Takes p (*compilerPayload) which provides the capability name for the error message.
 // Takes err (error) which is the original capability error.
 //
 // Returns error which is the wrapped (and optionally fatal) error.
-func (*compilerExecutor) handleCapabilityError(ctx context.Context, span trace.Span, l logger_domain.Logger, p *compilerPayload, err error) error {
+func (*compilerExecutor) handleCapabilityError(ctx context.Context, span trace.Span, p *compilerPayload, err error) error {
+	ctx, l := logger_domain.From(ctx, log)
 	l.ReportError(span, err, "Capability execution failed")
 	ExecutorCompilationErrorCount.Add(ctx, 1)
 	capErr := fmt.Errorf("capability '%s' failed: %w", p.CapabilityToRun, err)
@@ -402,6 +402,10 @@ func (e *compilerExecutor) storeAndCreateVariant(
 		Kind:             registry_dto.KindDerived,
 		Transform:        transform,
 		InputFingerprint: inputFingerprint,
+		Origin:           "",
+		BuildRelease:     "",
+		BuildHash:        "",
+		Producer:         0,
 	}, nil
 }
 

@@ -68,9 +68,12 @@ func (p *MainListenerProbe) Check(
 	checkType healthprobe_dto.CheckType,
 ) healthprobe_dto.Status {
 	status := healthprobe_dto.Status{
-		Name:      mainListenerProbeName,
-		State:     healthprobe_dto.StateHealthy,
-		Timestamp: p.now(),
+		Name:         mainListenerProbeName,
+		State:        healthprobe_dto.StateHealthy,
+		Timestamp:    p.now(),
+		Message:      "",
+		Duration:     "",
+		Dependencies: nil,
 	}
 
 	if checkType != healthprobe_dto.CheckTypeReadiness {

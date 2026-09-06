@@ -136,74 +136,6 @@ type inlineLayoutContext struct {
 	isEllipsisMode bool
 }
 
-// resolveEffectiveVerticalAlign chooses between an item's own vertical-align and a
-// non-baseline alignment inherited from an inline wrapper ancestor. The wrapper-inherited
-// value wins when set, so text inside <sub>/<sup> shifts alongside the wrapper instead of
-// sitting on the baseline.
-//
-// Takes ownVA (VerticalAlignType) which is the item's own vertical-align style.
-// Takes inheritedVA (VerticalAlignType) which is the alignment propagated by an enclosing
-// inline wrapper, or VerticalAlignBaseline when none applies.
-//
-// Returns VerticalAlignType which is the effective alignment to use during layout.
-func resolveEffectiveVerticalAlign(ownVA, inheritedVA VerticalAlignType) VerticalAlignType {
-	if inheritedVA != VerticalAlignBaseline {
-		return inheritedVA
-	}
-	return ownVA
-}
-
-// extendLineHeightForVerticalAlign grows the current line height by the additional
-// vertical extent that a non-baseline vertical-align value introduces. Sub and super
-// shift the item by half the parent's x-height; text-top and text-bottom stretch the line
-// to the parent's content area when the parent's font is taller than the item's own text.
-//
-// Takes lineHeight (float64) which is the line height accumulated so far from regular
-// text metrics.
-// Takes itemHeight (float64) which is the natural margin-box height of the item being
-// appended.
-// Takes parentMetrics (FontMetrics) which are the parent element's font metrics.
-// Takes va (VerticalAlignType) which is the effective alignment.
-//
-// Returns float64 which is the line height after growth.
-func extendLineHeightForVerticalAlign(lineHeight, itemHeight float64, parentMetrics FontMetrics, va VerticalAlignType) float64 {
-	switch va {
-	case VerticalAlignSub, VerticalAlignSuper:
-		grown := itemHeight + parentMetrics.XHeight*subSuperOffsetFactor
-		if grown > lineHeight {
-			return grown
-		}
-	case VerticalAlignTextTop, VerticalAlignTextBottom:
-		parentBox := parentMetrics.Ascent + parentMetrics.Descent
-		if parentBox > lineHeight {
-			return parentBox
-		}
-	default:
-	}
-	return lineHeight
-}
-
-// parentFontMetrics resolves the FontMetrics for an inline item's containing element.
-// Used so sub, super, text-top, and text-bottom vertical alignment can offset relative to
-// the parent's font (CSS 2.1 ss10.8.1).
-//
-// Takes fontMetrics (FontMetricsPort) which resolves font descriptors to metrics.
-// Takes parentStyle (*ComputedStyle) which is the containing element's resolved style.
-//
-// Returns FontMetrics which holds the parent's vertical metrics, or a zero value when no
-// parent style is supplied.
-func parentFontMetrics(fontMetrics FontMetricsPort, parentStyle *ComputedStyle) FontMetrics {
-	if parentStyle == nil || fontMetrics == nil {
-		return FontMetrics{}
-	}
-	font := FontDescriptor{
-		Family: parentStyle.FontFamily,
-		Weight: parentStyle.FontWeight,
-		Style:  parentStyle.FontStyle,
-	}
-	return fontMetrics.GetMetrics(font, parentStyle.FontSize)
-}
-
 // effectiveAvailableWidth returns the available width for the current line, narrowed by
 // any floats that overlap at the current cursorY. The result is always capped at the
 // container's own content width, since floats from an ancestor BFC cannot widen the
@@ -277,11 +209,7 @@ func (c *inlineLayoutContext) layoutNonTextChild(ctx context.Context, child *Lay
 	c.cursorX += marginLeft
 
 	startX := c.cursorX
-	childFragment := &Fragment{
-		Box:     child,
-		OffsetX: c.lineContentOffsetX() + c.cursorX,
-		OffsetY: c.cursorY,
-	}
+	childFragment := newFragment(child, c.lineContentOffsetX()+c.cursorX, c.cursorY, 0, 0)
 	childFragment.Margin.Left = marginLeft
 	childFragment.Margin.Right = marginRight
 	effectiveVA := resolveEffectiveVerticalAlign(child.Style.VerticalAlign, inheritedVA)
@@ -323,7 +251,12 @@ func (c *inlineLayoutContext) layoutNonTextChild(ctx context.Context, child *Lay
 // Takes inheritedVA (VerticalAlignType) which is the vertical-align value propagated by
 // an enclosing inline wrapper.
 func (c *inlineLayoutContext) layoutAtomicInline(ctx context.Context, child *LayoutBox, parentStyle *ComputedStyle, inheritedVA VerticalAlignType) {
-	childFragment := layoutBox(ctx, child, layoutInput{AvailableWidth: c.availableWidth, FontMetrics: c.fontMetrics, Cache: c.input.Cache})
+	childFragment := layoutBox(ctx, child, newLayoutInput(
+		c.input,
+		c.availableWidth,
+		0,
+		resolvedEdges{},
+	))
 	childFragment.Margin.Left = child.Style.MarginLeft.Resolve(c.availableWidth, 0)
 	childFragment.Margin.Right = child.Style.MarginRight.Resolve(c.availableWidth, 0)
 	childFragment.Margin.Top = child.Style.MarginTop.Resolve(c.availableWidth, 0)
@@ -366,13 +299,7 @@ func (c *inlineLayoutContext) layoutAtomicInline(ctx context.Context, child *Lay
 // Takes effectiveVA (VerticalAlignType) which is the alignment to apply, either the text
 // run's own or one inherited from a wrapping inline.
 func (c *inlineLayoutContext) layoutUnwrappedTextRun(child *LayoutBox, totalWidth, textLineHeight float64, parentMetrics FontMetrics, effectiveVA VerticalAlignType) {
-	childFragment := &Fragment{
-		Box:           child,
-		OffsetX:       c.lineContentOffsetX() + c.cursorX,
-		OffsetY:       c.cursorY,
-		ContentWidth:  totalWidth,
-		ContentHeight: textLineHeight,
-	}
+	childFragment := newFragment(child, c.lineContentOffsetX()+c.cursorX, c.cursorY, totalWidth, textLineHeight)
 	c.currentLineItems = append(c.currentLineItems, lineItem{
 		fragment:               childFragment,
 		parentMetrics:          parentMetrics,
@@ -422,15 +349,9 @@ func (c *inlineLayoutContext) layoutEllipsisTextRun(
 	}
 
 	child.Text = truncated + ellipsis
-	child.Glyphs = c.fontMetrics.ShapeText(font, fontSize, child.Text, direction)
-	displayWidth := c.fontMetrics.MeasureText(font, fontSize, child.Text, direction)
-	childFragment := &Fragment{
-		Box:           child,
-		OffsetX:       c.lineContentOffsetX() + c.cursorX,
-		OffsetY:       c.cursorY,
-		ContentWidth:  displayWidth,
-		ContentHeight: textLineHeight,
-	}
+	glyphs, displayWidth := c.fontMetrics.ShapeAndMeasureText(font, fontSize, child.Text, direction)
+	child.Glyphs = glyphs
+	childFragment := newFragment(child, c.lineContentOffsetX()+c.cursorX, c.cursorY, displayWidth, textLineHeight)
 	c.currentLineItems = append(c.currentLineItems, lineItem{
 		fragment:               childFragment,
 		parentMetrics:          parentMetrics,
@@ -476,25 +397,16 @@ func (c *inlineLayoutContext) emitTextSegment(
 	segmentText string, startX, textLineHeight float64,
 	va verticalAlignInputs,
 ) {
-	segmentBox := &LayoutBox{
-		Type:           original.Type,
-		Style:          original.Style,
-		Text:           segmentText,
-		BaselineOffset: original.BaselineOffset,
-	}
-	segmentBox.Glyphs = c.fontMetrics.ShapeText(font, fontSize, segmentText, original.Style.Direction)
-	segmentWidth := c.fontMetrics.MeasureText(font, fontSize, segmentText, original.Style.Direction)
+	segmentBox := newLayoutBox(original.Type, &original.Style, nil)
+	segmentBox.Text = segmentText
+	segmentBox.BaselineOffset = original.BaselineOffset
+	glyphs, segmentWidth := c.fontMetrics.ShapeAndMeasureText(font, fontSize, segmentText, original.Style.Direction)
+	segmentBox.Glyphs = glyphs
 	if original.Style.LetterSpacing != 0 {
 		segmentWidth += original.Style.LetterSpacing * float64(len([]rune(segmentText)))
 	}
 
-	fragment := &Fragment{
-		Box:           segmentBox,
-		OffsetX:       c.lineContentOffsetX() + startX,
-		OffsetY:       c.cursorY,
-		ContentWidth:  segmentWidth,
-		ContentHeight: textLineHeight,
-	}
+	fragment := newFragment(segmentBox, c.lineContentOffsetX()+startX, c.cursorY, segmentWidth, textLineHeight)
 	c.currentLineItems = append(c.currentLineItems, lineItem{
 		fragment:               fragment,
 		parentMetrics:          va.parentMetrics,
@@ -571,11 +483,11 @@ func (c *inlineLayoutContext) layoutTextChild(child *LayoutBox, parentStyle *Com
 	runs := splitIntoBidiRuns(child.Text, child.Style.Direction, child.Style.UnicodeBidi)
 	direction := resolveRunDirection(runs, child.Style.Direction)
 
-	totalWidth := c.fontMetrics.MeasureText(font, fontSize, child.Text, direction)
+	glyphs, totalWidth := c.fontMetrics.ShapeAndMeasureText(font, fontSize, child.Text, direction)
+	child.Glyphs = glyphs
 	if child.Style.LetterSpacing != 0 {
 		totalWidth += child.Style.LetterSpacing * float64(len([]rune(child.Text)))
 	}
-	child.Glyphs = c.fontMetrics.ShapeText(font, fontSize, child.Text, direction)
 
 	parentMetrics := parentFontMetrics(c.fontMetrics, parentStyle)
 	effectiveVA := resolveEffectiveVerticalAlign(child.Style.VerticalAlign, inheritedVA)
@@ -592,34 +504,6 @@ func (c *inlineLayoutContext) layoutTextChild(child *LayoutBox, parentStyle *Com
 	} else {
 		c.layoutWrappedTextRun(child, font, fontSize, totalWidth, textLineHeight, parentMetrics, effectiveVA)
 	}
-}
-
-// resolveTabStopTargetX computes the horizontal target position for a tab stop,
-// accounting for right and centre alignment by measuring the upcoming segment width and
-// offsetting accordingly. The result is clamped so it never falls before the current
-// cursor position.
-//
-// Takes stop (TabStop) which is the tab stop definition.
-// Takes segmentWidth (float64) which is the measured width of the segment that follows
-// this tab.
-// Takes cursorX (float64) which is the current horizontal position.
-//
-// Returns float64 which is the resolved target X coordinate.
-func resolveTabStopTargetX(stop TabStop, segmentWidth float64, cursorX float64) float64 {
-	targetX := stop.Position
-
-	switch stop.Align { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
-	case TabAlignRight:
-		targetX = stop.Position - segmentWidth
-	case TabAlignCenter:
-		targetX = stop.Position - segmentWidth/2
-	}
-
-	if targetX < cursorX {
-		targetX = cursorX
-	}
-
-	return targetX
 }
 
 // tabTextParams groups the font and style parameters shared by the tab leader and segment
@@ -646,6 +530,16 @@ type tabTextParams struct {
 
 	// EffectiveVA holds the vertical-align value to apply.
 	EffectiveVA VerticalAlignType
+}
+
+// shapedText holds text that has been shaped once, so its glyphs and width can be reused
+// without shaping the same text again.
+type shapedText struct {
+	// glyphs holds the positioned glyphs of the text.
+	glyphs []GlyphPosition
+
+	// width holds the total advance width of the text in points.
+	width float64
 }
 
 // emitTabLeaderFill creates a leader-fill fragment spanning the gap between leaderStartX
@@ -677,61 +571,56 @@ func (c *inlineLayoutContext) emitTabLeaderFill(
 	}
 
 	fullLeader := strings.Repeat(leaderText, repeatCount)
-	leaderBox := &LayoutBox{
-		Text:  fullLeader,
-		Type:  BoxTextRun,
-		Style: *params.Style,
-	}
-	leaderBox.Glyphs = c.fontMetrics.ShapeText(params.Font, params.FontSize, fullLeader, params.Direction)
-	leaderTotal := c.fontMetrics.MeasureText(params.Font, params.FontSize, fullLeader, params.Direction)
-
-	frag := &Fragment{
-		Box:           leaderBox,
-		OffsetX:       c.lineContentOffsetX() + leaderStartX,
-		OffsetY:       c.cursorY,
-		ContentWidth:  leaderTotal,
-		ContentHeight: params.TextLineHeight,
-	}
-	c.currentLineItems = append(c.currentLineItems, lineItem{
-		fragment:               frag,
-		parentMetrics:          params.ParentMetrics,
-		x:                      leaderStartX,
-		width:                  leaderTotal,
-		effectiveVerticalAlign: params.EffectiveVA,
-	})
+	c.appendTabTextItem(fullLeader, c.shapeTabText(fullLeader, params), leaderStartX, params)
 }
 
-// emitTabSegment measures a non-empty text segment, creates a LayoutBox and Fragment for
-// it, and appends it to the current line items. The cursor advances by the segment width.
+// emitTabSegment creates a LayoutBox and Fragment for a non-empty, already shaped text
+// segment and appends it to the current line items. The cursor advances by the segment
+// width.
 //
 // Takes segment (string) which is the text to emit.
+// Takes shaped (shapedText) which holds the segment's glyphs and width.
 // Takes params (tabTextParams) which groups font, style, line height, and direction.
 func (c *inlineLayoutContext) emitTabSegment(
-	segment string, params tabTextParams,
+	segment string, shaped shapedText, params tabTextParams,
 ) {
-	segWidth := c.fontMetrics.MeasureText(params.Font, params.FontSize, segment, params.Direction)
-	segBox := &LayoutBox{
-		Text:  segment,
-		Type:  BoxTextRun,
-		Style: *params.Style,
-	}
-	segBox.Glyphs = c.fontMetrics.ShapeText(params.Font, params.FontSize, segment, params.Direction)
+	segmentWidth := c.appendTabTextItem(segment, shaped, c.cursorX, params)
+	c.cursorX += segmentWidth
+}
 
-	frag := &Fragment{
-		Box:           segBox,
-		OffsetX:       c.lineContentOffsetX() + c.cursorX,
-		OffsetY:       c.cursorY,
-		ContentWidth:  segWidth,
-		ContentHeight: params.TextLineHeight,
-	}
+// shapeTabText shapes text in the tab run's font in a single pass.
+//
+// Takes text (string) which is the text to shape.
+// Takes params (tabTextParams) which groups font, size and direction.
+//
+// Returns shapedText which holds the glyphs and width of the text.
+func (c *inlineLayoutContext) shapeTabText(text string, params tabTextParams) shapedText {
+	glyphs, width := c.fontMetrics.ShapeAndMeasureText(params.Font, params.FontSize, text, params.Direction)
+	return shapedText{glyphs: glyphs, width: width}
+}
+
+// appendTabTextItem appends already shaped text as a detached text-run box and its
+// fragment to the current line items at line position x. The cursor is left unchanged.
+//
+// Takes text (string) which is the text of the item.
+// Takes shaped (shapedText) which holds the text's glyphs and width.
+// Takes x (float64) which is the line-relative start position of the text.
+// Takes params (tabTextParams) which groups font, style, line height, and direction.
+//
+// Returns float64 which is the width of the text in points.
+func (c *inlineLayoutContext) appendTabTextItem(text string, shaped shapedText, x float64, params tabTextParams) float64 {
+	textBox := newLayoutBox(BoxTextRun, params.Style, nil)
+	textBox.Text = text
+	textBox.Glyphs = shaped.glyphs
+
 	c.currentLineItems = append(c.currentLineItems, lineItem{
-		fragment:               frag,
+		fragment:               newFragment(textBox, c.lineContentOffsetX()+x, c.cursorY, shaped.width, params.TextLineHeight),
 		parentMetrics:          params.ParentMetrics,
-		x:                      c.cursorX,
-		width:                  segWidth,
+		x:                      x,
+		width:                  shaped.width,
 		effectiveVerticalAlign: params.EffectiveVA,
 	})
-	c.cursorX += segWidth
+	return shaped.width
 }
 
 // layoutTextWithTabStops splits text at tab characters and positions each segment
@@ -780,19 +669,19 @@ func (c *inlineLayoutContext) layoutTextWithTabStops(child *LayoutBox, parentSty
 	}
 
 	for i, segment := range segments {
+		shaped := c.shapeTabText(segment, params)
 		if i > 0 && stopIndex < len(stops) {
 			stop := stops[stopIndex]
 			stopIndex++
 
 			leaderStartX := c.cursorX
-			segWidth := c.fontMetrics.MeasureText(font, fontSize, segment, direction)
-			targetX := resolveTabStopTargetX(stop, segWidth, c.cursorX)
+			targetX := resolveTabStopTargetX(stop, shaped.width, c.cursorX)
 			c.emitTabLeaderFill(stop, leaderStartX, targetX, params)
 			c.cursorX = targetX
 		}
 
 		if segment != "" {
-			c.emitTabSegment(segment, params)
+			c.emitTabSegment(segment, shaped, params)
 		}
 	}
 
@@ -800,6 +689,102 @@ func (c *inlineLayoutContext) layoutTextWithTabStops(child *LayoutBox, parentSty
 		c.currentLineHeight = textLineHeight
 	}
 	c.currentLineHeight = extendLineHeightForVerticalAlign(c.currentLineHeight, textLineHeight, params.ParentMetrics, params.EffectiveVA)
+}
+
+// resolveEffectiveVerticalAlign chooses between an item's own vertical-align and a
+// non-baseline alignment inherited from an inline wrapper ancestor. The wrapper-inherited
+// value wins when set, so text inside <sub>/<sup> shifts alongside the wrapper instead of
+// sitting on the baseline.
+//
+// Takes ownVA (VerticalAlignType) which is the item's own vertical-align style.
+// Takes inheritedVA (VerticalAlignType) which is the alignment propagated by an enclosing
+// inline wrapper, or VerticalAlignBaseline when none applies.
+//
+// Returns VerticalAlignType which is the effective alignment to use during layout.
+func resolveEffectiveVerticalAlign(ownVA, inheritedVA VerticalAlignType) VerticalAlignType {
+	if inheritedVA != VerticalAlignBaseline {
+		return inheritedVA
+	}
+	return ownVA
+}
+
+// extendLineHeightForVerticalAlign grows the current line height by the additional
+// vertical extent that a non-baseline vertical-align value introduces. Sub and super
+// shift the item by half the parent's x-height; text-top and text-bottom stretch the line
+// to the parent's content area when the parent's font is taller than the item's own text.
+//
+// Takes lineHeight (float64) which is the line height accumulated so far from regular
+// text metrics.
+// Takes itemHeight (float64) which is the natural margin-box height of the item being
+// appended.
+// Takes parentMetrics (FontMetrics) which are the parent element's font metrics.
+// Takes va (VerticalAlignType) which is the effective alignment.
+//
+// Returns float64 which is the line height after growth.
+func extendLineHeightForVerticalAlign(lineHeight, itemHeight float64, parentMetrics FontMetrics, va VerticalAlignType) float64 {
+	switch va {
+	case VerticalAlignSub, VerticalAlignSuper:
+		grown := itemHeight + parentMetrics.XHeight*subSuperOffsetFactor
+		if grown > lineHeight {
+			return grown
+		}
+	case VerticalAlignTextTop, VerticalAlignTextBottom:
+		parentBox := parentMetrics.Ascent + parentMetrics.Descent
+		if parentBox > lineHeight {
+			return parentBox
+		}
+	default:
+	}
+	return lineHeight
+}
+
+// parentFontMetrics resolves the FontMetrics for an inline item's containing element.
+// Used so sub, super, text-top, and text-bottom vertical alignment can offset relative to
+// the parent's font (CSS 2.1 ss10.8.1).
+//
+// Takes fontMetrics (FontMetricsPort) which resolves font descriptors to metrics.
+// Takes parentStyle (*ComputedStyle) which is the containing element's resolved style.
+//
+// Returns FontMetrics which holds the parent's vertical metrics, or a zero value when no
+// parent style is supplied.
+func parentFontMetrics(fontMetrics FontMetricsPort, parentStyle *ComputedStyle) FontMetrics {
+	if parentStyle == nil || fontMetrics == nil {
+		return FontMetrics{}
+	}
+	font := FontDescriptor{
+		Family: parentStyle.FontFamily,
+		Weight: parentStyle.FontWeight,
+		Style:  parentStyle.FontStyle,
+	}
+	return fontMetrics.GetMetrics(font, parentStyle.FontSize)
+}
+
+// resolveTabStopTargetX computes the horizontal target position for a tab stop,
+// accounting for right and centre alignment by measuring the upcoming segment width and
+// offsetting accordingly. The result is clamped so it never falls before the current
+// cursor position.
+//
+// Takes stop (TabStop) which is the tab stop definition.
+// Takes segmentWidth (float64) which is the measured width of the segment that follows
+// this tab.
+// Takes cursorX (float64) which is the current horizontal position.
+//
+// Returns float64 which is the resolved target X coordinate.
+func resolveTabStopTargetX(stop TabStop, segmentWidth float64, cursorX float64) float64 {
+	targetX := stop.Position
+
+	switch stop.Align { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
+	case TabAlignRight:
+		targetX = stop.Position - segmentWidth
+	case TabAlignCenter:
+		targetX = stop.Position - segmentWidth/2
+	}
+
+	if targetX < cursorX {
+		targetX = cursorX
+	}
+
+	return targetX
 }
 
 // resolveRunDirection returns the direction to use for text measurement.
@@ -848,6 +833,10 @@ func layoutInlineContent(ctx context.Context, container *LayoutBox, input layout
 		isEllipsisMode: container.Style.TextOverflow == TextOverflowEllipsis &&
 			container.Style.OverflowX != OverflowVisible &&
 			!allowsWrapping(container.Style.WhiteSpace),
+		currentLineItems:  nil,
+		lines:             nil,
+		childReplacements: nil,
+		currentLineHeight: 0,
 	}
 
 	for _, child := range container.Children {
@@ -875,14 +864,11 @@ func layoutInlineContent(ctx context.Context, container *LayoutBox, input layout
 
 	lineFragments, totalHeight := buildLineFragments(inlineLayoutCtx.lines)
 
-	return formattingContextResult{
-		Children:      lineFragments,
-		ContentHeight: totalHeight,
-		Margin: BoxEdges{
-			Top:    input.Edges.MarginTop,
-			Bottom: input.Edges.MarginBottom,
-		},
-	}
+	return newFormattingContextResult(
+		lineFragments,
+		totalHeight,
+		newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+	)
 }
 
 // applyChildReplacements recursively swaps original text-run boxes for their line-segment
@@ -923,12 +909,8 @@ func buildLineFragments(lines []lineBox) ([]*Fragment, float64) {
 			item.fragment.OffsetY -= line.y
 			lineChildren = append(lineChildren, item.fragment)
 		}
-		lineFragment := &Fragment{
-			Children:      lineChildren,
-			OffsetY:       line.y,
-			ContentWidth:  line.width,
-			ContentHeight: line.height,
-		}
+		lineFragment := newFragment(nil, 0, line.y, line.width, line.height)
+		lineFragment.Children = lineChildren
 		lineFragments = append(lineFragments, lineFragment)
 		totalHeight += line.height
 	}
@@ -940,6 +922,8 @@ func buildLineFragments(lines []lineBox) ([]*Fragment, float64) {
 //
 // Takes lines ([]lineBox) which is the set of line boxes to adjust.
 // Takes textAlign (TextAlignType) which is the alignment mode to apply.
+// Takes direction (DirectionType) which specifies the text direction used to resolve
+// logical alignment.
 // Takes availableWidth (float64) which is the maximum line width for offset calculation.
 // Takes contentOffsetX (float64) which is the horizontal offset from the container's
 // ContentX to the content start (padding + border).
@@ -1286,11 +1270,11 @@ func layoutTextRun(box *LayoutBox, fontMetrics FontMetricsPort) *Fragment {
 	fontSize := box.Style.FontSize
 	metrics := fontMetrics.GetMetrics(font, fontSize)
 
-	contentWidth := fontMetrics.MeasureText(font, fontSize, box.Text, box.Style.Direction)
+	glyphs, contentWidth := fontMetrics.ShapeAndMeasureText(font, fontSize, box.Text, box.Style.Direction)
+	box.Glyphs = glyphs
 	if box.Style.LetterSpacing != 0 {
 		contentWidth += box.Style.LetterSpacing * float64(len([]rune(box.Text)))
 	}
-	box.Glyphs = fontMetrics.ShapeText(font, fontSize, box.Text, box.Style.Direction)
 	fontLineHeight := metrics.Ascent + metrics.Descent + metrics.LineGap
 	contentHeight := box.Style.LineHeight
 	if contentHeight < fontLineHeight {
@@ -1300,11 +1284,7 @@ func layoutTextRun(box *LayoutBox, fontMetrics FontMetricsPort) *Fragment {
 	halfLeading := (contentHeight - fontLineHeight) / 2
 	box.BaselineOffset = halfLeading + metrics.Ascent
 
-	return &Fragment{
-		Box:           box,
-		ContentWidth:  contentWidth,
-		ContentHeight: contentHeight,
-	}
+	return newFragment(box, 0, 0, contentWidth, contentHeight)
 }
 
 // splitIntoWords splits text on breakable whitespace boundaries into individual words.

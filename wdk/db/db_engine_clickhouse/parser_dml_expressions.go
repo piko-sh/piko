@@ -128,13 +128,15 @@ const (
 // It delegates to the lambda-arrow precedence layer which sits below boolean operations.
 // The expressionDepth counter is incremented on entry and decremented on exit so deeply
 // nested parenthesised expressions cannot drive the parser past maxParseDepth recursive
-// frames. When the cap is reached a placeholder expressionKindUnknown result is returned
-// so the caller can continue parsing the surrounding statement.
+// frames. When the cap is reached errExpressionDepthExceeded is recorded as the parser's
+// syntax error, so the statement is reported as too deeply nested, and a placeholder
+// expressionKindUnknown result lets the caller unwind without further recursion.
 //
 // Returns *parsedExpression which is the parsed expression tree.
 func (p *parser) parseExpression() *parsedExpression {
 	if p.expressionDepth >= p.maxParseDepth {
-		return &parsedExpression{kind: expressionKindUnknown}
+		p.recordSyntaxError(errExpressionDepthExceeded)
+		return newUntypedExpression(expressionKindUnknown)
 	}
 	p.expressionDepth++
 	defer func() { p.expressionDepth-- }()
@@ -155,7 +157,7 @@ func (p *parser) parseLambdaExpression() *parsedExpression {
 		if p.current().kind == tokenArrow {
 			p.advance()
 			body := p.parseOrExpression()
-			result := &parsedExpression{kind: expressionKindLambda}
+			result := newUntypedExpression(expressionKindLambda)
 			if body != nil {
 				result.resultType = body.resultType
 				result.referencedColumns = body.referencedColumns
@@ -249,22 +251,21 @@ func (p *parser) parseAndExpression() *parsedExpression {
 // (HAVING aggregate checks, scope nullability) see the same dependencies as the original
 // expression. A stacked `NOT NOT` chain recurses directly rather than through
 // parseExpression, so the depth counter is incremented here too to keep the recursion
-// within maxParseDepth frames.
+// within maxParseDepth frames; at the cap errExpressionDepthExceeded is recorded as the
+// parser's syntax error.
 //
 // Returns *parsedExpression which is the parsed NOT expression or the underlying
 // comparison.
 func (p *parser) parseNotExpression() *parsedExpression {
 	if p.matchKeyword("NOT") {
 		if p.expressionDepth >= p.maxParseDepth {
-			return &parsedExpression{kind: expressionKindUnknown}
+			p.recordSyntaxError(errExpressionDepthExceeded)
+			return newUntypedExpression(expressionKindUnknown)
 		}
 		p.expressionDepth++
 		defer func() { p.expressionDepth-- }()
 		inner := p.parseNotExpression()
-		result := &parsedExpression{
-			kind:       expressionKindUnary,
-			resultType: boolReturnType(),
-		}
+		result := newParsedExpression(expressionKindUnary, boolReturnType())
 		if inner != nil {
 			result.referencedColumns = inner.referencedColumns
 			result.hasParameter = inner.hasParameter
@@ -335,14 +336,7 @@ func (p *parser) tryParseIsNullForm(left *parsedExpression) *parsedExpression {
 		p.position = saved
 		return nil
 	}
-	return &parsedExpression{
-		kind:              expressionKindIsNull,
-		resultType:        boolReturnType(),
-		referencedColumns: left.referencedColumns,
-		hasParameter:      left.hasParameter,
-		hasAggregate:      left.hasAggregate,
-		hasWindow:         left.hasWindow,
-	}
+	return deriveExpression(expressionKindIsNull, boolReturnType(), left)
 }
 
 // parseBetweenExpression handles the `BETWEEN lo AND hi` suffix.
@@ -542,11 +536,10 @@ func (p *parser) absorbInSubqueryBody(state *inExpressionState) {
 	if len(body) == 0 {
 		return
 	}
-	nested := newParser(body)
-	nested.analysisDepth = p.analysisDepth
-	nested.maxParseDepth = p.maxParseDepth
+	nested := p.newChildParser(body)
 	nestedAnalysis, nestedErr := nested.analyseSelect()
 	if nestedErr != nil || nestedAnalysis == nil {
+		p.absorbChildFailure(nestedErr)
 		return
 	}
 	for index := range nestedAnalysis.ParameterReferences {
@@ -571,32 +564,34 @@ func (p *parser) absorbInSubqueryBody(state *inExpressionState) {
 
 // collectInSubqueryBodyTokens drains the open `IN (SELECT ...)` body into a token slice.
 //
-// It collects up to and including the matching close paren. The returned slice excludes
+// It consumes up to and including the matching close paren. The returned slice excludes
 // the trailing `)` so a fresh parser can run analyseSelect on the captured tokens without
-// tripping the closing paren as a stray token.
+// tripping the closing paren as a stray token. The result is a capacity-clipped sub-slice
+// of the parser's own tokens rather than a copy, so nested IN subqueries cost no extra
+// memory per level.
 //
 // Returns []token which are the captured subquery body tokens without the trailing close
 // paren.
 func (p *parser) collectInSubqueryBodyTokens() []token {
-	var body []token
+	start := p.position
 	depth := 1
-	for !p.atEnd() && depth > 0 {
-		tok := p.current()
-		switch tok.kind {
+	for !p.atEnd() {
+		switch p.current().kind {
 		case tokenLeftParen:
 			depth++
 		case tokenRightParen:
 			depth--
 			if depth == 0 {
+				end := p.position
 				p.advance()
-				return body
+				return p.tokens[start:end:end]
 			}
 		default:
 		}
-		body = append(body, tok)
 		p.advance()
 	}
-	return body
+	end := p.position
+	return p.tokens[start:end:end]
 }
 
 // isAnyComparisonOperator reports whether the current token is a comparison operator.
@@ -688,28 +683,23 @@ func (p *parser) parseMultiplicativeExpression() *parsedExpression {
 //
 // A stacked sign chain (for example `- - - x`) recurses directly rather than through
 // parseExpression, so the depth counter is incremented here too to keep the recursion
-// within maxParseDepth frames. When the cap is reached a placeholder
-// expressionKindUnknown result is returned so the caller can continue.
+// within maxParseDepth frames. When the cap is reached errExpressionDepthExceeded is
+// recorded as the parser's syntax error and a placeholder expressionKindUnknown result
+// lets the caller unwind.
 //
 // Returns *parsedExpression which is the parsed unary expression or the underlying
 // postfix term.
 func (p *parser) parseUnaryExpression() *parsedExpression {
 	if p.isOperator("-") || p.isOperator("+") {
 		if p.expressionDepth >= p.maxParseDepth {
-			return &parsedExpression{kind: expressionKindUnknown}
+			p.recordSyntaxError(errExpressionDepthExceeded)
+			return newUntypedExpression(expressionKindUnknown)
 		}
 		p.expressionDepth++
 		defer func() { p.expressionDepth-- }()
 		p.advance()
 		inner := p.parseUnaryExpression()
-		return &parsedExpression{
-			kind:              expressionKindUnary,
-			resultType:        inner.resultType,
-			referencedColumns: inner.referencedColumns,
-			hasParameter:      inner.hasParameter,
-			hasAggregate:      inner.hasAggregate,
-			hasWindow:         inner.hasWindow,
-		}
+		return deriveExpression(expressionKindUnary, inner.resultType, inner)
 	}
 	return p.parsePostfixExpression()
 }
@@ -788,14 +778,7 @@ func (p *parser) consumePostfixArraySubscript(left *parsedExpression) *parsedExp
 func (p *parser) consumePostfixCast(left *parsedExpression) *parsedExpression {
 	p.advance()
 	_ = p.readCastTargetType()
-	return &parsedExpression{
-		kind:              expressionKindCast,
-		resultType:        left.resultType,
-		referencedColumns: left.referencedColumns,
-		hasParameter:      left.hasParameter,
-		hasAggregate:      left.hasAggregate,
-		hasWindow:         left.hasWindow,
-	}
+	return deriveExpression(expressionKindCast, left.resultType, left)
 }
 
 // consumePostfixTupleElement handles the `.field` or `.index` tuple element selector.
@@ -810,14 +793,7 @@ func (p *parser) consumePostfixTupleElement(left *parsedExpression) *parsedExpre
 	p.advance()
 	selector := p.current()
 	p.advance()
-	return &parsedExpression{
-		kind:              expressionKindTupleElement,
-		resultType:        tupleFieldType(left.resultType, selector),
-		referencedColumns: left.referencedColumns,
-		hasParameter:      left.hasParameter,
-		hasAggregate:      left.hasAggregate,
-		hasWindow:         left.hasWindow,
-	}
+	return deriveExpression(expressionKindTupleElement, tupleFieldType(left.resultType, selector), left)
 }
 
 // readCastTargetType reads the type identifier after a `::` cast operator.
@@ -874,23 +850,15 @@ func (p *parser) parsePrimaryExpression() *parsedExpression {
 	switch tok.kind {
 	case tokenNumber:
 		p.advance()
-		return &parsedExpression{
-			kind:       expressionKindLiteral,
-			resultType: literalNumberType(tok.value),
-		}
+		return newParsedExpression(expressionKindLiteral, literalNumberType(tok.value))
 	case tokenString:
 		p.advance()
-		return &parsedExpression{
-			kind:       expressionKindLiteral,
-			resultType: querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "String"},
-		}
+		return newParsedExpression(expressionKindLiteral, querier_dto.NewSQLType(querier_dto.TypeCategoryText, "String"))
 	case tokenClickHouseParam:
 		p.advance()
-		return &parsedExpression{
-			kind:         expressionKindParameter,
-			hasParameter: true,
-			resultType:   typeFromParamBody(tok.value),
-		}
+		parameter := newParsedExpression(expressionKindParameter, typeFromParamBody(tok.value, p.maxTypeParseDepth))
+		parameter.hasParameter = true
+		return parameter
 	case tokenLeftParen:
 		return p.parseParenthesisedExpression()
 	case tokenIdentifier:
@@ -899,7 +867,7 @@ func (p *parser) parsePrimaryExpression() *parsedExpression {
 	}
 
 	p.advance()
-	return &parsedExpression{kind: expressionKindUnknown}
+	return newUntypedExpression(expressionKindUnknown)
 }
 
 // parseParenthesisedExpression parses `(expr)` or a tuple constructor.
@@ -957,7 +925,7 @@ func (p *parser) parseParenthesisedExpression() *parsedExpression {
 // references.
 func (p *parser) parseCastKeywordExpression() *parsedExpression {
 	if p.current().kind != tokenLeftParen {
-		return &parsedExpression{kind: expressionKindCast}
+		return newUntypedExpression(expressionKindCast)
 	}
 	p.advance()
 	inner := p.parseExpression()
@@ -969,16 +937,9 @@ func (p *parser) parseCastKeywordExpression() *parsedExpression {
 		p.advance()
 	}
 	if inner == nil {
-		return &parsedExpression{kind: expressionKindCast}
+		return newUntypedExpression(expressionKindCast)
 	}
-	return &parsedExpression{
-		kind:              expressionKindCast,
-		resultType:        inner.resultType,
-		referencedColumns: inner.referencedColumns,
-		hasParameter:      inner.hasParameter,
-		hasAggregate:      inner.hasAggregate,
-		hasWindow:         inner.hasWindow,
-	}
+	return deriveExpression(expressionKindCast, inner.resultType, inner)
 }
 
 // parseIntervalLiteralExpression handles `INTERVAL <magnitude> <unit>` literals.
@@ -995,21 +956,11 @@ func (p *parser) parseIntervalLiteralExpression() *parsedExpression {
 	if p.current().kind == tokenIdentifier {
 		p.advance()
 	}
-	intervalType := querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryTemporal,
-		EngineName: "Interval",
-	}
+	intervalType := querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "Interval")
 	if magnitude == nil {
-		return &parsedExpression{kind: expressionKindLiteral, resultType: intervalType}
+		return newParsedExpression(expressionKindLiteral, intervalType)
 	}
-	return &parsedExpression{
-		kind:              expressionKindLiteral,
-		resultType:        intervalType,
-		referencedColumns: magnitude.referencedColumns,
-		hasParameter:      magnitude.hasParameter,
-		hasAggregate:      magnitude.hasAggregate,
-		hasWindow:         magnitude.hasWindow,
-	}
+	return deriveExpression(expressionKindLiteral, intervalType, magnitude)
 }
 
 // parseIdentifierExpression handles bare identifiers, function calls and CASE
@@ -1036,10 +987,10 @@ func (p *parser) parseIdentifierExpression() *parsedExpression {
 		return p.parseExistsExpression()
 	case "TRUE", "FALSE":
 		p.advance()
-		return &parsedExpression{kind: expressionKindLiteral, resultType: querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "Bool"}}
+		return newParsedExpression(expressionKindLiteral, querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "Bool"))
 	case "NULL":
 		p.advance()
-		return &parsedExpression{kind: expressionKindLiteral}
+		return newUntypedExpression(expressionKindLiteral)
 	}
 
 	identifier := tok.value
@@ -1057,24 +1008,11 @@ func (p *parser) parseIdentifierExpression() *parsedExpression {
 			if p.current().kind == tokenLeftParen {
 				return p.parseFunctionCallExpression(identifier + "." + second.value)
 			}
-			return &parsedExpression{
-				kind:       expressionKindColumn,
-				resultType: querier_dto.SQLType{},
-				referencedColumns: []querier_dto.ColumnReference{{
-					TableAlias: identifier,
-					ColumnName: second.value,
-				}},
-			}
+			return newColumnExpression(identifier, second.value)
 		}
 	}
 
-	return &parsedExpression{
-		kind:       expressionKindColumn,
-		resultType: querier_dto.SQLType{},
-		referencedColumns: []querier_dto.ColumnReference{{
-			ColumnName: identifier,
-		}},
-	}
+	return newColumnExpression("", identifier)
 }
 
 // parseExistsExpression handles the `EXISTS (SELECT ...)` predicate.
@@ -1094,20 +1032,19 @@ func (p *parser) parseIdentifierExpression() *parsedExpression {
 // references.
 func (p *parser) parseExistsExpression() *parsedExpression {
 	p.advance()
-	boolType := querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "Bool"}
+	boolType := querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "Bool")
 	if p.current().kind != tokenLeftParen {
-		return &parsedExpression{kind: expressionKindUnknown, resultType: boolType}
+		return newParsedExpression(expressionKindUnknown, boolType)
 	}
 	body, bodyErr := p.collectParenthesised()
 	if bodyErr != nil {
-		return &parsedExpression{kind: expressionKindUnknown, resultType: boolType}
+		return newParsedExpression(expressionKindUnknown, boolType)
 	}
-	nested := newParser(body)
-	nested.analysisDepth = p.analysisDepth
-	nested.maxParseDepth = p.maxParseDepth
+	nested := p.newChildParser(body)
 	nestedAnalysis, nestedErr := nested.analyseSelect()
-	result := &parsedExpression{kind: expressionKindUnknown, resultType: boolType}
+	result := newParsedExpression(expressionKindUnknown, boolType)
 	if nestedErr != nil || nestedAnalysis == nil {
+		p.absorbChildFailure(nestedErr)
 		return result
 	}
 	for index := range nestedAnalysis.ParameterReferences {
@@ -1194,7 +1131,11 @@ type caseExpressionAccumulator struct {
 // branches.
 func newCaseAccumulator() *caseExpressionAccumulator {
 	return &caseExpressionAccumulator{
-		columns: []querier_dto.ColumnReference{},
+		columns:      []querier_dto.ColumnReference{},
+		resultType:   querier_dto.SQLType{},
+		hasParameter: false,
+		hasAggregate: false,
+		hasWindow:    false,
 	}
 }
 
@@ -1266,10 +1207,10 @@ func (a *caseExpressionAccumulator) finalise() *parsedExpression {
 // references.
 func (p *parser) parseFunctionCallExpression(name string) *parsedExpression {
 	if p.current().kind != tokenLeftParen {
-		return &parsedExpression{kind: expressionKindFunction}
+		return newUntypedExpression(expressionKindFunction)
 	}
 	p.advance()
-	state := newInExpressionState(&parsedExpression{})
+	state := newInExpressionState(newUntypedExpression(expressionKindUnknown))
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		state.absorb(p.parseExpression())
 		if p.current().kind == tokenComma {
@@ -1283,8 +1224,9 @@ func (p *parser) parseFunctionCallExpression(name string) *parsedExpression {
 	}
 
 	expr := &parsedExpression{
-		kind:              expressionKindFunction,
 		referencedColumns: state.columns,
+		resultType:        querier_dto.SQLType{},
+		kind:              expressionKindFunction,
 		hasParameter:      state.hasParameter,
 		hasAggregate:      isAggregateName(name) || state.hasAggregate,
 		hasWindow:         state.hasWindow,
@@ -1322,12 +1264,79 @@ func (p *parser) isOperator(value string) bool {
 	return tok.kind == tokenOperator && tok.value == value
 }
 
+// newParsedExpression creates an expression of the given kind and result type that
+// references no columns and carries no parameter, aggregate or window flags.
+//
+// Takes kind (parsedExpressionKind) which classifies the expression.
+// Takes resultType (querier_dto.SQLType) which is the expression's result type.
+//
+// Returns *parsedExpression which is the flag-free expression.
+func newParsedExpression(kind parsedExpressionKind, resultType querier_dto.SQLType) *parsedExpression {
+	return &parsedExpression{
+		referencedColumns: nil,
+		resultType:        resultType,
+		kind:              kind,
+		hasParameter:      false,
+		hasAggregate:      false,
+		hasWindow:         false,
+	}
+}
+
+// newUntypedExpression creates a flag-free expression of the given kind whose result type
+// cannot be determined statically.
+//
+// Takes kind (parsedExpressionKind) which classifies the expression.
+//
+// Returns *parsedExpression which is the expression carrying the zero-valued SQLType.
+func newUntypedExpression(kind parsedExpressionKind) *parsedExpression {
+	return newParsedExpression(kind, querier_dto.SQLType{})
+}
+
+// newColumnExpression creates an untyped column-reference expression.
+//
+// Takes tableAlias (string) which is the qualifying table alias, or "" when the column is
+// unqualified.
+// Takes columnName (string) which is the referenced column's name.
+//
+// Returns *parsedExpression which is the column expression referencing that column.
+func newColumnExpression(tableAlias string, columnName string) *parsedExpression {
+	column := newUntypedExpression(expressionKindColumn)
+	column.referencedColumns = []querier_dto.ColumnReference{{
+		TableAlias: tableAlias,
+		ColumnName: columnName,
+	}}
+	return column
+}
+
+// deriveExpression creates an expression of the given kind and result type that inherits
+// the column references and flags of a source expression.
+//
+// Takes kind (parsedExpressionKind) which classifies the new expression.
+// Takes resultType (querier_dto.SQLType) which is the new expression's result type.
+// Takes source (*parsedExpression) which supplies the column references and flags.
+//
+// Returns *parsedExpression which is the derived expression.
+func deriveExpression(
+	kind parsedExpressionKind,
+	resultType querier_dto.SQLType,
+	source *parsedExpression,
+) *parsedExpression {
+	return &parsedExpression{
+		referencedColumns: source.referencedColumns,
+		resultType:        resultType,
+		kind:              kind,
+		hasParameter:      source.hasParameter,
+		hasAggregate:      source.hasAggregate,
+		hasWindow:         source.hasWindow,
+	}
+}
+
 // boolReturnType returns the canonical Bool SQLType used by comparison and logical
 // expressions.
 //
 // Returns querier_dto.SQLType which is the canonical Bool type.
 func boolReturnType() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean, EngineName: "Bool"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "Bool")
 }
 
 // mergeBinary constructs a binary expression by merging the flags from both operands.
@@ -1449,27 +1458,19 @@ func subcolumnAccessType(base querier_dto.SQLType, selector token) (querier_dto.
 	switch strings.ToLower(selector.value) {
 	case "size0":
 		if base.Category == querier_dto.TypeCategoryArray {
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt64"}, true
+			return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt64"), true
 		}
 	case "null":
 		if base.Nullable {
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt8"}, true
+			return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt8"), true
 		}
 	case "keys":
 		if base.Category == querier_dto.TypeCategoryMap && base.KeyType != nil {
-			return querier_dto.SQLType{
-				Category:    querier_dto.TypeCategoryArray,
-				EngineName:  "Array",
-				ElementType: new(*base.KeyType),
-			}, true
+			return arrayOf(*base.KeyType), true
 		}
 	case "values":
 		if base.Category == querier_dto.TypeCategoryMap && base.ElementType != nil {
-			return querier_dto.SQLType{
-				Category:    querier_dto.TypeCategoryArray,
-				EngineName:  "Array",
-				ElementType: new(*base.ElementType),
-			}, true
+			return arrayOf(*base.ElementType), true
 		}
 	}
 	return querier_dto.SQLType{}, false
@@ -1516,14 +1517,14 @@ func parseDecimalInt(literal string) int {
 // Returns querier_dto.SQLType which is the Int64 or Float64 type for the literal.
 func literalNumberType(value string) querier_dto.SQLType {
 	if hasIntegerRadixPrefix(value) {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int64")
 	}
 	for index := range len(value) {
 		if value[index] == '.' || value[index] == 'e' || value[index] == 'E' {
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "Float64"}
+			return querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "Float64")
 		}
 	}
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int64")
 }
 
 // hasIntegerRadixPrefix reports whether a numeric literal carries an integer radix
@@ -1557,14 +1558,15 @@ func hasIntegerRadixPrefix(value string) bool {
 // fails to parse.
 //
 // Takes body (string) which is the placeholder body text between the braces.
+// Takes maxDepth (int) which caps wrapper nesting in the type name.
 //
 // Returns querier_dto.SQLType which is the parsed type, or the empty type when absent.
-func typeFromParamBody(body string) querier_dto.SQLType {
+func typeFromParamBody(body string, maxDepth int) querier_dto.SQLType {
 	_, typeSegment, found := strings.Cut(body, ":")
 	if !found {
 		return querier_dto.SQLType{}
 	}
-	result, err := parseClickHouseType(strings.TrimSpace(typeSegment))
+	result, err := parseClickHouseType(strings.TrimSpace(typeSegment), maxDepth)
 	if err != nil {
 		return querier_dto.SQLType{}
 	}

@@ -408,11 +408,9 @@ func TestMockCoordinatorService_ConcurrentAccess(t *testing.T) {
 	eps := []annotator_dto.EntryPoint{{Path: "concurrent.pk"}}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			notificationChannel, unsub := m.Subscribe("concurrent")
 			_ = notificationChannel
@@ -425,7 +423,7 @@ func TestMockCoordinatorService_ConcurrentAccess(t *testing.T) {
 			_, _ = m.GetLastSuccessfulBuild()
 			_ = m.Invalidate(ctx)
 			m.Shutdown(context.Background())
-		}()
+		})
 	}
 
 	wg.Wait()

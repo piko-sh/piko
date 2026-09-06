@@ -52,9 +52,7 @@ func TestDrivenI18nEmitter_EmitI18n(t *testing.T) {
 	t.Run("empty I18nSourceDir skips emission", func(t *testing.T) {
 		t.Parallel()
 
-		config := I18nEmitterConfig{
-			I18nSourceDir: "",
-		}
+		config := I18nEmitterConfig{}
 		sourceSandbox := safedisk.NewMockSandbox("/source", safedisk.ModeReadOnly)
 		defer sourceSandbox.Close()
 		outputSandbox := safedisk.NewMockSandbox("/output", safedisk.ModeReadWrite)

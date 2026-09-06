@@ -227,7 +227,7 @@ func TestRewriteImportRecords(t *testing.T) {
 	t.Run("skips empty paths", func(t *testing.T) {
 		t.Parallel()
 		records := []ast.ImportRecord{
-			{Path: logger.Path{Text: ""}},
+			{Path: logger.Path{}},
 		}
 		RewriteImportRecords(records, "mymod")
 		assert.Equal(t, "", records[0].Path.Text)
@@ -266,7 +266,7 @@ func TestRewriteImportRecords(t *testing.T) {
 			{Path: logger.Path{Text: "@/lib/greeting"}},
 			{Path: logger.Path{Text: "./formatter.ts"}},
 			{Path: logger.Path{Text: "lodash"}},
-			{Path: logger.Path{Text: ""}},
+			{Path: logger.Path{}},
 		}
 		RewriteImportRecords(records, "mymod")
 		assert.Equal(t, "/_piko/assets/mymod/lib/greeting.js", records[0].Path.Text)

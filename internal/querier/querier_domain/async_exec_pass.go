@@ -73,8 +73,11 @@ func (*asyncExecPass) Analyse(context *diagnosticContext) []querier_dto.SourceEr
 					"query %q declares asyncexec but engine %q does not surface asynchronous mutation semantics: %s",
 					context.Query.Name, context.Engine.Dialect(), ErrAsyncExecNotSupported.Error(),
 				),
-				Severity: querier_dto.SeverityError,
-				Code:     querier_dto.CodeAsyncExecNotSupported,
+				Severity:   querier_dto.SeverityError,
+				Code:       querier_dto.CodeAsyncExecNotSupported,
+				Suggestion: "",
+				EndLine:    0,
+				EndColumn:  0,
 			},
 		}
 	}
@@ -89,8 +92,11 @@ func (*asyncExecPass) Analyse(context *diagnosticContext) []querier_dto.SourceEr
 					"query %q uses 'exec' with an asynchronous mutation; consider 'asyncexec' to surface the fire-and-forget semantics",
 					context.Query.Name,
 				),
-				Severity: querier_dto.SeverityHint,
-				Code:     querier_dto.CodeAsyncExecRecommended,
+				Severity:   querier_dto.SeverityHint,
+				Code:       querier_dto.CodeAsyncExecRecommended,
+				Suggestion: "",
+				EndLine:    0,
+				EndColumn:  0,
 			},
 		}
 	}

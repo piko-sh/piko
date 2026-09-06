@@ -158,7 +158,7 @@ func convertWatchdogEvent(msg *pb.WatchdogEventMessage) tui_domain.WatchdogEvent
 //
 // Returns tui_domain.UtilisationGauge which is the populated gauge.
 func makeGauge(used, limit float64) tui_domain.UtilisationGauge {
-	gauge := tui_domain.UtilisationGauge{Used: used, Max: limit}
+	gauge := tui_domain.UtilisationGauge{Used: used, Max: limit, Percent: 0}
 	if limit > 0 {
 		gauge.Percent = used / limit
 	}

@@ -113,155 +113,155 @@ var (
 
 var (
 	// kvFields is the verifier field spec for a KV table (key, value).
-	kvFields = []field{{voffset: 4, kind: kString}, {voffset: 6, kind: kString}}
+	kvFields = []field{newField(4, kString), newField(6, kString)}
 
 	// analyticsFields is the verifier field spec for an AnalyticsEvent table.
 	analyticsFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kInt64},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kString},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kString},
-		{voffset: 16, kind: kString},
-		{voffset: 18, kind: kInt32},
-		{voffset: 20, kind: kInt64},
-		{voffset: 22, kind: kString},
-		{voffset: 24, kind: kString},
-		{voffset: 26, kind: kString},
-		{voffset: 28, kind: kString},
-		{voffset: 30, kind: kString},
-		{voffset: 32, kind: kString},
-		{voffset: 34, kind: kString},
-		{voffset: 36, kind: kString},
-		{voffset: 38, kind: kString},
+		newField(4, kString),
+		newField(6, kInt64),
+		newField(8, kString),
+		newField(10, kString),
+		newField(12, kString),
+		newField(14, kString),
+		newField(16, kString),
+		newField(18, kInt32),
+		newField(20, kInt64),
+		newField(22, kString),
+		newField(24, kString),
+		newField(26, kString),
+		newField(28, kString),
+		newField(30, kString),
+		newField(32, kString),
+		newField(34, kString),
+		newField(36, kString),
+		newField(38, kString),
 		{voffset: 40, kind: kVectorTable, elem: kvFields},
 	}
 
 	// watchdogFields is the verifier field spec for a WatchdogEvent table.
 	watchdogFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kInt32},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kInt64},
+		newField(4, kString),
+		newField(6, kInt32),
+		newField(8, kString),
+		newField(10, kInt64),
 		{voffset: 12, kind: kVectorTable, elem: kvFields},
 	}
 
 	// logFields is the verifier field spec for a LogLine table.
 	logFields = []field{
-		{voffset: 4, kind: kInt64},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kString},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kString},
+		newField(4, kInt64),
+		newField(6, kString),
+		newField(8, kString),
+		newField(10, kString),
+		newField(12, kString),
+		newField(14, kString),
 		{voffset: 16, kind: kVectorTable, elem: kvFields},
 	}
 
 	// spanFields is the verifier field spec for a Span table.
 	spanFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kString},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kString},
-		{voffset: 16, kind: kInt64},
-		{voffset: 18, kind: kInt64},
-		{voffset: 20, kind: kString},
+		newField(4, kString),
+		newField(6, kString),
+		newField(8, kString),
+		newField(10, kString),
+		newField(12, kString),
+		newField(14, kString),
+		newField(16, kInt64),
+		newField(18, kInt64),
+		newField(20, kString),
 		{voffset: 22, kind: kVectorTable, elem: kvFields},
 	}
 
 	// metricFields is the verifier field spec for a MetricPoint table.
 	metricFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kInt64},
-		{voffset: 10, kind: kFloat64},
-		{voffset: 12, kind: kString},
+		newField(4, kString),
+		newField(6, kString),
+		newField(8, kInt64),
+		newField(10, kFloat64),
+		newField(12, kString),
 		{voffset: 14, kind: kVectorTable, elem: kvFields},
 	}
 
 	// errorFields is the verifier field spec for an ErrorEvent table.
 	errorFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kString},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kInt64},
-		{voffset: 16, kind: kString},
-		{voffset: 18, kind: kString},
-		{voffset: 20, kind: kString},
-		{voffset: 22, kind: kBool},
-		{voffset: 24, kind: kString},
-		{voffset: 26, kind: kString},
+		newField(4, kString),
+		newField(6, kString),
+		newField(8, kString),
+		newField(10, kString),
+		newField(12, kString),
+		newField(14, kInt64),
+		newField(16, kString),
+		newField(18, kString),
+		newField(20, kString),
+		newField(22, kBool),
+		newField(24, kString),
+		newField(26, kString),
 		{voffset: 28, kind: kVectorTable, elem: kvFields},
 	}
 
 	// profileFields is the verifier field spec for a ProfileMeta table.
 	profileFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kInt64},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kInt64},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kString},
+		newField(4, kString),
+		newField(6, kInt64),
+		newField(8, kString),
+		newField(10, kInt64),
+		newField(12, kString),
+		newField(14, kString),
 		{voffset: 16, kind: kVectorTable, elem: kvFields},
-		{voffset: 18, kind: kVectorByte},
+		newField(18, kVectorByte),
 	}
 
 	// workerFields is the verifier field spec for a WorkerEvent table.
 	workerFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kString},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kString},
-		{voffset: 16, kind: kString},
-		{voffset: 18, kind: kInt32},
-		{voffset: 20, kind: kInt64},
-		{voffset: 22, kind: kInt64},
-		{voffset: 24, kind: kString},
+		newField(4, kString),
+		newField(6, kString),
+		newField(8, kString),
+		newField(10, kString),
+		newField(12, kString),
+		newField(14, kString),
+		newField(16, kString),
+		newField(18, kInt32),
+		newField(20, kInt64),
+		newField(22, kInt64),
+		newField(24, kString),
 		{voffset: 26, kind: kVectorTable, elem: kvFields},
 	}
 
 	// queryStatFields is the verifier field spec for a QueryStat table.
 	queryStatFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kString},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kInt64},
-		{voffset: 16, kind: kInt64},
-		{voffset: 18, kind: kInt64},
-		{voffset: 20, kind: kInt64},
+		newField(4, kString),
+		newField(6, kString),
+		newField(8, kString),
+		newField(10, kString),
+		newField(12, kString),
+		newField(14, kInt64),
+		newField(16, kInt64),
+		newField(18, kInt64),
+		newField(20, kInt64),
 		{voffset: 22, kind: kVectorTable, elem: kvFields},
 	}
 
 	// emailFields is the verifier field spec for an EmailEvent table.
 	emailFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kString},
-		{voffset: 12, kind: kString},
-		{voffset: 14, kind: kString},
-		{voffset: 16, kind: kString},
-		{voffset: 18, kind: kString},
-		{voffset: 20, kind: kInt64},
+		newField(4, kString),
+		newField(6, kString),
+		newField(8, kString),
+		newField(10, kString),
+		newField(12, kString),
+		newField(14, kString),
+		newField(16, kString),
+		newField(18, kString),
+		newField(20, kInt64),
 		{voffset: 22, kind: kVectorTable, elem: kvFields},
 	}
 
 	// batchFields is the verifier field spec for a TelemetryBatch table.
 	batchFields = []field{
-		{voffset: 4, kind: kString},
-		{voffset: 6, kind: kString},
-		{voffset: 8, kind: kString},
-		{voffset: 10, kind: kInt64},
-		{voffset: 12, kind: kInt64},
+		newField(4, kString),
+		newField(6, kString),
+		newField(8, kString),
+		newField(10, kInt64),
+		newField(12, kInt64),
 		{voffset: 14, kind: kVectorTable, elem: analyticsFields},
 		{voffset: 16, kind: kVectorTable, elem: watchdogFields},
 		{voffset: 18, kind: kVectorTable, elem: logFields},
@@ -272,22 +272,22 @@ var (
 		{voffset: 28, kind: kVectorTable, elem: workerFields},
 		{voffset: 30, kind: kVectorTable, elem: queryStatFields},
 		{voffset: 32, kind: kVectorTable, elem: emailFields},
-		{voffset: 34, kind: kString},
-		{voffset: 36, kind: kString},
-		{voffset: 38, kind: kString},
-		{voffset: 40, kind: kString},
-		{voffset: 42, kind: kString},
-		{voffset: 44, kind: kString},
-		{voffset: 46, kind: kInt64},
-		{voffset: 48, kind: kInt32},
+		newField(34, kString),
+		newField(36, kString),
+		newField(38, kString),
+		newField(40, kString),
+		newField(42, kString),
+		newField(44, kString),
+		newField(46, kInt64),
+		newField(48, kInt32),
 	}
 
 	// ackFields is the verifier field spec for an IngestAck table.
 	ackFields = []field{
-		{voffset: 4, kind: kBool},
-		{voffset: 6, kind: kInt64},
-		{voffset: 8, kind: kInt64},
-		{voffset: 10, kind: kString},
+		newField(4, kBool),
+		newField(6, kInt64),
+		newField(8, kInt64),
+		newField(10, kString),
 	}
 )
 
@@ -1543,6 +1543,7 @@ func readProfile(e *telemetryfb.ProfileMeta) ProfileMeta {
 		ContentEncoding: string(e.ContentEncoding()),
 		BlobRef:         string(e.BlobRef()),
 		Fields:          readKVs(e.FieldsLength(), e.Fields),
+		Blob:            nil,
 	}
 	if n := e.BlobLength(); n > 0 {
 		src := e.BlobBytes()

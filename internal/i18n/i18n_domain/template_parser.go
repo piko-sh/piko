@@ -128,13 +128,7 @@ func (p *templateParser) isAt(prefix string) bool {
 // finaliseCurrentLiteral adds any buffered literal text as a template part.
 func (p *templateParser) finaliseCurrentLiteral() {
 	if p.buffer.Len() > 0 {
-		p.parts = append(p.parts, TemplatePart{
-			Expression: nil,
-			Literal:    p.buffer.String(),
-			ExprSource: "",
-			LinkedKey:  "",
-			Kind:       PartLiteral,
-		})
+		p.parts = append(p.parts, newLiteralPart(p.buffer.String()))
 		p.buffer.Reset()
 	}
 }
@@ -298,4 +292,58 @@ func extractLinkedKeys(template string) []string {
 		}
 	}
 	return keys
+}
+
+// ParsePluralForms parses each plural form of a translation. A form that cannot be parsed
+// is kept as a single literal part so it renders verbatim, and is reported as a problem.
+//
+// Takes forms ([]string) which are the plural forms in order.
+//
+// Returns [][]TemplatePart which holds the parts for each form, indexed like forms.
+// Returns []TemplateProblem which lists the forms that failed, with FormIndex set and the
+// locale and key left for the caller to fill in.
+func ParsePluralForms(forms []string) ([][]TemplatePart, []TemplateProblem) {
+	formsParts := make([][]TemplatePart, len(forms))
+	var problems []TemplateProblem
+	for index, form := range forms {
+		parts, messages := parseTemplateOrLiteral(form)
+		formsParts[index] = parts
+		if len(messages) > 0 {
+			problem := TemplateProblem{}
+			problem.FormIndex = index
+			problem.Messages = messages
+			problems = append(problems, problem)
+		}
+	}
+	return formsParts, problems
+}
+
+// parseTemplateOrLiteral parses a template, keeping it as a single literal part when it
+// cannot be parsed so it renders verbatim rather than disappearing.
+//
+// Takes template (string) which is the template to parse.
+//
+// Returns []TemplatePart which holds the parsed parts, or the literal fallback.
+// Returns []string which holds the parser messages when the template failed to parse.
+func parseTemplateOrLiteral(template string) ([]TemplatePart, []string) {
+	parts, messages := ParseTemplate(template)
+	if len(messages) > 0 {
+		return []TemplatePart{newLiteralPart(template)}, messages
+	}
+	return parts, nil
+}
+
+// newLiteralPart creates a template part holding static text.
+//
+// Takes text (string) which is the literal text.
+//
+// Returns TemplatePart which renders text unchanged.
+func newLiteralPart(text string) TemplatePart {
+	return TemplatePart{
+		Expression: nil,
+		Literal:    text,
+		ExprSource: "",
+		LinkedKey:  "",
+		Kind:       PartLiteral,
+	}
 }

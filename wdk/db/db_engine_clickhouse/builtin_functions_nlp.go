@@ -18,10 +18,6 @@
 
 package db_engine_clickhouse
 
-import (
-	"piko.sh/piko/internal/querier/querier_dto"
-)
-
 // registerNLPFunctions covers the natural-language processing helpers.
 //
 // These span charset and language detection, stemming, lemmatising, synonym lookup, and
@@ -30,12 +26,7 @@ import (
 //
 // Takes b (*FunctionCatalogueBuilder) which receives the registered function signatures.
 func registerNLPFunctions(b *FunctionCatalogueBuilder) {
-	scoreType := querier_dto.SQLType{
-		Category:    querier_dto.TypeCategoryMap,
-		EngineName:  engineNameMap,
-		KeyType:     new(b.textType),
-		ElementType: new(b.float32Type),
-	}
+	scoreType := mapOf(b.textType, b.float32Type)
 	b.Register("detectCharset", b.textType, b.textType)
 	b.Register("detectLanguage", b.textType, b.textType)
 	b.Register("detectLanguageMixed", scoreType, b.textType)

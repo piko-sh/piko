@@ -36,7 +36,7 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_data"
 	"piko.sh/piko/internal/wasm/wasm_domain"
 	"piko.sh/piko/internal/wasm/wasm_dto"
-	pikointerp "piko.sh/piko/wdk/interp/interp_provider_piko"
+	"piko.sh/piko/wdk/interp/interp_provider_pipit"
 )
 
 const (
@@ -84,12 +84,8 @@ func main() {
 		wasm_adapters.WithHeadlessRenderer(headlessRenderer),
 	)
 
-	symbolProvider := pikointerp.NewWASMSymbolProvider()
-	symbolLoader := pikointerp.NewWASMSymbolAdapter(symbolProvider)
-	interpreterFactory := pikointerp.NewWASMInterpreterFactory()
 	interpreter := wasm_adapters.NewInterpreterAdapter(
-		wasm_adapters.WithSymbolLoader(symbolLoader),
-		wasm_adapters.WithInterpreterFactory(interpreterFactory),
+		wasm_adapters.WithInterpreterFactory(interp_provider_pipit.NewWASMInterpreterFactory()),
 	)
 
 	orchestrator = wasm_domain.NewOrchestrator(
@@ -100,6 +96,7 @@ func main() {
 		wasm_domain.WithInterpreter(interpreter),
 		wasm_domain.WithConfig(wasm_domain.Config{
 			DefaultModuleName: "playground",
+			StdlibPackages:    nil,
 			MaxSourceSize:     2 * 1024 * 1024,
 			EnableMetrics:     false,
 		}),

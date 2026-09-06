@@ -358,21 +358,21 @@ func coercePropType(sourceExpression ast_domain.Expression, destType goast.Expr)
 	switch destIdent.Name {
 	case "int", "int8", "int16", "int32", "int64", "rune":
 		if i, err := strconv.ParseInt(strLiteral.Value, 10, 64); err == nil {
-			return &ast_domain.IntegerLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: i, SourceLength: 0}
+			return &ast_domain.IntegerLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{}, Value: i, SourceLength: 0}
 		}
 	case "uint", "uint8", "uint16", "uint32", "uint64", "byte", "uintptr":
 		if u, err := strconv.ParseUint(strLiteral.Value, 10, 64); err == nil {
 			if u <= math.MaxInt64 {
-				return &ast_domain.IntegerLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: int64(u), SourceLength: 0}
+				return &ast_domain.IntegerLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{}, Value: int64(u), SourceLength: 0}
 			}
 		}
 	case "float32", "float64":
 		if f, err := strconv.ParseFloat(strLiteral.Value, 64); err == nil {
-			return &ast_domain.FloatLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: f, SourceLength: 0}
+			return &ast_domain.FloatLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{}, Value: f, SourceLength: 0}
 		}
 	case "bool":
 		if b, err := strconv.ParseBool(strLiteral.Value); err == nil {
-			return &ast_domain.BooleanLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: b, SourceLength: 0}
+			return &ast_domain.BooleanLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{}, Value: b, SourceLength: 0}
 		}
 	}
 	return sourceExpression
@@ -393,31 +393,31 @@ func coercePropType(sourceExpression ast_domain.Expression, destType goast.Expr)
 func parseDefaultValue(ctx context.Context, valueString string, sourcePath string) (ast_domain.Expression, error) {
 	lowerVal := strings.ToLower(valueString)
 	if lowerVal == "true" {
-		return &ast_domain.BooleanLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: true, SourceLength: 0}, nil
+		return &ast_domain.BooleanLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{}, Value: true, SourceLength: 0}, nil
 	}
 	if lowerVal == "false" {
-		return &ast_domain.BooleanLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: false, SourceLength: 0}, nil
+		return &ast_domain.BooleanLiteral{}, nil
 	}
 	if valueString == "nil" {
-		return &ast_domain.NilLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, SourceLength: 0}, nil
+		return &ast_domain.NilLiteral{}, nil
 	}
 
 	if i, err := strconv.ParseInt(valueString, 10, 64); err == nil {
-		return &ast_domain.IntegerLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: i, SourceLength: 0}, nil
+		return &ast_domain.IntegerLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{}, Value: i, SourceLength: 0}, nil
 	}
 	if f, err := strconv.ParseFloat(valueString, 64); err == nil {
-		return &ast_domain.FloatLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, Value: f, SourceLength: 0}, nil
+		return &ast_domain.FloatLiteral{GoAnnotations: nil, RelativeLocation: ast_domain.Location{}, Value: f, SourceLength: 0}, nil
 	}
 
 	p := ast_domain.NewExpressionParser(ctx, valueString, sourcePath)
 	expression, diagnostics := p.ParseExpression(ctx)
 	if !ast_domain.HasErrors(diagnostics) {
 		if _, isIdent := expression.(*ast_domain.Identifier); isIdent {
-			return &ast_domain.StringLiteral{GoAnnotations: nil, Value: valueString, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, SourceLength: 0}, nil
+			return &ast_domain.StringLiteral{GoAnnotations: nil, Value: valueString, RelativeLocation: ast_domain.Location{}, SourceLength: 0}, nil
 		}
 	}
 
-	return &ast_domain.StringLiteral{GoAnnotations: nil, Value: valueString, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}, SourceLength: 0}, nil
+	return &ast_domain.StringLiteral{GoAnnotations: nil, Value: valueString, RelativeLocation: ast_domain.Location{}, SourceLength: 0}, nil
 }
 
 // isTypeCheckable reports whether the annotation has a resolved type that can be checked

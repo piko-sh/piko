@@ -75,6 +75,24 @@ const (
 
 var (
 	_ SFCCompiler = (*sfcCompiler)(nil)
+
+	// errImportNotRecovered is returned when a hoisted import's text cannot be cut out of
+	// the script exactly as written, so the component fails to build instead of shipping a
+	// fused or missing import.
+	errImportNotRecovered = errors.New("import statement could not be recovered from the script")
+
+	// errReexportUnsupported is returned for an export-from statement, which has no place in
+	// a component script.
+	errReexportUnsupported = errors.New("re-exports are not supported in component scripts")
+
+	// errNestedImportUnsupported is returned for an import that no top-level statement owns,
+	// such as one inside a declare module block, which a component script cannot hoist.
+	errNestedImportUnsupported = errors.New("imports inside a declare module block are not supported in component scripts; move the import to the top level of the script")
+
+	// errStatementElided is returned when a module-level snippet parses cleanly but the
+	// TypeScript parser removes every statement in it, as it does for an import whose
+	// bindings are all type-only.
+	errStatementElided = errors.New("statement holds only TypeScript type information and was removed")
 )
 
 // CompileSFC implements the SFCCompiler interface.
@@ -149,10 +167,6 @@ type sfcCompilationContext struct {
 
 	// jsDependencies holds JavaScript import paths that need registry registration.
 	jsDependencies []compiler_dto.JSDependency
-
-	// diagnostics collects non-fatal issues encountered during compilation; these flow into
-	// CompiledArtefact.Diagnostics so callers can surface them to the user.
-	diagnostics []compiler_dto.CompilationDiagnostic
 
 	// stylesLocation is where the first contributing style block's content begins in the
 	// source file, so a style failure is reported at the line the author wrote.
@@ -299,15 +313,18 @@ func (cc *sfcCompilationContext) extractTimeline(ctx context.Context) {
 
 // injectTimelineData adds the $$timeline static property to the component class when
 // timeline data has been parsed.
-func (cc *sfcCompilationContext) injectTimelineData(ctx context.Context) {
+//
+// Returns error when there is timeline data but no component class to hold it.
+func (cc *sfcCompilationContext) injectTimelineData(ctx context.Context) error {
 	if cc.timelineJSON == "" {
-		return
+		return nil
 	}
 	targetClass := findClassDeclarationByName(cc.jsAST, cc.className)
 	if targetClass == nil {
-		return
+		return fmt.Errorf("component class %q not found for the timeline data", cc.className)
 	}
 	injectStaticProperty(ctx, targetClass, `"$$timeline"`, cc.timelineJSON)
+	return nil
 }
 
 // setupNaming resolves the component tag name and class name.
@@ -383,7 +400,7 @@ func (cc *sfcCompilationContext) parseJavaScript(ctx context.Context) error {
 	}
 
 	if cc.jsParseResult == nil {
-		cc.jsParseResult = &ParseJSResult{AST: &js_ast.AST{}}
+		cc.jsParseResult = &ParseJSResult{AST: &js_ast.AST{}, TypeAssertions: nil, Imports: nil}
 	}
 
 	cc.jsAST = cc.jsParseResult.AST
@@ -441,7 +458,8 @@ func (cc *sfcCompilationContext) transformReactiveState(ctx context.Context) {
 // processTemplate parses the SFC template and transforms it into scaffold HTML and a VDOM
 // render method.
 //
-// Returns error when the template contains syntax errors.
+// Returns error when the template contains syntax errors, or its render method or event
+// bindings cannot be built into the component.
 func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 	if cc.sfcParseResult.Template == "" {
@@ -454,6 +472,7 @@ func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
 	}
 
 	if tAST != nil {
+		ast_domain.SortAttributesByName(tAST)
 		cc.astDump = ast_domain.DumpAST(ctx, tAST)
 	}
 
@@ -493,15 +512,15 @@ func (cc *sfcCompilationContext) buildScaffoldHTML(ctx context.Context, tAST *as
 }
 
 // buildVDOMRenderMethod builds the virtual DOM render method from the template AST and
-// adds it to the JavaScript AST.
+// adds it, with the template's event bindings, to the JavaScript AST.
 //
 // Takes tAST (*ast_domain.TemplateAST) which provides the parsed template structure.
 // Takes moduleName (string) which is the Go module name for @/ alias resolution.
 //
-// Returns error when building fails, though currently returns nil after logging a
-// warning.
+// Returns error when the render method cannot be built or added to the component class,
+// or the event bindings cannot be added, so a component that would render nothing or
+// ignore its events never ships.
 func (cc *sfcCompilationContext) buildVDOMRenderMethod(ctx context.Context, tAST *ast_domain.TemplateAST, moduleName string) error {
-	ctx, l := logger_domain.From(ctx, log)
 	events := newEventBindingCollection(cc.registry)
 	vdomBuilder := NewVDOMBuilder()
 	buildContext := &nodeBuildContext{
@@ -510,14 +529,17 @@ func (cc *sfcCompilationContext) buildVDOMRenderMethod(ctx context.Context, tAST
 		booleanProps: cc.reactiveTransformResult.BooleanProperties,
 		moduleName:   moduleName,
 	}
-	renderMethod, vdomErr := vdomBuilder.BuildRenderVDOM(ctx, tAST, buildContext)
-	if vdomErr != nil {
-		l.Warn("BuildRenderVDOM error", logger_domain.String(logKeyError, vdomErr.Error()))
-		return nil
+	renderMethod, err := vdomBuilder.BuildRenderVDOM(ctx, tAST, buildContext)
+	if err != nil {
+		return fmt.Errorf("building the render method of component %s: %w", cc.className, err)
 	}
 
-	insertRenderMethod(ctx, cc.jsAST, cc.className, renderMethod, cc.registry)
-	injectEventBindings(ctx, cc.jsAST, cc.className, events)
+	if err := insertRenderMethod(ctx, cc.jsAST, cc.className, renderMethod, cc.registry); err != nil {
+		return fmt.Errorf("adding the render method to component %s: %w", cc.className, err)
+	}
+	if err := injectEventBindings(ctx, cc.jsAST, cc.className, events); err != nil {
+		return fmt.Errorf("adding the event bindings of component %s: %w", cc.className, err)
+	}
 	return nil
 }
 
@@ -538,7 +560,9 @@ func (cc *sfcCompilationContext) insertStaticCSS(ctx context.Context) error {
 // finaliseAST completes AST processing by rewriting it, adding custom element definitions
 // when needed, and prepending the import preamble. It also gathers JavaScript
 // dependencies from @/ imports for registry registration.
-func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) {
+//
+// Returns error when a user import cannot be hoisted exactly as written.
+func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("Rewriting AST")
 	RewriteAST(ctx, cc.jsAST, cc.reactiveTransformResult.InstanceProperties)
@@ -550,11 +574,16 @@ func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) {
 	jsimport.RewriteImportRecords(cc.jsAST.ImportRecords, cc.moduleName)
 
 	l.Trace("Prepending preamble to AST")
-	cc.jsDependencies = prependPreambleToAST(ctx, cc.jsAST, cc.scriptCode, cc.enabledBehaviours, cc.moduleName, cc.registry)
+	dependencies, err := prependPreambleToAST(ctx, cc.jsAST, cc.scriptCode, cc.enabledBehaviours, cc.moduleName, cc.registry)
+	if err != nil {
+		return fmt.Errorf("hoisting imports in %s: %w", cc.tagName, err)
+	}
+	cc.jsDependencies = dependencies
 
 	if len(cc.jsDependencies) > 0 {
 		l.Trace("Collected JS dependencies", logger_domain.Int("count", len(cc.jsDependencies)))
 	}
+	return nil
 }
 
 // addCustomElementsDefine appends a customElements.define statement to the JavaScript
@@ -576,29 +605,21 @@ func (cc *sfcCompilationContext) addCustomElementsDefine(ctx context.Context) {
 //
 // Returns *compiler_dto.CompiledArtefact which holds the generated JavaScript code and
 // metadata for the component.
-func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) *compiler_dto.CompiledArtefact {
+// Returns error when the script cannot be printed as JavaScript, so a component whose
+// script failed to compile never ships.
+func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) (*compiler_dto.CompiledArtefact, error) {
+	body, err := printAST(ctx, cc.jsAST, cc.reactiveTransformResult.InstanceProperties, cc.registry)
+	if err != nil {
+		return nil, fmt.Errorf("compiling the script of component %s to JavaScript: %w", cc.className, err)
+	}
+
 	var builder strings.Builder
 	if cc.astDump != "" {
 		builder.WriteString(cc.astDump)
 		builder.WriteString("\n\n")
 	}
+	builder.WriteString(body)
 
-	body, err := printAST(ctx, cc.jsAST, cc.reactiveTransformResult.InstanceProperties, cc.registry)
-	if err != nil {
-		_, l := logger_domain.From(ctx, log)
-		l.Warn("Failed to print compiled component AST",
-			logger_domain.String("class", cc.className),
-			logger_domain.String("source", cc.sourceFilename),
-			logger_domain.Error(err),
-		)
-		cc.diagnostics = append(cc.diagnostics, compiler_dto.CompilationDiagnostic{
-			Severity:         "error",
-			Message:          fmt.Sprintf("component %s: failed to compile script to JavaScript: %v", cc.className, err),
-			SourceIdentifier: cc.sourceFilename,
-		})
-	}
-
-	mainJS := builder.String() + body
 	mainJSFileName := fmt.Sprintf("%s.js", cc.tagName)
 
 	return &compiler_dto.CompiledArtefact{
@@ -607,11 +628,11 @@ func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) *compiler_dt
 		BaseJSPath:       mainJSFileName,
 		SourceIdentifier: cc.sourceFilename,
 		Files: map[string]string{
-			mainJSFileName: mainJS,
+			mainJSFileName: builder.String(),
 		},
 		JSDependencies: cc.jsDependencies,
-		Diagnostics:    cc.diagnostics,
-	}
+		Diagnostics:    nil,
+	}, nil
 }
 
 // NewSFCCompiler creates a new compiler for single-file components.
@@ -699,12 +720,11 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 	startTime := time.Now()
 	l.Trace("Starting SFC compilation")
 
-	cc := &sfcCompilationContext{
-		registry:        NewRegistryContext(),
-		moduleName:      moduleName,
-		cssPreProcessor: cssPreProcessor,
-		sourceFilename:  sourceID,
-	}
+	cc := &sfcCompilationContext{}
+	cc.registry = NewRegistryContext()
+	cc.moduleName = moduleName
+	cc.cssPreProcessor = cssPreProcessor
+	cc.sourceFilename = sourceID
 
 	ccCtx := logger_domain.WithLogger(ctx, l)
 
@@ -737,9 +757,14 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 		return nil, fmt.Errorf("processing javascript: %w", err)
 	}
 
-	cc.injectTimelineData(ccCtx)
+	if err := cc.injectTimelineData(ccCtx); err != nil {
+		l.ReportError(span, err, "timeline injection failed")
+		SFCCompilationErrorCount.Add(ctx, 1)
+		return nil, fmt.Errorf("injecting timeline: %w", err)
+	}
 
 	if err := cc.processTemplate(ccCtx); err != nil {
+		SFCCompilationErrorCount.Add(ctx, 1)
 		return nil, fmt.Errorf("processing template: %w", err)
 	}
 
@@ -749,9 +774,18 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 		return nil, err
 	}
 
-	cc.finaliseAST(ccCtx)
+	if err := cc.finaliseAST(ccCtx); err != nil {
+		l.ReportError(span, err, "finalising script failed")
+		SFCCompilationErrorCount.Add(ctx, 1)
+		return nil, fmt.Errorf("finalising script: %w", err)
+	}
 
-	artefact := cc.buildArtefact(ccCtx)
+	artefact, err := cc.buildArtefact(ccCtx)
+	if err != nil {
+		l.ReportError(span, err, "printing compiled component failed")
+		SFCCompilationErrorCount.Add(ctx, 1)
+		return nil, err
+	}
 
 	cc.recordCompilationMetrics(ctx, span, startTime, artefact)
 	return artefact, nil
@@ -863,15 +897,21 @@ func buildClassName(rawTag string) string {
 // Takes tree (*js_ast.AST) which is the syntax tree to modify in place.
 // Takes sourceCode (string) which is the original source for extracting import text.
 // Takes enabledBehaviours ([]string) which lists behaviours enabled on the component.
+// Takes moduleName (string) which resolves the @/ alias.
+// Takes registry (*RegistryContext) which resolves registry-backed identifier names.
 //
 // Returns []compiler_dto.JSDependency which contains dependencies that need registry
 // registration.
-func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode string, enabledBehaviours []string, moduleName string, registry *RegistryContext) []compiler_dto.JSDependency {
+// Returns error when a user import cannot be recovered from the source.
+func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode string, enabledBehaviours []string, moduleName string, registry *RegistryContext) ([]compiler_dto.JSDependency, error) {
 	existingStmts := getStmtsFromAST(tree)
 
 	_, nonImportStmts := separateImportsFromAST(existingStmts)
 
-	userImportStmts, dependencies := buildImportStatementsFromSource(ctx, tree, sourceCode, moduleName)
+	userImportStmts, dependencies, err := buildImportStatementsFromSource(ctx, tree, sourceCode, moduleName)
+	if err != nil {
+		return nil, err
+	}
 	userImportStmts = elideTypeOnlyNamedImports(tree, nonImportStmts, userImportStmts, registry)
 
 	iifeStatement := buildIIFEWrapper(nonImportStmts)
@@ -894,7 +934,7 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 	)
 
 	setStmtsInAST(tree, newStmtList)
-	return dependencies
+	return dependencies, nil
 }
 
 // buildImportStatementsFromSource builds SImport statements by extracting the original
@@ -918,29 +958,46 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 //   - Default imports: `import foo from '...'`
 //   - Multi-line formatting
 //
-// When tree is nil or has no ImportRecords, returns nil for both values.
+// Each statement's start and end come from a parser pass that keeps every import (see
+// locateImportStatements). An import the TypeScript parser removes because all of its
+// bindings are type-only, such as `import { type Foo } from './types'`, is dropped.
+//
+// When tree is nil or has no ImportRecords, returns nil for all values.
 //
 // Takes tree (*js_ast.AST) which holds ImportRecords with Range data.
 // Takes sourceCode (string) which is the original source code.
+// Takes moduleName (string) which resolves the @/ alias.
 //
 // Returns []js_ast.Stmt which holds the built import statements.
 // Returns []compiler_dto.JSDependency which holds dependencies for the registry.
-func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sourceCode string, moduleName string) ([]js_ast.Stmt, []compiler_dto.JSDependency) {
+// Returns error when an import statement cannot be recovered exactly as written.
+func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sourceCode string, moduleName string) ([]js_ast.Stmt, []compiler_dto.JSDependency, error) {
 	if tree == nil || len(tree.ImportRecords) == 0 {
-		return nil, nil
+		return nil, nil, nil
+	}
+	ctx, l := logger_domain.From(ctx, log)
+
+	locator, err := locateImportStatements(sourceCode)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	statements := make([]js_ast.Stmt, 0, len(tree.ImportRecords))
 	dependencies := make([]compiler_dto.JSDependency, 0)
 
-	for i, record := range tree.ImportRecords {
+	originalRecords := slices.Clone(tree.ImportRecords)
+	for _, record := range originalRecords {
 		if record.Kind != ast.ImportStmt {
 			continue
 		}
 
-		statement, recordIndex, ok := rebuildImportStatement(ctx, tree, sourceCode, record, i)
-		if !ok {
+		statement, recordIndex, err := rebuildImportStatement(ctx, tree, sourceCode, locator, record)
+		if errors.Is(err, errStatementElided) {
+			l.Trace("Dropped type-only import", logger_domain.String("path", record.Path.Text))
 			continue
+		}
+		if err != nil {
+			return nil, nil, err
 		}
 
 		if dependency := resolveStatementImportPath(ctx, tree, recordIndex, moduleName); dependency != nil {
@@ -950,57 +1007,72 @@ func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sour
 		statements = append(statements, statement)
 	}
 
-	return statements, dependencies
+	return statements, dependencies, nil
 }
 
 // rebuildImportStatement recovers one import statement from the original source text.
 //
 // Takes tree (*js_ast.AST) which receives the merged import record.
 // Takes sourceCode (string) which is the original source.
+// Takes locator (importStatementLocator) which gives each statement's span.
 // Takes record (ast.ImportRecord) which locates the import in that source.
-// Takes recordIndex (int) which identifies the record in trace output.
 //
 // Returns js_ast.Stmt which is the rebuilt statement.
-// Returns int which is the index of the record merged into tree for this statement, or
-// noMergedImportRecord when the statement carries no record of its own.
-// Returns bool which is false when the statement could not be recovered.
+// Returns int which is the index of the record merged into tree for this statement.
+// Returns error when the statement cannot be found, does not parse, or parses to anything
+// other than the single import that owns record, or one wrapping errStatementElided when
+// the statement holds only type information.
 func rebuildImportStatement(
 	ctx context.Context,
 	tree *js_ast.AST,
 	sourceCode string,
+	locator importStatementLocator,
 	record ast.ImportRecord,
-	recordIndex int,
-) (js_ast.Stmt, int, bool) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	importText := extractImportTextFromSource(sourceCode, record)
-	if importText == "" {
-		l.Trace("Could not extract import text",
-			logger_domain.Int("recordIndex", recordIndex),
-			logger_domain.String("path", record.Path.Text))
-
-		return js_ast.Stmt{}, noMergedImportRecord, false
+) (js_ast.Stmt, int, error) {
+	importText, pathText, err := extractImportTextFromSource(sourceCode, locator, record)
+	if err != nil {
+		return js_ast.Stmt{}, noMergedImportRecord, err
 	}
 
 	statement, statementAST, err := parseModuleLevelStatement(ctx, importText)
-	if err != nil || statement.Data == nil {
-		l.Trace("Failed to parse import statement",
-			logger_domain.String("import", importText),
-			logger_domain.Int("recordIndex", recordIndex))
-
-		return js_ast.Stmt{}, noMergedImportRecord, false
+	if err != nil {
+		return js_ast.Stmt{}, noMergedImportRecord, fmt.Errorf("parsing import of %s: %w", pathText, err)
 	}
 
 	simport, ok := statement.Data.(*js_ast.SImport)
-	if !ok || len(statementAST.ImportRecords) == 0 {
-		return statement, noMergedImportRecord, true
+	if !ok || !recoversSingleImport(importText, pathText, statementAST) {
+		return js_ast.Stmt{}, noMergedImportRecord, fmt.Errorf("recovering import of %s: got %q: %w", pathText, importText, errImportNotRecovered)
 	}
 
 	mergeImportRecords(tree, statementAST, &statement)
 	mergedIndex := len(tree.ImportRecords) - 1
 	simport.ImportRecordIndex = safeconv.IntToUint32(mergedIndex)
 
-	return statement, mergedIndex, true
+	return statement, mergedIndex, nil
+}
+
+// recoversSingleImport reports whether recovered text holds exactly the one import it was
+// cut out for.
+//
+// A statement fused with its neighbour would carry two import records, and a mislocated
+// one would name another path.
+//
+// Takes importText (string) which is the recovered statement text.
+// Takes pathText (string) which is the quoted module path as written in the source.
+// Takes statementAST (*js_ast.AST) which is the parse of importText.
+//
+// Returns bool which is true when importText imports pathText and nothing else.
+func recoversSingleImport(importText string, pathText string, statementAST *js_ast.AST) bool {
+	if statementAST == nil || len(statementAST.ImportRecords) != 1 {
+		return false
+	}
+	pathRange := statementAST.ImportRecords[0].Range
+	pathStart := int(pathRange.Loc.Start)
+	pathEnd := pathStart + int(pathRange.Len)
+	if pathStart < 0 || pathEnd > len(importText) {
+		return false
+	}
+	return importText[pathStart:pathEnd] == pathText
 }
 
 // resolveStatementImportPath rewrites a hoisted import's specifier to its served URL.
@@ -1064,101 +1136,39 @@ func (c *usedIdentifierCollector) Enter(node parsejs.INode) parsejs.IVisitor {
 // Exit is required by the visitor interface and does nothing.
 func (*usedIdentifierCollector) Exit(_ parsejs.INode) {}
 
-// extractImportTextFromSource gets the full import statement text from source code using
-// the ImportRecord's Range data.
+// extractImportTextFromSource gets the full import statement text from source code.
 //
-// The Range in ImportRecord points to the path string, including quotes. Searches
-// backwards for the "import" keyword and forwards for the statement end to get the
-// complete import text.
+// The record's Range points at the module path, including quotes. The statement's span
+// comes from locator.
 //
 // Takes sourceCode (string) which is the full source code.
+// Takes locator (importStatementLocator) which gives each statement's span.
 // Takes record (ast.ImportRecord) which contains the Range pointing to the path.
 //
-// Returns string which is the full import statement text, or empty if not found.
-func extractImportTextFromSource(sourceCode string, record ast.ImportRecord) string {
-	if sourceCode == "" {
-		return ""
-	}
-
+// Returns importText (string) which is the import statement text, without any trailing
+// semicolon.
+// Returns pathText (string) which is the quoted module path as written.
+// Returns err (error) when the path or statement lies outside the source, or no top-level
+// import statement owns the path, as for a re-export or an import inside a declare module
+// block.
+func extractImportTextFromSource(sourceCode string, locator importStatementLocator, record ast.ImportRecord) (importText string, pathText string, err error) {
 	pathStart := int(record.Range.Loc.Start)
 	pathEnd := pathStart + int(record.Range.Len)
 
-	if pathStart < 0 || pathEnd > len(sourceCode) {
-		return ""
+	if pathStart < 0 || pathEnd > len(sourceCode) || pathStart >= pathEnd {
+		return "", "", fmt.Errorf("import of %s: path range outside the script: %w", record.Path.Text, errImportNotRecovered)
+	}
+	pathText = sourceCode[pathStart:pathEnd]
+
+	span, err := locator.statementSpan(record.Range.Loc.Start)
+	if err != nil {
+		return "", "", fmt.Errorf("%s: %w", pathText, err)
+	}
+	if span.start < 0 || span.start > pathStart || span.end < pathEnd || span.end > len(sourceCode) {
+		return "", "", fmt.Errorf("import of %s: statement range outside the script: %w", pathText, errImportNotRecovered)
 	}
 
-	importStart := findImportKeyword(sourceCode, pathStart)
-	if importStart == -1 {
-		return ""
-	}
-
-	statementEnd := findStatementEnd(sourceCode, pathEnd)
-
-	return strings.TrimSpace(sourceCode[importStart:statementEnd])
-}
-
-// findImportKeyword searches backwards from pathStart to find the "import" keyword. It
-// checks that "import" is at a word boundary and not part of a longer name.
-//
-// Takes sourceCode (string) which contains the source text to search.
-// Takes pathStart (int) which is the position to start searching backwards from.
-//
-// Returns int which is the start index of "import", or -1 if not found.
-func findImportKeyword(sourceCode string, pathStart int) int {
-	searchStart := pathStart
-	for searchStart >= 0 {
-		chunkStart := max(0, searchStart-200)
-		chunk := sourceCode[chunkStart:searchStart]
-		index := strings.LastIndex(chunk, "import")
-		if index == -1 {
-			if chunkStart == 0 {
-				break
-			}
-			searchStart = chunkStart
-			continue
-		}
-
-		position := chunkStart + index
-		if position > 0 && isIdentifierChar(sourceCode[position-1]) {
-			searchStart = position
-			continue
-		}
-		return position
-	}
-	return -1
-}
-
-// findStatementEnd finds where an import statement ends in the source code. It starts
-// from the given position and looks for a semicolon or newline.
-//
-// Takes sourceCode (string) which is the source text to search.
-// Takes pathEnd (int) which is the position after the closing quote.
-//
-// Returns int which is the position after the statement ends.
-func findStatementEnd(sourceCode string, pathEnd int) int {
-	statementEnd := pathEnd
-	for statementEnd < len(sourceCode) {
-		character := sourceCode[statementEnd]
-		if character == ';' {
-			statementEnd++
-			break
-		}
-		if character == '\n' && statementEnd > pathEnd {
-			break
-		}
-		statementEnd++
-	}
-	return statementEnd
-}
-
-// isIdentifierChar reports whether c can be part of a JavaScript identifier.
-//
-// Takes c (byte) which is the character to check.
-//
-// Returns bool which is true if c is a letter, digit, underscore, or dollar sign.
-func isIdentifierChar(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-		(c >= '0' && c <= '9') || c == '_' || c == '$'
+	return sourceCode[span.start:span.end], pathText, nil
 }
 
 // separateImportsFromAST walks the AST statements and separates SImport statements from
@@ -1410,8 +1420,9 @@ func printTdewolffAST(tree *parsejs.AST) (string, error) {
 // Takes className (string) which names the target class.
 // Takes renderMethod (*js_ast.EFunction) which is the method to insert.
 // Takes registry (*RegistryContext) which provides the registry context.
-func insertRenderMethod(ctx context.Context, jsAST *js_ast.AST, className string, renderMethod *js_ast.EFunction, registry *RegistryContext) {
-	ctx, l := logger_domain.From(ctx, log)
+//
+// Returns error when the method is nil or the target class cannot be found.
+func insertRenderMethod(ctx context.Context, jsAST *js_ast.AST, className string, renderMethod *js_ast.EFunction, registry *RegistryContext) error {
 	MethodInsertionCount.Add(ctx, 1)
 	insertStartTime := time.Now()
 
@@ -1420,9 +1431,10 @@ func insertRenderMethod(ctx context.Context, jsAST *js_ast.AST, className string
 	MethodInsertionDuration.Record(ctx, float64(time.Since(insertStartTime).Milliseconds()))
 
 	if insertErr != nil {
-		l.Warn("Could not insert renderVDOM method", logger_domain.String(logKeyError, insertErr.Error()))
 		MethodInsertionErrorCount.Add(ctx, 1)
+		return insertErr
 	}
+	return nil
 }
 
 // injectEventBindings adds event bindings to a class constructor.
@@ -1430,21 +1442,23 @@ func insertRenderMethod(ctx context.Context, jsAST *js_ast.AST, className string
 // Takes jsAST (*js_ast.AST) which provides the JavaScript AST to change.
 // Takes className (string) which names the target class.
 // Takes events (*eventBindingCollection) which holds the bindings to add.
-func injectEventBindings(ctx context.Context, jsAST *js_ast.AST, className string, events *eventBindingCollection) {
-	ctx, l := logger_domain.From(ctx, log)
+//
+// Returns error when there are bindings to add but the target class or its constructor
+// cannot be found.
+func injectEventBindings(ctx context.Context, jsAST *js_ast.AST, className string, events *eventBindingCollection) error {
 	if len(events.getBindings()) == 0 {
-		return
+		return nil
 	}
 
 	targetClass := findClassDeclarationByName(jsAST, className)
 	if targetClass == nil {
-		return
+		return fmt.Errorf("target class %q not found for event bindings", className)
 	}
 
-	if injErr := injectEventBindingsIntoConstructor(ctx, targetClass, events); injErr != nil {
-		l.Warn("Failed to inject event bindings into constructor",
-			logger_domain.String(logKeyError, injErr.Error()))
+	if err := injectEventBindingsIntoConstructor(ctx, targetClass, events); err != nil {
+		return fmt.Errorf("injecting event bindings into %s: %w", className, err)
 	}
+	return nil
 }
 
 // elideTypeOnlyNamedImports drops named import bindings never referenced as a value in

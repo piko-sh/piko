@@ -3,6 +3,7 @@ module piko.sh/piko/wdk/analytics/analytics_collector_ga4
 go 1.27.0
 
 require (
+	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel v1.45.0
 	go.opentelemetry.io/otel/metric v1.45.0
 	piko.sh/piko v0.0.0
@@ -18,6 +19,5 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
-
-replace piko.sh/piko => ../../../

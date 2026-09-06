@@ -118,10 +118,12 @@ type ResourceCollectorOption func(*ResourceCollector)
 // Returns *ResourceCollector which is ready to collect resource information.
 func NewResourceCollector(opts ...ResourceCollectorOption) *ResourceCollector {
 	c := &ResourceCollector{
-		clock:     nil,
-		firstSeen: make(map[int]time.Time),
-		stopCh:    make(chan struct{}),
-		mu:        sync.RWMutex{},
+		clock:          nil,
+		firstSeen:      make(map[int]time.Time),
+		stopCh:         make(chan struct{}),
+		mu:             sync.RWMutex{},
+		sandboxFactory: nil,
+		stopped:        false,
 	}
 
 	for _, opt := range opts {

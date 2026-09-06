@@ -135,14 +135,16 @@ func (t *ProjectViewTranslator) baseComponentView(
 	result *annotator_dto.ProjectAnnotationResult,
 ) seo_dto.ComponentView {
 	view := seo_dto.ComponentView{
-		HashedName:         hash,
-		IsPage:             component.IsPage,
-		IsPublic:           component.IsPublic,
-		IsAuthGated:        component.Source != nil && component.Source.Script != nil && component.Source.Script.HasAuthPolicy,
-		OriginalSourcePath: "",
-		RoutePattern:       "",
-		SupportedLocales:   []string{},
-		SEO:                seo_dto.PageSEOMetadata{},
+		HashedName:           hash,
+		IsPage:               component.IsPage,
+		IsPublic:             component.IsPublic,
+		IsAuthGated:          component.Source != nil && component.Source.Script != nil && component.Source.Script.HasAuthPolicy,
+		OriginalSourcePath:   "",
+		RoutePattern:         "",
+		SupportedLocales:     []string{},
+		SEO:                  seo_dto.PageSEOMetadata{},
+		RouteSourceName:      "",
+		RouteSourceParamName: "",
 	}
 
 	if component.Source != nil {
@@ -342,13 +344,21 @@ func applyInstanceRichMedia(seo *seo_dto.PageSEOMetadata, initialProps map[strin
 	videoThumbnail := propString(pageData, "sitemapVideoThumbnail")
 	if videoTitle != "" && videoThumbnail != "" {
 		seo.Videos = append(seo.Videos, seo_dto.VideoInputEntry{
-			Title:             videoTitle,
-			Description:       propString(pageData, "sitemapVideoDescription"),
-			ThumbnailLocation: videoThumbnail,
-			PlayerLocation:    propString(pageData, "sitemapVideoPlayer"),
-			ContentLocation:   propString(pageData, "sitemapVideoContent"),
-			PublicationDate:   propString(pageData, "sitemapVideoDate"),
-			Duration:          clampVideoDuration(propInt(pageData, "sitemapVideoDuration")),
+			Title:                videoTitle,
+			Description:          propString(pageData, "sitemapVideoDescription"),
+			ThumbnailLocation:    videoThumbnail,
+			PlayerLocation:       propString(pageData, "sitemapVideoPlayer"),
+			ContentLocation:      propString(pageData, "sitemapVideoContent"),
+			PublicationDate:      propString(pageData, "sitemapVideoDate"),
+			Duration:             clampVideoDuration(propInt(pageData, "sitemapVideoDuration")),
+			ExpirationDate:       "",
+			FamilyFriendly:       "",
+			Live:                 "",
+			Uploader:             "",
+			RequiresSubscription: "",
+			Tags:                 nil,
+			ViewCount:            0,
+			Rating:               0,
 		})
 	}
 

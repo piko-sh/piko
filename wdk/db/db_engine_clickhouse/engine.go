@@ -59,6 +59,14 @@ type ClickHouseDialect struct {
 	// MaxParseDepth caps recursion through analysis and expression parsing. Zero selects
 	// defaultMaxParseDepth.
 	MaxParseDepth int
+
+	// MaxTokensPerStatement caps the token count of a single statement the parser walks.
+	// Zero selects defaultMaxTokensPerStatement.
+	MaxTokensPerStatement int
+
+	// MaxTypeParseDepth caps wrapper nesting inside a type name (Array(Array(...)) and
+	// similar). Zero selects defaultMaxTypeParseDepth.
+	MaxTypeParseDepth int
 }
 
 // Option configures a ClickHouseDialect.
@@ -93,6 +101,68 @@ func (d ClickHouseDialect) resolvedMaxParseDepth() int {
 		return d.MaxParseDepth
 	}
 	return defaultMaxParseDepth
+}
+
+// WithMaxTokensPerStatement sets the maximum number of tokens a single statement may hold
+// before the parser refuses to walk it.
+//
+// The parsers are not cancellable mid-statement, so an adversarially long statement would
+// otherwise hold the caller for a long time. The default is generous
+// (defaultMaxTokensPerStatement) so realistic and generated statements are unaffected;
+// lower it to harden against hostile input or raise it for unusually large generated
+// statements.
+//
+// Takes limit (int) which is the maximum token count; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which applies the token budget to a ClickHouseDialect.
+func WithMaxTokensPerStatement(limit int) Option {
+	return func(dialect *ClickHouseDialect) {
+		if limit > 0 {
+			dialect.MaxTokensPerStatement = limit
+		}
+	}
+}
+
+// resolvedMaxTokensPerStatement returns the effective per-statement token budget, falling
+// back to defaultMaxTokensPerStatement when unset.
+//
+// Returns int which is the configured budget or defaultMaxTokensPerStatement.
+func (d ClickHouseDialect) resolvedMaxTokensPerStatement() int {
+	if d.MaxTokensPerStatement > 0 {
+		return d.MaxTokensPerStatement
+	}
+	return defaultMaxTokensPerStatement
+}
+
+// WithMaxTypeParseDepth sets the maximum wrapper nesting the type-name parser accepts.
+//
+// Type names such as Array(Array(Tuple(...))) are parsed recursively, so unbounded
+// nesting would otherwise exhaust the goroutine stack. The default is high
+// (defaultMaxTypeParseDepth) so realistic types are unaffected; lower it to harden
+// against hostile input or raise it for unusually deep generated types.
+//
+// Takes depth (int) which is the maximum wrapper nesting; values below 1 are ignored so
+// the default remains in force.
+//
+// Returns Option which applies the type depth cap to a ClickHouseDialect.
+func WithMaxTypeParseDepth(depth int) Option {
+	return func(dialect *ClickHouseDialect) {
+		if depth > 0 {
+			dialect.MaxTypeParseDepth = depth
+		}
+	}
+}
+
+// resolvedMaxTypeParseDepth returns the effective type-name nesting cap, falling back to
+// defaultMaxTypeParseDepth when unset.
+//
+// Returns int which is the configured cap or defaultMaxTypeParseDepth.
+func (d ClickHouseDialect) resolvedMaxTypeParseDepth() int {
+	if d.MaxTypeParseDepth > 0 {
+		return d.MaxTypeParseDepth
+	}
+	return defaultMaxTypeParseDepth
 }
 
 // WithDialectName sets the dialect identifier returned from Dialect().
@@ -188,10 +258,11 @@ var (
 	// ddlParserDispatch maps each statementKind to the parser method that produces its
 	// catalogue mutation.
 	//
-	// The map keeps dispatchDDL's cyclomatic complexity within the linter budget while
+	// The map keeps ApplyDDL's cyclomatic complexity within the linter budget while
 	// preserving constant-time lookup for every kind. The non-DDL kinds (Select / Insert)
 	// and the Unknown sentinel are populated with nil entries so the exhaustive linter is
-	// happy; dispatchDDL treats a nil handler as a no-op DDL result.
+	// happy; ApplyDDL treats a nil handler as a no-op DDL result without walking the
+	// statement.
 	ddlParserDispatch = map[statementKind]func(*parser) (*querier_dto.CatalogueMutation, error){
 		statementKindCreateTable:            (*parser).parseCreateTable,
 		statementKindDropTable:              (*parser).parseDropTable,
@@ -245,6 +316,16 @@ var (
 		statementKindUnknown:                nil,
 	}
 
+	// statementAnalysers maps each statement kind AnalyseQuery walks to the parser method
+	// that analyses it, indexed by kind. Kinds with no entry produce an empty analysis
+	// without the token stream being walked.
+	statementAnalysers = [statementKindUnknown + 1]func(*parser) (*querier_dto.RawQueryAnalysis, error){
+		statementKindSelect:     (*parser).analyseSelect,
+		statementKindInsert:     (*parser).analyseInsert,
+		statementKindDelete:     (*parser).analyseDelete,
+		statementKindAlterTable: (*parser).analyseAlterTable,
+	}
+
 	// clickHouseNumericRanks assigns a synthetic widening rank to every numeric ClickHouse
 	// type the engine recognises.
 	//
@@ -283,9 +364,8 @@ var (
 //
 // Returns *ClickHouseEngine which is the configured engine adapter.
 func NewClickHouseEngine(options ...Option) *ClickHouseEngine {
-	dialect := ClickHouseDialect{
-		Name: "clickhouse",
-	}
+	dialect := ClickHouseDialect{}
+	dialect.Name = "clickhouse"
 	for _, option := range options {
 		option(&dialect)
 	}
@@ -327,36 +407,22 @@ func (*ClickHouseEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatem
 	return results, nil
 }
 
-// statementByteLength computes the byte span a statement occupies in the source SQL, from
-// the first token's start to the end of the last token's lexeme.
-//
-// Takes statementTokens ([]token) which are the ordered tokens of a single statement and
-// must hold at least one token.
-//
-// Returns int which is the statement's byte length in the source SQL.
-func statementByteLength(statementTokens []token) int {
-	first := statementTokens[0]
-	last := statementTokens[len(statementTokens)-1]
-	return last.position + len(last.value) - first.position
-}
-
 // ApplyDDL applies a DDL statement to the catalogue for the ClickHouse dialect.
 //
-// The per-statement handler is wrapped with a panic recovery so a malformed statement
-// that trips a parser invariant becomes a wrapped error rather than crashing the calling
-// apply loop. It honours ctx.Err() before dispatch so the catalogue build loop can be
-// cancelled by the caller. On panic the recovered value and a captured stack trace are
-// combined into the returned error; the stack is intended for engine-side diagnostic
-// logs, and user-facing surfaces should expose only the recovered value half by stripping
-// the stack with a fmt.Sprintf %v.
+// Syntax errors in the statement are returned as ordinary errors. The per-statement
+// handler is additionally wrapped with a panic recovery so a parser bug cannot crash the
+// calling apply loop. The stack is logged once at warn level through the context logger
+// and the returned error carries only the recovered value. It honours ctx.Err() before
+// dispatch so the catalogue build loop can be cancelled by the caller, and refuses to
+// walk a statement longer than the configured token budget.
 //
 // Takes statement (querier_dto.ParsedStatement) which carries the classified tokens to
 // apply.
 //
 // Returns *querier_dto.CatalogueMutation which is the catalogue change, or nil for a
 // no-op kind.
-// Returns error when the statement type is unexpected, the token budget is exceeded, the
-// context is cancelled, or a parser invariant panics.
+// Returns error when the statement type is unexpected, the statement is malformed, the
+// token budget is exceeded, the context is cancelled, or a parser invariant panics.
 func (engine *ClickHouseEngine) ApplyDDL(
 	ctx context.Context,
 	statement querier_dto.ParsedStatement,
@@ -383,81 +449,38 @@ func (engine *ClickHouseEngine) ApplyDDL(
 		return nil, ctxErr
 	}
 
-	if len(parsed.tokens) > maxTokensPerStatement {
-		return nil, errTokenBudgetExceeded
+	handler, found := ddlParserDispatch[parsed.kind]
+	if !found || handler == nil {
+		return nil, nil
 	}
 
-	p := newParser(parsed.tokens)
-	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
+	p, budgetErr := engine.newStatementParser(parsed.tokens)
+	if budgetErr != nil {
+		return nil, budgetErr
+	}
 
-	return dispatchDDL(p, parsed.kind)
-}
-
-// dispatchDDL hands the parsed statement off to the matching parser method via
-// ddlParserDispatch.
-//
-// It is split out from ApplyDDL so the table lookup does not inflate the public method's
-// cyclomatic complexity. A nil result pair is produced when the statement kind has a nil
-// handler in the dispatch table (Select / Insert handled by AnalyseQuery, plus the
-// Unknown sentinel) or when the kind is not present at all.
-//
-// Takes p (*parser) which is positioned at the start of the statement.
-// Takes kind (statementKind) which selects the handler to invoke.
-//
-// Returns *querier_dto.CatalogueMutation which is the catalogue change, or nil for a
-// no-op kind.
-// Returns error when the selected handler fails.
-func dispatchDDL(p *parser, kind statementKind) (*querier_dto.CatalogueMutation, error) {
-	if handler, found := ddlParserDispatch[kind]; found && handler != nil {
-		return handler(p)
+	mutation, err = handler(p)
+	if p.syntaxError != nil {
+		return nil, p.syntaxError
 	}
-	return nil, nil
-}
-
-// alterTableAsyncBody reports whether an ALTER TABLE statement is an asynchronous
-// mutation (ALTER TABLE ... UPDATE / DELETE) and captures its action body text.
-//
-// The statement header is parsed on a throwaway parser so the caller's analysis parser is
-// untouched, mirroring the header grammar of parseAlterTable (ALTER TABLE [IF EXISTS]
-// [db.]name [ON CLUSTER c] <action>). This lets the query-analysis path mark exactly the
-// statements the DDL path records as MutationAsyncDataUpdate / MutationAsyncDataDelete.
-//
-// Takes tokens ([]token) which are the statement's tokens.
-//
-// Returns string which is the captured action body text.
-// Returns bool which is true when the action is UPDATE or DELETE.
-func alterTableAsyncBody(tokens []token) (string, bool) {
-	probe := newParser(tokens)
-	if !probe.matchKeyword("ALTER") || !probe.matchKeyword("TABLE") {
-		return "", false
-	}
-	probe.matchIfExists()
-	if _, _, err := probe.parseDatabaseQualifiedName(); err != nil {
-		return "", false
-	}
-	probe.matchOnCluster()
-	if probe.matchKeyword("UPDATE") || probe.matchKeyword("DELETE") {
-		return probe.consumeRemainderAsText(), true
-	}
-	return "", false
+	return mutation, err
 }
 
 // AnalyseQuery performs structural analysis of a DML statement for the ClickHouse
 // dialect.
 //
-// The per-statement analyser is wrapped with a panic recovery so a malformed statement
-// that trips a parser invariant becomes a wrapped error rather than crashing the calling
-// analyser. On panic the recovered value and a captured stack trace are combined into the
-// returned error; the stack is intended for engine-side diagnostic logs, and user-facing
-// surfaces should expose only the recovered value half by stripping the stack via a
-// fmt.Sprintf %v rather than the multi-line error message.
+// Syntax errors in the statement are returned as ordinary errors. The per-statement
+// analyser is additionally wrapped with a panic recovery so a parser bug cannot crash the
+// calling analyser. The stack is logged once at warn level and the returned error carries
+// only the recovered value. Statements longer than the configured token budget are
+// refused before any parsing begins.
 //
 // Takes statement (querier_dto.ParsedStatement) which carries the classified tokens to
 // analyse.
 //
 // Returns *querier_dto.RawQueryAnalysis which is the structural analysis result.
-// Returns error when the statement type is unexpected, the token budget is exceeded, a
-// parameter type is invalid, or a parser invariant panics.
+// Returns error when the statement type is unexpected, the statement is malformed, the
+// token budget is exceeded, a parameter type is invalid, or a parser invariant panics.
 func (engine *ClickHouseEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -479,43 +502,21 @@ func (engine *ClickHouseEngine) AnalyseQuery(
 		}
 	}()
 
-	if len(parsed.tokens) > maxTokensPerStatement {
-		return nil, errTokenBudgetExceeded
-	}
-
-	p := newParser(parsed.tokens)
-	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
-
-	switch parsed.kind {
-	case statementKindSelect:
-		return p.analyseSelect()
-	case statementKindInsert:
-		return p.analyseInsert()
-	case statementKindDelete:
-		return p.analyseDelete()
-	case statementKindAlterTable:
-
-		analysis := &querier_dto.RawQueryAnalysis{ReadOnly: false}
-
-		if body, isAsync := alterTableAsyncBody(parsed.tokens); isAsync {
-			analysis.EngineSpecific = map[string]string{engineKeyAsyncBody: body}
-		}
-		for !p.atEnd() {
-			tok := p.current()
-			if tok.kind == tokenClickHouseParam {
-				p.registerClickHouseParameter(analysis, tok, querier_dto.ParameterContextAssignment)
-			}
-			p.advance()
-		}
-
-		if p.firstParameterTypeError != nil {
-			return analysis, p.firstParameterTypeError
-		}
-		return analysis, nil
-	default:
-
+	if int(parsed.kind) >= len(statementAnalysers) || statementAnalysers[parsed.kind] == nil {
 		return &querier_dto.RawQueryAnalysis{}, nil
 	}
+	analyser := statementAnalysers[parsed.kind]
+
+	p, budgetErr := engine.newStatementParser(parsed.tokens)
+	if budgetErr != nil {
+		return nil, budgetErr
+	}
+
+	analysis, err = analyser(p)
+	if p.syntaxError != nil {
+		return nil, p.syntaxError
+	}
+	return analysis, err
 }
 
 // RewriteSelectAsCount delegates to the shared SELECT->COUNT(*) rewriter.
@@ -561,7 +562,7 @@ func (engine *ClickHouseEngine) BuiltinTypes() *querier_dto.TypeCatalogue {
 //
 // Returns querier_dto.SQLType which is the structured, Nullable-unwrapped type.
 func (engine *ClickHouseEngine) NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
-	return normaliseTypeName(name, engine.dialect.TypeNormaliserHook, modifiers...)
+	return normaliseTypeName(name, engine.dialect.TypeNormaliserHook, engine.dialect.resolvedMaxTypeParseDepth(), modifiers...)
 }
 
 // ParameterStyle returns the ClickHouse `{name:Type}` parameter style.
@@ -703,6 +704,141 @@ func (engine *ClickHouseEngine) PromoteType(
 	return left
 }
 
+// CanImplicitCast reports whether ClickHouse allows implicit conversion between type
+// categories.
+//
+// By default, a cast is permitted only when the two categories match, with every
+// cross-category pair rejected. A configured ImplicitCastHook is consulted first and its
+// non-nil result overrides the default.
+//
+// Takes from (querier_dto.SQLTypeCategory) which is the source type category.
+// Takes to (querier_dto.SQLTypeCategory) which is the target type category.
+//
+// Returns bool which is true when the implicit cast is allowed.
+func (engine *ClickHouseEngine) CanImplicitCast(
+	from querier_dto.SQLTypeCategory,
+	to querier_dto.SQLTypeCategory,
+) bool {
+	if engine.dialect.ImplicitCastHook != nil {
+		if result := engine.dialect.ImplicitCastHook(from, to); result != nil {
+			return *result
+		}
+	}
+	return from == to
+}
+
+// CommentStyle returns the standard SQL comment style (`--`).
+//
+// Returns querier_dto.CommentStyle which is the default SQL comment style.
+func (*ClickHouseEngine) CommentStyle() querier_dto.CommentStyle {
+	return querier_dto.DefaultSQLCommentStyle()
+}
+
+// ResolveFunctionCall delegates to the ClickHouse polymorphic function resolver.
+//
+// It is used for arrayMap / arrayFilter / tupleElement / map / coalesce / if / multiIf
+// and the aggregate combinator family (countIf, sumOrNull, and similar) where the static
+// catalogue cannot express the return type from argument types alone.
+//
+// Takes catalogue (*querier_dto.Catalogue) which provides type and function context.
+// Takes name (string) which is the function name to resolve.
+// Takes schema (string) which is the schema the call is qualified by.
+// Takes argumentTypes ([]querier_dto.SQLType) which are the resolved argument types.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved signature and return
+// type.
+// Returns error when the function cannot be resolved for the given arguments.
+func (*ClickHouseEngine) ResolveFunctionCall(
+	catalogue *querier_dto.Catalogue,
+	name string,
+	schema string,
+	argumentTypes []querier_dto.SQLType,
+) (*querier_dto.FunctionResolution, error) {
+	return NewClickHouseFunctionResolver().ResolveFunctionCall(catalogue, name, schema, argumentTypes)
+}
+
+// newStatementParser creates a parser over a statement's tokens configured with the
+// dialect's limits, refusing statements longer than the per-statement token budget.
+//
+// Takes tokens ([]token) which are the statement's tokens.
+//
+// Returns *parser which is the configured parser positioned at the statement start.
+// Returns error which wraps errTokenBudgetExceeded when the statement holds more tokens
+// than the budget allows.
+func (engine *ClickHouseEngine) newStatementParser(tokens []token) (*parser, error) {
+	if limit := engine.dialect.resolvedMaxTokensPerStatement(); len(tokens) > limit {
+		return nil, fmt.Errorf("%w: statement has %d tokens, limit is %d", errTokenBudgetExceeded, len(tokens), limit)
+	}
+	p := newParser(tokens)
+	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
+	p.maxTypeParseDepth = engine.dialect.resolvedMaxTypeParseDepth()
+	return p, nil
+}
+
+// analyseAlterTable analyses an ALTER TABLE statement for its parameter placeholders.
+//
+// An asynchronous ALTER TABLE ... UPDATE or DELETE mutation records its action body under
+// engineKeyAsyncBody so downstream codegen can recognise the mutation, and every
+// `{name:Type}` placeholder in the statement is registered as an assignment parameter.
+//
+// The whole statement is probed for the async body on a throwaway parser so this parser's
+// cursor is untouched.
+//
+// Returns *querier_dto.RawQueryAnalysis which holds the placeholders and any async body.
+// Returns error when a placeholder carries a malformed or unrecognised type tag.
+func (p *parser) analyseAlterTable() (*querier_dto.RawQueryAnalysis, error) {
+	analysis := &querier_dto.RawQueryAnalysis{}
+	if body, isAsync := alterTableAsyncBody(p.tokens); isAsync {
+		analysis.EngineSpecific = map[string]string{engineKeyAsyncBody: body}
+	}
+	p.collectClickHouseParametersUntilEnd(analysis, querier_dto.ParameterContextAssignment)
+	if p.firstParameterTypeError != nil {
+		return analysis, p.firstParameterTypeError
+	}
+	return analysis, nil
+}
+
+// statementByteLength computes the byte span a statement occupies in the source SQL, from
+// the first token's start to the end of the last token's lexeme.
+//
+// Takes statementTokens ([]token) which are the ordered tokens of a single statement and
+// must hold at least one token.
+//
+// Returns int which is the statement's byte length in the source SQL.
+func statementByteLength(statementTokens []token) int {
+	first := statementTokens[0]
+	last := statementTokens[len(statementTokens)-1]
+	return last.position + len(last.value) - first.position
+}
+
+// alterTableAsyncBody reports whether an ALTER TABLE statement is an asynchronous
+// mutation (ALTER TABLE ... UPDATE / DELETE) and captures its action body text.
+//
+// The statement header is parsed on a throwaway parser so the caller's analysis parser is
+// untouched, mirroring the header grammar of parseAlterTable (ALTER TABLE [IF EXISTS]
+// [db.]name [ON CLUSTER c] <action>). This lets the query-analysis path mark exactly the
+// statements the DDL path records as MutationAsyncDataUpdate / MutationAsyncDataDelete.
+//
+// Takes tokens ([]token) which are the statement's tokens.
+//
+// Returns string which is the captured action body text.
+// Returns bool which is true when the action is UPDATE or DELETE.
+func alterTableAsyncBody(tokens []token) (string, bool) {
+	probe := newParser(tokens)
+	if !probe.matchKeyword("ALTER") || !probe.matchKeyword("TABLE") {
+		return "", false
+	}
+	probe.matchIfExists()
+	if _, _, err := probe.parseDatabaseQualifiedName(); err != nil {
+		return "", false
+	}
+	probe.matchOnCluster()
+	if probe.matchKeyword("UPDATE") || probe.matchKeyword("DELETE") {
+		return probe.consumeRemainderAsText(), true
+	}
+	return "", false
+}
+
 // promoteSameCategoryInteger promotes two integers of the same category.
 //
 // When the operands share a width rank but differ in sign (for example Int32 vs UInt32)
@@ -792,57 +928,4 @@ func clickHouseNumericTypeRank(engineName string) int {
 		return rank
 	}
 	return 0
-}
-
-// CanImplicitCast reports whether ClickHouse allows implicit conversion between type
-// categories.
-//
-// The default rule is strict: a cast is permitted only when the two categories match,
-// with every cross-category pair rejected. A configured ImplicitCastHook is consulted
-// first and its non-nil result overrides the default.
-//
-// Takes from (querier_dto.SQLTypeCategory) which is the source type category.
-// Takes to (querier_dto.SQLTypeCategory) which is the target type category.
-//
-// Returns bool which is true when the implicit cast is allowed.
-func (engine *ClickHouseEngine) CanImplicitCast(
-	from querier_dto.SQLTypeCategory,
-	to querier_dto.SQLTypeCategory,
-) bool {
-	if engine.dialect.ImplicitCastHook != nil {
-		if result := engine.dialect.ImplicitCastHook(from, to); result != nil {
-			return *result
-		}
-	}
-	return from == to
-}
-
-// CommentStyle returns the standard SQL comment style (`--`).
-//
-// Returns querier_dto.CommentStyle which is the default SQL comment style.
-func (*ClickHouseEngine) CommentStyle() querier_dto.CommentStyle {
-	return querier_dto.DefaultSQLCommentStyle()
-}
-
-// ResolveFunctionCall delegates to the ClickHouse polymorphic function resolver.
-//
-// It is used for arrayMap / arrayFilter / tupleElement / map / coalesce / if / multiIf
-// and the aggregate combinator family (countIf, sumOrNull, and similar) where the static
-// catalogue cannot express the return type from argument types alone.
-//
-// Takes catalogue (*querier_dto.Catalogue) which provides type and function context.
-// Takes name (string) which is the function name to resolve.
-// Takes schema (string) which is the schema the call is qualified by.
-// Takes argumentTypes ([]querier_dto.SQLType) which are the resolved argument types.
-//
-// Returns *querier_dto.FunctionResolution which is the resolved signature and return
-// type.
-// Returns error when the function cannot be resolved for the given arguments.
-func (*ClickHouseEngine) ResolveFunctionCall(
-	catalogue *querier_dto.Catalogue,
-	name string,
-	schema string,
-	argumentTypes []querier_dto.SQLType,
-) (*querier_dto.FunctionResolution, error) {
-	return NewClickHouseFunctionResolver().ResolveFunctionCall(catalogue, name, schema, argumentTypes)
 }

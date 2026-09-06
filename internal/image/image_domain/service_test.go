@@ -175,15 +175,8 @@ func TestNewService(t *testing.T) {
 				"mock": mockTransformer,
 			},
 			defaultProvider: "mock",
-			config: ServiceConfig{
-				MaxImageWidth:    0,
-				MaxImageHeight:   0,
-				MaxImagePixels:   0,
-				MaxFileSizeBytes: 0,
-				TransformTimeout: 0,
-				AllowedFormats:   nil,
-			},
-			wantErr: false,
+			config:          ServiceConfig{},
+			wantErr:         false,
 		},
 	}
 
@@ -1010,13 +1003,11 @@ func TestService_GeneratePlaceholder(t *testing.T) {
 		ctx := context.Background()
 
 		spec := image_dto.TransformationSpec{
-			Width:   800,
-			Format:  "webp",
-			Quality: 80,
-			Fit:     "cover",
-			Placeholder: &image_dto.PlaceholderSpec{
-				Enabled: false,
-			},
+			Width:       800,
+			Format:      "webp",
+			Quality:     80,
+			Fit:         "cover",
+			Placeholder: &image_dto.PlaceholderSpec{},
 		}
 
 		_, err := service.GeneratePlaceholder(ctx, strings.NewReader("img"), spec)

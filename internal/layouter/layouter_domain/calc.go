@@ -259,7 +259,7 @@ func (parser *calcParser) parseAdditive() *calcExpression {
 			return nil
 		}
 
-		left = &calcExpression{Type: nodeType, Left: left, Right: right}
+		left = &calcExpression{Type: nodeType, Left: left, Right: right, Unit: "", Value: 0}
 	}
 
 	return left
@@ -298,7 +298,7 @@ func (parser *calcParser) parseMultiplicative() *calcExpression {
 			return nil
 		}
 
-		left = &calcExpression{Type: nodeType, Left: left, Right: right}
+		left = &calcExpression{Type: nodeType, Left: left, Right: right, Unit: "", Value: 0}
 	}
 
 	return left
@@ -392,13 +392,13 @@ func (parser *calcParser) parseValue() *calcExpression {
 
 	if parser.position < len(parser.input) && parser.input[parser.position] == '%' {
 		parser.position++
-		return &calcExpression{Type: CalcNodePercentage, Value: number}
+		return &calcExpression{Type: CalcNodePercentage, Value: number, Left: nil, Right: nil, Unit: ""}
 	}
 
 	unit := parser.input[unitStart:parser.position]
 	if unit == "" {
-		return &calcExpression{Type: CalcNodeNumber, Value: number}
+		return &calcExpression{Type: CalcNodeNumber, Value: number, Left: nil, Right: nil, Unit: ""}
 	}
 
-	return &calcExpression{Type: CalcNodeLength, Value: number, Unit: unit}
+	return &calcExpression{Type: CalcNodeLength, Value: number, Unit: unit, Left: nil, Right: nil}
 }

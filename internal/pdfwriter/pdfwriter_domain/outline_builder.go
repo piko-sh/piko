@@ -225,7 +225,7 @@ func (ob *OutlineBuilder) buildTree() []*outlineNode {
 	var stack []*outlineNode
 
 	for _, entry := range ob.entries {
-		node := &outlineNode{entry: entry}
+		node := &outlineNode{entry: entry, parent: nil, children: nil}
 
 		for len(stack) > 0 && stack[len(stack)-1].entry.Level >= entry.Level {
 			stack = stack[:len(stack)-1]

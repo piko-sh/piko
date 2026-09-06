@@ -19,7 +19,6 @@
 package driven_code_emitter_go_literal
 
 import (
-	"context"
 	goast "go/ast"
 	"testing"
 
@@ -28,7 +27,7 @@ import (
 
 func requireEmitter(t *testing.T) *emitter {
 	t.Helper()
-	em, ok := NewEmitter(context.Background()).(*emitter)
+	em, ok := NewEmitter().(*emitter)
 	require.True(t, ok, "NewEmitter should return *emitter")
 	em.resetState()
 	return em

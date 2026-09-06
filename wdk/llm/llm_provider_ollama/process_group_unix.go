@@ -17,6 +17,7 @@
 package llm_provider_ollama
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"syscall"
@@ -34,30 +35,44 @@ func configureManagedOllamaCommand(command *exec.Cmd) {
 //
 // Takes command (*exec.Cmd) which is the subprocess to interrupt.
 //
-// Returns error if the signal cannot be delivered.
+// Returns error if the signal cannot be delivered, wrapping os.ErrProcessDone when the
+// process group has already gone.
 func interruptManagedOllamaCommand(command *exec.Cmd) error {
-	if command == nil || command.Process == nil {
-		return nil
-	}
-	pgid, err := syscall.Getpgid(command.Process.Pid)
-	if err != nil {
-		return command.Process.Signal(os.Interrupt)
-	}
-	return syscall.Kill(-pgid, syscall.SIGINT)
+	return signalManagedOllamaGroup(command, syscall.SIGINT, os.Interrupt)
 }
 
 // killManagedOllamaCommand sends SIGKILL to the managed process group.
 //
 // Takes command (*exec.Cmd) which is the subprocess to kill.
 //
-// Returns error if the process cannot be killed.
+// Returns error if the process cannot be killed, wrapping os.ErrProcessDone when the
+// process group has already gone.
 func killManagedOllamaCommand(command *exec.Cmd) error {
+	return signalManagedOllamaGroup(command, syscall.SIGKILL, os.Kill)
+}
+
+// signalManagedOllamaGroup delivers a signal to the managed process group, falling back
+// to the process alone when its group cannot be resolved.
+//
+// Takes command (*exec.Cmd) which is the subprocess to signal.
+// Takes groupSignal (syscall.Signal) which is sent to the process group.
+// Takes processSignal (os.Signal) which is sent to the process when the group is unknown.
+//
+// Returns error if the signal cannot be delivered, wrapping os.ErrProcessDone when the
+// process has already gone.
+func signalManagedOllamaGroup(command *exec.Cmd, groupSignal syscall.Signal, processSignal os.Signal) error {
 	if command == nil || command.Process == nil {
 		return nil
 	}
 	pgid, err := syscall.Getpgid(command.Process.Pid)
 	if err != nil {
-		return command.Process.Kill()
+		return command.Process.Signal(processSignal)
 	}
-	return syscall.Kill(-pgid, syscall.SIGKILL)
+	if err := syscall.Kill(-pgid, groupSignal); err != nil {
+		if errors.Is(err, syscall.ESRCH) {
+			return errors.Join(os.ErrProcessDone, err)
+		}
+		return err
+	}
+	return nil
 }

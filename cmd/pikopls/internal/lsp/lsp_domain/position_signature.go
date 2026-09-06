@@ -183,6 +183,8 @@ func (c *commaCounter) handleNesting(character byte) {
 func findEnclosingCallExpr(tree *ast_domain.TemplateAST, position protocol.Position, sourceContent []byte) (*ast_domain.CallExpression, int) {
 	finder := &callExprFinder{
 		targetPosition: position,
+		bestMatch:      nil,
+		bestMatchRange: protocol.Range{},
 	}
 
 	tree.Walk(func(node *ast_domain.TemplateNode) bool {

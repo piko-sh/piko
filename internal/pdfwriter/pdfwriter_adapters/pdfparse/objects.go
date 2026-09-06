@@ -117,7 +117,7 @@ func (d Dict) Get(key string) Object {
 			return pair.Value
 		}
 	}
-	return Object{Type: ObjectNull}
+	return Object{Type: ObjectNull, Value: nil, StreamData: nil}
 }
 
 // GetName returns the name value for the given key, or empty string if the key is absent
@@ -247,63 +247,63 @@ func (d Dict) Keys() []string {
 // Null returns a null PDF object.
 //
 // Returns Object which represents the PDF null value.
-func Null() Object { return Object{Type: ObjectNull} }
+func Null() Object { return Object{Type: ObjectNull, Value: nil, StreamData: nil} }
 
 // Bool returns a boolean PDF object.
 //
 // Takes v (bool) which specifies the boolean value.
 //
 // Returns Object which represents the PDF boolean.
-func Bool(v bool) Object { return Object{Type: ObjectBoolean, Value: v} }
+func Bool(v bool) Object { return Object{Type: ObjectBoolean, Value: v, StreamData: nil} }
 
 // Int returns an integer PDF object.
 //
 // Takes v (int64) which specifies the integer value.
 //
 // Returns Object which represents the PDF integer.
-func Int(v int64) Object { return Object{Type: ObjectInteger, Value: v} }
+func Int(v int64) Object { return Object{Type: ObjectInteger, Value: v, StreamData: nil} }
 
 // Real returns a real number PDF object.
 //
 // Takes v (float64) which specifies the floating point value.
 //
 // Returns Object which represents the PDF real number.
-func Real(v float64) Object { return Object{Type: ObjectReal, Value: v} }
+func Real(v float64) Object { return Object{Type: ObjectReal, Value: v, StreamData: nil} }
 
 // Str returns a literal string PDF object.
 //
 // Takes v (string) which specifies the string content.
 //
 // Returns Object which represents the PDF literal string.
-func Str(v string) Object { return Object{Type: ObjectString, Value: v} }
+func Str(v string) Object { return Object{Type: ObjectString, Value: v, StreamData: nil} }
 
 // HexStr returns a hex string PDF object.
 //
 // Takes v (string) which specifies the decoded hex string content.
 //
 // Returns Object which represents the PDF hexadecimal string.
-func HexStr(v string) Object { return Object{Type: ObjectHexString, Value: v} }
+func HexStr(v string) Object { return Object{Type: ObjectHexString, Value: v, StreamData: nil} }
 
 // Name returns a name PDF object (without leading /).
 //
 // Takes v (string) which specifies the name value without the leading slash.
 //
 // Returns Object which represents the PDF name.
-func Name(v string) Object { return Object{Type: ObjectName, Value: v} }
+func Name(v string) Object { return Object{Type: ObjectName, Value: v, StreamData: nil} }
 
 // Arr returns an array PDF object.
 //
 // Takes items ([]Object) which specifies the array elements.
 //
 // Returns Object which represents the PDF array.
-func Arr(items ...Object) Object { return Object{Type: ObjectArray, Value: items} }
+func Arr(items ...Object) Object { return Object{Type: ObjectArray, Value: items, StreamData: nil} }
 
 // DictObj returns a dictionary PDF object.
 //
 // Takes d (Dict) which specifies the dictionary content.
 //
 // Returns Object which represents the PDF dictionary.
-func DictObj(d Dict) Object { return Object{Type: ObjectDictionary, Value: d} }
+func DictObj(d Dict) Object { return Object{Type: ObjectDictionary, Value: d, StreamData: nil} }
 
 // RefObj returns an indirect reference PDF object.
 //
@@ -312,7 +312,7 @@ func DictObj(d Dict) Object { return Object{Type: ObjectDictionary, Value: d} }
 //
 // Returns Object which represents the PDF indirect reference.
 func RefObj(number, generation int) Object {
-	return Object{Type: ObjectReference, Value: Ref{Number: number, Generation: generation}}
+	return Object{Type: ObjectReference, Value: Ref{Number: number, Generation: generation}, StreamData: nil}
 }
 
 // StreamObj returns a stream PDF object with the given dictionary and data.

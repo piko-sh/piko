@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"piko.sh/piko/internal/cache/cache_domain"
@@ -38,6 +39,10 @@ const (
 	// maxTransactionTimeout is the maximum duration a RunAtomic transaction may hold before
 	// being cancelled.
 	maxTransactionTimeout = 30 * time.Second
+
+	// getTasksByIDChunkSize bounds the IDs bound into one GetTasksByID statement, keeping
+	// every statement under the smallest engine bind-variable cap.
+	getTasksByIDChunkSize = 500
 )
 
 var (
@@ -91,9 +96,10 @@ type core struct {
 // use.
 func New(sqlDB *sql.DB, driver Driver) orchestrator_dal.OrchestratorDALWithTx {
 	return &core{
-		sqlDB:  sqlDB,
-		driver: driver,
-		clock:  clock.RealClock(),
+		sqlDB:         sqlDB,
+		driver:        driver,
+		clock:         clock.RealClock(),
+		inTransaction: false,
 	}
 }
 
@@ -314,6 +320,38 @@ func (c *core) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_d
 	}
 
 	return domainTasks, nil
+}
+
+// GetTasksByID returns the tasks with the given IDs, skipping IDs that do not exist.
+//
+// The IDs are read in chunks so no statement exceeds the engine's bind-variable cap.
+//
+// Takes ids ([]string) which lists the task IDs to read.
+//
+// Returns []*orchestrator_domain.Task which holds the tasks found.
+// Returns error when a read fails or a row cannot be converted.
+func (c *core) GetTasksByID(ctx context.Context, ids []string) ([]*orchestrator_domain.Task, error) {
+	tasks := make([]*orchestrator_domain.Task, 0, len(ids))
+	for chunk := range slices.Chunk(ids, getTasksByIDChunkSize) {
+		if err := ctx.Err(); err != nil {
+			releaseTasks(tasks)
+			return nil, fmt.Errorf("reading tasks by ID: %w", err)
+		}
+
+		rows, err := c.driver.GetTasksByID(ctx, chunk)
+		if err != nil {
+			releaseTasks(tasks)
+			return nil, fmt.Errorf("reading tasks by ID: %w", err)
+		}
+
+		_, converted, err := convertFetchedRowsToDomain(rows)
+		if err != nil {
+			releaseTasks(tasks)
+			return nil, err
+		}
+		tasks = append(tasks, converted...)
+	}
+	return tasks, nil
 }
 
 // convertFetchedRowsToDomain converts driver rows to domain tasks and collects their IDs
@@ -731,11 +769,22 @@ func (c *core) ListFailedTasks(ctx context.Context) ([]*orchestrator_domain.Task
 	for i := range dbRows {
 		row := &dbRows[i]
 		tasks[i] = &orchestrator_domain.Task{
-			ID:         row.ID,
-			WorkflowID: row.WorkflowID,
-			Executor:   row.Executor,
-			Status:     orchestrator_domain.StatusFailed,
-			Attempt:    int(row.Attempt),
+			ID:                 row.ID,
+			WorkflowID:         row.WorkflowID,
+			Executor:           row.Executor,
+			Status:             orchestrator_domain.StatusFailed,
+			Attempt:            int(row.Attempt),
+			ExecuteAt:          time.Time{},
+			CreatedAt:          time.Time{},
+			UpdatedAt:          time.Time{},
+			ScheduledExecuteAt: time.Time{},
+			Payload:            nil,
+			Result:             nil,
+			LastError:          "",
+			DeduplicationKey:   "",
+			BuildTag:           "",
+			Config:             orchestrator_domain.TaskConfig{},
+			IsFatal:            false,
 		}
 		if row.LastError != nil {
 			tasks[i].LastError = *row.LastError
@@ -1066,4 +1115,14 @@ func convertDBTaskToDomain(dbTask *FetchDueTaskRow) (*orchestrator_domain.Task, 
 	}
 
 	return task, nil
+}
+
+// releaseTasks returns converted tasks to the task pool when a multi-step read is
+// abandoned part way.
+//
+// Takes tasks ([]*orchestrator_domain.Task) which are the tasks to release.
+func releaseTasks(tasks []*orchestrator_domain.Task) {
+	for _, task := range tasks {
+		orchestrator_domain.TaskPool.Put(task)
+	}
 }

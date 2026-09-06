@@ -166,9 +166,9 @@ type Controller struct {
 //
 // Returns *Controller ready for use.
 func NewController() *Controller {
-	return &Controller{
-		snapshotSemaphore: make(chan struct{}, maxConcurrentSnapshots),
-	}
+	controller := Controller{}
+	controller.snapshotSemaphore = make(chan struct{}, maxConcurrentSnapshots)
+	return &controller
 }
 
 // Enable starts the pprof HTTP server and sets Go runtime profiling rates. If already
@@ -386,14 +386,21 @@ func (c *Controller) startProfilingServer(
 	blockRate int,
 	mutexFraction int,
 ) (*monitoring_domain.ProfilingStatus, error) {
-	originalMutexFraction := runtime.SetMutexProfileFraction(0)
-	runtime.SetMutexProfileFraction(originalMutexFraction)
+	originalMutexFraction := runtime.SetMutexProfileFraction(-1)
 
 	config := Config{
 		Port:                 port,
 		BindAddress:          controllerBindAddress,
 		BlockProfileRate:     blockRate,
 		MutexProfileFraction: mutexFraction,
+		Sandbox:              nil,
+		SandboxFactory:       nil,
+		OutputDir:            "",
+		MemProfileRate:       0,
+		AutoNextPort:         false,
+		EnableRollingTrace:   false,
+		RollingTraceMinAge:   0,
+		RollingTraceMaxBytes: 0,
 	}
 	SetRuntimeRates(config)
 
@@ -643,9 +650,15 @@ func (c *Controller) captureSnapshot(ctx context.Context, profileType string, w 
 // Returns *monitoring_domain.ProfilingStatus which contains the current state.
 func (c *Controller) statusLocked() *monitoring_domain.ProfilingStatus {
 	status := &monitoring_domain.ProfilingStatus{
-		Enabled:           c.enabled,
-		AvailableProfiles: availableProfiles,
-		MemProfileRate:    runtime.MemProfileRate,
+		Enabled:              c.enabled,
+		AvailableProfiles:    availableProfiles,
+		MemProfileRate:       runtime.MemProfileRate,
+		ExpiresAt:            time.Time{},
+		PprofBaseURL:         "",
+		Port:                 0,
+		BlockProfileRate:     0,
+		MutexProfileFraction: 0,
+		AlreadyEnabled:       false,
 	}
 
 	if c.enabled {

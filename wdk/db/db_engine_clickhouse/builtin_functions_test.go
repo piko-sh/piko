@@ -348,11 +348,9 @@ func TestBuiltinFunctions_AggregateCombinatorReturnTypes(t *testing.T) {
 	}
 
 	cases := []struct {
-		name string
-
-		args []querier_dto.SQLType
-
 		assertion func(testRunner *testing.T, returnType querier_dto.SQLType)
+		name      string
+		args      []querier_dto.SQLType
 	}{
 		{
 			name: "sumIf",

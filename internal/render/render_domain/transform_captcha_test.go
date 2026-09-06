@@ -263,12 +263,10 @@ func TestRenderPikoCaptcha(t *testing.T) {
 		defer qt.ReleaseWriter(qw)
 
 		provider := &mockServerSideProvider{
-			mockCaptchaProvider: mockCaptchaProvider{
-				RenderRequirementsFunc: func() *captcha_dto.RenderRequirements {
-					return &captcha_dto.RenderRequirements{
-						ServerSideToken: true,
-					}
-				},
+			RenderRequirementsFunc: func() *captcha_dto.RenderRequirements {
+				return &captcha_dto.RenderRequirements{
+					ServerSideToken: true,
+				}
 			},
 			GenerateChallengeFunc: func(_ string) (string, error) {
 				return "hmac-test-token-123", nil

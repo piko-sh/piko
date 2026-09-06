@@ -195,7 +195,7 @@ func processPathCommand(state *pathState, tokens []pathToken, i int, cmd byte) (
 	absCmd := toUpper(cmd)
 
 	if absCmd == 'Z' {
-		state.commands = append(state.commands, PathCommand{Type: 'Z'})
+		state.commands = append(state.commands, PathCommand{Type: 'Z', Args: nil})
 		state.cx, state.cy = state.sx, state.sy
 		state.lastCPX, state.lastCPY = state.cx, state.cy
 		state.lastCmd = 'Z'

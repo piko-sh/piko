@@ -141,6 +141,14 @@ func DefaultStyle() Style {
 		FontStyle:        styleValueNormal,
 		TextAnchor:       "start",
 		DominantBaseline: "auto",
+		Stroke:           nil,
+		TextDecoration:   "",
+		StrokeRef:        "",
+		FillRef:          "",
+		StrokeDashArray:  nil,
+		StrokeDashOffset: 0,
+		LetterSpacing:    0,
+		WordSpacing:      0,
 	}
 }
 
@@ -176,6 +184,10 @@ func ResolveStyle(node *Node, parent *Style) Style {
 		TextDecoration:   parent.TextDecoration,
 		LetterSpacing:    parent.LetterSpacing,
 		WordSpacing:      parent.WordSpacing,
+		Display:          "",
+		StrokeDashArray:  nil,
+		StrokeDashOffset: 0,
+		Opacity:          0,
 	}
 
 	s.Opacity = 1

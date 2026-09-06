@@ -53,20 +53,20 @@ func TestHasDifferentSourcePath(t *testing.T) {
 		},
 		{
 			name:     "pForAnn has nil OriginalSourcePath returns false",
-			pForAnn:  &GoGeneratorAnnotation{OriginalSourcePath: nil},
+			pForAnn:  &GoGeneratorAnnotation{},
 			otherAnn: &GoGeneratorAnnotation{OriginalSourcePath: new("file.pk")},
 			expected: false,
 		},
 		{
 			name:     "otherAnn has nil OriginalSourcePath returns false",
 			pForAnn:  &GoGeneratorAnnotation{OriginalSourcePath: new("file.pk")},
-			otherAnn: &GoGeneratorAnnotation{OriginalSourcePath: nil},
+			otherAnn: &GoGeneratorAnnotation{},
 			expected: false,
 		},
 		{
 			name:     "both have nil OriginalSourcePath returns false",
-			pForAnn:  &GoGeneratorAnnotation{OriginalSourcePath: nil},
-			otherAnn: &GoGeneratorAnnotation{OriginalSourcePath: nil},
+			pForAnn:  &GoGeneratorAnnotation{},
+			otherAnn: &GoGeneratorAnnotation{},
 			expected: false,
 		},
 		{
@@ -248,7 +248,7 @@ func TestGetElseDirective(t *testing.T) {
 		},
 		{
 			name:          "node with only DirIf returns nil and false",
-			node:          &TemplateNode{DirIf: &Directive{Type: DirectiveIf}},
+			node:          &TemplateNode{DirIf: &Directive{}},
 			expectedFound: false,
 		},
 	}
@@ -306,7 +306,7 @@ func TestGetContentDirective(t *testing.T) {
 		},
 		{
 			name:        "node with only DirIf returns nil",
-			node:        &TemplateNode{DirIf: &Directive{Type: DirectiveIf}},
+			node:        &TemplateNode{DirIf: &Directive{}},
 			expectedNil: true,
 		},
 	}

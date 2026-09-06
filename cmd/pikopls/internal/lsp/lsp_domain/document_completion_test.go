@@ -1525,7 +1525,7 @@ func TestGetMemberCompletions_ZeroCharacter(t *testing.T) {
 		TypeInspector: &mockTypeInspector{},
 	}
 
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 	result, err := document.getMemberCompletions(context.Background(), position, "state", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1537,7 +1537,7 @@ func TestGetMemberCompletions_ZeroCharacter(t *testing.T) {
 
 func TestGetCompletions_NilAnnotationResult(t *testing.T) {
 	document := &document{}
-	result, err := document.GetCompletions(context.Background(), protocol.Position{Line: 0, Character: 0})
+	result, err := document.GetCompletions(context.Background(), protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1555,7 +1555,7 @@ func TestGetCompletions_NilAnalysisMap(t *testing.T) {
 			AnnotatedAST: &ast_domain.TemplateAST{},
 		},
 	}
-	result, err := document.GetCompletions(context.Background(), protocol.Position{Line: 0, Character: 0})
+	result, err := document.GetCompletions(context.Background(), protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

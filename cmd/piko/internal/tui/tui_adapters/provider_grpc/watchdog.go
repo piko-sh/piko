@@ -92,6 +92,11 @@ func NewWatchdogProvider(conn *Connection, interval time.Duration) *WatchdogProv
 	return &WatchdogProvider{
 		conn:     conn,
 		interval: interval,
+		status:   nil,
+		profiles: nil,
+		history:  nil,
+		dropped:  atomic.Uint64{},
+		mu:       sync.RWMutex{},
 	}
 }
 
@@ -246,6 +251,7 @@ func (p *WatchdogProvider) ListEvents(ctx context.Context, query tui_domain.Watc
 	request := &pb.ListEventsRequest{
 		Limit:     safeconv.IntToInt32(query.Limit),
 		EventType: query.EventType,
+		SinceMs:   0,
 	}
 	if !query.Since.IsZero() {
 		request.SinceMs = query.Since.UnixMilli()

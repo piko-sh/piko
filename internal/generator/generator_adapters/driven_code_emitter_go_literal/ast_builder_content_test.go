@@ -43,10 +43,8 @@ func TestExtractPropsTypeFromComponent(t *testing.T) {
 		expectHasRenderFunc bool
 	}{
 		{
-			name: "component with nil script AST",
-			component: &annotator_dto.VirtualComponent{
-				RewrittenScriptAST: nil,
-			},
+			name:              "component with nil script AST",
+			component:         &annotator_dto.VirtualComponent{},
 			expectNoPropsType: true,
 		},
 		{
@@ -123,9 +121,7 @@ func TestExtractPropsTypeFromRenderFunction(t *testing.T) {
 			name: "Render with nil params",
 			renderFunc: &goast.FuncDecl{
 				Name: cachedIdent("Render"),
-				Type: &goast.FuncType{
-					Params: nil,
-				},
+				Type: &goast.FuncType{},
 			},
 			expectNoPropsType: true,
 		},
@@ -271,19 +267,15 @@ func TestBuildLocalStoreStatement(t *testing.T) {
 		expectNil bool
 	}{
 		{
-			name: "nil virtual module",
-			result: &annotator_dto.AnnotationResult{
-				VirtualModule: nil,
-			},
+			name:      "nil virtual module",
+			result:    &annotator_dto.AnnotationResult{},
 			request:   generator_dto.GenerateRequest{SourcePath: "/test/path.pk"},
 			expectNil: true,
 		},
 		{
 			name: "nil graph",
 			result: &annotator_dto.AnnotationResult{
-				VirtualModule: &annotator_dto.VirtualModule{
-					Graph: nil,
-				},
+				VirtualModule: &annotator_dto.VirtualModule{},
 			},
 			request:   generator_dto.GenerateRequest{SourcePath: "/test/path.pk"},
 			expectNil: true,
@@ -309,9 +301,7 @@ func TestBuildLocalStoreStatement(t *testing.T) {
 				VirtualModule: &annotator_dto.VirtualModule{
 					ComponentsByHash: map[string]*annotator_dto.VirtualComponent{
 						"test_hash": {
-							Source: &annotator_dto.ParsedComponent{
-								LocalTranslations: nil,
-							},
+							Source: &annotator_dto.ParsedComponent{},
 						},
 					},
 					Graph: &annotator_dto.ComponentGraph{

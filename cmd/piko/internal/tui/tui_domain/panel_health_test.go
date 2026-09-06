@@ -273,7 +273,7 @@ func TestHealthRenderer_IsExpandable(t *testing.T) {
 		{
 			name: "probe without dependencies not expandable",
 			item: healthDisplayItem{
-				probeStatus: &HealthStatus{Dependencies: nil},
+				probeStatus: &HealthStatus{},
 				isProbeRow:  true,
 			},
 			expected: false,

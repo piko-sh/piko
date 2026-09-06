@@ -200,6 +200,7 @@ func StartServer(ctx context.Context, config Config) (*ServerHandle, error) {
 		server:       server,
 		rollingTrace: rollingTrace,
 		address:      listener.Addr().String(),
+		onError:      nil,
 	}
 
 	serveCtx := context.WithoutCancel(ctx)
@@ -396,9 +397,7 @@ func serverStatus(rollingTrace *rollingTraceRecorder) ServerStatus {
 	status := ServerStatus{
 		PprofBasePath: BasePath + "/debug/pprof",
 		StatusPath:    ProfilerStatusPath,
-		RollingTrace: RollingTraceStatus{
-			Enabled: false,
-		},
+		RollingTrace:  RollingTraceStatus{},
 	}
 
 	if rollingTrace != nil && rollingTrace.Enabled() {

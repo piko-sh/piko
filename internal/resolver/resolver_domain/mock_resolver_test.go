@@ -520,11 +520,9 @@ func TestMockResolver_ConcurrentAccess(t *testing.T) {
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_ = m.DetectLocalModule(ctx)
 			_ = m.GetModuleName()
@@ -535,7 +533,7 @@ func TestMockResolver_ConcurrentAccess(t *testing.T) {
 			_ = m.ConvertEntryPointPathToManifestKey("entry")
 			_, _ = m.GetModuleDir(ctx, "mod")
 			_, _, _ = m.FindModuleBoundary(ctx, "path")
-		}()
+		})
 	}
 
 	wg.Wait()

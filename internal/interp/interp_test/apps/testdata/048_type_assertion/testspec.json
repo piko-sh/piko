@@ -1,4 +1,0 @@
-{
-  "description": "Type switch on interface with cases for concrete types declared in different files",
-  "expected": "circle=area square=area triangle=area unknown=skip"
-}

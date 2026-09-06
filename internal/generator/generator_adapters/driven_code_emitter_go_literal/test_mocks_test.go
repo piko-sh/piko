@@ -108,7 +108,7 @@ func (m *mockAstBuilder) buildASTFunction(
 	return &goast.FuncDecl{Name: cachedIdent("BuildAST")}, nil
 }
 
-func (m *mockAstBuilder) emitNode(emitCtx *nodeEmissionContext) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
+func (m *mockAstBuilder) emitNode(_ context.Context, emitCtx *nodeEmissionContext) ([]goast.Stmt, int, []*ast_domain.Diagnostic) {
 	if m.emitNodeFunc != nil {
 		return m.emitNodeFunc(emitCtx)
 	}

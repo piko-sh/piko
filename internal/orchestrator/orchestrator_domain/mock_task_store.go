@@ -39,6 +39,9 @@ type MockTaskStore struct {
 	// FetchAndMarkDueTasksFunc is the function called by FetchAndMarkDueTasks.
 	FetchAndMarkDueTasksFunc func(ctx context.Context, priority TaskPriority, limit int) ([]*Task, error)
 
+	// GetTasksByIDFunc is the function called by GetTasksByID.
+	GetTasksByIDFunc func(ctx context.Context, ids []string) ([]*Task, error)
+
 	// GetWorkflowStatusFunc is the function called by GetWorkflowStatus.
 	GetWorkflowStatusFunc func(ctx context.Context, workflowID string) (bool, error)
 
@@ -101,6 +104,9 @@ type MockTaskStore struct {
 
 	// FetchAndMarkDueTasksCallCount tracks how many times FetchAndMarkDueTasks was called.
 	FetchAndMarkDueTasksCallCount atomic.Int64
+
+	// GetTasksByIDCallCount tracks how many times GetTasksByID was called.
+	GetTasksByIDCallCount atomic.Int64
 
 	// GetWorkflowStatusCallCount tracks how many times GetWorkflowStatus was called.
 	GetWorkflowStatusCallCount atomic.Int64
@@ -212,6 +218,19 @@ func (m *MockTaskStore) FetchAndMarkDueTasks(ctx context.Context, priority TaskP
 	m.FetchAndMarkDueTasksCallCount.Add(1)
 	if m.FetchAndMarkDueTasksFunc != nil {
 		return m.FetchAndMarkDueTasksFunc(ctx, priority, limit)
+	}
+	return nil, nil
+}
+
+// GetTasksByID reads tasks by ID.
+//
+// Takes ids ([]string) which lists the task IDs to read.
+//
+// Returns ([]*Task, error), or (nil, nil) if GetTasksByIDFunc is nil.
+func (m *MockTaskStore) GetTasksByID(ctx context.Context, ids []string) ([]*Task, error) {
+	m.GetTasksByIDCallCount.Add(1)
+	if m.GetTasksByIDFunc != nil {
+		return m.GetTasksByIDFunc(ctx, ids)
 	}
 	return nil, nil
 }

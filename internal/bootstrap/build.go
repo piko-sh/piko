@@ -154,7 +154,7 @@ func (op *buildOperation) execute(ctx context.Context) error {
 		return err
 	}
 
-	found, err := op.discoverEntryPointsWithFallback(ctx, l)
+	found, err := op.discoverEntryPointsWithFallback(ctx)
 	if err != nil {
 		return err
 	}
@@ -202,12 +202,12 @@ func (op *buildOperation) prepareForDiscovery(ctx context.Context) error {
 // case. It returns found=true when pages were discovered and the caller should continue;
 // found=false means the build is complete.
 //
-// Takes l (logger_domain.Logger) which provides structured logging.
-//
 // Returns found (bool) which is true when pages were discovered and the caller should
 // continue.
 // Returns err (error) when discovery fails for a reason other than no pages found.
-func (op *buildOperation) discoverEntryPointsWithFallback(ctx context.Context, l logger_domain.Logger) (found bool, err error) {
+func (op *buildOperation) discoverEntryPointsWithFallback(ctx context.Context) (found bool, err error) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	if err := op.discoverEntryPoints(ctx); err != nil {
 		if !errors.Is(err, errNoPagesFound) {
 			return false, fmt.Errorf("failed during discovery phase: %w", err)
@@ -343,8 +343,6 @@ func (op *buildOperation) processAnnotationForAssets(
 //
 // Returns error when annotation, emission, or asset building fails.
 func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) error {
-	ctx, l := logger_domain.From(ctx, log)
-
 	generatorService, err := op.container.GetGeneratorService()
 	if err != nil {
 		return fmt.Errorf("getting generator service: %w", err)
@@ -365,7 +363,7 @@ func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) e
 
 	g.Go(func() error {
 		var legErr error
-		genDuration, legErr = op.runEmissionLeg(gctx, generatorService, annotationResult, l)
+		genDuration, legErr = op.runEmissionLeg(gctx, generatorService, annotationResult)
 		return legErr
 	})
 
@@ -404,15 +402,15 @@ func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) e
 //
 // Takes generatorService which drives code emission.
 // Takes annotationResult which contains the pre-computed annotation output.
-// Takes l which carries the contextual logger.
 //
 // Returns the time taken for the emission phase and any error.
 func (op *buildOperation) runEmissionLeg(
 	ctx context.Context,
 	generatorService generator_domain.GeneratorService,
 	annotationResult *annotator_dto.ProjectAnnotationResult,
-	l logger_domain.Logger,
 ) (time.Duration, error) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	genStart := time.Now()
 	artefacts, manifest, err := generatorService.EmitProject(ctx, annotationResult)
 	if err != nil {
@@ -656,6 +654,7 @@ func (op *buildOperation) processWalkEntry(
 		ErrorStatusCodeMin: errResult.rangeMin,
 		ErrorStatusCodeMax: errResult.rangeMax,
 		IsCatchAllError:    errResult.isCatchAll,
+		VirtualPageSource:  nil,
 	})
 	return nil
 }
@@ -885,8 +884,12 @@ func BuildProject(
 	}()
 
 	operation := &buildOperation{
-		runMode:   runMode,
-		container: c,
+		runMode:       runMode,
+		container:     c,
+		manifest:      nil,
+		entryPoints:   nil,
+		artefacts:     nil,
+		sqlQueryCount: 0,
 	}
 	return operation.execute(ctx)
 }
@@ -916,7 +919,7 @@ func isErrorPage(filename string) errorPageResult {
 	codeString := name[1:]
 
 	if codeString == "error" {
-		return errorPageResult{isErrorPage: true, isCatchAll: true}
+		return errorPageResult{isErrorPage: true, isCatchAll: true, statusCode: 0, rangeMin: 0, rangeMax: 0}
 	}
 
 	if parts := strings.SplitN(codeString, "-", 2); len(parts) == 2 {
@@ -926,7 +929,13 @@ func isErrorPage(filename string) errorPageResult {
 			minCode >= minHTTPStatusCode && minCode <= maxHTTPStatusCode &&
 			maxCode >= minHTTPStatusCode && maxCode <= maxHTTPStatusCode &&
 			minCode <= maxCode {
-			return errorPageResult{isErrorPage: true, rangeMin: minCode, rangeMax: maxCode}
+			return errorPageResult{
+				isErrorPage: true,
+				rangeMin:    minCode,
+				rangeMax:    maxCode,
+				statusCode:  0,
+				isCatchAll:  false,
+			}
 		}
 		return errorPageResult{}
 	}
@@ -938,7 +947,7 @@ func isErrorPage(filename string) errorPageResult {
 	if code < minHTTPStatusCode || code > maxHTTPStatusCode {
 		return errorPageResult{}
 	}
-	return errorPageResult{isErrorPage: true, statusCode: code}
+	return errorPageResult{isErrorPage: true, statusCode: code, rangeMin: 0, rangeMax: 0, isCatchAll: false}
 }
 
 // generateSQL runs the querier code generator against all registered databases that have
@@ -990,9 +999,11 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 	l.Internal("Generating SQL code", logger_domain.String("database", name))
 
 	service, serviceErr := querier_domain.NewQuerierService(querier_domain.QuerierPorts{
-		Engine:     reg.EngineConfig.Engine,
-		Emitter:    emitter_go_sql.NewSQLEmitterForDialect(reg.EngineConfig.Engine.Dialect()),
-		FileReader: migration_sql.NewFSFileReader(reg.QueryFS),
+		Engine:            reg.EngineConfig.Engine,
+		Emitter:           emitter_go_sql.NewSQLEmitterForDialect(reg.EngineConfig.Engine.Dialect()),
+		FileReader:        migration_sql.NewFSFileReader(reg.QueryFS),
+		CatalogueProvider: nil,
+		Clock:             nil,
 	})
 	if serviceErr != nil {
 		return 0, fmt.Errorf("creating querier service for %q: %w", name, serviceErr)
@@ -1001,6 +1012,8 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 	config := &querier_dto.DatabaseConfig{
 		MigrationDirectory: stringOrDefault(reg.MigrationDirectory, "migrations"),
 		QueryDirectory:     stringOrDefault(reg.QueryDirectory, "queries"),
+		TypeOverrides:      nil,
+		CustomFunctions:    nil,
 	}
 
 	result, genErr := service.GenerateDatabase(ctx, stringOrDefault(reg.GeneratedPackageName, "generated"), config)
@@ -1008,7 +1021,7 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 		return 0, fmt.Errorf("generating code for database %q: %w", name, genErr)
 	}
 
-	if err := checkSQLDiagnostics(l, name, result.Diagnostics); err != nil {
+	if err := checkSQLDiagnostics(ctx, name, result.Diagnostics); err != nil {
 		return 0, err
 	}
 
@@ -1040,12 +1053,13 @@ func (op *buildOperation) generateSQLForDatabase(ctx context.Context, name strin
 
 // checkSQLDiagnostics scans diagnostics for errors and logs warnings.
 //
-// Takes l (logger_domain.Logger) which is the logger for warning output.
 // Takes name (string) which identifies the database for error messages.
 // Takes diagnostics ([]querier_dto.SourceError) which holds the diagnostics to check.
 //
 // Returns error when a diagnostic with error severity is found.
-func checkSQLDiagnostics(l logger_domain.Logger, name string, diagnostics []querier_dto.SourceError) error {
+func checkSQLDiagnostics(ctx context.Context, name string, diagnostics []querier_dto.SourceError) error {
+	_, l := logger_domain.From(ctx, log)
+
 	for _, diagnostic := range diagnostics {
 		if diagnostic.Severity == querier_dto.SeverityError {
 			return fmt.Errorf("SQL generation error in %q: %s:%d: %s", name, diagnostic.Filename, diagnostic.Line, diagnostic.Message)
@@ -1061,6 +1075,8 @@ func checkSQLDiagnostics(l logger_domain.Logger, name string, diagnostics []quer
 // writeSQLGeneratedFiles writes the generated Go files to the output directory using
 // safedisk for safe file operations.
 //
+// Takes factory (safedisk.Factory) which creates the sandbox the files are written
+// through.
 // Takes outputDir (string) which is the directory to write files into.
 // Takes name (string) which identifies the database for error messages.
 // Takes files ([]querier_dto.GeneratedFile) which holds the files to write.

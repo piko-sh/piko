@@ -612,6 +612,8 @@ func applyRequestTimeout(handler http.Handler, timeout time.Duration) http.Handl
 // Takes entry (templater_domain.PageEntryView) which holds the page middleware settings.
 // Takes cacheMiddleware (func(...)) which adds caching to the handler. Pass nil to skip
 // caching.
+// Takes authGuardConfig (*daemon_dto.AuthGuardConfig) which configures authentication
+// checks for protected routes.
 //
 // Returns http.Handler which is the handler with all middlewares applied.
 func applyMiddlewares(
@@ -867,6 +869,8 @@ func getMatchedPattern(request *http.Request) string {
 // Takes err (error) which is the rendering error to handle.
 // Takes pageCtx (pageErrorContext) which provides the page entry, span, and error page
 // dependencies.
+// Takes responseStarted (bool) which reports whether response headers or body data have
+// already been sent.
 func handlePageRenderError(
 	ctx context.Context, w http.ResponseWriter, request *http.Request,
 	err error, pageCtx pageErrorContext, responseStarted bool,
@@ -1036,7 +1040,7 @@ func renderAndRespond(
 	h[headerContentType] = headerValContentTypeHTML
 	h[headerXPPResponseSupport] = headerValFragmentPatch
 
-	tracker := &responseTracker{ResponseWriter: w}
+	tracker := &responseTracker{ResponseWriter: w, started: false}
 	renderStartTime := time.Now()
 	err := p.Deps.Templater.RenderPage(ctx, templater_domain.RenderRequest{
 		Page:           *p.PageDef,
@@ -1075,6 +1079,8 @@ func renderAndRespond(
 // Takes w (http.ResponseWriter) which receives the error response.
 // Takes request (*http.Request) which holds the original client request.
 // Takes err (error) which is the probe error to handle.
+// Takes pageCtx (pageErrorContext) which provides the page entry, rendering dependencies,
+// configuration, and trace span.
 func handlePageProbeError(
 	ctx context.Context, w http.ResponseWriter, request *http.Request,
 	err error, pageCtx pageErrorContext,
@@ -1231,13 +1237,14 @@ func handlePartialRequest(
 
 	renderStartTime := time.Now()
 	err = deps.Templater.RenderPartial(ctx, templater_domain.RenderRequest{
-		Page:          *partialDef,
-		Writer:        w,
-		Response:      w,
-		Request:       request,
-		IsFragment:    parseFragmentParam(request),
-		WebsiteConfig: websiteConfig,
-		ProbeData:     partialProbe.ProbeData,
+		Page:           *partialDef,
+		Writer:         w,
+		Response:       w,
+		Request:        request,
+		IsFragment:     parseFragmentParam(request),
+		WebsiteConfig:  websiteConfig,
+		ProbeData:      partialProbe.ProbeData,
+		AutoLocaleHead: nil,
 	})
 	renderDurMs = time.Since(renderStartTime).Milliseconds()
 	if err != nil {
@@ -1439,6 +1446,8 @@ func buildHeaders(lh render_dto.LinkHeader) string {
 // enable browser preloading.
 //
 // Takes w (http.ResponseWriter) which receives the early hints response.
+// Takes r (*http.Request) which provides the incoming request used to prepare early
+// hints.
 // Takes headersToSend ([]render_dto.LinkHeader) which specifies the link headers to send
 // as early hints.
 //
@@ -1550,6 +1559,8 @@ func writeDevErrorFallback(ctx context.Context, w http.ResponseWriter, statusCod
 // Takes request (*http.Request) which holds the original client request.
 // Takes pageCtx (pageErrorContext) which provides the manifest store, templater, and
 // trace span.
+// Takes errPageReq (errorPageRequest) which provides the status code, request path, and
+// error messages to render.
 //
 // Returns true if an error page was rendered, false if no error page exists or rendering
 // failed.
@@ -1564,9 +1575,10 @@ func renderErrorPage(
 	}
 
 	epc := daemon_dto.ErrorPageContext{
-		StatusCode:   errPageReq.StatusCode,
-		Message:      errPageReq.Message,
-		OriginalPath: errPageReq.OriginalPath,
+		StatusCode:      errPageReq.StatusCode,
+		Message:         errPageReq.Message,
+		OriginalPath:    errPageReq.OriginalPath,
+		InternalMessage: "",
 	}
 	if isDevelopmentModeFromContext(ctx) {
 		epc.InternalMessage = errPageReq.InternalMessage
@@ -1577,6 +1589,7 @@ func renderErrorPage(
 	errPageDef := templater_dto.PageDefinition{
 		OriginalPath:   errEntry.GetOriginalPath(),
 		NormalisedPath: errEntry.GetOriginalPath(),
+		TemplateHTML:   "",
 	}
 
 	probe, err := pageCtx.Deps.Templater.ProbePage(errCtx, errPageDef, errReq, pageCtx.WebsiteConfig)
@@ -1591,13 +1604,14 @@ func renderErrorPage(
 	w.WriteHeader(errPageReq.StatusCode)
 
 	err = pageCtx.Deps.Templater.RenderPage(errCtx, templater_domain.RenderRequest{
-		Page:          errPageDef,
-		Writer:        w,
-		Response:      w,
-		Request:       errReq,
-		IsFragment:    false,
-		WebsiteConfig: pageCtx.WebsiteConfig,
-		ProbeData:     probe.ProbeData,
+		Page:           errPageDef,
+		Writer:         w,
+		Response:       w,
+		Request:        errReq,
+		IsFragment:     false,
+		WebsiteConfig:  pageCtx.WebsiteConfig,
+		ProbeData:      probe.ProbeData,
+		AutoLocaleHead: nil,
 	})
 	if err != nil {
 		l.Warn("Failed to render error page",

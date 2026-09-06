@@ -206,31 +206,30 @@ func (*Server) handleDirectiveValueFastPath(
 //
 // Returns completionContext which describes the detected completion type.
 func analyseCompletionContextFromContent(content []byte, position protocol.Position) completionContext {
-	ctx := completionContext{
-		TriggerKind: triggerScope,
-	}
+	completion := completionContext{}
+	completion.TriggerKind = triggerScope
 
 	line, found := getLineAtPosition(content, position.Line)
 	if !found {
-		return ctx
+		return completion
 	}
 	if int(position.Character) > len(line) {
-		return ctx
+		return completion
 	}
 
 	textBeforeCursor := line[:position.Character]
 
-	if tryMemberAccessContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryMemberAccessContext(&completion, textBeforeCursor) {
+		return completion
 	}
 
-	if tryDirectiveContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryDirectiveContext(&completion, textBeforeCursor) {
+		return completion
 	}
 
-	if tryDirectiveValueContext(&ctx, textBeforeCursor) {
-		return ctx
+	if tryDirectiveValueContext(&completion, textBeforeCursor) {
+		return completion
 	}
 
-	return ctx
+	return completion
 }

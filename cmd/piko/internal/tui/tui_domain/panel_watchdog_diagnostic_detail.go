@@ -27,7 +27,8 @@ import (
 // DetailView renders the detail-pane body showing the diagnostic runner's current state:
 // phase, recent run start/end, error, and cooldown information.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *WatchdogDiagnosticPanel) DetailView(width, height int) string {
@@ -52,37 +53,37 @@ func (p *WatchdogDiagnosticPanel) buildDetailBody() inspector.DetailBody {
 	p.mu.RUnlock()
 
 	rows := []inspector.DetailRow{
-		{Label: "Phase", Value: diagnosticPhaseLabel(phase)},
-		{Label: "Session runs", Value: fmt.Sprintf(FormatPercentInt, runCount)},
+		inspector.NewDetailRow("Phase", diagnosticPhaseLabel(phase)),
+		inspector.NewDetailRow("Session runs", fmt.Sprintf(FormatPercentInt, runCount)),
 	}
 	if !startAt.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Started", Value: inspector.FormatDetailTime(startAt)})
+		rows = append(rows, inspector.NewDetailRow("Started", inspector.FormatDetailTime(startAt)))
 	}
 	if !endAt.IsZero() {
 		rows = append(rows,
-			inspector.DetailRow{Label: "Ended", Value: inspector.FormatDetailTime(endAt)},
-			inspector.DetailRow{Label: "Duration", Value: inspector.FormatDuration(endAt.Sub(startAt))},
+			inspector.NewDetailRow("Ended", inspector.FormatDetailTime(endAt)),
+			inspector.NewDetailRow("Duration", inspector.FormatDuration(endAt.Sub(startAt))),
 		)
 	}
 	if lastErr != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: lastErr.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", lastErr.Error()))
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Diagnostic runner", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Diagnostic runner", rows)}
 
 	if status != nil {
 		statusRows := []inspector.DetailRow{
-			{Label: "Auto-fire", Value: yesNo(status.ContentionDiagnosticAutoFire)},
-			{Label: "Window", Value: status.ContentionDiagnosticWindow.String()},
-			{Label: "Cooldown", Value: status.ContentionDiagnosticCooldown.String()},
+			inspector.NewDetailRow("Auto-fire", yesNo(status.ContentionDiagnosticAutoFire)),
+			inspector.NewDetailRow("Window", status.ContentionDiagnosticWindow.String()),
+			inspector.NewDetailRow("Cooldown", status.ContentionDiagnosticCooldown.String()),
 		}
 		if !status.ContentionDiagnosticLastRun.IsZero() {
-			statusRows = append(statusRows, inspector.DetailRow{
-				Label: "Server last run",
-				Value: inspector.FormatDetailTime(status.ContentionDiagnosticLastRun),
-			})
+			statusRows = append(statusRows, inspector.NewDetailRow(
+				"Server last run",
+				inspector.FormatDetailTime(status.ContentionDiagnosticLastRun),
+			))
 		}
-		sections = append(sections, inspector.DetailSection{Heading: "Server settings", Rows: statusRows})
+		sections = append(sections, inspector.NewDetailSection("Server settings", statusRows))
 	}
 
 	return inspector.DetailBody{

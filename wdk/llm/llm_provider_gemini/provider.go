@@ -104,8 +104,12 @@ var (
 //
 // Returns *llm_dto.CompletionResponse which contains the generated response.
 // Returns error when the Gemini API call fails.
-func (p *geminiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Complete")
+func (p *geminiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (result *llm_dto.CompletionResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.geminiProvider.Complete", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
@@ -217,8 +221,12 @@ func (*geminiProvider) SupportsMessageName() bool { return false }
 //
 // Returns []llm_dto.ModelInfo which contains the available models.
 // Returns error when the model listing fails.
-func (p *geminiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.ListModels")
+func (p *geminiProvider) ListModels(ctx context.Context) (result []llm_dto.ModelInfo, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.geminiProvider.ListModels", recovered)
+		}
+	}()
 
 	var models []llm_dto.ModelInfo
 
@@ -235,6 +243,8 @@ func (p *geminiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, e
 			SupportsStreaming:        true,
 			SupportsTools:            true,
 			SupportsStructuredOutput: true,
+			Created:                  0,
+			SupportsVision:           false,
 		})
 	}
 
@@ -295,8 +305,12 @@ func (p *geminiProvider) DefaultModel() string {
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
-func (p *geminiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Embed")
+func (p *geminiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (result *llm_dto.EmbeddingResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.geminiProvider.Embed", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
@@ -336,16 +350,10 @@ func (p *geminiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 
 	embeddings := make([]llm_dto.Embedding, len(response.Embeddings))
 	for i, ce := range response.Embeddings {
-		embeddings[i] = llm_dto.Embedding{
-			Index:  i,
-			Vector: ce.Values,
-		}
+		embeddings[i] = llm_dto.NewFloat32Embedding(i, ce.Values)
 	}
 
-	return &llm_dto.EmbeddingResponse{
-		Model:      model,
-		Embeddings: embeddings,
-	}, nil
+	return llm_dto.NewEmbeddingResponse(model, embeddings, nil), nil
 }
 
 // ListEmbeddingModels returns available embedding models from Gemini.
@@ -363,10 +371,16 @@ func (p *geminiProvider) ListEmbeddingModels(ctx context.Context) ([]llm_dto.Mod
 			continue
 		}
 		models = append(models, llm_dto.ModelInfo{
-			ID:            m.Name,
-			Name:          m.DisplayName,
-			Provider:      "gemini",
-			ContextWindow: int(m.InputTokenLimit),
+			ID:                       m.Name,
+			Name:                     m.DisplayName,
+			Provider:                 "gemini",
+			ContextWindow:            int(m.InputTokenLimit),
+			Created:                  0,
+			MaxOutputTokens:          0,
+			SupportsStreaming:        false,
+			SupportsTools:            false,
+			SupportsStructuredOutput: false,
+			SupportsVision:           false,
 		})
 	}
 
@@ -655,9 +669,8 @@ func (p *geminiProvider) convertResponse(response *genai.GenerateContentResponse
 	choices := make([]llm_dto.Choice, 0, len(response.Candidates))
 
 	for i, candidate := range response.Candidates {
-		message := llm_dto.Message{
-			Role: llm_dto.RoleAssistant,
-		}
+		message := llm_dto.Message{}
+		message.Role = llm_dto.RoleAssistant
 
 		if candidate.Content != nil {
 			for _, part := range candidate.Content.Parts {
@@ -687,10 +700,13 @@ func (p *geminiProvider) convertResponse(response *genai.GenerateContentResponse
 	}
 
 	result := &llm_dto.CompletionResponse{
-		ID:      fmt.Sprintf("gemini-%d", time.Now().UnixNano()),
-		Model:   model,
-		Created: time.Now().Unix(),
-		Choices: choices,
+		ID:           fmt.Sprintf("gemini-%d", time.Now().UnixNano()),
+		Model:        model,
+		Created:      time.Now().Unix(),
+		Choices:      choices,
+		Usage:        nil,
+		FallbackInfo: nil,
+		Sources:      nil,
 	}
 
 	if response.UsageMetadata != nil {
@@ -698,6 +714,8 @@ func (p *geminiProvider) convertResponse(response *genai.GenerateContentResponse
 			PromptTokens:     int(response.UsageMetadata.PromptTokenCount),
 			CompletionTokens: int(response.UsageMetadata.CandidatesTokenCount),
 			TotalTokens:      int(response.UsageMetadata.TotalTokenCount),
+			EstimatedCost:    nil,
+			CachedTokens:     0,
 		}
 	}
 
@@ -754,6 +772,8 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 		defaultModel:          config.DefaultModel,
 		defaultEmbeddingModel: config.DefaultEmbeddingModel,
 		embeddingDimensions:   config.EmbeddingDimensions,
+		streamWaitGroup:       sync.WaitGroup{},
+		closeOnce:             sync.Once{},
 	}, nil
 }
 

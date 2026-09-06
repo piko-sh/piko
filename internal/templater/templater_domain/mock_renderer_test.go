@@ -96,18 +96,16 @@ func TestMockRendererPort_ConcurrentAccess(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _, _ = m.CollectMetadata(ctx, request, &templater_dto.InternalMetadata{}, &config.WebsiteConfig{})
 			_ = m.RenderPage(ctx, templater_domain.RenderPageParams{})
 			_ = m.RenderPartial(ctx, templater_domain.RenderPageParams{})
 			_ = m.RenderEmail(ctx, templater_domain.RenderEmailParams{})
 			_, _ = m.RenderASTToPlainText(ctx, nil)
 			m.GetLastEmailAssetRequests()
-		}()
+		})
 	}
 
 	wg.Wait()

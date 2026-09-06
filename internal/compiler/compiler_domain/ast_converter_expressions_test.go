@@ -39,7 +39,7 @@ func TestConvertExpression(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		result, err := converter.convertExpression(js_ast.Expr{Data: nil})
+		result, err := converter.convertExpression(js_ast.Expr{})
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
@@ -154,7 +154,7 @@ func TestConvertEIdentifier(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		identifier := &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 0}}
+		identifier := &js_ast.EIdentifier{}
 		result, err := converter.convertEIdentifier(identifier)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -189,7 +189,7 @@ func TestConvertEPrivateIdentifier(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		identifier := &js_ast.EPrivateIdentifier{Ref: ast.Ref{InnerIndex: 0}}
+		identifier := &js_ast.EPrivateIdentifier{}
 		result, err := converter.convertEPrivateIdentifier(identifier)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -207,7 +207,7 @@ func TestConvertEPrivateIdentifier(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		identifier := &js_ast.EPrivateIdentifier{Ref: ast.Ref{InnerIndex: 0}}
+		identifier := &js_ast.EPrivateIdentifier{}
 		result, err := converter.convertEPrivateIdentifier(identifier)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -242,7 +242,7 @@ func TestConvertEImportIdentifier(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		identifier := &js_ast.EImportIdentifier{Ref: ast.Ref{InnerIndex: 0}}
+		identifier := &js_ast.EImportIdentifier{}
 		result, err := converter.convertEImportIdentifier(identifier)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -316,9 +316,9 @@ func TestConvertECall(t *testing.T) {
 		arrowBody := js_ast.FnBody{
 			Block: js_ast.SBlock{
 				Stmts:         []js_ast.Stmt{},
-				CloseBraceLoc: logger.Loc{Start: 0},
+				CloseBraceLoc: logger.Loc{},
 			},
-			Loc: logger.Loc{Start: 0},
+			Loc: logger.Loc{},
 		}
 		call := &js_ast.ECall{
 			Target: js_ast.Expr{Data: &js_ast.EArrow{
@@ -350,9 +350,9 @@ func TestConvertECall(t *testing.T) {
 				Fn: js_ast.Fn{
 					Name:         nil,
 					Args:         []js_ast.Arg{},
-					Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+					Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 					ArgumentsRef: ast.Ref{},
-					OpenParenLoc: logger.Loc{Start: 0},
+					OpenParenLoc: logger.Loc{},
 					IsAsync:      false,
 					IsGenerator:  false,
 				},
@@ -462,7 +462,7 @@ func TestConvertEDot(t *testing.T) {
 			Target: js_ast.Expr{Data: &js_ast.EIf{
 				Test: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}},
 				Yes:  js_ast.Expr{Data: &js_ast.ENumber{Value: 1}},
-				No:   js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+				No:   js_ast.Expr{Data: &js_ast.ENumber{}},
 			}},
 			Name: "toString",
 		}
@@ -491,7 +491,7 @@ func TestConvertEIndex(t *testing.T) {
 
 		index := &js_ast.EIndex{
 			Target:        js_ast.Expr{Data: targetIdent},
-			Index:         js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+			Index:         js_ast.Expr{Data: &js_ast.ENumber{}},
 			OptionalChain: js_ast.OptionalChainStart,
 		}
 
@@ -512,7 +512,7 @@ func TestConvertEIndex(t *testing.T) {
 
 		index := &js_ast.EIndex{
 			Target:        js_ast.Expr{Data: targetIdent},
-			Index:         js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+			Index:         js_ast.Expr{Data: &js_ast.ENumber{}},
 			OptionalChain: js_ast.OptionalChainNone,
 		}
 
@@ -563,7 +563,7 @@ func TestConvertEIndex(t *testing.T) {
 				Yes:  js_ast.Expr{Data: &js_ast.EArray{Items: []js_ast.Expr{}}},
 				No:   js_ast.Expr{Data: &js_ast.EArray{Items: []js_ast.Expr{}}},
 			}},
-			Index: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+			Index: js_ast.Expr{Data: &js_ast.ENumber{}},
 		}
 
 		result, err := converter.convertEIndex(index)
@@ -781,7 +781,7 @@ func TestConvertEIf(t *testing.T) {
 		eif := &js_ast.EIf{
 			Test: js_ast.Expr{Data: &js_ast.EBoolean{Value: true}},
 			Yes:  js_ast.Expr{Data: &js_ast.ENumber{Value: 1}},
-			No:   js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+			No:   js_ast.Expr{Data: &js_ast.ENumber{}},
 		}
 
 		result, err := converter.convertEIf(eif)
@@ -809,16 +809,16 @@ func TestConvertEArrow(t *testing.T) {
 			Args: []js_ast.Arg{
 				{
 					Binding:      binding,
-					DefaultOrNil: js_ast.Expr{Data: nil},
+					DefaultOrNil: js_ast.Expr{},
 					Decorators:   nil,
 				},
 			},
 			Body: js_ast.FnBody{
 				Block: js_ast.SBlock{
 					Stmts:         []js_ast.Stmt{},
-					CloseBraceLoc: logger.Loc{Start: 0},
+					CloseBraceLoc: logger.Loc{},
 				},
-				Loc: logger.Loc{Start: 0},
+				Loc: logger.Loc{},
 			},
 			IsAsync: true,
 		}
@@ -844,14 +844,14 @@ func TestConvertEFunction(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{}
 		jsFunction := &js_ast.EFunction{
 			Fn: js_ast.Fn{
 				Name:         nameRef,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      true,
 				IsGenerator:  true,
 			},
@@ -877,9 +877,9 @@ func TestConvertEFunction(t *testing.T) {
 			Fn: js_ast.Fn{
 				Name:         nil,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      false,
 				IsGenerator:  false,
 			},
@@ -946,10 +946,7 @@ func TestConvertEYield(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		yield := &js_ast.EYield{
-			ValueOrNil: js_ast.Expr{Data: nil},
-			IsStar:     false,
-		}
+		yield := &js_ast.EYield{}
 
 		result, err := converter.convertEYield(yield)
 		require.NoError(t, err)
@@ -1019,11 +1016,11 @@ func TestConvertEClass(t *testing.T) {
 		eclass := &js_ast.EClass{Class: js_ast.Class{
 			Decorators:    nil,
 			Name:          nameRef,
-			ExtendsOrNil:  js_ast.Expr{Data: nil},
+			ExtendsOrNil:  js_ast.Expr{},
 			Properties:    []js_ast.Property{},
-			ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-			BodyLoc:       logger.Loc{Start: 0},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			ClassKeyword:  logger.Range{},
+			BodyLoc:       logger.Loc{},
+			CloseBraceLoc: logger.Loc{},
 		}}
 
 		result, err := converter.convertEClass(eclass)
@@ -1047,9 +1044,9 @@ func TestConvertEClass(t *testing.T) {
 			Name:          nil,
 			ExtendsOrNil:  js_ast.Expr{Data: parentIdent},
 			Properties:    []js_ast.Property{},
-			ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-			BodyLoc:       logger.Loc{Start: 0},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			ClassKeyword:  logger.Range{},
+			BodyLoc:       logger.Loc{},
+			CloseBraceLoc: logger.Loc{},
 		}}
 
 		result, err := converter.convertEClass(eclass)
@@ -1069,15 +1066,15 @@ func TestConvertEClass(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{}
 		eclass := &js_ast.EClass{Class: js_ast.Class{
 			Decorators:    nil,
 			Name:          nameRef,
-			ExtendsOrNil:  js_ast.Expr{Data: nil},
+			ExtendsOrNil:  js_ast.Expr{},
 			Properties:    []js_ast.Property{},
-			ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-			BodyLoc:       logger.Loc{Start: 0},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			ClassKeyword:  logger.Range{},
+			BodyLoc:       logger.Loc{},
+			CloseBraceLoc: logger.Loc{},
 		}}
 
 		result, err := converter.convertEClass(eclass)
@@ -1099,7 +1096,7 @@ func TestConvertEClass(t *testing.T) {
 		eclass := &js_ast.EClass{Class: js_ast.Class{
 			Decorators:   nil,
 			Name:         nil,
-			ExtendsOrNil: js_ast.Expr{Data: nil},
+			ExtendsOrNil: js_ast.Expr{},
 			Properties: []js_ast.Property{
 				{
 					ClassStaticBlock: nil,
@@ -1108,24 +1105,24 @@ func TestConvertEClass(t *testing.T) {
 						Fn: js_ast.Fn{
 							Name:         nil,
 							Args:         []js_ast.Arg{},
-							Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+							Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 							ArgumentsRef: ast.Ref{},
-							OpenParenLoc: logger.Loc{Start: 0},
+							OpenParenLoc: logger.Loc{},
 							IsAsync:      false,
 							IsGenerator:  false,
 						},
 					}},
-					InitializerOrNil: js_ast.Expr{Data: nil},
+					InitializerOrNil: js_ast.Expr{},
 					Decorators:       nil,
-					Loc:              logger.Loc{Start: 0},
-					CloseBracketLoc:  logger.Loc{Start: 0},
+					Loc:              logger.Loc{},
+					CloseBracketLoc:  logger.Loc{},
 					Kind:             js_ast.PropertyMethod,
 					Flags:            0,
 				},
 			},
-			ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-			BodyLoc:       logger.Loc{Start: 0},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			ClassKeyword:  logger.Range{},
+			BodyLoc:       logger.Loc{},
+			CloseBraceLoc: logger.Loc{},
 		}}
 
 		result, err := converter.convertEClass(eclass)
@@ -1141,15 +1138,15 @@ func TestConvertEClass(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{}}
 		eclass := &js_ast.EClass{Class: js_ast.Class{
 			Decorators:    nil,
 			Name:          nameRef,
-			ExtendsOrNil:  js_ast.Expr{Data: nil},
+			ExtendsOrNil:  js_ast.Expr{},
 			Properties:    []js_ast.Property{},
-			ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-			BodyLoc:       logger.Loc{Start: 0},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			ClassKeyword:  logger.Range{},
+			BodyLoc:       logger.Loc{},
+			CloseBraceLoc: logger.Loc{},
 		}}
 
 		result, err := converter.convertEClass(eclass)
@@ -1171,8 +1168,8 @@ func TestConvertEImportCall(t *testing.T) {
 
 		importCall := &js_ast.EImportCall{
 			Expr:          js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'m', 'o', 'd'}}},
-			OptionsOrNil:  js_ast.Expr{Data: nil},
-			CloseParenLoc: logger.Loc{Start: 0},
+			OptionsOrNil:  js_ast.Expr{},
+			CloseParenLoc: logger.Loc{},
 			Phase:         0,
 		}
 
@@ -1196,7 +1193,7 @@ func TestConvertEImportCall(t *testing.T) {
 		importCall := &js_ast.EImportCall{
 			Expr:          js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'m', 'o', 'd'}}},
 			OptionsOrNil:  js_ast.Expr{Data: &js_ast.EObject{Properties: []js_ast.Property{}, IsSingleLine: false}},
-			CloseParenLoc: logger.Loc{Start: 0},
+			CloseParenLoc: logger.Loc{},
 			Phase:         0,
 		}
 
@@ -1220,10 +1217,7 @@ func TestConvertEImportString(t *testing.T) {
 		}
 		converter := NewASTConverter(nil, records, nil)
 
-		importString := &js_ast.EImportString{
-			ImportRecordIndex: 0,
-			CloseParenLoc:     logger.Loc{Start: 0},
-		}
+		importString := &js_ast.EImportString{}
 
 		result, err := converter.convertEImportString(importString)
 		require.NoError(t, err)
@@ -1240,7 +1234,7 @@ func TestConvertEImportString(t *testing.T) {
 
 		importString := &js_ast.EImportString{
 			ImportRecordIndex: 999,
-			CloseParenLoc:     logger.Loc{Start: 0},
+			CloseParenLoc:     logger.Loc{},
 		}
 
 		result, err := converter.convertEImportString(importString)
@@ -1325,12 +1319,12 @@ func TestConvertEObject(t *testing.T) {
 			Properties: []js_ast.Property{
 				{
 					ClassStaticBlock: nil,
-					Key:              js_ast.Expr{Data: nil},
+					Key:              js_ast.Expr{},
 					ValueOrNil:       js_ast.Expr{Data: spreadIdent},
-					InitializerOrNil: js_ast.Expr{Data: nil},
+					InitializerOrNil: js_ast.Expr{},
 					Decorators:       nil,
-					Loc:              logger.Loc{Start: 0},
-					CloseBracketLoc:  logger.Loc{Start: 0},
+					Loc:              logger.Loc{},
+					CloseBracketLoc:  logger.Loc{},
 					Kind:             js_ast.PropertySpread,
 					Flags:            0,
 				},
@@ -1357,7 +1351,7 @@ func TestConvertEBinary_NullishWrapsChild(t *testing.T) {
 			Left:  js_ast.Expr{Data: &js_ast.EIdentifier{}},
 			Right: js_ast.Expr{Data: &js_ast.EIdentifier{}},
 		}}
-		other := js_ast.Expr{Data: &js_ast.ENumber{Value: 0}}
+		other := js_ast.Expr{Data: &js_ast.ENumber{}}
 		bin := &js_ast.EBinary{Op: js_ast.BinOpNullishCoalescing}
 		if onLeft {
 			bin.Left, bin.Right = child, other

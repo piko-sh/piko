@@ -1125,6 +1125,9 @@ func (a *ValkeyAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key K, val
 	if a.expiryCalculator != nil {
 		entry := cache.Entry[K, V]{
 			Key: key, Value: value, SnapshotAtNano: time.Now().UnixNano(),
+			Weight:            0,
+			ExpiresAtNano:     0,
+			RefreshableAtNano: 0,
 		}
 		entryTTL = a.expiryCalculator.ExpireAfterCreate(entry)
 	}

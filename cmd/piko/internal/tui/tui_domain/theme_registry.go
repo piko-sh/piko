@@ -71,6 +71,7 @@ func NewThemeRegistry() *ThemeRegistry {
 	return &ThemeRegistry{
 		themes:      make(map[string]Theme),
 		defaultName: DefaultThemeName,
+		mu:          sync.RWMutex{},
 	}
 }
 

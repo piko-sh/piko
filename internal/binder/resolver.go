@@ -386,8 +386,10 @@ func resolveStructFieldByStringIndex(structVal reflect.Value, node *ast_domain.I
 	strIndex, ok := node.Index.(*ast_domain.StringLiteral)
 	if !ok {
 		return reflect.Value{}, errSetField{
-			err:  fmt.Errorf("struct field access requires a string index, got %T", node.Index),
-			path: fullPath,
+			err:       fmt.Errorf("struct field access requires a string index, got %T", node.Index),
+			path:      fullPath,
+			field:     "",
+			fieldType: "",
 		}
 	}
 	return findFieldByName(structVal, strIndex.Value, fullPath)

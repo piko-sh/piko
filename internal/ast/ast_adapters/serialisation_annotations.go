@@ -23,9 +23,9 @@ import (
 	"go/parser"
 
 	flatbuffers "github.com/google/flatbuffers/go"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/ast/ast_schema/ast_schema_gen"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/mem"
 	"piko.sh/piko/wdk/safeconv"
 )
@@ -483,6 +483,24 @@ func (d *decoder) unpackGoGeneratorAnnotation(fb *ast_schema_gen.GoGeneratorAnno
 		IsHybridCollection:      fb.IsHybridCollection(),
 		IsMapAccess:             fb.IsMapAccess(),
 		IsFullyPrerenderable:    fb.IsFullyPrerenderable(),
+		EffectiveKeyExpression:  nil,
+		DynamicCollectionInfo:   nil,
+		StaticCollectionLiteral: nil,
+		ParentTypeName:          nil,
+		BaseCodeGenVarName:      nil,
+		GeneratedSourcePath:     nil,
+		DynamicAttributeOrigins: nil,
+		ResolvedType:            nil,
+		Symbol:                  nil,
+		PartialInfo:             nil,
+		PropDataSource:          nil,
+		OriginalSourcePath:      nil,
+		OriginalPackageAlias:    nil,
+		FieldTag:                nil,
+		SourceInvocationKey:     nil,
+		StaticCollectionData:    nil,
+		Srcset:                  nil,
+		IsTypeInstantiation:     false,
 	}
 
 	if err := d.unpackGoGeneratorAnnotationFields(fb, ann); err != nil {
@@ -601,6 +619,7 @@ func (*decoder) unpackResolvedTypeInfo(fb *ast_schema_gen.ResolvedTypeInfoFB) (*
 		InitialFilePath:         mem.String(fb.InitialFilePath()),
 		IsSynthetic:             fb.IsSynthetic(),
 		IsExportedPackageSymbol: fb.IsExportedPackageSymbol(),
+		TypeExpression:          nil,
 	}
 	if typeStrBytes := fb.TypeExprString(); typeStrBytes != nil {
 		typeString := string(typeStrBytes)
@@ -688,6 +707,9 @@ func (d *decoder) unpackPartialInvocationInfo(fb *ast_schema_gen.PartialInvocati
 		PartialPackageName:   mem.String(fb.PartialPackageName()),
 		InvokerPackageAlias:  mem.String(fb.InvokerPackageAlias()),
 		InvokerInvocationKey: mem.String(fb.InvokerInvocationKey()),
+		RequestOverrides:     nil,
+		PassedProps:          nil,
+		Location:             ast_domain.Location{},
 	}
 	var err error
 	info.Location, err = d.unpackLocation(fb.Location(&d.locFB))
@@ -717,8 +739,12 @@ func (d *decoder) unpackPropValue(fb *ast_schema_gen.PropValueFB) (ast_domain.Pr
 		return ast_domain.PropValue{}, nil
 	}
 	pv := ast_domain.PropValue{
-		GoFieldName:     mem.String(fb.GoFieldName()),
-		IsLoopDependent: fb.IsLoopDependent(),
+		GoFieldName:       mem.String(fb.GoFieldName()),
+		IsLoopDependent:   fb.IsLoopDependent(),
+		Expression:        nil,
+		InvokerAnnotation: nil,
+		Location:          ast_domain.Location{},
+		NameLocation:      ast_domain.Location{},
 	}
 	var err error
 	pv.Expression, err = d.unpackExpressionNode(fb.Expression(&d.expressionNodeFB))

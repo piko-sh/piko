@@ -51,8 +51,10 @@ func (painter *PdfPainter) paintFormVisual(stream *ContentStream, box *layouter_
 // to indicate it is a dropdown.
 //
 // Takes stream (*ContentStream) which receives the drawing operators.
-// Takes x, y (float64) which define the bottom-left corner in PDF coordinates.
-// Takes w, h (float64) which define the width and height of the select element.
+// Takes x (float64) which is the left edge position in PDF coordinates.
+// Takes y (float64) which is the bottom edge position in PDF coordinates.
+// Takes w (float64) which is the rectangle width in points.
+// Takes h (float64) which is the rectangle height in points.
 func (*PdfPainter) paintSelectArrow(stream *ContentStream, x, y, w, h float64) {
 	stream.SaveState()
 
@@ -106,9 +108,17 @@ func (painter *PdfPainter) buildFormField(box *layouter_domain.LayoutBox) *FormF
 	attrs := collectFormAttributes(node)
 
 	field := &FormField{
-		Name:      attrs["name"],
-		PageIndex: box.PageIndex,
-		FontSize:  defaultFormFontSize,
+		Name:        attrs["name"],
+		PageIndex:   box.PageIndex,
+		FontSize:    defaultFormFontSize,
+		Value:       "",
+		DefaultVal:  "",
+		ExportValue: "",
+		Options:     nil,
+		Rect:        [rectangleCoordinates]float64{},
+		FieldType:   FormFieldText,
+		MaxLen:      0,
+		Flags:       0,
 	}
 
 	if field.Name == "" {
@@ -118,7 +128,7 @@ func (painter *PdfPainter) buildFormField(box *layouter_domain.LayoutBox) *FormF
 	pdfX := box.BorderBoxX()
 	pdfBottom := painter.pageHeight + painter.pageYOffset - box.BorderBoxY() - box.BorderBoxHeight()
 	pdfTop := painter.pageHeight + painter.pageYOffset - box.BorderBoxY()
-	field.Rect = [borderSideCount]float64{pdfX, pdfBottom, pdfX + box.BorderBoxWidth(), pdfTop}
+	field.Rect = [rectangleCoordinates]float64{pdfX, pdfBottom, pdfX + box.BorderBoxWidth(), pdfTop}
 
 	switch tag {
 	case "input":
@@ -135,21 +145,7 @@ func (painter *PdfPainter) buildFormField(box *layouter_domain.LayoutBox) *FormF
 		field.Flags |= FormFlagPushButton
 	}
 
-	if _, ok := attrs["readonly"]; ok {
-		field.Flags |= FormFlagReadOnly
-	}
-	if _, ok := attrs["disabled"]; ok {
-		field.Flags |= FormFlagReadOnly
-	}
-	if _, ok := attrs["required"]; ok {
-		field.Flags |= FormFlagRequired
-	}
-
-	if maxLen, ok := attrs["maxlength"]; ok {
-		if n, err := fmt.Sscanf(maxLen, "%d", &field.MaxLen); n != 1 || err != nil {
-			field.MaxLen = 0
-		}
-	}
+	applyFormFieldConstraints(field, attrs)
 
 	return field
 }
@@ -236,6 +232,29 @@ func (*PdfPainter) populateSelectField(field *FormField, box *layouter_domain.La
 		field.Value = field.Options[0]
 	}
 	field.DefaultVal = field.Value
+}
+
+// applyFormFieldConstraints sets the read-only and required flags and the maximum length
+// on a form field from the element's constraint attributes.
+//
+// Takes field (*FormField) which is the form field to update.
+// Takes attrs (map[string]string) which holds the HTML attributes of the form element.
+func applyFormFieldConstraints(field *FormField, attrs map[string]string) {
+	if _, ok := attrs["readonly"]; ok {
+		field.Flags |= FormFlagReadOnly
+	}
+	if _, ok := attrs["disabled"]; ok {
+		field.Flags |= FormFlagReadOnly
+	}
+	if _, ok := attrs["required"]; ok {
+		field.Flags |= FormFlagRequired
+	}
+
+	if maxLen, ok := attrs["maxlength"]; ok {
+		if n, err := fmt.Sscanf(maxLen, "%d", &field.MaxLen); n != 1 || err != nil {
+			field.MaxLen = 0
+		}
+	}
 }
 
 // collectFormAttributes extracts all HTML attributes from a source node into a map for

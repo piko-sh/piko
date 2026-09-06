@@ -28,9 +28,9 @@ import (
 	goast "go/ast"
 	"strings"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -140,13 +140,7 @@ func (a *typeExpressionAnalyser) resolveCallee(ctx context.Context, n *ast_domai
 	case *ast_domain.IndexExpression:
 		return a.resolveGenericCallee(ctx, n, c, argAnns)
 	}
-	return &calleeResolution{
-		Signature:  nil,
-		BaseAnn:    nil,
-		CalleeAnn:  nil,
-		MethodInfo: nil,
-		Found:      false,
-	}
+	return &calleeResolution{}
 }
 
 // resolveGenericCallee handles a call whose callee carries explicit type arguments, such
@@ -250,9 +244,11 @@ func instantiateSignature(
 	}
 
 	return &inspector_dto.FunctionSignature{
-		Params:     substituteTypeStrings(signature.Params, substitutions),
-		ParamNames: signature.ParamNames,
-		Results:    substituteTypeStrings(signature.Results, substitutions),
+		Params:               substituteTypeStrings(signature.Params, substitutions),
+		ParamNames:           signature.ParamNames,
+		Results:              substituteTypeStrings(signature.Results, substitutions),
+		TypeParamNames:       nil,
+		TypeParamConstraints: nil,
 	}
 }
 
@@ -365,34 +361,9 @@ func (a *typeExpressionAnalyser) tryResolveBuiltInCall(
 	calleeAnnotation := a.createBuiltInCalleeAnnotation(calleeSymbol, n)
 	setAnnotationOnExpression(c, calleeAnnotation)
 
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            returnType,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   isPointer,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := newAnnotationWithTypeAndStringability(returnType, stringability)
+	annotation.IsPointerToStringable = isPointer
+	return annotation
 }
 
 // resolveTypeConversionCall resolves a Go-style type conversion such as `MyType(value)`
@@ -429,40 +400,16 @@ func (a *typeExpressionAnalyser) resolveTypeConversionCall(
 		IsExportedPackageSymbol: true,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, resultType)
 
 	calleeAnnotation := a.createBuiltInCalleeAnnotation(calleeSymbol, n)
 	setAnnotationOnExpression(c, calleeAnnotation)
 
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resultType,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   isPointer,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := newAnnotationWithTypeAndStringability(resultType, stringability)
+	annotation.IsPointerToStringable = isPointer
+	return annotation
 }
 
 // createBuiltInCalleeAnnotation creates an annotation for a built-in function call.
@@ -473,46 +420,25 @@ func (a *typeExpressionAnalyser) resolveTypeConversionCall(
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type and symbol
 // data for code generation.
 func (a *typeExpressionAnalyser) createBuiltInCalleeAnnotation(calleeSymbol *Symbol, n *ast_domain.CallExpression) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      &calleeSymbol.CodeGenVarName,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          calleeSymbol.TypeInfo.TypeExpression,
-			PackageAlias:            calleeSymbol.TypeInfo.PackageAlias,
-			CanonicalPackagePath:    calleeSymbol.TypeInfo.CanonicalPackagePath,
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol: &ast_domain.ResolvedSymbol{
-			Name:                calleeSymbol.Name,
-			ReferenceLocation:   n.Callee.GetRelativeLocation().Add(a.location),
-			DeclarationLocation: ast_domain.Location{},
-		},
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      &a.ctx.SFCSourcePath,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.BaseCodeGenVarName = &calleeSymbol.CodeGenVarName
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          calleeSymbol.TypeInfo.TypeExpression,
+		PackageAlias:            calleeSymbol.TypeInfo.PackageAlias,
+		CanonicalPackagePath:    calleeSymbol.TypeInfo.CanonicalPackagePath,
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
+	annotation.Symbol = &ast_domain.ResolvedSymbol{
+		Name:                calleeSymbol.Name,
+		ReferenceLocation:   n.Callee.GetRelativeLocation().Add(a.location),
+		DeclarationLocation: ast_domain.Location{},
+	}
+	annotation.OriginalSourcePath = &a.ctx.SFCSourcePath
+	return &annotation
 }
 
 // tryResolveSymbolMethod attempts to resolve a call as a method via symbol lookup.
@@ -536,34 +462,9 @@ func (a *typeExpressionAnalyser) tryResolveSymbolMethod(c *ast_domain.Identifier
 		logger_domain.String("baseSymbol", baseSymbolName))
 
 	baseSymbol, _ := a.ctx.Symbols.Find(baseSymbolName)
-	baseAnn := &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      &baseSymbol.CodeGenVarName,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            baseSymbol.TypeInfo,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	baseAnn := &ast_domain.GoGeneratorAnnotation{}
+	baseAnn.BaseCodeGenVarName = &baseSymbol.CodeGenVarName
+	baseAnn.ResolvedType = baseSymbol.TypeInfo
 
 	sig := a.typeResolver.inspector.FindMethodSignature(
 		baseSymbol.TypeInfo.TypeExpression,

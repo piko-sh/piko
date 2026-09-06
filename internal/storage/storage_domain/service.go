@@ -479,9 +479,10 @@ func (s *service) Close(ctx context.Context) error {
 // Takes cacheControl (string) which specifies the Cache-Control header for files.
 func (s *service) RegisterPublicRepository(name string, cacheControl string) {
 	s.repositoryRegistry.Register(&RepositoryConfig{
-		Name:         name,
-		IsPublic:     true,
-		CacheControl: cacheControl,
+		Name:           name,
+		IsPublic:       true,
+		CacheControl:   cacheControl,
+		AllowedOrigins: nil,
 	})
 }
 
@@ -492,9 +493,10 @@ func (s *service) RegisterPublicRepository(name string, cacheControl string) {
 // Takes cacheControl (string) which specifies the Cache-Control header for files.
 func (s *service) RegisterPrivateRepository(name string, cacheControl string) {
 	s.repositoryRegistry.Register(&RepositoryConfig{
-		Name:         name,
-		IsPublic:     false,
-		CacheControl: cacheControl,
+		Name:           name,
+		IsPublic:       false,
+		CacheControl:   cacheControl,
+		AllowedOrigins: nil,
 	})
 }
 
@@ -1005,43 +1007,11 @@ func (*service) aggregateProviderState(
 //
 // Returns Service which is the storage service ready for use.
 func NewService(ctx context.Context, opts ...ServiceOption) Service {
-	config := defaultServiceConfig()
-	for _, opt := range opts {
-		opt(&config)
-	}
-
-	clk := config.Clock
-	if clk == nil {
-		clk = clock.RealClock()
-	}
-
-	ctx, l := logger_domain.From(ctx, log)
+	config := applyServiceOptions(opts)
 
 	serviceCtx, serviceCancel := context.WithCancelCause(ctx)
 
-	if err := config.PresignConfig.EnsureSecret(); err != nil {
-		l.Warn("Failed to initialise presign secret, presigned uploads disabled",
-			logger_domain.Error(err))
-	}
-	config.PresignConfig.EnsureRIDCache(serviceCtx, DefaultRIDCleanupInterval)
-
-	tempSandbox := resolveStorageTempSandbox(&config, l)
-
-	return &service{
-		registry:            provider_domain.NewStandardRegistry[StorageProviderPort]("storage"),
-		transformerRegistry: NewTransformerRegistry(),
-		repositoryRegistry:  NewRepositoryRegistry(),
-		config:              config,
-		tempSandbox:         tempSandbox,
-		clock:               clk,
-		cancelFunc:          serviceCancel,
-		dispatcher:          nil,
-		getGroup:            singleflight.Group{},
-		mu:                  sync.RWMutex{},
-		stats: ServiceStats{
-			StartTime: clk.Now(),
-		},
-	}
+	return newService(serviceCtx, serviceCancel, &config)
 }
 
 // NewServiceWithDefaultProvider creates a new storage service with a specified default
@@ -1051,19 +1021,47 @@ func NewService(ctx context.Context, opts ...ServiceOption) Service {
 //
 // Returns Service which is the configured storage service ready for use.
 func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
+	config := applyServiceOptions(opts)
+
+	serviceCtx, serviceCancel := context.WithCancelCause(context.Background())
+
+	return newService(serviceCtx, serviceCancel, &config)
+}
+
+// applyServiceOptions builds the default service configuration and applies each option to
+// it in order.
+//
+// Takes opts ([]ServiceOption) which are the options to apply.
+//
+// Returns ServiceConfig which is the resulting configuration.
+func applyServiceOptions(opts []ServiceOption) ServiceConfig {
 	config := defaultServiceConfig()
 	for _, opt := range opts {
 		opt(&config)
 	}
+	return config
+}
+
+// newService assembles a storage service from a resolved configuration, initialising the
+// presign secret, the RID cache and the temp sandbox.
+//
+// Takes serviceCtx (context.Context) which bounds the lifetime of background work and
+// carries the logger used for initialisation warnings.
+// Takes serviceCancel (context.CancelCauseFunc) which cancels serviceCtx on shutdown.
+// Takes config (*ServiceConfig) which holds the resolved service settings.
+//
+// Returns Service which is the storage service ready for use.
+func newService(
+	serviceCtx context.Context,
+	serviceCancel context.CancelCauseFunc,
+	config *ServiceConfig,
+) Service {
+	serviceCtx, l := logger_domain.From(serviceCtx, log)
 
 	clk := config.Clock
 	if clk == nil {
 		clk = clock.RealClock()
 	}
-
-	_, l := logger_domain.From(context.Background(), log)
-
-	serviceCtx, serviceCancel := context.WithCancelCause(context.Background())
 
 	if err := config.PresignConfig.EnsureSecret(); err != nil {
 		l.Warn("Failed to initialise presign secret, presigned uploads disabled",
@@ -1071,13 +1069,13 @@ func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
 	}
 	config.PresignConfig.EnsureRIDCache(serviceCtx, DefaultRIDCleanupInterval)
 
-	tempSandbox := resolveStorageTempSandbox(&config, l)
+	tempSandbox := resolveStorageTempSandbox(serviceCtx, config)
 
 	return &service{
 		registry:            provider_domain.NewStandardRegistry[StorageProviderPort]("storage"),
 		transformerRegistry: NewTransformerRegistry(),
 		repositoryRegistry:  NewRepositoryRegistry(),
-		config:              config,
+		config:              *config,
 		tempSandbox:         tempSandbox,
 		clock:               clk,
 		cancelFunc:          serviceCancel,
@@ -1085,8 +1083,16 @@ func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
 		getGroup:            singleflight.Group{},
 		mu:                  sync.RWMutex{},
 		stats: ServiceStats{
-			StartTime: clk.Now(),
+			StartTime:            clk.Now(),
+			TotalOperations:      atomic.Int64{},
+			SuccessfulOperations: atomic.Int64{},
+			FailedOperations:     atomic.Int64{},
+			RetryAttempts:        atomic.Int64{},
+			CacheHits:            atomic.Int64{},
+			CacheMisses:          atomic.Int64{},
+			DLQEntries:           atomic.Int64{},
 		},
+		totalBytesStored: atomic.Int64{},
 	}
 }
 
@@ -1097,11 +1103,10 @@ func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
 //
 // Takes config (*ServiceConfig) which provides the sandbox, factory, and related
 // settings.
-// Takes l (logger_domain.Logger) which logs warnings on failure.
 //
 // Returns safedisk.Sandbox which provides write access to the temp directory, or nil when
 // creation fails.
-func resolveStorageTempSandbox(config *ServiceConfig, l logger_domain.Logger) safedisk.Sandbox {
+func resolveStorageTempSandbox(ctx context.Context, config *ServiceConfig) safedisk.Sandbox {
 	if config.TempSandbox != nil {
 		return config.TempSandbox
 	}
@@ -1110,11 +1115,13 @@ func resolveStorageTempSandbox(config *ServiceConfig, l logger_domain.Logger) sa
 		if err == nil {
 			return sandbox
 		}
+		_, l := logger_domain.From(ctx, log)
 		l.Warn("Failed to create temp sandbox via factory, CAS operations may fail",
 			logger_domain.Error(err))
 	}
 	sandbox, err := safedisk.NewNoOpSandbox(os.TempDir(), safedisk.ModeReadWrite)
 	if err != nil {
+		_, l := logger_domain.From(ctx, log)
 		l.Warn("Failed to create temp sandbox, CAS operations may fail",
 			logger_domain.Error(err))
 		return nil

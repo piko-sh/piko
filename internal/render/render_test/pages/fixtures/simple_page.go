@@ -27,42 +27,77 @@ import (
 // Returns *ast_domain.TemplateAST which contains a basic page structure with a container
 // div, heading, paragraph, and comment node.
 func SimplePageAST() *ast_domain.TemplateAST {
-	return &ast_domain.TemplateAST{
-		RootNodes: []*ast_domain.TemplateNode{
+	t := ast_domain.TemplateAST{}
+	t.RootNodes = []*ast_domain.TemplateNode{
+		ast_domain.NewElementNode("div", []ast_domain.HTMLAttribute{
 			{
-				NodeType: ast_domain.NodeElement,
-				TagName:  "div",
-				Attributes: []ast_domain.HTMLAttribute{
-					{Name: "id", Value: "main-container"},
-					{Name: "class", Value: "container"},
-				},
-				Children: []*ast_domain.TemplateNode{
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "h1",
-						Children: []*ast_domain.TemplateNode{
-							{
-								NodeType:    ast_domain.NodeText,
-								TextContent: "Welcome",
-							},
-						},
-					},
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "p",
-						Children: []*ast_domain.TemplateNode{
-							{
-								NodeType:    ast_domain.NodeText,
-								TextContent: "This is a simple page.",
-							},
-						},
-					},
-					{
-						NodeType:    ast_domain.NodeComment,
-						TextContent: " This is a comment ",
-					},
-				},
+				Name:           "id",
+				Value:          "main-container",
+				Location:       ast_domain.Location{},
+				NameLocation:   ast_domain.Location{},
+				AttributeRange: ast_domain.Range{},
 			},
-		},
+			{
+				Name:           "class",
+				Value:          "container",
+				Location:       ast_domain.Location{},
+				NameLocation:   ast_domain.Location{},
+				AttributeRange: ast_domain.Range{},
+			},
+		}, []*ast_domain.TemplateNode{
+			ast_domain.NewElementNode("h1", nil, []*ast_domain.TemplateNode{
+				ast_domain.NewTextNode("Welcome"),
+			}),
+			ast_domain.NewElementNode("p", nil, []*ast_domain.TemplateNode{
+				ast_domain.NewTextNode("This is a simple page."),
+			}),
+			{
+				NodeType:           ast_domain.NodeComment,
+				TextContent:        " This is a comment ",
+				Key:                nil,
+				DirScaffold:        nil,
+				DirHTML:            nil,
+				GoAnnotations:      nil,
+				RuntimeAnnotations: nil,
+				TextContentWriter:  nil,
+				CustomEvents:       nil,
+				OnEvents:           nil,
+				Binds:              nil,
+				TimelineDirectives: nil,
+				DirContext:         nil,
+				DirElse:            nil,
+				DirText:            nil,
+				DirStyle:           nil,
+				DirClass:           nil,
+				DirIf:              nil,
+				DirElseIf:          nil,
+				DirFor:             nil,
+				DirShow:            nil,
+				DirRef:             nil,
+				DirMemo:            nil,
+				DirSlot:            nil,
+				DirModel:           nil,
+				DirKey:             nil,
+				TagName:            "",
+				InnerHTML:          "",
+				PrerenderedHTML:    nil,
+				Children:           nil,
+				RichText:           nil,
+				Attributes:         nil,
+				Diagnostics:        nil,
+				DynamicAttributes:  nil,
+				Directives:         nil,
+				AttributeWriters:   nil,
+				ClosingTagRange:    ast_domain.Range{},
+				OpeningTagRange:    ast_domain.Range{},
+				NodeRange:          ast_domain.Range{},
+				Location:           ast_domain.Location{},
+				PreferredFormat:    0,
+				IsPooled:           false,
+				IsContentEditable:  false,
+				PreserveWhitespace: false,
+			},
+		}),
 	}
+	return &t
 }

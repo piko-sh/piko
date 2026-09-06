@@ -45,6 +45,7 @@ func wrapError(err error) error {
 			StatusCode: statusErr.StatusCode,
 			Message:    statusErr.ErrorMessage,
 			Err:        err,
+			RetryAfter: 0,
 		}
 	}
 
@@ -54,6 +55,7 @@ func wrapError(err error) error {
 			StatusCode: authErr.StatusCode,
 			Message:    err.Error(),
 			Err:        err,
+			RetryAfter: 0,
 		}
 	}
 

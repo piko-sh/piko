@@ -102,6 +102,7 @@ func (p *Premailer) ResolveProperties() (*ResolvedProperties, error) {
 	result := &ResolvedProperties{
 		Elements:       make(map[*ast_domain.TemplateNode]map[string]string),
 		PseudoElements: make(map[*ast_domain.TemplateNode]map[string]map[string]string),
+		Diagnostics:    nil,
 	}
 
 	cssString := p.options.ExternalCSS
@@ -682,9 +683,10 @@ func (p *Premailer) appendLinkParamsIfConfigured(node *ast_domain.TemplateNode) 
 // Returns *Premailer which is ready to inline CSS styles.
 func New(tree *ast_domain.TemplateAST, opts ...Option) *Premailer {
 	return &Premailer{
-		tree:    tree,
-		log:     logger.NewDeferLog(logger.DeferLogAll, nil),
-		options: applyOptions(opts...),
+		tree:                 tree,
+		log:                  logger.NewDeferLog(logger.DeferLogAll, nil),
+		options:              applyOptions(opts...),
+		originalInlineStyles: nil,
 	}
 }
 

@@ -74,10 +74,8 @@ func TestScript_Type(t *testing.T) {
 			wantType: sfcparser.MimeJavaScript,
 		},
 		{
-			name: "Script with nil attributes defaults to JavaScript",
-			script: sfcparser.Script{
-				Attributes: nil,
-			},
+			name:     "Script with nil attributes defaults to JavaScript",
+			script:   sfcparser.Script{},
 			wantType: sfcparser.MimeJavaScript,
 		},
 	}
@@ -787,11 +785,9 @@ func TestParseResult_HasCollectionDirective(t *testing.T) {
 			wantResult: false,
 		},
 		{
-			name: "Returns false when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantResult: false,
+			name:        "Returns false when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantResult:  false,
 		},
 		{
 			name: "Returns false when TemplateAttributes is empty",
@@ -842,11 +838,9 @@ func TestParseResult_GetCollectionName(t *testing.T) {
 			wantName: "",
 		},
 		{
-			name: "Returns empty string when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantName: "",
+			name:        "Returns empty string when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantName:    "",
 		},
 	}
 
@@ -908,11 +902,9 @@ func TestParseResult_GetCollectionProvider(t *testing.T) {
 			wantName: "yaml",
 		},
 		{
-			name: "Returns default markdown when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantName: "markdown",
+			name:        "Returns default markdown when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantName:    "markdown",
 		},
 		{
 			name: "Returns custom provider yaml",
@@ -984,11 +976,9 @@ func TestParseResult_GetCollectionParamName(t *testing.T) {
 			wantName: "slug",
 		},
 		{
-			name: "Defaults to slug when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantName: "slug",
+			name:        "Defaults to slug when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantName:    "slug",
 		},
 	}
 
@@ -1034,11 +1024,9 @@ func TestParseResult_HasRouteSourceDirective(t *testing.T) {
 			wantResult: false,
 		},
 		{
-			name: "Returns false when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantResult: false,
+			name:        "Returns false when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantResult:  false,
 		},
 	}
 
@@ -1082,11 +1070,9 @@ func TestParseResult_GetRouteSource(t *testing.T) {
 			wantSource: "",
 		},
 		{
-			name: "Returns empty string when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantSource: "",
+			name:        "Returns empty string when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantSource:  "",
 		},
 	}
 
@@ -1139,11 +1125,9 @@ func TestParseResult_GetRouteSourceParamName(t *testing.T) {
 			wantName: "",
 		},
 		{
-			name: "Returns empty when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantName: "",
+			name:        "Returns empty when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantName:    "",
 		},
 	}
 
@@ -1187,10 +1171,8 @@ func TestParseResult_GetSitemapPriority(t *testing.T) {
 			wantPriority: "",
 		},
 		{
-			name: "Returns empty string when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
+			name:         "Returns empty string when TemplateAttributes is nil",
+			parseResult:  sfcparser.ParseResult{},
 			wantPriority: "",
 		},
 	}
@@ -1235,10 +1217,8 @@ func TestParseResult_GetSitemapChangeFreq(t *testing.T) {
 			wantChangeFreq: "",
 		},
 		{
-			name: "Returns empty string when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
+			name:           "Returns empty string when TemplateAttributes is nil",
+			parseResult:    sfcparser.ParseResult{},
 			wantChangeFreq: "",
 		},
 	}
@@ -1283,10 +1263,8 @@ func TestParseResult_GetSitemapCanonical(t *testing.T) {
 			wantCanonical: "",
 		},
 		{
-			name: "Returns empty string when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
+			name:          "Returns empty string when TemplateAttributes is nil",
+			parseResult:   sfcparser.ParseResult{},
 			wantCanonical: "",
 		},
 	}
@@ -1333,11 +1311,9 @@ func TestParseResult_HasNoindexDirective(t *testing.T) {
 			wantResult: false,
 		},
 		{
-			name: "Returns false when TemplateAttributes is nil",
-			parseResult: sfcparser.ParseResult{
-				TemplateAttributes: nil,
-			},
-			wantResult: false,
+			name:        "Returns false when TemplateAttributes is nil",
+			parseResult: sfcparser.ParseResult{},
+			wantResult:  false,
 		},
 	}
 

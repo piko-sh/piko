@@ -70,6 +70,7 @@ func NewExtGStateManager() *ExtGStateManager {
 		states:          make(map[string]extGStateEntry),
 		opacityToName:   make(map[float64]string),
 		blendModeToName: make(map[string]string),
+		nextIndex:       0,
 	}
 }
 
@@ -87,7 +88,13 @@ func (m *ExtGStateManager) RegisterOpacity(opacity float64) string {
 
 	m.nextIndex++
 	name := fmt.Sprintf("GS%d", m.nextIndex)
-	m.states[name] = extGStateEntry{opacity: opacity, hasOpacity: true}
+	m.states[name] = extGStateEntry{
+		opacity:         opacity,
+		hasOpacity:      true,
+		blendMode:       "",
+		softMaskSubtype: "",
+		softMaskRef:     0,
+	}
 	m.opacityToName[opacity] = name
 	return name
 }
@@ -105,7 +112,13 @@ func (m *ExtGStateManager) RegisterBlendMode(blendMode string) string {
 
 	m.nextIndex++
 	name := fmt.Sprintf("GS%d", m.nextIndex)
-	m.states[name] = extGStateEntry{opacity: 1.0, blendMode: blendMode}
+	m.states[name] = extGStateEntry{
+		opacity:         1.0,
+		blendMode:       blendMode,
+		softMaskSubtype: "",
+		softMaskRef:     0,
+		hasOpacity:      false,
+	}
 	m.blendModeToName[blendMode] = name
 	return name
 }
@@ -123,6 +136,9 @@ func (m *ExtGStateManager) RegisterSoftMask(groupObjectNumber int) string {
 	m.states[name] = extGStateEntry{
 		softMaskRef:     groupObjectNumber,
 		softMaskSubtype: "Luminosity",
+		blendMode:       "",
+		opacity:         0,
+		hasOpacity:      false,
 	}
 	return name
 }

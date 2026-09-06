@@ -60,9 +60,9 @@ func (b *rateMatrixBuilder) ensureMap(key string) {
 // Takes currencies (map[string]struct{}) which specifies the set of currencies to
 // initialise.
 func (b *rateMatrixBuilder) initialiseIdentityRates(currencies map[string]struct{}) {
-	for currency := range currencies {
-		b.ensureMap(currency)
-		b.matrix[currency][currency] = OneDecimal()
+	for currencyCode := range currencies {
+		b.ensureMap(currencyCode)
+		b.matrix[currencyCode][currencyCode] = OneDecimal()
 	}
 }
 
@@ -75,16 +75,16 @@ func (b *rateMatrixBuilder) initialiseIdentityRates(currencies map[string]struct
 //
 // Returns error when a rate is zero or the inverse rate calculation fails.
 func (b *rateMatrixBuilder) setBaseRates(baseCurrency string, baseRates map[string]Decimal) error {
-	for currency, rate := range baseRates {
+	for currencyCode, rate := range baseRates {
 		if rate.CheckIsZero() {
-			return fmt.Errorf("maths: exchange rate for '%s' cannot be zero", currency)
+			return fmt.Errorf("maths: exchange rate for '%s' cannot be zero", currencyCode)
 		}
-		b.matrix[baseCurrency][currency] = rate
+		b.matrix[baseCurrency][currencyCode] = rate
 		inverseRate := OneDecimal().Divide(rate)
 		if inverseRate.Err() != nil {
-			return fmt.Errorf("maths: failed to calculate inverse rate for '%s': %w", currency, inverseRate.Err())
+			return fmt.Errorf("maths: failed to calculate inverse rate for '%s': %w", currencyCode, inverseRate.Err())
 		}
-		b.matrix[currency][baseCurrency] = inverseRate
+		b.matrix[currencyCode][baseCurrency] = inverseRate
 	}
 	return nil
 }
@@ -143,14 +143,14 @@ func (c *MatrixConverter) Convert(source Money, targetCode string) Money {
 	}
 	sourceAmount, err := source.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 
 	if targets, ok := c.matrix.Rates[sourceCode]; ok {
 		if directRate, ok := targets[targetCode]; ok {
 			convertedAmount := sourceAmount.Multiply(directRate)
 			if convertedAmount.Err() != nil {
-				return Money{err: fmt.Errorf("maths: direct conversion calculation failed: %w", convertedAmount.Err())}
+				return newMoneyError(fmt.Errorf("maths: direct conversion calculation failed: %w", convertedAmount.Err()))
 			}
 			return NewMoneyFromDecimal(convertedAmount, targetCode)
 		}
@@ -163,12 +163,12 @@ func (c *MatrixConverter) Convert(source Money, targetCode string) Money {
 	if sOk && tOk {
 		convertedAmount := sourceAmount.Multiply(sourceToBaseRate).Multiply(baseToTargetRate)
 		if convertedAmount.Err() != nil {
-			return Money{err: fmt.Errorf("maths: triangulated conversion calculation failed: %w", convertedAmount.Err())}
+			return newMoneyError(fmt.Errorf("maths: triangulated conversion calculation failed: %w", convertedAmount.Err()))
 		}
 		return NewMoneyFromDecimal(convertedAmount, targetCode)
 	}
 
-	return Money{err: fmt.Errorf("maths: no conversion path found from '%s' to '%s'", sourceCode, targetCode)}
+	return newMoneyError(fmt.Errorf("maths: no conversion path found from '%s' to '%s'", sourceCode, targetCode))
 }
 
 // ConvertAll converts a slice of Money values to the target currency.
@@ -274,21 +274,21 @@ func (c *Converter) Convert(source Money, targetCode string) Money {
 	}
 	sourceAmount, err := source.Amount()
 	if err != nil {
-		return Money{err: err}
+		return newMoneyError(err)
 	}
 
 	sourceRate, sourceOk := c.rates.Rates[sourceCode]
 	if !sourceOk {
-		return Money{err: fmt.Errorf("maths: source currency '%s' not found in exchange rates", sourceCode)}
+		return newMoneyError(fmt.Errorf("maths: source currency '%s' not found in exchange rates", sourceCode))
 	}
 	targetRate, targetOk := c.rates.Rates[targetCode]
 	if !targetOk {
-		return Money{err: fmt.Errorf("maths: target currency '%s' not found in exchange rates", targetCode)}
+		return newMoneyError(fmt.Errorf("maths: target currency '%s' not found in exchange rates", targetCode))
 	}
 
 	convertedAmount := sourceAmount.Divide(sourceRate).Multiply(targetRate)
 	if convertedAmount.Err() != nil {
-		return Money{err: fmt.Errorf("maths: conversion calculation failed: %w", convertedAmount.Err())}
+		return newMoneyError(fmt.Errorf("maths: conversion calculation failed: %w", convertedAmount.Err()))
 	}
 	return NewMoneyFromDecimal(convertedAmount, targetCode)
 }
@@ -375,12 +375,12 @@ func InvertRates(original ExchangeRates, newBaseCurrency string) (ExchangeRates,
 	}
 
 	newRates := make(map[string]Decimal, len(original.Rates))
-	for currency, oldRate := range original.Rates {
+	for currencyCode, oldRate := range original.Rates {
 		newRate := oldRate.Divide(oldBaseToNewBaseRate)
 		if newRate.Err() != nil {
-			return ExchangeRates{}, fmt.Errorf("maths: failed to calculate new rate for '%s': %w", currency, newRate.Err())
+			return ExchangeRates{}, fmt.Errorf("maths: failed to calculate new rate for '%s': %w", currencyCode, newRate.Err())
 		}
-		newRates[currency] = newRate
+		newRates[currencyCode] = newRate
 	}
 
 	return NewExchangeRates(newBaseCurrency, newRates)
@@ -404,8 +404,8 @@ func newRateMatrixBuilder() *rateMatrixBuilder {
 // Returns map[string]struct{} which is a set of all unique currency codes.
 func collectAllCurrencies(baseCurrency string, baseRates map[string]Decimal, overrides map[string]map[string]Decimal) map[string]struct{} {
 	allCurrencies := map[string]struct{}{baseCurrency: {}}
-	for currency := range baseRates {
-		allCurrencies[currency] = struct{}{}
+	for currencyCode := range baseRates {
+		allCurrencies[currencyCode] = struct{}{}
 	}
 	for from, targets := range overrides {
 		allCurrencies[from] = struct{}{}

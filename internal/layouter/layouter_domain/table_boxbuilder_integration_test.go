@@ -316,11 +316,7 @@ func TestBuildBoxTree_SimpleElement(t *testing.T) {
 	style.Display = DisplayBlock
 	style_map := StyleMap{node: &style}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{node}},
-		style_map, nil, nil, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{node}}, style_map, nil, nil, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -344,11 +340,7 @@ func TestBuildBoxTree_TextNode(t *testing.T) {
 	style.Display = DisplayBlock
 	style_map := StyleMap{parent_node: &style}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{parent_node}},
-		style_map, nil, nil, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{parent_node}}, style_map, nil, nil, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -383,11 +375,7 @@ func TestBuildBoxTree_DisplayNone(t *testing.T) {
 		hidden_node:  &hidden_style,
 	}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{visible_node, hidden_node}},
-		style_map, nil, nil, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{visible_node, hidden_node}}, style_map, nil, nil, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -412,11 +400,7 @@ func TestBuildBoxTree_DisplayContents(t *testing.T) {
 
 	style_map := StyleMap{contents_node: &contents_style}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{contents_node}},
-		style_map, nil, nil, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{contents_node}}, style_map, nil, nil, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -440,11 +424,7 @@ func TestBuildBoxTree_ReplacedElement(t *testing.T) {
 
 	resolver := &mockImageResolver{width: 100, height: 50}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{img_node}},
-		style_map, nil, resolver, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{img_node}}, style_map, nil, resolver, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -462,11 +442,7 @@ func TestBuildBoxTree_CommentNode(t *testing.T) {
 		TextContent: "This is a comment",
 	}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{comment_node}},
-		nil, nil, nil, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{comment_node}}, nil, nil, nil, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -501,11 +477,7 @@ func TestBuildBoxTree_NestedElements(t *testing.T) {
 		p_node:   &p_style,
 	}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{div_node}},
-		style_map, nil, nil, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{div_node}}, style_map, nil, nil, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -541,11 +513,7 @@ func TestBuildBoxTree_PseudoElement(t *testing.T) {
 		node: {PseudoBefore: &pseudo_style},
 	}
 
-	result, err := BuildBoxTree(
-		context.Background(),
-		&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{node}},
-		style_map, pseudo_map, nil, 595, 842,
-	)
+	result, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{node}}, style_map, pseudo_map, nil, nil))
 
 	require.NoError(t, err)
 	require.NotNil(t, result)

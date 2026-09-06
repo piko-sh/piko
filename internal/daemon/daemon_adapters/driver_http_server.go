@@ -131,12 +131,12 @@ func (a *driverHTTPServerAdapter) ListenAndServe(
 
 	a.recordServerSpanAttributes(span, server)
 
-	listener, err := a.createListener(address, l)
+	listener, err := a.createListener(spanCtx, address)
 	if err != nil {
 		return fmt.Errorf("creating listener: %w", err)
 	}
 
-	a.logServerReady(l, address)
+	a.logServerReady(spanCtx, address)
 
 	if a.onBound != nil {
 		a.onBound(address)
@@ -335,14 +335,12 @@ func (a *driverHTTPServerAdapter) recordServerSpanAttributes(span trace.Span, se
 // createListener creates a TCP listener and optionally wraps it with TLS.
 //
 // Takes address (string) which is the TCP address to bind to.
-// Takes l (logger_domain.Logger) which provides structured logging.
 //
 // Returns net.Listener which is the bound listener.
 // Returns error when binding fails.
-func (a *driverHTTPServerAdapter) createListener(address string, l logger_domain.Logger) (net.Listener, error) {
+func (a *driverHTTPServerAdapter) createListener(ctx context.Context, address string) (net.Listener, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		l.Internal("Failed to bind to address", logger_domain.String("address", address), logger_domain.Error(err))
 		return nil, fmt.Errorf("binding to address %s: %w", address, err)
 	}
 
@@ -355,6 +353,7 @@ func (a *driverHTTPServerAdapter) createListener(address string, l logger_domain
 			NextProtos:     alpnProtocols(a.tlsConfig.NextProtos),
 		}
 		listener = tls.NewListener(listener, tlsConfig)
+		_, l := logger_domain.From(ctx, log)
 		l.Internal("TLS enabled on listener",
 			logger_domain.String("address", address),
 			logger_domain.String("min_version", formatTLSVersion(a.tlsConfig.MinVersion)),
@@ -366,9 +365,10 @@ func (a *driverHTTPServerAdapter) createListener(address string, l logger_domain
 
 // logServerReady logs the appropriate ready message based on server purpose.
 //
-// Takes l (logger_domain.Logger) which provides structured logging.
 // Takes address (string) which is the server address.
-func (a *driverHTTPServerAdapter) logServerReady(l logger_domain.Logger, address string) {
+func (a *driverHTTPServerAdapter) logServerReady(ctx context.Context, address string) {
+	_, l := logger_domain.From(ctx, log)
+
 	url := formatServerURL(address, a.tlsConfig != nil)
 	if a.purpose == serverPurposeHealth {
 		l.Internal("Health probe ready", logger_domain.String("url", url))
@@ -381,7 +381,9 @@ func (a *driverHTTPServerAdapter) logServerReady(l logger_domain.Logger, address
 //
 // Returns daemon_domain.ServerAdapter which is the configured adapter ready for use.
 func NewDriverHTTPServerAdapter() daemon_domain.ServerAdapter {
-	return &driverHTTPServerAdapter{purpose: serverPurposeMain}
+	adapter := driverHTTPServerAdapter{}
+	adapter.purpose = serverPurposeMain
+	return &adapter
 }
 
 // alpnProtocols resolves the ALPN list offered by a TLS listener.

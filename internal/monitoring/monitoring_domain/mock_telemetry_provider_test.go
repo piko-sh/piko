@@ -204,16 +204,14 @@ func TestMockTelemetryProvider_ConcurrentAccess(t *testing.T) {
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_ = mock.GetMetrics()
 			_ = mock.GetSpans(10, false)
 			_ = mock.GetSpanByTraceID("trace-concurrent")
-		}()
+		})
 	}
 
 	wg.Wait()

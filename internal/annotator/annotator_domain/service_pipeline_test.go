@@ -41,7 +41,7 @@ func TestHandleStageError(t *testing.T) {
 					SourcePath: "/test/component.piko",
 				},
 			},
-			options:     &annotationOptions{faultTolerant: false},
+			options:     &annotationOptions{},
 			diagnostics: make([]*ast_domain.Diagnostic, 0),
 		}
 
@@ -200,7 +200,7 @@ func TestEarlyResultFromLink(t *testing.T) {
 
 		result := pipeline.earlyResultFromLink(
 			&annotator_dto.ExpansionResult{FlattenedAST: expandedAST},
-			&annotator_dto.LinkingResult{LinkedAST: nil},
+			&annotator_dto.LinkingResult{},
 		)
 
 		require.NotNil(t, result)
@@ -290,7 +290,7 @@ func TestHandleStageError_StrictMode_ReturnsOriginalError(t *testing.T) {
 				SourcePath: "/test/comp.piko",
 			},
 		},
-		options:     &annotationOptions{faultTolerant: false},
+		options:     &annotationOptions{},
 		diagnostics: make([]*ast_domain.Diagnostic, 0),
 	}
 
@@ -360,9 +360,7 @@ func TestEarlyResult_WithNilExpansionAndFlattenedAST(t *testing.T) {
 		virtualModule: &annotator_dto.VirtualModule{},
 	}
 
-	result := pipeline.earlyResult(&annotator_dto.ExpansionResult{
-		FlattenedAST: nil,
-	})
+	result := pipeline.earlyResult(&annotator_dto.ExpansionResult{})
 
 	require.NotNil(t, result)
 	assert.Nil(t, result.AnnotatedAST)
@@ -485,9 +483,7 @@ func TestComponentAnnotationPipeline_RunPropDataSourceLinking_NilAST(t *testing.
 		},
 	}
 
-	analysisResult := &annotator_dto.AnnotationResult{
-		AnnotatedAST: nil,
-	}
+	analysisResult := &annotator_dto.AnnotationResult{}
 
 	assert.NotPanics(t, func() {
 		pipeline.runPropDataSourceLinking(context.Background(), analysisResult)

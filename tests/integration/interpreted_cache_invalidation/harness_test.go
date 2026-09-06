@@ -21,13 +21,13 @@ package cache_invalidation_test
 import (
 	"regexp"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/caller"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/config/config_domain"
 	"piko.sh/piko/internal/generator/generator_helpers"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_domain"

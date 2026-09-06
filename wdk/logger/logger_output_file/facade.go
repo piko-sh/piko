@@ -69,6 +69,9 @@ func Enable(ctx context.Context, name string, config Config) {
 		MaxBackups: defaultMaxBackups,
 		MaxAge:     defaultMaxAgeDays,
 		Compress:   true,
+		Sandbox:    nil,
+		Clock:      nil,
+		LocalTime:  false,
 	})
 	if fileError != nil {
 		log.Warn("Failed to create file output", logger_domain.Error(fileError))

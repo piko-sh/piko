@@ -30,26 +30,30 @@ var (
 	clickhouseTableValuedFunctionColumns = map[string][]querier_dto.ScopedColumn{
 		"numbers": {
 			{
-				Name:    "number",
-				SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt64"},
+				Name:     "number",
+				SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt64"),
+				Nullable: false,
 			},
 		},
 		"numbers_mt": {
 			{
-				Name:    "number",
-				SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "UInt64"},
+				Name:     "number",
+				SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "UInt64"),
+				Nullable: false,
 			},
 		},
 		"generateSeries": {
 			{
-				Name:    "value",
-				SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"},
+				Name:     "value",
+				SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int64"),
+				Nullable: false,
 			},
 		},
 		"generate_series": {
 			{
-				Name:    "value",
-				SQLType: querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "Int64"},
+				Name:     "value",
+				SQLType:  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "Int64"),
+				Nullable: false,
 			},
 		},
 		"input": nil,

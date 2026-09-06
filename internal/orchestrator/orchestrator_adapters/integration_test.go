@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -41,13 +42,35 @@ func drainReader(_ context.Context, _ string, data io.Reader) error {
 }
 
 type mockTaskDispatcher struct {
-	dispatchFunction func(ctx context.Context, task *orchestrator_domain.Task) error
-	dispatched       []*orchestrator_domain.Task
+	dispatchFunction  func(ctx context.Context, task *orchestrator_domain.Task) error
+	dispatched        []*orchestrator_domain.Task
+	notRequired       []*orchestrator_domain.Task
+	requirementErrors []error
 }
 
 func (m *mockTaskDispatcher) Dispatch(ctx context.Context, task *orchestrator_domain.Task) error {
 	if m.dispatchFunction != nil {
 		return m.dispatchFunction(ctx, task)
+	}
+	m.dispatched = append(m.dispatched, task)
+	return nil
+}
+
+func (m *mockTaskDispatcher) DispatchIfRequired(
+	ctx context.Context,
+	task *orchestrator_domain.Task,
+	required orchestrator_domain.DispatchRequirement,
+) error {
+	if m.dispatchFunction != nil {
+		return m.dispatchFunction(ctx, task)
+	}
+	stillRequired, err := required(ctx)
+	if err != nil {
+		m.requirementErrors = append(m.requirementErrors, err)
+	}
+	if err == nil && !stillRequired {
+		m.notRequired = append(m.notRequired, task)
+		return orchestrator_domain.ErrTaskNotRequired
 	}
 	m.dispatched = append(m.dispatched, task)
 	return nil
@@ -246,6 +269,107 @@ func TestHandleEvent_DispatchesTask(t *testing.T) {
 	assert.Equal(t, "artefact.compiler", dispatcher.dispatched[0].Executor)
 	assert.Equal(t, "art-1:thumb", dispatcher.dispatched[0].DeduplicationKey)
 	assert.Equal(t, orchestrator_domain.PriorityHigh, dispatcher.dispatched[0].Config.Priority)
+}
+
+func TestHandleEvent_ProfileBuiltAfterSnapshotIsNotDispatched(t *testing.T) {
+	t.Parallel()
+
+	deps := registry_dto.DependenciesFromSlice([]string{"source"})
+	profiles := []registry_dto.NamedProfile{
+		{
+			Name: "thumb",
+			Profile: registry_dto.DesiredProfile{
+				CapabilityName: "resize",
+				DependsOn:      deps,
+			},
+		},
+	}
+	var reads atomic.Int32
+	reg := &registry_domain.MockRegistryService{
+		GetArtefactFunc: func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+			variants := []registry_dto.Variant{
+				{VariantID: "source", Status: registry_dto.VariantStatusReady},
+			}
+			if reads.Add(1) > 1 {
+				variants = append(variants, registry_dto.Variant{VariantID: "thumb", Status: registry_dto.VariantStatusReady})
+			}
+			return &registry_dto.ArtefactMeta{ID: "art-1", DesiredProfiles: profiles, ActualVariants: variants}, nil
+		},
+	}
+
+	dispatcher := &mockTaskDispatcher{}
+	bridge := NewArtefactWorkflowBridge(reg, nil, dispatcher, nil)
+
+	bridge.handleEvent(t.Context(), orchestrator_domain.Event{
+		Type:    orchestrator_domain.EventType("artefact.updated"),
+		Payload: map[string]any{"artefactID": "art-1"},
+	})
+
+	assert.Empty(t, dispatcher.dispatched,
+		"a profile built after the event snapshot was read must not be dispatched again")
+	require.Len(t, dispatcher.notRequired, 1)
+	assert.Equal(t, "art-1:thumb", dispatcher.notRequired[0].DeduplicationKey)
+	assert.Equal(t, int32(2), reads.Load(), "the requirement re-reads the artefact")
+	assert.Equal(t, int64(1), bridge.ArtefactEventsProcessed())
+}
+
+func TestArtefactWorkflowBridge_ProfileDispatchRequirement(t *testing.T) {
+	t.Parallel()
+
+	deps := registry_dto.DependenciesFromSlice([]string{"source"})
+	desired := []registry_dto.NamedProfile{
+		{Name: "thumb", Profile: registry_dto.DesiredProfile{CapabilityName: "resize", DependsOn: deps}},
+	}
+
+	testCases := []struct {
+		getErr       error
+		artefact     *registry_dto.ArtefactMeta
+		name         string
+		wantErr      bool
+		wantRequired bool
+	}{
+		{
+			name: "profile still unbuilt is required",
+			artefact: &registry_dto.ArtefactMeta{
+				ID:              "art-1",
+				DesiredProfiles: desired,
+				ActualVariants:  []registry_dto.Variant{{VariantID: "source", Status: registry_dto.VariantStatusReady}},
+			},
+			wantRequired: true,
+		},
+		{
+			name:         "deleted artefact needs no build",
+			getErr:       fmt.Errorf("loading: %w", registry_domain.ErrArtefactNotFound),
+			wantRequired: false,
+		},
+		{
+			name:    "registry failure is reported",
+			getErr:  errors.New("registry unavailable"),
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := &registry_domain.MockRegistryService{
+				GetArtefactFunc: func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
+					return tc.artefact, tc.getErr
+				},
+			}
+			bridge := NewArtefactWorkflowBridge(reg, nil, nil, nil)
+
+			required, err := bridge.profileDispatchRequirement("art-1", "thumb")(t.Context())
+			if tc.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "art-1")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantRequired, required)
+		})
+	}
 }
 
 func TestHandleEvent_DispatchReturnsDedup(t *testing.T) {

@@ -180,6 +180,7 @@ func (p *provider) GenerateDataKey(ctx context.Context, request *crypto_dto.Gene
 	encryptResp, err := p.Encrypt(ctx, &crypto_dto.EncryptRequest{
 		Plaintext: base64.StdEncoding.EncodeToString(dataKey),
 		KeyID:     request.KeyID,
+		Context:   nil,
 	})
 	if err != nil {
 		zeroBytes(dataKey)
@@ -225,6 +226,10 @@ func (p *provider) GetKeyInfo(_ context.Context, keyID string) (*crypto_dto.KeyI
 			"iv_size":  fmt.Sprintf("%d", IVSize),
 			"tag_size": fmt.Sprintf("%d", p.aead.Overhead()),
 		},
+		RotatedAt:      nil,
+		ExpirationDate: nil,
+		DeletionDate:   nil,
+		Description:    "",
 	}, nil
 }
 
@@ -238,6 +243,8 @@ func (p *provider) HealthCheck(ctx context.Context) error {
 
 	encrypted, err := p.Encrypt(ctx, &crypto_dto.EncryptRequest{
 		Plaintext: testPlaintext,
+		Context:   nil,
+		KeyID:     "",
 	})
 	if err != nil {
 		return fmt.Errorf("health check encryption failed: %w", err)
@@ -245,6 +252,8 @@ func (p *provider) HealthCheck(ctx context.Context) error {
 
 	decrypted, err := p.Decrypt(ctx, &crypto_dto.DecryptRequest{
 		Ciphertext: encrypted.Ciphertext,
+		Context:    nil,
+		KeyID:      "",
 	})
 	if err != nil {
 		return fmt.Errorf("health check decryption failed: %w", err)

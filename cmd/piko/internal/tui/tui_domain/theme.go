@@ -246,57 +246,56 @@ type Theme struct {
 //
 // Returns Theme with every style field populated from the palette.
 func buildTheme(palette *Palette, name string, isDark bool) Theme {
-	t := Theme{
-		Name:           name,
-		IsDark:         isDark,
-		Palette:        *palette,
-		ScrollOffLines: DefaultScrollOff,
+	return Theme{
+		Name:              name,
+		IsDark:            isDark,
+		Palette:           *palette,
+		ScrollOffLines:    DefaultScrollOff,
+		Title:             lipgloss.NewStyle().Foreground(palette.Primary).Bold(true).Padding(0, 1),
+		Subtle:            lipgloss.NewStyle().Foreground(palette.ForegroundDim),
+		Selected:          lipgloss.NewStyle().Foreground(palette.Foreground).Background(palette.SurfaceHigh).Bold(true),
+		Cursor:            lipgloss.NewStyle().Foreground(palette.Cursor),
+		Border:            lipgloss.NewStyle().Foreground(palette.Border),
+		BorderFocused:     lipgloss.NewStyle().Foreground(palette.BorderFocused),
+		Panel:             lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(palette.Border).Padding(0, 1),
+		PanelFocused:      lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(palette.BorderFocused).Padding(0, 1),
+		PanelTitle:        lipgloss.NewStyle().Foreground(palette.Primary).Bold(true).Padding(0, 1),
+		Tab:               lipgloss.NewStyle().Foreground(palette.ForegroundDim).Padding(0, 1),
+		TabActive:         lipgloss.NewStyle().Foreground(palette.Primary).Bold(true).Padding(0, 1),
+		TabHotkey:         lipgloss.NewStyle().Foreground(palette.Accent).Bold(true),
+		StatusBar:         lipgloss.NewStyle().Foreground(palette.ForegroundDim).Background(palette.SurfaceHigh).Padding(0, 1),
+		StatusKey:         lipgloss.NewStyle().Foreground(palette.Accent).Bold(true),
+		StatusDesc:        lipgloss.NewStyle().Foreground(palette.ForegroundDim),
+		StatusSep:         lipgloss.NewStyle().Foreground(palette.Border),
+		StatusHealthy:     lipgloss.NewStyle().Foreground(palette.Success),
+		StatusDegraded:    lipgloss.NewStyle().Foreground(palette.Warning),
+		StatusUnhealthy:   lipgloss.NewStyle().Foreground(palette.Danger),
+		StatusPending:     lipgloss.NewStyle().Foreground(palette.Info),
+		StatusUnknown:     lipgloss.NewStyle().Foreground(palette.ForegroundDim),
+		Error:             lipgloss.NewStyle().Foreground(palette.Danger),
+		Warning:           lipgloss.NewStyle().Foreground(palette.Warning),
+		Info:              lipgloss.NewStyle().Foreground(palette.Info),
+		Dim:               lipgloss.NewStyle().Foreground(palette.ForegroundDim),
+		Bold:              lipgloss.NewStyle().Bold(true),
+		OverlayBackground: lipgloss.NewStyle().Faint(true),
+		Search:            lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(palette.BorderFocused),
+		SearchLabel:       lipgloss.NewStyle().Foreground(palette.Accent),
+		Sparkline:         lipgloss.NewStyle().Foreground(palette.Primary),
+		SparklineHigh:     lipgloss.NewStyle().Foreground(palette.Success),
+		SparklineLow:      lipgloss.NewStyle().Foreground(palette.Danger),
+		TableHeader: lipgloss.NewStyle().
+			Foreground(palette.Primary).
+			Bold(true).
+			BorderBottom(true).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(palette.Border),
+		TableRow:         lipgloss.NewStyle().Foreground(palette.Foreground),
+		TableSelected:    lipgloss.NewStyle().Foreground(palette.Foreground).Background(palette.SurfaceHigh).Bold(true),
+		TableAlternate:   lipgloss.NewStyle(),
+		TableBorder:      lipgloss.NewStyle().Foreground(palette.Border),
+		MouseHoverFocus:  false,
+		DimInactivePanes: false,
 	}
-
-	t.Title = lipgloss.NewStyle().Foreground(palette.Primary).Bold(true).Padding(0, 1)
-	t.Subtle = lipgloss.NewStyle().Foreground(palette.ForegroundDim)
-	t.Selected = lipgloss.NewStyle().Foreground(palette.Foreground).Background(palette.SurfaceHigh).Bold(true)
-	t.Cursor = lipgloss.NewStyle().Foreground(palette.Cursor)
-	t.Border = lipgloss.NewStyle().Foreground(palette.Border)
-	t.BorderFocused = lipgloss.NewStyle().Foreground(palette.BorderFocused)
-	t.Panel = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(palette.Border).Padding(0, 1)
-	t.PanelFocused = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(palette.BorderFocused).Padding(0, 1)
-	t.PanelTitle = lipgloss.NewStyle().Foreground(palette.Primary).Bold(true).Padding(0, 1)
-	t.Tab = lipgloss.NewStyle().Foreground(palette.ForegroundDim).Padding(0, 1)
-	t.TabActive = lipgloss.NewStyle().Foreground(palette.Primary).Bold(true).Padding(0, 1)
-	t.TabHotkey = lipgloss.NewStyle().Foreground(palette.Accent).Bold(true)
-	t.StatusBar = lipgloss.NewStyle().Foreground(palette.ForegroundDim).Background(palette.SurfaceHigh).Padding(0, 1)
-	t.StatusKey = lipgloss.NewStyle().Foreground(palette.Accent).Bold(true)
-	t.StatusDesc = lipgloss.NewStyle().Foreground(palette.ForegroundDim)
-	t.StatusSep = lipgloss.NewStyle().Foreground(palette.Border)
-	t.StatusHealthy = lipgloss.NewStyle().Foreground(palette.Success)
-	t.StatusDegraded = lipgloss.NewStyle().Foreground(palette.Warning)
-	t.StatusUnhealthy = lipgloss.NewStyle().Foreground(palette.Danger)
-	t.StatusPending = lipgloss.NewStyle().Foreground(palette.Info)
-	t.StatusUnknown = lipgloss.NewStyle().Foreground(palette.ForegroundDim)
-	t.Error = lipgloss.NewStyle().Foreground(palette.Danger)
-	t.Warning = lipgloss.NewStyle().Foreground(palette.Warning)
-	t.Info = lipgloss.NewStyle().Foreground(palette.Info)
-	t.Dim = lipgloss.NewStyle().Foreground(palette.ForegroundDim)
-	t.Bold = lipgloss.NewStyle().Bold(true)
-	t.OverlayBackground = lipgloss.NewStyle().Faint(true)
-	t.Search = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(palette.BorderFocused)
-	t.SearchLabel = lipgloss.NewStyle().Foreground(palette.Accent)
-	t.Sparkline = lipgloss.NewStyle().Foreground(palette.Primary)
-	t.SparklineHigh = lipgloss.NewStyle().Foreground(palette.Success)
-	t.SparklineLow = lipgloss.NewStyle().Foreground(palette.Danger)
-	t.TableHeader = lipgloss.NewStyle().
-		Foreground(palette.Primary).
-		Bold(true).
-		BorderBottom(true).
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(palette.Border)
-	t.TableRow = lipgloss.NewStyle().Foreground(palette.Foreground)
-	t.TableSelected = lipgloss.NewStyle().Foreground(palette.Foreground).Background(palette.SurfaceHigh).Bold(true)
-	t.TableAlternate = lipgloss.NewStyle()
-	t.TableBorder = lipgloss.NewStyle().Foreground(palette.Border)
-
-	return t
 }
 
 // SeverityFor returns the style appropriate for a severity band.

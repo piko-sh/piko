@@ -36,5 +36,6 @@ func TimescaleDB() db.EngineConfig {
 		DriverName:       "postgres",
 		Engine:           NewTimescaleDBEngine(),
 		MigrationDialect: migration_sql.PostgresDialect(),
+		CatalogueFactory: nil,
 	}
 }

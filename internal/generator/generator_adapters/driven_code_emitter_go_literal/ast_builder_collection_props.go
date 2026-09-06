@@ -197,6 +197,7 @@ func parseFieldForCollection(file *goast.File, field *goast.Field, visited map[s
 		PropTagName: propName,
 		TypeExpr:    field.Type,
 		IsPointer:   isPointer,
+		NestedProps: nil,
 	}
 
 	if ident, ok := typeExpr.(*goast.Ident); ok && visited[ident.Name] {

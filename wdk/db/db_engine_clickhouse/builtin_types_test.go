@@ -19,7 +19,9 @@
 package db_engine_clickhouse
 
 import (
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +60,7 @@ func TestParseType_Primitives(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
-			result, err := parseClickHouseType(c.name)
+			result, err := parseClickHouseType(c.name, defaultMaxTypeParseDepth)
 			require.NoError(t, err)
 			assert.Equal(t, c.want, result.SQLType.Category)
 			assert.False(t, result.Nullable)
@@ -69,7 +71,7 @@ func TestParseType_Primitives(t *testing.T) {
 func TestParseType_NullableWrapper(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Nullable(UInt32)")
+	result, err := parseClickHouseType("Nullable(UInt32)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.True(t, result.Nullable, "outer Nullable should set the flag")
 	assert.Equal(t, querier_dto.TypeCategoryInteger, result.SQLType.Category)
@@ -78,7 +80,7 @@ func TestParseType_NullableWrapper(t *testing.T) {
 func TestParseType_LowCardinalityWrapper(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("LowCardinality(String)")
+	result, err := parseClickHouseType("LowCardinality(String)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.True(t, result.LowCardinality)
 	assert.Equal(t, querier_dto.TypeCategoryText, result.SQLType.Category)
@@ -87,7 +89,7 @@ func TestParseType_LowCardinalityWrapper(t *testing.T) {
 func TestParseType_NestedNullableLowCardinality(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("LowCardinality(Nullable(String))")
+	result, err := parseClickHouseType("LowCardinality(Nullable(String))", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.True(t, result.LowCardinality)
 	assert.True(t, result.Nullable)
@@ -97,7 +99,7 @@ func TestParseType_NestedNullableLowCardinality(t *testing.T) {
 func TestParseType_Array(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Array(String)")
+	result, err := parseClickHouseType("Array(String)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryArray, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.ElementType)
@@ -107,7 +109,7 @@ func TestParseType_Array(t *testing.T) {
 func TestParseType_ArrayOfNullable(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Array(Nullable(Int32))")
+	result, err := parseClickHouseType("Array(Nullable(Int32))", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryArray, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.ElementType)
@@ -119,7 +121,7 @@ func TestParseType_ArrayOfNullable(t *testing.T) {
 func TestParseType_MapNullableValue(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Map(String, Nullable(Int32))")
+	result, err := parseClickHouseType("Map(String, Nullable(Int32))", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryMap, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.KeyType)
@@ -131,7 +133,7 @@ func TestParseType_MapNullableValue(t *testing.T) {
 func TestParseType_TupleWithNullableField(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Tuple(name String, count Nullable(UInt64))")
+	result, err := parseClickHouseType("Tuple(name String, count Nullable(UInt64))", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	require.Len(t, result.SQLType.StructFields, 2)
 	assert.False(t, result.SQLType.StructFields[0].SQLType.Nullable)
@@ -141,7 +143,7 @@ func TestParseType_TupleWithNullableField(t *testing.T) {
 func TestParseType_NestedWithNullableField(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Nested(name String, salary Nullable(Float64))")
+	result, err := parseClickHouseType("Nested(name String, salary Nullable(Float64))", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 
 	require.NotNil(t, result.SQLType.ElementType)
@@ -152,7 +154,7 @@ func TestParseType_NestedWithNullableField(t *testing.T) {
 func TestParseType_TupleAnonymous(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Tuple(String, UInt64)")
+	result, err := parseClickHouseType("Tuple(String, UInt64)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryStruct, result.SQLType.Category)
 	require.Len(t, result.SQLType.StructFields, 2)
@@ -164,7 +166,7 @@ func TestParseType_TupleAnonymous(t *testing.T) {
 func TestParseType_TupleNamed(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Tuple(name String, age UInt64)")
+	result, err := parseClickHouseType("Tuple(name String, age UInt64)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	require.Len(t, result.SQLType.StructFields, 2)
 	assert.Equal(t, "name", result.SQLType.StructFields[0].Name)
@@ -174,7 +176,7 @@ func TestParseType_TupleNamed(t *testing.T) {
 func TestParseType_Map(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Map(String, UInt32)")
+	result, err := parseClickHouseType("Map(String, UInt32)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryMap, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.KeyType)
@@ -186,7 +188,7 @@ func TestParseType_Map(t *testing.T) {
 func TestParseType_NestedDesugarsToArrayOfTuple(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Nested(name String, age UInt64)")
+	result, err := parseClickHouseType("Nested(name String, age UInt64)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryArray, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.ElementType)
@@ -198,7 +200,7 @@ func TestParseType_NestedDesugarsToArrayOfTuple(t *testing.T) {
 func TestParseType_Enum(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Enum8('red' = 1, 'green' = 2, 'blue' = 3)")
+	result, err := parseClickHouseType("Enum8('red' = 1, 'green' = 2, 'blue' = 3)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryEnum, result.SQLType.Category)
 	assert.Equal(t, []string{"red", "green", "blue"}, result.SQLType.EnumValues)
@@ -207,7 +209,7 @@ func TestParseType_Enum(t *testing.T) {
 func TestParseType_Enum16WithNegativeTag(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Enum16('low' = -1, 'high' = 1)")
+	result, err := parseClickHouseType("Enum16('low' = -1, 'high' = 1)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"low", "high"}, result.SQLType.EnumValues)
 }
@@ -215,7 +217,7 @@ func TestParseType_Enum16WithNegativeTag(t *testing.T) {
 func TestParseType_FixedString(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("FixedString(16)")
+	result, err := parseClickHouseType("FixedString(16)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryText, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.Length)
@@ -225,7 +227,7 @@ func TestParseType_FixedString(t *testing.T) {
 func TestParseType_Decimal(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Decimal(18, 4)")
+	result, err := parseClickHouseType("Decimal(18, 4)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryDecimal, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.Precision)
@@ -250,7 +252,7 @@ func TestParseType_DecimalShortForms(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.input, func(t *testing.T) {
 			t.Parallel()
-			result, err := parseClickHouseType(c.input)
+			result, err := parseClickHouseType(c.input, defaultMaxTypeParseDepth)
 			require.NoError(t, err)
 			require.NotNil(t, result.SQLType.Precision)
 			require.NotNil(t, result.SQLType.Scale)
@@ -263,7 +265,7 @@ func TestParseType_DecimalShortForms(t *testing.T) {
 func TestParseType_DateTime64(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("DateTime64(3)")
+	result, err := parseClickHouseType("DateTime64(3)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryTemporal, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.Precision)
@@ -273,7 +275,7 @@ func TestParseType_DateTime64(t *testing.T) {
 func TestParseType_DateTime64WithTimezone(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("DateTime64(6, 'UTC')")
+	result, err := parseClickHouseType("DateTime64(6, 'UTC')", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	require.NotNil(t, result.SQLType.Precision)
 	assert.Equal(t, 6, *result.SQLType.Precision)
@@ -282,7 +284,7 @@ func TestParseType_DateTime64WithTimezone(t *testing.T) {
 func TestParseType_DateTimeWithTimezone(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("DateTime('UTC')")
+	result, err := parseClickHouseType("DateTime('UTC')", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryTemporal, result.SQLType.Category)
 	assert.Equal(t, "DateTime", result.SQLType.EngineName)
@@ -291,7 +293,7 @@ func TestParseType_DateTimeWithTimezone(t *testing.T) {
 func TestParseType_Variant(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Variant(String, UInt32, Float64)")
+	result, err := parseClickHouseType("Variant(String, UInt32, Float64)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryUnion, result.SQLType.Category)
 	require.Len(t, result.SQLType.UnionMembers, 3)
@@ -300,7 +302,7 @@ func TestParseType_Variant(t *testing.T) {
 func TestParseType_AggregateFunction(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("AggregateFunction(sum, UInt64)")
+	result, err := parseClickHouseType("AggregateFunction(sum, UInt64)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 
 	assert.Equal(t, "AggregateFunction(sum, UInt64)", result.SQLType.EngineName)
@@ -312,7 +314,7 @@ func TestParseType_AggregateFunction(t *testing.T) {
 func TestParseType_DeeplyNested(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Array(Tuple(name String, scores Array(Nullable(Float64))))")
+	result, err := parseClickHouseType("Array(Tuple(name String, scores Array(Nullable(Float64))))", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryArray, result.SQLType.Category)
 	require.NotNil(t, result.SQLType.ElementType)
@@ -327,7 +329,7 @@ func TestParseType_DeeplyNested(t *testing.T) {
 func TestParseType_UnknownTypeReturnsUnknown(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("MagicalType")
+	result, err := parseClickHouseType("MagicalType", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryUnknown, result.SQLType.Category)
 	assert.Equal(t, "MagicalType", result.SQLType.EngineName)
@@ -351,7 +353,7 @@ func TestParseType_MalformedReturnsError(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			_, err := parseClickHouseType(c)
+			_, err := parseClickHouseType(c, defaultMaxTypeParseDepth)
 			assert.Error(t, err)
 		})
 	}
@@ -395,7 +397,7 @@ func TestParseType_NewGeoTypes(t *testing.T) {
 	for _, name := range []string{"LineString", "MultiLineString", "Geometry"} {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			result, err := parseClickHouseType(name)
+			result, err := parseClickHouseType(name, defaultMaxTypeParseDepth)
 			require.NoError(t, err)
 			assert.Equal(t, querier_dto.TypeCategoryGeometric, result.SQLType.Category)
 		})
@@ -405,7 +407,7 @@ func TestParseType_NewGeoTypes(t *testing.T) {
 func TestParseType_IdentifierType(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Identifier")
+	result, err := parseClickHouseType("Identifier", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, "Identifier", result.SQLType.EngineName)
 }
@@ -413,7 +415,7 @@ func TestParseType_IdentifierType(t *testing.T) {
 func TestParseType_EnumAutoTagShorthand(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Enum('a', 'b', 'c')")
+	result, err := parseClickHouseType("Enum('a', 'b', 'c')", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryEnum, result.SQLType.Category)
 	assert.Equal(t, []string{"a", "b", "c"}, result.SQLType.EnumValues)
@@ -423,7 +425,7 @@ func TestParseType_EnumAutoTagShorthand(t *testing.T) {
 func TestParseType_JSONWithParameters(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("JSON(max_dynamic_paths=100, path.to.field UInt32, SKIP other.path)")
+	result, err := parseClickHouseType("JSON(max_dynamic_paths=100, path.to.field UInt32, SKIP other.path)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryJSON, result.SQLType.Category)
 	assert.Equal(t, "JSON", result.SQLType.EngineName)
@@ -432,7 +434,7 @@ func TestParseType_JSONWithParameters(t *testing.T) {
 func TestParseType_DynamicWithParameters(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Dynamic(max_types=10)")
+	result, err := parseClickHouseType("Dynamic(max_types=10)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, "Dynamic", result.SQLType.EngineName)
 }
@@ -440,7 +442,7 @@ func TestParseType_DynamicWithParameters(t *testing.T) {
 func TestParseType_SimpleAggregateFunctionPreservesName(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("SimpleAggregateFunction(any, UInt64)")
+	result, err := parseClickHouseType("SimpleAggregateFunction(any, UInt64)", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, "SimpleAggregateFunction(any, UInt64)", result.SQLType.EngineName)
 	assert.Equal(t, querier_dto.TypeCategoryAggregateState, result.SQLType.Category)
@@ -449,8 +451,50 @@ func TestParseType_SimpleAggregateFunctionPreservesName(t *testing.T) {
 func TestParseType_ObjectJSONAliasesToJSON(t *testing.T) {
 	t.Parallel()
 
-	result, err := parseClickHouseType("Object('json')")
+	result, err := parseClickHouseType("Object('json')", defaultMaxTypeParseDepth)
 	require.NoError(t, err)
 	assert.Equal(t, querier_dto.TypeCategoryJSON, result.SQLType.Category)
 	assert.Equal(t, "JSON", result.SQLType.EngineName)
+}
+
+func TestTypeNameParseErrorQuotesAtMostALimitedNumberOfRunes(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		input         string
+		wantQuoted    string
+		wantTruncated bool
+	}{
+		{name: "short name is quoted whole", input: "Array(", wantQuoted: `"Array("`, wantTruncated: false},
+		{name: "name at the limit is quoted whole", input: strings.Repeat("é", maxTypeNameErrorRunes), wantQuoted: `"` + strings.Repeat("é", maxTypeNameErrorRunes) + `"`, wantTruncated: false},
+		{name: "long multibyte name is cut on a rune boundary", input: "Array(" + strings.Repeat("日本", 100), wantQuoted: `"Array(` + strings.Repeat("日本", 29) + `"`, wantTruncated: true},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			parseError := &typeNameParseError{input: testCase.input, message: "expected type identifier", position: 3}
+			message := parseError.Error()
+
+			assert.True(t, utf8.ValidString(message))
+			assert.Contains(t, message, testCase.wantQuoted)
+			assert.Contains(t, message, "at position 3")
+			if testCase.wantTruncated {
+				assert.Contains(t, message, "truncated, 206 runes in total")
+				assert.Less(t, len(message), len(testCase.input))
+				return
+			}
+			assert.NotContains(t, message, "truncated")
+		})
+	}
+}
+
+func TestParseTypeReportsOversizedMalformedNamesBriefly(t *testing.T) {
+	t.Parallel()
+
+	input := "Array(" + strings.Repeat("x", 10_000) + " junk"
+	_, err := parseClickHouseType(input, defaultMaxTypeParseDepth)
+	require.Error(t, err)
+	assert.Less(t, len(err.Error()), 300)
 }

@@ -316,20 +316,9 @@ func WithExternalCSS(css string) Option {
 //
 // Returns *Options which contains the default premailer settings.
 func defaultOptions() *Options {
-	return &Options{
-		KeepBangImportant:        false,
-		RemoveClasses:            false,
-		RemoveIDs:                false,
-		MakeLeftoverImportant:    false,
-		ExpandShorthands:         true,
-		ResolvePseudoElements:    false,
-		SkipEmailValidation:      false,
-		SkipHTMLAttributeMapping: false,
-		SkipStyleExtraction:      false,
-		LinkQueryParams:          nil,
-		Theme:                    nil,
-		ExternalCSS:              "",
-	}
+	options := Options{}
+	options.ExpandShorthands = true
+	return &options
 }
 
 // applyOptions applies a list of option functions to an Options struct.

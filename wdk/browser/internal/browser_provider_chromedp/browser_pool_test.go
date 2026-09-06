@@ -404,12 +404,10 @@ func TestExclusiveBrowserPool_ConcurrentAcquire(t *testing.T) {
 
 	const numWorkers = 20
 	var wg sync.WaitGroup
-	wg.Add(numWorkers)
 	errs := make(chan error, numWorkers)
 
 	for range numWorkers {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			browser, err := pool.Acquire(context.Background())
 			if err != nil {
@@ -425,7 +423,7 @@ func TestExclusiveBrowserPool_ConcurrentAcquire(t *testing.T) {
 			}
 			_ = page.Close()
 			errs <- nil
-		}()
+		})
 	}
 
 	wg.Wait()

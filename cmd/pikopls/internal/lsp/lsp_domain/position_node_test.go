@@ -134,11 +134,8 @@ func TestIsPositionInRange(t *testing.T) {
 		},
 		{
 			name:     "zero position in zero range",
-			position: protocol.Position{Line: 0, Character: 0},
-			r: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
-				End:   protocol.Position{Line: 0, Character: 0},
-			},
+			position: protocol.Position{},
+			r:        protocol.Range{},
 			expected: true,
 		},
 		{
@@ -172,11 +169,11 @@ func TestIsRangeSmaller(t *testing.T) {
 		{
 			name: "r1 smaller same line",
 			r1: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 5},
 			},
 			r2: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 10},
 			},
 			expected: true,
@@ -184,11 +181,11 @@ func TestIsRangeSmaller(t *testing.T) {
 		{
 			name: "r1 larger same line",
 			r1: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 10},
 			},
 			r2: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 5},
 			},
 			expected: false,
@@ -196,11 +193,11 @@ func TestIsRangeSmaller(t *testing.T) {
 		{
 			name: "equal ranges",
 			r1: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 5},
 			},
 			r2: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 5},
 			},
 			expected: false,
@@ -208,11 +205,11 @@ func TestIsRangeSmaller(t *testing.T) {
 		{
 			name: "r1 single line r2 multi line",
 			r1: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 100},
 			},
 			r2: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 1, Character: 10},
 			},
 			expected: true,
@@ -220,35 +217,26 @@ func TestIsRangeSmaller(t *testing.T) {
 		{
 			name: "both multi line r1 fewer lines",
 			r1: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 1, Character: 5},
 			},
 			r2: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 2, Character: 5},
 			},
 			expected: true,
 		},
 		{
-			name: "empty ranges",
-			r1: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
-				End:   protocol.Position{Line: 0, Character: 0},
-			},
-			r2: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
-				End:   protocol.Position{Line: 0, Character: 0},
-			},
+			name:     "empty ranges",
+			r1:       protocol.Range{},
+			r2:       protocol.Range{},
 			expected: false,
 		},
 		{
 			name: "r1 empty r2 non-empty",
-			r1: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
-				End:   protocol.Position{Line: 0, Character: 0},
-			},
+			r1:   protocol.Range{},
 			r2: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 1},
 			},
 			expected: true,
@@ -278,7 +266,7 @@ func TestAstRangeToLSPRange(t *testing.T) {
 				End:   ast_domain.Location{Line: 1, Column: 10},
 			},
 			expected: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 9},
 			},
 		},
@@ -296,19 +284,16 @@ func TestAstRangeToLSPRange(t *testing.T) {
 		{
 			name: "synthetic start returns empty range",
 			astRange: ast_domain.Range{
-				Start: ast_domain.Location{Line: 0, Column: 0},
+				Start: ast_domain.Location{},
 				End:   ast_domain.Location{Line: 5, Column: 5},
 			},
-			expected: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
-				End:   protocol.Position{Line: 0, Character: 0},
-			},
+			expected: protocol.Range{},
 		},
 		{
 			name: "synthetic end uses start",
 			astRange: ast_domain.Range{
 				Start: ast_domain.Location{Line: 3, Column: 5},
-				End:   ast_domain.Location{Line: 0, Column: 0},
+				End:   ast_domain.Location{},
 			},
 			expected: protocol.Range{
 				Start: protocol.Position{Line: 2, Character: 4},
@@ -346,19 +331,15 @@ func TestIsNodeFromDocument(t *testing.T) {
 		expected bool
 	}{
 		{
-			name: "nil GoAnnotations returns true",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-			},
+			name:     "nil GoAnnotations returns true",
+			node:     &ast_domain.TemplateNode{},
 			docPath:  "/path/to/document.pk",
 			expected: true,
 		},
 		{
 			name: "nil OriginalSourcePath returns true",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					OriginalSourcePath: nil,
-				},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			docPath:  "/path/to/document.pk",
 			expected: true,
@@ -417,7 +398,7 @@ func TestNodeFindState_CheckOpeningTag(t *testing.T) {
 			name: "synthetic opening tag returns false",
 			node: &ast_domain.TemplateNode{
 				OpeningTagRange: ast_domain.Range{
-					Start: ast_domain.Location{Line: 0, Column: 0},
+					Start: ast_domain.Location{},
 					End:   ast_domain.Location{Line: 1, Column: 10},
 				},
 			},
@@ -505,7 +486,7 @@ func TestNodeFindState_CheckNodeRange(t *testing.T) {
 			initialState: &nodeFindState{
 				bestMatch: &ast_domain.TemplateNode{TagName: "outer"},
 				bestRange: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 0, Character: 100},
 				},
 			},
@@ -524,7 +505,7 @@ func TestNodeFindState_CheckNodeRange(t *testing.T) {
 			initialState: &nodeFindState{
 				bestMatch: &ast_domain.TemplateNode{TagName: "inner"},
 				bestRange: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 0, Character: 10},
 				},
 			},
@@ -566,19 +547,15 @@ func TestHasPassedPropAtPosition(t *testing.T) {
 		expected bool
 	}{
 		{
-			name: "nil GoAnnotations returns false",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-			},
+			name:     "nil GoAnnotations returns false",
+			node:     &ast_domain.TemplateNode{},
 			position: protocol.Position{Line: 0, Character: 5},
 			expected: false,
 		},
 		{
 			name: "nil PartialInfo returns false",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					PartialInfo: nil,
-				},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			position: protocol.Position{Line: 0, Character: 5},
 			expected: false,
@@ -638,7 +615,7 @@ func TestHasPassedPropAtPosition(t *testing.T) {
 					PartialInfo: &ast_domain.PartialInvocationInfo{
 						PassedProps: map[string]ast_domain.PropValue{
 							"testProp": {
-								NameLocation: ast_domain.Location{Line: 0, Column: 0},
+								NameLocation: ast_domain.Location{},
 							},
 						},
 					},
@@ -691,7 +668,7 @@ func TestHasBindDirectiveAtPosition(t *testing.T) {
 			binds: map[string]*ast_domain.Directive{
 				"test": {
 					AttributeRange: ast_domain.Range{
-						Start: ast_domain.Location{Line: 0, Column: 0},
+						Start: ast_domain.Location{},
 						End:   ast_domain.Location{Line: 1, Column: 10},
 					},
 				},
@@ -757,7 +734,7 @@ func TestHasEventDirectiveAtPosition(t *testing.T) {
 				"click": {
 					{
 						AttributeRange: ast_domain.Range{
-							Start: ast_domain.Location{Line: 0, Column: 0},
+							Start: ast_domain.Location{},
 							End:   ast_domain.Location{Line: 1, Column: 10},
 						},
 					},
@@ -829,7 +806,7 @@ func TestCheckAttrRangeMatch(t *testing.T) {
 			attributeName: "title",
 			attributeType: "dynamic attr",
 			r: ast_domain.Range{
-				Start: ast_domain.Location{Line: 0, Column: 0},
+				Start: ast_domain.Location{},
 				End:   ast_domain.Location{Line: 1, Column: 10},
 			},
 			position: protocol.Position{Line: 0, Character: 5},
@@ -904,7 +881,7 @@ func TestHasStandardDirectiveAtPosition(t *testing.T) {
 			node: &ast_domain.TemplateNode{
 				DirShow: &ast_domain.Directive{
 					AttributeRange: ast_domain.Range{
-						Start: ast_domain.Location{Line: 0, Column: 0},
+						Start: ast_domain.Location{},
 						End:   ast_domain.Location{Line: 1, Column: 10},
 					},
 				},

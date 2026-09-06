@@ -162,6 +162,7 @@ func GetSecretManager() *SecretManager {
 	globalSecretManagerOnce.Do(func() {
 		globalSecretManager = &SecretManager{
 			secrets: make(map[secretCloser]struct{}),
+			mu:      sync.RWMutex{},
 		}
 	})
 	return globalSecretManager

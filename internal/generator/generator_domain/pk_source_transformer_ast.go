@@ -316,6 +316,7 @@ func (*pkTransformBuilder) buildReinitExport(componentName string) string {
 // wrap as exports.
 // Takes transformedUserSource (string) which is the user's source with export keywords
 // already stripped.
+// Takes componentName (string) which names the component in the transformed source.
 //
 // Returns string which is the fully assembled JavaScript module source.
 func (b *pkTransformBuilder) buildFullTransform(

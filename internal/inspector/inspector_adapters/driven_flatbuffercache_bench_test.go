@@ -106,7 +106,7 @@ func BenchmarkUnpackTypeData_Small(b *testing.B) {
 	var result *inspector_dto.TypeData
 	for b.Loop() {
 		fb := inspector_schema_gen.GetRootAsTypeData(data, 0)
-		result = unpackTypeData(fb)
+		result, _ = unpackTypeData(fb, len(data))
 	}
 
 	runtime.KeepAlive(result)
@@ -122,7 +122,7 @@ func BenchmarkUnpackTypeData_Medium(b *testing.B) {
 	var result *inspector_dto.TypeData
 	for b.Loop() {
 		fb := inspector_schema_gen.GetRootAsTypeData(data, 0)
-		result = unpackTypeData(fb)
+		result, _ = unpackTypeData(fb, len(data))
 	}
 
 	runtime.KeepAlive(result)
@@ -138,22 +138,22 @@ func BenchmarkUnpackTypeData_Large(b *testing.B) {
 	var result *inspector_dto.TypeData
 	for b.Loop() {
 		fb := inspector_schema_gen.GetRootAsTypeData(data, 0)
-		result = unpackTypeData(fb)
+		result, _ = unpackTypeData(fb, len(data))
 	}
 
 	runtime.KeepAlive(result)
 }
 
 func BenchmarkUnpackPackagesMap(b *testing.B) {
-	_, fb := loadBenchmarkFixture(b, largeCacheFixture)
+	payload, fb := loadBenchmarkFixture(b, largeCacheFixture)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	var result map[string]*inspector_dto.Package
 	for b.Loop() {
-		counts := countEntities(fb)
-		arena := newUnpackArena(counts)
+		counts, _ := countEntities(fb, len(payload))
+		arena := newUnpackArena(counts, len(payload))
 		result = unpackPackages(fb, arena)
 	}
 
@@ -161,21 +161,22 @@ func BenchmarkUnpackPackagesMap(b *testing.B) {
 }
 
 func BenchmarkUnpackFileToPackageMap(b *testing.B) {
-	_, fb := loadBenchmarkFixture(b, largeCacheFixture)
+	payload, fb := loadBenchmarkFixture(b, largeCacheFixture)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	var result map[string]string
 	for b.Loop() {
-		result = unpackMap(fb.FileToPackageLength(), fb.FileToPackage, unpackFileToPackageEntry)
+		budget := newElementBudget(len(payload))
+		result = unpackMap(&budget, fb.FileToPackageLength(), fb.FileToPackage, unpackFileToPackageEntry)
 	}
 
 	runtime.KeepAlive(result)
 }
 
 func BenchmarkUnpackSinglePackage(b *testing.B) {
-	_, fb := loadBenchmarkFixture(b, largeCacheFixture)
+	payload, fb := loadBenchmarkFixture(b, largeCacheFixture)
 
 	var largestPackageIndex int
 	var largestTypeCount int
@@ -197,8 +198,8 @@ func BenchmarkUnpackSinglePackage(b *testing.B) {
 
 	var result *inspector_dto.Package
 	for b.Loop() {
-		counts := countEntities(fb)
-		arena := newUnpackArena(counts)
+		counts, _ := countEntities(fb, len(payload))
+		arena := newUnpackArena(counts, len(payload))
 		var entry inspector_schema_gen.PackageEntry
 		if fb.Packages(&entry, largestPackageIndex) {
 			result = unpackPackageSafe(entry.Value(nil), arena)
@@ -209,7 +210,7 @@ func BenchmarkUnpackSinglePackage(b *testing.B) {
 }
 
 func BenchmarkUnpackType(b *testing.B) {
-	_, fb := loadBenchmarkFixture(b, largeCacheFixture)
+	payload, fb := loadBenchmarkFixture(b, largeCacheFixture)
 
 	var targetType *inspector_schema_gen.Type
 	var entry inspector_schema_gen.PackageEntry
@@ -243,8 +244,8 @@ func BenchmarkUnpackType(b *testing.B) {
 
 	var result *inspector_dto.Type
 	for b.Loop() {
-		counts := countEntities(fb)
-		arena := newUnpackArena(counts)
+		counts, _ := countEntities(fb, len(payload))
+		arena := newUnpackArena(counts, len(payload))
 		result = unpackTypeSafe(targetType, arena)
 	}
 

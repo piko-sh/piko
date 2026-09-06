@@ -184,26 +184,6 @@ func TestNewHTMLAttribute_StyleAttribute(t *testing.T) {
 	assert.Equal(t, style, result.Value)
 }
 
-func TestNewLocation_ReturnsValidLocation(t *testing.T) {
-	result := NewLocation()
-
-	assert.NotNil(t, result)
-
-	assert.Equal(t, 0, result.Line)
-	assert.Equal(t, 0, result.Column)
-}
-
-func TestNewRange_ReturnsValidRange(t *testing.T) {
-	result := NewRange()
-
-	assert.NotNil(t, result)
-
-	assert.Equal(t, 0, result.Start.Line)
-	assert.Equal(t, 0, result.Start.Column)
-	assert.Equal(t, 0, result.End.Line)
-	assert.Equal(t, 0, result.End.Column)
-}
-
 func TestNodeBuilders_BuildComplexElement(t *testing.T) {
 
 	tdCell := NewElementNode("td", []ast_domain.HTMLAttribute{

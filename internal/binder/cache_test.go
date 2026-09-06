@@ -75,15 +75,13 @@ func TestBinderCache_Get(t *testing.T) {
 		var wg sync.WaitGroup
 		numGoroutines := 50
 
-		wg.Add(numGoroutines)
 		for range numGoroutines {
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				info := c.get(typ, defaultMaxPathDepth)
-				require.NotNil(t, info)
-
-				require.Contains(t, info.Fields, "id")
-			}()
+				if assert.NotNil(t, info) {
+					assert.Contains(t, info.Fields, "id")
+				}
+			})
 		}
 		wg.Wait()
 	})

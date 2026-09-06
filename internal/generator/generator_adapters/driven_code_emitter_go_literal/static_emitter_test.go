@@ -526,18 +526,14 @@ func TestHasPublicPartialInfo(t *testing.T) {
 		expectedResult bool
 	}{
 		{
-			name: "no annotations",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-			},
+			name:           "no annotations",
+			node:           &ast_domain.TemplateNode{},
 			expectedResult: false,
 		},
 		{
 			name: "no partial info",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-					PartialInfo: nil,
-				},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			expectedResult: false,
 		},
@@ -758,10 +754,8 @@ func TestAppendRefAttrs(t *testing.T) {
 			wantLen:      1,
 		},
 		{
-			name: "empty RawExpression returns unchanged",
-			dirRef: &ast_domain.Directive{
-				RawExpression: "",
-			},
+			name:         "empty RawExpression returns unchanged",
+			dirRef:       &ast_domain.Directive{},
 			hashedName:   "",
 			initialAttrs: []attributeEntry{},
 			wantLen:      0,
@@ -1146,10 +1140,8 @@ func TestGetEffectivePartialScopeID(t *testing.T) {
 		want               string
 	}{
 		{
-			name: "nil GoAnnotations returns parentScopeID",
-			node: &ast_domain.TemplateNode{
-				GoAnnotations: nil,
-			},
+			name:               "nil GoAnnotations returns parentScopeID",
+			node:               &ast_domain.TemplateNode{},
 			parentScopeID:      "parent",
 			mainComponentScope: "main",
 			want:               "parent",
@@ -1363,78 +1355,6 @@ func TestResolveStaticEventEmission(t *testing.T) {
 	}
 }
 
-func TestStaticNormaliseToCallExpr(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		expression ast_domain.Expression
-		name       string
-		wantArgs   int
-		wantNil    bool
-	}{
-		{
-			name: "CallExpr passthrough",
-			expression: &ast_domain.CallExpression{
-				Callee: &ast_domain.Identifier{Name: "doSomething"},
-				Args:   []ast_domain.Expression{&ast_domain.StringLiteral{Value: "arg1"}},
-			},
-			wantNil:  false,
-			wantArgs: 1,
-		},
-		{
-			name:       "Identifier wrapping into CallExpr with implicit $event",
-			expression: &ast_domain.Identifier{Name: "handleClick"},
-			wantNil:    false,
-			wantArgs:   1,
-		},
-		{
-			name: "unsupported expr type returns nil",
-			expression: &ast_domain.BinaryExpression{
-				Operator: ast_domain.OpPlus,
-				Left:     &ast_domain.IntegerLiteral{Value: 1},
-				Right:    &ast_domain.IntegerLiteral{Value: 2},
-			},
-			wantNil: true,
-		},
-		{
-			name:       "StringLiteral returns nil",
-			expression: &ast_domain.StringLiteral{Value: "hello"},
-			wantNil:    true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := staticNormaliseToCallExpr(tc.expression)
-
-			if tc.wantNil {
-				assert.Nil(t, result, "Expected nil for unsupported expression type")
-				return
-			}
-
-			require.NotNil(t, result, "Expected non-nil CallExpr")
-			assert.Len(t, result.Args, tc.wantArgs)
-
-			if identifier, ok := tc.expression.(*ast_domain.Identifier); ok {
-				calleeIdent, ok := result.Callee.(*ast_domain.Identifier)
-				require.True(t, ok, "Callee should be *ast_domain.Identifier")
-				assert.Equal(t, identifier.Name, calleeIdent.Name)
-
-				require.Len(t, result.Args, 1, "bare identifier should get implicit $event")
-				eventArg, ok := result.Args[0].(*ast_domain.Identifier)
-				require.True(t, ok, "implicit argument should be an Identifier")
-				assert.Equal(t, "$event", eventArg.Name)
-			}
-
-			if ce, ok := tc.expression.(*ast_domain.CallExpression); ok {
-				assert.Same(t, ce, result, "CallExpr should be passed through without wrapping")
-			}
-		})
-	}
-}
-
 func TestExtractStaticArg(t *testing.T) {
 	t.Parallel()
 
@@ -1541,7 +1461,7 @@ func TestExtractStaticArgs(t *testing.T) {
 			exprs: []ast_domain.Expression{
 				&ast_domain.StringLiteral{Value: "hello"},
 				&ast_domain.IntegerLiteral{Value: int64(42)},
-				&ast_domain.BooleanLiteral{Value: false},
+				&ast_domain.BooleanLiteral{},
 			},
 			wantArgs: []templater_dto.ActionArgument{
 				{Type: argTypeStatic, Value: "hello"},

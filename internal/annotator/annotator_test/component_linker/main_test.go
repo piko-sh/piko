@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_test/component_linker/testdata/001_prop_validation"
 	"piko.sh/piko/internal/annotator/annotator_test/component_linker/testdata/002_required_and_default_props"
 	"piko.sh/piko/internal/annotator/annotator_test/component_linker/testdata/003_invocation_canonicalisation"
@@ -44,7 +45,6 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_test/component_linker/testdata/017_server_prop_typo_suggestion"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 )
 

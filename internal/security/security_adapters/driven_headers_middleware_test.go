@@ -174,7 +174,7 @@ func TestSecurityHeadersMiddleware_CSP(t *testing.T) {
 		},
 		{
 			name:      "empty policy not set",
-			cspConfig: security_dto.CSPRuntimeConfig{Policy: ""},
+			cspConfig: security_dto.CSPRuntimeConfig{},
 			absent:    true,
 		},
 	}

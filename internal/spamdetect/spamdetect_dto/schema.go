@@ -180,9 +180,8 @@ func (g fieldGroupEntry) applyToSchema(schema *Schema) {
 // schema is valid. Errors include entry-cap breaches, duplicate field keys, and
 // thresholds outside [0, 1].
 func NewSchema(entries ...SchemaEntry) (*Schema, error) {
-	schema := &Schema{
-		threshold: defaultScoreThreshold,
-	}
+	schema := &Schema{}
+	schema.threshold = defaultScoreThreshold
 
 	for _, entry := range entries {
 		if entry == nil {

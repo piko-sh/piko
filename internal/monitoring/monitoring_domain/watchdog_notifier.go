@@ -411,6 +411,7 @@ func NewGomemlimitNotConfiguredEvent() WatchdogEvent {
 		Message: "GOMEMLIMIT is not configured; the watchdog will use the absolute heap " +
 			"threshold. In containerised environments, use piko.WithAutoMemoryLimit for " +
 			"accurate OOM-aware monitoring",
+		Fields: nil,
 	}
 }
 
@@ -425,5 +426,6 @@ func NewMemProfileRateDisabledEvent() WatchdogEvent {
 		Message: "runtime.MemProfileRate is 0; heap and allocs captures are disarmed. " +
 			"Set piko.WithProfilingMemProfileRate (default 524288) to re-enable " +
 			"heap-based watchdog rules",
+		Fields: nil,
 	}
 }

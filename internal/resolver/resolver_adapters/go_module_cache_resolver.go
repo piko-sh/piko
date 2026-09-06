@@ -168,6 +168,7 @@ func NewGoModuleCacheResolver(opts ...Option) *GoModuleCacheResolver {
 // specified working directory.
 //
 // Takes workingDir (string) which specifies the directory containing go.mod.
+// Takes opts (...Option) which configure module cache resolution.
 //
 // Returns *GoModuleCacheResolver which is the configured resolver ready for use.
 // Returns error when go.mod cannot be found or parsed.
@@ -441,7 +442,7 @@ func moduleImportPathFromCachePath(path string) string {
 // Safe for concurrent use. Acquires the receiver's mutex when storing the parsed module
 // list.
 func (gmcr *GoModuleCacheResolver) loadKnownModulesFromGoMod(ctx context.Context) error {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	goModPath := filepath.Join(gmcr.workingDir, "go.mod")
 	if gmcr.workingDir == "" {
@@ -452,8 +453,7 @@ func (gmcr *GoModuleCacheResolver) loadKnownModulesFromGoMod(ctx context.Context
 		goModPath = filepath.Join(cwd, "go.mod")
 	}
 
-	//nolint:gosec // trusted module system path
-	data, err := os.ReadFile(goModPath)
+	data, err := readGoModFile(ctx, goModPath, nil)
 	if err != nil {
 		return fmt.Errorf("failed to read go.mod at '%s': %w", goModPath, err)
 	}

@@ -186,14 +186,7 @@ type ServiceFactories struct {
 //
 // Returns *Service ready to be started.
 func NewService(deps MonitoringDeps, factories ServiceFactories, opts ...ServiceOption) *Service {
-	config := ServiceConfig{
-		Address:                   ":9091",
-		BindAddress:               "127.0.0.1",
-		MaxSpans:                  DefaultMaxSpans,
-		MaxMetrics:                DefaultMaxMetrics,
-		MaxMetricAge:              DefaultMaxMetricAge,
-		MetricsCollectionInterval: DefaultMetricsCollectionInterval,
-	}
+	config := DefaultServiceConfig()
 
 	for _, opt := range opts {
 		opt(&config)
@@ -228,6 +221,15 @@ func NewService(deps MonitoringDeps, factories ServiceFactories, opts ...Service
 		factories:             factories,
 		orchestratorInspector: deps.OrchestratorInspector,
 		registryInspector:     deps.RegistryInspector,
+		healthProbeService:    nil,
+		dispatcherInspector:   nil,
+		rateLimiterInspector:  nil,
+		providerInfoInspector: nil,
+		renderCacheStats:      nil,
+		profilingController:   nil,
+		watchdogInspector:     nil,
+		transport:             nil,
+		mu:                    sync.RWMutex{},
 	}
 
 	if watchdog != nil {
@@ -611,6 +613,30 @@ func WithServiceWatchdogNotifier(notifier WatchdogNotifier) ServiceOption {
 func WithServiceWatchdogProfileUploader(uploader WatchdogProfileUploader) ServiceOption {
 	return func(c *ServiceConfig) {
 		c.WatchdogProfileUploader = uploader
+	}
+}
+
+// DefaultServiceConfig returns the monitoring service configuration used before any
+// options are applied.
+//
+// Returns ServiceConfig which listens on 127.0.0.1:9091 with the default telemetry
+// limits, no TLS and no watchdog.
+func DefaultServiceConfig() ServiceConfig {
+	return ServiceConfig{
+		Address:                   ":9091",
+		BindAddress:               "127.0.0.1",
+		MaxSpans:                  DefaultMaxSpans,
+		MaxMetrics:                DefaultMaxMetrics,
+		MaxMetricAge:              DefaultMaxMetricAge,
+		MetricsCollectionInterval: DefaultMetricsCollectionInterval,
+		TransportFactory:          nil,
+		Factories:                 nil,
+		WatchdogConfig:            nil,
+		WatchdogNotifier:          nil,
+		WatchdogProfileUploader:   nil,
+		TLS:                       tlscert.TLSValues{},
+		AutoNextPort:              false,
+		ProfilingEnabled:          false,
 	}
 }
 

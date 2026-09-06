@@ -102,11 +102,9 @@ func TestASTEventPool_ConcurrentAccess(t *testing.T) {
 	numGoroutines := 100
 	numCyclesPerGoroutine := 1000
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
-	for i := range numGoroutines {
-		go func(goroutineID int) {
-			defer wg.Done()
+	for range numGoroutines {
+		wg.Go(func() {
 			for range numCyclesPerGoroutine {
 				event := getASTEvent()
 				node := &TemplateNode{}
@@ -121,7 +119,7 @@ func TestASTEventPool_ConcurrentAccess(t *testing.T) {
 
 				putASTEvent(event)
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()

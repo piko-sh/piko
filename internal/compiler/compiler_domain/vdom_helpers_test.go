@@ -617,7 +617,7 @@ func TestExprToJSString(t *testing.T) {
 	}{
 		{
 			name:       "nil data",
-			expression: js_ast.Expr{Data: nil},
+			expression: js_ast.Expr{},
 			expected:   "null",
 		},
 		{
@@ -632,7 +632,7 @@ func TestExprToJSString(t *testing.T) {
 		},
 		{
 			name:       "boolean false",
-			expression: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}},
+			expression: js_ast.Expr{Data: &js_ast.EBoolean{}},
 			expected:   "false",
 		},
 		{
@@ -677,7 +677,7 @@ func TestIsNull(t *testing.T) {
 	})
 
 	t.Run("nil data returns false", func(t *testing.T) {
-		expression := js_ast.Expr{Data: nil}
+		expression := js_ast.Expr{}
 		assert.False(t, isNull(expression))
 	})
 }

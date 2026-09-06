@@ -51,8 +51,7 @@ const (
 	moduleSplitParts = 4
 
 	// defaultMaxGenerateSourceFiles caps how many source files Generate / DynamicRender will
-	// accept in a single call. Mirrors the convention used elsewhere in the framework: bound
-	// the user-controlled input before walking it.
+	// accept in a single call, so the input is bounded before it is walked.
 	defaultMaxGenerateSourceFiles = 4096
 
 	// defaultMaxGenerateSourceBytes caps the aggregated payload size of every source file in
@@ -61,8 +60,8 @@ const (
 	defaultMaxGenerateSourceBytes = 8 * 1024 * 1024
 
 	// defaultMaxGenerateFileBytes caps an individual source file's size before it is fed to
-	// the SFC compiler / annotator. Per-file gate so a pathological 100 MiB single-line file
-	// cannot drive the lexer's PositionAt into O(n) per token.
+	// the SFC compiler / annotator, so one oversized file is rejected even when the
+	// aggregate stays under defaultMaxGenerateSourceBytes.
 	defaultMaxGenerateFileBytes = 1 * 1024 * 1024
 )
 
@@ -193,6 +192,11 @@ func NewGeneratorAdapter(opts ...GeneratorAdapterOption) *GeneratorAdapter {
 			MaxTotalBytes: defaultMaxGenerateSourceBytes,
 			MaxFileBytes:  defaultMaxGenerateFileBytes,
 		},
+		stdlibDataGetter:  nil,
+		pathsConfig:       generator_domain.GeneratorPathsConfig{},
+		i18nDefaultLocale: "",
+		generateMu:        sync.Mutex{},
+		hasConfig:         false,
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -236,10 +240,7 @@ func (a *GeneratorAdapter) Generate(
 		moduleName = a.moduleName
 	}
 
-	annotator, errResp := a.createAnnotator(request.Sources, moduleName, stdlibData)
-	if errResp != nil {
-		return errResp, nil
-	}
+	annotator := NewInMemoryAnnotatorService(request.Sources, moduleName, stdlibData)
 
 	entryPoints := a.discoverEntryPoints(request.Sources, moduleName)
 	if len(entryPoints) == 0 {
@@ -268,6 +269,7 @@ func (a *GeneratorAdapter) Generate(
 		Artefacts:   a.convertArtefacts(artefacts, fsWriter, a.pkJSEmitter),
 		Manifest:    a.convertManifest(manifest),
 		Diagnostics: componentDiagnostics,
+		Error:       "",
 	}
 
 	a.pkJSEmitter.Sweep()
@@ -296,6 +298,9 @@ func validateGenerateRequest(request *wasm_dto.GenerateFromSourcesRequest, limit
 			Success: false,
 			Error: fmt.Sprintf("%v: %d source files exceeds limit %d",
 				errGenerateLimitsExceeded, fileCount, limits.MaxFileCount),
+			Manifest:    nil,
+			Artefacts:   nil,
+			Diagnostics: nil,
 		}
 	}
 	totalBytes := 0
@@ -306,6 +311,9 @@ func validateGenerateRequest(request *wasm_dto.GenerateFromSourcesRequest, limit
 				Success: false,
 				Error: fmt.Sprintf("%v: source %s size %d exceeds per-file limit %d",
 					errGenerateLimitsExceeded, filePath, size, limits.MaxFileBytes),
+				Manifest:    nil,
+				Artefacts:   nil,
+				Diagnostics: nil,
 			}
 		}
 		totalBytes += size
@@ -314,6 +322,9 @@ func validateGenerateRequest(request *wasm_dto.GenerateFromSourcesRequest, limit
 				Success: false,
 				Error: fmt.Sprintf("%v: aggregate source size exceeds limit %d",
 					errGenerateLimitsExceeded, limits.MaxTotalBytes),
+				Manifest:    nil,
+				Artefacts:   nil,
+				Diagnostics: nil,
 			}
 		}
 	}
@@ -334,24 +345,6 @@ func (a *GeneratorAdapter) validateAndGetStdlib() (*inspector_dto.TypeData, *was
 		return nil, a.errorResponse(fmt.Sprintf("failed to get stdlib data: %v", err))
 	}
 	return stdlibData, nil
-}
-
-// createAnnotator creates the in-memory annotator service.
-//
-// Takes sources (map[string]string) which provides the source files to parse.
-// Takes moduleName (string) which specifies the Go module name.
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
-// information.
-//
-// Returns annotator_domain.AnnotatorPort which is the configured annotator.
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains the error response when
-// creation fails, or nil on success.
-func (a *GeneratorAdapter) createAnnotator(sources map[string]string, moduleName string, stdlibData *inspector_dto.TypeData) (annotator_domain.AnnotatorPort, *wasm_dto.GenerateFromSourcesResponse) {
-	annotator, err := NewInMemoryAnnotatorService(sources, moduleName, stdlibData)
-	if err != nil {
-		return nil, a.errorResponse(fmt.Sprintf("failed to create annotator service: %v", err))
-	}
-	return annotator, nil
 }
 
 // createGeneratorService creates the generator service with in-memory ports.
@@ -387,25 +380,35 @@ func (a *GeneratorAdapter) createGeneratorService(
 		Coordinator:        coordinator,
 		Resolver:           newInMemoryResolver(moduleName, baseDir),
 		RegisterEmitter:    NewInMemoryRegisterEmitter(fsWriter),
-		CodeEmitterFactory: driven_code_emitter_go_literal.NewEmitterFactory(ctx, nil),
+		CodeEmitterFactory: driven_code_emitter_go_literal.NewEmitterFactory(nil),
 		CollectionEmitter:  NewNoOpCollectionEmitter(),
 		SearchIndexEmitter: NewNoOpSearchIndexEmitter(),
 		PKJSEmitter:        a.pkJSEmitter,
 		I18nEmitter:        NewNoOpI18nEmitter(),
 		ActionGenerator:    NewNoOpActionGenerator(),
 		SEOService:         nil,
+		BaseSandbox:        nil,
+		SandboxFactory:     nil,
 	}
 
-	pathsConfig := generator_domain.GeneratorPathsConfig{BaseDir: "."}
+	pathsConfig := generator_domain.GeneratorPathsConfig{
+		BaseDir:        ".",
+		PagesSourceDir: "",
+		E2ESourceDir:   "",
+		BaseServePath:  "",
+	}
 	i18nLocale := ""
 	if a.hasConfig {
 		pathsConfig = a.pathsConfig
 		i18nLocale = a.i18nDefaultLocale
 	}
 
-	generatorService, err := generator_domain.NewGeneratorService(ctx, pathsConfig, i18nLocale, ports, generator_domain.WithInMemoryMode())
+	generatorService, err := generator_domain.NewGeneratorService(pathsConfig, i18nLocale, ports, generator_domain.WithInMemoryMode())
 	if err != nil {
 		return nil, nil, a.errorResponse(fmt.Sprintf("failed to create generator service: %v", err))
+	}
+	if err := generatorService.EnsureDistPackage(ctx); err != nil {
+		return nil, nil, a.errorResponse(fmt.Sprintf("failed to prepare generator output: %v", err))
 	}
 
 	return fsWriter, generatorService, nil
@@ -418,7 +421,13 @@ func (a *GeneratorAdapter) createGeneratorService(
 // Returns *wasm_dto.GenerateFromSourcesResponse which contains the failure status and
 // error message.
 func (*GeneratorAdapter) errorResponse(message string) *wasm_dto.GenerateFromSourcesResponse {
-	return &wasm_dto.GenerateFromSourcesResponse{Success: false, Error: message}
+	return &wasm_dto.GenerateFromSourcesResponse{
+		Success:     false,
+		Error:       message,
+		Manifest:    nil,
+		Artefacts:   nil,
+		Diagnostics: nil,
+	}
 }
 
 // discoverEntryPoints finds .pk files in the sources map and returns them as entry
@@ -442,14 +451,7 @@ func (*GeneratorAdapter) discoverEntryPoints(sources map[string]string, moduleNa
 			continue
 		}
 
-		isPage := strings.Contains(sourcePath, "pages/") || strings.HasPrefix(sourcePath, "pages/")
-
-		fullPath := moduleName + "/" + sourcePath
-
-		entryPoints = append(entryPoints, annotator_dto.EntryPoint{
-			Path:   fullPath,
-			IsPage: isPage,
-		})
+		entryPoints = append(entryPoints, newSourceEntryPoint(moduleName, sourcePath))
 	}
 
 	return entryPoints
@@ -521,13 +523,15 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 			Severity: "error",
 			Message:  fmt.Sprintf("compiling component %s: %v", sourcePath, err),
 			Location: locationFromError(err, sourcePath),
+			Code:     "",
 		}}
 	}
 	if artefact == nil || artefact.BaseJSPath == "" {
 		return []wasm_dto.Diagnostic{{
 			Severity: "warning",
 			Message:  fmt.Sprintf("component %s produced no JavaScript artefact", sourcePath),
-			Location: wasm_dto.Location{FilePath: sourcePath},
+			Location: wasm_dto.Location{FilePath: sourcePath, Line: 0, Column: 0},
+			Code:     "",
 		}}
 	}
 	outputJS, ok := artefact.Files[artefact.BaseJSPath]
@@ -535,7 +539,8 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 		return []wasm_dto.Diagnostic{{
 			Severity: "warning",
 			Message:  fmt.Sprintf("component %s compiled but emitted empty JS body", sourcePath),
-			Location: wasm_dto.Location{FilePath: sourcePath},
+			Location: wasm_dto.Location{FilePath: sourcePath, Line: 0, Column: 0},
+			Code:     "",
 		}}
 	}
 
@@ -545,7 +550,8 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 		return []wasm_dto.Diagnostic{{
 			Severity: "error",
 			Message:  fmt.Sprintf("rejecting component artefact id for %s: %v", sourcePath, err),
-			Location: wasm_dto.Location{FilePath: sourcePath},
+			Location: wasm_dto.Location{FilePath: sourcePath, Line: 0, Column: 0},
+			Code:     "",
 		}}
 	}
 
@@ -554,7 +560,8 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 		diagnostics = append(diagnostics, wasm_dto.Diagnostic{
 			Severity: compilerDiagnostic.Severity,
 			Message:  compilerDiagnostic.Message,
-			Location: wasm_dto.Location{FilePath: sourcePath},
+			Location: wasm_dto.Location{FilePath: sourcePath, Line: 0, Column: 0},
+			Code:     "",
 		})
 	}
 	return diagnostics
@@ -569,7 +576,7 @@ func (a *GeneratorAdapter) compileSingleClientComponent(
 //
 // Returns wasm_dto.Location with whatever Line/Column could be parsed.
 func locationFromError(err error, sourcePath string) wasm_dto.Location {
-	location := wasm_dto.Location{FilePath: sourcePath}
+	location := wasm_dto.Location{FilePath: sourcePath, Line: 0, Column: 0}
 	if err == nil {
 		return location
 	}
@@ -618,9 +625,10 @@ func (*GeneratorAdapter) convertArtefacts(
 		}
 
 		result = append(result, wasm_dto.GeneratedArtefact{
-			Path:    artefact.SuggestedPath,
-			Content: string(artefact.Content),
-			Type:    artefactType,
+			Path:       artefact.SuggestedPath,
+			Content:    string(artefact.Content),
+			Type:       artefactType,
+			SourcePath: "",
 		})
 		seen[artefact.SuggestedPath] = struct{}{}
 	}
@@ -632,9 +640,10 @@ func (*GeneratorAdapter) convertArtefacts(
 
 		artefactType := determineArtefactType(filePath)
 		result = append(result, wasm_dto.GeneratedArtefact{
-			Path:    filePath,
-			Content: string(content),
-			Type:    artefactType,
+			Path:       filePath,
+			Content:    string(content),
+			Type:       artefactType,
+			SourcePath: "",
 		})
 		seen[filePath] = struct{}{}
 	}
@@ -645,9 +654,10 @@ func (*GeneratorAdapter) convertArtefacts(
 				continue
 			}
 			result = append(result, wasm_dto.GeneratedArtefact{
-				Path:    filePath,
-				Content: content,
-				Type:    wasm_dto.ArtefactTypeJS,
+				Path:       filePath,
+				Content:    content,
+				Type:       wasm_dto.ArtefactTypeJS,
+				SourcePath: "",
 			})
 			seen[filePath] = struct{}{}
 		}
@@ -679,15 +689,21 @@ func (*GeneratorAdapter) convertManifest(manifest *generator_dto.Manifest) *wasm
 			RoutePatterns: page.RoutePatterns,
 			JSArtefactIDs: page.JSArtefactIDs,
 			StyleBlock:    page.StyleBlock,
+			CachePolicy:   nil,
+			SourcePath:    "",
+			HasGetData:    false,
+			HasRender:     false,
 		}
 	}
 
 	for id, partial := range manifest.Partials {
 		result.Partials[id] = wasm_dto.ManifestPartialEntry{
-			PackagePath:  partial.PackagePath,
-			SourcePath:   partial.OriginalSourcePath,
-			JSArtefactID: partial.JSArtefactID,
-			StyleBlock:   partial.StyleBlock,
+			PackagePath:   partial.PackagePath,
+			SourcePath:    partial.OriginalSourcePath,
+			JSArtefactID:  partial.JSArtefactID,
+			StyleBlock:    partial.StyleBlock,
+			PropsTypeName: "",
+			HasProps:      false,
 		}
 	}
 
@@ -940,4 +956,18 @@ func newInMemoryResolver(moduleName string, baseDir string) *inMemoryResolver {
 		moduleName: moduleName,
 		baseDir:    baseDir,
 	}
+}
+
+// newSourceEntryPoint builds the entry point for one playground source file, marking it
+// as a page when it lives under a pages directory.
+//
+// Takes moduleName (string) which prefixes the entry point path.
+// Takes sourcePath (string) which is the source file's path within the module.
+//
+// Returns annotator_dto.EntryPoint which describes the source file.
+func newSourceEntryPoint(moduleName, sourcePath string) annotator_dto.EntryPoint {
+	entryPoint := annotator_dto.EntryPoint{}
+	entryPoint.Path = moduleName + "/" + sourcePath
+	entryPoint.IsPage = strings.Contains(sourcePath, "pages/")
+	return entryPoint
 }

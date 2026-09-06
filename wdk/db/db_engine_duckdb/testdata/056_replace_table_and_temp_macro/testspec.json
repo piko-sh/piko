@@ -1,0 +1,3 @@
+{
+  "description": "CREATE OR REPLACE TABLE replaces an existing table with its new definition, and a CREATE TEMP MACRO with a := parameter default can be called without the defaulted argument."
+}

@@ -148,9 +148,12 @@ func (s *orchestratorService) buildReadinessDependencies(ctx context.Context, ch
 
 	dependencies := []*healthprobe_dto.Status{
 		{
-			Name:    "Active Tasks",
-			State:   healthprobe_dto.StateHealthy,
-			Message: fmt.Sprintf("%d task(s) currently processing", activeTasks),
+			Name:         "Active Tasks",
+			State:        healthprobe_dto.StateHealthy,
+			Message:      fmt.Sprintf("%d task(s) currently processing", activeTasks),
+			Timestamp:    time.Time{},
+			Duration:     "",
+			Dependencies: nil,
 		},
 	}
 

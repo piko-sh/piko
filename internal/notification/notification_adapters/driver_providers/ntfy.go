@@ -116,14 +116,9 @@ func (*NtfyProvider) SupportsBulkSending() bool {
 // Returns notification_domain.ProviderCapabilities which describes the supported features
 // and limits of this provider.
 func (*NtfyProvider) GetCapabilities() notification_domain.ProviderCapabilities {
-	return notification_domain.ProviderCapabilities{
-		SupportsRichFormatting: false,
-		SupportsImages:         false,
-		SupportsAttachments:    false,
-		MaxMessageLength:       ntfyMaxMessageLength,
-		SupportsBulkSending:    false,
-		RequiresAuthentication: false,
-	}
+	capabilities := notification_domain.ProviderCapabilities{}
+	capabilities.MaxMessageLength = ntfyMaxMessageLength
+	return capabilities
 }
 
 // Close releases any resources held by the provider.

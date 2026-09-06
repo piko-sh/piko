@@ -243,16 +243,20 @@ func BannerScheme(tlsEnabled bool) string {
 // Returns StartupBannerInfo which holds the formatted banner details.
 func BuildStartupBannerInfo(config DaemonConfig, mode string, version string) StartupBannerInfo {
 	info := StartupBannerInfo{
-		Version:        version,
-		Mode:           mode,
-		ServerURL:      fmt.Sprintf("http://localhost:%s", config.NetworkPort),
-		HealthProbeURL: "",
-		LivePath:       "",
-		ReadyPath:      "",
-		AutoPort:       config.NetworkAutoNextPort,
-		ServerExposed:  true,
-		HealthExposed:  false,
-		LargeMascot:    !config.IAmACatPerson,
+		Version:           version,
+		Mode:              mode,
+		ServerURL:         fmt.Sprintf("http://localhost:%s", config.NetworkPort),
+		HealthProbeURL:    "",
+		LivePath:          "",
+		ReadyPath:         "",
+		AutoPort:          config.NetworkAutoNextPort,
+		ServerExposed:     true,
+		HealthExposed:     false,
+		LargeMascot:       !config.IAmACatPerson,
+		MonitoringURL:     "",
+		ProfilingURL:      "",
+		ProfilingExposed:  false,
+		MonitoringExposed: false,
 	}
 
 	if config.HealthEnabled {

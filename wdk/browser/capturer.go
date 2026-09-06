@@ -140,7 +140,10 @@ type Capturer struct {
 // Returns error when the browser fails to start.
 func NewCapturer(opts CaptureOptions) (*Capturer, error) {
 	br, err := browser_provider_chromedp.NewBrowser(browser_provider_chromedp.BrowserOptions{
-		Headless: opts.Headless,
+		Headless:         opts.Headless,
+		ChromePath:       "",
+		ChromeFlags:      nil,
+		IgnoreCertErrors: false,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating browser: %w", err)
@@ -166,7 +169,7 @@ func (c *Capturer) CaptureURL(url string) (*CaptureResult, error) {
 		return nil, err
 	}
 
-	result := &CaptureResult{URL: url}
+	result := &CaptureResult{URL: url, HTML: "", Screenshot: nil, Screenshots: nil}
 
 	if err := c.captureScreenshot(pg, result); err != nil {
 		return nil, err
@@ -326,6 +329,8 @@ func DefaultCaptureOptions() CaptureOptions {
 		ScreenshotFormat:    "jpeg",
 		ScreenshotQuality:   defaultScreenshotQuality,
 		ScreenshotScale:     1.0,
+		ChunkScreenshots:    false,
+		IncludeShadowDOM:    false,
 	}
 }
 

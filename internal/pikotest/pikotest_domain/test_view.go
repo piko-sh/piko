@@ -386,6 +386,7 @@ func (v *TestView) renderHTML() {
 		IsFragment: false,
 		Styling:    "",
 		SiteConfig: websiteConfig,
+		ProbeData:  nil,
 	})
 
 	if err != nil {

@@ -86,3 +86,13 @@ func TestBuildViewerPreferencesDict_AllFields(t *testing.T) {
 		assert.Contains(t, output, flag, "missing %s in PDF output", flag)
 	}
 }
+
+func TestBuildViewerPreferencesDict_EscapesNames(t *testing.T) {
+	t.Parallel()
+
+	writer := &PdfDocumentWriter{}
+	entries := buildViewerPreferencesDict(&ViewerPreferences{PageLayout: "Single Page /JS", PageMode: "UseOutlines"}, writer)
+
+	assert.Contains(t, entries, "/PageLayout /Single#20Page#20#2FJS")
+	assert.Contains(t, entries, "/PageMode /UseOutlines")
+}

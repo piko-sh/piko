@@ -52,9 +52,7 @@ const (
 //
 // Returns *NoStack which is the configured component ready for use.
 func NewNoStack() *NoStack {
-	return &NoStack{
-		BaseComponent: BaseComponent{},
-	}
+	return &NoStack{}
 }
 
 // TagName returns the tag name for this component.
@@ -164,6 +162,8 @@ func (c *NoStack) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Trans
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style values.
 // Takes children ([]*ast_domain.TemplateNode) which are the child nodes to include.
+// Takes ctx (*pml_domain.TransformationContext) which provides inherited layout settings
+// for the PML transformation.
 //
 // Returns *ast_domain.TemplateNode which is the rendered group div element.
 func (c *NoStack) renderStructure(styles *pml_domain.StyleManager, children []*ast_domain.TemplateNode, _ string, ctx *pml_domain.TransformationContext) *ast_domain.TemplateNode {

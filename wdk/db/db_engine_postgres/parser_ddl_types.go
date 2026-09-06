@@ -36,6 +36,34 @@ const (
 	maxReturnsTableColumns = 1664
 )
 
+// functionArgumentMode is the parameter mode a CREATE FUNCTION argument declares.
+type functionArgumentMode uint8
+
+const (
+	// functionArgumentModeIn is an input-only parameter, the default when no mode is given.
+	functionArgumentModeIn functionArgumentMode = iota
+
+	// functionArgumentModeOut identifies an output-only parameter that forms part of the
+	// result and is never passed by a caller.
+	functionArgumentModeOut
+
+	// functionArgumentModeInOut is a parameter that is both passed in and returned.
+	functionArgumentModeInOut
+
+	// functionArgumentModeVariadic is a trailing parameter that accepts any number of
+	// values.
+	functionArgumentModeVariadic
+)
+
+// functionParameters holds a CREATE FUNCTION parameter list split by mode.
+type functionParameters struct {
+	// inputs are the parameters a caller passes (IN, INOUT, and VARIADIC).
+	inputs []querier_dto.FunctionArgument
+
+	// outputs are the parameters that form the result (OUT and INOUT).
+	outputs []querier_dto.FunctionArgument
+}
+
 // parseCreateType parses a CREATE TYPE statement and dispatches by kind.
 //
 // Takes engine (*PostgresEngine) which supplies type-resolution context.
@@ -44,8 +72,9 @@ const (
 // the body is not a recognised form.
 // Returns error when the type name fails to parse.
 func (p *parser) parseCreateType(engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
-	p.mustKeyword(keywordTYPE)
+	if err := p.requireKeywordSequence(keywordCREATE, keywordTYPE); err != nil {
+		return nil, err
+	}
 
 	schema, typeName, err := p.parseSchemaQualifiedName()
 	if err != nil {
@@ -76,12 +105,12 @@ func (p *parser) parseCreateType(engine *PostgresEngine) (*querier_dto.Catalogue
 // Returns error which is always nil; declared for caller uniformity.
 func (p *parser) parseCreateEnum(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	values := p.parseEnumValues()
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateEnum,
-		SchemaName: schema,
-		EnumName:   typeName,
-		EnumValues: values,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateEnum,
+		schema,
+		"",
+		querier_dto.WithEnum(typeName, values),
+	), nil
 }
 
 // parseEnumValues collects string literals from a parenthesised enum list.
@@ -137,13 +166,7 @@ func (p *parser) parseCreateCompositeType(
 		}
 		fieldType, arrayDimensions := p.parseColumnType(engine)
 		if len(columns) < maxReturnsTableColumns {
-			columns = append(columns, querier_dto.Column{
-				Name:            fieldName,
-				SQLType:         fieldType,
-				Nullable:        true,
-				IsArray:         arrayDimensions > 0,
-				ArrayDimensions: arrayDimensions,
-			})
+			columns = append(columns, newNullableColumn(fieldName, fieldType, arrayDimensions))
 		}
 
 		if p.current().kind == tokenComma {
@@ -154,12 +177,13 @@ func (p *parser) parseCreateCompositeType(
 		p.advance()
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateCompositeType,
-		SchemaName: schema,
-		EnumName:   typeName,
-		Columns:    columns,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateCompositeType,
+		schema,
+		"",
+		querier_dto.WithTypeName(typeName),
+		querier_dto.WithColumns(columns),
+	), nil
 }
 
 // parseAlterType parses an ALTER TYPE statement and dispatches by action.
@@ -168,8 +192,9 @@ func (p *parser) parseCreateCompositeType(
 // recognised action follows.
 // Returns error when the type name fails to parse.
 func (p *parser) parseAlterType() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("ALTER")
-	p.mustKeyword(keywordTYPE)
+	if err := p.requireKeywordSequence("ALTER", keywordTYPE); err != nil {
+		return nil, err
+	}
 
 	schema, typeName, err := p.parseSchemaQualifiedName()
 	if err != nil {
@@ -212,12 +237,12 @@ func (p *parser) parseAlterTypeAddValue(schema, typeName string) (*querier_dto.C
 		p.advance()
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterEnumAddValue,
-		SchemaName: schema,
-		EnumName:   typeName,
-		EnumValues: []string{newValue},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterEnumAddValue,
+		schema,
+		"",
+		querier_dto.WithEnum(typeName, []string{newValue}),
+	), nil
 }
 
 // parseAlterTypeRenameValue parses an ALTER TYPE ... RENAME VALUE action.
@@ -238,19 +263,21 @@ func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dt
 	}
 	oldValue := p.advance().value
 
-	p.mustKeyword("TO")
+	if err := p.requireKeyword("TO"); err != nil {
+		return nil, err
+	}
 
 	if p.current().kind != tokenString {
 		return nil, nil
 	}
 	newValue := p.advance().value
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterEnumRenameValue,
-		SchemaName: schema,
-		EnumName:   typeName,
-		EnumValues: []string{oldValue, newValue},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterEnumRenameValue,
+		schema,
+		"",
+		querier_dto.WithEnum(typeName, []string{oldValue, newValue}),
+	), nil
 }
 
 // parseDropType parses a DROP TYPE statement.
@@ -258,8 +285,9 @@ func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dt
 // Returns *querier_dto.CatalogueMutation which describes the drop mutation.
 // Returns error when the type name fails to parse.
 func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword(keywordTYPE)
+	if err := p.requireKeywordSequence(keywordDROP, keywordTYPE); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -271,11 +299,12 @@ func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropType,
-		SchemaName: schema,
-		EnumName:   typeName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropType,
+		schema,
+		"",
+		querier_dto.WithTypeName(typeName),
+	), nil
 }
 
 // parseCreateFunction parses a CREATE FUNCTION or CREATE PROCEDURE statement.
@@ -285,72 +314,81 @@ func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which describes the function mutation.
 // Returns error when a name, argument, or clause fails to parse.
 func (p *parser) parseCreateFunction(engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if err := p.requireKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 	p.skipOrReplace()
-	p.mustKeyword("FUNCTION", "PROCEDURE")
+	if err := p.requireKeyword("FUNCTION", "PROCEDURE"); err != nil {
+		return nil, err
+	}
 
 	schema, functionName, err := p.parseSchemaQualifiedName()
 	if err != nil {
 		return nil, err
 	}
 
-	arguments, argumentsError := p.parseFunctionArgumentList(engine)
-	if argumentsError != nil {
-		return nil, argumentsError
+	parameters, parametersError := p.parseFunctionArgumentList(engine)
+	if parametersError != nil {
+		return nil, parametersError
 	}
 
-	signature := &querier_dto.FunctionSignature{
-		Name:       functionName,
-		Schema:     schema,
-		Arguments:  arguments,
-		IsVariadic: p.lastArgumentWasVariadic,
-	}
+	signature := querier_dto.NewFunctionReference(schema, functionName)
+	signature.Arguments = parameters.inputs
+	signature.IsVariadic = p.lastArgumentWasVariadic
 	p.lastArgumentWasVariadic = false
 
 	tableColumns := p.parseFunctionBody(engine, signature)
+	tableColumns = applyOutputParameters(signature, parameters.outputs, tableColumns)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:              querier_dto.MutationCreateFunction,
-		SchemaName:        schema,
-		FunctionSignature: signature,
-		Columns:           tableColumns,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateFunction,
+		schema,
+		"",
+		querier_dto.WithColumns(tableColumns),
+		querier_dto.WithFunction(signature),
+	), nil
 }
 
-// parseFunctionArgumentList parses the parenthesised function argument list.
+// parseFunctionArgumentList parses the parenthesised function argument list, splitting it
+// into the parameters a caller passes and the parameters that form the result.
 //
 // Takes engine (*PostgresEngine) which supplies type-resolution context.
 //
-// Returns []querier_dto.FunctionArgument which holds the parsed arguments.
+// Returns functionParameters which holds the input and output parameters.
 // Returns error when an argument fails to parse.
-func (p *parser) parseFunctionArgumentList(engine *PostgresEngine) ([]querier_dto.FunctionArgument, error) {
+func (p *parser) parseFunctionArgumentList(engine *PostgresEngine) (functionParameters, error) {
+	var parameters functionParameters
 	if p.current().kind != tokenLeftParen {
-		return nil, nil
+		return parameters, nil
 	}
 	p.advance()
 
-	var arguments []querier_dto.FunctionArgument
 	for !p.atEnd() && p.current().kind != tokenRightParen {
 		startPosition := p.position
-		argument, argumentError := p.parseFunctionArgument(engine)
+		argument, mode, argumentError := p.parseFunctionArgument(engine)
 		if argumentError != nil {
-			return nil, argumentError
+			return functionParameters{}, argumentError
 		}
-		arguments = append(arguments, argument)
+		if mode != functionArgumentModeOut {
+			parameters.inputs = append(parameters.inputs, argument)
+		}
+		if mode == functionArgumentModeOut || mode == functionArgumentModeInOut {
+			parameters.outputs = append(parameters.outputs, argument)
+		}
 
 		if p.current().kind == tokenComma {
 			p.advance()
 		}
 
 		if p.position == startPosition {
-			return nil, fmt.Errorf("malformed function argument list: no progress at position %d", p.current().position)
+			return functionParameters{}, fmt.Errorf("malformed function argument list: no progress at position %d", p.current().position)
 		}
 	}
 	if p.current().kind == tokenRightParen {
 		p.advance()
 	}
 
-	return arguments, nil
+	return parameters, nil
 }
 
 // parseFunctionBody scans the trailing portion of a CREATE FUNCTION statement (RETURNS
@@ -543,13 +581,7 @@ func (p *parser) parseFunctionReturnsTableColumns(engine *PostgresEngine) []quer
 		}
 		fieldType, arrayDimensions := p.parseColumnType(engine)
 		if len(columns) < maxReturnsTableColumns {
-			columns = append(columns, querier_dto.Column{
-				Name:            fieldName,
-				SQLType:         fieldType,
-				Nullable:        true,
-				IsArray:         arrayDimensions > 0,
-				ArrayDimensions: arrayDimensions,
-			})
+			columns = append(columns, newNullableColumn(fieldName, fieldType, arrayDimensions))
 		}
 
 		if p.current().kind == tokenComma {
@@ -569,14 +601,10 @@ func (p *parser) parseFunctionReturnsTableColumns(engine *PostgresEngine) []quer
 // Takes engine (*PostgresEngine) which supplies type-resolution context.
 //
 // Returns querier_dto.FunctionArgument which is the parsed argument.
+// Returns functionArgumentMode which is the declared parameter mode.
 // Returns error when the argument type fails to parse.
-func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.FunctionArgument, error) {
-	p.matchKeyword("IN")
-	p.matchKeyword("OUT")
-	p.matchKeyword("INOUT")
-	if p.matchKeyword("VARIADIC") {
-		p.lastArgumentWasVariadic = true
-	}
+func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.FunctionArgument, functionArgumentMode, error) {
+	mode := p.parseFunctionArgumentMode()
 
 	savedPosition := p.position
 	possibleName, _ := p.parseIdentifierOrKeyword()
@@ -586,8 +614,9 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 		p.current().kind != tokenComma && p.current().kind != tokenRightParen {
 		argumentType, arrayDimensions := p.parseColumnType(engine)
 		argument := querier_dto.FunctionArgument{
-			Name: possibleName,
-			Type: functionArgumentArrayType(argumentType, arrayDimensions),
+			Name:       possibleName,
+			Type:       arrayTypeOf(argumentType, arrayDimensions),
+			IsOptional: false,
 		}
 
 		if p.matchKeyword(keywordDEFAULT) {
@@ -595,13 +624,15 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 			p.skipFunctionDefault()
 		}
 
-		return argument, nil
+		return argument, mode, nil
 	}
 
 	p.position = savedPosition
 	argumentType, arrayDimensions := p.parseColumnType(engine)
 	argument := querier_dto.FunctionArgument{
-		Type: functionArgumentArrayType(argumentType, arrayDimensions),
+		Type:       arrayTypeOf(argumentType, arrayDimensions),
+		Name:       "",
+		IsOptional: false,
 	}
 
 	if p.matchKeyword(keywordDEFAULT) {
@@ -609,11 +640,32 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 		p.skipFunctionDefault()
 	}
 
-	return argument, nil
+	return argument, mode, nil
 }
 
-// functionArgumentArrayType wraps a parsed scalar argument type in an array type once per
-// array dimension declared on a CREATE FUNCTION argument such as text[] or text[][].
+// parseFunctionArgumentMode consumes an optional IN, OUT, INOUT, or VARIADIC mode
+// keyword, recording a VARIADIC parameter on the parser so the signature can be marked
+// variadic.
+//
+// Returns functionArgumentMode which is the declared mode, functionArgumentModeIn when
+// none is written.
+func (p *parser) parseFunctionArgumentMode() functionArgumentMode {
+	switch {
+	case p.matchKeyword("IN"):
+		return functionArgumentModeIn
+	case p.matchKeyword("OUT"):
+		return functionArgumentModeOut
+	case p.matchKeyword("INOUT"):
+		return functionArgumentModeInOut
+	case p.matchKeyword("VARIADIC"):
+		p.lastArgumentWasVariadic = true
+		return functionArgumentModeVariadic
+	}
+	return functionArgumentModeIn
+}
+
+// arrayTypeOf wraps a scalar type in an array type once per array dimension, such as the
+// text[] or text[][] of a CREATE FUNCTION argument or a function's array result.
 //
 // Function arguments carry their array-ness in the SQLType itself, unlike table columns
 // which record it on Column.IsArray/ArrayDimensions, so the overload resolver can tell a
@@ -621,19 +673,18 @@ func (p *parser) parseFunctionArgument(engine *PostgresEngine) (querier_dto.Func
 // schema-qualified or modified base type keeps its identity. A zero dimension count
 // returns the element type unchanged.
 //
-// Takes elementType (querier_dto.SQLType) which is the scalar (non-array) argument type.
-// Takes dimensions (int) which is the number of trailing [] suffixes on the argument.
+// Takes elementType (querier_dto.SQLType) which is the scalar (non-array) type.
+// Takes dimensions (int) which is the number of array dimensions to wrap.
 //
 // Returns querier_dto.SQLType which is elementType wrapped in that many array layers.
-func functionArgumentArrayType(elementType querier_dto.SQLType, dimensions int) querier_dto.SQLType {
+func arrayTypeOf(elementType querier_dto.SQLType, dimensions int) querier_dto.SQLType {
 	wrapped := elementType
 	for range dimensions {
 		element := wrapped
-		wrapped = querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  element.EngineName + "[]",
-			ElementType: &element,
-		}
+		wrapped = querier_dto.SQLType{}
+		wrapped.Category = querier_dto.TypeCategoryArray
+		wrapped.EngineName = element.EngineName + arraySubscriptSuffix
+		wrapped.ElementType = &element
 	}
 	return wrapped
 }
@@ -667,8 +718,12 @@ func (p *parser) skipFunctionDefault() {
 // Returns *querier_dto.CatalogueMutation which describes the drop mutation.
 // Returns error when the function name fails to parse.
 func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("FUNCTION", "PROCEDURE")
+	if err := p.requireKeyword(keywordDROP); err != nil {
+		return nil, err
+	}
+	if err := p.requireKeyword("FUNCTION", "PROCEDURE"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -678,20 +733,20 @@ func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 	}
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		if err := p.requireSkipParenthesised(); err != nil {
+			return nil, err
+		}
 	}
 
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropFunction,
-		SchemaName: schema,
-		FunctionSignature: &querier_dto.FunctionSignature{
-			Name:   functionName,
-			Schema: schema,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropFunction,
+		schema,
+		"",
+		querier_dto.WithFunction(querier_dto.NewFunctionReference(schema, functionName)),
+	), nil
 }
 
 // parseCreateSchema parses a CREATE SCHEMA statement.
@@ -699,8 +754,9 @@ func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which describes the schema creation.
 // Returns error when the schema or role name fails to parse.
 func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
-	p.mustKeyword(keywordSCHEMA)
+	if err := p.requireKeywordSequence(keywordCREATE, keywordSCHEMA); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -709,10 +765,7 @@ func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
 		if roleError != nil {
 			return nil, roleError
 		}
-		return &querier_dto.CatalogueMutation{
-			Kind:       querier_dto.MutationCreateSchema,
-			SchemaName: roleName,
-		}, nil
+		return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateSchema, roleName, ""), nil
 	}
 
 	schemaName, err := p.parseIdentifierOrKeyword()
@@ -720,10 +773,7 @@ func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateSchema,
-		SchemaName: schemaName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateSchema, schemaName, ""), nil
 }
 
 // parseDropSchema parses a DROP SCHEMA statement.
@@ -731,8 +781,9 @@ func (p *parser) parseCreateSchema() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which describes the drop mutation.
 // Returns error when the schema name fails to parse.
 func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword(keywordSCHEMA)
+	if err := p.requireKeywordSequence(keywordDROP, keywordSCHEMA); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -744,10 +795,7 @@ func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropSchema,
-		SchemaName: schemaName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropSchema, schemaName, ""), nil
 }
 
 // parseCreateExtension parses a CREATE EXTENSION statement.
@@ -755,8 +803,9 @@ func (p *parser) parseDropSchema() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which describes the extension creation.
 // Returns error when the extension name fails to parse.
 func (p *parser) parseCreateExtension() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
-	p.mustKeyword("EXTENSION")
+	if err := p.requireKeywordSequence(keywordCREATE, "EXTENSION"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -774,25 +823,74 @@ func (p *parser) parseCreateExtension() (*querier_dto.CatalogueMutation, error) 
 		}
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateExtension,
-		SchemaName: schemaName,
-		NewName:    extensionName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateExtension,
+		schemaName,
+		"",
+		querier_dto.WithNewName(extensionName),
+	), nil
 }
 
 // parseDropExtension parses a DROP EXTENSION statement.
 //
 // Returns *querier_dto.CatalogueMutation which is always nil; the engine ignores
 // extension drops.
-// Returns error which is always nil; declared for caller uniformity.
+// Returns error when the statement does not name an extension.
 func (p *parser) parseDropExtension() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("EXTENSION")
+	if err := p.requireKeywordSequence(keywordDROP, "EXTENSION"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
-	p.mustIdentifierOrKeyword()
+	if _, err := p.requireIdentifierOrKeyword(); err != nil {
+		return nil, err
+	}
 
 	return nil, nil
+}
+
+// applyOutputParameters folds a function's OUT and INOUT parameters into its result shape
+// when the RETURNS clause leaves it open (absent, record, or SETOF record).
+//
+// One output parameter becomes the return type; several become the result columns, and a
+// set-returning function's return type is cleared so the catalogue synthesises a row type
+// from them, exactly as for RETURNS TABLE.
+//
+// Takes signature (*querier_dto.FunctionSignature) which receives the return type.
+// Takes outputs ([]querier_dto.FunctionArgument) which are the OUT and INOUT parameters.
+// Takes tableColumns ([]querier_dto.Column) which are any RETURNS TABLE columns.
+//
+// Returns []querier_dto.Column which is the result column list to record.
+func applyOutputParameters(
+	signature *querier_dto.FunctionSignature,
+	outputs []querier_dto.FunctionArgument,
+	tableColumns []querier_dto.Column,
+) []querier_dto.Column {
+	if len(outputs) == 0 || tableColumns != nil || !isOpenReturnType(signature.ReturnType) {
+		return tableColumns
+	}
+	if len(outputs) == 1 {
+		signature.ReturnType = outputs[0].Type
+		return nil
+	}
+	columns := make([]querier_dto.Column, 0, len(outputs))
+	for index := range outputs {
+		columns = append(columns, querier_dto.NewColumn(outputs[index].Name, outputs[index].Type, true))
+	}
+	if signature.ReturnsSet {
+		signature.ReturnType = querier_dto.SQLType{}
+	}
+	return columns
+}
+
+// isOpenReturnType reports whether a parsed return type leaves the result shape to the
+// function's output parameters by omitting the RETURNS clause or using the generic record
+// type.
+//
+// Takes returnType (querier_dto.SQLType) which is the parsed return type.
+//
+// Returns bool which is true when output parameters define the result.
+func isOpenReturnType(returnType querier_dto.SQLType) bool {
+	return returnType.EngineName == "" || strings.EqualFold(returnType.EngineName, "record")
 }

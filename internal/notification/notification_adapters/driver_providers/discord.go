@@ -205,7 +205,8 @@ func (d *DiscordProvider) formatDiscordPayload(params *notification_dto.SendPara
 	}
 
 	payload := discordPayload{
-		Embeds: []discordEmbed{embed},
+		Embeds:  []discordEmbed{embed},
+		Content: "",
 	}
 
 	return json.Marshal(payload)

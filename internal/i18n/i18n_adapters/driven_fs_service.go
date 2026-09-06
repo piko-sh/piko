@@ -110,11 +110,11 @@ func NewService(ctx context.Context, sandbox safedisk.Sandbox, defaultLocale, i1
 // Returns i18n_domain.Service which is the ready-to-use translation service.
 // Returns error when the FlatBuffer file cannot be loaded.
 func NewFlatBufferService(ctx context.Context, sandbox safedisk.Sandbox, filePath string, defaultLocale string) (i18n_domain.Service, error) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 	defaultLocale = cmp.Or(defaultLocale, "en")
 
 	provider := newFlatBufferProvider(sandbox, filePath)
-	store, err := provider.load()
+	store, err := provider.load(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loading i18n FlatBuffer from %q: %w", filePath, err)
 	}
@@ -175,7 +175,8 @@ func newFSServiceFromDir(ctx context.Context, sandbox safedisk.Sandbox, dirPath,
 
 	loadJSONFiles(ctx, sandbox, files, dirPath, translations)
 
-	store := i18n_domain.NewStoreFromTranslations(translations, defaultLocale)
+	store := i18n_domain.NewStore(defaultLocale)
+	i18n_domain.ReportTemplateProblems(ctx, dirPath, store.AddAllTranslations(translations))
 	pool := i18n_domain.NewStrBufPool(defaultStrBufPoolCapacity)
 
 	return &fsService{

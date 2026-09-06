@@ -282,9 +282,7 @@ func TestFindPropsStruct(t *testing.T) {
 						Specs: []goast.Spec{
 							&goast.TypeSpec{
 								Name: cachedIdent("Props"),
-								Type: &goast.StructType{
-									Fields: nil,
-								},
+								Type: &goast.StructType{},
 							},
 						},
 					},

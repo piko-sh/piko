@@ -183,22 +183,25 @@ func (d *driver) FetchDueTasks(ctx context.Context, params dalcore.FetchDueTasks
 	}
 	out := make([]dalcore.FetchDueTaskRow, len(rows))
 	for i := range rows {
-		out[i] = dalcore.FetchDueTaskRow{
-			ID:               rows[i].ID,
-			WorkflowID:       rows[i].WorkflowID,
-			Executor:         rows[i].Executor,
-			Priority:         rows[i].Priority,
-			Payload:          rows[i].Payload,
-			Config:           rows[i].Config,
-			Result:           rows[i].Result,
-			Status:           rows[i].Status,
-			ExecuteAt:        rows[i].ExecuteAt,
-			Attempt:          rows[i].Attempt,
-			LastError:        rows[i].LastError,
-			CreatedAt:        rows[i].CreatedAt,
-			UpdatedAt:        rows[i].UpdatedAt,
-			DeduplicationKey: rows[i].DeduplicationKey,
-		}
+		out[i] = toFetchDueTaskRow(&rows[i])
+	}
+	return out, nil
+}
+
+// GetTasksByID returns the tasks with the given IDs, skipping IDs that do not exist.
+//
+// Takes ids ([]string) which lists the task IDs to read.
+//
+// Returns []dalcore.FetchDueTaskRow which holds the tasks found.
+// Returns error when the query fails.
+func (d *driver) GetTasksByID(ctx context.Context, ids []string) ([]dalcore.FetchDueTaskRow, error) {
+	rows, err := d.queries.GetTasksByID(ctx, orchestrator_db.GetTasksByIDParams{IDs: ids})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]dalcore.FetchDueTaskRow, len(rows))
+	for i := range rows {
+		out[i] = toFetchDueTaskRow(new(orchestrator_db.FetchDueTasksRow(rows[i])))
 	}
 	return out, nil
 }
@@ -427,7 +430,7 @@ func (d *driver) GetPendingReceiptsByNode(ctx context.Context, nodeID string) ([
 	}
 	out := make([]dalcore.PendingReceiptRow, len(rows))
 	for i, row := range rows {
-		out[i] = dalcore.PendingReceiptRow{ID: row.ID, WorkflowID: row.WorkflowID, CreatedAt: row.CreatedAt}
+		out[i] = dalcore.PendingReceiptRow{ID: row.ID, WorkflowID: row.WorkflowID, CreatedAt: row.CreatedAt, NodeID: ""}
 	}
 	return out, nil
 }
@@ -589,5 +592,29 @@ func toCreateTaskParams(params dalcore.CreateTaskParams) orchestrator_db.CreateT
 		Attempt:    params.Attempt,
 		CreatedAt:  params.CreatedAt,
 		UpdatedAt:  params.UpdatedAt,
+	}
+}
+
+// toFetchDueTaskRow converts a generated task row into the driver-neutral row shape.
+//
+// Takes row (*orchestrator_db.FetchDueTasksRow) which is the generated row.
+//
+// Returns dalcore.FetchDueTaskRow which carries the same columns.
+func toFetchDueTaskRow(row *orchestrator_db.FetchDueTasksRow) dalcore.FetchDueTaskRow {
+	return dalcore.FetchDueTaskRow{
+		ID:               row.ID,
+		WorkflowID:       row.WorkflowID,
+		Executor:         row.Executor,
+		Priority:         row.Priority,
+		Payload:          row.Payload,
+		Config:           row.Config,
+		Result:           row.Result,
+		Status:           row.Status,
+		ExecuteAt:        row.ExecuteAt,
+		Attempt:          row.Attempt,
+		LastError:        row.LastError,
+		CreatedAt:        row.CreatedAt,
+		UpdatedAt:        row.UpdatedAt,
+		DeduplicationKey: row.DeduplicationKey,
 	}
 }

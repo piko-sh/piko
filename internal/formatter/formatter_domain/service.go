@@ -457,15 +457,7 @@ func (*formatterServiceImpl) formatCSS(cssContent string, _ *FormatOptions) (str
 		return "", fmt.Errorf("failed to parse CSS: %s", esLog.Done()[0].Data.Text)
 	}
 
-	printOptions := css_printer.Options{
-		MinifyWhitespace:  false,
-		LineLimit:         0,
-		InputSourceIndex:  0,
-		ASCIIOnly:         false,
-		AddSourceMappings: false,
-		LegalComments:     0,
-		NeedsMetafile:     false,
-	}
+	printOptions := css_printer.Options{}
 
 	symMap := es_ast.NewSymbolMap(1)
 	symMap.SymbolsForSource[0] = tree.Symbols

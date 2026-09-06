@@ -308,6 +308,7 @@ func NewPostmarkProvider(ctx context.Context, arguments PostmarkProviderArgs, op
 	defaultConfig := email_domain.ProviderRateLimitConfig{
 		CallsPerSecond: defaultCallsPerSecond,
 		Burst:          defaultBurst,
+		Clock:          nil,
 	}
 	rateLimiter := email_domain.ApplyProviderOptions(defaultConfig, opts...)
 

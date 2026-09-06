@@ -129,7 +129,7 @@ func TestAstBuilder_EmitNode_Dispatch(t *testing.T) {
 				Sel: cachedIdent("Children"),
 			}
 
-			emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+			emitCtx := newNodeEmissionContext(nodeEmissionParams{
 				Node:                  tc.node,
 				ParentSliceExpression: parentSliceExpr,
 				Index:                 0,
@@ -139,7 +139,7 @@ func TestAstBuilder_EmitNode_Dispatch(t *testing.T) {
 				MainComponentScope:    "",
 			})
 
-			statements, consumed, diagnostics := em.astBuilder.emitNode(emitCtx)
+			statements, consumed, diagnostics := em.astBuilder.emitNode(ctx, emitCtx)
 
 			tc.validateFunc(t, statements, consumed, diagnostics)
 			assert.Equal(t, tc.expectedConsumed, consumed, "Should consume expected number of nodes")
@@ -161,8 +161,7 @@ func TestAstBuilder_PrepareNodeForEmission(t *testing.T) {
 			TagName: "div",
 		}
 
-		ctx := context.Background()
-		emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+		emitCtx := newNodeEmissionContext(nodeEmissionParams{
 			Node:                  node,
 			ParentSliceExpression: nil,
 			Index:                 0,
@@ -198,7 +197,7 @@ func TestAstBuilder_EmitContentTag(t *testing.T) {
 		Sel: cachedIdent("Children"),
 	}
 
-	emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+	emitCtx := newNodeEmissionContext(nodeEmissionParams{
 		Node:                  contentNode,
 		ParentSliceExpression: parentSliceExpr,
 		Index:                 0,
@@ -208,7 +207,7 @@ func TestAstBuilder_EmitContentTag(t *testing.T) {
 		MainComponentScope:    "",
 	})
 
-	statements, consumed, diagnostics := em.astBuilder.emitNode(emitCtx)
+	statements, consumed, diagnostics := em.astBuilder.emitNode(ctx, emitCtx)
 
 	assert.Empty(t, diagnostics)
 	assert.NotEmpty(t, statements, "Should emit content nodes")

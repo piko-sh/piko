@@ -19,9 +19,13 @@
 package maths
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func checkMoney(t *testing.T, m Money, expectedValue string, expectedCode string, expectError bool) {
@@ -247,10 +251,8 @@ func TestRegisterCurrencyConcurrency(t *testing.T) {
 	var wg sync.WaitGroup
 	const numGoroutines = 100
 
-	wg.Add(numGoroutines)
 	for i := range numGoroutines {
-		go func(i int) {
-			defer wg.Done()
+		wg.Go(func() {
 			if i%2 == 0 {
 				code := fmt.Sprintf("C%d", i)
 				RegisterCurrency(code, CurrencyDefinition{Digits: 2})
@@ -258,7 +260,7 @@ func TestRegisterCurrencyConcurrency(t *testing.T) {
 				_ = NewMoneyFromInt(100, "USD")
 				_ = NewMoneyFromInt(100, "EUR")
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -376,4 +378,51 @@ func TestMoneyErrorPropagationEdgeCases(t *testing.T) {
 	checkMoney(t, mInvalid.DivideInt(5), "", "", true)
 	checkMoney(t, mInvalid.DivideFloat(5.0), "", "", true)
 	checkMoney(t, mInvalid.DivideString("5"), "", "", true)
+}
+
+func TestNewMoneyError(t *testing.T) {
+	cause := errors.New("money: rate unavailable")
+	failed := newMoneyError(cause)
+
+	testCases := []struct {
+		operation func(Money) Money
+		name      string
+	}{
+		{name: "the value itself", operation: func(m Money) Money { return m }},
+		{name: "after Add", operation: func(m Money) Money { return m.Add(NewMoneyFromInt(1, "GBP")) }},
+		{name: "after MultiplyInt", operation: func(m Money) Money { return m.MultiplyInt(3) }},
+		{name: "after DivideInt", operation: func(m Money) Money { return m.DivideInt(2) }},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			result := testCase.operation(failed)
+
+			require.ErrorIs(t, result.Err(), cause)
+			_, err := result.Amount()
+			assert.Error(t, err)
+		})
+	}
+}
+
+func TestMoney_OperationsReportUnderlyingFailures(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		money func() Money
+		name  string
+	}{
+		{name: "a decimal amount in an unknown currency", money: func() Money { return NewMoneyFromDecimal(NewDecimalFromString("1.50"), "ZZZ") }},
+		{name: "a minor-unit amount in an unknown currency", money: func() Money { return NewMoneyFromMinorInt(150, "ZZZ") }},
+		{name: "adding a different currency", money: func() Money { return NewMoneyFromString("1", "GBP").Add(NewMoneyFromString("1", "USD")) }},
+		{name: "subtracting a different currency", money: func() Money { return NewMoneyFromString("1", "GBP").Subtract(NewMoneyFromString("1", "USD")) }},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Error(t, testCase.money().Err())
+		})
+	}
 }

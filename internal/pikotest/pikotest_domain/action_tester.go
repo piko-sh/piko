@@ -103,10 +103,18 @@ func injectTestMetadata(action any) {
 
 	if injector, ok := action.(metadataInjector); ok {
 		injector.SetRequest(&daemon_dto.RequestMetadata{
-			Method:      http.MethodPost,
-			Path:        "/test",
-			Headers:     make(http.Header),
-			QueryParams: make(map[string][]string),
+			Method:          http.MethodPost,
+			Path:            "/test",
+			Headers:         make(http.Header),
+			QueryParams:     make(map[string][]string),
+			Session:         nil,
+			RawRequest:      nil,
+			CSRFToken:       nil,
+			CaptchaScore:    nil,
+			SpamScore:       nil,
+			SpamFieldScores: nil,
+			RemoteAddr:      "",
+			SpamReasons:     nil,
 		})
 		injector.SetResponse(daemon_dto.NewResponseWriter())
 	}
@@ -126,7 +134,8 @@ func buildTestFullResponse(action any, result any) *daemon_dto.ActionFullRespons
 	}
 
 	response := &daemon_dto.ActionFullResponse{
-		Data: result,
+		Data:    result,
+		Helpers: nil,
 	}
 
 	if getter, ok := action.(responseGetter); ok {

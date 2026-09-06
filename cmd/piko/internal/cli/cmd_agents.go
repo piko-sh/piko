@@ -712,9 +712,13 @@ func newAgentsModel(factory safedisk.Factory, version string) *agentsModel {
 	wb.Cursor = len(targets)
 
 	return &agentsModel{
-		WizardBase: wb,
-		factory:    factory,
-		targets:    targets,
+		WizardBase:       wb,
+		factory:          factory,
+		targets:          targets,
+		err:              nil,
+		results:          nil,
+		gitignoreCursor:  0,
+		gitignoreUpdated: false,
 	}
 }
 
@@ -776,6 +780,10 @@ func newAgentsUninstallModel(factory safedisk.Factory) *agentsUninstallModel {
 		factory:             factory,
 		targets:             targets,
 		hasGitignoreEntries: hasGitignore,
+		err:                 nil,
+		results:             nil,
+		gitignoreCursor:     0,
+		gitignoreUpdated:    false,
 	}
 }
 

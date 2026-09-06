@@ -145,19 +145,15 @@ func TestSEOService_NewSEOService_ValidationErrors(t *testing.T) {
 		seoConfig config.SEOConfig
 	}{
 		{
-			name: "SEO disabled",
-			seoConfig: config.SEOConfig{
-				Enabled: false,
-			},
+			name:      "SEO disabled",
+			seoConfig: config.SEOConfig{},
 			expectErr: "SEO service is disabled",
 		},
 		{
 			name: "Missing hostname",
 			seoConfig: config.SEOConfig{
 				Enabled: true,
-				Sitemap: config.SitemapConfig{
-					Hostname: "",
-				},
+				Sitemap: config.SitemapConfig{},
 			},
 			expectErr: "sitemap hostname is required",
 		},

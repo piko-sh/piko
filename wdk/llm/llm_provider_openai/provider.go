@@ -101,8 +101,12 @@ var (
 //
 // Returns *llm_dto.CompletionResponse which contains the generated completion.
 // Returns error when the API request fails.
-func (p *openaiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Complete")
+func (p *openaiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (result *llm_dto.CompletionResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.openaiProvider.Complete", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	completeCount.Add(ctx, 1)
@@ -213,6 +217,9 @@ func (p *openaiProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, e
 				SupportsStreaming:        true,
 				SupportsTools:            true,
 				SupportsStructuredOutput: true,
+				ContextWindow:            0,
+				MaxOutputTokens:          0,
+				SupportsVision:           false,
 			})
 		}
 	}
@@ -271,8 +278,12 @@ func (p *openaiProvider) DefaultModel() string {
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
-func (p *openaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Embed")
+func (p *openaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (result *llm_dto.EmbeddingResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.openaiProvider.Embed", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	embedCount.Add(ctx, 1)
@@ -316,20 +327,11 @@ func (p *openaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 		for j, v := range d.Embedding {
 			f32[j] = float32(v)
 		}
-		embeddings[i] = llm_dto.Embedding{
-			Index:  int(d.Index),
-			Vector: f32,
-		}
+		embeddings[i] = llm_dto.NewFloat32Embedding(int(d.Index), f32)
 	}
 
-	return &llm_dto.EmbeddingResponse{
-		Model:      response.Model,
-		Embeddings: embeddings,
-		Usage: &llm_dto.EmbeddingUsage{
-			PromptTokens: int(response.Usage.PromptTokens),
-			TotalTokens:  int(response.Usage.TotalTokens),
-		},
-	}, nil
+	usage := llm_dto.NewEmbeddingUsage(int(response.Usage.PromptTokens), int(response.Usage.TotalTokens))
+	return llm_dto.NewEmbeddingResponse(response.Model, embeddings, usage), nil
 }
 
 // ListEmbeddingModels returns available embedding models from OpenAI.
@@ -346,12 +348,7 @@ func (p *openaiProvider) ListEmbeddingModels(ctx context.Context) ([]llm_dto.Mod
 	for i := range page.Data {
 		model := &page.Data[i]
 		if isOAEmbeddingModel(model.ID) {
-			result = append(result, llm_dto.ModelInfo{
-				ID:       model.ID,
-				Name:     model.ID,
-				Provider: "openai",
-				Created:  model.Created,
-			})
+			result = append(result, llm_dto.NewEmbeddingModelInfo(model.ID, "openai", model.Created))
 		}
 	}
 	return result, nil
@@ -679,8 +676,12 @@ func (p *openaiProvider) convertResponse(completion *openai.ChatCompletion) *llm
 	for i := range completion.Choices {
 		choice := &completion.Choices[i]
 		message := llm_dto.Message{
-			Role:    llm_dto.RoleAssistant,
-			Content: choice.Message.Content,
+			Role:         llm_dto.RoleAssistant,
+			Content:      choice.Message.Content,
+			Name:         nil,
+			ToolCallID:   nil,
+			ContentParts: nil,
+			ToolCalls:    nil,
 		}
 
 		if len(choice.Message.ToolCalls) > 0 {
@@ -706,10 +707,13 @@ func (p *openaiProvider) convertResponse(completion *openai.ChatCompletion) *llm
 	}
 
 	response := &llm_dto.CompletionResponse{
-		ID:      completion.ID,
-		Model:   completion.Model,
-		Created: completion.Created,
-		Choices: choices,
+		ID:           completion.ID,
+		Model:        completion.Model,
+		Created:      completion.Created,
+		Choices:      choices,
+		Usage:        nil,
+		FallbackInfo: nil,
+		Sources:      nil,
 	}
 
 	if completion.Usage.TotalTokens > 0 {
@@ -718,6 +722,7 @@ func (p *openaiProvider) convertResponse(completion *openai.ChatCompletion) *llm
 			CompletionTokens: int(completion.Usage.CompletionTokens),
 			TotalTokens:      int(completion.Usage.TotalTokens),
 			CachedTokens:     int(completion.Usage.PromptTokensDetails.CachedTokens),
+			EstimatedCost:    nil,
 		}
 	}
 
@@ -780,6 +785,8 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 		defaultModel:          config.DefaultModel,
 		defaultEmbeddingModel: config.DefaultEmbeddingModel,
 		embeddingDimensions:   config.EmbeddingDimensions,
+		streamWaitGroup:       sync.WaitGroup{},
+		closeOnce:             sync.Once{},
 	}, nil
 }
 

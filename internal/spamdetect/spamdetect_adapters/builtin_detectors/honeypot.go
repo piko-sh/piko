@@ -75,21 +75,14 @@ func (*HoneypotDetector) Analyse(ctx context.Context, submission *spamdetect_dto
 	}
 
 	if submission == nil {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	if submission.HoneypotValue != "" {
-		return &spamdetect_dto.DetectorResult{
-			Score:   1.0,
-			IsSpam:  true,
-			Reasons: []string{"honeypot field was filled"},
-		}, nil
+		return spamdetect_dto.NewReasonDetectorResult(1.0, true, []string{"honeypot field was filled"}), nil
 	}
 
-	return &spamdetect_dto.DetectorResult{
-		Score:  0.0,
-		IsSpam: false,
-	}, nil
+	return spamdetect_dto.NewCleanDetectorResult(), nil
 }
 
 // HealthCheck always succeeds because the detector has no external dependencies.

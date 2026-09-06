@@ -144,7 +144,7 @@ func computeAutoLocaleHead(
 //
 // Returns *templater_domain.LocaleSEOHead, or nil when no canonical could be built.
 func singleLocaleHead(currentLocale, baseURL string, patterns, params map[string]string) *templater_domain.LocaleSEOHead {
-	head := &templater_domain.LocaleSEOHead{Language: currentLocale}
+	head := &templater_domain.LocaleSEOHead{Language: currentLocale, CanonicalURL: "", AlternateLinks: nil}
 	for _, pattern := range patterns {
 		head.CanonicalURL = baseURL + seo_dto.EscapePathSegments(substituteRouteParams(pattern, params))
 		break
@@ -179,7 +179,7 @@ func localeAlternatesHead(currentLocale, defaultLocale, baseURL string, orderedL
 		slices.Sort(ordered)
 	}
 
-	head := &templater_domain.LocaleSEOHead{Language: currentLocale}
+	head := &templater_domain.LocaleSEOHead{Language: currentLocale, CanonicalURL: "", AlternateLinks: nil}
 	alternates := make([]map[string]string, 0, len(patterns)+1)
 	for _, locale := range ordered {
 		pattern, ok := patterns[locale]

@@ -118,9 +118,10 @@ type Connection struct {
 // Returns error when the connection cannot be set up or the health check fails.
 func NewConnection(address string, opts ...Option) (*Connection, error) {
 	config := Config{
-		Address:         address,
-		DialTimeout:     defaultDialTimeout,
-		RefreshInterval: defaultRefreshInterval,
+		Address:              address,
+		DialTimeout:          defaultDialTimeout,
+		RefreshInterval:      defaultRefreshInterval,
+		TransportCredentials: nil,
 	}
 
 	for _, opt := range opts {
@@ -302,9 +303,10 @@ func WithTransportCredentials(creds credentials.TransportCredentials) Option {
 // Returns error when the connection cannot be established.
 func NewProviders(address string, opts ...Option) (*tui_domain.Providers, error) {
 	config := Config{
-		Address:         address,
-		DialTimeout:     defaultDialTimeout,
-		RefreshInterval: defaultRefreshInterval,
+		Address:              address,
+		DialTimeout:          defaultDialTimeout,
+		RefreshInterval:      defaultRefreshInterval,
+		TransportCredentials: nil,
 	}
 
 	for _, opt := range opts {

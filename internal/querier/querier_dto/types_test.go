@@ -29,3 +29,27 @@ func TestDefaultSQLCommentStyle_UsesDoubleDashLinePrefix(t *testing.T) {
 
 	assert.Equal(t, CommentStyle{LinePrefix: "--"}, DefaultSQLCommentStyle())
 }
+
+func TestNewSQLType(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		engineName string
+		category   SQLTypeCategory
+	}{
+		{name: "named type", category: TypeCategoryInteger, engineName: "int8"},
+		{name: "unnamed unknown type", category: TypeCategoryUnknown, engineName: ""},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			want := SQLType{}
+			want.Category = testCase.category
+			want.EngineName = testCase.engineName
+			assert.Equal(t, want, NewSQLType(testCase.category, testCase.engineName))
+		})
+	}
+}

@@ -246,11 +246,12 @@ func (s *service) Check(_ context.Context, _ healthprobe_dto.CheckType) healthpr
 	}
 
 	return healthprobe_dto.Status{
-		Name:      s.Name(),
-		State:     state,
-		Message:   message,
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         s.Name(),
+		State:        state,
+		Message:      message,
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -364,6 +365,8 @@ func NewService(defaultProvider string) Service {
 	return &service{
 		providers:       make(map[string]any),
 		defaultProvider: defaultProvider,
+		weightBudget:    0,
+		mu:              sync.RWMutex{},
 	}
 }
 

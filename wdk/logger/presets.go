@@ -172,7 +172,7 @@ func AddJSONOutput(opts ...OutputOption) {
 //		logger.WithLevel(slog.LevelError),
 //		logger.WithJSON())
 func AddFileOutput(ctx context.Context, name, path string, opts ...OutputOption) {
-	config := &outputConfig{noColour: true}
+	config := &outputConfig{noColour: true, level: nil, asJSON: false}
 	for _, opt := range opts {
 		opt(config)
 	}
@@ -185,6 +185,9 @@ func AddFileOutput(ctx context.Context, name, path string, opts ...OutputOption)
 		MaxBackups: defaultMaxBackups,
 		MaxAge:     defaultMaxAgeDays,
 		Compress:   true,
+		Sandbox:    nil,
+		Clock:      nil,
+		LocalTime:  false,
 	})
 	if fileError != nil {
 		logger_domain.GetLogger("logger").Error("Failed to create file output", logger_domain.Error(fileError))
@@ -211,7 +214,7 @@ func AddFileOutput(ctx context.Context, name, path string, opts ...OutputOption)
 // Takes opts (...OutputOption) which provides optional settings such as WithLevel() to
 // override the log level, or WithJSON() for JSON format.
 func AddFileOutputOnly(ctx context.Context, _, path string, opts ...OutputOption) {
-	config := &outputConfig{noColour: true}
+	config := &outputConfig{noColour: true, level: nil, asJSON: false}
 	for _, opt := range opts {
 		opt(config)
 	}
@@ -224,6 +227,9 @@ func AddFileOutputOnly(ctx context.Context, _, path string, opts ...OutputOption
 		MaxBackups: defaultMaxBackups,
 		MaxAge:     defaultMaxAgeDays,
 		Compress:   true,
+		Sandbox:    nil,
+		Clock:      nil,
+		LocalTime:  false,
 	})
 	if fileError != nil {
 		logger_domain.GetLogger("logger").Error("Failed to create file output", logger_domain.Error(fileError))

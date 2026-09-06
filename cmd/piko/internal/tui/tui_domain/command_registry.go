@@ -62,7 +62,7 @@ type CommandRegistry struct {
 //
 // Returns *CommandRegistry ready to receive Register calls.
 func NewCommandRegistry() *CommandRegistry {
-	return &CommandRegistry{commands: make(map[string]Command)}
+	return &CommandRegistry{commands: make(map[string]Command), mu: sync.RWMutex{}}
 }
 
 // Register stores cmd under its Name and every Alias. Duplicate registrations panic to

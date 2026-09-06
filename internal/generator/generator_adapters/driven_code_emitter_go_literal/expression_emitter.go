@@ -24,8 +24,8 @@ import (
 	"go/token"
 	"strconv"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 const (

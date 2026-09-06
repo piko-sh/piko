@@ -32,11 +32,7 @@ func TestMockService_GetStore(t *testing.T) {
 	t.Run("nil GetStoreFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockService{
-			GetStoreFunc:      nil,
-			GetStrBufPoolFunc: nil,
-			DefaultLocaleFunc: nil,
-		}
+		mock := &MockService{}
 
 		result := mock.GetStore()
 
@@ -71,11 +67,7 @@ func TestMockService_GetStrBufPool(t *testing.T) {
 	t.Run("nil GetStrBufPoolFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockService{
-			GetStoreFunc:      nil,
-			GetStrBufPoolFunc: nil,
-			DefaultLocaleFunc: nil,
-		}
+		mock := &MockService{}
 
 		result := mock.GetStrBufPool()
 
@@ -110,11 +102,7 @@ func TestMockService_DefaultLocale(t *testing.T) {
 	t.Run("nil DefaultLocaleFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockService{
-			GetStoreFunc:      nil,
-			GetStrBufPoolFunc: nil,
-			DefaultLocaleFunc: nil,
-		}
+		mock := &MockService{}
 
 		result := mock.DefaultLocale()
 
@@ -162,30 +150,22 @@ func TestMockService_ZeroValueIsUsable(t *testing.T) {
 func TestMockService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockService{
-		GetStoreFunc:      nil,
-		GetStrBufPoolFunc: nil,
-		DefaultLocaleFunc: nil,
-	}
+	mock := &MockService{}
 
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 3)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = mock.GetStore()
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.GetStrBufPool()
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.DefaultLocale()
-		}()
+		})
 	}
 
 	wg.Wait()

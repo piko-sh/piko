@@ -165,7 +165,7 @@ func TestValidateSpec(t *testing.T) {
 		},
 		{
 			name:    "zero dimensions are valid",
-			spec:    video_dto.TranscodeSpec{Width: 0, Height: 0},
+			spec:    video_dto.TranscodeSpec{},
 			wantErr: "",
 		},
 	}

@@ -29,9 +29,9 @@ import (
 
 	"path/filepath"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -191,6 +191,7 @@ func handleUndefinedIdentifier(ctx *AnalysisContext, n *ast_domain.Identifier, l
 			IsExportedPackageSymbol: false,
 			InitialPackagePath:      "",
 			InitialFilePath:         "",
+			UnderlyingTypeString:    "",
 		},
 		int(inspector_dto.StringableNone),
 	)
@@ -224,6 +225,7 @@ func handleUnexportedFunctionAccess(ctx *AnalysisContext, n *ast_domain.Identifi
 			IsExportedPackageSymbol: false,
 			InitialPackagePath:      "",
 			InitialFilePath:         "",
+			UnderlyingTypeString:    "",
 		},
 		int(inspector_dto.StringableNone),
 	)
@@ -254,40 +256,18 @@ func capitaliseFirstLetter(s string) string {
 // Returns *ast_domain.GoGeneratorAnnotation which represents an int type because loop
 // indices are integers, but the actual value will be discarded.
 func createBlankIdentifierAnnotation() *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      new("_"),
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          goast.NewIdent("int"),
-			PackageAlias:            "",
-			CanonicalPackagePath:    "",
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           int(inspector_dto.StringablePrimitive),
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.BaseCodeGenVarName = new("_")
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          goast.NewIdent("int"),
+		PackageAlias:            "",
+		CanonicalPackagePath:    "",
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
+	annotation.Stringability = int(inspector_dto.StringablePrimitive)
+	return &annotation
 }

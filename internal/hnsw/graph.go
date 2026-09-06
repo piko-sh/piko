@@ -315,6 +315,8 @@ func New[K comparable](dimension int, metric vectormaths.Metric, opts ...Option)
 		maxNeighboursPerLayer:      defaultMaxNeighboursPerLayer,
 		constructionCandidateCount: defaultConstructionCandidateCount,
 		searchCandidateCount:       defaultSearchCandidateCount,
+		seed:                       0,
+		hasSeed:                    false,
 	}
 	for _, opt := range opts {
 		opt(config)
@@ -339,6 +341,15 @@ func New[K comparable](dimension int, metric vectormaths.Metric, opts ...Option)
 		searchCandidateCount:       config.searchCandidateCount,
 		levelNormalisationFactor:   1.0 / math.Log(float64(config.maxNeighboursPerLayer)),
 		randomSource:               randomSource,
+		visitedPool:                sync.Pool{},
+		pqItemPool:                 sync.Pool{},
+		entry:                      *new(K),
+		distanceFunction:           nil,
+		freeIDs:                    nil,
+		nodeByID:                   nil,
+		mu:                         sync.RWMutex{},
+		nextID:                     0,
+		hasEntry:                   false,
 	}
 
 	switch metric {

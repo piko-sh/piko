@@ -79,17 +79,8 @@ func sanitisePackagePaths(pkg *inspector_dto.Package, replacer func(string) stri
 	}
 
 	for _, namedType := range pkg.NamedTypes {
-		if namedType == nil {
-			continue
-		}
-		namedType.DefinedInFilePath = replacer(namedType.DefinedInFilePath)
-		for index := range namedType.Fields {
-			namedType.Fields[index].DefinitionFilePath = replacer(namedType.Fields[index].DefinitionFilePath)
-		}
-		for _, method := range namedType.Methods {
-			if method != nil {
-				method.DefinitionFilePath = replacer(method.DefinitionFilePath)
-			}
+		if namedType != nil {
+			sanitiseNamedTypePaths(namedType, replacer)
 		}
 	}
 
@@ -102,6 +93,25 @@ func sanitisePackagePaths(pkg *inspector_dto.Package, replacer func(string) stri
 	for _, variable := range pkg.Variables {
 		if variable != nil {
 			variable.DefinedInFilePath = replacer(variable.DefinedInFilePath)
+		}
+	}
+}
+
+// sanitiseNamedTypePaths rewrites the file paths recorded on a named type, its fields and
+// its methods.
+//
+// Takes namedType (*inspector_dto.Type) which is mutated in place.
+// Takes replacer (func(string) string) which rewrites a single path.
+func sanitiseNamedTypePaths(namedType *inspector_dto.Type, replacer func(string) string) {
+	namedType.DefinedInFilePath = replacer(namedType.DefinedInFilePath)
+	for _, field := range namedType.Fields {
+		if field != nil {
+			field.DefinitionFilePath = replacer(field.DefinitionFilePath)
+		}
+	}
+	for _, method := range namedType.Methods {
+		if method != nil {
+			method.DefinitionFilePath = replacer(method.DefinitionFilePath)
 		}
 	}
 }
@@ -153,8 +163,8 @@ func newPathSanitiser() func(string) string {
 			return path
 		}
 		for _, replacement := range replacements {
-			if strings.HasPrefix(path, replacement.prefix) {
-				return replacement.placeholder + filepath.ToSlash(strings.TrimPrefix(path, replacement.prefix))
+			if after, ok := strings.CutPrefix(path, replacement.prefix); ok {
+				return replacement.placeholder + filepath.ToSlash(after)
 			}
 		}
 		return path

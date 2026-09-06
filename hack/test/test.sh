@@ -21,7 +21,8 @@
 #
 # This script is called by Makefile targets:
 #   make test             Quick Go unit tests (quiet output)
-#   make test-go          All Go tests including integration
+#   make test-go          All Go tests except the integration suites
+#   make test-integration All Go tests including the integration suites
 #   make test-frontend    Frontend core tests
 #   make test-vscode      VSCode plugin tests
 #   make test-idea        IntelliJ plugin tests
@@ -91,43 +92,14 @@ test_go_sum() {
     gotestsum --format short -- -short -cover $packages
 }
 
-# test_go runs all Go tests including integration tests.
+# test_go runs all Go tests with the vips and ffmpeg tags, leaving out the integration
+# suites.
 test_go() {
     go test -tags=vips,ffmpeg -p 2 -count=1 -timeout=40m piko.sh/piko/...
 }
 
-# check_qemu_binfmt warns if QEMU binfmt is not registered for cross-arch tests.
-# The cross-arch integration tests run arm64 binaries via Docker+QEMU, which
-# requires binfmt_misc handlers to be registered in the host kernel.
-#
-# Only relevant on Linux - macOS and Windows use Docker Desktop which runs a
-# Linux VM with binfmt already registered.
-check_qemu_binfmt() {
-    if [[ "$(uname -s)" != "Linux" ]]; then
-        return
-    fi
-
-    if [[ "$(uname -m)" != "x86_64" ]]; then
-        return
-    fi
-
-    if [[ ! -d /proc/sys/fs/binfmt_misc ]]; then
-        piko::log::warn "QEMU binfmt not available - cross-arch tests (TestCrossArch/arm64) will fail"
-        piko::log::detail "  Run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
-        piko::log::blank
-        return
-    fi
-
-    if ! grep -ql aarch64 /proc/sys/fs/binfmt_misc/* 2>/dev/null; then
-        piko::log::warn "QEMU binfmt not registered for arm64 - cross-arch tests (TestCrossArch/arm64) will fail"
-        piko::log::detail "  Run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"
-        piko::log::blank
-    fi
-}
-
 # test_go_full runs all Go tests including integration tests.
 test_go_full() {
-    check_qemu_binfmt
     go test -tags=integration,vips,ffmpeg -p 2 -count=1 -timeout=60m piko.sh/piko/...
 }
 

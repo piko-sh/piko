@@ -152,6 +152,8 @@ The internal `browser_provider_chromedp` package defines `RequestMatcher`, `Mock
 
 Screenshots: `Screenshot`, `ScreenshotFull`, `ScreenshotViewport`, `ScreenshotRegion`, `ScreenshotWithOptions`, `ScreenshotJPEG`, `ScreenshotWebP`, `ScreenshotElementWithPadding`, `SaveScreenshot`, `SaveScreenshotViewport`.
 
+`ScreenshotRegion(x, y, width, height float64, opts ...ScreenshotOption)` and `ScreenshotElementWithPadding(selector string, padding float64, opts ...ScreenshotOption)` accept `browser.WithScreenshotTimeout(d time.Duration)`, which bounds the capture. The default is 60 seconds.
+
 Comparison: `CompareScreenshots` diffs PNG bytes. `MatchGolden(selector, name string)` captures the rendered HTML of `selector` and diffs it against the named golden file under `testdata/golden/`. The two helpers operate on different artefacts (image bytes versus DOM HTML).
 
 PDF: `PrintToPDF`, `PrintToPDFA4`, `PrintToPDFLandscape`, `PrintToPDFNoBackground`, `PrintToPDFWithHeaderFooter`, `PrintToPDFPageRange`, `PrintToPDFWithOptions`, `SavePDF`.

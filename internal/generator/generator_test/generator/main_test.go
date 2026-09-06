@@ -23,11 +23,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
 	"piko.sh/piko/internal/generator/generator_helpers"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/render/render_domain"
 )
 

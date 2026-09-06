@@ -815,8 +815,9 @@ func (c *Container) buildBlobOverlay(hasBase bool) (storage_domain.StorageProvid
 		return nil, fmt.Errorf("failed to create blob storage sandbox: %w", sandboxErr)
 	}
 	diskProvider, err := provider_disk.NewDiskProvider(provider_disk.Config{
-		BaseDirectory: blobDir,
-		Sandbox:       blobSandbox,
+		BaseDirectory:  blobDir,
+		Sandbox:        blobSandbox,
+		SandboxFactory: nil,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create built-in disk provider for blobs: %w", err)

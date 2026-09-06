@@ -148,19 +148,16 @@ func TestMockRouterManager_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = mock.ReloadRoutes(context.Background(), nil)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, "/", nil)
 			mock.ServeHTTP(w, r)
-		}()
+		})
 	}
 
 	wg.Wait()

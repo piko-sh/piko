@@ -96,7 +96,7 @@ type OverlayManager struct {
 //
 // Returns *OverlayManager which has no overlays pushed.
 func NewOverlayManager(theme *Theme) *OverlayManager {
-	return &OverlayManager{theme: theme}
+	return &OverlayManager{theme: theme, stack: nil}
 }
 
 // SetTheme updates the theme used for compositing. Called when the user switches themes

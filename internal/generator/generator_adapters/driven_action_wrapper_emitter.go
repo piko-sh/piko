@@ -24,8 +24,8 @@ import (
 	"go/token"
 	"strings"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
-	"piko.sh/piko/internal/goastutil"
 )
 
 const (

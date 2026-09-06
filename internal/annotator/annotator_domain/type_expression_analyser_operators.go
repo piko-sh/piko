@@ -27,9 +27,9 @@ import (
 	"fmt"
 	goast "go/ast"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -80,34 +80,7 @@ func (a *typeExpressionAnalyser) resolveBinaryExpression(ctx context.Context, n 
 // Returns *ast_domain.GoGeneratorAnnotation which contains an "any" type with no
 // stringability.
 func (a *typeExpressionAnalyser) createBinaryFallbackAnnotation() *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            newSimpleTypeInfo(goast.NewIdent(typeAny)),
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      &a.ctx.SFCSourcePath,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           int(inspector_dto.StringableNone),
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	return newAnnotationFull(newSimpleTypeInfo(goast.NewIdent(typeAny)), &a.ctx.SFCSourcePath, int(inspector_dto.StringableNone))
 }
 
 // resolveBinaryOperator resolves the result type of a binary expression.
@@ -282,34 +255,9 @@ func (a *typeExpressionAnalyser) validateOrOperator(n *ast_domain.BinaryExpressi
 func (a *typeExpressionAnalyser) createBinaryResultAnnotation(ctx context.Context, resultTypeExpr goast.Expr, resultPackageAlias string) *ast_domain.GoGeneratorAnnotation {
 	resultTypeInfo := newSimpleTypeInfoWithAlias(resultTypeExpr, resultPackageAlias)
 	stringability, isPointer := a.typeResolver.determineStringability(ctx, a.ctx, resultTypeInfo)
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resultTypeInfo,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      &a.ctx.SFCSourcePath,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   isPointer,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := newAnnotationFull(resultTypeInfo, &a.ctx.SFCSourcePath, stringability)
+	annotation.IsPointerToStringable = isPointer
+	return annotation
 }
 
 // resolveMoneyArithmetic handles arithmetic operations on Money types.

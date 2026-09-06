@@ -788,7 +788,7 @@ func TestOtterAdapter_Search_DefaultLimit(t *testing.T) {
 		})
 	}
 
-	result, err := cache.Search(ctx, "widget", &cache_dto.SearchOptions{Limit: 0})
+	result, err := cache.Search(ctx, "widget", &cache_dto.SearchOptions{})
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}

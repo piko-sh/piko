@@ -62,7 +62,7 @@ func NewBigIntFromString(s string) BigInt {
 	}
 	b, ok := new(apd.BigInt).SetString(s, Base10)
 	if !ok {
-		return BigInt{err: fmt.Errorf("maths: invalid bigint string: %q", s)}
+		return BigInt{err: fmt.Errorf("maths: invalid bigint string: %q", s), value: apd.BigInt{}}
 	}
 	return NewBigIntFromApd(*b)
 }
@@ -74,7 +74,7 @@ func NewBigIntFromString(s string) BigInt {
 //
 // Returns BigInt which wraps the given value.
 func NewBigIntFromApd(value apd.BigInt) BigInt {
-	return BigInt{value: value}
+	return BigInt{value: value, err: nil}
 }
 
 // NewBigIntFromInt creates a BigInt from an int64.
@@ -83,7 +83,7 @@ func NewBigIntFromApd(value apd.BigInt) BigInt {
 //
 // Returns BigInt which wraps the value as an arbitrary-precision integer.
 func NewBigIntFromInt(value int64) BigInt {
-	return BigInt{value: *apd.NewBigInt(value)}
+	return BigInt{value: *apd.NewBigInt(value), err: nil}
 }
 
 // Err returns the first error found in a chain of operations.
@@ -260,7 +260,7 @@ func (b BigInt) Divide(b2 BigInt) BigInt {
 		return b2
 	}
 	if b2.CheckIsZero() {
-		return BigInt{err: errors.New("maths: division by zero")}
+		return BigInt{err: errors.New("maths: division by zero"), value: apd.BigInt{}}
 	}
 	result := new(apd.BigInt)
 	result.Quo(&b.value, &b2.value)
@@ -352,7 +352,7 @@ func (b BigInt) Remainder(b2 BigInt) BigInt {
 		return b2
 	}
 	if b2.CheckIsZero() {
-		return BigInt{err: errors.New("maths: remainder by zero")}
+		return BigInt{err: errors.New("maths: remainder by zero"), value: apd.BigInt{}}
 	}
 	result := new(apd.BigInt)
 	result.Rem(&b.value, &b2.value)
@@ -573,7 +573,7 @@ func (b *BigInt) MultiplyInPlace(b2 BigInt) {
 //
 // Returns BigInt which holds the value zero.
 func ZeroBigInt() BigInt {
-	return BigInt{value: *apd.NewBigInt(0)}
+	return BigInt{value: *apd.NewBigInt(0), err: nil}
 }
 
 // ZeroBigIntWithError returns a BigInt with a zero value and a stored error.
@@ -589,19 +589,19 @@ func ZeroBigIntWithError(err error) BigInt {
 //
 // Returns BigInt which contains the numeric value one.
 func OneBigInt() BigInt {
-	return BigInt{value: *apd.NewBigInt(1)}
+	return BigInt{value: *apd.NewBigInt(1), err: nil}
 }
 
 // TenBigInt returns a BigInt representing the value 10.
 //
 // Returns BigInt which holds the constant value ten.
 func TenBigInt() BigInt {
-	return BigInt{value: *apd.NewBigInt(Value10)}
+	return BigInt{value: *apd.NewBigInt(Value10), err: nil}
 }
 
 // HundredBigInt returns a BigInt representing the value 100.
 //
 // Returns BigInt which holds the numeric value one hundred.
 func HundredBigInt() BigInt {
-	return BigInt{value: *apd.NewBigInt(Value100)}
+	return BigInt{value: *apd.NewBigInt(Value100), err: nil}
 }

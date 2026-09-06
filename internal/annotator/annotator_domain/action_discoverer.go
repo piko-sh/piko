@@ -85,9 +85,10 @@ func NewActionDiscoverer(
 	opts ...ActionDiscovererOption,
 ) *ActionDiscoverer {
 	ad := &ActionDiscoverer{
-		resolver:    resolver,
-		fsReader:    fsReader,
-		pathsConfig: pathsConfig,
+		resolver:     resolver,
+		fsReader:     fsReader,
+		pathsConfig:  pathsConfig,
+		inMemoryMode: false,
 	}
 	for _, opt := range opts {
 		opt(ad)
@@ -257,7 +258,7 @@ func newActionCandidateDiagnostic(candidate *annotator_dto.ActionCandidate, mess
 		message,
 		candidate.StructName,
 		annotator_dto.CodeActionError,
-		ast_domain.Location{Line: candidate.StructLine},
+		ast_domain.Location{Line: candidate.StructLine, Column: 0, Offset: 0},
 		candidate.RelativePath,
 	)
 }
@@ -366,6 +367,10 @@ func candidateToDefinition(candidate *annotator_dto.ActionCandidate) annotator_d
 		Description:    candidate.DocComment,
 		HTTPMethod:     "POST",
 		StructLine:     candidate.StructLine,
+		OutputType:     nil,
+		Capabilities:   annotator_dto.ActionCapabilities{},
+		CallParams:     nil,
+		HasError:       false,
 	}
 }
 

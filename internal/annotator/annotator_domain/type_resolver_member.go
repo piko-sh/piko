@@ -28,9 +28,9 @@ import (
 
 	goast "go/ast"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -381,6 +381,7 @@ func (tr *TypeResolver) buildFieldAnnotation(
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      analysisContext.CurrentGoFullPackagePath,
 		InitialFilePath:         analysisContext.CurrentGoSourcePath,
+		UnderlyingTypeString:    "",
 	}
 
 	stringability, isPointer := tr.determineStringability(ctx, analysisContext, resolvedTypeInfo)
@@ -617,46 +618,26 @@ func (tr *TypeResolver) buildMethodAnnotation(
 	}
 
 	originalDefLocation := tr.unmapVirtualLocationToOriginal(ctx, methodInfo.DefinitionFilePath, virtualLocation)
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     new(methodInfo.DefinitionFilePath),
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          goast.NewIdent(typeFunction),
-			PackageAlias:            baseAnn.ResolvedType.PackageAlias,
-			CanonicalPackagePath:    baseAnn.ResolvedType.CanonicalPackagePath,
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol: &ast_domain.ResolvedSymbol{
-			Name:                propName,
-			ReferenceLocation:   location,
-			DeclarationLocation: originalDefLocation,
-		},
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      &ctx.SFCSourcePath,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           int(inspector_dto.StringableNone),
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.GeneratedSourcePath = new(methodInfo.DefinitionFilePath)
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          goast.NewIdent(typeFunction),
+		PackageAlias:            baseAnn.ResolvedType.PackageAlias,
+		CanonicalPackagePath:    baseAnn.ResolvedType.CanonicalPackagePath,
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
+	annotation.Symbol = &ast_domain.ResolvedSymbol{
+		Name:                propName,
+		ReferenceLocation:   location,
+		DeclarationLocation: originalDefLocation,
+	}
+	annotation.OriginalSourcePath = &ctx.SFCSourcePath
+	annotation.Stringability = int(inspector_dto.StringableNone)
+	return &annotation
 }
 
 // handleUnknownMember creates a diagnostic for an unknown field or method access.
@@ -988,8 +969,11 @@ func (*TypeResolver) parseSignatureFromFuncDecl(functionDeclaration *goast.FuncD
 		return nil
 	}
 	return &inspector_dto.FunctionSignature{
-		Params:  parseFieldListTypeStrings(functionDeclaration.Type.Params, ctx.CurrentGoPackageName),
-		Results: parseFieldListTypeStrings(functionDeclaration.Type.Results, ctx.CurrentGoPackageName),
+		Params:               parseFieldListTypeStrings(functionDeclaration.Type.Params, ctx.CurrentGoPackageName),
+		Results:              parseFieldListTypeStrings(functionDeclaration.Type.Results, ctx.CurrentGoPackageName),
+		ParamNames:           nil,
+		TypeParamNames:       nil,
+		TypeParamConstraints: nil,
 	}
 }
 

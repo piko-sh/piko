@@ -20,7 +20,14 @@
 //
 // The provider implements both completions and embeddings against a locally-hosted Ollama
 // server. By default it will auto-start the Ollama binary if the server is unreachable,
-// and auto-pull models before first use.
+// and auto-pull models before first use. Construction does no network or process work.
+// Start, EnsureModels or the first request reaches or starts the server.
+//
+// # Image URLs
+//
+// Image content given by URL is only downloaded when ImageFetch is configured. Fetches
+// are limited in count, size, time and redirects, and only reach publicly routable
+// addresses.
 //
 // # Supply chain verification
 //

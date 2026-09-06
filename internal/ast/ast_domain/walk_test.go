@@ -888,7 +888,7 @@ func TestWalkNodeExpressions(t *testing.T) {
 		node := &TemplateNode{
 			NodeType: NodeElement,
 			TagName:  "div",
-			DirIf:    &Directive{Expression: nil},
+			DirIf:    &Directive{},
 		}
 
 		var visited []Expression
@@ -946,7 +946,7 @@ func TestVisitExpression(t *testing.T) {
 	t.Run("visits IndexExpr and children", func(t *testing.T) {
 		expression := &IndexExpression{
 			Base:  &Identifier{Name: "arr"},
-			Index: &IntegerLiteral{Value: 0},
+			Index: &IntegerLiteral{},
 		}
 
 		var visited []string
@@ -1180,7 +1180,7 @@ func TestVisitExpression(t *testing.T) {
 						Base:     &Identifier{Name: "obj"},
 						Property: &Identifier{Name: "prop"},
 					},
-					Index: &IntegerLiteral{Value: 0},
+					Index: &IntegerLiteral{},
 				},
 				Property: &Identifier{Name: "method"},
 			},

@@ -517,13 +517,19 @@ func (b *ArtefactWorkflowBridge) dispatchProfileTask(
 	task.WorkflowID = artefact.ID
 	task.Config.Priority = b.mapPriority(profile.Priority)
 	task.DeduplicationKey = dedupKey
-	task.Payload["taskID"] = task.ID
+	task.Payload[payloadKeyTaskID] = task.ID
 
-	if err := b.taskDispatcher.Dispatch(ctx, task); err != nil {
+	required := b.profileDispatchRequirement(artefact.ID, profileName)
+	if err := b.taskDispatcher.DispatchIfRequired(ctx, task, required); err != nil {
 		if errors.Is(err, orchestrator_domain.ErrDuplicateTask) {
 			l.Trace("Task already exists for profile, skipping duplicate",
 				logger_domain.String(payloadKeyDeduplicationKey, dedupKey))
 			orchestrator_domain.TaskDeduplicationBlockedCount.Add(ctx, 1)
+			return false
+		}
+		if errors.Is(err, orchestrator_domain.ErrTaskNotRequired) {
+			l.Trace("Profile was built after it was evaluated, skipping dispatch",
+				logger_domain.String(payloadKeyDeduplicationKey, dedupKey))
 			return false
 		}
 		l.ReportError(span, err, "Failed to dispatch task to priority topic")
@@ -536,6 +542,33 @@ func (b *ArtefactWorkflowBridge) dispatchProfileTask(
 		logger_domain.String(payloadKeyDeduplicationKey, dedupKey))
 	BridgeTasksDispatchedCount.Add(ctx, 1)
 	return true
+}
+
+// profileDispatchRequirement returns the check the dispatcher runs once the profile's
+// deduplication key is claimed.
+//
+// The decision to dispatch was taken from an artefact snapshot read when the event
+// arrived. A task for the same profile may have finished since then, freeing the key, in
+// which case the snapshot is stale and dispatching would build the profile twice. The
+// check re-reads the artefact so the decision is confirmed against state that no other
+// task for the profile can change any more.
+//
+// Takes artefactID (string) which identifies the artefact to re-read.
+// Takes profileName (string) which names the profile to confirm.
+//
+// Returns orchestrator_domain.DispatchRequirement which reports whether the profile still
+// needs building.
+func (b *ArtefactWorkflowBridge) profileDispatchRequirement(artefactID, profileName string) orchestrator_domain.DispatchRequirement {
+	return func(ctx context.Context) (bool, error) {
+		current, err := b.registryService.GetArtefact(ctx, artefactID)
+		if errors.Is(err, registry_domain.ErrArtefactNotFound) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("re-reading artefact %q before dispatch: %w", artefactID, err)
+		}
+		return profileNeedsBuild(current, profileName), nil
+	}
 }
 
 // finaliseEventHandling records metrics and updates span status after event processing
@@ -608,6 +641,12 @@ func (*ArtefactWorkflowBridge) mapPriority(priority registry_dto.ProfilePriority
 
 // buildVariantStatusMap creates a lookup map from variant IDs to their status.
 //
+// A READY derived variant whose parent no longer carries the content it was built from is
+// reported as STALE. That happens when the source changes while a task building the
+// variant is still running, allowing the task to finish from the old input and store a
+// READY variant, which must still be rebuilt. When an ID appears more than once, the last
+// variant wins.
+//
 // Takes variants ([]registry_dto.Variant) which provides the variants to index.
 //
 // Returns map[string]registry_dto.VariantStatus which maps each variant ID to its status
@@ -615,9 +654,31 @@ func (*ArtefactWorkflowBridge) mapPriority(priority registry_dto.ProfilePriority
 func buildVariantStatusMap(variants []registry_dto.Variant) map[string]registry_dto.VariantStatus {
 	variantStatus := make(map[string]registry_dto.VariantStatus, len(variants))
 	for i := range variants {
-		variantStatus[variants[i].VariantID] = variants[i].Status
+		variant := &variants[i]
+		status := variant.Status
+		if status == registry_dto.VariantStatusReady && builtFromOutdatedParent(variants, variant) {
+			status = registry_dto.VariantStatusStale
+		}
+		variantStatus[variant.VariantID] = status
 	}
 	return variantStatus
+}
+
+// builtFromOutdatedParent reports whether a derived variant was built from content its
+// parent no longer has, or its parent has gone. The parent is looked up the way the
+// compiler looks up its input, by the first variant with the parent's ID.
+//
+// Takes variants ([]registry_dto.Variant) which holds the artefact's variants.
+// Takes variant (*registry_dto.Variant) which is the variant to check.
+//
+// Returns bool which is true when the variant's recorded parent content is out of date.
+func builtFromOutdatedParent(variants []registry_dto.Variant, variant *registry_dto.Variant) bool {
+	parentID := variant.Transform.ParentVariantID
+	if variant.Kind != registry_dto.KindDerived || parentID == "" {
+		return false
+	}
+	parent := findVariantByID(variants, parentID)
+	return parent == nil || parent.ContentHash != variant.Transform.ParentContentHash
 }
 
 // isProfileAlreadyReady checks if a profile variant exists and is ready.
@@ -633,6 +694,28 @@ func buildVariantStatusMap(variants []registry_dto.Variant) map[string]registry_
 func isProfileAlreadyReady(variantStatus map[string]registry_dto.VariantStatus, profileName string) bool {
 	currentStatus, exists := variantStatus[profileName]
 	return exists && currentStatus == registry_dto.VariantStatusReady
+}
+
+// profileNeedsBuild reports whether an artefact profile remains desired, its variant is
+// not READY, and every dependency is READY.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which is the current artefact state.
+// Takes profileName (string) which names the profile to check.
+//
+// Returns bool which is true when the profile should be built now.
+func profileNeedsBuild(artefact *registry_dto.ArtefactMeta, profileName string) bool {
+	variantStatus := buildVariantStatusMap(artefact.ActualVariants)
+	if isProfileAlreadyReady(variantStatus, profileName) {
+		return false
+	}
+
+	for i := range artefact.DesiredProfiles {
+		desired := &artefact.DesiredProfiles[i]
+		if desired.Name == profileName {
+			return len(findMissingDependencies(&desired.Profile.DependsOn, variantStatus)) == 0
+		}
+	}
+	return false
 }
 
 // findMissingDependencies returns a list of dependency IDs that are not ready.

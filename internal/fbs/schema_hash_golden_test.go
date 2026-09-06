@@ -29,7 +29,6 @@ import (
 	"piko.sh/piko/internal/generator/generator_schema"
 	"piko.sh/piko/internal/i18n/i18n_schema"
 	"piko.sh/piko/internal/inspector/inspector_schema"
-	"piko.sh/piko/internal/interp/interp_schema"
 	"piko.sh/piko/internal/registry/registry_schema"
 	"piko.sh/piko/internal/search/search_schema"
 	"piko.sh/piko/internal/typegen/typegen_schema"
@@ -49,7 +48,6 @@ func TestSchemaHashesAreNonEmpty(t *testing.T) {
 		{"generator", generator_schema.SchemaHash},
 		{"i18n", i18n_schema.SchemaHash},
 		{"inspector", inspector_schema.SchemaHash},
-		{"interp", interp_schema.SchemaHash},
 		{"registry", registry_schema.SchemaHash},
 		{"search", search_schema.SchemaHash},
 		{"typegen", typegen_schema.SchemaHash},

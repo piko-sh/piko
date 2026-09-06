@@ -42,20 +42,17 @@ func BuildDLQDetailSections(summaries []*pb.DispatcherSummary, filter string) []
 		if !matchesFilter(s.GetType(), filter) {
 			continue
 		}
-		sections = append(sections, DetailSection{
-			Heading: fmt.Sprintf("Dispatcher %s", s.GetType()),
-			Rows: []DetailRow{
-				{Label: "Type", Value: s.GetType()},
-				{Label: "Queued", Value: strconv.Itoa(int(s.GetQueuedItems()))},
-				{Label: "Retry Queue", Value: strconv.Itoa(int(s.GetRetryQueueSize()))},
-				{Label: "Dead Letter", Value: strconv.Itoa(int(s.GetDeadLetterCount()))},
-				{Label: "Total Processed", Value: strconv.FormatInt(s.GetTotalProcessed(), 10)},
-				{Label: "Total Successful", Value: strconv.FormatInt(s.GetTotalSuccessful(), 10)},
-				{Label: "Total Failed", Value: strconv.FormatInt(s.GetTotalFailed(), 10)},
-				{Label: "Total Retries", Value: strconv.FormatInt(s.GetTotalRetries(), 10)},
-				{Label: "Uptime", Value: FormatMilliseconds(s.GetUptimeMs())},
-			},
-		})
+		sections = append(sections, NewDetailSection(fmt.Sprintf("Dispatcher %s", s.GetType()), []DetailRow{
+			NewDetailRow("Type", s.GetType()),
+			NewDetailRow("Queued", strconv.Itoa(int(s.GetQueuedItems()))),
+			NewDetailRow("Retry Queue", strconv.Itoa(int(s.GetRetryQueueSize()))),
+			NewDetailRow("Dead Letter", strconv.Itoa(int(s.GetDeadLetterCount()))),
+			NewDetailRow("Total Processed", strconv.FormatInt(s.GetTotalProcessed(), 10)),
+			NewDetailRow("Total Successful", strconv.FormatInt(s.GetTotalSuccessful(), 10)),
+			NewDetailRow("Total Failed", strconv.FormatInt(s.GetTotalFailed(), 10)),
+			NewDetailRow("Total Retries", strconv.FormatInt(s.GetTotalRetries(), 10)),
+			NewDetailRow("Uptime", FormatMilliseconds(s.GetUptimeMs())),
+		}))
 	}
 	return sections
 }

@@ -37,9 +37,7 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 	t.Run("nil CheckLimitFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockRateLimitService{
-			CheckLimitFunc: nil,
-		}
+		mock := &MockRateLimitService{}
 
 		result, err := mock.CheckLimit(context.Background(), "key-1", 100, time.Minute)
 
@@ -116,20 +114,16 @@ func TestMockRateLimitService_ZeroValueIsUsable(t *testing.T) {
 func TestMockRateLimitService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockRateLimitService{
-		CheckLimitFunc: nil,
-	}
+	mock := &MockRateLimitService{}
 
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = mock.CheckLimit(context.Background(), "concurrent-key", 10, time.Second)
-		}()
+		})
 	}
 
 	wg.Wait()

@@ -30,7 +30,7 @@ import (
 var (
 	// devJSON is a JSON encoder configured to sort map keys so that SSE and REST responses
 	// from the dev tools have deterministic field ordering.
-	devJSON = json.Freeze(json.Config{SortMapKeys: true})
+	devJSON = json.Freeze(json.Config{SortMapKeys: true, CopyString: false, UseInt64: false, EscapeHTML: false})
 )
 
 func init() {

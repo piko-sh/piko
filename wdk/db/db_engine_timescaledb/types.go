@@ -57,22 +57,22 @@ func timescaleDBTypes() map[string]querier_dto.SQLType {
 // by lowercased engine name.
 func timescaleDBAggregateStateTypes() map[string]querier_dto.SQLType {
 	return map[string]querier_dto.SQLType{
-		"statssummary1d":  {Category: querier_dto.TypeCategoryUnknown, EngineName: "statssummary1d"},
-		"statssummary2d":  {Category: querier_dto.TypeCategoryUnknown, EngineName: "statssummary2d"},
-		"counter_summary": {Category: querier_dto.TypeCategoryUnknown, EngineName: "counter_summary"},
-		"gauge_summary":   {Category: querier_dto.TypeCategoryUnknown, EngineName: "gauge_summary"},
+		"statssummary1d":  querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "statssummary1d"),
+		"statssummary2d":  querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "statssummary2d"),
+		"counter_summary": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "counter_summary"),
+		"gauge_summary":   querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "gauge_summary"),
 
-		"time_weight_summary": {Category: querier_dto.TypeCategoryUnknown, EngineName: "time_weight_summary"},
+		"time_weight_summary": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "time_weight_summary"),
 
-		"candlestick":   {Category: querier_dto.TypeCategoryUnknown, EngineName: "candlestick"},
-		"state_summary": {Category: querier_dto.TypeCategoryUnknown, EngineName: "state_summary"},
+		"candlestick":   querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "candlestick"),
+		"state_summary": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "state_summary"),
 
-		"compact_state_agg": {Category: querier_dto.TypeCategoryUnknown, EngineName: "compact_state_agg"},
+		"compact_state_agg": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "compact_state_agg"),
 
-		"hyperloglog": {Category: querier_dto.TypeCategoryUnknown, EngineName: "hyperloglog"},
-		"tdigest":     {Category: querier_dto.TypeCategoryUnknown, EngineName: "tdigest"},
-		"uddsketch":   {Category: querier_dto.TypeCategoryUnknown, EngineName: "uddsketch"},
-		"heartbeat":   {Category: querier_dto.TypeCategoryUnknown, EngineName: "heartbeat"},
+		"hyperloglog": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "hyperloglog"),
+		"tdigest":     querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "tdigest"),
+		"uddsketch":   querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "uddsketch"),
+		"heartbeat":   querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "heartbeat"),
 	}
 }
 
@@ -86,19 +86,28 @@ func timescaleDBAggregateStateTypes() map[string]querier_dto.SQLType {
 // keyed by lowercased engine name.
 func timescaleDBToolkitStateTypes() map[string]querier_dto.SQLType {
 	return map[string]querier_dto.SQLType{
-		"create_hypertable_record": {Category: querier_dto.TypeCategoryUnknown, EngineName: "create_hypertable_record"},
-		"add_dimension_record":     {Category: querier_dto.TypeCategoryUnknown, EngineName: "add_dimension_record"},
+		"create_hypertable_record": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "create_hypertable_record"),
+		"add_dimension_record":     querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "add_dimension_record"),
 
-		"space_saving_aggregate":        {Category: querier_dto.TypeCategoryUnknown, EngineName: "space_saving_aggregate"},
-		"space_saving_bigint_aggregate": {Category: querier_dto.TypeCategoryUnknown, EngineName: "space_saving_bigint_aggregate"},
-		"space_saving_text_aggregate":   {Category: querier_dto.TypeCategoryUnknown, EngineName: "space_saving_text_aggregate"},
+		"space_saving_aggregate": querier_dto.NewSQLType(
+			querier_dto.TypeCategoryUnknown,
+			"space_saving_aggregate",
+		),
+		"space_saving_bigint_aggregate": querier_dto.NewSQLType(
+			querier_dto.TypeCategoryUnknown,
+			"space_saving_bigint_aggregate",
+		),
+		"space_saving_text_aggregate": querier_dto.NewSQLType(
+			querier_dto.TypeCategoryUnknown,
+			"space_saving_text_aggregate",
+		),
 
-		"min_n_state":    {Category: querier_dto.TypeCategoryUnknown, EngineName: "min_n_state"},
-		"min_n_by_state": {Category: querier_dto.TypeCategoryUnknown, EngineName: "min_n_by_state"},
+		"min_n_state":    querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "min_n_state"),
+		"min_n_by_state": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "min_n_by_state"),
 
-		"timevector_tstz_f64": {Category: querier_dto.TypeCategoryUnknown, EngineName: "timevector_tstz_f64"},
+		"timevector_tstz_f64": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "timevector_tstz_f64"),
 
-		"count_min_sketch": {Category: querier_dto.TypeCategoryUnknown, EngineName: "count_min_sketch"},
+		"count_min_sketch": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "count_min_sketch"),
 	}
 }
 
@@ -112,6 +121,6 @@ func timescaleDBToolkitStateTypes() map[string]querier_dto.SQLType {
 // lowercased engine name.
 func timescaleDBSystemAliasTypes() map[string]querier_dto.SQLType {
 	return map[string]querier_dto.SQLType{
-		"regproc": {Category: querier_dto.TypeCategoryInteger, EngineName: "regproc"},
+		"regproc": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "regproc"),
 	}
 }

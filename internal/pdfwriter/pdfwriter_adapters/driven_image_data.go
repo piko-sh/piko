@@ -256,7 +256,7 @@ func (a *DataURIImageDataAdapter) GetImageData(ctx context.Context, source strin
 
 	format := detectImageFormat(data)
 	if format == "" {
-		mediaType := strings.SplitN(header, ";", 2)[0]
+		mediaType, _, _ := strings.Cut(header, ";")
 		switch mediaType {
 		case "image/png":
 			format = "png"

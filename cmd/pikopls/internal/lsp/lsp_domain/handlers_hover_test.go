@@ -40,12 +40,10 @@ func TestHover_AnalysisFails_ReturnsNil(t *testing.T) {
 	}
 
 	params := &protocol.HoverParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{
-				URI: "file:///nonexistent.pk",
-			},
-			Position: protocol.Position{Line: 0, Character: 0},
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: "file:///nonexistent.pk",
 		},
+		Position: protocol.Position{},
 	}
 
 	result, err := server.Hover(context.Background(), params)
@@ -84,10 +82,8 @@ func TestHover_ValidDocument_ReturnsHover(t *testing.T) {
 	}
 
 	params := &protocol.HoverParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: uri},
-			Position:     protocol.Position{Line: 0, Character: 12},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri},
+		Position:     protocol.Position{Line: 0, Character: 12},
 	}
 
 	result, err := server.Hover(context.Background(), params)

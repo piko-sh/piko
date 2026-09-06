@@ -70,7 +70,8 @@ func (p *parser) parseOrderByColumn(analysis *querier_dto.RawQueryAnalysis) quer
 	expression := p.captureExpressionTrackingParams(
 		analysis, querier_dto.ParameterContextComparison, stopAfterOrderByColumn...,
 	)
-	column := querier_dto.OrderByColumn{Expression: strings.TrimSpace(expression)}
+	column := querier_dto.OrderByColumn{}
+	column.Expression = strings.TrimSpace(expression)
 	column.Direction = p.matchOrderDirection()
 	column.Nulls = p.matchOrderNullsPlacement()
 	if p.matchKeyword(kwWith) && p.matchKeyword(kwFill) {

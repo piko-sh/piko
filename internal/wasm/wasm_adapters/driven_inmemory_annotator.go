@@ -19,7 +19,6 @@
 package wasm_adapters
 
 import (
-	"context"
 	"log/slog"
 
 	"piko.sh/piko/internal/annotator/annotator_domain"
@@ -38,22 +37,20 @@ import (
 // type data.
 //
 // Returns annotator_domain.AnnotatorPort which is the configured annotator.
-// Returns error when setup fails.
 func NewInMemoryAnnotatorService(
 	sources map[string]string,
 	moduleName string,
 	stdlibData *inspector_dto.TypeData,
-) (annotator_domain.AnnotatorPort, error) {
+) annotator_domain.AnnotatorPort {
 	fsReader := NewInMemoryFSReader(sources)
 
 	resolver := newInMemoryResolver(moduleName, "")
 
 	cache := NewNoOpComponentCache()
 
-	typeBuilderConfig := inspector_dto.Config{
-		ModuleName: moduleName,
-		BaseDir:    ".",
-	}
+	typeBuilderConfig := inspector_dto.Config{}
+	typeBuilderConfig.ModuleName = moduleName
+	typeBuilderConfig.BaseDir = "."
 	typeBuilder := inspector_domain.NewTypeBuilder(
 		typeBuilderConfig,
 		inspector_domain.WithLiteMode(stdlibData),
@@ -61,17 +58,30 @@ func NewInMemoryAnnotatorService(
 
 	cssProcessor := createMinimalCSSProcessor(resolver)
 
-	return annotator_domain.NewAnnotatorService(context.Background(), &annotator_domain.AnnotatorServiceConfig{
-		Resolver:            resolver,
-		FSReader:            fsReader,
-		Cache:               cache,
-		CollectionService:   nil,
-		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(typeBuilder),
-		CSSProcessor:        cssProcessor,
-		PathsConfig:         annotator_domain.AnnotatorPathsConfig{PagesSourceDir: "pages", PartialsSourceDir: "partials"},
-		CompilationLogLevel: slog.LevelWarn,
-		ComponentRegistry:   nil,
-		InMemoryMode:        true,
+	return annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
+		Resolver:          resolver,
+		FSReader:          fsReader,
+		Cache:             cache,
+		CollectionService: nil,
+		TypeInspector:     annotator_domain.NewTypeInspectorBuilderAdapter(typeBuilder),
+		CSSProcessor:      cssProcessor,
+		PathsConfig: annotator_domain.AnnotatorPathsConfig{
+			PagesSourceDir:    "pages",
+			PartialsSourceDir: "partials",
+			EmailsSourceDir:   "",
+			PdfsSourceDir:     "",
+			E2ESourceDir:      "",
+			AssetsSourceDir:   "",
+			PartialServePath:  "",
+			ArtefactServePath: "",
+		},
+		CompilationLogLevel:   slog.LevelWarn,
+		ComponentRegistry:     nil,
+		InMemoryMode:          true,
+		AssetsConfig:          nil,
+		GlobalTranslationKeys: nil,
+		DebugLogDir:           "",
+		EnableDebugLogFiles:   false,
 	})
 }
 

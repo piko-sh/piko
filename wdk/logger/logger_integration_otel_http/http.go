@@ -74,6 +74,8 @@ type otlpHTTPOptionBuilders[O any] struct {
 // createOtlpHTTPExporter builds an OTLP HTTP exporter using SDK-specific option
 // constructors supplied by the caller.
 //
+// Takes config (driver_handlers.OtelSetupConfig) which provides exporter transport,
+// endpoint, and authentication settings.
 // Takes pathSuffix (string) which is appended to the URL path (e.g. "/v1/metrics").
 // Takes builders (otlpHTTPOptionBuilders[O]) which bundles the SDK-specific option
 // constructors.

@@ -22,8 +22,8 @@ import (
 	goast "go/ast"
 	"go/token"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 // binaryOpEmitter handles code generation for binary expressions.
@@ -352,12 +352,8 @@ func (be *binaryOpEmitter) coerceToNumber(expression goast.Expr, ann *ast_domain
 			Else: &goast.BlockStmt{List: []goast.Stmt{assignExpression(tempVar.Name, intLit(IntValueZero))}},
 		},
 	}
-	newTypeInfo := &ast_domain.ResolvedTypeInfo{
-		TypeExpression:       cachedIdent(Int64TypeName),
-		PackageAlias:         "",
-		CanonicalPackagePath: "",
-		IsSynthetic:          false,
-	}
+	newTypeInfo := &ast_domain.ResolvedTypeInfo{}
+	newTypeInfo.TypeExpression = cachedIdent(Int64TypeName)
 	return tempVar, prereqStmts, newTypeInfo
 }
 
@@ -467,15 +463,21 @@ func inferMathsTypeAnnotation(expression ast_domain.Expression) *ast_domain.GoGe
 // Returns *ast_domain.GoGeneratorAnnotation with the resolved type set to the maths
 // package type.
 func makeMathsAnnotation(typeName string) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression: &goast.SelectorExpr{
-				X:   cachedIdent("maths"),
-				Sel: cachedIdent(typeName),
-			},
-			PackageAlias: "maths",
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression: &goast.SelectorExpr{
+			X:   cachedIdent("maths"),
+			Sel: cachedIdent(typeName),
 		},
+		PackageAlias:            "maths",
+		UnderlyingTypeString:    "",
+		CanonicalPackagePath:    "",
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
 	}
+	return &annotation
 }
 
 // isAnyType reports whether a Go AST type expression represents the untyped 'any' or
@@ -572,34 +574,9 @@ func isNilLiteral(expression ast_domain.Expression) bool {
 // Returns *ast_domain.GoGeneratorAnnotation which holds only the resolved type with all
 // other fields set to nil or zero values.
 func createTempAnnotation(resolvedType *ast_domain.ResolvedTypeInfo) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		ResolvedType:            resolvedType,
-		EffectiveKeyExpression:  nil,
-		PropDataSource:          nil,
-		BaseCodeGenVarName:      nil,
-		ParentTypeName:          nil,
-		GeneratedSourcePath:     nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		OriginalPackageAlias:    nil,
-		OriginalSourcePath:      nil,
-		DynamicAttributeOrigins: nil,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		StaticCollectionLiteral: nil,
-		StaticCollectionData:    nil,
-		DynamicCollectionInfo:   nil,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = resolvedType
+	return &annotation
 }
 
 // getNativeBinaryOp checks whether a binary operation can use a native Go operator
@@ -647,6 +624,8 @@ func getNativeBinaryOp(operator ast_domain.BinaryOp, leftAnn, rightAnn *ast_doma
 // isComparablePrimitiveUnderlying checks whether the underlying type is a go primitive,
 // which is fit for native equality checks.
 //
+// Takes underlyingType (string) which names the underlying Go type to check for primitive
+// comparability.
 // Takes string which is the underlying type to determine if it is a primitive.
 //
 // Returns bool which is true if the underlying type is a primitive

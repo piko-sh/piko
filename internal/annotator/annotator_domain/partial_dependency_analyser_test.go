@@ -381,7 +381,7 @@ func TestProcessComponent(t *testing.T) {
 		t.Parallel()
 
 		analyser := NewPartialDependencyAnalyser()
-		comp := &annotator_dto.VirtualComponent{Source: nil}
+		comp := &annotator_dto.VirtualComponent{}
 		analyser.processComponent(comp)
 
 		assert.Empty(t, analyser.dependencies)

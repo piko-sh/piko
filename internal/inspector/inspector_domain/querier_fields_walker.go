@@ -27,7 +27,7 @@ import (
 	"maps"
 	"sync"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
@@ -45,7 +45,7 @@ var (
 		p: sync.Pool{
 			New: func() any {
 				return &fieldSearcher{
-					typeWalker:         typeWalker{querier: nil},
+					querier:            nil,
 					result:             nil,
 					visited:            make(map[string]struct{}),
 					fieldName:          "",
@@ -71,7 +71,7 @@ func (p *fieldSearcherPool) Get() *fieldSearcher {
 	s, ok := p.p.Get().(*fieldSearcher)
 	if !ok {
 		return &fieldSearcher{
-			typeWalker:         typeWalker{querier: nil},
+			querier:            nil,
 			result:             nil,
 			visited:            make(map[string]struct{}),
 			fieldName:          "",

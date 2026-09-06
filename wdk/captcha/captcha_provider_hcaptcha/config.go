@@ -20,6 +20,9 @@ package captcha_provider_hcaptcha
 
 import (
 	"errors"
+	"time"
+
+	"piko.sh/piko/internal/captcha/captcha_adapters/siteverify"
 )
 
 var (
@@ -41,6 +44,9 @@ type Config struct {
 	SecretKey string
 }
 
+// Option configures how the provider calls the hCaptcha verification endpoint.
+type Option = siteverify.Option
+
 // validate checks that the configuration contains all required fields.
 //
 // Returns error when validation fails.
@@ -52,4 +58,26 @@ func (c *Config) validate() error {
 		return ErrSecretKeyEmpty
 	}
 	return nil
+}
+
+// WithVerifyTimeout bounds each call to the hCaptcha verification endpoint, including
+// reading the response.
+//
+// Takes timeout (time.Duration) which is the limit; zero or negative keeps the 10 second
+// default.
+//
+// Returns Option which applies the timeout.
+func WithVerifyTimeout(timeout time.Duration) Option {
+	return siteverify.WithTimeout(timeout)
+}
+
+// WithMaxResponseBytes caps the size of a hCaptcha verification response; a larger
+// response is reported as the provider being unavailable rather than truncated.
+//
+// Takes limit (int64) which is the largest body accepted; zero or negative keeps the 64
+// KiB default.
+//
+// Returns Option which applies the limit.
+func WithMaxResponseBytes(limit int64) Option {
+	return siteverify.WithMaxResponseBytes(limit)
 }

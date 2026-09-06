@@ -41,13 +41,11 @@ func TestService_ConcurrentComplete(t *testing.T) {
 	const goroutines = 100
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errs := make([]error, goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range goroutines {
+		wg.Go(func() {
 			request := &llm_dto.CompletionRequest{
 				Model: "gpt-4o",
 				Messages: []llm_dto.Message{
@@ -59,7 +57,7 @@ func TestService_ConcurrentComplete(t *testing.T) {
 			if err == nil {
 				assert.NotNil(t, response)
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -82,13 +80,11 @@ func TestService_ConcurrentStream(t *testing.T) {
 	const goroutines = 100
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	errs := make([]error, goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range goroutines {
+		wg.Go(func() {
 			request := &llm_dto.CompletionRequest{
 				Model: "gpt-4o",
 				Messages: []llm_dto.Message{
@@ -102,7 +98,7 @@ func TestService_ConcurrentStream(t *testing.T) {
 				for range events {
 				}
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -125,21 +121,18 @@ func TestService_ConcurrentProviderRegistrationAndUsage(t *testing.T) {
 	const registerers = 20
 	const users = 50
 	var wg sync.WaitGroup
-	wg.Add(registerers + users)
 
-	for i := range registerers {
-		go func(index int) {
-			defer wg.Done()
+	for index := range registerers {
+		wg.Go(func() {
 			name := fmt.Sprintf("provider-%d", index)
 			p := NewMockLLMProvider()
 
 			_ = service.RegisterProvider(ctx, name, p)
-		}(i)
+		})
 	}
 
-	for i := range users {
-		go func(index int) {
-			defer wg.Done()
+	for index := range users {
+		wg.Go(func() {
 			request := &llm_dto.CompletionRequest{
 				Model: "gpt-4o",
 				Messages: []llm_dto.Message{
@@ -147,7 +140,7 @@ func TestService_ConcurrentProviderRegistrationAndUsage(t *testing.T) {
 				},
 			}
 			_, _ = service.Complete(ctx, request)
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -164,15 +157,13 @@ func TestService_ConcurrentGetDefaultProvider(t *testing.T) {
 
 	const goroutines = 100
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	results := make([]string, goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range goroutines {
+		wg.Go(func() {
 			results[index] = service.GetDefaultProvider()
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -195,11 +186,9 @@ func TestBudgetManager_ConcurrentCheckAndRecord(t *testing.T) {
 	const goroutines = 100
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range goroutines {
+		wg.Go(func() {
 			if index%2 == 0 {
 				_ = manager.CheckBudget(ctx, scope, maths.NewMoneyFromString("1.00", testCurrency))
 			} else {
@@ -208,7 +197,7 @@ func TestBudgetManager_ConcurrentCheckAndRecord(t *testing.T) {
 					TotalCost:   maths.NewMoneyFromString("0.10", testCurrency),
 				})
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -226,11 +215,9 @@ func TestBudgetManager_ConcurrentSetAndCheck(t *testing.T) {
 	const goroutines = 100
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range goroutines {
+		wg.Go(func() {
 			scope := fmt.Sprintf("scope-%d", index%10)
 			if index%2 == 0 {
 				manager.SetBudget(scope, &llm_dto.BudgetConfig{
@@ -239,7 +226,7 @@ func TestBudgetManager_ConcurrentSetAndCheck(t *testing.T) {
 			} else {
 				_ = manager.CheckBudget(ctx, scope, maths.NewMoneyFromString("1.00", testCurrency))
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -267,11 +254,9 @@ func TestBudgetManager_ConcurrentResetAndRecord(t *testing.T) {
 	const goroutines = 100
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range goroutines {
+		wg.Go(func() {
 			if index%3 == 0 {
 				_ = manager.Reset(ctx, scope)
 			} else {
@@ -280,7 +265,7 @@ func TestBudgetManager_ConcurrentResetAndRecord(t *testing.T) {
 					TotalCost:   maths.NewMoneyFromString("0.05", testCurrency),
 				})
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -308,16 +293,14 @@ func TestBudgetManager_ConcurrentAlertThreshold(t *testing.T) {
 	const goroutines = 100
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = manager.RecordUsage(ctx, scope, &llm_dto.CostEstimate{
 				TotalTokens: 10,
 				TotalCost:   maths.NewMoneyFromString("1.00", testCurrency),
 			})
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -343,11 +326,9 @@ func TestBudgetManager_ConcurrentResetDaily(t *testing.T) {
 	const goroutines = 100
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
+	for index := range goroutines {
+		wg.Go(func() {
 			if index%5 == 0 {
 				_ = manager.ResetDaily(ctx)
 			} else {
@@ -357,7 +338,7 @@ func TestBudgetManager_ConcurrentResetDaily(t *testing.T) {
 					TotalCost:   maths.NewMoneyFromString("0.50", testCurrency),
 				})
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()

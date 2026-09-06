@@ -164,20 +164,16 @@ func TestDetermineMonikerKind(t *testing.T) {
 			want:       protocol.MonikerKindExport,
 		},
 		{
-			name: "exported name without exported package symbol returns export",
-			resolvedType: &ast_domain.ResolvedTypeInfo{
-				IsExportedPackageSymbol: false,
-			},
-			symbolName: "ExportedName",
-			want:       protocol.MonikerKindExport,
+			name:         "exported name without exported package symbol returns export",
+			resolvedType: &ast_domain.ResolvedTypeInfo{},
+			symbolName:   "ExportedName",
+			want:         protocol.MonikerKindExport,
 		},
 		{
-			name: "unexported name with non-exported package symbol returns local",
-			resolvedType: &ast_domain.ResolvedTypeInfo{
-				IsExportedPackageSymbol: false,
-			},
-			symbolName: "unexportedName",
-			want:       protocol.MonikerKindLocal,
+			name:         "unexported name with non-exported package symbol returns local",
+			resolvedType: &ast_domain.ResolvedTypeInfo{},
+			symbolName:   "unexportedName",
+			want:         protocol.MonikerKindLocal,
 		},
 		{
 			name:         "nil resolved type with unexported name returns local",

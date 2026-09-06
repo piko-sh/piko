@@ -477,3 +477,25 @@ func TestStreamWithTools(t *testing.T) {
 	require.Len(t, doneEvent.FinalResponse.Choices[0].Message.ToolCalls, 1)
 	assert.Equal(t, "lookup", doneEvent.FinalResponse.Choices[0].Message.ToolCalls[0].Function.Name)
 }
+
+func TestZoltaiProvider_ReturnsPanicsAsErrors(t *testing.T) {
+	t.Parallel()
+
+	p := zoltaiTestProvider(t)
+
+	_, err := p.Complete(t.Context(), nil)
+	require.Error(t, err, "completion")
+	assert.Contains(t, err.Error(), "panic in llm.zoltaiProvider.Complete")
+
+	_, err = p.Embed(t.Context(), nil)
+	require.Error(t, err, "embedding")
+	assert.Contains(t, err.Error(), "panic in llm.zoltaiProvider.Embed")
+}
+
+func zoltaiTestProvider(t *testing.T) *zoltaiProvider {
+	t.Helper()
+
+	p, err := newProvider(Config{Seed: 42})
+	require.NoError(t, err)
+	return p
+}

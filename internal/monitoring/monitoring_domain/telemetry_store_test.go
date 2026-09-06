@@ -379,12 +379,7 @@ func TestWithMaxMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := StoreConfig{
-				Clock:        nil,
-				MaxSpans:     0,
-				MaxMetrics:   0,
-				MaxMetricAge: 0,
-			}
+			config := StoreConfig{}
 			opt := WithMaxMetrics(tt.n)
 			opt(&config)
 

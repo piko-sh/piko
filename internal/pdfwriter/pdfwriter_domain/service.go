@@ -53,6 +53,15 @@ type pdfWriterService struct {
 
 	// fontEntries holds the fonts available for embedding in PDF output.
 	fontEntries []layouter_dto.FontEntry
+
+	// layoutLimits bounds the work of every layout this service performs. Zero fields use
+	// the built-in defaults; a render can override individual fields with
+	// RenderBuilder.WithLayoutLimits.
+	layoutLimits layouter_dto.LayoutLimits
+
+	// maxImagePixels caps the pixel area (width times height) of any image a render embeds.
+	// Zero uses the built-in default.
+	maxImagePixels int
 }
 
 var (
@@ -78,6 +87,35 @@ func WithSVGRenderer(writer SVGWriterPort, data SVGDataPort) PdfServiceOption {
 	}
 }
 
+// WithLayoutLimits sets the layout limits applied to every render made by the service.
+//
+// Unset (non-positive) fields keep their built-in defaults, and a render may override
+// individual fields with RenderBuilder.WithLayoutLimits.
+//
+// Takes limits (layouter_dto.LayoutLimits) which holds the service-wide limits.
+//
+// Returns PdfServiceOption which applies the configuration.
+func WithLayoutLimits(limits layouter_dto.LayoutLimits) PdfServiceOption {
+	return func(s *pdfWriterService) {
+		s.layoutLimits = limits
+	}
+}
+
+// WithMaxImagePixels caps the pixel area (width times height) of any image embedded by
+// the service's renders.
+//
+// Images above the cap fail the render rather than allocating a huge pixel buffer.
+// Non-positive values keep the built-in default.
+//
+// Takes pixels (int) which is the maximum pixel area of one image.
+//
+// Returns PdfServiceOption which applies the configuration.
+func WithMaxImagePixels(pixels int) PdfServiceOption {
+	return func(s *pdfWriterService) {
+		s.maxImagePixels = pixels
+	}
+}
+
 // NewPdfWriterService creates a new PDF writer service.
 //
 // Takes templateRunner (TemplateRunnerPort) which executes compiled PDF templates.
@@ -89,6 +127,7 @@ func WithSVGRenderer(writer SVGWriterPort, data SVGDataPort) PdfServiceOption {
 // skip image rendering.
 // Takes fontMetrics (layouter_domain.FontMetricsPort) which provides font measurement for
 // page number substitution. May be nil.
+// Takes opts (...PdfServiceOption) which configure PDF generation and resource limits.
 //
 // Returns PdfWriterService which is configured and ready for use.
 func NewPdfWriterService(
@@ -105,6 +144,10 @@ func NewPdfWriterService(
 		fontEntries:    fontEntries,
 		imageData:      imageData,
 		fontMetrics:    fontMetrics,
+		svgWriter:      nil,
+		svgData:        nil,
+		layoutLimits:   layouter_dto.LayoutLimits{},
+		maxImagePixels: 0,
 	}
 	for _, opt := range opts {
 		opt(service)
@@ -118,12 +161,12 @@ func NewPdfWriterService(
 // Returns *RenderBuilder which provides methods for configuring the render and executing
 // it via Do(ctx).
 func (s *pdfWriterService) NewRender() *RenderBuilder {
-	return &RenderBuilder{
-		service:   s,
-		svgWriter: s.svgWriter,
-		svgData:   s.svgData,
-		tagged:    true,
-	}
+	builder := RenderBuilder{}
+	builder.service = s
+	builder.svgWriter = s.svgWriter
+	builder.svgData = s.svgData
+	builder.tagged = true
+	return &builder
 }
 
 // Render executes the full PDF pipeline for a single PDF template.
@@ -135,18 +178,20 @@ func (s *pdfWriterService) NewRender() *RenderBuilder {
 // Takes config (pdfwriter_dto.PdfConfig) which specifies page dimensions, font size, and
 // other layout settings.
 //
-// Returns *pdfwriter_dto.PdfResult which contains the rendered PDF bytes and page count.
-// Returns error when any stage of the pipeline fails.
+// Returns result (*pdfwriter_dto.PdfResult) which contains the rendered PDF bytes and
+// page count.
+// Returns err (error) when any stage of the pipeline fails, including a recovered panic.
 func (s *pdfWriterService) Render(
 	ctx context.Context,
 	request *http.Request,
 	templatePath string,
 	props any,
 	config pdfwriter_dto.PdfConfig,
-) (*pdfwriter_dto.PdfResult, error) {
+) (result *pdfwriter_dto.PdfResult, err error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "PdfWriterService.Render")
 	defer span.End()
+	defer func() { StorePanicAsError(ctx, "PDF render", recover(), &err) }()
 
 	templateAST, styling, err := s.templateRunner.RunPdfWithProps(ctx, templatePath, request, props)
 	if err != nil {
@@ -154,9 +199,9 @@ func (s *pdfWriterService) Render(
 		return nil, fmt.Errorf("failed to run PDF template '%s': %w", templatePath, err)
 	}
 	if templateAST == nil {
-		err := fmt.Errorf("manifest runner returned a nil AST for PDF template '%s'", templatePath)
-		l.ReportError(span, err, "Cannot render nil AST")
-		return nil, err
+		nilASTErr := fmt.Errorf("manifest runner returned a nil AST for PDF template '%s'", templatePath)
+		l.ReportError(span, nilASTErr, "Cannot render nil AST")
+		return nil, nilASTErr
 	}
 
 	layoutConfig := layouter_dto.LayoutConfig{
@@ -164,6 +209,8 @@ func (s *pdfWriterService) Render(
 		DefaultFontSize:   config.DefaultFontSize,
 		DefaultLineHeight: config.DefaultLineHeight,
 		Stylesheets:       config.Stylesheets,
+		DefaultFontFamily: "",
+		Limits:            s.layoutLimits,
 	}
 
 	layoutConfig.Page = applyPageCSS(styling, layoutConfig.Page)
@@ -174,31 +221,46 @@ func (s *pdfWriterService) Render(
 		return nil, fmt.Errorf("layout failed for PDF template '%s': %w", templatePath, err)
 	}
 
-	painter := NewPdfPainter(layoutConfig.Page.Width, layoutConfig.Page.Height, s.fontEntries, s.imageData)
-	if s.svgWriter != nil {
-		painter.setSVGWriter(s.svgWriter, s.svgData)
-	}
-	painter.setPageMargins(layoutConfig.Page.MarginLeft, layoutConfig.Page.MarginTop, layoutConfig.Page.ContentAreaHeight())
-
-	var buffer bytes.Buffer
-	if err := painter.Paint(ctx, layoutResult, &buffer); err != nil {
+	pdfBytes, err := s.paintLayout(ctx, layoutConfig.Page, layoutResult)
+	if err != nil {
 		l.ReportError(span, err, "PDF painting failed")
 		return nil, fmt.Errorf("PDF painting failed for template '%s': %w", templatePath, err)
 	}
 
 	l.Trace("Successfully rendered PDF template",
 		logger_domain.String("templatePath", templatePath),
-		logger_domain.Int("pdfSizeBytes", buffer.Len()),
+		logger_domain.Int("pdfSizeBytes", len(pdfBytes)),
 		logger_domain.Int("pageCount", len(layoutResult.Pages)),
 	)
 
-	pageCount := len(layoutResult.Pages)
-	if pageCount == 0 {
-		pageCount = 1
-	}
-
 	return &pdfwriter_dto.PdfResult{
-		Content:   buffer.Bytes(),
-		PageCount: pageCount,
+		Content:    pdfBytes,
+		PageCount:  max(len(layoutResult.Pages), 1),
+		LayoutDump: "",
 	}, nil
+}
+
+// paintLayout paints a laid-out document to PDF bytes with the service's fonts, image
+// data, SVG renderer and image pixel cap.
+//
+// Takes page (layouter_dto.PageConfig) which holds the page size and margins.
+// Takes layoutResult (*layouter_dto.LayoutResult) which holds the laid-out document.
+//
+// Returns []byte which is the painted PDF document.
+// Returns error when painting fails.
+func (s *pdfWriterService) paintLayout(
+	ctx context.Context, page layouter_dto.PageConfig, layoutResult *layouter_dto.LayoutResult,
+) ([]byte, error) {
+	painter := NewPdfPainter(page.Width, page.Height, s.fontEntries, s.imageData)
+	painter.imageEmbedder.SetMaxPixels(s.maxImagePixels)
+	if s.svgWriter != nil {
+		painter.setSVGWriter(s.svgWriter, s.svgData)
+	}
+	painter.setPageMargins(page.MarginLeft, page.MarginTop, page.ContentAreaHeight())
+
+	var buffer bytes.Buffer
+	if err := painter.Paint(ctx, layoutResult, &buffer); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
 }

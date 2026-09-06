@@ -99,7 +99,7 @@ func runPdfPaintTest(t *testing.T, testDirectory string) {
 	)
 
 	cache := annotator_adapters.NewComponentCache()
-	annotatorService, err := annotator_domain.NewAnnotatorService(ctx, &annotator_domain.AnnotatorServiceConfig{
+	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:            resolver,
 		FSReader:            &realFSReader{},
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
@@ -108,9 +108,6 @@ func runPdfPaintTest(t *testing.T, testDirectory string) {
 		Cache:               cache,
 		CompilationLogLevel: slog.LevelInfo,
 	})
-	if err != nil {
-		t.Fatalf("failed to create annotator service: %v", err)
-	}
 
 	moduleName := resolver.GetModuleName()
 	entryPointModulePath := filepath.ToSlash(filepath.Join(moduleName, "main.pk"))

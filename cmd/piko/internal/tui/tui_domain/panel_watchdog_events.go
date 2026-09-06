@@ -108,19 +108,18 @@ var (
 // NewWatchdogEventsPanel constructs the Events panel.
 //
 // Takes dispatcher (*EventDispatcher) which streams live events. Pass nil to render a
-// placeholder; the panel functions but only shows a "no event source" hint. Takes clk
-// (clock.Clock) which yields the current time.
+// placeholder; the panel functions but only shows a "no event source" hint.
+// Takes clk (clock.Clock) which yields the current time.
 //
 // Returns *WatchdogEventsPanel ready for AddPanel.
 func NewWatchdogEventsPanel(dispatcher *EventDispatcher, clk clock.Clock) *WatchdogEventsPanel {
 	if clk == nil {
 		clk = clock.RealClock()
 	}
-	panel := &WatchdogEventsPanel{
-		BasePanel:  NewBasePanel(WatchdogEventsPanelID, WatchdogEventsPanelTitle),
-		dispatcher: dispatcher,
-		clock:      clk,
-	}
+	panel := &WatchdogEventsPanel{}
+	panel.BasePanel = NewBasePanel(WatchdogEventsPanelID, WatchdogEventsPanelTitle)
+	panel.dispatcher = dispatcher
+	panel.clock = clk
 	panel.SetKeyMap([]KeyBinding{
 		{Key: "j / Down", Description: "Next event"},
 		{Key: "k / Up", Description: "Previous event"},
@@ -193,7 +192,8 @@ func (p *WatchdogEventsPanel) View(width, height int) string {
 
 // composeBody arranges the header, event rows, and footer of the panel.
 //
-// Takes width (int) and height (int) which are the inner content dimensions.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string which is the composed body.
 func (p *WatchdogEventsPanel) composeBody(width, height int) string {
@@ -246,7 +246,8 @@ func (p *WatchdogEventsPanel) renderHeaderRow(width int) string {
 
 // renderEventList composes the event rows shown in the list area.
 //
-// Takes width (int) and height (int).
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns []string with at most height rows.
 func (p *WatchdogEventsPanel) renderEventList(width, height int) []string {
@@ -329,7 +330,8 @@ func (p *WatchdogEventsPanel) renderEventRow(_ time.Time, ev WatchdogEvent, widt
 // renderEventDetail returns the indented key-value rows for the expanded event detail
 // view.
 //
-// Takes ev (WatchdogEvent) and width (int).
+// Takes ev (WatchdogEvent) which is the event whose details are rendered.
+// Takes width (int) which sets the available width in terminal cells.
 //
 // Returns []string with one row per detail line.
 func (p *WatchdogEventsPanel) renderEventDetail(ev WatchdogEvent, width int) []string {
@@ -494,9 +496,12 @@ func (p *WatchdogEventsPanel) waitForNextEventCmd() tea.Cmd {
 	return func() tea.Msg {
 		ev, ok := <-sub.Events
 		if !ok {
-			return eventsViewMessage{Done: true}
+			return eventsViewMessage{
+				Done:  true,
+				Event: WatchdogEvent{},
+			}
 		}
-		return eventsViewMessage{Event: ev}
+		return eventsViewMessage{Event: ev, Done: false}
 	}
 }
 

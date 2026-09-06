@@ -217,7 +217,10 @@ func (c *inMemoryInspectionCache) Stats() InspectionCacheStats {
 // multiple goroutines at the same time.
 func NewInMemoryInspectionCache() InspectionCache {
 	return &inMemoryInspectionCache{
-		mu:    sync.RWMutex{},
-		cache: make(map[string]map[string]*InspectionResult),
+		mu:        sync.RWMutex{},
+		cache:     make(map[string]map[string]*InspectionResult),
+		hits:      atomic.Int64{},
+		misses:    atomic.Int64{},
+		evictions: atomic.Int64{},
 	}
 }

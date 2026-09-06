@@ -50,12 +50,12 @@ func TestEncodeDecodeAST_Identifier(t *testing.T) {
 			name: "single character identifier",
 			identifier: &ast_domain.Identifier{
 				Name:             "x",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     1,
 			},
 			expected: &ast_domain.Identifier{
 				Name:             "x",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     1,
 			},
 		},
@@ -154,12 +154,12 @@ func TestEncodeDecodeAST_StringLiteral(t *testing.T) {
 			name: "empty string",
 			literal: &ast_domain.StringLiteral{
 				Value:            "",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     2,
 			},
 			expected: &ast_domain.StringLiteral{
 				Value:            "",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     2,
 			},
 		},
@@ -284,12 +284,12 @@ func TestEncodeDecodeAST_IntegerLiteral(t *testing.T) {
 			name: "zero",
 			literal: &ast_domain.IntegerLiteral{
 				Value:            0,
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     1,
 			},
 			expected: &ast_domain.IntegerLiteral{
 				Value:            0,
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     1,
 			},
 		},
@@ -388,12 +388,12 @@ func TestEncodeDecodeAST_FloatLiteral(t *testing.T) {
 			name: "zero float",
 			literal: &ast_domain.FloatLiteral{
 				Value:            0.0,
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     3,
 			},
 			expected: &ast_domain.FloatLiteral{
 				Value:            0.0,
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     3,
 			},
 		},
@@ -580,11 +580,11 @@ func TestEncodeDecodeAST_NilLiteral(t *testing.T) {
 		{
 			name: "nil literal at start",
 			literal: &ast_domain.NilLiteral{
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     3,
 			},
 			expected: &ast_domain.NilLiteral{
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     3,
 			},
 		},
@@ -669,12 +669,12 @@ func TestEncodeDecodeAST_DecimalLiteral(t *testing.T) {
 			name: "zero decimal",
 			literal: &ast_domain.DecimalLiteral{
 				Value:            "0.00",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     6,
 			},
 			expected: &ast_domain.DecimalLiteral{
 				Value:            "0.00",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     6,
 			},
 		},
@@ -747,12 +747,12 @@ func TestEncodeDecodeAST_BigIntLiteral(t *testing.T) {
 			name: "zero big int",
 			literal: &ast_domain.BigIntLiteral{
 				Value:            "0",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     3,
 			},
 			expected: &ast_domain.BigIntLiteral{
 				Value:            "0",
-				RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+				RelativeLocation: ast_domain.Location{},
 				SourceLength:     3,
 			},
 		},
@@ -1943,7 +1943,7 @@ func TestEncodeDecodeAST_CombinedLiterals(t *testing.T) {
 									&ast_domain.StringLiteral{Value: "text"},
 									&ast_domain.IntegerLiteral{Value: 123},
 									&ast_domain.FloatLiteral{Value: 1.5},
-									&ast_domain.BooleanLiteral{Value: false},
+									&ast_domain.BooleanLiteral{},
 									&ast_domain.NilLiteral{},
 									&ast_domain.Identifier{Name: "x"},
 								},

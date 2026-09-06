@@ -74,10 +74,10 @@ func buildViewerPreferencesDict(vp *ViewerPreferences, writer *PdfDocumentWriter
 	var catalogueEntries strings.Builder
 
 	if vp.PageLayout != "" {
-		fmt.Fprintf(&catalogueEntries, " /PageLayout /%s", vp.PageLayout)
+		fmt.Fprintf(&catalogueEntries, " /PageLayout /%s", escapePdfName(vp.PageLayout))
 	}
 	if vp.PageMode != "" {
-		fmt.Fprintf(&catalogueEntries, " /PageMode /%s", vp.PageMode)
+		fmt.Fprintf(&catalogueEntries, " /PageMode /%s", escapePdfName(vp.PageMode))
 	}
 
 	var prefsEntries []string

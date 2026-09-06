@@ -56,6 +56,9 @@ type ServerConfig struct {
 	// Build sets build options such as watch mode and asset pre-rendering.
 	Build config.BuildModeConfig
 
+	// Pdf bounds PDF rendering through layout limits and an image pixel cap.
+	Pdf config.PdfConfig
+
 	// I18nDefaultLocale specifies the default locale for internationalisation; defaults to
 	// "en" if not set.
 	I18nDefaultLocale *string `default:"en"`

@@ -195,7 +195,7 @@ func TestProviderInfoAggregator_ListSubResources_Success(t *testing.T) {
 
 	agg := NewProviderInfoAggregator()
 	agg.Register(&mockSubResourceDescriptor{
-		mockDescriptor:     mockDescriptor{resourceType: "cache"},
+		resourceType:       "cache",
 		subResourceName:    "namespaces",
 		subResourceColumns: subCols,
 		subResources:       subRows,
@@ -235,8 +235,8 @@ func TestProviderInfoAggregator_DescribeResourceType_Success(t *testing.T) {
 
 	agg := NewProviderInfoAggregator()
 	agg.Register(&mockTypeDescriptor{
-		mockDescriptor: mockDescriptor{resourceType: "cache"},
-		typeDetail:     typeDetail,
+		resourceType: "cache",
+		typeDetail:   typeDetail,
 	})
 
 	result, err := agg.DescribeResourceType(context.Background(), "cache")
@@ -275,8 +275,8 @@ func (m *mockProbeNamedDescriptor) ProbeName() string {
 func TestResourceTypeForProbe(t *testing.T) {
 	agg := NewProviderInfoAggregator()
 	agg.Register(&mockProbeNamedDescriptor{
-		mockDescriptor: mockDescriptor{resourceType: "database"},
-		probeName:      "DatabaseService",
+		resourceType: "database",
+		probeName:    "DatabaseService",
 	})
 	agg.Register(&mockDescriptor{resourceType: "cache"})
 

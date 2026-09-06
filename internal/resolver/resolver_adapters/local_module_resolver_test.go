@@ -20,6 +20,7 @@ package resolver_adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,6 +29,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/wdk/safedisk"
 )
 
 func TestUnit_findGoMod(t *testing.T) {
@@ -103,81 +106,66 @@ func TestUnit_findGoMod(t *testing.T) {
 	}
 }
 
-func TestUnit_readModuleName(t *testing.T) {
-	createTempGoMod := func(t *testing.T, content string) string {
-		t.Helper()
-		directory := t.TempDir()
-		goModPath := filepath.Join(directory, "go.mod")
-		require.NoError(t, os.WriteFile(goModPath, []byte(content), 0644))
-		return goModPath
-	}
-
+func TestLocalModuleResolver_DetectLocalModuleWithSandboxFactory(t *testing.T) {
 	testCases := []struct {
-		name           string
-		goModContent   string
-		expectedModule string
-		errContains    string
-		expectErr      bool
+		createErr           error
+		name                string
+		expectedModule      string
+		errContains         string
+		expectedCreateCalls int
+		allowed             bool
+		expectErr           bool
 	}{
 		{
-			name:           "Standard module line",
-			goModContent:   "module my/project/name\n\ngo 1.25\n",
-			expectedModule: "my/project/name",
-			expectErr:      false,
+			name:                "factory allowing the module directory creates the sandbox",
+			allowed:             true,
+			expectedModule:      "injected/module",
+			expectedCreateCalls: 1,
 		},
 		{
-			name:           "Module line with extra whitespace",
-			goModContent:   "\t module    my/project/name   \n",
-			expectedModule: "my/project/name",
-			expectErr:      false,
+			name:                "module directory outside the allowed paths is read through a dedicated sandbox",
+			allowed:             false,
+			expectedModule:      "disk/project",
+			expectedCreateCalls: 0,
 		},
 		{
-			name:           "Module line with comments before",
-			goModContent:   "# This is a comment\n// Another comment\nmodule myproject\n",
-			expectedModule: "myproject",
-			expectErr:      false,
-		},
-		{
-			name:         "No module line",
-			goModContent: "go 1.25\n\nrequire github.com/stretchr/testify v1.8.0\n",
-			expectErr:    true,
-			errContains:  "no 'module' line found",
-		},
-		{
-			name:         "Empty file",
-			goModContent: "",
-			expectErr:    true,
-			errContains:  "no 'module' line found",
-		},
-		{
-			name:         "Typo in module directive",
-			goModContent: "modul myproject\ngo 1.25\n",
-			expectErr:    true,
-			errContains:  "no 'module' line found",
+			name:                "factory failure fails detection",
+			allowed:             true,
+			createErr:           errors.New("sandbox refused"),
+			expectedCreateCalls: 1,
+			expectErr:           true,
+			errContains:         "creating sandbox for go.mod",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			goModPath := createTempGoMod(t, tc.goModContent)
+			projectRoot := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(projectRoot, "go.mod"), []byte("module disk/project\n"), 0644))
 
-			moduleName, err := readModuleName(goModPath, nil)
+			injected := safedisk.NewMockSandbox(projectRoot, safedisk.ModeReadOnly)
+			injected.AddFile("go.mod", []byte("module injected/module\n"))
+			factory := &fakeModuleSandboxFactory{
+				sandbox:     injected,
+				createErr:   tc.createErr,
+				createCalls: 0,
+				allowed:     tc.allowed,
+			}
 
+			resolver := NewLocalModuleResolver(projectRoot, WithSandboxFactory(factory))
+			err := resolver.DetectLocalModule(context.Background())
+
+			assert.Equal(t, tc.expectedCreateCalls, factory.createCalls)
 			if tc.expectErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errContains)
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tc.expectedModule, moduleName)
+				return
 			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedModule, resolver.GetModuleName())
+			assert.Equal(t, projectRoot, resolver.GetBaseDir())
 		})
 	}
-
-	t.Run("Non-existent file", func(t *testing.T) {
-		nonExistentPath := filepath.Join(t.TempDir(), "go.mod")
-		_, err := readModuleName(nonExistentPath, nil)
-		require.Error(t, err)
-	})
 }
 
 func TestUnit_ResolveCSSPath(t *testing.T) {

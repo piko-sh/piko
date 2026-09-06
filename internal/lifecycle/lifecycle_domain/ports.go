@@ -174,6 +174,12 @@ type InterpretedBuildOrchestrator interface {
 	// Takes relPath (string) which is the project-relative source path of the removed
 	// component (e.g. "pages/old.pk").
 	RemoveComponent(ctx context.Context, relPath string)
+
+	// InvalidateUserPackages records that user-written Go packages changed on disk. The
+	// interpreter cannot recompile a package it has already registered, so afterwards
+	// IsInitialised reports false and the next build compiles the whole program, user
+	// packages included, with a fresh interpreter pool.
+	InvalidateUserPackages()
 }
 
 // TemplaterRunnerSwapper allows lifecycle to update the templater's manifest runner. Used

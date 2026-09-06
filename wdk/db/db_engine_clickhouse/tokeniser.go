@@ -147,7 +147,11 @@ var (
 	// comments, 0x/0o/0b base-prefixed integer literals, and a strict requirement that a
 	// base prefix be followed by at least one digit.
 	dialectConfig = engine_shared.DialectConfig{
-		Comments: engine_shared.CommentRules{NestedBlockComments: true},
+		Comments: engine_shared.CommentRules{
+			NestedBlockComments:          true,
+			DoubleDashRequiresWhitespace: false,
+			HashLineComment:              false,
+		},
 		Numbers: engine_shared.NumberRules{
 			HexPrefix:                true,
 			OctalPrefix:              true,
@@ -181,7 +185,7 @@ var (
 // Returns error when a string or placeholder is unterminated or an unexpected character
 // does not start any valid token.
 func tokenise(input string) ([]token, error) {
-	lexer := &tokeniser{input: input}
+	lexer := &tokeniser{input: input, position: 0}
 	var tokens []token
 
 	for {
@@ -216,7 +220,7 @@ func (t *tokeniser) next() (token, error) {
 	}
 
 	if t.position >= len(t.input) {
-		return token{kind: tokenEOF, position: t.position}, nil
+		return token{kind: tokenEOF, position: t.position, value: ""}, nil
 	}
 
 	character := t.input[t.position]

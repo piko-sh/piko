@@ -52,6 +52,11 @@ const (
 
 // ResolutionContext provides the values needed to resolve relative CSS units.
 type ResolutionContext struct {
+	// Limits enforces the layout limits on values such as repeat() counts and grid track
+	// lists, recording the first breach. Nil applies the default limits without recording
+	// breaches.
+	Limits *LimitTracker
+
 	// ParentFontSize is the computed font size of the parent element in points.
 	ParentFontSize float64
 
@@ -535,16 +540,16 @@ func applyProperty(style *ComputedStyle, property, value string, context Resolut
 	case "gap":
 		parts := splitShorthandValues(value)
 		if len(parts) == 1 {
-			style.RowGap = resolveLength(value, context)
-			style.ColumnGap = resolveLength(value, context)
+			style.RowGap = resolveGapLength(value, context)
+			style.ColumnGap = resolveGapLength(value, context)
 		} else if len(parts) >= 2 {
-			style.RowGap = resolveLength(parts[0], context)
-			style.ColumnGap = resolveLength(parts[1], context)
+			style.RowGap = resolveGapLength(parts[0], context)
+			style.ColumnGap = resolveGapLength(parts[1], context)
 		}
 	case "row-gap":
-		style.RowGap = resolveLength(value, context)
+		style.RowGap = resolveGapLength(value, context)
 	case "column-gap":
-		style.ColumnGap = resolveLength(value, context)
+		style.ColumnGap = resolveGapLength(value, context)
 
 	case "table-layout":
 		style.TableLayout = parseTableLayout(value)

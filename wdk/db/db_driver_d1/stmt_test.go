@@ -22,44 +22,34 @@ import (
 	"context"
 	"database/sql/driver"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/cloudflare/cloudflare-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func newTestConn(t *testing.T, responseBody string) *d1Conn {
-	t.Helper()
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(responseBody))
-	}))
-	t.Cleanup(server.Close)
-
-	api, err := cloudflare.NewWithAPIToken("test-token",
-		cloudflare.BaseURL(server.URL),
-		cloudflare.HTTPClient(server.Client()),
-	)
-	require.NoError(t, err)
-
-	return &d1Conn{
-		api:        api,
-		rc:         cloudflare.AccountIdentifier("test-account"),
-		databaseID: "test-database",
-	}
-}
 
 const (
 	singleSuccessResult = `{
 	"result": [
 		{
 			"success": true,
-			"results": [{"id": 1, "name": "alice"}],
+			"results": {"columns": ["id", "name"], "rows": [[1, "alice"]]},
 			"meta": {"last_row_id": 7, "changes": 3}
+		}
+	],
+	"success": true,
+	"errors": [],
+	"messages": []
+}`
+	unorderedDuplicateColumnsResult = `{
+	"result": [
+		{
+			"success": true,
+			"results": {
+				"columns": ["zeta", "alpha", "name", "name"],
+				"rows": [["z1", "a1", "first", "second"], ["z2"]]
+			},
+			"meta": {"last_row_id": 0, "changes": 0}
 		}
 	],
 	"success": true,
@@ -70,12 +60,12 @@ const (
 	"result": [
 		{
 			"success": true,
-			"results": [],
+			"results": {"columns": [], "rows": []},
 			"meta": {"last_row_id": 1, "changes": 1}
 		},
 		{
 			"success": false,
-			"results": [],
+			"results": {"columns": [], "rows": []},
 			"meta": {}
 		}
 	],
@@ -87,11 +77,11 @@ const (
 	"result": [
 		{
 			"success": true,
-			"results": [],
+			"results": {"columns": [], "rows": []},
 			"meta": {"last_row_id": 1, "changes": 1}
 		},
 		{
-			"results": [],
+			"results": {"columns": [], "rows": []},
 			"meta": {}
 		}
 	],
@@ -99,6 +89,7 @@ const (
 	"errors": [],
 	"messages": []
 }`
+	emptyResult = `{"result": [], "success": true, "errors": [], "messages": []}`
 )
 
 func TestExecContextNilParameterReturnsSentinel(t *testing.T) {
@@ -108,7 +99,7 @@ func TestExecContextNilParameterReturnsSentinel(t *testing.T) {
 	result, err := stmt.ExecContext(context.Background(), []driver.NamedValue{
 		{Ordinal: 1, Value: nil},
 	})
-	require.ErrorIs(t, err, errNullParamUnsupported)
+	require.ErrorIs(t, err, ErrNullParamUnsupported)
 	assert.Nil(t, result)
 }
 
@@ -119,7 +110,7 @@ func TestQueryContextNilParameterReturnsSentinel(t *testing.T) {
 	rows, err := stmt.QueryContext(context.Background(), []driver.NamedValue{
 		{Ordinal: 1, Value: nil},
 	})
-	require.ErrorIs(t, err, errNullParamUnsupported)
+	require.ErrorIs(t, err, ErrNullParamUnsupported)
 	assert.Nil(t, rows)
 }
 
@@ -132,7 +123,7 @@ func TestExecContextTransactionNilParameterReturnsSentinel(t *testing.T) {
 	result, err := stmt.ExecContext(context.Background(), []driver.NamedValue{
 		{Ordinal: 1, Value: nil},
 	})
-	require.ErrorIs(t, err, errNullParamUnsupported)
+	require.ErrorIs(t, err, ErrNullParamUnsupported)
 	assert.Nil(t, result)
 
 	d1Transaction, ok := tx.(*d1Tx)
@@ -158,26 +149,56 @@ func TestExecDirectSuccess(t *testing.T) {
 	assert.Equal(t, int64(3), rowsAffected)
 }
 
-func TestExecDirectLaterStatementFailureSurfaced(t *testing.T) {
-	conn := newTestConn(t, firstSuccessSecondFailure)
-	stmt := &d1Stmt{conn: conn, query: "UPDATE a SET v = 1; UPDATE b SET v = 2"}
+func TestStatementFailuresSurfaced(t *testing.T) {
+	testCases := []struct {
+		name          string
+		responseBody  string
+		query         string
+		expectedError []string
+		useQuery      bool
+	}{
+		{
+			name:          "exec later statement failure",
+			responseBody:  firstSuccessSecondFailure,
+			query:         "UPDATE a SET v = 1; UPDATE b SET v = 2",
+			expectedError: []string{"exec", "statement 1", "failure"},
+		},
+		{
+			name:          "exec later statement missing flag",
+			responseBody:  firstSuccessSecondMissingFlag,
+			query:         "UPDATE a SET v = 1; UPDATE b SET v = 2",
+			expectedError: []string{"exec", "statement 1", "success flag"},
+		},
+		{
+			name:          "query later statement failure",
+			responseBody:  firstSuccessSecondFailure,
+			query:         "SELECT 1; SELECT bad",
+			expectedError: []string{"query", "statement 1", "failure"},
+			useQuery:      true,
+		},
+	}
 
-	result, err := stmt.ExecContext(context.Background(), nil)
-	require.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "statement 1")
-	assert.Contains(t, err.Error(), "failure")
-}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			conn := newTestConn(t, testCase.responseBody)
+			stmt := &d1Stmt{conn: conn, query: testCase.query}
 
-func TestExecDirectLaterStatementMissingFlagSurfaced(t *testing.T) {
-	conn := newTestConn(t, firstSuccessSecondMissingFlag)
-	stmt := &d1Stmt{conn: conn, query: "UPDATE a SET v = 1; UPDATE b SET v = 2"}
-
-	result, err := stmt.ExecContext(context.Background(), nil)
-	require.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "statement 1")
-	assert.Contains(t, err.Error(), "success flag")
+			var err error
+			if testCase.useQuery {
+				var rows driver.Rows
+				rows, err = stmt.QueryContext(context.Background(), nil)
+				assert.Nil(t, rows)
+			} else {
+				var result driver.Result
+				result, err = stmt.ExecContext(context.Background(), nil)
+				assert.Nil(t, result)
+			}
+			require.Error(t, err)
+			for _, fragment := range testCase.expectedError {
+				assert.Contains(t, err.Error(), fragment)
+			}
+		})
+	}
 }
 
 func TestQueryDirectSuccess(t *testing.T) {
@@ -196,27 +217,36 @@ func TestQueryDirectSuccess(t *testing.T) {
 	assert.Equal(t, "alice", dest[1])
 }
 
-func TestQueryDirectLaterStatementFailureSurfaced(t *testing.T) {
-	conn := newTestConn(t, firstSuccessSecondFailure)
-	stmt := &d1Stmt{conn: conn, query: "SELECT 1; SELECT bad"}
+func TestQueryDirectKeepsServerColumnOrderAndDuplicates(t *testing.T) {
+	conn := newTestConn(t, unorderedDuplicateColumnsResult)
+	stmt := &d1Stmt{conn: conn, query: "SELECT zeta, alpha, a.name, b.name FROM a JOIN b"}
 
 	rows, err := stmt.QueryContext(context.Background(), nil)
-	require.Error(t, err)
-	assert.Nil(t, rows)
-	assert.Contains(t, err.Error(), "statement 1")
-	assert.Contains(t, err.Error(), "failure")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = rows.Close() })
+
+	assert.Equal(t, []string{"zeta", "alpha", "name", "name"}, rows.Columns())
+
+	dest := make([]driver.Value, len(rows.Columns()))
+	require.NoError(t, rows.Next(dest))
+	assert.Equal(t, []driver.Value{"z1", "a1", "first", "second"}, dest)
+
+	require.NoError(t, rows.Next(dest))
+	assert.Equal(t, []driver.Value{"z2", nil, nil, nil}, dest)
 }
 
-func TestExecDirectEmptyResultsIsNoOp(t *testing.T) {
-	conn := newTestConn(t, `{"result": [], "success": true, "errors": [], "messages": []}`)
-	stmt := &d1Stmt{conn: conn, query: "PRAGMA noop"}
+func TestEmptyResultsAreNoOps(t *testing.T) {
+	conn := newTestConn(t, emptyResult)
 
-	result, err := stmt.ExecContext(context.Background(), nil)
+	result, err := (&d1Stmt{conn: conn, query: "PRAGMA noop"}).ExecContext(context.Background(), nil)
 	require.NoError(t, err)
-
 	rowsAffected, err := result.RowsAffected()
 	require.NoError(t, err)
 	assert.Zero(t, rowsAffected)
+
+	rows, err := (&d1Stmt{conn: conn, query: "PRAGMA noop"}).QueryContext(context.Background(), nil)
+	require.NoError(t, err)
+	assert.Empty(t, rows.Columns())
 }
 
 func TestQueryContextWithinTransactionRejected(t *testing.T) {
@@ -229,4 +259,58 @@ func TestQueryContextWithinTransactionRejected(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, rows)
 	assert.Contains(t, err.Error(), "not supported within D1 transactions")
+}
+
+func TestExecWithinTransactionReportsUnavailableCounters(t *testing.T) {
+	conn := newTestConn(t, singleSuccessResult)
+	_, err := conn.begin(context.Background())
+	require.NoError(t, err)
+
+	result, err := (&d1Stmt{conn: conn, query: "INSERT INTO t (v) VALUES (?)"}).ExecContext(
+		context.Background(), []driver.NamedValue{{Ordinal: 1, Value: "x"}})
+	require.NoError(t, err)
+
+	_, err = result.LastInsertId()
+	require.ErrorIs(t, err, ErrResultUnavailableInTransaction)
+	_, err = result.RowsAffected()
+	require.ErrorIs(t, err, ErrResultUnavailableInTransaction)
+}
+
+func TestStatementsWithoutContextUseDetachedContext(t *testing.T) {
+	recorder := newRecordingServer(t, http.StatusOK, singleSuccessResult)
+	conn := newConn(newTestClient(t, recorder.server.URL), nil)
+	stmt := &d1Stmt{conn: conn, query: "SELECT id, name FROM t WHERE v = ?"}
+
+	result, err := stmt.Exec([]driver.Value{"a"})
+	require.NoError(t, err)
+	rowsAffected, err := result.RowsAffected()
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), rowsAffected)
+
+	rows, err := stmt.Query([]driver.Value{int64(2)})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"id", "name"}, rows.Columns())
+
+	requests := recorder.recorded()
+	require.Len(t, requests, 2)
+	assert.Equal(t, []string{"a"}, requests[0].body.Parameters)
+	assert.Equal(t, []string{"2"}, requests[1].body.Parameters)
+}
+
+func TestExecIsSentOnceAgainstServerError(t *testing.T) {
+	recorder := newRecordingServer(t, http.StatusBadGateway, "<html>bad gateway</html>")
+	conn := newConn(newTestClient(t, recorder.server.URL), nil)
+
+	result, err := (&d1Stmt{conn: conn, query: "INSERT INTO t (v) VALUES (?)"}).ExecContext(
+		context.Background(), []driver.NamedValue{{Ordinal: 1, Value: "x"}})
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, int64(1), recorder.count.Load())
+}
+
+func TestStatementBasics(t *testing.T) {
+	stmt := &d1Stmt{conn: nil, query: "SELECT 1"}
+
+	assert.Equal(t, -1, stmt.NumInput())
+	assert.NoError(t, stmt.Close())
 }

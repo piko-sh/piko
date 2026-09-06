@@ -25,19 +25,19 @@ import (
 	"fmt"
 )
 
-// ModuleBundle is the self-contained artefact pairing a ModuleDescriptor with the piko
+// ModuleBundle is the self-contained artefact pairing a ModuleDescriptor with the pipit
 // bytecode that implements it.
 //
-// Bytecode is the output of interp_domain.Service.PackCompiledFileSetToBytes, already
-// schema-hash versioned. Hosts SHOULD NOT inspect or mutate the bytes; piko's loader is
+// Bytecode is the output of pipit.PackCompiledFileSetToBytes, already schema-hash
+// versioned. Hosts SHOULD NOT inspect or mutate the bytes; the interpreter's loader is
 // the only consumer.
 type ModuleBundle struct {
 	// Descriptor declares what the module is. Always non-nil for a well-formed bundle.
 	Descriptor *ModuleDescriptor
 
-	// Bytecode is the schema-versioned piko bytecode payload. The bytes are exactly what
-	// interp_provider_piko.PackCompiledFileSetToBytes returned at packaging time and are
-	// passed unchanged to the loader.
+	// Bytecode is the schema-versioned pipit bytecode payload. The bytes are exactly what
+	// pipit.PackCompiledFileSetToBytes returned at packaging time and are passed unchanged
+	// to the loader.
 	Bytecode []byte
 
 	// TypesExport carries the bundle's go/types.Package metadata in gcexportdata format, one

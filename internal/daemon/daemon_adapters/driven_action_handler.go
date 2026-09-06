@@ -245,13 +245,21 @@ func NewActionHandler(
 	}
 
 	return &ActionHandler{
-		registry:            make(map[string]ActionHandlerEntry),
-		csrfService:         csrfService,
-		maxBodyBytes:        maxBodyBytes,
-		rateLimitMw:         rlMw,
-		responseCache:       responseCache,
-		captchaService:      captchaService,
-		enforceSecFetchSite: enforceSecFetchSite,
+		registry:                make(map[string]ActionHandlerEntry),
+		csrfService:             csrfService,
+		maxBodyBytes:            maxBodyBytes,
+		rateLimitMw:             rlMw,
+		responseCache:           responseCache,
+		captchaService:          captchaService,
+		enforceSecFetchSite:     enforceSecFetchSite,
+		spamdetectService:       nil,
+		actionWarned:            sync.Map{},
+		actionSlots:             sync.Map{},
+		defaultMaxSSEDuration:   0,
+		requestTimeout:          0,
+		maxMultipartFormBytes:   0,
+		maxParallelBatchWorkers: 0,
+		compressResponses:       false,
 	}
 }
 
@@ -662,7 +670,14 @@ func (h *ActionHandler) prepareAction(
 	ctx, l := logger_domain.From(ctx, log)
 
 	action := entry.Create()
-	prepared := preparedAction{Action: action, StartTime: time.Now()}
+	prepared := preparedAction{
+		Action:    action,
+		StartTime: time.Now(),
+		Ctx:       nil,
+		Request:   nil,
+		Arguments: nil,
+		Limits:    actionLimits{},
+	}
 	prepared.Limits = h.resolveActionLimits(action)
 
 	releaseSlot, admitted := h.acquireActionSlot(entry.Name, prepared.Limits.MaxConcurrent)
@@ -773,7 +788,14 @@ func (h *ActionHandler) applyTransportDeadline(
 //
 // Returns actionLimits which holds the handler defaults with any action override applied.
 func (h *ActionHandler) resolveActionLimits(action any) actionLimits {
-	limits := actionLimits{BodyLimit: h.maxBodyBytes, Timeout: h.requestTimeout}
+	limits := actionLimits{
+		BodyLimit:       h.maxBodyBytes,
+		Timeout:         h.requestTimeout,
+		SlowThreshold:   0,
+		MaxSSEDuration:  0,
+		MaxResponseSize: 0,
+		MaxConcurrent:   0,
+	}
 
 	limitable, ok := action.(daemon_domain.ResourceLimitable)
 	if !ok {
@@ -948,7 +970,7 @@ func (h *ActionHandler) handleSSE(
 	}
 	defer release()
 
-	ctx, l := logger_domain.From(prepared.Ctx, log)
+	ctx = prepared.Ctx
 
 	if !h.bindSSEInput(ctx, w, prepared.Request, prepared.Action, prepared.Arguments, entry, span) {
 		h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
@@ -959,7 +981,7 @@ func (h *ActionHandler) handleSSE(
 	h.applyResponseMetadata(w, prepared.Action)
 	h.writeSSEHeaders(w)
 
-	h.executeSSEStream(ctx, w, prepared.Request, prepared.Action, entry, span, l)
+	h.executeSSEStream(ctx, w, prepared.Request, prepared.Action, entry, span)
 	h.recordSlowAction(ctx, entry.Name, prepared.StartTime, prepared.Limits.SlowThreshold)
 }
 
@@ -1048,7 +1070,6 @@ func (h *ActionHandler) applySSEDurationLimit(
 // Takes action (any) which must implement daemon_domain.SSECapable.
 // Takes entry (ActionHandlerEntry) which identifies the action.
 // Takes span (trace.Span) which records the operation status.
-// Takes l (logger_domain.Logger) which provides structured logging.
 //
 // Concurrency: a watcher goroutine derived from ctx via WithCancelCause closes the
 // disconnect channel when the request context ends. The deferred cancel guarantees the
@@ -1061,8 +1082,9 @@ func (*ActionHandler) executeSSEStream(
 	action any,
 	entry ActionHandlerEntry,
 	span trace.Span,
-	l logger_domain.Logger,
 ) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	watchCtx, cancelWatch := context.WithCancelCause(ctx)
 	defer cancelWatch(errors.New("sse handler returned"))
 
@@ -1112,12 +1134,18 @@ func (*ActionHandler) executeSSEStream(
 // Returns *daemon_dto.RequestMetadata which describes the request.
 func newRequestMetadata(request *http.Request) *daemon_dto.RequestMetadata {
 	return &daemon_dto.RequestMetadata{
-		Method:      request.Method,
-		Path:        request.URL.Path,
-		Headers:     request.Header,
-		QueryParams: request.URL.Query(),
-		RemoteAddr:  request.RemoteAddr,
-		RawRequest:  request,
+		Method:          request.Method,
+		Path:            request.URL.Path,
+		Headers:         request.Header,
+		QueryParams:     request.URL.Query(),
+		RemoteAddr:      request.RemoteAddr,
+		RawRequest:      request,
+		Session:         nil,
+		CSRFToken:       nil,
+		CaptchaScore:    nil,
+		SpamScore:       nil,
+		SpamFieldScores: nil,
+		SpamReasons:     nil,
 	}
 }
 

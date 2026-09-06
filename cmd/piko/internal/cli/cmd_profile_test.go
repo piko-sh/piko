@@ -1536,7 +1536,7 @@ func TestProfileTUIModel_Update(t *testing.T) {
 		},
 		{
 			name:    "profileDoneMessage nil err",
-			message: profileDoneMessage{err: nil},
+			message: profileDoneMessage{},
 			checkFunc: func(t *testing.T, m *profileTUIModel, _ tea.Cmd) {
 				t.Helper()
 				assert.True(t, m.done, "expected done=true")

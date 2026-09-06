@@ -42,7 +42,7 @@ func TestExtractLoopVariables(t *testing.T) {
 		},
 		{
 			name:      "empty expression",
-			directive: &ast_domain.Directive{RawExpression: ""},
+			directive: &ast_domain.Directive{},
 			want:      nil,
 		},
 		{
@@ -287,7 +287,7 @@ func TestInlayHintPositionInRange(t *testing.T) {
 
 func TestGetInlayHints_GuardClauses(t *testing.T) {
 	fullRange := protocol.Range{
-		Start: protocol.Position{Line: 0, Character: 0},
+		Start: protocol.Position{},
 		End:   protocol.Position{Line: 100, Character: 0},
 	}
 
@@ -330,7 +330,7 @@ func TestGetInlayHints_GuardClauses(t *testing.T) {
 
 func TestCollectForLoopTypeHints(t *testing.T) {
 	fullRange := protocol.Range{
-		Start: protocol.Position{Line: 0, Character: 0},
+		Start: protocol.Position{},
 		End:   protocol.Position{Line: 100, Character: 100},
 	}
 
@@ -437,7 +437,7 @@ func TestGetInlayHints_WithForLoop(t *testing.T) {
 		Build()
 
 	fullRange := protocol.Range{
-		Start: protocol.Position{Line: 0, Character: 0},
+		Start: protocol.Position{},
 		End:   protocol.Position{Line: 100, Character: 100},
 	}
 

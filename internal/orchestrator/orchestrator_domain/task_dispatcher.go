@@ -86,7 +86,35 @@ const (
 	// defaultPersistJobsPerCPU is the multiplier applied to runtime.NumCPU() to derive the
 	// default persist concurrency cap when none is configured.
 	defaultPersistJobsPerCPU = 4
+
+	// defaultDispatchBacklogLimit is the default number of tasks held while the dispatcher
+	// has not yet subscribed to its topics.
+	defaultDispatchBacklogLimit = 10_000
+
+	// defaultMaxRetryBackoff caps the exponential retry delay so large retry budgets cannot
+	// produce unbounded or overflowing waits.
+	defaultMaxRetryBackoff = 30 * time.Minute
+
+	// defaultExecutorAbandonGrace is how long an executor may keep running after its timeout
+	// before the dispatcher stops waiting for it.
+	defaultExecutorAbandonGrace = 30 * time.Second
+
+	// defaultMaxPendingReruns is the default number of deduplication keys that may each hold
+	// one pending rerun.
+	defaultMaxPendingReruns = 10_000
 )
+
+// DispatchRequirement reports whether the work a task would do is required.
+//
+// DispatchIfRequired evaluates it after the task's deduplication key has been claimed and
+// before the task is published. Because no other task with the same key can start or
+// finish in between, a decision that was based on state read before the claim can be
+// confirmed against current state without a window in which the work could complete
+// unnoticed.
+//
+// Returns bool which is true when the task must still run.
+// Returns error when the requirement cannot be determined.
+type DispatchRequirement func(ctx context.Context) (bool, error)
 
 // TaskDispatcher distributes tasks to workers using competing-consumer semantics. Each
 // task is processed by exactly one worker, regardless of how many are running.
@@ -106,6 +134,26 @@ type TaskDispatcher interface {
 	//
 	// Returns error when the context is cancelled or task validation fails.
 	Dispatch(ctx context.Context, task *Task) error
+
+	// DispatchIfRequired dispatches a task once required confirms the work is needed.
+	//
+	// The check runs after the task's deduplication key has been claimed and before the task
+	// is published. When required reports false the claim is released, nothing is published
+	// and ErrTaskNotRequired is returned. When required fails the task is published anyway,
+	// because running work twice is recoverable but silently skipping it is not.
+	//
+	// When an active task holds the key, the request is coalesced into one pending rerun
+	// (later requests replace it rather than queue behind it), and once the active task
+	// settles the rerun is dispatched through the same requirement check, so it is skipped
+	// when the finished task already covered it.
+	//
+	// Takes task (*Task) which specifies the work to be processed.
+	// Takes required (DispatchRequirement) which confirms the work is still needed.
+	//
+	// Returns error when validation fails, the key is already claimed by an active task
+	// (ErrDuplicateTask, with the request kept as the key's pending rerun), the work is no
+	// longer needed (ErrTaskNotRequired) or publishing fails.
+	DispatchIfRequired(ctx context.Context, task *Task, required DispatchRequirement) error
 
 	// DispatchDelayed schedules a task to run at a later time. Uses a min-heap with a
 	// sleep-until-due pattern (no polling).
@@ -222,6 +270,31 @@ type DispatcherConfig struct {
 	// DefaultTimeout is the timeout used for tasks that do not set their own.
 	DefaultTimeout time.Duration
 
+	// MaxRetryBackoff caps the exponential delay between retries of a failed task. Zero or
+	// negative uses the default of 30 minutes.
+	MaxRetryBackoff time.Duration
+
+	// ExecutorAbandonGrace is how long an executor may run on after its timeout.
+	//
+	// Once it passes, the dispatcher stops waiting and fails the attempt with the timeout as
+	// its cause, which bounds the damage of an executor that ignores cancellation. Zero or
+	// negative uses the default of 30 seconds.
+	ExecutorAbandonGrace time.Duration
+
+	// MaxPendingReruns bounds how many deduplication keys may each hold a pending rerun.
+	//
+	// A key gets one pending rerun when a dispatch is requested while it is in use. Beyond
+	// the limit new rerun requests are dropped with a warning. Zero or negative uses the
+	// default of 10,000.
+	MaxPendingReruns int
+
+	// DispatchBacklogLimit bounds the tasks held until the dispatcher subscribes.
+	//
+	// Tasks dispatched before the topic subscriptions exist are published once they do, so
+	// none are lost to a topic with no subscriber; beyond the limit Dispatch returns
+	// ErrDispatchBacklogFull. Zero or negative uses the default of 10,000.
+	DispatchBacklogLimit int
+
 	// MaxConcurrentPersistJobs caps in-flight async persistence goroutines.
 	//
 	// Without a cap, a burst of completed tasks can spawn an unbounded number of goroutines
@@ -244,6 +317,50 @@ func (c DispatcherConfig) EffectiveMaxConcurrentPersistJobs() int {
 		return c.MaxConcurrentPersistJobs
 	}
 	return runtime.NumCPU() * defaultPersistJobsPerCPU
+}
+
+// EffectiveDispatchBacklogLimit returns the configured limit on tasks held before the
+// dispatcher starts, falling back to the default when unset or non-positive.
+//
+// Returns int which is the effective backlog limit.
+func (c DispatcherConfig) EffectiveDispatchBacklogLimit() int {
+	if c.DispatchBacklogLimit > 0 {
+		return c.DispatchBacklogLimit
+	}
+	return defaultDispatchBacklogLimit
+}
+
+// EffectiveMaxPendingReruns returns the configured limit on pending reruns, falling back
+// to the default when unset or non-positive.
+//
+// Returns int which is the effective pending rerun limit.
+func (c DispatcherConfig) EffectiveMaxPendingReruns() int {
+	if c.MaxPendingReruns > 0 {
+		return c.MaxPendingReruns
+	}
+	return defaultMaxPendingReruns
+}
+
+// EffectiveMaxRetryBackoff returns the configured cap on retry delays, falling back to
+// the default when unset or non-positive.
+//
+// Returns time.Duration which is the effective retry delay cap.
+func (c DispatcherConfig) EffectiveMaxRetryBackoff() time.Duration {
+	if c.MaxRetryBackoff > 0 {
+		return c.MaxRetryBackoff
+	}
+	return defaultMaxRetryBackoff
+}
+
+// EffectiveExecutorAbandonGrace returns how long to keep waiting for an executor after
+// its timeout, falling back to the default when unset or non-positive.
+//
+// Returns time.Duration which is the effective abandon grace.
+func (c DispatcherConfig) EffectiveExecutorAbandonGrace() time.Duration {
+	if c.ExecutorAbandonGrace > 0 {
+		return c.ExecutorAbandonGrace
+	}
+	return defaultExecutorAbandonGrace
 }
 
 // DispatcherStats holds runtime figures about the dispatcher for monitoring.
@@ -307,17 +424,23 @@ type FailedTaskSummary struct {
 // retry settings.
 func DefaultDispatcherConfig() DispatcherConfig {
 	return DispatcherConfig{
-		DefaultTimeout:          defaultTaskTimeout,
-		DefaultMaxRetries:       defaultMaxRetries,
-		RecoveryInterval:        defaultRecoveryInterval,
-		StaleTaskThreshold:      defaultStaleTaskThreshold,
-		HeartbeatInterval:       defaultHeartbeatInterval,
-		NodeID:                  "",
-		RecoveryLeaseTimeout:    defaultRecoveryLeaseTimeout,
-		RecoveryBatchLimit:      defaultRecoveryBatchLimit,
-		SyncPersistence:         false,
-		WatermillHighHandlers:   defaultWatermillHighHandlers,
-		WatermillNormalHandlers: defaultWatermillNormalHandlers,
-		WatermillLowHandlers:    defaultWatermillLowHandlers,
+		DefaultTimeout:           defaultTaskTimeout,
+		DefaultMaxRetries:        defaultMaxRetries,
+		RecoveryInterval:         defaultRecoveryInterval,
+		StaleTaskThreshold:       defaultStaleTaskThreshold,
+		HeartbeatInterval:        defaultHeartbeatInterval,
+		NodeID:                   "",
+		RecoveryLeaseTimeout:     defaultRecoveryLeaseTimeout,
+		RecoveryBatchLimit:       defaultRecoveryBatchLimit,
+		SyncPersistence:          false,
+		WatermillHighHandlers:    defaultWatermillHighHandlers,
+		WatermillNormalHandlers:  defaultWatermillNormalHandlers,
+		WatermillLowHandlers:     defaultWatermillLowHandlers,
+		Clock:                    nil,
+		MaxConcurrentPersistJobs: 0,
+		MaxRetryBackoff:          defaultMaxRetryBackoff,
+		ExecutorAbandonGrace:     defaultExecutorAbandonGrace,
+		MaxPendingReruns:         defaultMaxPendingReruns,
+		DispatchBacklogLimit:     defaultDispatchBacklogLimit,
 	}
 }

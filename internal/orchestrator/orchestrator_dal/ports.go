@@ -62,6 +62,15 @@ type TaskDAL interface {
 	// Returns error when the fetch or update fails.
 	FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error)
 
+	// GetTasksByID reads the tasks with the given IDs without changing them. IDs that do not
+	// exist are skipped.
+	//
+	// Takes ids ([]string) which lists the task IDs to read.
+	//
+	// Returns []*orchestrator_domain.Task which holds the tasks found.
+	// Returns error when the read fails.
+	GetTasksByID(ctx context.Context, ids []string) ([]*orchestrator_domain.Task, error)
+
 	// GetWorkflowStatus checks whether all tasks in a workflow are complete.
 	//
 	// Takes workflowID (string) which identifies the workflow to check.

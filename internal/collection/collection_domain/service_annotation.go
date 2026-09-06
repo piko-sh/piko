@@ -77,6 +77,8 @@ func (s *collectionService) generateStaticCollectionAnnotation(
 //
 // Takes provider (CollectionProvider) which supplies the static content.
 // Takes collectionName (string) which identifies the collection to fetch.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns []collection_dto.ContentItem which contains the cached or freshly fetched
 // content items.
@@ -127,34 +129,7 @@ func (s *collectionService) buildStaticAnnotation(
 ) *ast_domain.GoGeneratorAnnotation {
 	resolvedType := s.createSliceTypeInfo(targetTypeExpr)
 
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: sliceLiteral,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resolvedType,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    convertItemsToAny(processedItems),
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                true,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    true,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        true,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	return newStaticCollectionAnnotation(resolvedType, sliceLiteral, convertItemsToAny(processedItems))
 }
 
 // logStaticAnnotationDiagnostics logs debug information about a static collection
@@ -206,11 +181,9 @@ func (*collectionService) createSliceTypeInfo(targetTypeExpr ast.Expr) *ast_doma
 		Elt:    targetTypeExpr,
 	}
 
-	return &ast_domain.ResolvedTypeInfo{
-		TypeExpression:       sliceTypeExpr,
-		PackageAlias:         "",
-		CanonicalPackagePath: "",
-	}
+	info := ast_domain.ResolvedTypeInfo{}
+	info.TypeExpression = sliceTypeExpr
+	return &info
 }
 
 // generateDynamicAnnotation creates an annotation for runtime data fetching.
@@ -265,34 +238,7 @@ func (s *collectionService) buildDynamicAnnotation(
 ) *ast_domain.GoGeneratorAnnotation {
 	resolvedType := s.createSliceTypeInfo(targetType)
 
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   dynamicInfo,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resolvedType,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        true,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	return newDynamicCollectionAnnotation(resolvedType, dynamicInfo)
 }
 
 // logDynamicAnnotationDiagnostics logs debug details about a dynamic collection
@@ -368,4 +314,82 @@ func buildDynamicCollectionInfo(
 		SnapshotETag:    "",
 		RevalidatorCode: nil,
 	}
+}
+
+// newStaticCollectionAnnotation creates the annotation for a collection whose items are
+// all known at build time and rendered statically.
+//
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which is the slice type of the
+// collection.
+// Takes sliceLiteral (ast.Expr) which is the static slice literal.
+// Takes staticData ([]any) which holds the pre-processed static items.
+//
+// Returns *ast_domain.GoGeneratorAnnotation which marks the call as a static collection.
+func newStaticCollectionAnnotation(
+	resolvedType *ast_domain.ResolvedTypeInfo,
+	sliceLiteral ast.Expr,
+	staticData []any,
+) *ast_domain.GoGeneratorAnnotation {
+	annotation := newCollectionCallAnnotation(resolvedType)
+	annotation.StaticCollectionLiteral = sliceLiteral
+	annotation.StaticCollectionData = staticData
+	annotation.IsStatic = true
+	annotation.IsStructurallyStatic = true
+	return annotation
+}
+
+// newDynamicCollectionAnnotation creates the annotation for a collection that is fetched
+// at runtime.
+//
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which is the slice type of the
+// collection.
+// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which holds the runtime fetch
+// configuration.
+//
+// Returns *ast_domain.GoGeneratorAnnotation which marks the call as a dynamic collection.
+func newDynamicCollectionAnnotation(
+	resolvedType *ast_domain.ResolvedTypeInfo,
+	dynamicInfo *collection_dto.DynamicCollectionInfo,
+) *ast_domain.GoGeneratorAnnotation {
+	annotation := newCollectionCallAnnotation(resolvedType)
+	annotation.DynamicCollectionInfo = dynamicInfo
+	return annotation
+}
+
+// newHybridCollectionAnnotation creates the annotation for a collection that renders a
+// build-time snapshot and revalidates it at runtime.
+//
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which is the slice type of the
+// collection.
+// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which holds the runtime
+// revalidation configuration.
+// Takes sliceLiteral (ast.Expr) which is the snapshot slice literal.
+// Takes staticData ([]any) which holds the pre-processed snapshot items.
+//
+// Returns *ast_domain.GoGeneratorAnnotation which marks the call as a static hybrid
+// collection.
+func newHybridCollectionAnnotation(
+	resolvedType *ast_domain.ResolvedTypeInfo,
+	dynamicInfo *collection_dto.DynamicCollectionInfo,
+	sliceLiteral ast.Expr,
+	staticData []any,
+) *ast_domain.GoGeneratorAnnotation {
+	annotation := newStaticCollectionAnnotation(resolvedType, sliceLiteral, staticData)
+	annotation.DynamicCollectionInfo = dynamicInfo
+	annotation.IsHybridCollection = true
+	return annotation
+}
+
+// newCollectionCallAnnotation creates the annotation fields shared by every collection
+// mode.
+//
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which is the slice type of the
+// collection.
+//
+// Returns *ast_domain.GoGeneratorAnnotation which marks the call as a collection call.
+func newCollectionCallAnnotation(resolvedType *ast_domain.ResolvedTypeInfo) *ast_domain.GoGeneratorAnnotation {
+	annotation := &ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = resolvedType
+	annotation.IsCollectionCall = true
+	return annotation
 }

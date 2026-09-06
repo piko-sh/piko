@@ -36,7 +36,8 @@ const (
 // rows show recent values + a high-fidelity history chart in the lower portion of the
 // pane; the panel-level summary lists all metrics by name when no row is selected.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *MetricsPanel) DetailView(width, height int) string {
@@ -84,15 +85,15 @@ func metricChartSeries(m *metricDisplay, now time.Time) []ChartSeries {
 // Returns inspector.DetailBody describing the metric's current and historic values.
 func metricDetailBody(m *metricDisplay) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Name", Value: m.name},
-		{Label: "Current", Value: formatMetricValue(m.current, m.unit)},
-		{Label: "Samples", Value: fmt.Sprintf(FormatPercentInt, len(m.values))},
+		inspector.NewDetailRow("Name", m.name),
+		inspector.NewDetailRow("Current", formatMetricValue(m.current, m.unit)),
+		inspector.NewDetailRow("Samples", fmt.Sprintf(FormatPercentInt, len(m.values))),
 	}
 	if m.unit != "" {
-		rows = append(rows, inspector.DetailRow{Label: "Unit", Value: m.unit})
+		rows = append(rows, inspector.NewDetailRow("Unit", m.unit))
 	}
 	if m.description != "" {
-		rows = append(rows, inspector.DetailRow{Label: "Description", Value: m.description})
+		rows = append(rows, inspector.NewDetailRow("Description", m.description))
 	}
 
 	if len(m.values) > 0 {
@@ -108,16 +109,16 @@ func metricDetailBody(m *metricDisplay) inspector.DetailBody {
 		}
 		avg := sum / float64(len(m.values))
 		rows = append(rows,
-			inspector.DetailRow{Label: "Min", Value: formatMetricValue(minV, m.unit)},
-			inspector.DetailRow{Label: "Max", Value: formatMetricValue(maxV, m.unit)},
-			inspector.DetailRow{Label: "Avg", Value: formatMetricValue(avg, m.unit)},
+			inspector.NewDetailRow("Min", formatMetricValue(minV, m.unit)),
+			inspector.NewDetailRow("Max", formatMetricValue(maxV, m.unit)),
+			inspector.NewDetailRow("Avg", formatMetricValue(avg, m.unit)),
 		)
 	}
 
 	return inspector.DetailBody{
 		Title:    m.name,
 		Subtitle: formatMetricValue(m.current, m.unit),
-		Sections: []inspector.DetailSection{{Heading: "Metric", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Metric", rows)},
 	}
 }
 
@@ -131,16 +132,17 @@ func (p *MetricsPanel) metricsOverviewDetailBody() inspector.DetailBody {
 	defer p.stateMutex.RUnlock()
 
 	rows := []inspector.DetailRow{
-		{Label: "Tracked", Value: fmt.Sprintf(FormatPercentInt, len(p.metricHistory))},
+		inspector.NewDetailRow("Tracked", fmt.Sprintf(FormatPercentInt, len(p.metricHistory))),
 	}
 	if !p.lastRefresh.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last refresh", Value: inspector.FormatDetailTime(p.lastRefresh)})
+		rows = append(rows, inspector.NewDetailRow("Last refresh", inspector.FormatDetailTime(p.lastRefresh)))
 	}
 	if p.err != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: p.err.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", p.err.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    "Metrics overview",
-		Sections: []inspector.DetailSection{{Heading: "Status", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status", rows)},
+		Subtitle: "",
 	}
 }

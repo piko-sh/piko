@@ -236,7 +236,10 @@ func sampleMatchesFocus(s *profile.Sample, focusRegex *regexp.Regexp) bool {
 // Takes s (*profile.Sample) which is the sample to accumulate.
 // Takes sampleIndex (int) which selects the value column.
 // Takes byLine (bool) which controls keying granularity.
-// Takes flatMap, cumMap (map[profileKey]int64) which receive the per-key contributions.
+// Takes flatMap (map[profileKey]int64) which holds flat sample totals keyed by profile
+// location.
+// Takes cumMap (map[profileKey]int64) which holds cumulative sample totals keyed by
+// profile location.
 func accumulateSample(s *profile.Sample, sampleIndex int, byLine bool, flatMap, cumMap map[profileKey]int64) {
 	value := s.Value[sampleIndex]
 	seen := make(map[profileKey]bool)
@@ -245,7 +248,7 @@ func accumulateSample(s *profile.Sample, sampleIndex int, byLine bool, flatMap, 
 			if line.Function == nil {
 				continue
 			}
-			k := profileKey{FunctionName: line.Function.Name}
+			k := profileKey{FunctionName: line.Function.Name, FileName: "", Line: 0}
 			if byLine {
 				k.FileName = line.Function.Filename
 				k.Line = line.Line
@@ -264,7 +267,10 @@ func accumulateSample(s *profile.Sample, sampleIndex int, byLine bool, flatMap, 
 // buildProfileEntries converts the flat and cumulative aggregation maps into a sorted
 // slice of ProfileEntry.
 //
-// Takes flatMap, cumMap (map[profileKey]int64) which hold the per-location aggregates.
+// Takes flatMap (map[profileKey]int64) which holds flat sample totals keyed by profile
+// location.
+// Takes cumMap (map[profileKey]int64) which holds cumulative sample totals keyed by
+// profile location.
 // Takes byLine (bool) which controls label formatting.
 //
 // Returns []ProfileEntry which is the entries sorted by flat descending and cumulative

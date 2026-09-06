@@ -147,7 +147,7 @@ func (c *stressClient) Initialize(ctx context.Context, rootURI protocol.Document
 func (c *stressClient) InitializeWithOptions(ctx context.Context, rootURI protocol.DocumentURI, initOptions map[string]any) (*protocol.InitializeResult, error) {
 	c.requestCount.Add(1)
 	params := &protocol.InitializeParams{
-		RootURI: rootURI,
+		WorkspaceFolders: []protocol.WorkspaceFolder{{URI: string(rootURI), Name: "workspace"}},
 		Capabilities: protocol.ClientCapabilities{
 			TextDocument: &protocol.TextDocumentClientCapabilities{
 				Synchronization: &protocol.TextDocumentSyncClientCapabilities{
@@ -217,10 +217,8 @@ func (c *stressClient) Completion(ctx context.Context, fileURI protocol.Document
 
 	var result protocol.CompletionList
 	_, err := c.conn.Call(ctx, protocol.MethodTextDocumentCompletion, &protocol.CompletionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
 	}, &result)
 	if err != nil {
 		return nil, fmt.Errorf("completion request failed: %w", err)
@@ -233,10 +231,8 @@ func (c *stressClient) Hover(ctx context.Context, fileURI protocol.DocumentURI, 
 
 	var result protocol.Hover
 	_, err := c.conn.Call(ctx, protocol.MethodTextDocumentHover, &protocol.HoverParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
 	}, &result)
 	if err != nil {
 		return nil, fmt.Errorf("hover request failed: %w", err)
@@ -249,10 +245,8 @@ func (c *stressClient) Definition(ctx context.Context, fileURI protocol.Document
 
 	var result []protocol.Location
 	_, err := c.conn.Call(ctx, protocol.MethodTextDocumentDefinition, &protocol.DefinitionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
 	}, &result)
 	if err != nil {
 		return nil, fmt.Errorf("definition request failed: %w", err)
@@ -265,11 +259,9 @@ func (c *stressClient) Rename(ctx context.Context, fileURI protocol.DocumentURI,
 
 	var result protocol.WorkspaceEdit
 	_, err := c.conn.Call(ctx, protocol.MethodTextDocumentRename, &protocol.RenameParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
-		NewName: newName,
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
+		NewName:      newName,
 	}, &result)
 	if err != nil {
 		return nil, fmt.Errorf("rename request failed: %w", err)

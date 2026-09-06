@@ -1132,11 +1132,9 @@ func TestMockTypeQuerier_ConcurrentAccess(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			m.ResolveExprToNamedType(identifier, "p", "f")
 			m.ResolveExprToNamedTypeWithMemoization(context.Background(), identifier, "p", "f")
@@ -1168,7 +1166,7 @@ func TestMockTypeQuerier_ConcurrentAccess(t *testing.T) {
 			m.GetFilesForPackage("p")
 			m.DebugDTO()
 			m.DebugPackageDTO("p")
-		}()
+		})
 	}
 
 	wg.Wait()

@@ -378,7 +378,7 @@ func TestSerialiseExpressionTypes(t *testing.T) {
 		},
 		{
 			name:       "BooleanLiteral false",
-			expression: &BooleanLiteral{Value: false},
+			expression: &BooleanLiteral{},
 			contains:   []string{"BooleanLiteral", "false"},
 		},
 		{
@@ -450,7 +450,7 @@ func TestSerialiseExpressionTypes(t *testing.T) {
 			name: "IndexExpr",
 			expression: &IndexExpression{
 				Base:  &Identifier{Name: "arr"},
-				Index: &IntegerLiteral{Value: 0},
+				Index: &IntegerLiteral{},
 			},
 			contains: []string{"IndexExpression", "Base", "Index"},
 		},

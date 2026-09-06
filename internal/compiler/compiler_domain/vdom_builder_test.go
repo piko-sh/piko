@@ -602,9 +602,9 @@ func TestVdomBuilder_SingleLiteralRichTextKeepsItsText(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		parts        []ast_domain.TextPart
 		wantCall     string
 		wantText     string
+		parts        []ast_domain.TextPart
 		wantTextSeen bool
 	}{
 		{

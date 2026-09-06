@@ -28,77 +28,13 @@ import (
 // specific interpreter package.
 type SymbolExports = map[string]map[string]reflect.Value
 
-// InterpreterPort abstracts the Go interpreter used for JIT compilation. Allows the
-// templater domain to remain decoupled from the concrete interpreter implementation,
-// enabling the interpreter to be an optional dependency.
-type InterpreterPort interface {
-	// Eval evaluates Go source code and returns the result.
-	//
-	// Takes ctx (context.Context) for cancellation and deadlines.
-	// Takes code (string) which contains the Go source code to evaluate.
-	//
-	// Returns any which is the result of evaluating the code.
-	// Returns error when evaluation fails.
-	Eval(ctx context.Context, code string) (any, error)
-
-	// SetBuildContext sets the build context for import resolution. The buildCtx parameter
-	// should be a go/build.Context.
-	//
-	// Takes buildCtx (any) which provides the build context settings.
-	SetBuildContext(buildCtx any)
-
-	// SetSourcecodeFilesystem sets the virtual filesystem for source files. This is used for
-	// resolving imports from in-memory generated code.
-	//
-	// Takes fs (any) which provides the virtual filesystem implementation.
-	SetSourcecodeFilesystem(fs any)
-
-	// RegisterPackageAlias creates an alias for a package path, allowing the interpreter to
-	// resolve imports using the alias.
-	//
-	// Takes canonical (string) which is the full package path.
-	// Takes alias (string) which is the short alias to register.
-	//
-	// Returns error when alias registration fails.
-	RegisterPackageAlias(canonical, alias string) error
-
-	// Reset clears the interpreter state so it can be used again. Call this before returning
-	// the interpreter to a pool.
-	Reset()
-
-	// Clone creates a copy of the interpreter with loaded symbols. The cloned interpreter
-	// shares the symbol table but has independent execution state.
-	//
-	// Returns InterpreterPort which is the cloned interpreter.
-	Clone() InterpreterPort
-}
-
-// InterpreterPoolPort provides pooled interpreters for efficient reuse. Pre-warming
-// interpreters with symbols is expensive, so pooling amortises this cost across multiple
-// compilations.
-type InterpreterPoolPort interface {
-	// Get retrieves an interpreter from the pool. The returned interpreter is ready for use
-	// with symbols pre-loaded.
-	//
-	// Returns InterpreterPort which is a ready-to-use interpreter.
-	// Returns error when the pool is exhausted or an interpreter cannot be created.
-	Get() (InterpreterPort, error)
-
-	// Put returns an interpreter to the pool after resetting it. The interpreter's state is
-	// cleared before being returned to the pool.
-	//
-	// Takes i (InterpreterPort) which is the interpreter to return.
-	Put(i InterpreterPort)
-}
-
-// BatchInterpreterPort extends InterpreterPort with batch compilation.
+// InterpreterPort abstracts the Go interpreter that runs generated component code in
+// interpreted mode (dev-i). It keeps the templater domain decoupled from the concrete
+// interpreter, so the interpreter stays an optional dependency.
 //
-// Interpreters that compile all packages at once implement this to bypass the incremental
-// Eval() loop. The internal Piko bytecode interpreter uses this path for efficient
-// multi-package compilation.
-type BatchInterpreterPort interface {
-	InterpreterPort
-
+// The interpreter compiles every generated package as one program and runs its init
+// functions, which register the template builders into the global FunctionRegistry.
+type InterpreterPort interface {
 	// CompileAndExecute compiles all packages as a single program and executes their init
 	// functions, which register into the global FunctionRegistry.
 	//
@@ -119,32 +55,44 @@ type BatchInterpreterPort interface {
 	HasRegisteredPackage(importPath string) bool
 }
 
+// InterpreterPoolPort hands out interpreters that share one pre-warmed symbol registry.
+// Loading symbols is expensive, so the pool builds it once and every interpreter it
+// returns reuses it.
+type InterpreterPoolPort interface {
+	// LoadModules loads the module bundles queued on the provider into the pool's shared
+	// symbol registry. It is called once, at startup, before the first Get; later calls
+	// return the first call's result.
+	//
+	// Returns error when a module fails to load or ctx is cancelled.
+	LoadModules(ctx context.Context) error
+
+	// Get returns an interpreter ready for use with symbols pre-loaded.
+	//
+	// Returns InterpreterPort which is a ready-to-use interpreter.
+	// Returns error when an interpreter cannot be created, including when queued modules
+	// have not been loaded or failed to load.
+	Get() (InterpreterPort, error)
+}
+
 // InterpreterProviderPort is the top-level interface for interpreter providers. It
-// combines symbol management with interpreter pool creation.
+// combines symbol registration with interpreter pool creation.
 //
 // Implementations are provided by optional modules such as
-// piko.sh/piko/wdk/interp/interp_provider_piko.
+// piko.sh/piko/wdk/interp/interp_provider_pipit.
 type InterpreterProviderPort interface {
-	// NewSymbolProvider creates a symbol provider with stdlib symbols loaded. The symbol
-	// provider can be used to register additional symbols before creating an interpreter
-	// pool.
-	//
-	// Returns SymbolProviderPort which is ready for symbol registration.
-	NewSymbolProvider() SymbolProviderPort
-
-	// NewInterpreterPool creates a pool of pre-warmed interpreters. The golden interpreter
-	// is pre-loaded with the provided symbols, and each interpreter retrieved from the pool
-	// is a clone of the golden.
-	//
-	// Takes symbols (SymbolProviderPort) which provides the symbols to pre-load into the
-	// golden interpreter.
-	//
-	// Returns InterpreterPoolPort which provides pooled interpreters.
-	NewInterpreterPool(symbols SymbolProviderPort) InterpreterPoolPort
-
-	// RegisterSymbols adds additional symbol exports to the provider. These symbols will be
-	// included when NewSymbolProvider is called.
+	// RegisterSymbols adds additional symbol exports to the provider. These symbols are
+	// loaded into the interpreters created by NewInterpreterPool.
 	//
 	// Takes exports (SymbolExports) which contains the additional symbols to register.
 	RegisterSymbols(exports SymbolExports)
+
+	// NewInterpreterPool creates a pool of pre-warmed interpreters.
+	//
+	// The golden interpreter is loaded once with the standard library, the piko runtime
+	// symbols and any symbols added through RegisterSymbols. Each call returns an
+	// independent pool with a fresh symbol registry; the caller loads queued modules into it
+	// with LoadModules.
+	//
+	// Returns InterpreterPoolPort which provides the interpreters.
+	NewInterpreterPool() InterpreterPoolPort
 }

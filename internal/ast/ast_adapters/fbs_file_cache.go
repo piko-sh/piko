@@ -36,6 +36,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -67,9 +68,6 @@ var (
 
 // fbsFileCacheConfig holds the settings for the file-based cache.
 type fbsFileCacheConfig struct {
-	// Ctx is the parent context used for background worker goroutines.
-	Ctx context.Context
-
 	// Clock provides time functions; nil uses the real system clock.
 	Clock clock.Clock
 
@@ -77,8 +75,8 @@ type fbsFileCacheConfig struct {
 	// created for BaseDir; callers must close injected sandboxes.
 	Sandbox safedisk.Sandbox
 
-	// SandboxFactory creates sandboxes when Sandbox is nil. When non-nil and Sandbox is nil,
-	// this factory is used instead of safedisk.NewNoOpSandbox.
+	// SandboxFactory creates sandboxes when Sandbox is nil. When both are nil, a real
+	// sandbox rooted at BaseDir is created with safedisk.NewSandbox.
 	SandboxFactory safedisk.Factory
 
 	// BaseDir is the folder path where cache files are stored.
@@ -96,33 +94,69 @@ type fbsFileCacheConfig struct {
 // fbsFileCache implements ASTCache as a persistent, disk-based L2 cache with TTL support.
 // It encodes ASTs to FlatBuffers and stores them on the local filesystem, using lazy
 // eviction to purge expired items on next access.
+//
+// Expired and corrupt entries are removed by background deletion workers, which run
+// between Start and Shutdown.
 type fbsFileCache struct {
-	// ctx is the parent context used for background worker goroutines.
-	ctx context.Context
-
 	// clock provides the current time for checking cache entry expiry.
 	clock clock.Clock
 
 	// sandbox handles file system operations for cache storage.
 	sandbox safedisk.Sandbox
 
-	// deleteChan holds cache keys that are waiting for background deletion.
+	// deleteChan holds cache keys that are waiting for background deletion. It is never
+	// closed, so enqueueing after Shutdown cannot panic.
 	deleteChan chan string
 
-	// shutdownCh signals workers to stop processing.
+	// shutdownCh is closed by Shutdown to signal workers to stop processing.
 	shutdownCh chan struct{}
 
 	// wg tracks worker pool goroutines so Shutdown can wait for them to finish.
 	wg sync.WaitGroup
+
+	// numDeletionWorkers is how many deletion workers Start launches.
+	numDeletionWorkers int
+
+	// startOnce ensures the deletion workers are launched at most once.
+	startOnce sync.Once
+
+	// shutdownOnce ensures Shutdown releases resources at most once.
+	shutdownOnce sync.Once
+
+	// ownsSandbox is true when the cache created its sandbox and must close it on Shutdown;
+	// injected sandboxes are closed by their owner.
+	ownsSandbox bool
 }
 
-// Shutdown gracefully stops the background deletion workers and waits for them to finish.
-// This should be called during a graceful shutdown of the application.
-func (c *fbsFileCache) Shutdown(_ context.Context) {
-	close(c.shutdownCh)
-	close(c.deleteChan)
-	c.wg.Wait()
-	_ = c.sandbox.Close()
+// Start launches the background deletion workers.
+//
+// Calling Start more than once has no further effect. The workers stop when ctx is
+// cancelled or Shutdown is called.
+func (c *fbsFileCache) Start(ctx context.Context) {
+	c.startOnce.Do(func() {
+		for range c.numDeletionWorkers {
+			c.wg.Go(func() {
+				c.runDeletionWorker(ctx)
+			})
+		}
+	})
+}
+
+// Shutdown gracefully stops the background deletion workers, waits for them to finish and
+// closes the sandbox when the cache created it. Calling Shutdown more than once has no
+// further effect.
+func (c *fbsFileCache) Shutdown(ctx context.Context) {
+	c.shutdownOnce.Do(func() {
+		close(c.shutdownCh)
+		c.wg.Wait()
+		if !c.ownsSandbox {
+			return
+		}
+		if err := c.sandbox.Close(); err != nil {
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("Failed to close AST cache sandbox", logger_domain.Error(err))
+		}
+	})
 }
 
 // Get reads a file, decodes it, checks for expiration, and returns the AST. If the entry
@@ -233,28 +267,11 @@ func (c *fbsFileCache) Delete(ctx context.Context, key string) error {
 	return err
 }
 
-// startDeletionWorkers launches numWorkers background goroutines that process deletion
-// requests from the deletion channel until the cache is closed.
-//
-// Takes numWorkers (int) which specifies how many workers to start.
-func (c *fbsFileCache) startDeletionWorkers(numWorkers int) {
-	for range numWorkers {
-		c.wg.Go(c.runDeletionWorker)
-	}
-}
-
 // runDeletionWorker is the main loop for a background deletion worker. It handles
-// deletion requests from the channel until shutdown is signalled.
-func (c *fbsFileCache) runDeletionWorker() {
-	defer func() {
-		if r := recover(); r != nil {
-			_, l := logger_domain.From(context.WithoutCancel(c.ctx), log)
-			l.Error("panic recovered in background deletion worker", logger_domain.Field("recovered_panic", r))
-		}
-	}()
-
+// deletion requests from the channel until shutdown is signalled or ctx is cancelled.
+func (c *fbsFileCache) runDeletionWorker(ctx context.Context) {
 	for {
-		if shouldExit := c.processDeletionTask(); shouldExit {
+		if shouldExit := c.processDeletionTask(ctx); shouldExit {
 			return
 		}
 	}
@@ -262,28 +279,33 @@ func (c *fbsFileCache) runDeletionWorker() {
 
 // processDeletionTask waits for and handles a single deletion task.
 //
-// Returns bool which is true if the worker should exit because the channel is closed or
-// shutdown is signalled, or false to continue processing.
-func (c *fbsFileCache) processDeletionTask() bool {
+// Returns bool which is true if the worker should exit because shutdown is signalled or
+// ctx is cancelled, or false to continue processing.
+func (c *fbsFileCache) processDeletionTask(ctx context.Context) bool {
 	select {
-	case key, ok := <-c.deleteChan:
-		if !ok {
-			return true
-		}
-		c.executeBackgroundDeletion(key)
+	case key := <-c.deleteChan:
+		c.executeBackgroundDeletion(ctx, key)
 		return false
 	case <-c.shutdownCh:
+		return true
+	case <-ctx.Done():
 		return true
 	}
 }
 
-// executeBackgroundDeletion removes a cache entry for the given key.
+// executeBackgroundDeletion removes a cache entry for the given key, recovering from any
+// panic so that one failing deletion cannot stop the worker.
+//
+// Cancellation of ctx is ignored, so a deletion already taken from the queue completes.
 //
 // Takes key (string) which identifies the cache entry to remove.
-func (c *fbsFileCache) executeBackgroundDeletion(key string) {
-	ctx, l := logger_domain.From(context.WithoutCancel(c.ctx), log)
-	if err := c.Delete(ctx, key); err != nil {
-		l.Warn("background cache deletion failed", logger_domain.String("key", key), logger_domain.Error(err))
+func (c *fbsFileCache) executeBackgroundDeletion(ctx context.Context, key string) {
+	ctx, l := logger_domain.From(context.WithoutCancel(ctx), log)
+	err := goroutine.SafeCall(ctx, "ast_adapters.backgroundDeletion", func() error {
+		return c.Delete(ctx, key)
+	})
+	if err != nil {
+		l.Warn("Background cache deletion failed", logger_domain.String("key", key), logger_domain.Error(err))
 	}
 }
 
@@ -365,8 +387,8 @@ var (
 	_ ast_domain.ASTCache = (*fbsFileCache)(nil)
 )
 
-// newFbsFileCache creates a new file-based cache and starts its background worker pool.
-// It creates the base folder if it does not already exist.
+// newFbsFileCache creates a new file-based cache. It creates the base folder if it does
+// not already exist; the background deletion workers are launched by Start.
 //
 // Takes config (fbsFileCacheConfig) which specifies the cache settings including base
 // folder, worker count, queue size, and optional sandbox.
@@ -378,27 +400,16 @@ func newFbsFileCache(config fbsFileCacheConfig) (*fbsFileCache, error) {
 		return nil, errors.New("baseDir must be provided")
 	}
 
-	sandbox := config.Sandbox
-	if sandbox == nil && config.SandboxFactory != nil {
-		var err error
-		sandbox, err = config.SandboxFactory.Create("ast-cache", config.BaseDir, safedisk.ModeReadWrite)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create cache sandbox via factory: %w", err)
-		}
-	}
-	if sandbox == nil {
-		var err error
-		sandbox, err = safedisk.NewNoOpSandbox(config.BaseDir, safedisk.ModeReadWrite)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create cache sandbox: %w", err)
-		}
+	sandbox, ownsSandbox, err := resolveCacheSandbox(config)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := sandbox.MkdirAll(".", cacheDirectoryPermissions); err != nil {
-		if config.Sandbox == nil {
-			_ = sandbox.Close()
+	if mkdirErr := sandbox.MkdirAll(".", cacheDirectoryPermissions); mkdirErr != nil {
+		if ownsSandbox {
+			mkdirErr = errors.Join(mkdirErr, sandbox.Close())
 		}
-		return nil, fmt.Errorf("failed to create cache base directory: %w", err)
+		return nil, fmt.Errorf("failed to create cache base directory: %w", mkdirErr)
 	}
 
 	if config.NumDeletionWorkers <= 0 {
@@ -413,20 +424,45 @@ func newFbsFileCache(config fbsFileCacheConfig) (*fbsFileCache, error) {
 		clk = clock.RealClock()
 	}
 
-	ctx := config.Ctx
-	if ctx == nil {
-		ctx = context.Background()
+	return &fbsFileCache{
+		clock:              clk,
+		sandbox:            sandbox,
+		deleteChan:         make(chan string, config.DeletionQueueSize),
+		shutdownCh:         make(chan struct{}),
+		wg:                 sync.WaitGroup{},
+		numDeletionWorkers: config.NumDeletionWorkers,
+		startOnce:          sync.Once{},
+		shutdownOnce:       sync.Once{},
+		ownsSandbox:        ownsSandbox,
+	}, nil
+}
+
+// resolveCacheSandbox selects the injected sandbox, one from the configured factory, or a
+// real sandbox rooted at the base directory, in that order.
+//
+// Takes config (fbsFileCacheConfig) which holds the injected sandbox, factory and base
+// directory.
+//
+// Returns safedisk.Sandbox which provides access to the cache directory.
+// Returns bool which is true when the sandbox was created here and must be closed by the
+// cache.
+// Returns error when the sandbox cannot be created.
+func resolveCacheSandbox(config fbsFileCacheConfig) (safedisk.Sandbox, bool, error) {
+	if config.Sandbox != nil {
+		return config.Sandbox, false, nil
 	}
 
-	c := &fbsFileCache{
-		ctx:     ctx,
-		clock:   clk,
-		sandbox: sandbox,
-
-		deleteChan: make(chan string, config.DeletionQueueSize),
-		shutdownCh: make(chan struct{}),
+	if config.SandboxFactory != nil {
+		sandbox, err := config.SandboxFactory.Create("ast-cache", config.BaseDir, safedisk.ModeReadWrite)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to create cache sandbox via factory: %w", err)
+		}
+		return sandbox, true, nil
 	}
 
-	c.startDeletionWorkers(config.NumDeletionWorkers)
-	return c, nil
+	sandbox, err := safedisk.NewSandbox(config.BaseDir, safedisk.ModeReadWrite)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to create cache sandbox: %w", err)
+	}
+	return sandbox, true, nil
 }

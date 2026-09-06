@@ -96,7 +96,7 @@ func NewRegistryContext() *RegistryContext {
 //
 // Returns *js_ast.EIdentifier which is the newly created and registered identifier.
 func (rc *RegistryContext) MakeIdentifier(name string) *js_ast.EIdentifier {
-	identifier := &js_ast.EIdentifier{Ref: ast.Ref{}}
+	identifier := &js_ast.EIdentifier{}
 	rc.RegisterIdentifierName(identifier, name)
 	return identifier
 }
@@ -150,7 +150,7 @@ func (rc *RegistryContext) LookupIdentifierName(identifier *js_ast.EIdentifier) 
 //
 // Returns js_ast.Binding which contains the registered identifier binding.
 func (rc *RegistryContext) MakeBinding(name string) js_ast.Binding {
-	bind := &js_ast.BIdentifier{Ref: ast.Ref{}}
+	bind := &js_ast.BIdentifier{}
 	rc.RegisterBindingName(bind, name)
 	return js_ast.Binding{Data: bind}
 }
@@ -195,7 +195,7 @@ func (rc *RegistryContext) LookupBindingName(bind *js_ast.BIdentifier) string {
 //
 // Returns *ast.LocRef which is the newly created and registered location reference.
 func (rc *RegistryContext) MakeLocRef(name string) *ast.LocRef {
-	locRef := &ast.LocRef{Ref: ast.Ref{}}
+	locRef := &ast.LocRef{}
 	rc.RegisterLocRefName(locRef, name)
 	return locRef
 }

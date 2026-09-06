@@ -55,17 +55,16 @@ func (*dynamicSafetyPass) Analyse(context *diagnosticContext) []querier_dto.Sour
 
 		for _, columnName := range directive.Columns {
 			if _, exists := outputColumnNames[strings.ToLower(columnName)]; !exists {
-				diagnostics = append(diagnostics, querier_dto.SourceError{
-					Filename: context.Filename,
-					Line:     context.Query.Line,
-					Column:   1,
-					Message: fmt.Sprintf(
+				diagnostics = append(diagnostics, blockError(
+					context.Filename,
+					context.Query.Line,
+					querier_dto.CodeSortableColumnMissing,
+					querier_dto.SeverityWarning,
+					fmt.Sprintf(
 						"sortable parameter %q references column %q which is not in the query output",
 						directive.Name, columnName,
 					),
-					Severity: querier_dto.SeverityWarning,
-					Code:     querier_dto.CodeSortableColumnMissing,
-				})
+				))
 			}
 		}
 	}
@@ -90,52 +89,48 @@ func baseQueryShapeDiagnostics(context *diagnosticContext) []querier_dto.SourceE
 	var diagnostics []querier_dto.SourceError
 
 	if context.Query.BaseQueryHasWhereClause {
-		diagnostics = append(diagnostics, querier_dto.SourceError{
-			Filename: context.Filename,
-			Line:     context.Query.Line,
-			Column:   1,
-			Message: "piko.dynamic: runtime query already has a WHERE clause; " +
+		diagnostics = append(diagnostics, blockError(
+			context.Filename,
+			context.Query.Line,
+			querier_dto.CodeRuntimeBuilderBaseHasWhere,
+			querier_dto.SeverityHint,
+			"piko.dynamic: runtime query already has a WHERE clause; "+
 				"runtime predicates are appended with AND, not as a new WHERE",
-			Severity: querier_dto.SeverityHint,
-			Code:     querier_dto.CodeRuntimeBuilderBaseHasWhere,
-		})
+		))
 	}
 
 	if endsWithStatementTerminator(context.Query.SQL) {
-		diagnostics = append(diagnostics, querier_dto.SourceError{
-			Filename: context.Filename,
-			Line:     context.Query.Line,
-			Column:   1,
-			Message: "piko.dynamic: runtime query ends with a trailing semicolon; " +
+		diagnostics = append(diagnostics, blockError(
+			context.Filename,
+			context.Query.Line,
+			querier_dto.CodeRuntimeBuilderTrailingSemicolon,
+			querier_dto.SeverityError,
+			"piko.dynamic: runtime query ends with a trailing semicolon; "+
 				"the builder cannot append fragments past a statement terminator",
-			Severity: querier_dto.SeverityError,
-			Code:     querier_dto.CodeRuntimeBuilderTrailingSemicolon,
-		})
+		))
 	}
 
 	if context.Query.CountSQLWrapped {
-		diagnostics = append(diagnostics, querier_dto.SourceError{
-			Filename: context.Filename,
-			Line:     context.Query.Line,
-			Column:   1,
-			Message: "piko.dynamic: runtime query has GROUP BY, DISTINCT, or a window " +
-				"function; .Count(ctx) wraps the original in a subquery so the count " +
+		diagnostics = append(diagnostics, blockError(
+			context.Filename,
+			context.Query.Line,
+			querier_dto.CodeCountSemanticsWrapped,
+			querier_dto.SeverityHint,
+			"piko.dynamic: runtime query has GROUP BY, DISTINCT, or a window "+
+				"function; .Count(ctx) wraps the original in a subquery so the count "+
 				"reflects outer-result rows rather than the underlying table",
-			Severity: querier_dto.SeverityHint,
-			Code:     querier_dto.CodeCountSemanticsWrapped,
-		})
+		))
 	}
 
 	if context.Query.DynamicRuntime && context.Query.CountSQL == "" {
-		diagnostics = append(diagnostics, querier_dto.SourceError{
-			Filename: context.Filename,
-			Line:     context.Query.Line,
-			Column:   1,
-			Message: "piko.dynamic: runtime query could not be rewritten into a COUNT query; " +
+		diagnostics = append(diagnostics, blockError(
+			context.Filename,
+			context.Query.Line,
+			querier_dto.CodeCountRewriteUnavailable,
+			querier_dto.SeverityWarning,
+			"piko.dynamic: runtime query could not be rewritten into a COUNT query; "+
 				".Count(ctx) is unavailable for this query",
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeCountRewriteUnavailable,
-		})
+		))
 	}
 
 	return diagnostics

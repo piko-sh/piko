@@ -163,6 +163,8 @@ func NewCaptchaService(config *captcha_dto.ServiceConfig, options ...ServiceOpti
 		clock:                 clock.RealClock(),
 		config:                config,
 		defaultScoreThreshold: config.DefaultScoreThreshold,
+		rateLimiter:           nil,
+		ipExtractor:           nil,
 	}
 
 	for _, option := range options {

@@ -23,7 +23,7 @@ import (
 	"go/token"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -80,7 +80,7 @@ func singleParameterGoType(
 	mappings *querier_dto.TypeMappingTable,
 ) querier_dto.GoType {
 	if parameter.IsPaginationBound() {
-		return querier_dto.GoType{Name: "int"}
+		return querier_dto.GoType{Name: "int", Package: ""}
 	}
 
 	return ResolveGoType(parameter.SQLType, parameter.Nullable, mappings)
@@ -213,6 +213,10 @@ func appendPlaceholderOrderArgs(arguments []ast.Expr, query *querier_dto.Analyse
 // regardless of how many times its placeholder appears in the SQL.
 //
 // Takes arguments ([]ast.Expr), query, strategy as above.
+// Takes query (*querier_dto.AnalysedQuery) which provides the analysed query and its
+// parameter definitions.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
 //
 // Returns []ast.Expr extended with one access per parameter.
 func appendParamsStructArgs(arguments []ast.Expr, query *querier_dto.AnalysedQuery, strategy MethodStrategy) []ast.Expr {
@@ -284,6 +288,10 @@ func parameterOccurrenceCount(query *querier_dto.AnalysedQuery, number int, stra
 // declared, keeping the scan targets and the row struct in lockstep.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the output columns.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
+// Takes mappings (*querier_dto.TypeMappingTable) which maps database types to generated
+// Go types.
 //
 // Returns []ast.Expr which contains the address-of field expressions.
 func BuildScanArgs(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) []ast.Expr {

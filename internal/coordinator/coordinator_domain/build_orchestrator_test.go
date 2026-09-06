@@ -294,14 +294,8 @@ func TestCheckCacheHit_Hit(t *testing.T) {
 		applyCoordinatorOptions(),
 	)
 
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "cause-1",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
+	buildOpts.CausationID = "cause-1"
 
 	result := service.checkCacheHit(context.Background(), noopSpan(), "test-hash", buildOpts)
 
@@ -336,14 +330,7 @@ func TestCheckCacheHit_Miss(t *testing.T) {
 		applyCoordinatorOptions(),
 	)
 
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	result := service.checkCacheHit(context.Background(), noopSpan(), "nonexistent-hash", buildOpts)
 
@@ -377,14 +364,7 @@ func TestCheckCacheHit_CacheError(t *testing.T) {
 		applyCoordinatorOptions(),
 	)
 
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	result := service.checkCacheHit(context.Background(), noopSpan(), "test-hash", buildOpts)
 
@@ -666,14 +646,7 @@ func TestCalculateHashForBuild_Success(t *testing.T) {
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	hash, err := service.calculateHashForBuild(context.Background(), noopSpan(), entryPoints, buildOpts)
 
@@ -713,14 +686,7 @@ func TestCalculateHashForBuild_ContextCancelled(t *testing.T) {
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/missing.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	_, err := service.calculateHashForBuild(ctx, noopSpan(), entryPoints, buildOpts)
 
@@ -763,14 +729,7 @@ func TestCalculateInputHash_Success(t *testing.T) {
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	hash, contents, err := service.calculateInputHash(context.Background(), entryPoints, buildOpts)
 
@@ -816,14 +775,7 @@ func TestCalculateInputHash_Deterministic(t *testing.T) {
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	hash1, _, err1 := service.calculateInputHash(context.Background(), entryPoints, buildOpts)
 	hash2, _, err2 := service.calculateInputHash(context.Background(), entryPoints, buildOpts)
@@ -869,14 +821,7 @@ func TestCalculateInputHash_ChangedContent(t *testing.T) {
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	hash1, _, err1 := service.calculateInputHash(context.Background(), entryPoints, buildOpts)
 	require.NoError(t, err1)
@@ -934,14 +879,7 @@ package pages
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	hash, scriptHashes, err := service.calculateIntrospectionHash(context.Background(), entryPoints, buildOpts)
 
@@ -992,14 +930,7 @@ package pages
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 
 	hash1, _, err1 := service.calculateIntrospectionHash(context.Background(), entryPoints, buildOpts)
 	require.NoError(t, err1)
@@ -1286,12 +1217,7 @@ func TestExecuteSlowPathBuild_Success(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	tier1Result := tier1CacheResult{
-		scriptHashes:      nil,
-		entry:             nil,
-		introspectionHash: "",
-		useFastPath:       false,
-	}
+	tier1Result := tier1CacheResult{}
 
 	allSourceContents := map[string][]byte{
 		"/project/pages/index.pk": []byte("content"),
@@ -1347,12 +1273,7 @@ func TestExecuteSlowPathBuild_AnnotatorError(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	tier1Result := tier1CacheResult{
-		scriptHashes:      nil,
-		entry:             nil,
-		introspectionHash: "",
-		useFastPath:       false,
-	}
+	tier1Result := tier1CacheResult{}
 
 	result, err := service.executeSlowPathBuild(
 		context.Background(),
@@ -1374,7 +1295,7 @@ func TestExecuteSlowPathBuild_SemanticError(t *testing.T) {
 	semErr := annotator_domain.NewSemanticError([]*ast_domain.Diagnostic{
 		{Message: "type error", SourcePath: "/test.pk"},
 	})
-	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+	logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 
 	annotator := &mockAnnotatorWithSemanticError{
 		partialResult: &annotator_dto.ProjectAnnotationResult{
@@ -1412,12 +1333,7 @@ func TestExecuteSlowPathBuild_SemanticError(t *testing.T) {
 		FaultTolerant: true,
 	}
 
-	tier1Result := tier1CacheResult{
-		scriptHashes:      nil,
-		entry:             nil,
-		introspectionHash: "",
-		useFastPath:       false,
-	}
+	tier1Result := tier1CacheResult{}
 
 	allSourceContents := map[string][]byte{
 		"/test.pk": []byte("content"),
@@ -1473,12 +1389,7 @@ func TestExecuteSlowPathBuild_WithFaultTolerance(t *testing.T) {
 		FaultTolerant: true,
 	}
 
-	tier1Result := tier1CacheResult{
-		scriptHashes:      nil,
-		entry:             nil,
-		introspectionHash: "",
-		useFastPath:       false,
-	}
+	tier1Result := tier1CacheResult{}
 
 	result, err := service.executeSlowPathBuild(
 		context.Background(),
@@ -1531,12 +1442,7 @@ func TestExecuteSlowPathBuild_WithResolverOverride(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	tier1Result := tier1CacheResult{
-		scriptHashes:      nil,
-		entry:             nil,
-		introspectionHash: "",
-		useFastPath:       false,
-	}
+	tier1Result := tier1CacheResult{}
 
 	result, err := service.executeSlowPathBuild(
 		context.Background(),
@@ -1738,7 +1644,7 @@ func TestExecutePartialBuild_SemanticError(t *testing.T) {
 	semErr := annotator_domain.NewSemanticError([]*ast_domain.Diagnostic{
 		{Message: "type mismatch", SourcePath: "/comp.pk"},
 	})
-	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+	logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 
 	partialResult := &annotator_dto.ProjectAnnotationResult{
 		ComponentResults: map[string]*annotator_dto.AnnotationResult{},
@@ -2192,14 +2098,7 @@ func TestGetOrBuildProject_CacheHitPath(t *testing.T) {
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 	hash, _, err := service.calculateInputHash(context.Background(), entryPoints, buildOpts)
 	require.NoError(t, err)
 
@@ -2359,7 +2258,7 @@ func (m *mockAnnotatorWithCachedIntrospection) AnnotateProjectWithCachedIntrospe
 ) (*annotator_dto.ProjectAnnotationResult, *annotator_domain.CompilationLogStore, error) {
 	logs := m.logsToReturn
 	if logs == nil {
-		logs, _ = annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+		logs = annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 	}
 	return m.resultToReturn, logs, m.errorToReturn
 }
@@ -2418,12 +2317,7 @@ func TestExecuteSlowPathBuild_WithCodeEmitter(t *testing.T) {
 		FaultTolerant: false,
 	}
 
-	tier1Result := tier1CacheResult{
-		scriptHashes:      nil,
-		entry:             nil,
-		introspectionHash: "",
-		useFastPath:       false,
-	}
+	tier1Result := tier1CacheResult{}
 
 	result, err := service.executeSlowPathBuild(
 		context.Background(),
@@ -2523,7 +2417,7 @@ func TestExecuteBuild_SingleflightWithErrorAndPartialResult(t *testing.T) {
 	semErr := annotator_domain.NewSemanticError([]*ast_domain.Diagnostic{
 		{Message: "type error", SourcePath: "/test.pk"},
 	})
-	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+	logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 
 	partialResult := &annotator_dto.ProjectAnnotationResult{
 		ComponentResults: map[string]*annotator_dto.AnnotationResult{},
@@ -2734,14 +2628,7 @@ func TestBuildLoop_NotifiesWaiters(t *testing.T) {
 	entryPoints := []annotator_dto.EntryPoint{
 		{Path: "test-module/pages/index.pk", IsPage: true},
 	}
-	buildOpts := &buildOptions{
-		InspectionCacheHints: nil,
-		CausationID:          "",
-		ChangedFiles:         nil,
-		Resolver:             nil,
-		SkipInspection:       false,
-		FaultTolerant:        false,
-	}
+	buildOpts := &buildOptions{}
 	inputHash, _, err := service.calculateInputHash(context.Background(), entryPoints, buildOpts)
 	require.NoError(t, err)
 

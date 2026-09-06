@@ -358,9 +358,7 @@ func TestNewService_GeneratesNodeIDWhenNotProvided(t *testing.T) {
 func TestService_ActiveTasks_NoDispatcher(t *testing.T) {
 	t.Parallel()
 
-	service := &orchestratorService{
-		taskDispatcher: nil,
-	}
+	service := &orchestratorService{}
 	result := service.ActiveTasks(context.Background())
 	assert.Equal(t, int64(0), result)
 }
@@ -394,7 +392,7 @@ func TestService_PendingTasks_Error(t *testing.T) {
 func TestService_GetTaskDispatcher_Nil(t *testing.T) {
 	t.Parallel()
 
-	service := &orchestratorService{taskDispatcher: nil}
+	service := &orchestratorService{}
 	assert.Nil(t, service.GetTaskDispatcher())
 }
 
@@ -1012,7 +1010,7 @@ func TestTaskProcessingCore_PrepareTaskExecution_DefaultTimeout(t *testing.T) {
 		WorkflowID: "wf",
 		Status:     StatusPending,
 		Attempt:    0,
-		Config:     TaskConfig{Timeout: 0},
+		Config:     TaskConfig{},
 		Payload:    map[string]any{},
 	}
 
@@ -1098,9 +1096,9 @@ func TestTaskProcessingCore_RecoverStaleTasks_NilStore(t *testing.T) {
 	config := DefaultDispatcherConfig()
 	core := NewTaskProcessingCore(config, nil, nil, nil)
 
-	count, err := core.RecoverStaleTasks(context.Background())
+	retry, err := core.RecoverStaleTasks(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
+	assert.Empty(t, retry)
 }
 
 func TestTaskProcessingCore_ReleaseRecoveryLeases_NilStore(t *testing.T) {
@@ -1489,6 +1487,8 @@ func TestService_DispatchDirect_Success(t *testing.T) {
 
 	assert.Equal(t, StatusPending, task.Status)
 	assert.Equal(t, 1, dispatcher.GetDispatchCallCount())
+	assert.True(t, task.Persisted(),
+		"the dispatcher must not insert the record again and collide with its own deduplication key")
 }
 
 func TestService_DispatchDirect_StoreError(t *testing.T) {
@@ -1594,6 +1594,9 @@ func (f *failingTaskStore) CreateTasks(_ context.Context, _ []*Task) error {
 	return f.createErr
 }
 func (f *failingTaskStore) UpdateTask(_ context.Context, _ *Task) error { return nil }
+func (f *failingTaskStore) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
+	return nil, nil
+}
 func (f *failingTaskStore) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
 	return nil, nil
 }
@@ -1818,6 +1821,9 @@ func (s *slowMockTaskStore) UpdateTask(ctx context.Context, _ *Task) error {
 	defer s.trackExit()
 	s.blockUntilReleased(ctx)
 	return nil
+}
+func (s *slowMockTaskStore) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
+	return nil, nil
 }
 func (s *slowMockTaskStore) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
 	return nil, nil

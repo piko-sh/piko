@@ -71,15 +71,8 @@ func ParseFrontmatter(rawData map[string]any) (*Frontmatter, error) {
 		"navigation":  true,
 	}
 
-	fm := &Frontmatter{
-		PublishDate: time.Time{},
-		Custom:      make(map[string]any),
-		Title:       "",
-		Description: "",
-		Tags:        nil,
-		Draft:       false,
-		Navigation:  nil,
-	}
+	fm := &Frontmatter{}
+	fm.Custom = make(map[string]any)
 
 	for key, value := range rawData {
 		lowerKey := strings.ToLower(key)

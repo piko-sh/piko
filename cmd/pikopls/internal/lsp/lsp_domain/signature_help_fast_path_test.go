@@ -357,7 +357,7 @@ func TestResolveMethodSignatureFast_NilBaseType(t *testing.T) {
 		CurrentGoFullPackagePath: "test/pkg",
 		CurrentGoSourcePath:      "/test/pkg/main.go",
 	}
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 
 	result := document.resolveMethodSignatureFast(context.Background(), callCtx, analysisCtx, position)
 	if result != nil {

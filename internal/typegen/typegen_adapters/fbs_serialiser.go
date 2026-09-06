@@ -42,11 +42,11 @@ var (
 	}
 )
 
-// GetBuilder retrieves a FlatBuffer builder from the pool.
+// getBuilder retrieves a FlatBuffer builder from the pool.
 //
 // Returns *flatbuffers.Builder which is either a reused builder from the pool or a newly
 // created one if the pool is empty.
-func GetBuilder() *flatbuffers.Builder {
+func getBuilder() *flatbuffers.Builder {
 	b, ok := builderPool.Get().(*flatbuffers.Builder)
 	if !ok {
 		return flatbuffers.NewBuilder(initialBuilderCapacity)
@@ -54,24 +54,24 @@ func GetBuilder() *flatbuffers.Builder {
 	return b
 }
 
-// PutBuilder returns a FlatBuffer builder to the pool.
+// putBuilder returns a FlatBuffer builder to the pool.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to return to the pool.
-func PutBuilder(b *flatbuffers.Builder) {
+func putBuilder(b *flatbuffers.Builder) {
 	b.Reset()
 	builderPool.Put(b)
 }
 
-// BuildActionManifest converts an ActionManifest DTO to a FlatBuffer byte slice. The
+// buildActionManifest converts an ActionManifest DTO to a FlatBuffer byte slice. The
 // returned bytes are a copy and safe to store.
 //
 // Takes manifest (*typegen_dto.ActionManifest) which specifies the action manifest to
 // convert.
 //
 // Returns []byte which contains the FlatBuffer encoded manifest data.
-func BuildActionManifest(manifest *typegen_dto.ActionManifest) []byte {
-	builder := GetBuilder()
-	defer PutBuilder(builder)
+func buildActionManifest(manifest *typegen_dto.ActionManifest) []byte {
+	builder := getBuilder()
+	defer putBuilder(builder)
 
 	offset := buildActionManifestFB(builder, manifest)
 	builder.Finish(offset)
@@ -82,7 +82,7 @@ func BuildActionManifest(manifest *typegen_dto.ActionManifest) []byte {
 	return result
 }
 
-// BuildActionManifestInto converts an ActionManifest DTO to a FlatBuffer using the
+// buildActionManifestInto converts an ActionManifest DTO to a FlatBuffer using the
 // provided builder.
 //
 // Takes builder (*flatbuffers.Builder) which is used to construct the FlatBuffer.
@@ -90,7 +90,7 @@ func BuildActionManifest(manifest *typegen_dto.ActionManifest) []byte {
 // serialise.
 //
 // Returns []byte which contains the finished bytes directly (not a copy).
-func BuildActionManifestInto(builder *flatbuffers.Builder, manifest *typegen_dto.ActionManifest) []byte {
+func buildActionManifestInto(builder *flatbuffers.Builder, manifest *typegen_dto.ActionManifest) []byte {
 	offset := buildActionManifestFB(builder, manifest)
 	builder.Finish(offset)
 	return builder.FinishedBytes()

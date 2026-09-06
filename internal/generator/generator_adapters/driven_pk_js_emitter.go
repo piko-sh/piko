@@ -75,6 +75,8 @@ func NewPKJSEmitter(registryService registry_domain.RegistryService) *PKJSEmitte
 //
 // Takes source (string) which is the TypeScript/JavaScript source code to transpile.
 // Takes pagePath (string) which identifies the page this script belongs to.
+// Takes moduleName (string) which identifies the module used to resolve JavaScript
+// imports.
 //
 // Returns string which is the artefact ID for the stored script.
 // Returns error when transpilation or registry storage fails.

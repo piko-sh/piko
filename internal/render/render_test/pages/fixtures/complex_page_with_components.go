@@ -27,14 +27,22 @@ import (
 // Returns *ast_domain.TemplateNode which represents a piko:svg element with source and
 // class attributes configured for testing.
 func SvgComponentNode() *ast_domain.TemplateNode {
-	return &ast_domain.TemplateNode{
-		NodeType: ast_domain.NodeElement,
-		TagName:  "piko:svg",
-		Attributes: []ast_domain.HTMLAttribute{
-			{Name: "src", Value: "testmodule/lib/icon.svg"},
-			{Name: "class", Value: "icon"},
+	return ast_domain.NewElementNode("piko:svg", []ast_domain.HTMLAttribute{
+		{
+			Name:           "src",
+			Value:          "testmodule/lib/icon.svg",
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
 		},
-	}
+		{
+			Name:           "class",
+			Value:          "icon",
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
+		},
+	}, nil)
 }
 
 // ComplexPageAST returns a test fixture representing a complex page template.
@@ -42,99 +50,145 @@ func SvgComponentNode() *ast_domain.TemplateNode {
 // Returns *ast_domain.TemplateAST which contains a page structure with nested components,
 // a form with CSRF annotation, and text requiring HTML escaping.
 func ComplexPageAST() *ast_domain.TemplateAST {
-	return &ast_domain.TemplateAST{
-		RootNodes: []*ast_domain.TemplateNode{
+	t := ast_domain.TemplateAST{}
+	t.RootNodes = []*ast_domain.TemplateNode{
+		ast_domain.NewElementNode("main", []ast_domain.HTMLAttribute{
+			{
+				Name:           "id",
+				Value:          "content",
+				Location:       ast_domain.Location{},
+				NameLocation:   ast_domain.Location{},
+				AttributeRange: ast_domain.Range{},
+			},
+		}, []*ast_domain.TemplateNode{
+			ast_domain.NewElementNode("my-card", []ast_domain.HTMLAttribute{
+				{
+					Name:           "title",
+					Value:          "My Awesome Card",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+			}, []*ast_domain.TemplateNode{
+				ast_domain.NewTextNode("Card content here."),
+			}),
+			SvgComponentNode(),
+			ast_domain.NewElementNode("piko:a", []ast_domain.HTMLAttribute{
+				{
+					Name:           "href",
+					Value:          "/about-us",
+					Location:       ast_domain.Location{},
+					NameLocation:   ast_domain.Location{},
+					AttributeRange: ast_domain.Range{},
+				},
+			}, []*ast_domain.TemplateNode{
+				ast_domain.NewTextNode("Learn More"),
+			}),
+			ast_domain.NewElementNode("p", nil, []*ast_domain.TemplateNode{
+				ast_domain.NewTextNode("This text contains characters that need escaping: < > & \" '"),
+			}),
 			{
 				NodeType: ast_domain.NodeElement,
-				TagName:  "main",
+				TagName:  "form",
+				RuntimeAnnotations: &ast_domain.RuntimeAnnotation{
+					NeedsCSRF: true,
+				},
 				Attributes: []ast_domain.HTMLAttribute{
-					{Name: "id", Value: "content"},
+					{
+						Name:           "action",
+						Value:          "/submit",
+						Location:       ast_domain.Location{},
+						NameLocation:   ast_domain.Location{},
+						AttributeRange: ast_domain.Range{},
+					},
+					{
+						Name:           "method",
+						Value:          "POST",
+						Location:       ast_domain.Location{},
+						NameLocation:   ast_domain.Location{},
+						AttributeRange: ast_domain.Range{},
+					},
 				},
 				Children: []*ast_domain.TemplateNode{
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "my-card",
-						Attributes: []ast_domain.HTMLAttribute{
-							{Name: "title", Value: "My Awesome Card"},
+					ast_domain.NewElementNode("input", []ast_domain.HTMLAttribute{
+						{
+							Name:           "type",
+							Value:          "text",
+							Location:       ast_domain.Location{},
+							NameLocation:   ast_domain.Location{},
+							AttributeRange: ast_domain.Range{},
 						},
-						Children: []*ast_domain.TemplateNode{
-							{
-								NodeType:    ast_domain.NodeText,
-								TextContent: "Card content here.",
-							},
+						{
+							Name:           "name",
+							Value:          "username",
+							Location:       ast_domain.Location{},
+							NameLocation:   ast_domain.Location{},
+							AttributeRange: ast_domain.Range{},
 						},
-					},
-					SvgComponentNode(),
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "piko:a",
-						Attributes: []ast_domain.HTMLAttribute{
-							{Name: "href", Value: "/about-us"},
+					}, nil),
+					ast_domain.NewElementNode("button", []ast_domain.HTMLAttribute{
+						{
+							Name:           "type",
+							Value:          "submit",
+							Location:       ast_domain.Location{},
+							NameLocation:   ast_domain.Location{},
+							AttributeRange: ast_domain.Range{},
 						},
-						Children: []*ast_domain.TemplateNode{
-							{
-								NodeType:    ast_domain.NodeText,
-								TextContent: "Learn More",
-							},
+						{
+							Name:           "p-on:click.prevent",
+							Value:          "submitAction",
+							Location:       ast_domain.Location{},
+							NameLocation:   ast_domain.Location{},
+							AttributeRange: ast_domain.Range{},
 						},
-					},
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "p",
-						Children: []*ast_domain.TemplateNode{
-							{
-								NodeType:    ast_domain.NodeText,
-								TextContent: "This text contains characters that need escaping: < > & \" '",
-							},
-						},
-					},
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "form",
-						RuntimeAnnotations: &ast_domain.RuntimeAnnotation{
-							NeedsCSRF: true,
-						},
-						Attributes: []ast_domain.HTMLAttribute{
-							{Name: "action", Value: "/submit"},
-							{Name: "method", Value: "POST"},
-						},
-						Children: []*ast_domain.TemplateNode{
-							{
-								NodeType: ast_domain.NodeElement,
-								TagName:  "input",
-								Attributes: []ast_domain.HTMLAttribute{
-									{Name: "type", Value: "text"},
-									{Name: "name", Value: "username"},
-								},
-							},
-							{
-								NodeType: ast_domain.NodeElement,
-								TagName:  "button",
-								Attributes: []ast_domain.HTMLAttribute{
-									{Name: "type", Value: "submit"},
-									{Name: "p-on:click.prevent", Value: "submitAction"},
-								},
-								Children: []*ast_domain.TemplateNode{
-									{
-										NodeType:    ast_domain.NodeText,
-										TextContent: "Submit",
-									},
-								},
-							},
-						},
-					},
-					{
-						NodeType: ast_domain.NodeElement,
-						TagName:  "another-component",
-						Children: []*ast_domain.TemplateNode{
-							{
-								NodeType:    ast_domain.NodeText,
-								TextContent: "This one is lazy.",
-							},
-						},
-					},
+					}, []*ast_domain.TemplateNode{
+						ast_domain.NewTextNode("Submit"),
+					}),
 				},
+				Key:                nil,
+				DirScaffold:        nil,
+				DirHTML:            nil,
+				GoAnnotations:      nil,
+				TextContentWriter:  nil,
+				CustomEvents:       nil,
+				OnEvents:           nil,
+				Binds:              nil,
+				TimelineDirectives: nil,
+				DirContext:         nil,
+				DirElse:            nil,
+				DirText:            nil,
+				DirStyle:           nil,
+				DirClass:           nil,
+				DirIf:              nil,
+				DirElseIf:          nil,
+				DirFor:             nil,
+				DirShow:            nil,
+				DirRef:             nil,
+				DirMemo:            nil,
+				DirSlot:            nil,
+				DirModel:           nil,
+				DirKey:             nil,
+				TextContent:        "",
+				InnerHTML:          "",
+				PrerenderedHTML:    nil,
+				RichText:           nil,
+				Diagnostics:        nil,
+				DynamicAttributes:  nil,
+				Directives:         nil,
+				AttributeWriters:   nil,
+				ClosingTagRange:    ast_domain.Range{},
+				OpeningTagRange:    ast_domain.Range{},
+				NodeRange:          ast_domain.Range{},
+				Location:           ast_domain.Location{},
+				PreferredFormat:    0,
+				IsPooled:           false,
+				IsContentEditable:  false,
+				PreserveWhitespace: false,
 			},
-		},
+			ast_domain.NewElementNode("another-component", nil, []*ast_domain.TemplateNode{
+				ast_domain.NewTextNode("This one is lazy."),
+			}),
+		}),
 	}
+	return &t
 }

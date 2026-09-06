@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -149,6 +149,8 @@ func HasOutputColumns(query *querier_dto.AnalysedQuery) bool {
 // Takes query (*querier_dto.AnalysedQuery) which provides the SQL and name.
 // Takes strategy (MethodStrategy) which exposes placeholder behaviour, or nil when the
 // caller has no strategy (the SQL is left unmodified).
+// Takes mappings (*querier_dto.TypeMappingTable) which maps database types to generated
+// Go types.
 //
 // Returns ast.Decl which is the const declaration.
 func BuildSQLConstant(query *querier_dto.AnalysedQuery, strategy MethodStrategy, mappings *querier_dto.TypeMappingTable) ast.Decl {
@@ -348,14 +350,16 @@ func BuildFieldStruct(
 	fields := make([]TypedField, len(parameters))
 	for index := range parameters {
 		field := TypedField{
-			Name:     parameters[index].Name,
-			SQLType:  parameters[index].SQLType,
-			Nullable: parameters[index].Nullable,
-			IsSlice:  parameters[index].IsSlice,
+			Name:           parameters[index].Name,
+			SQLType:        parameters[index].SQLType,
+			Nullable:       parameters[index].Nullable,
+			IsSlice:        parameters[index].IsSlice,
+			GoTypeOverride: nil,
+			EmitJSONTag:    false,
 		}
 
 		if parameters[index].IsPaginationBound() {
-			field.GoTypeOverride = &querier_dto.GoType{Name: "int"}
+			field.GoTypeOverride = &querier_dto.GoType{Name: "int", Package: ""}
 		}
 
 		fields[index] = field
@@ -416,6 +420,7 @@ func BuildColumnStruct(
 			Nullable:       columns[index].Nullable,
 			GoTypeOverride: applyNullableGoTypeOverride(columns[index].GoTypeOverride, columns[index].Nullable),
 			EmitJSONTag:    true,
+			IsSlice:        false,
 		}
 	}
 	return BuildStructDecl(structName, fields, mappings, tracker)
@@ -485,6 +490,7 @@ func GroupColumnsByEmbed(columns []querier_dto.OutputColumn) ([]querier_dto.Outp
 			group = &EmbedGroup{
 				TableName: columns[index].EmbedTable,
 				IsOuter:   columns[index].EmbedIsOuter,
+				Columns:   nil,
 			}
 			groupMap[columns[index].EmbedTable] = group
 			groupOrder = append(groupOrder, columns[index].EmbedTable)

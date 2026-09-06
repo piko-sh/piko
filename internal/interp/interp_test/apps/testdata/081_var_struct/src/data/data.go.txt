@@ -1,8 +1,0 @@
-package data
-
-type Person struct {
-	Name string
-	Year int
-}
-
-var Default = Person{Name: "Ada", Year: 1815}

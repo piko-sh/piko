@@ -34,6 +34,8 @@ import (
 // build system registers assets (with module-qualified IDs).
 //
 // Takes importPath (string) which is the original import path from the PKC.
+// Takes moduleName (string) which identifies the module used to resolve JavaScript
+// imports.
 //
 // Returns string which is the transformed path, or original if no transform needed.
 // Returns *compiler_dto.JSDependency which is the dependency if the path was transformed,

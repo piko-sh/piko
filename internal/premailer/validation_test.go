@@ -184,7 +184,7 @@ func TestValidateEmailCompatibilityWithLeftoverRules(t *testing.T) {
 
 			cssAST := parseTestCSS(t, tc.css)
 			var parseDiagnostics []*ast_domain.Diagnostic
-			ruleSet := ProcessCSS(cssAST, &Options{ExpandShorthands: false}, &parseDiagnostics, "test.css")
+			ruleSet := ProcessCSS(cssAST, &Options{}, &parseDiagnostics, "test.css")
 
 			diagnostics := validateEmailCompatibility(ruleSet, "test.css")
 

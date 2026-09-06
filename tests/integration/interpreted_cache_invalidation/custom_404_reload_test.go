@@ -28,7 +28,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko"
-	"piko.sh/piko/wdk/interp/interp_provider_piko"
+	"piko.sh/piko/wdk/interp/interp_provider_pipit"
 )
 
 func custom404Source() []byte {
@@ -69,7 +69,7 @@ func setupWatchServerWithCustom404(t *testing.T) watchServer {
 	require.NoError(t, os.Chdir(tmpSrcDir))
 
 	server := piko.New()
-	server.WithInterpreterProvider(interp_provider_piko.NewProvider())
+	server.WithInterpreterProvider(interp_provider_pipit.NewProvider())
 	server.Configure(piko.PublicConfig{
 		BaseDir:        ".",
 		PagesSourceDir: "pages",
@@ -101,7 +101,7 @@ func TestWatchServe_Custom404SurvivesReload(t *testing.T) {
 	newPagePath := filepath.Join(watch.srcDir, "pages", "another.pk")
 	require.NoError(t, os.WriteFile(newPagePath, newPageSource(), 0644))
 
-	require.True(t, pollForStatus(t, watch.server, "/another", http.StatusOK),
+	requireStatusEventually(t, watch.server, "/another", http.StatusOK,
 		"after creating pages/another.pk, GET /another must become 200 (reload happened) within %s", watchPollTimeout)
 
 	status, body = doGet(t, watch.server, "/does-not-exist")

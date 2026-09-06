@@ -205,8 +205,7 @@ func TestConvertAndSetDirect_ConcurrentSafety(t *testing.T) {
 	iterations := 1000
 	goroutines := 10
 
-	for g := range goroutines {
-		id := g
+	for id := range goroutines {
 		wg.Go(func() {
 			for range iterations {
 				var form UnsafeTestPrimitives
@@ -217,7 +216,7 @@ func TestConvertAndSetDirect_ConcurrentSafety(t *testing.T) {
 					"Float64": {"3.14"},
 				}
 				err := binder.Bind(context.Background(), &form, src)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
 				assert.NotEmpty(t, form.String)
 			}

@@ -223,6 +223,8 @@ func (*MarkdownProvider) ValidateTargetType(_ ast.Expr) error {
 // analyses paths for locale and slug, and links translations by translation key.
 //
 // Takes collectionName (string) which specifies the collection to fetch (e.g. "blog").
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns []collection_dto.ContentItem which contains the processed markdown files ready
 // to be transformed into virtual entry points by CollectionService.
@@ -267,21 +269,9 @@ func (m *MarkdownProvider) FetchStaticContent(
 		logger_domain.Int("count", len(files)))
 
 	analyser := newPathAnalyser(config.Locales, config.DefaultLocale)
-	items := make([]collection_dto.ContentItem, 0, len(files))
-	translationGroups := make(map[string][]int)
-
-	for _, file := range files {
-		item, err := m.processMarkdownFile(ctx, source.Sandbox, source.IsExternal, file, collectionName, analyser)
-		if err != nil {
-			l.Warn("Failed to process markdown file",
-				logger_domain.String(keyPath, file.relativePath),
-				logger_domain.Error(err))
-			continue
-		}
-
-		index := len(items)
-		items = append(items, item)
-		translationGroups[item.TranslationKey] = append(translationGroups[item.TranslationKey], index)
+	items, translationGroups, err := m.processCollectionFiles(ctx, source, files, collectionName, analyser)
+	if err != nil {
+		return nil, fmt.Errorf("processing markdown collection %q: %w", collectionName, err)
 	}
 
 	l.Internal("Markdown processing complete",
@@ -351,6 +341,8 @@ func (m *MarkdownProvider) Check(_ context.Context, _ healthprobe_dto.CheckType)
 // ETag format: "md-{xxhash64 hex}" (e.g., "md-a1b2c3d4e5f67890")
 //
 // Takes collectionName (string) which specifies the collection to compute the ETag for.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns string which is the computed ETag, or "md-empty" if no files exist.
 // Returns error when scanning the collection directory fails.
@@ -425,6 +417,8 @@ func (m *MarkdownProvider) ComputeETag(
 //
 // Takes collectionName (string) which specifies the collection to validate.
 // Takes expectedETag (string) which is the previously computed ETag to compare against.
+// Takes source (collection_dto.ContentSource) which supplies the sandbox, base path, and
+// external module flag used to load content.
 //
 // Returns currentETag (string) which is the freshly computed ETag.
 // Returns changed (bool) which is true when the content has changed.
@@ -474,6 +468,60 @@ func (*MarkdownProvider) GenerateRevalidator(
 	_ collection_dto.HybridConfig,
 ) (*collection_dto.RuntimeFetcherCode, error) {
 	return nil, nil
+}
+
+// processCollectionFiles processes every markdown file of a collection.
+//
+// A file that cannot be read or parsed is skipped with a warning. A file whose content
+// produces error-severity diagnostics, such as a malformed piko shortcode, fails the
+// collection so the problem reaches the build output rather than silently dropping
+// content.
+//
+// Takes source (collection_dto.ContentSource) which supplies the sandbox to read from.
+// Takes files ([]*discoveredFile) which are the markdown files to process.
+// Takes collectionName (string) which names the collection.
+// Takes analyser (*pathAnalyser) which extracts path metadata.
+//
+// Returns []collection_dto.ContentItem which holds the processed items.
+// Returns map[string][]int which groups item indexes by translation key.
+// Returns error when the context is cancelled or any file has content errors.
+func (m *MarkdownProvider) processCollectionFiles(
+	ctx context.Context,
+	source collection_dto.ContentSource,
+	files []*discoveredFile,
+	collectionName string,
+	analyser *pathAnalyser,
+) ([]collection_dto.ContentItem, map[string][]int, error) {
+	ctx, l := logger_domain.From(ctx, log)
+	items := make([]collection_dto.ContentItem, 0, len(files))
+	translationGroups := make(map[string][]int)
+	var contentErrors []error
+
+	for _, file := range files {
+		if err := ctx.Err(); err != nil {
+			return nil, nil, fmt.Errorf("processing markdown files: %w", context.Cause(ctx))
+		}
+		item, err := m.processMarkdownFile(ctx, source.Sandbox, source.IsExternal, file, collectionName, analyser)
+		if errors.Is(err, errMarkdownContent) {
+			contentErrors = append(contentErrors, err)
+			continue
+		}
+		if err != nil {
+			l.Warn("Failed to process markdown file",
+				logger_domain.String(keyPath, file.relativePath),
+				logger_domain.Error(err))
+			continue
+		}
+
+		index := len(items)
+		items = append(items, item)
+		translationGroups[item.TranslationKey] = append(translationGroups[item.TranslationKey], index)
+	}
+
+	if len(contentErrors) > 0 {
+		return nil, nil, joinBounded(contentErrors, maxReportedFilesWithErrors)
+	}
+	return items, translationGroups, nil
 }
 
 // processCollectionEntry processes a single directory entry during collection discovery.
@@ -548,6 +596,10 @@ func (*MarkdownProvider) detectLocalesInFiles(
 
 // processMarkdownFile loads and processes a single markdown file.
 //
+// Takes sandbox (safedisk.Sandbox) which provides confined access to content files and
+// assets.
+// Takes isExternal (bool) which indicates that paths are relative to an external module
+// sandbox.
 // Takes file (*discoveredFile) which identifies the markdown file to process.
 // Takes collectionName (string) which specifies the content collection.
 // Takes analyser (*pathAnalyser) which extracts path metadata.
@@ -580,6 +632,9 @@ func (m *MarkdownProvider) processMarkdownFile(
 	processed, err := m.markdownService.Process(ctx, content, file.absolutePath)
 	if err != nil {
 		return collection_dto.ContentItem{}, fmt.Errorf("processing markdown: %w", err)
+	}
+	if err := contentDiagnosticsError(ctx, file.relativePath, processed.Diagnostics); err != nil {
+		return collection_dto.ContentItem{}, err
 	}
 
 	m.resolveAndRewriteAssets(ctx, sandbox, file.relativePath, collectionName, analyser, processed.PageAST)
@@ -663,6 +718,15 @@ func (m *MarkdownProvider) resolveAndRewriteAssets(
 // rewriteAssetNode dispatches a single AST node to the correct rewriter based on its
 // type. Element nodes other than <img>/<a> and empty RawHTML nodes are ignored.
 //
+// Takes sandbox (safedisk.Sandbox) which provides confined access to content files and
+// assets.
+// Takes mdDirectory (string) which is the directory used to resolve relative Markdown
+// links.
+// Takes collectionName (string) which identifies the content collection.
+// Takes mdRelativePath (string) which is the Markdown source path used in diagnostics and
+// logging.
+// Takes analyser (*pathAnalyser) which extracts collection path metadata and resolves
+// public content URLs.
 // Takes node (*ast_domain.TemplateNode) which is mutated in place when a rewrite applies.
 func (m *MarkdownProvider) rewriteAssetNode(
 	ctx context.Context,
@@ -704,6 +768,13 @@ func (m *MarkdownProvider) rewriteAssetNode(
 // via the registrar and mutating the node's src attribute in place when a rewrite is
 // possible.
 //
+// Takes sandbox (safedisk.Sandbox) which provides confined access to content files and
+// assets.
+// Takes mdDirectory (string) which is the directory used to resolve relative Markdown
+// links.
+// Takes collectionName (string) which identifies the content collection.
+// Takes mdRelativePath (string) which is the Markdown source path used in diagnostics and
+// logging.
 // Takes node (*ast_domain.TemplateNode) which is mutated in place on success.
 // Non-relative srcs and traversals outside the sandbox leave the node unchanged.
 func (m *MarkdownProvider) rewriteElementImg(
@@ -753,6 +824,13 @@ func (m *MarkdownProvider) rewriteElementImg(
 // click for SPA-style navigation. Only in-collection links get promoted; external and
 // non-md anchors stay as plain <a> tags.
 //
+// Takes mdDirectory (string) which is the directory used to resolve relative Markdown
+// links.
+// Takes collectionName (string) which identifies the content collection.
+// Takes mdRelativePath (string) which is the Markdown source path used in diagnostics and
+// logging.
+// Takes analyser (*pathAnalyser) which extracts collection path metadata and resolves
+// public content URLs.
 // Takes node (*ast_domain.TemplateNode) which is mutated in place when a rewrite applies.
 func (*MarkdownProvider) rewriteElementAnchor(
 	ctx context.Context,
@@ -791,6 +869,8 @@ func (*MarkdownProvider) rewriteElementAnchor(
 //
 // Takes filePath (string) which is the path to the content file.
 // Takes collectionName (string) which identifies the content collection.
+// Takes isExternal (bool) which indicates that paths are relative to an external module
+// sandbox.
 //
 // Returns string which is the resolved path within the sandbox.
 func resolveContentPath(filePath, collectionName string, isExternal bool) string {
@@ -1158,15 +1238,8 @@ func buildCollectionInfo(
 // Returns *markdown_dto.NavGroupMetadata which contains the derived navigation metadata
 // with section and subsection populated from the path.
 func deriveNavFromPath(pathInfo *pathInfo) *markdown_dto.NavGroupMetadata {
-	nav := &markdown_dto.NavGroupMetadata{
-		Order:      defaultNavOrder,
-		Hidden:     false,
-		Section:    "",
-		Subsection: "",
-		Icon:       "",
-		Parent:     "",
-		Label:      "",
-	}
+	nav := &markdown_dto.NavGroupMetadata{}
+	nav.Order = defaultNavOrder
 
 	segments := pathInfo.pathSegments
 

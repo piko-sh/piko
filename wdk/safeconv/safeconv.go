@@ -51,7 +51,7 @@ func IntToUint32(n int) uint32 {
 	if n < 0 {
 		return 0
 	}
-	if n > math.MaxUint32 {
+	if uint64(n) > math.MaxUint32 {
 		return math.MaxUint32
 	}
 	return uint32(n)

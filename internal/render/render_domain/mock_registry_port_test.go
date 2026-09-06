@@ -432,11 +432,9 @@ func TestMockRegistryPort_ConcurrentAccess(t *testing.T) {
 	const goroutines = 50
 	ctx := context.Background()
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_, _ = m.GetComponentMetadata(ctx, "c")
 			_, _ = m.BulkGetComponentMetadata(ctx, []string{"c"})
@@ -446,7 +444,7 @@ func TestMockRegistryPort_ConcurrentAccess(t *testing.T) {
 			m.ClearComponentCache(ctx, "c")
 			m.ClearSvgCache(ctx, "s")
 			_, _ = m.UpsertArtefact(ctx, "a", "/p", nil, "s3", nil)
-		}()
+		})
 	}
 
 	wg.Wait()

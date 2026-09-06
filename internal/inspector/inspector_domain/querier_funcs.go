@@ -21,7 +21,7 @@ package inspector_domain
 import (
 	goast "go/ast"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 

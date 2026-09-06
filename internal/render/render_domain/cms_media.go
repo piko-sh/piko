@@ -226,6 +226,11 @@ func tryCMSMediaWrapper(v any) *cmsMediaWrapper {
 	wrapper := &cmsMediaWrapper{
 		value:     rv,
 		urlMethod: urlMethod,
+		widthM:    reflect.Value{},
+		heightM:   reflect.Value{},
+		altM:      reflect.Value{},
+		variantM:  reflect.Value{},
+		variantsM: reflect.Value{},
 	}
 
 	wrapper.widthM = rv.MethodByName("MediaWidth")

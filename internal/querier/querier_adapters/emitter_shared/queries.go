@@ -26,7 +26,7 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -136,8 +136,14 @@ func EmitQueries(
 //
 // The filenames are sorted before emission so the resulting slice is stable across runs.
 //
-// Takes packageName, queries, mappings, strategy, batchHandler with the same meaning as
-// EmitQueries.
+// Takes packageName (string) which names the generated Go package.
+// Takes queries ([]*querier_dto.AnalysedQuery) which contains the analysed queries to
+// emit.
+// Takes mappings (*querier_dto.TypeMappingTable) which maps database types to generated
+// Go types.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
+// Takes batchHandler (BatchCopyFromHandler) which generates batch query helpers.
 //
 // Returns []querier_dto.GeneratedFile which holds the per-query outputs.
 // Returns error when any individual file emission fails.
@@ -172,8 +178,12 @@ func emitPerQueryFiles(
 // Each helper is conditional on the matching feature being used by at least one query in
 // the package.
 //
-// Takes packageName, queries, strategy, batchHandler with the same meaning as
-// EmitQueries.
+// Takes packageName (string) which names the generated Go package.
+// Takes queries ([]*querier_dto.AnalysedQuery) which contains the analysed queries to
+// emit.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
+// Takes batchHandler (BatchCopyFromHandler) which generates batch query helpers.
 //
 // Returns []querier_dto.GeneratedFile which holds the helper outputs.
 // Returns error when any helper rendering fails.
@@ -213,7 +223,11 @@ func emitSharedHelperFiles(
 // runtime builder. The bind-limits helper is emitted first if either feature is used so
 // the other two can reference its const and sentinel without redeclaring them.
 //
-// Takes packageName, queries, strategy with the same meaning as EmitQueries.
+// Takes packageName (string) which names the generated Go package.
+// Takes queries ([]*querier_dto.AnalysedQuery) which contains the analysed queries to
+// emit.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
 //
 // Returns []querier_dto.GeneratedFile which holds the bind-limited helper outputs.
 // Returns error when any helper rendering fails.

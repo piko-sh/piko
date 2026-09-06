@@ -226,6 +226,10 @@ func measureMinContentChildrenWidth(box *LayoutBox, fontMetrics FontMetricsPort)
 // measureTableIntrinsicWidth computes the intrinsic width of a table by summing column
 // preferred widths plus border-spacing and the table's own padding and border.
 //
+// Intrinsic measurement has no access to the layout's limit tracker, so a table wider
+// than the default MaxTableColumns measures as its padding and border only; laying the
+// table out then enforces the configured limit and reports any breach.
+//
 // This is needed because the generic block measurement takes the max of children (rows),
 // but a table row's width is the sum of its cells, not the max.
 //
@@ -235,14 +239,14 @@ func measureMinContentChildrenWidth(box *LayoutBox, fontMetrics FontMetricsPort)
 // Returns float64 which is the table's intrinsic width in points.
 func measureTableIntrinsicWidth(box *LayoutBox, fontMetrics FontMetricsPort) float64 {
 	rows, columnCount := collectTableRows(box)
-	if columnCount == 0 {
+	if columnCount == 0 || columnCount > defaultLayoutLimits.MaxTableColumns {
 		return box.Style.PaddingLeft + box.Style.PaddingRight +
 			box.Style.BorderLeftWidth + box.Style.BorderRightWidth
 	}
 
 	_, preferredWidths := measureColumnWidths(rows, columnCount, fontMetrics)
 
-	placements, _, _ := buildTableGrid(rows)
+	placements, _, _ := buildTableGrid(rows, defaultLayoutLimits.MaxTableColumns)
 	spacing := box.Style.BorderSpacing
 	adjustColumnWidthsForColspan(placements, preferredWidths, columnCount, spacing, fontMetrics)
 

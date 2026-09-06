@@ -90,6 +90,23 @@ _ = tiered
 
 `l1Cache` and `l2Cache` are `cache.ProviderPort[K, V]` instances. The circuit-breaker `Config` protects L2 from cascading failures by short-circuiting after consecutive errors. Local L1 keeps hot reads fast. L2 shares state across instances.
 
+If you registered both providers with the cache service, use the builder to create the tiers. This example uses the `memory` and `redis` registrations from the earlier sections.
+
+```go
+builder, err := cache.NewCacheBuilderFromDefault[string, Customer]()
+if err != nil {
+    return err
+}
+tiered, err := builder.
+    Namespace("customers").
+    MultiLevel("memory", "redis").
+    MaximumEntries(10_000).
+    L2CircuitBreaker(5, 30*time.Second).
+    Build(ctx)
+```
+
+Use `Namespace` to separate customer keys from other caches at both levels. `MaximumEntries` limits L1 to 10,000 entries. Check the error from `Build` before using the cache. The [multi-level configuration reference](../reference/cache-api.md#multi-level-configuration) lists incompatible builder options.
+
 ## Create a typed cache
 
 Each value type lives in its own namespace. Declare the cache once at package scope so callers share the instance:

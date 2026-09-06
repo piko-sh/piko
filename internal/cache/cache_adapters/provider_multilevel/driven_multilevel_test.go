@@ -26,8 +26,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/cache/cache_adapters/provider_mock"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
 func newTestAdapter() (
@@ -1049,5 +1054,164 @@ func TestValues_DelegatesToL1(t *testing.T) {
 	}
 	if len(values) != 1 || values[0] != "val-x" {
 		t.Errorf("expected [val-x], got %v", values)
+	}
+}
+
+type recordedSet struct {
+	cause   error
+	carrier *daemon_dto.PikoRequestCtx
+}
+
+type setRecordingProvider struct {
+	*provider_mock.MockAdapter[string, string]
+	sets chan recordedSet
+}
+
+func (p *setRecordingProvider) Set(ctx context.Context, key, value string, tags ...string) error {
+	err := p.MockAdapter.Set(ctx, key, value, tags...)
+	p.sets <- recordedSet{cause: context.Cause(ctx), carrier: daemon_dto.PikoRequestCtxFromContext(ctx)}
+	return err
+}
+
+func TestBackgroundWorkersRunUnderADetachedContext(t *testing.T) {
+	loader := cache_dto.LoaderFunc[string, string](func(_ context.Context, key string) (string, error) {
+		return "loaded-" + key, nil
+	})
+	bulkLoader := cache_dto.BulkLoaderFunc[string, string](func(_ context.Context, keys []string) (map[string]string, error) {
+		loaded := make(map[string]string, len(keys))
+		for _, key := range keys {
+			loaded[key] = "loaded-" + key
+		}
+		return loaded, nil
+	})
+
+	testCases := []struct {
+		run           func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error
+		name          string
+		recordOnLevel int
+		seedL2        bool
+	}{
+		{
+			name:          "loader write-back to L2",
+			recordOnLevel: 2,
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				_, err := adapter.Get(ctx, "key", loader)
+				return err
+			},
+		},
+		{
+			name:          "bulk loaded values stored to L2",
+			recordOnLevel: 2,
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				_, err := adapter.BulkGet(ctx, []string{"key"}, bulkLoader)
+				return err
+			},
+		},
+		{
+			name:          "L2 hits back-populated to L1",
+			recordOnLevel: 1,
+			seedL2:        true,
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				_, err := adapter.BulkGet(ctx, []string{"key"}, bulkLoader)
+				return err
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			l1 := provider_mock.NewMockAdapter[string, string]()
+			l2 := provider_mock.NewMockAdapter[string, string]()
+			if tc.seedL2 {
+				require.NoError(t, l2.Set(context.Background(), "key", "stored"))
+			}
+			recorder := &setRecordingProvider{sets: make(chan recordedSet, 4)}
+			var l1Port, l2Port cache_domain.ProviderPort[string, string] = l1, l2
+			if tc.recordOnLevel == 1 {
+				recorder.MockAdapter = l1
+				l1Port = recorder
+			} else {
+				recorder.MockAdapter = l2
+				l2Port = recorder
+			}
+			adapter := NewMultiLevelAdapter[string, string](context.Background(), "test", l1Port, l2Port, Config{
+				MaxConsecutiveFailures: 5,
+				OpenStateTimeout:       30 * time.Second,
+			})
+
+			pctx := daemon_dto.AcquirePikoRequestCtx()
+			pctx.ClientIP = "10.0.0.1"
+			requestCtx, cancelRequest := context.WithCancelCause(
+				daemon_dto.WithPikoRequestCtx(context.Background(), pctx))
+
+			require.NoError(t, tc.run(requestCtx, adapter))
+			cancelRequest(errors.New("request finished"))
+
+			set := <-recorder.sets
+			daemon_dto.ReleasePikoRequestCtx(pctx)
+
+			require.NoError(t, set.cause, "background work must not inherit the request's cancellation")
+			require.NotNil(t, set.carrier)
+			assert.NotSame(t, pctx, set.carrier, "background work must not read the pooled carrier")
+			assert.Equal(t, "10.0.0.1", set.carrier.ClientIP)
+		})
+	}
+}
+
+type failingSetProvider struct {
+	*provider_mock.MockAdapter[string, string]
+	attempts chan struct{}
+}
+
+func (p *failingSetProvider) Set(context.Context, string, string, ...string) error {
+	p.attempts <- struct{}{}
+	return errors.New("l2 unavailable")
+}
+
+func TestBackgroundL2WritesSurviveL2Failures(t *testing.T) {
+	loader := cache_dto.LoaderFunc[string, string](func(_ context.Context, key string) (string, error) {
+		return "loaded-" + key, nil
+	})
+	bulkLoader := cache_dto.BulkLoaderFunc[string, string](func(_ context.Context, keys []string) (map[string]string, error) {
+		return map[string]string{keys[0]: "loaded-" + keys[0]}, nil
+	})
+
+	testCases := []struct {
+		run  func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error
+		name string
+	}{
+		{
+			name: "loader write-back",
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				_, err := adapter.Get(ctx, "key", loader)
+				return err
+			},
+		},
+		{
+			name: "bulk loaded values",
+			run: func(ctx context.Context, adapter *MultiLevelAdapter[string, string]) error {
+				_, err := adapter.BulkGet(ctx, []string{"key"}, bulkLoader)
+				return err
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			l1 := provider_mock.NewMockAdapter[string, string]()
+			l2 := &failingSetProvider{MockAdapter: provider_mock.NewMockAdapter[string, string](), attempts: make(chan struct{}, 4)}
+			adapter := NewMultiLevelAdapter[string, string](context.Background(), "test", l1, l2, Config{
+				MaxConsecutiveFailures: 5,
+				OpenStateTimeout:       30 * time.Second,
+			})
+
+			require.NoError(t, tc.run(context.Background(), adapter))
+			<-l2.attempts
+
+			value, found, err := l1.GetIfPresent(context.Background(), "key")
+			require.NoError(t, err)
+			assert.True(t, found, "a failed L2 write must not lose the L1 value")
+			assert.Equal(t, "loaded-key", value)
+		})
 	}
 }

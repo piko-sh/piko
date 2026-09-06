@@ -206,6 +206,8 @@ func (p *PagerDutyProvider) formatPagerDutyPayload(params *notification_dto.Send
 			Timestamp:     params.Context.Timestamp.Format(time.RFC3339),
 			Component:     params.Context.Source,
 			CustomDetails: buildCustomDetails(params),
+			Group:         "",
+			Class:         "",
 		},
 	}
 	return json.Marshal(event)

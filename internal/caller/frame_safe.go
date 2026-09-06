@@ -20,7 +20,9 @@
 
 package caller
 
-import "runtime"
+import (
+	"runtime"
+)
 
 // resolveFrame returns the function name, file path, and line number for this program
 // counter.

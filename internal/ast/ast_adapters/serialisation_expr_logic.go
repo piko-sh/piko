@@ -529,9 +529,13 @@ func (d *decoder) unpackMemberExpr(fb *ast_schema_gen.MemberExprFB, sourceLength
 		return nil, nil
 	}
 	expression := &ast_domain.MemberExpression{
-		Optional:     fb.Optional(),
-		Computed:     fb.Computed(),
-		SourceLength: sourceLength,
+		Optional:         fb.Optional(),
+		Computed:         fb.Computed(),
+		SourceLength:     sourceLength,
+		Base:             nil,
+		Property:         nil,
+		GoAnnotations:    nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 	var err error
 	expression.Base, err = d.unpackExpressionNode(fb.Base(&d.expressionNodeFB))
@@ -561,8 +565,13 @@ func (d *decoder) unpackIndexExpr(fb *ast_schema_gen.IndexExprFB, sourceLength i
 		return nil, nil
 	}
 	expression := &ast_domain.IndexExpression{
-		Optional:     fb.Optional(),
-		SourceLength: sourceLength,
+		Optional:         fb.Optional(),
+		SourceLength:     sourceLength,
+		Base:             nil,
+		Index:            nil,
+		GoAnnotations:    nil,
+		Indices:          nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 	var err error
 	expression.Base, err = d.unpackExpressionNode(fb.Base(&d.expressionNodeFB))
@@ -593,8 +602,11 @@ func (d *decoder) unpackUnaryExpr(fb *ast_schema_gen.UnaryExprFB, sourceLength i
 		return nil, nil
 	}
 	expression := &ast_domain.UnaryExpression{
-		Operator:     mapFBUnaryOpToGo[fb.Operator()],
-		SourceLength: sourceLength,
+		Operator:         mapFBUnaryOpToGo[fb.Operator()],
+		SourceLength:     sourceLength,
+		Right:            nil,
+		GoAnnotations:    nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 	var err error
 	expression.Right, err = d.unpackExpressionNode(fb.Right(&d.expressionNodeFB))
@@ -622,8 +634,12 @@ func (d *decoder) unpackBinaryExpr(fb *ast_schema_gen.BinaryExprFB, sourceLength
 		return nil, nil
 	}
 	expression := &ast_domain.BinaryExpression{
-		Operator:     mapFBBinaryOpToGo[fb.Operator()],
-		SourceLength: sourceLength,
+		Operator:         mapFBBinaryOpToGo[fb.Operator()],
+		SourceLength:     sourceLength,
+		Left:             nil,
+		Right:            nil,
+		GoAnnotations:    nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 	var err error
 	expression.Left, err = d.unpackExpressionNode(fb.Left(&d.expressionNodeFB))
@@ -653,9 +669,8 @@ func (d *decoder) unpackCallExpr(fb *ast_schema_gen.CallExprFB, sourceLength int
 	if fb == nil {
 		return nil, nil
 	}
-	expression := &ast_domain.CallExpression{
-		SourceLength: sourceLength,
-	}
+	expression := &ast_domain.CallExpression{}
+	expression.SourceLength = sourceLength
 	var err error
 	expression.Callee, err = d.unpackExpressionNode(fb.Callee(&d.expressionNodeFB))
 	if err != nil {
@@ -691,9 +706,8 @@ func (d *decoder) unpackForInExpr(fb *ast_schema_gen.ForInExprFB, sourceLength i
 	if fb == nil {
 		return nil, nil
 	}
-	expression := &ast_domain.ForInExpression{
-		SourceLength: sourceLength,
-	}
+	expression := &ast_domain.ForInExpression{}
+	expression.SourceLength = sourceLength
 	var err error
 	expression.IndexVariable, err = d.unpackIdentifier(fb.IndexVariable(&d.identFB), 0)
 	if err != nil {
@@ -728,7 +742,10 @@ func (d *decoder) unpackArrayLiteral(fb *ast_schema_gen.ArrayLiteralFB, sourceLe
 		return nil, nil
 	}
 	lit := &ast_domain.ArrayLiteral{
-		SourceLength: sourceLength,
+		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
+		Elements:         nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 	var err error
 	lit.Elements, err = unpackVector(d, fb.ElementsLength(), fb.Elements, (*decoder).unpackExpressionNode)
@@ -754,7 +771,10 @@ func (d *decoder) unpackObjectLiteral(fb *ast_schema_gen.ObjectLiteralFB, source
 		return nil, nil
 	}
 	lit := &ast_domain.ObjectLiteral{
-		SourceLength: sourceLength,
+		SourceLength:     sourceLength,
+		Pairs:            nil,
+		GoAnnotations:    nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 	var err error
 	lit.Pairs, err = d.unpackObjectLiteralPairs(fb)
@@ -780,9 +800,8 @@ func (d *decoder) unpackTernaryExpr(fb *ast_schema_gen.TernaryExprFB, sourceLeng
 	if fb == nil {
 		return nil, nil
 	}
-	expression := &ast_domain.TernaryExpression{
-		SourceLength: sourceLength,
-	}
+	expression := &ast_domain.TernaryExpression{}
+	expression.SourceLength = sourceLength
 	var err error
 	expression.Condition, err = d.unpackExpressionNode(fb.Condition(&d.expressionNodeFB))
 	if err != nil {
@@ -819,7 +838,10 @@ func (d *decoder) unpackTemplateLiteral(fb *ast_schema_gen.TemplateLiteralFB, so
 	}
 
 	result := &ast_domain.TemplateLiteral{
-		SourceLength: sourceLength,
+		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
+		Parts:            nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 
 	var err error
@@ -849,8 +871,10 @@ func (d *decoder) unpackTemplateLiteralPart(fb *ast_schema_gen.TemplateLiteralPa
 		return ast_domain.TemplateLiteralPart{}, nil
 	}
 	part := ast_domain.TemplateLiteralPart{
-		IsLiteral: fb.IsLiteral(),
-		Literal:   mem.String(fb.Literal()),
+		IsLiteral:        fb.IsLiteral(),
+		Literal:          mem.String(fb.Literal()),
+		Expression:       nil,
+		RelativeLocation: ast_domain.Location{},
 	}
 	var err error
 	part.Expression, err = d.unpackExpressionNode(fb.Expression(&d.expressionNodeFB))

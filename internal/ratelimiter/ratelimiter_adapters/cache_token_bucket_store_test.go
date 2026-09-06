@@ -183,18 +183,16 @@ func TestCacheTokenBucketStore_Concurrent(t *testing.T) {
 	const takesPerGoroutine = 10
 
 	var wg sync.WaitGroup
-	wg.Add(numGoroutines)
 
 	for range numGoroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range takesPerGoroutine {
 				_, err := store.TryTake(context.Background(), "concurrent", 1.0, config)
 				if err != nil {
 					t.Errorf("concurrent TryTake failed: %v", err)
 				}
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

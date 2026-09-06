@@ -22,6 +22,8 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
 // ClipShapeType identifies the kind of CSS clip-path basic shape.
@@ -98,7 +100,8 @@ type ClipShape struct {
 }
 
 // ParseClipPath parses a CSS clip-path value into a ClipShape. Returns a shape with Type
-// == ClipShapeNone for unsupported or empty values.
+// == ClipShapeNone for unsupported, empty or malformed values, including a truncated
+// function such as "circle(" with no closing parenthesis.
 //
 // Takes value (string) which is the raw CSS clip-path value.
 // Takes boxWidth (float64) which is the reference box width in points.
@@ -108,37 +111,45 @@ type ClipShape struct {
 func ParseClipPath(value string, boxWidth, boxHeight float64) ClipShape {
 	value = strings.TrimSpace(value)
 	if value == "" || value == "none" {
-		return ClipShape{Type: ClipShapeNone}
+		return ClipShape{}
 	}
 
-	if strings.HasPrefix(value, "circle(") {
-		return parseClipCircle(value[7:len(value)-1], boxWidth, boxHeight)
+	if inner, ok := layouter_domain.CSSFunctionArguments(value, "circle"); ok {
+		return parseClipCircle(inner, boxWidth, boxHeight)
 	}
-	if strings.HasPrefix(value, "ellipse(") {
-		return parseClipEllipse(value[8:len(value)-1], boxWidth, boxHeight)
+	if inner, ok := layouter_domain.CSSFunctionArguments(value, "ellipse"); ok {
+		return parseClipEllipse(inner, boxWidth, boxHeight)
 	}
-	if strings.HasPrefix(value, "inset(") {
-		return parseClipInset(value[6:len(value)-1], boxWidth, boxHeight)
+	if inner, ok := layouter_domain.CSSFunctionArguments(value, "inset"); ok {
+		return parseClipInset(inner, boxWidth, boxHeight)
 	}
-	if strings.HasPrefix(value, "polygon(") {
-		return parseClipPolygon(value[8:len(value)-1], boxWidth, boxHeight)
+	if inner, ok := layouter_domain.CSSFunctionArguments(value, "polygon"); ok {
+		return parseClipPolygon(inner, boxWidth, boxHeight)
 	}
 
-	return ClipShape{Type: ClipShapeNone}
+	return ClipShape{}
 }
 
 // parseClipCircle parses the arguments of a CSS circle() function.
 //
 // Takes inner (string) which is the text inside the parentheses.
-// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
+// Takes boxWidth (float64) which is the reference box width in points.
+// Takes boxHeight (float64) which is the reference box height in points.
 //
 // Returns ClipShape with circle parameters.
 func parseClipCircle(inner string, boxWidth, boxHeight float64) ClipShape {
 	shape := ClipShape{
-		Type:    ClipShapeCircle,
-		CenterX: clipDefaultCentre,
-		CenterY: clipDefaultCentre,
-		RadiusX: clipDefaultCentre,
+		Type:        ClipShapeCircle,
+		CenterX:     clipDefaultCentre,
+		CenterY:     clipDefaultCentre,
+		RadiusX:     clipDefaultCentre,
+		Points:      nil,
+		RadiusY:     0,
+		InsetTop:    0,
+		InsetRight:  0,
+		InsetBottom: 0,
+		InsetLeft:   0,
+		InsetRadius: 0,
 	}
 
 	parts := strings.SplitN(inner, " at ", 2)
@@ -160,16 +171,23 @@ func parseClipCircle(inner string, boxWidth, boxHeight float64) ClipShape {
 // parseClipEllipse parses the arguments of a CSS ellipse() function.
 //
 // Takes inner (string) which is the text inside the parentheses.
-// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
+// Takes boxWidth (float64) which is the reference box width in points.
+// Takes boxHeight (float64) which is the reference box height in points.
 //
 // Returns ClipShape with ellipse parameters.
 func parseClipEllipse(inner string, boxWidth, boxHeight float64) ClipShape {
 	shape := ClipShape{
-		Type:    ClipShapeEllipse,
-		CenterX: clipDefaultCentre,
-		CenterY: clipDefaultCentre,
-		RadiusX: clipDefaultCentre,
-		RadiusY: clipDefaultCentre,
+		Type:        ClipShapeEllipse,
+		CenterX:     clipDefaultCentre,
+		CenterY:     clipDefaultCentre,
+		RadiusX:     clipDefaultCentre,
+		RadiusY:     clipDefaultCentre,
+		Points:      nil,
+		InsetTop:    0,
+		InsetRight:  0,
+		InsetBottom: 0,
+		InsetLeft:   0,
+		InsetRadius: 0,
 	}
 
 	parts := strings.SplitN(inner, " at ", 2)
@@ -196,11 +214,13 @@ func parseClipEllipse(inner string, boxWidth, boxHeight float64) ClipShape {
 // parseClipInset parses the arguments of a CSS inset() function.
 //
 // Takes inner (string) which is the text inside the parentheses.
-// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
+// Takes boxWidth (float64) which is the reference box width in points.
+// Takes boxHeight (float64) which is the reference box height in points.
 //
 // Returns ClipShape with inset edge distances and optional radius.
 func parseClipInset(inner string, boxWidth, boxHeight float64) ClipShape {
-	shape := ClipShape{Type: ClipShapeInset}
+	shape := ClipShape{}
+	shape.Type = ClipShapeInset
 
 	roundParts := strings.SplitN(inner, " round ", 2)
 	if len(roundParts) == 2 {
@@ -238,19 +258,21 @@ func parseClipInset(inner string, boxWidth, boxHeight float64) ClipShape {
 // parseClipPolygon parses the arguments of a CSS polygon() function.
 //
 // Takes inner (string) which is the comma-separated vertex list.
-// Takes boxWidth, boxHeight (float64) which are the reference box dimensions.
+// Takes boxWidth (float64) which is the reference box width in points.
+// Takes boxHeight (float64) which is the reference box height in points.
 //
 // Returns ClipShape with polygon vertices as fractional coordinates.
 func parseClipPolygon(inner string, boxWidth, boxHeight float64) ClipShape {
-	shape := ClipShape{Type: ClipShapePolygon}
+	shape := ClipShape{}
+	shape.Type = ClipShapePolygon
 
 	for vertex := range strings.SplitSeq(inner, ",") {
 		coords := strings.Fields(strings.TrimSpace(vertex))
 		if len(coords) < 2 {
 			continue
 		}
-		x := resolveClipLength(coords[0], boxWidth) / boxWidth
-		y := resolveClipLength(coords[1], boxHeight) / boxHeight
+		x := clipFraction(resolveClipLength(coords[0], boxWidth), boxWidth)
+		y := clipFraction(resolveClipLength(coords[1], boxHeight), boxHeight)
 		shape.Points = append(shape.Points, [2]float64{x, y})
 	}
 
@@ -295,7 +317,7 @@ func parsePercentOrKeyword(s string) float64 {
 
 	if after, ok := strings.CutSuffix(s, "%"); ok {
 		v, err := strconv.ParseFloat(after, 64)
-		if err == nil {
+		if err == nil && !math.IsNaN(v) && !math.IsInf(v, 0) {
 			return v / clipPercentDivisor
 		}
 	}
@@ -304,13 +326,29 @@ func parsePercentOrKeyword(s string) float64 {
 }
 
 // resolveClipLength resolves a CSS length or percentage string to an absolute value in
-// points.
+// points. Non-finite results are invalid and resolve to zero, so NaN or an infinity never
+// reaches the PDF content stream.
 //
 // Takes s (string) which is the CSS length value.
 // Takes reference (float64) which is the reference dimension for percentage resolution.
 //
 // Returns float64 which is the resolved length in points.
 func resolveClipLength(s string, reference float64) float64 {
+	resolved := resolveRawClipLength(s, reference)
+	if math.IsNaN(resolved) || math.IsInf(resolved, 0) {
+		return 0
+	}
+	return resolved
+}
+
+// resolveRawClipLength resolves a CSS length or percentage string to points without
+// checking that the result is finite.
+//
+// Takes s (string) which is the CSS length value.
+// Takes reference (float64) which is the reference dimension for percentage resolution.
+//
+// Returns float64 which is the resolved length in points.
+func resolveRawClipLength(s string, reference float64) float64 {
 	s = strings.TrimSpace(s)
 
 	if after, ok := strings.CutSuffix(s, "%"); ok {
@@ -350,7 +388,10 @@ func resolveClipLength(s string, reference float64) float64 {
 //
 // Takes stream (*ContentStream) to write operators to.
 // Takes shape (ClipShape) which is the parsed clip shape.
-// Takes pdfX, pdfY, w, h (float64) which define the reference box in PDF coordinates.
+// Takes pdfX (float64) which is the reference box horizontal position in PDF coordinates.
+// Takes pdfY (float64) which is the reference box vertical position in PDF coordinates.
+// Takes w (float64) which is the rectangle width in points.
+// Takes h (float64) which is the rectangle height in points.
 func EmitClipPath(stream *ContentStream, shape ClipShape, pdfX, pdfY, w, h float64) {
 	switch shape.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case ClipShapeCircle:
@@ -395,7 +436,8 @@ func EmitClipPath(stream *ContentStream, shape ClipShape, pdfX, pdfY, w, h float
 // emitCirclePath approximates a circle using 4 cubic Bezier curves.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes cx, cy (float64) which specify the centre coordinates.
+// Takes cx (float64) which is the horizontal centre coordinate in points.
+// Takes cy (float64) which is the vertical centre coordinate in points.
 // Takes r (float64) which is the circle radius in points.
 func emitCirclePath(stream *ContentStream, cx, cy, r float64) {
 	k := r * kappa
@@ -410,7 +452,8 @@ func emitCirclePath(stream *ContentStream, cx, cy, r float64) {
 // emitEllipsePath approximates an ellipse using 4 cubic Bezier curves.
 //
 // Takes stream (*ContentStream) which receives PDF operators.
-// Takes cx, cy (float64) which specify the centre coordinates.
+// Takes cx (float64) which is the horizontal centre coordinate in points.
+// Takes cy (float64) which is the vertical centre coordinate in points.
 // Takes rx (float64) which is the horizontal radius in points.
 // Takes ry (float64) which is the vertical radius in points.
 func emitEllipsePath(stream *ContentStream, cx, cy, rx, ry float64) {
@@ -422,4 +465,19 @@ func emitEllipsePath(stream *ContentStream, cx, cy, rx, ry float64) {
 	stream.CurveTo(cx-rx, cy-ky, cx-kx, cy-ry, cx, cy-ry)
 	stream.CurveTo(cx+kx, cy-ry, cx+rx, cy-ky, cx+rx, cy)
 	stream.ClosePath()
+}
+
+// clipFraction converts an absolute coordinate to a fraction of the reference dimension,
+// returning zero when the reference is not positive so a zero-sized box cannot produce
+// NaN or infinite coordinates.
+//
+// Takes value (float64) which is the absolute coordinate in points.
+// Takes reference (float64) which is the reference dimension in points.
+//
+// Returns float64 which is the fractional coordinate.
+func clipFraction(value, reference float64) float64 {
+	if !(reference > 0) {
+		return 0
+	}
+	return value / reference
 }

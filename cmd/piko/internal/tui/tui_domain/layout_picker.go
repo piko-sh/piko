@@ -66,6 +66,9 @@ func NewLayoutPickerWith(breakpoints []Breakpoint, layouts map[string]Layout) *L
 	picker := &LayoutPicker{
 		breakpoints: breakpoints,
 		layouts:     layouts,
+		active:      nil,
+		overrideTo:  "",
+		currentBP:   Breakpoint{},
 	}
 	picker.active = picker.layoutByName(LayoutNameSingle)
 	picker.currentBP = breakpoints[0]

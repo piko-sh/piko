@@ -73,12 +73,20 @@ var (
 // continuous-aggregate marker in EngineSpecific.
 // Returns error when the statement cannot be parsed.
 func parseCreateContinuousAggregate(p db_engine_postgres.ParserContext) (*querier_dto.CatalogueMutation, error) {
-	p.MustKeyword("CREATE")
-	if p.MatchKeyword("OR") {
-		p.MustKeyword("REPLACE")
+	if err := p.ExpectKeyword("CREATE"); err != nil {
+		return nil, err
 	}
-	p.MustKeyword("MATERIALIZED")
-	p.MustKeyword("VIEW")
+	if p.MatchKeyword("OR") {
+		if err := p.ExpectKeyword("REPLACE"); err != nil {
+			return nil, err
+		}
+	}
+	if err := p.ExpectKeyword("MATERIALIZED"); err != nil {
+		return nil, err
+	}
+	if err := p.ExpectKeyword("VIEW"); err != nil {
+		return nil, err
+	}
 
 	ifNotExists := p.MatchIfNotExists()
 
@@ -87,14 +95,9 @@ func parseCreateContinuousAggregate(p db_engine_postgres.ParserContext) (*querie
 		return nil, fmt.Errorf("continuous aggregate name: %w", err)
 	}
 
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateView,
-		SchemaName: schema,
-		TableName:  name,
-		EngineSpecific: map[string]string{
-			"TIMESCALE_CONTINUOUS_AGGREGATE": literalTrue,
-		},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateView, schema, name, querier_dto.WithEngineSpecific(map[string]string{
+		"TIMESCALE_CONTINUOUS_AGGREGATE": literalTrue,
+	}))
 	if ifNotExists {
 		mutation.EngineSpecific["TIMESCALE_IF_NOT_EXISTS"] = literalTrue
 	}

@@ -168,7 +168,7 @@ func enrichEventFromRequestCtx(event *AnalyticsEvent, pctx *daemon_dto.PikoReque
 	event.ClientIP = cmp.Or(event.ClientIP, pctx.ClientIP)
 	event.Locale = cmp.Or(event.Locale, pctx.Locale)
 	event.MatchedPattern = cmp.Or(event.MatchedPattern, pctx.MatchedPattern)
-	event.ActionName = cmp.Or(event.ActionName, pctx.AnalyticsActionName)
+	event.ActionName = cmp.Or(event.ActionName, pctx.Analytics().ActionName)
 	event.Hostname = cmp.Or(event.Hostname, pctx.Hostname)
 
 	if event.UserID == "" {

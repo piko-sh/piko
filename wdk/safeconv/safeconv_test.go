@@ -20,8 +20,10 @@ package safeconv_test
 
 import (
 	"math"
+	"math/bits"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"piko.sh/piko/wdk/safeconv"
 )
 
@@ -37,17 +39,40 @@ func TestIntToUint32(t *testing.T) {
 		{name: "positive", input: 100, expected: 100},
 		{name: "negative clamps to zero", input: -1, expected: 0},
 		{name: "large negative clamps to zero", input: -1000000, expected: 0},
-		{name: "max uint32", input: math.MaxUint32, expected: math.MaxUint32},
-		{name: "exceeds max clamps to max", input: math.MaxUint32 + 1, expected: math.MaxUint32},
+		{name: "largest int clamps to the uint32 range", input: math.MaxInt, expected: uint32(min(uint64(math.MaxInt), math.MaxUint32))},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.IntToUint32(tt.input)
-			if result != tt.expected {
-				t.Errorf("IntToUint32(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIntToUint32_ExactUint32Boundary(t *testing.T) {
+	t.Parallel()
+
+	if bits.UintSize < 64 {
+		t.Skip("an int cannot exceed the uint32 range on 32-bit platforms")
+	}
+
+	var boundary uint64 = math.MaxUint32
+
+	testCases := []struct {
+		name     string
+		input    int
+		expected uint32
+	}{
+		{name: "max uint32 converts exactly", input: int(boundary), expected: math.MaxUint32},
+		{name: "one above max uint32 clamps", input: int(boundary + 1), expected: math.MaxUint32},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.expected, safeconv.IntToUint32(testCase.input))
 		})
 	}
 }
@@ -72,9 +97,7 @@ func TestIntToUint16(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.IntToUint16(tt.input)
-			if result != tt.expected {
-				t.Errorf("IntToUint16(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -98,9 +121,7 @@ func TestIntToUint8(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.IntToUint8(tt.input)
-			if result != tt.expected {
-				t.Errorf("IntToUint8(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -118,17 +139,15 @@ func TestIntToInt32(t *testing.T) {
 		{name: "negative", input: -100, expected: -100},
 		{name: "max int32", input: math.MaxInt32, expected: math.MaxInt32},
 		{name: "min int32", input: math.MinInt32, expected: math.MinInt32},
-		{name: "exceeds max clamps to max", input: math.MaxInt32 + 1, expected: math.MaxInt32},
-		{name: "below min clamps to min", input: math.MinInt32 - 1, expected: math.MinInt32},
+		{name: "largest int clamps to the int32 range", input: math.MaxInt, expected: int32(min(int64(math.MaxInt), math.MaxInt32))},
+		{name: "smallest int clamps to the int32 range", input: math.MinInt, expected: int32(max(int64(math.MinInt), math.MinInt32))},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.IntToInt32(tt.input)
-			if result != tt.expected {
-				t.Errorf("IntToInt32(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -154,9 +173,7 @@ func TestIntToInt16(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.IntToInt16(tt.input)
-			if result != tt.expected {
-				t.Errorf("IntToInt16(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -180,9 +197,7 @@ func TestInt64ToUint32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Int64ToUint32(tt.input)
-			if result != tt.expected {
-				t.Errorf("Int64ToUint32(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -208,9 +223,7 @@ func TestInt64ToInt32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Int64ToInt32(tt.input)
-			if result != tt.expected {
-				t.Errorf("Int64ToInt32(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -233,9 +246,7 @@ func TestUint64ToUint32(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Uint64ToUint32(tt.input)
-			if result != tt.expected {
-				t.Errorf("Uint64ToUint32(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -245,15 +256,9 @@ func TestMustIntToUint8(t *testing.T) {
 
 	t.Run("valid values", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.MustIntToUint8(0); result != 0 {
-			t.Errorf("MustIntToUint8(0) = %d, want 0", result)
-		}
-		if result := safeconv.MustIntToUint8(100); result != 100 {
-			t.Errorf("MustIntToUint8(100) = %d, want 100", result)
-		}
-		if result := safeconv.MustIntToUint8(math.MaxUint8); result != math.MaxUint8 {
-			t.Errorf("MustIntToUint8(255) = %d, want 255", result)
-		}
+		assert.EqualValues(t, 0, safeconv.MustIntToUint8(0))
+		assert.EqualValues(t, 100, safeconv.MustIntToUint8(100))
+		assert.EqualValues(t, math.MaxUint8, safeconv.MustIntToUint8(math.MaxUint8))
 	})
 
 	t.Run("negative panics", func(t *testing.T) {
@@ -282,12 +287,8 @@ func TestMustIntToUint16(t *testing.T) {
 
 	t.Run("valid values", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.MustIntToUint16(0); result != 0 {
-			t.Errorf("MustIntToUint16(0) = %d, want 0", result)
-		}
-		if result := safeconv.MustIntToUint16(math.MaxUint16); result != math.MaxUint16 {
-			t.Errorf("MustIntToUint16(65535) = %d, want 65535", result)
-		}
+		assert.EqualValues(t, 0, safeconv.MustIntToUint16(0))
+		assert.EqualValues(t, math.MaxUint16, safeconv.MustIntToUint16(math.MaxUint16))
 	})
 
 	t.Run("negative panics", func(t *testing.T) {
@@ -316,15 +317,9 @@ func TestMustIntToInt16(t *testing.T) {
 
 	t.Run("valid values", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.MustIntToInt16(0); result != 0 {
-			t.Errorf("MustIntToInt16(0) = %d, want 0", result)
-		}
-		if result := safeconv.MustIntToInt16(math.MaxInt16); result != math.MaxInt16 {
-			t.Errorf("MustIntToInt16(MaxInt16) = %d, want %d", result, int16(math.MaxInt16))
-		}
-		if result := safeconv.MustIntToInt16(math.MinInt16); result != math.MinInt16 {
-			t.Errorf("MustIntToInt16(MinInt16) = %d, want %d", result, int16(math.MinInt16))
-		}
+		assert.EqualValues(t, 0, safeconv.MustIntToInt16(0))
+		assert.EqualValues(t, math.MaxInt16, safeconv.MustIntToInt16(math.MaxInt16))
+		assert.EqualValues(t, math.MinInt16, safeconv.MustIntToInt16(math.MinInt16))
 	})
 
 	t.Run("overflow panics", func(t *testing.T) {
@@ -353,12 +348,8 @@ func TestMustUintToUint8(t *testing.T) {
 
 	t.Run("valid values", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.MustUintToUint8(0); result != 0 {
-			t.Errorf("MustUintToUint8(0) = %d, want 0", result)
-		}
-		if result := safeconv.MustUintToUint8(math.MaxUint8); result != math.MaxUint8 {
-			t.Errorf("MustUintToUint8(255) = %d, want 255", result)
-		}
+		assert.EqualValues(t, 0, safeconv.MustUintToUint8(0))
+		assert.EqualValues(t, math.MaxUint8, safeconv.MustUintToUint8(math.MaxUint8))
 	})
 
 	t.Run("overflow panics", func(t *testing.T) {
@@ -377,12 +368,8 @@ func TestMustUint8ToInt8(t *testing.T) {
 
 	t.Run("valid values", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.MustUint8ToInt8(0); result != 0 {
-			t.Errorf("MustUint8ToInt8(0) = %d, want 0", result)
-		}
-		if result := safeconv.MustUint8ToInt8(math.MaxInt8); result != math.MaxInt8 {
-			t.Errorf("MustUint8ToInt8(127) = %d, want 127", result)
-		}
+		assert.EqualValues(t, 0, safeconv.MustUint8ToInt8(0))
+		assert.EqualValues(t, math.MaxInt8, safeconv.MustUint8ToInt8(math.MaxInt8))
 	})
 
 	t.Run("overflow panics", func(t *testing.T) {
@@ -401,12 +388,8 @@ func TestMustInt8ToUint8(t *testing.T) {
 
 	t.Run("valid values", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.MustInt8ToUint8(0); result != 0 {
-			t.Errorf("MustInt8ToUint8(0) = %d, want 0", result)
-		}
-		if result := safeconv.MustInt8ToUint8(math.MaxInt8); result != math.MaxInt8 {
-			t.Errorf("MustInt8ToUint8(127) = %d, want 127", result)
-		}
+		assert.EqualValues(t, 0, safeconv.MustInt8ToUint8(0))
+		assert.EqualValues(t, math.MaxInt8, safeconv.MustInt8ToUint8(math.MaxInt8))
 	})
 
 	t.Run("negative panics", func(t *testing.T) {
@@ -457,9 +440,7 @@ func TestUint64ToInt64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Uint64ToInt64(tt.input)
-			if result != tt.expected {
-				t.Errorf("Uint64ToInt64(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -483,9 +464,7 @@ func TestInt64ToUint64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Int64ToUint64(tt.input)
-			if result != tt.expected {
-				t.Errorf("Int64ToUint64(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -509,9 +488,7 @@ func TestInt64ToInt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Int64ToInt(tt.input)
-			if result != tt.expected {
-				t.Errorf("Int64ToInt(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -535,9 +512,7 @@ func TestUint64ToInt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Uint64ToInt(tt.input)
-			if result != tt.expected {
-				t.Errorf("Uint64ToInt(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -561,9 +536,7 @@ func TestIntToUint64(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.IntToUint64(tt.input)
-			if result != tt.expected {
-				t.Errorf("IntToUint64(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -589,9 +562,7 @@ func TestInt64ToInt16(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Int64ToInt16(tt.input)
-			if result != tt.expected {
-				t.Errorf("Int64ToInt16(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -617,9 +588,7 @@ func TestIntToInt8(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.IntToInt8(tt.input)
-			if result != tt.expected {
-				t.Errorf("IntToInt8(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -644,9 +613,7 @@ func TestInt64ToUint16(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Int64ToUint16(tt.input)
-			if result != tt.expected {
-				t.Errorf("Int64ToUint16(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -670,9 +637,7 @@ func TestUint64ToUint16(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			result := safeconv.Uint64ToUint16(tt.input)
-			if result != tt.expected {
-				t.Errorf("Uint64ToUint16(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -682,51 +647,37 @@ func TestToUint64(t *testing.T) {
 
 	t.Run("int negative clamps to zero", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.ToUint64(-1); result != 0 {
-			t.Errorf("ToUint64(int(-1)) = %d, want 0", result)
-		}
+		assert.EqualValues(t, 0, safeconv.ToUint64(-1))
 	})
 
 	t.Run("int positive", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.ToUint64(100); result != 100 {
-			t.Errorf("ToUint64(int(100)) = %d, want 100", result)
-		}
+		assert.EqualValues(t, 100, safeconv.ToUint64(100))
 	})
 
 	t.Run("int8 negative clamps to zero", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.ToUint64(int8(-1)); result != 0 {
-			t.Errorf("ToUint64(int8(-1)) = %d, want 0", result)
-		}
+		assert.EqualValues(t, 0, safeconv.ToUint64(int8(-1)))
 	})
 
 	t.Run("int8 positive", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.ToUint64(int8(100)); result != 100 {
-			t.Errorf("ToUint64(int8(100)) = %d, want 100", result)
-		}
+		assert.EqualValues(t, 100, safeconv.ToUint64(int8(100)))
 	})
 
 	t.Run("uint32 positive", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.ToUint64(uint32(42)); result != 42 {
-			t.Errorf("ToUint64(uint32(42)) = %d, want 42", result)
-		}
+		assert.EqualValues(t, 42, safeconv.ToUint64(uint32(42)))
 	})
 
 	t.Run("uint64 passthrough", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.ToUint64(uint64(math.MaxUint64)); result != math.MaxUint64 {
-			t.Errorf("ToUint64(uint64(MaxUint64)) = %d, want %d", result, uint64(math.MaxUint64))
-		}
+		assert.Equal(t, uint64(math.MaxUint64), safeconv.ToUint64(uint64(math.MaxUint64)))
 	})
 
 	t.Run("int zero", func(t *testing.T) {
 		t.Parallel()
-		if result := safeconv.ToUint64(0); result != 0 {
-			t.Errorf("ToUint64(0) = %d, want 0", result)
-		}
+		assert.EqualValues(t, 0, safeconv.ToUint64(0))
 	})
 }
 
@@ -748,9 +699,7 @@ func TestInt32ToInt64(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if result := safeconv.Int32ToInt64(tt.input); result != tt.expected {
-				t.Errorf("Int32ToInt64(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.EqualValues(t, tt.expected, safeconv.Int32ToInt64(tt.input))
 		})
 	}
 }
@@ -773,9 +722,7 @@ func TestInt32ToInt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if result := safeconv.Int32ToInt(tt.input); result != tt.expected {
-				t.Errorf("Int32ToInt(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.EqualValues(t, tt.expected, safeconv.Int32ToInt(tt.input))
 		})
 	}
 }
@@ -796,9 +743,7 @@ func TestUint32ToInt64(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			if result := safeconv.Uint32ToInt64(tt.input); result != tt.expected {
-				t.Errorf("Uint32ToInt64(%d) = %d, want %d", tt.input, result, tt.expected)
-			}
+			assert.EqualValues(t, tt.expected, safeconv.Uint32ToInt64(tt.input))
 		})
 	}
 }

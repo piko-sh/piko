@@ -403,7 +403,10 @@ func (h *DevPreviewHandler) renderPdfRaw(w http.ResponseWriter, r *http.Request,
 	}
 
 	result, err := h.pdfService.Render(r.Context(), r, sourcePath, scenario.Props, pdfwriter_dto.PdfConfig{
-		Page: layouter_dto.PageA4,
+		Page:              layouter_dto.PageA4,
+		Stylesheets:       nil,
+		DefaultFontSize:   0,
+		DefaultLineHeight: 0,
 	})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("PDF render failed: %v", err), http.StatusInternalServerError)
@@ -457,6 +460,8 @@ func (h *DevPreviewHandler) renderComponentPreview(w http.ResponseWriter, r *htt
 		Metadata:       &metadata,
 		IsFragment:     isFragment,
 		Styling:        styling,
+		Config:         nil,
+		ProbeData:      nil,
 	})
 	if renderErr != nil {
 		http.Error(w, fmt.Sprintf("render failed: %v", renderErr), http.StatusInternalServerError)

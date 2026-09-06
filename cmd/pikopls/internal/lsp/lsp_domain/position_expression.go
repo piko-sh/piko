@@ -241,9 +241,11 @@ func tryPartialInvocationFallback(ctx context.Context, tree *ast_domain.Template
 func findMostSpecificExpression(expression ast_domain.Expression, baseLocation ast_domain.Location, position protocol.Position) expressionFindResult {
 	result := expressionFindResult{
 		bestRange: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: maxRangeValue, Character: maxRangeValue},
 		},
+		memberContext: nil,
+		bestMatch:     nil,
 	}
 
 	visitExpressionTreeWithContext(expression, baseLocation, position, &result)
@@ -738,23 +740,24 @@ func calculateAttrSourceLen(attribute *ast_domain.HTMLAttribute) int {
 // Returns *ast_domain.StringLiteral which contains the created literal with Go
 // annotations for hover provider support.
 func createSyntheticStringLiteral(attribute *ast_domain.HTMLAttribute, sourceLen int) *ast_domain.StringLiteral {
-	stringLit := &ast_domain.StringLiteral{
+	resolvedType := new(ast_domain.ResolvedTypeInfo)
+	resolvedType.TypeExpression = goast.NewIdent("string")
+
+	annotation := new(ast_domain.GoGeneratorAnnotation)
+	annotation.ResolvedType = resolvedType
+	annotation.Symbol = &ast_domain.ResolvedSymbol{
+		Name:                attribute.Name,
+		ReferenceLocation:   ast_domain.Location{},
+		DeclarationLocation: ast_domain.Location{},
+	}
+	annotation.Stringability = int(inspector_dto.StringablePrimitive)
+
+	return &ast_domain.StringLiteral{
 		Value:            attribute.Value,
-		RelativeLocation: ast_domain.Location{Line: 1, Column: 1},
+		RelativeLocation: ast_domain.Location{Line: 1, Column: 1, Offset: 0},
 		SourceLength:     sourceLen,
+		GoAnnotations:    annotation,
 	}
-
-	stringLit.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression: goast.NewIdent("string"),
-		},
-		Symbol: &ast_domain.ResolvedSymbol{
-			Name: attribute.Name,
-		},
-		Stringability: int(inspector_dto.StringablePrimitive),
-	}
-
-	return stringLit
 }
 
 // isPositionInAttributeValue checks if a position is inside the value part of an

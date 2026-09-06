@@ -43,8 +43,9 @@ type ActionManifest struct {
 // Returns *ActionManifest which is ready for use with no actions defined.
 func NewActionManifest() *ActionManifest {
 	return &ActionManifest{
-		Actions: make([]ActionDefinition, 0),
-		ByName:  make(map[string]*ActionDefinition),
+		Actions:     make([]ActionDefinition, 0),
+		ByName:      make(map[string]*ActionDefinition),
+		Diagnostics: nil,
 	}
 }
 

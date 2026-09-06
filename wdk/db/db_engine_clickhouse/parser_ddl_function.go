@@ -39,9 +39,13 @@ import (
 // Returns *querier_dto.CatalogueMutation which describes the create-function mutation.
 // Returns error when the identifier or lambda body fails to parse.
 func (p *parser) parseCreateFunction() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCreate)
+	if _, err := p.expectKeyword(keywordCreate); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
-	p.mustKeyword("FUNCTION")
+	if _, err := p.expectKeyword("FUNCTION"); err != nil {
+		return nil, err
+	}
 	p.matchIfNotExists()
 
 	name, err := p.parseIdentifierOrKeyword()
@@ -50,15 +54,15 @@ func (p *parser) parseCreateFunction() (*querier_dto.CatalogueMutation, error) {
 	}
 	_ = p.matchOnCluster()
 
+	signature := querier_dto.NewFunctionSignature(
+		nil,
+		querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""),
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithFunctionName(name),
+	)
 	if !p.matchKeyword("AS") {
 		p.consumeRemainder()
-		return &querier_dto.CatalogueMutation{
-			Kind: querier_dto.MutationCreateFunction,
-			FunctionSignature: &querier_dto.FunctionSignature{
-				Name:       name,
-				ReturnType: querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			},
-		}, nil
+		return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateFunction, "", "", querier_dto.WithFunction(signature)), nil
 	}
 
 	body, parameters, lambdaErr := p.parseCreateFunctionLambdaBody()
@@ -67,15 +71,9 @@ func (p *parser) parseCreateFunction() (*querier_dto.CatalogueMutation, error) {
 	}
 	p.consumeRemainder()
 
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationCreateFunction,
-		FunctionSignature: &querier_dto.FunctionSignature{
-			Name:           name,
-			BodyExpression: body,
-			BodyParameters: parameters,
-			ReturnType:     querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-		},
-	}, nil
+	signature.BodyExpression = body
+	signature.BodyParameters = parameters
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateFunction, "", "", querier_dto.WithFunction(signature)), nil
 }
 
 // parseDropFunction handles `DROP FUNCTION [IF EXISTS] name`.
@@ -83,20 +81,16 @@ func (p *parser) parseCreateFunction() (*querier_dto.CatalogueMutation, error) {
 // Returns the catalogue mutation that captures the function name so the catalogue builder
 // can detach the matching signature, or an error when the identifier is missing.
 func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDrop)
-	p.mustKeyword("FUNCTION")
+	if err := p.expectKeywordSequence(keywordDrop, "FUNCTION"); err != nil {
+		return nil, err
+	}
 	p.matchIfExists()
 	name, err := p.parseIdentifierOrKeyword()
 	if err != nil {
 		return nil, err
 	}
 	_ = p.matchOnCluster()
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationDropFunction,
-		FunctionSignature: &querier_dto.FunctionSignature{
-			Name: name,
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropFunction, "", "", querier_dto.WithFunction(querier_dto.NewFunctionReference("", name))), nil
 }
 
 // parseCreateFunctionLambdaBody parses the lambda body of a `CREATE FUNCTION name AS
@@ -186,11 +180,10 @@ func (p *parser) consumeLambdaParameterList() ([]string, error) {
 // nested lambda body cannot drive the parser past maxParseDepth recursive frames; every
 // recursive route (parenthesised subexpressions and function-call arguments) loops back
 // here, so guarding entry alone bounds the whole lambda-body grammar. When the cap is
-// reached errAnalysisDepthExceeded is returned so the caller folds the function in with a
-// degraded ReturnType.
+// reached errExpressionDepthExceeded is returned.
 func (p *parser) parseLambdaBodyExpression() (querier_dto.Expression, error) {
 	if p.expressionDepth >= p.maxParseDepth {
-		return nil, errAnalysisDepthExceeded
+		return nil, errExpressionDepthExceeded
 	}
 	p.expressionDepth++
 	defer func() { p.expressionDepth-- }()
@@ -251,7 +244,7 @@ func (p *parser) parseLambdaBodyTerm() (querier_dto.Expression, error) {
 		if p.current().kind == tokenLeftParen {
 			return p.parseLambdaBodyFunctionCall(name)
 		}
-		return &querier_dto.ColumnRefExpression{ColumnName: name}, nil
+		return &querier_dto.ColumnRefExpression{ColumnName: name, TableAlias: ""}, nil
 	default:
 		if p.atEnd() {
 			return nil, fmt.Errorf("unexpected end of input in CREATE FUNCTION lambda body at position %d", tok.position)
@@ -287,8 +280,10 @@ func (p *parser) parseLambdaBodyFunctionCall(name string) (querier_dto.Expressio
 		p.advance()
 	}
 	return &querier_dto.FunctionCallExpression{
-		FunctionName: name,
-		Arguments:    arguments,
+		FunctionName:     name,
+		Arguments:        arguments,
+		FilterExpression: nil,
+		Schema:           "",
 	}, nil
 }
 

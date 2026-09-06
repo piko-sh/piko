@@ -2252,3 +2252,55 @@ func TestAnalyseQuery_InsertOnConflictTargetPredicateReturning(t *testing.T) {
 		})
 	}
 }
+
+func TestAnalyseSelectParsesSetOperationArmsIntoAFlatList(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		sql           string
+		wantOperators []querier_dto.CompoundOperator
+		wantReadOnly  bool
+	}{
+		{
+			name:          "three arms are siblings",
+			sql:           "SELECT 1 AS a UNION SELECT 2 INTERSECT SELECT 3",
+			wantOperators: []querier_dto.CompoundOperator{querier_dto.CompoundUnion, querier_dto.CompoundIntersect},
+			wantReadOnly:  true,
+		},
+		{
+			name:          "trailing clauses apply to the whole set operation",
+			sql:           "SELECT id FROM users UNION ALL SELECT id FROM users EXCEPT SELECT id FROM users ORDER BY id LIMIT $1 FOR UPDATE",
+			wantOperators: []querier_dto.CompoundOperator{querier_dto.CompoundUnionAll, querier_dto.CompoundExcept},
+			wantReadOnly:  false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			analysis := analyseQuery(t, newPostgresCatalogue(), testCase.sql)
+
+			require.Len(t, analysis.CompoundBranches, len(testCase.wantOperators))
+			for index, branch := range analysis.CompoundBranches {
+				assert.Equal(t, testCase.wantOperators[index], branch.Operator)
+				assert.Empty(t, branch.Query.CompoundBranches, "arms must not nest")
+				assert.Equal(t, testCase.wantReadOnly, branch.Query.ReadOnly)
+				assert.Equal(t, analysis.ParameterReferences, branch.Query.ParameterReferences)
+			}
+			assert.Equal(t, testCase.wantReadOnly, analysis.ReadOnly)
+		})
+	}
+}
+
+func TestAnalyseSelectHandlesLongSetOperationChains(t *testing.T) {
+	t.Parallel()
+
+	const armCount = 10_000
+	sql := "SELECT 1 AS a" + strings.Repeat(" UNION ALL SELECT 1", armCount-1)
+
+	analysis := analyseQuery(t, newPostgresCatalogue(), sql)
+
+	assert.Len(t, analysis.CompoundBranches, armCount-1)
+}

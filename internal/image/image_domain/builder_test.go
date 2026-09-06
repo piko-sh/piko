@@ -574,9 +574,7 @@ func TestImageConfigBuilder_FromConfig(t *testing.T) {
 func TestImageConfig_GetVariant_NilMap(t *testing.T) {
 	t.Parallel()
 
-	config := &ImageConfig{
-		PredefinedVariants: nil,
-	}
+	config := &ImageConfig{}
 
 	_, ok := config.GetVariant("thumb")
 	assert.False(t, ok)

@@ -382,7 +382,7 @@ func TestCompiledManifestRunner_RunPage_WithRedirect(t *testing.T) {
 	firstEntry.OriginalSourcePath = "pages/old.pk"
 	firstEntry.SetASTFunc(func(_ *templater_dto.RequestData, _ any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*generator_dto.RuntimeDiagnostic) {
 		return &ast_domain.TemplateAST{}, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{ServerRedirect: "/new"},
+			ServerRedirect: "/new",
 		}, nil
 	})
 
@@ -430,7 +430,7 @@ func TestCompiledManifestRunner_RunPage_RedirectLoop(t *testing.T) {
 	loopEntry.OriginalSourcePath = "pages/loop.pk"
 	loopEntry.SetASTFunc(func(_ *templater_dto.RequestData, _ any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*generator_dto.RuntimeDiagnostic) {
 		return &ast_domain.TemplateAST{}, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{ServerRedirect: "/loop"},
+			ServerRedirect: "/loop",
 		}, nil
 	})
 
@@ -705,7 +705,7 @@ func TestInterpretedManifestRunner_RunPage_WithRedirect(t *testing.T) {
 	firstEntry.OriginalSourcePath = "pages/old.pk"
 	firstEntry.SetASTFunc(func(_ *templater_dto.RequestData, _ any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*generator_dto.RuntimeDiagnostic) {
 		return &ast_domain.TemplateAST{}, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{ServerRedirect: "/new"},
+			ServerRedirect: "/new",
 		}, nil
 	})
 
@@ -747,7 +747,7 @@ func TestInterpretedManifestRunner_RunPage_RedirectLoop(t *testing.T) {
 	loopEntry.OriginalSourcePath = "pages/loop.pk"
 	loopEntry.SetASTFunc(func(_ *templater_dto.RequestData, _ any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*generator_dto.RuntimeDiagnostic) {
 		return &ast_domain.TemplateAST{}, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{ServerRedirect: "/loop"},
+			ServerRedirect: "/loop",
 		}, nil
 	})
 
@@ -960,7 +960,7 @@ func TestCachingManifestRunner_ASTRoundTripThroughDisk(t *testing.T) {
 	tempDir := t.TempDir()
 	l1TTL := 150 * time.Millisecond
 
-	cacheService, err := ast_adapters.NewASTCacheService(context.Background(), ast_adapters.ASTCacheConfig{
+	cacheService, err := ast_adapters.NewASTCacheService(ast_adapters.ASTCacheConfig{
 		L1CacheCapacity: 10,
 		L1CacheTTL:      l1TTL,
 		L2CacheBaseDir:  tempDir,
@@ -1027,9 +1027,7 @@ func TestCachingManifestRunner_ASTRoundTripThroughDisk(t *testing.T) {
 	}
 
 	expectedMetadata := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Cached Page",
-		},
+		Title:      "Cached Page",
 		CustomTags: []string{"card"},
 	}
 

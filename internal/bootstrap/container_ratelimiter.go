@@ -64,7 +64,11 @@ func (c *Container) createRateLimiter() {
 	}
 
 	tokenStore, err := ratelimiter_adapters.NewCacheTokenBucketStore(c.GetAppContext(), ratelimiter_adapters.CacheTokenBucketStoreConfig{
-		CacheService: cacheService,
+		CacheService:   cacheService,
+		Clock:          nil,
+		Provider:       "",
+		Namespace:      "",
+		MaximumEntries: 0,
 	})
 	if err != nil {
 		l.Warn("Failed to create token bucket store, using no-op stores",
@@ -79,7 +83,11 @@ func (c *Container) createRateLimiter() {
 	}
 
 	counterStore, err := ratelimiter_adapters.NewCacheCounterStore(c.GetAppContext(), ratelimiter_adapters.CacheCounterStoreConfig{
-		CacheService: cacheService,
+		CacheService:   cacheService,
+		Clock:          nil,
+		Provider:       "",
+		Namespace:      "",
+		MaximumEntries: 0,
 	})
 	if err != nil {
 		l.Warn("Failed to create counter store, using no-op stores",

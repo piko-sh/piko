@@ -42,7 +42,7 @@ func TestGetAttribute(t *testing.T) {
 		},
 		{
 			name:          "node with no attributes",
-			node:          &TemplateNode{NodeType: NodeElement},
+			node:          &TemplateNode{},
 			attributeName: "class",
 			wantValue:     "",
 			wantExists:    false,
@@ -124,7 +124,7 @@ func TestHasAttribute(t *testing.T) {
 		},
 		{
 			name:          "empty node returns false",
-			node:          &TemplateNode{NodeType: NodeElement},
+			node:          &TemplateNode{},
 			attributeName: "class",
 			want:          false,
 		},
@@ -186,7 +186,7 @@ func TestSetAttribute(t *testing.T) {
 	})
 
 	t.Run("adds new attribute", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		node.SetAttribute("class", "container")
 
 		value, exists := node.GetAttribute("class")
@@ -283,7 +283,7 @@ func TestFirstElementChild(t *testing.T) {
 	})
 
 	t.Run("node with no children returns nil", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		assert.Nil(t, node.FirstElementChild())
 	})
 
@@ -334,7 +334,7 @@ func TestLastElementChild(t *testing.T) {
 	})
 
 	t.Run("node with no children returns nil", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		assert.Nil(t, node.LastElementChild())
 	})
 
@@ -385,7 +385,7 @@ func TestChildElementCount(t *testing.T) {
 	})
 
 	t.Run("empty node returns 0", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		assert.Equal(t, 0, node.ChildElementCount())
 	})
 
@@ -582,7 +582,7 @@ func TestGetDirective(t *testing.T) {
 	})
 
 	t.Run("returns nil when directive not found", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		result := node.GetDirective(DirectiveIf)
 		assert.Nil(t, result)
 	})
@@ -716,7 +716,7 @@ func TestHasDirective(t *testing.T) {
 	})
 
 	t.Run("returns false when CustomEvents is empty", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		assert.False(t, node.HasDirective(DirectiveEvent))
 	})
 
@@ -741,13 +741,13 @@ func TestHasDirective(t *testing.T) {
 	t.Run("returns true when directive exists in dedicated field", func(t *testing.T) {
 		node := &TemplateNode{
 			NodeType: NodeElement,
-			DirIf:    &Directive{Type: DirectiveIf},
+			DirIf:    &Directive{},
 		}
 		assert.True(t, node.HasDirective(DirectiveIf))
 	})
 
 	t.Run("returns false when directive does not exist", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		assert.False(t, node.HasDirective(DirectiveIf))
 		assert.False(t, node.HasDirective(DirectiveFor))
 		assert.False(t, node.HasDirective(DirectiveShow))
@@ -822,7 +822,7 @@ func TestCollectBindDirectives(t *testing.T) {
 
 func TestClasses(t *testing.T) {
 	t.Run("returns nil for no class attribute", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		assert.Nil(t, node.Classes())
 	})
 
@@ -872,7 +872,7 @@ func TestClasses(t *testing.T) {
 
 func TestHasClass(t *testing.T) {
 	t.Run("returns false for no classes", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		assert.False(t, node.HasClass("test"))
 	})
 
@@ -905,13 +905,13 @@ func TestAddClass(t *testing.T) {
 	})
 
 	t.Run("empty names does nothing", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		node.AddClass()
 		assert.False(t, node.HasAttribute("class"))
 	})
 
 	t.Run("adds first class", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		node.AddClass("container")
 		value, _ := node.GetAttribute("class")
 		assert.Equal(t, "container", value)
@@ -943,7 +943,7 @@ func TestAddClass(t *testing.T) {
 	})
 
 	t.Run("trims whitespace from names", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		node.AddClass("  foo  ", "  bar  ")
 		classes := node.Classes()
 		assert.Contains(t, classes, "foo")
@@ -951,14 +951,14 @@ func TestAddClass(t *testing.T) {
 	})
 
 	t.Run("ignores empty names", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		node.AddClass("foo", "", "  ", "bar")
 		classes := node.Classes()
 		assert.Len(t, classes, 2)
 	})
 
 	t.Run("classes are sorted", func(t *testing.T) {
-		node := &TemplateNode{NodeType: NodeElement}
+		node := &TemplateNode{}
 		node.AddClass("zebra", "apple", "mango")
 		classes := node.Classes()
 		assert.Equal(t, []string{"apple", "mango", "zebra"}, classes)
@@ -972,10 +972,7 @@ func TestShouldFormatInline(t *testing.T) {
 	})
 
 	t.Run("FormatAuto returns false", func(t *testing.T) {
-		node := &TemplateNode{
-			NodeType:        NodeElement,
-			PreferredFormat: FormatAuto,
-		}
+		node := &TemplateNode{}
 		assert.False(t, node.ShouldFormatInline())
 	})
 
@@ -1003,10 +1000,7 @@ func TestShouldFormatBlock(t *testing.T) {
 	})
 
 	t.Run("FormatAuto returns false", func(t *testing.T) {
-		node := &TemplateNode{
-			NodeType:        NodeElement,
-			PreferredFormat: FormatAuto,
-		}
+		node := &TemplateNode{}
 		assert.False(t, node.ShouldFormatBlock())
 	})
 

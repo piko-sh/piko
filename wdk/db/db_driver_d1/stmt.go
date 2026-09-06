@@ -23,9 +23,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"slices"
-
-	"github.com/cloudflare/cloudflare-go"
 )
 
 var (
@@ -62,39 +59,32 @@ func (*d1Stmt) NumInput() int {
 	return -1
 }
 
-// Exec executes the statement with the given arguments. It delegates to ExecContext with
-// a background context.
+// Exec executes the statement with the given arguments. It delegates to ExecContext; the
+// call is bounded by the configured request timeout.
 //
 // Takes args ([]driver.Value) which are the positional parameters.
 //
 // Returns driver.Result which contains last-insert ID and rows-affected counts.
 // Returns error when the D1 API call fails.
 func (s *d1Stmt) Exec(args []driver.Value) (driver.Result, error) {
-	named := make([]driver.NamedValue, len(args))
-	for i, arg := range args {
-		named[i] = driver.NamedValue{Ordinal: i + 1, Value: arg}
-	}
-	return s.ExecContext(context.Background(), named)
+	return s.ExecContext(context.Background(), namedValues(args))
 }
 
-// Query executes the statement and returns rows. It delegates to QueryContext with a
-// background context.
+// Query executes the statement and returns rows. It delegates to QueryContext; the call
+// is bounded by the configured request timeout.
 //
 // Takes args ([]driver.Value) which are the positional parameters.
 //
 // Returns driver.Rows which iterates over the result set.
 // Returns error when the D1 API call fails.
 func (s *d1Stmt) Query(args []driver.Value) (driver.Rows, error) {
-	named := make([]driver.NamedValue, len(args))
-	for i, arg := range args {
-		named[i] = driver.NamedValue{Ordinal: i + 1, Value: arg}
-	}
-	return s.QueryContext(context.Background(), named)
+	return s.QueryContext(context.Background(), namedValues(args))
 }
 
 // ExecContext executes the statement via the D1 HTTP API and returns the result metadata.
 // When a transaction is active on the connection, the statement is queued for batch
-// execution on Commit instead of executing immediately.
+// execution on Commit instead of executing immediately, and the returned result reports
+// ErrResultUnavailableInTransaction because the counters are not known until Commit.
 //
 // Takes args ([]driver.NamedValue) which are the query parameters.
 //
@@ -107,7 +97,7 @@ func (s *d1Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (dri
 			return nil, fmt.Errorf("db_driver_d1: exec: %w", err)
 		}
 		s.conn.activeTx.addStatement(s.query, params)
-		return &d1Result{}, nil
+		return newDeferredResult(), nil
 	}
 
 	return s.execDirect(ctx, args)
@@ -131,6 +121,9 @@ func (s *d1Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (dr
 
 // execDirect executes the statement immediately against the D1 API.
 //
+// The counters come from the first statement's result, matching what a single-statement
+// exec reports.
+//
 // Takes args ([]driver.NamedValue) which are the query parameters.
 //
 // Returns driver.Result which contains last-insert ID and rows-affected counts.
@@ -141,51 +134,22 @@ func (s *d1Stmt) execDirect(ctx context.Context, args []driver.NamedValue) (driv
 		return nil, fmt.Errorf("db_driver_d1: exec: %w", err)
 	}
 
-	results, err := s.conn.api.QueryD1Database(ctx, s.conn.rc, cloudflare.QueryD1DatabaseParams{
-		DatabaseID: s.conn.databaseID,
-		SQL:        s.query,
-		Parameters: params,
-	})
+	results, err := s.conn.client.query(ctx, s.query, params)
 	if err != nil {
 		return nil, fmt.Errorf("db_driver_d1: exec: %w", err)
 	}
 
 	if len(results) == 0 {
-		return &d1Result{}, nil
+		return newResult(0, 0), nil
 	}
 
-	for index, result := range results {
-		if successErr := checkD1Success(result); successErr != nil {
-			return nil, fmt.Errorf("db_driver_d1: exec: statement %d: %w", index, successErr)
-		}
-	}
-
-	return &d1Result{
-		lastInsertID: int64(results[0].Meta.LastRowID),
-		rowsAffected: int64(results[0].Meta.Changes),
-	}, nil
-}
-
-// checkD1Success reports whether a D1Result indicates the statement succeeded. The D1 API
-// populates Success with a per-statement boolean, so a nil flag means the field was
-// absent from the response and is treated as a failure rather than silently assumed
-// successful.
-//
-// Takes result (cloudflare.D1Result) which is the per-statement result to inspect.
-//
-// Returns error which is non-nil when the result reports failure or omits the success
-// flag.
-func checkD1Success(result cloudflare.D1Result) error {
-	if result.Success == nil {
-		return errors.New("D1 result omitted the success flag")
-	}
-	if !*result.Success {
-		return errors.New("D1 query returned failure")
-	}
-	return nil
+	return newResult(results[0].Meta.LastRowID, results[0].Meta.Changes), nil
 }
 
 // queryDirect executes the statement immediately against the D1 API and returns rows.
+//
+// The rows come from the first statement's result set, keeping the server's column order
+// and any duplicate column names.
 //
 // Takes args ([]driver.NamedValue) which are the query parameters.
 //
@@ -197,38 +161,27 @@ func (s *d1Stmt) queryDirect(ctx context.Context, args []driver.NamedValue) (dri
 		return nil, fmt.Errorf("db_driver_d1: query: %w", err)
 	}
 
-	results, err := s.conn.api.QueryD1Database(ctx, s.conn.rc, cloudflare.QueryD1DatabaseParams{
-		DatabaseID: s.conn.databaseID,
-		SQL:        s.query,
-		Parameters: params,
-	})
+	results, err := s.conn.client.query(ctx, s.query, params)
 	if err != nil {
 		return nil, fmt.Errorf("db_driver_d1: query: %w", err)
 	}
 
 	if len(results) == 0 {
-		return &d1Rows{}, nil
+		return newRows(nil, nil), nil
 	}
 
-	for index, result := range results {
-		if successErr := checkD1Success(result); successErr != nil {
-			return nil, fmt.Errorf("db_driver_d1: query: statement %d: %w", index, successErr)
-		}
-	}
+	return newRows(results[0].Results.Columns, results[0].Results.Rows), nil
+}
 
-	rows := &d1Rows{
-		data:  results[0].Results,
-		index: 0,
+// namedValues converts positional driver values into ordinal named values.
+//
+// Takes args ([]driver.Value) which are the positional parameters.
+//
+// Returns []driver.NamedValue which holds each value with its one-based ordinal.
+func namedValues(args []driver.Value) []driver.NamedValue {
+	named := make([]driver.NamedValue, len(args))
+	for i, arg := range args {
+		named[i] = driver.NamedValue{Name: "", Ordinal: i + 1, Value: arg}
 	}
-
-	if len(rows.data) > 0 {
-		columns := make([]string, 0, len(rows.data[0]))
-		for key := range rows.data[0] {
-			columns = append(columns, key)
-		}
-		slices.Sort(columns)
-		rows.columns = columns
-	}
-
-	return rows, nil
+	return named
 }

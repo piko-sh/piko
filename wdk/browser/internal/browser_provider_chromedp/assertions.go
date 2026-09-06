@@ -1025,9 +1025,7 @@ func ScreenshotElement(ctx *ActionContext, selector string) ([]byte, error) {
 	}
 
 	var buffer []byte
-	err := chromedp.Run(ctx.Ctx,
-		chromedp.Screenshot(selector, &buffer, chromedp.ByQuery),
-	)
+	err := runBoundedCapture(ctx.Ctx, defaultScreenshotTimeout, chromedp.Screenshot(selector, &buffer, chromedp.ByQuery))
 	if err != nil {
 		return nil, fmt.Errorf("taking screenshot of %s: %w", selector, err)
 	}
@@ -1044,9 +1042,7 @@ func ScreenshotElement(ctx *ActionContext, selector string) ([]byte, error) {
 // Returns error when the screenshot cannot be captured.
 func ScreenshotViewport(ctx *ActionContext) ([]byte, error) {
 	var buffer []byte
-	err := chromedp.Run(ctx.Ctx,
-		chromedp.CaptureScreenshot(&buffer),
-	)
+	err := runBoundedCapture(ctx.Ctx, defaultScreenshotTimeout, chromedp.CaptureScreenshot(&buffer))
 	if err != nil {
 		return nil, fmt.Errorf("taking viewport screenshot: %w", err)
 	}
@@ -1063,9 +1059,7 @@ func ScreenshotViewport(ctx *ActionContext) ([]byte, error) {
 // Returns error when the screenshot operation fails.
 func ScreenshotFull(ctx *ActionContext) ([]byte, error) {
 	var buffer []byte
-	err := chromedp.Run(ctx.Ctx,
-		chromedp.FullScreenshot(&buffer, ScreenshotQualityFull),
-	)
+	err := runBoundedCapture(ctx.Ctx, defaultScreenshotTimeout, chromedp.FullScreenshot(&buffer, ScreenshotQualityFull))
 	if err != nil {
 		return nil, fmt.Errorf("taking full page screenshot: %w", err)
 	}

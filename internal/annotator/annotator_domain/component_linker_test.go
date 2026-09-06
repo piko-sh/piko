@@ -89,10 +89,7 @@ func TestComponentLinker_Link(t *testing.T) {
 				},
 			},
 		})
-		expansionResult := &annotator_dto.ExpansionResult{
-			FlattenedAST: nil,
-			CombinedCSS:  "",
-		}
+		expansionResult := &annotator_dto.ExpansionResult{}
 		vm := createTestVirtualModule()
 
 		result, diagnostics, err := linker.Link(context.Background(), expansionResult, vm, "/test/main.piko")
@@ -471,13 +468,13 @@ func TestIsTypeCheckable(t *testing.T) {
 		},
 		{
 			name:     "NilResolvedType",
-			ann:      &ast_domain.GoGeneratorAnnotation{EffectiveKeyExpression: nil, DynamicCollectionInfo: nil, StaticCollectionLiteral: nil, ParentTypeName: nil, BaseCodeGenVarName: nil, GeneratedSourcePath: nil, DynamicAttributeOrigins: nil, ResolvedType: nil, Symbol: nil, PartialInfo: nil, PropDataSource: nil, OriginalSourcePath: nil, OriginalPackageAlias: nil, FieldTag: nil, SourceInvocationKey: nil, StaticCollectionData: nil, Srcset: nil, Stringability: 0, IsStatic: false, NeedsCSRF: false, NeedsRuntimeSafetyCheck: false, IsStructurallyStatic: false, IsPointerToStringable: false, IsCollectionCall: false, IsHybridCollection: false, IsMapAccess: false},
+			ann:      &ast_domain.GoGeneratorAnnotation{},
 			expected: false,
 		},
 		{
 			name: "NilTypeExpr",
 			ann: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				ResolvedType: &ast_domain.ResolvedTypeInfo{},
 			},
 			expected: false,
 		},

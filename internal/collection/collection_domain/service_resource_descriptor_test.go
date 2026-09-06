@@ -175,10 +175,8 @@ func TestCollectionService_ResourceDescribeProvider(t *testing.T) {
 		t.Parallel()
 		registry := newTestProviderRegistry()
 		mp := &metadataProvider{
-			MockCollectionProvider: MockCollectionProvider{
-				NameFunc: func() string { return "docs" },
-				TypeFunc: func() ProviderType { return "api" },
-			},
+			NameFunc: func() string { return "docs" },
+			TypeFunc: func() ProviderType { return "api" },
 			metadata: map[string]any{
 				"region": "eu-west-1",
 			},

@@ -33,7 +33,7 @@
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 1,
+        "Kind": 2,
         "Context": 0
       }
     ],

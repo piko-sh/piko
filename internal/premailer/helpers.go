@@ -255,7 +255,7 @@ func rebuildCSSFromRules(rules []css_ast.Rule, symbols []ast.Symbol) string {
 		Symbols: symbols,
 	}
 	symbolMap := ast.SymbolMap{SymbolsForSource: [][]ast.Symbol{symbols}}
-	options := css_printer.Options{MinifyWhitespace: false}
+	options := css_printer.Options{}
 	result := css_printer.Print(cleanedAST, symbolMap, options)
 	return strings.TrimSpace(string(result.CSS))
 }

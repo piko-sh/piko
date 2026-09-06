@@ -47,6 +47,7 @@ type MemoryRegistry struct {
 func NewMemoryRegistry() *MemoryRegistry {
 	return &MemoryRegistry{
 		providers: make(map[string]collection_domain.CollectionProvider),
+		mu:        sync.RWMutex{},
 	}
 }
 

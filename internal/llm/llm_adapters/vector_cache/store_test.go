@@ -109,7 +109,7 @@ func TestStore_StoreValidation(t *testing.T) {
 	err := s.Store(ctx, "test", nil)
 	assert.Error(t, err)
 
-	err = s.Store(ctx, "test", &llm_dto.VectorDocument{ID: ""})
+	err = s.Store(ctx, "test", &llm_dto.VectorDocument{})
 	assert.Error(t, err)
 }
 

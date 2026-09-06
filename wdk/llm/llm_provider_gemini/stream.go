@@ -66,8 +66,12 @@ type streamState struct {
 //
 // Spawns a goroutine to process the stream. The channel is closed when streaming
 // completes or an error occurs.
-func (p *geminiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.geminiProvider.Stream")
+func (p *geminiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (result <-chan llm_dto.StreamEvent, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.geminiProvider.Stream", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
@@ -177,9 +181,11 @@ func (p *geminiProvider) processResponse(ctx context.Context, events chan<- llm_
 		}
 
 		chunk := &llm_dto.StreamChunk{
-			ID:    state.messageID,
-			Model: state.model,
-			Delta: delta,
+			ID:           state.messageID,
+			Model:        state.model,
+			Delta:        delta,
+			FinishReason: nil,
+			Usage:        nil,
 		}
 
 		if !p.sendEvent(ctx, events, llm_dto.NewChunkEvent(chunk)) {
@@ -270,6 +276,8 @@ func (*geminiProvider) updateUsage(response *genai.GenerateContentResponse, stat
 		PromptTokens:     int(response.UsageMetadata.PromptTokenCount),
 		CompletionTokens: int(response.UsageMetadata.CandidatesTokenCount),
 		TotalTokens:      int(response.UsageMetadata.TotalTokenCount),
+		EstimatedCost:    nil,
+		CachedTokens:     0,
 	}
 }
 
@@ -306,12 +314,19 @@ func (*geminiProvider) buildFinalResponse(state *streamState) *llm_dto.Completio
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role:      llm_dto.RoleAssistant,
-					ToolCalls: state.accumulatedToolCalls,
+					Role:         llm_dto.RoleAssistant,
+					ToolCalls:    state.accumulatedToolCalls,
+					Name:         nil,
+					ToolCallID:   nil,
+					Content:      "",
+					ContentParts: nil,
 				},
 				FinishReason: state.lastFinishReason,
 			},
 		},
+		FallbackInfo: nil,
+		Sources:      nil,
+		Created:      0,
 	}
 }
 
@@ -322,8 +337,10 @@ func (*geminiProvider) buildFinalResponse(state *streamState) *llm_dto.Completio
 // Returns *streamState which is the initialised state ready for use.
 func newStreamState(model string) *streamState {
 	return &streamState{
-		lastFinishReason: llm_dto.FinishReasonStop,
-		messageID:        fmt.Sprintf("gemini-%d", time.Now().UnixNano()),
-		model:            model,
+		lastFinishReason:     llm_dto.FinishReasonStop,
+		messageID:            fmt.Sprintf("gemini-%d", time.Now().UnixNano()),
+		model:                model,
+		finalUsage:           nil,
+		accumulatedToolCalls: nil,
 	}
 }

@@ -438,8 +438,11 @@ func parseMigrationColumnOverrideLine(line, commentPrefix string) (migrationColu
 	}
 
 	override := migrationColumnOverride{
-		Table:  strings.ToLower(table),
-		Column: strings.ToLower(column),
+		Table:    strings.ToLower(table),
+		Column:   strings.ToLower(column),
+		Nullable: nil,
+		SQLType:  "",
+		GoType:   "",
 	}
 	for _, segment := range segments[1:] {
 		applyMigrationColumnOverrideKeyword(segment, &override)

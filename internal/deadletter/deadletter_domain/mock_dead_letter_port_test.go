@@ -83,14 +83,8 @@ func TestMockDeadLetterPort_Add(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:          tt.addFunc,
-				GetFunc:          nil,
-				RemoveFunc:       nil,
-				CountFunc:        nil,
-				ClearFunc:        nil,
-				GetOlderThanFunc: nil,
-			}
+			mock := &MockDeadLetterPort[*testEntry]{}
+			mock.AddFunc = tt.addFunc
 
 			ctx := context.Background()
 			entry := newTestEntry("test-1")
@@ -111,14 +105,7 @@ func TestMockDeadLetterPort_Add(t *testing.T) {
 func TestMockDeadLetterPort_Add_MultipleCalls(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:          nil,
-		GetFunc:          nil,
-		RemoveFunc:       nil,
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
-	}
+	mock := &MockDeadLetterPort[*testEntry]{}
 
 	ctx := context.Background()
 
@@ -136,17 +123,11 @@ func TestMockDeadLetterPort_Add_PassesArguments(t *testing.T) {
 	var capturedCtx context.Context
 	var capturedEntry *testEntry
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc: func(ctx context.Context, entry *testEntry) error {
-			capturedCtx = ctx
-			capturedEntry = entry
-			return nil
-		},
-		GetFunc:          nil,
-		RemoveFunc:       nil,
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
+	mock := &MockDeadLetterPort[*testEntry]{}
+	mock.AddFunc = func(ctx context.Context, entry *testEntry) error {
+		capturedCtx = ctx
+		capturedEntry = entry
+		return nil
 	}
 
 	ctx := context.WithValue(context.Background(), testContextKey{}, "test-value")
@@ -229,14 +210,8 @@ func TestMockDeadLetterPort_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:          nil,
-				GetFunc:          tt.getFunc,
-				RemoveFunc:       nil,
-				CountFunc:        nil,
-				ClearFunc:        nil,
-				GetOlderThanFunc: nil,
-			}
+			mock := &MockDeadLetterPort[*testEntry]{}
+			mock.GetFunc = tt.getFunc
 
 			ctx := context.Background()
 
@@ -259,16 +234,10 @@ func TestMockDeadLetterPort_Get_PassesLimit(t *testing.T) {
 
 	var capturedLimit int
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc: nil,
-		GetFunc: func(_ context.Context, limit int) ([]*testEntry, error) {
-			capturedLimit = limit
-			return nil, nil
-		},
-		RemoveFunc:       nil,
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
+	mock := &MockDeadLetterPort[*testEntry]{}
+	mock.GetFunc = func(_ context.Context, limit int) ([]*testEntry, error) {
+		capturedLimit = limit
+		return nil, nil
 	}
 
 	ctx := context.Background()
@@ -334,14 +303,8 @@ func TestMockDeadLetterPort_Remove(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:          nil,
-				GetFunc:          nil,
-				RemoveFunc:       tt.removeFunc,
-				CountFunc:        nil,
-				ClearFunc:        nil,
-				GetOlderThanFunc: nil,
-			}
+			mock := &MockDeadLetterPort[*testEntry]{}
+			mock.RemoveFunc = tt.removeFunc
 
 			ctx := context.Background()
 
@@ -363,16 +326,10 @@ func TestMockDeadLetterPort_Remove_PassesEntries(t *testing.T) {
 
 	var capturedEntries []*testEntry
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc: nil,
-		GetFunc: nil,
-		RemoveFunc: func(_ context.Context, entries []*testEntry) error {
-			capturedEntries = entries
-			return nil
-		},
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
+	mock := &MockDeadLetterPort[*testEntry]{}
+	mock.RemoveFunc = func(_ context.Context, entries []*testEntry) error {
+		capturedEntries = entries
+		return nil
 	}
 
 	ctx := context.Background()
@@ -437,14 +394,8 @@ func TestMockDeadLetterPort_Count(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:          nil,
-				GetFunc:          nil,
-				RemoveFunc:       nil,
-				CountFunc:        tt.countFunc,
-				ClearFunc:        nil,
-				GetOlderThanFunc: nil,
-			}
+			mock := &MockDeadLetterPort[*testEntry]{}
+			mock.CountFunc = tt.countFunc
 
 			ctx := context.Background()
 
@@ -499,14 +450,8 @@ func TestMockDeadLetterPort_Clear(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:          nil,
-				GetFunc:          nil,
-				RemoveFunc:       nil,
-				CountFunc:        nil,
-				ClearFunc:        tt.clearFunc,
-				GetOlderThanFunc: nil,
-			}
+			mock := &MockDeadLetterPort[*testEntry]{}
+			mock.ClearFunc = tt.clearFunc
 
 			ctx := context.Background()
 
@@ -586,14 +531,8 @@ func TestMockDeadLetterPort_GetOlderThan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			mock := &MockDeadLetterPort[*testEntry]{
-				AddFunc:          nil,
-				GetFunc:          nil,
-				RemoveFunc:       nil,
-				CountFunc:        nil,
-				ClearFunc:        nil,
-				GetOlderThanFunc: tt.getOlderFunc,
-			}
+			mock := &MockDeadLetterPort[*testEntry]{}
+			mock.GetOlderThanFunc = tt.getOlderFunc
 
 			ctx := context.Background()
 
@@ -616,16 +555,10 @@ func TestMockDeadLetterPort_GetOlderThan_PassesDuration(t *testing.T) {
 
 	var capturedDuration time.Duration
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:    nil,
-		GetFunc:    nil,
-		RemoveFunc: nil,
-		CountFunc:  nil,
-		ClearFunc:  nil,
-		GetOlderThanFunc: func(_ context.Context, duration time.Duration) ([]*testEntry, error) {
-			capturedDuration = duration
-			return nil, nil
-		},
+	mock := &MockDeadLetterPort[*testEntry]{}
+	mock.GetOlderThanFunc = func(_ context.Context, duration time.Duration) ([]*testEntry, error) {
+		capturedDuration = duration
+		return nil, nil
 	}
 
 	ctx := context.Background()
@@ -639,14 +572,7 @@ func TestMockDeadLetterPort_GetOlderThan_PassesDuration(t *testing.T) {
 func TestMockDeadLetterPort_CallCountsAreIndependent(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:          nil,
-		GetFunc:          nil,
-		RemoveFunc:       nil,
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
-	}
+	mock := &MockDeadLetterPort[*testEntry]{}
 
 	ctx := context.Background()
 
@@ -672,46 +598,32 @@ func TestMockDeadLetterPort_CallCountsAreIndependent(t *testing.T) {
 func TestMockDeadLetterPort_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:          nil,
-		GetFunc:          nil,
-		RemoveFunc:       nil,
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
-	}
+	mock := &MockDeadLetterPort[*testEntry]{}
 
 	ctx := context.Background()
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 6)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = mock.Add(ctx, newTestEntry("concurrent"))
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.Get(ctx, 10)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.Remove(ctx, nil)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.Count(ctx)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.Clear(ctx)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.GetOlderThan(ctx, time.Hour)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -727,14 +639,7 @@ func TestMockDeadLetterPort_ConcurrentAccess(t *testing.T) {
 func TestMockDeadLetterPort_ImplementsDeadLetterPort(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockDeadLetterPort[*testEntry]{
-		AddFunc:          nil,
-		GetFunc:          nil,
-		RemoveFunc:       nil,
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
-	}
+	mock := &MockDeadLetterPort[*testEntry]{}
 
 	var _ DeadLetterPort[*testEntry] = mock
 }
@@ -809,19 +714,13 @@ func TestMockDeadLetterPort_WithStringType(t *testing.T) {
 func TestMockDeadLetterPort_WithIntType(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockDeadLetterPort[int]{
-		AddFunc: nil,
-		GetFunc: func(_ context.Context, limit int) ([]int, error) {
-			result := make([]int, 0, limit)
-			for i := range limit {
-				result = append(result, i*10)
-			}
-			return result, nil
-		},
-		RemoveFunc:       nil,
-		CountFunc:        nil,
-		ClearFunc:        nil,
-		GetOlderThanFunc: nil,
+	mock := &MockDeadLetterPort[int]{}
+	mock.GetFunc = func(_ context.Context, limit int) ([]int, error) {
+		result := make([]int, 0, limit)
+		for i := range limit {
+			result = append(result, i*10)
+		}
+		return result, nil
 	}
 
 	ctx := context.Background()
@@ -835,10 +734,7 @@ func TestMockDeadLetterPort_WithIntType(t *testing.T) {
 func TestTestEntry_ImplementsEntry(t *testing.T) {
 	t.Parallel()
 
-	entry := &testEntry{
-		ID:        "",
-		Timestamp: time.Time{},
-	}
+	entry := &testEntry{}
 
 	var _ Entry = entry
 }

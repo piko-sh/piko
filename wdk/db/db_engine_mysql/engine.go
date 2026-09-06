@@ -32,19 +32,19 @@ import (
 )
 
 const (
-	// maxTokensPerStatement bounds the per-statement token stream the parser walks.
+	// defaultMaxTokensPerStatement bounds the per-statement token stream the parser walks.
 	//
 	// Realistic MySQL statements rarely exceed a few hundred tokens; the 100k headroom
 	// covers generated SQL with large IN lists while still cutting off an adversarial input
 	// that would otherwise drive the analysis and DDL parsers into a very long,
-	// non-cancellable walk. ApplyDDL and AnalyseQuery reject any stream over this budget
-	// before dispatching to the parser.
-	maxTokensPerStatement = 100_000
+	// non-cancellable walk. Callers may override it with WithMaxTokensPerStatement.
+	defaultMaxTokensPerStatement = 100_000
 )
 
 var (
-	// errTokenBudgetExceeded is returned when a statement's token stream is longer than
-	// maxTokensPerStatement, bounding the work the parser does for a single statement.
+	// errTokenBudgetExceeded is returned when a statement's token stream is longer than the
+	// configured per-statement budget, bounding the work the parser does for a single
+	// statement.
 	errTokenBudgetExceeded = errors.New("mysql: per-statement token budget exceeded")
 )
 
@@ -81,6 +81,10 @@ type MySQLDialect struct {
 	// MaxParseDepth caps recursion through analysis and expression parsing. Zero selects
 	// defaultMaxParseDepth.
 	MaxParseDepth int
+
+	// MaxTokensPerStatement caps the number of tokens a single statement may contain before
+	// the parser refuses to walk it. Zero selects defaultMaxTokensPerStatement.
+	MaxTokensPerStatement int
 }
 
 // Option configures a MySQLDialect.
@@ -106,6 +110,27 @@ func WithMaxParseDepth(depth int) Option {
 	}
 }
 
+// WithMaxTokensPerStatement sets the maximum number of tokens a single statement may
+// contain before the parser refuses to walk it.
+//
+// Every statement the engine parses is walked without cancellation, and some nested
+// shapes cost more than linear time, so an unbounded statement lets hostile or runaway
+// input stall the build. The default is high (defaultMaxTokensPerStatement) so realistic
+// queries, including generated ones with large IN lists, are unaffected; lower it to
+// harden against hostile input or raise it for unusually large generated statements.
+//
+// Takes limit (int) which is the maximum token count; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which installs the token budget on a dialect.
+func WithMaxTokensPerStatement(limit int) Option {
+	return func(dialect *MySQLDialect) {
+		if limit > 0 {
+			dialect.MaxTokensPerStatement = limit
+		}
+	}
+}
+
 // resolvedMaxParseDepth returns the effective parser depth cap, falling back to
 // defaultMaxParseDepth when unset.
 //
@@ -115,6 +140,30 @@ func (d MySQLDialect) resolvedMaxParseDepth() int {
 		return d.MaxParseDepth
 	}
 	return defaultMaxParseDepth
+}
+
+// resolvedMaxTokensPerStatement returns the effective per-statement token budget, falling
+// back to defaultMaxTokensPerStatement when unset.
+//
+// Returns int which is the effective per-statement token budget.
+func (d MySQLDialect) resolvedMaxTokensPerStatement() int {
+	if d.MaxTokensPerStatement > 0 {
+		return d.MaxTokensPerStatement
+	}
+	return defaultMaxTokensPerStatement
+}
+
+// checkTokenBudget rejects a statement whose token stream exceeds the dialect's budget.
+//
+// Takes tokens ([]token) which is the statement's token stream.
+//
+// Returns error wrapping errTokenBudgetExceeded when the stream is over budget.
+func (d MySQLDialect) checkTokenBudget(tokens []token) error {
+	limit := d.resolvedMaxTokensPerStatement()
+	if len(tokens) > limit {
+		return fmt.Errorf("%w: %d tokens exceeds the limit of %d", errTokenBudgetExceeded, len(tokens), limit)
+	}
+	return nil
 }
 
 // WithDialectName sets the dialect name (e.g. "mariadb").
@@ -241,9 +290,8 @@ type MySQLEngine struct {
 //
 // Returns *MySQLEngine which implements the querier EnginePort.
 func NewMySQLEngine(options ...Option) *MySQLEngine {
-	dialect := MySQLDialect{
-		Name: "mysql",
-	}
+	dialect := MySQLDialect{}
+	dialect.Name = "mysql"
 	for _, option := range options {
 		option(&dialect)
 	}
@@ -298,6 +346,9 @@ func statementByteLength(statementTokens []token) int {
 // ddlHandler is a function that parses a DDL statement into a catalogue mutation.
 type ddlHandler func(*parser, *MySQLEngine) (*querier_dto.CatalogueMutation, error)
 
+// queryAnalyser is a function that analyses a DML statement.
+type queryAnalyser func(*parser) (*querier_dto.RawQueryAnalysis, error)
+
 var (
 	// ddlHandlers dispatches DDL statement kinds to their parser entry points.
 	ddlHandlers = [statementKindCount]ddlHandler{
@@ -327,15 +378,28 @@ var (
 		},
 		statementKindDropFunction: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropFunction() },
 	}
+
+	// queryAnalysers dispatches DML statement kinds to their analysers. A kind with no entry
+	// yields an empty analysis and is never walked by the parser.
+	queryAnalysers = [statementKindCount]queryAnalyser{
+		statementKindSelect:  (*parser).analyseSelect,
+		statementKindInsert:  (*parser).analyseInsert,
+		statementKindReplace: (*parser).analyseInsert,
+		statementKindUpdate:  (*parser).analyseUpdate,
+		statementKindDelete:  (*parser).analyseDelete,
+		statementKindValues:  (*parser).analyseValues,
+	}
 )
 
 // ApplyDDL applies a DDL statement to the catalogue for the MySQL dialect.
 //
-// Wraps the per-statement handler with a panic recovery so a malformed statement becomes
-// a wrapped error rather than crashing the calling apply loop. Honours ctx.Err() before
-// dispatch so the catalogue build loop can be cancelled by the caller, and rejects token
-// streams over maxTokensPerStatement so a single statement cannot drive the parser into a
-// very long, non-cancellable walk.
+// Syntax errors in the statement are returned as ordinary errors. The handler is also
+// wrapped with a panic recovery, purely as a guard against parser bugs, so an unexpected
+// panic becomes a wrapped error rather than crashing the calling apply loop. Honours
+// ctx.Err() before dispatch so the catalogue build loop can be cancelled by the caller,
+// and rejects a statement over the token budget before the parser walks it, so a single
+// statement cannot drive the parser into a very long, non-cancellable walk. Statements
+// without a DDL handler are never walked and so never count against the budget.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the DDL statement to apply.
 //
@@ -369,26 +433,30 @@ func (engine *MySQLEngine) ApplyDDL(
 		return nil, ctxErr
 	}
 
-	if len(parsed.tokens) > maxTokensPerStatement {
-		return nil, errTokenBudgetExceeded
+	if int(parsed.kind) >= len(ddlHandlers) || ddlHandlers[parsed.kind] == nil {
+		return nil, nil
+	}
+	if budgetErr := engine.dialect.checkTokenBudget(parsed.tokens); budgetErr != nil {
+		return nil, budgetErr
 	}
 
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
-	if int(parsed.kind) < len(ddlHandlers) && ddlHandlers[parsed.kind] != nil {
-		return ddlHandlers[parsed.kind](p, engine)
+	mutation, err = ddlHandlers[parsed.kind](p, engine)
+	if p.syntaxError != nil {
+		return nil, p.syntaxError
 	}
-
-	return nil, nil
+	return mutation, err
 }
 
 // AnalyseQuery performs structural analysis of a DML statement for the MySQL dialect.
 //
-// The analyser is wrapped with a panic recovery so a malformed statement that trips a
-// parser invariant becomes a wrapped error rather than crashing the calling analyser.
-// Token streams over maxTokensPerStatement are rejected so a single statement cannot
-// drive the analyser into a very long walk.
+// Syntax errors, including expressions nested past the depth cap, are returned as
+// ordinary errors so the domain reports them as diagnostics. The analyser is also wrapped
+// with a panic recovery, purely as a guard against parser bugs, and a statement over the
+// token budget is rejected before the parser walks it, so a single statement cannot drive
+// the analyser into a very long walk.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the DML statement to analyse.
 //
@@ -415,27 +483,21 @@ func (engine *MySQLEngine) AnalyseQuery(
 		}
 	}()
 
-	if len(parsed.tokens) > maxTokensPerStatement {
-		return nil, errTokenBudgetExceeded
+	if int(parsed.kind) >= len(queryAnalysers) || queryAnalysers[parsed.kind] == nil {
+		return &querier_dto.RawQueryAnalysis{}, nil
+	}
+	if budgetErr := engine.dialect.checkTokenBudget(parsed.tokens); budgetErr != nil {
+		return nil, budgetErr
 	}
 
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
-	switch parsed.kind {
-	case statementKindSelect:
-		return p.analyseSelect()
-	case statementKindInsert, statementKindReplace:
-		return p.analyseInsert()
-	case statementKindUpdate:
-		return p.analyseUpdate()
-	case statementKindDelete:
-		return p.analyseDelete()
-	case statementKindValues:
-		return p.analyseValues()
-	default:
-		return &querier_dto.RawQueryAnalysis{}, nil
+	analysis, err = queryAnalysers[parsed.kind](p)
+	if p.syntaxError != nil {
+		return nil, p.syntaxError
 	}
+	return analysis, err
 }
 
 // RewriteSelectAsCount delegates to the shared SELECT->COUNT(*) rewriter. The MySQL

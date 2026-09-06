@@ -37,7 +37,7 @@ func TestConvertBinding(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		result, err := converter.convertBinding(js_ast.Binding{Data: nil})
+		result, err := converter.convertBinding(js_ast.Binding{})
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
@@ -57,17 +57,13 @@ func TestConvertBinding(t *testing.T) {
 		assert.Equal(t, "x", string(v.Data))
 	})
 
-	t.Run("unknown binding type returns fallback var", func(t *testing.T) {
+	t.Run("hole outside an array pattern is an error", func(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
 		result, err := converter.convertBinding(js_ast.Binding{Data: &js_ast.BMissing{}})
-		require.NoError(t, err)
-		require.NotNil(t, result)
-
-		v, ok := result.(*parsejs.Var)
-		require.True(t, ok)
-		assert.Equal(t, "binding", string(v.Data))
+		require.ErrorIs(t, err, errUnsupportedExpression)
+		assert.Nil(t, result)
 	})
 }
 
@@ -77,7 +73,7 @@ func TestConvertBIdentifier(t *testing.T) {
 	t.Run("resolves from registry", func(t *testing.T) {
 		t.Parallel()
 		registry := NewRegistryContext()
-		bind := &js_ast.BIdentifier{Ref: ast.Ref{}}
+		bind := &js_ast.BIdentifier{}
 		registry.RegisterBindingName(bind, "registeredName")
 		converter := NewASTConverter(nil, nil, registry)
 
@@ -97,7 +93,7 @@ func TestConvertBIdentifier(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		bind := &js_ast.BIdentifier{Ref: ast.Ref{InnerIndex: 0}}
+		bind := &js_ast.BIdentifier{}
 
 		result, err := converter.convertBIdentifier(bind)
 		require.NoError(t, err)
@@ -142,7 +138,7 @@ func TestConvertBArray(t *testing.T) {
 				},
 				{
 					Binding:           binding2,
-					DefaultValueOrNil: js_ast.Expr{Data: nil},
+					DefaultValueOrNil: js_ast.Expr{},
 				},
 			},
 		}
@@ -172,6 +168,95 @@ func TestConvertBArray(t *testing.T) {
 		require.True(t, ok)
 		assert.Empty(t, bindingArray.List)
 	})
+
+	t.Run("hole becomes an elided element", func(t *testing.T) {
+		t.Parallel()
+		registry := NewRegistryContext()
+		converter := NewASTConverter(nil, nil, registry)
+
+		b := &js_ast.BArray{Items: []js_ast.ArrayBinding{
+			{Binding: js_ast.Binding{Data: &js_ast.BMissing{}}},
+			{Binding: registry.MakeBinding("second")},
+		}}
+
+		result, err := converter.convertBArray(b)
+		require.NoError(t, err)
+
+		bindingArray, ok := result.(*parsejs.BindingArray)
+		require.True(t, ok)
+		require.Len(t, bindingArray.List, 2)
+		assert.Nil(t, bindingArray.List[0].Binding)
+		assert.Nil(t, bindingArray.List[0].Default)
+		assert.Nil(t, bindingArray.Rest)
+	})
+
+	t.Run("spread pattern moves its last item into the rest binding", func(t *testing.T) {
+		t.Parallel()
+		registry := NewRegistryContext()
+		converter := NewASTConverter(nil, nil, registry)
+
+		b := &js_ast.BArray{
+			Items: []js_ast.ArrayBinding{
+				{Binding: registry.MakeBinding("head")},
+				{Binding: registry.MakeBinding("tail")},
+			},
+			HasSpread: true,
+		}
+
+		result, err := converter.convertBArray(b)
+		require.NoError(t, err)
+
+		bindingArray, ok := result.(*parsejs.BindingArray)
+		require.True(t, ok)
+		require.Len(t, bindingArray.List, 1)
+		rest, ok := bindingArray.Rest.(*parsejs.Var)
+		require.True(t, ok, "rest binding is %T", bindingArray.Rest)
+		assert.Equal(t, "tail", string(rest.Data))
+	})
+
+	invalidRests := []struct {
+		b    *js_ast.BArray
+		name string
+	}{
+		{
+			name: "spread pattern without items",
+			b:    &js_ast.BArray{HasSpread: true},
+		},
+		{
+			name: "rest element with a default",
+			b: &js_ast.BArray{
+				Items: []js_ast.ArrayBinding{{
+					Binding:           js_ast.Binding{Data: &js_ast.BIdentifier{}},
+					DefaultValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 1}},
+				}},
+				HasSpread: true,
+			},
+		},
+		{
+			name: "rest element that is a hole",
+			b: &js_ast.BArray{
+				Items:     []js_ast.ArrayBinding{{Binding: js_ast.Binding{Data: &js_ast.BMissing{}}}},
+				HasSpread: true,
+			},
+		},
+		{
+			name: "rest element without a binding",
+			b: &js_ast.BArray{
+				Items:     []js_ast.ArrayBinding{{}},
+				HasSpread: true,
+			},
+		},
+	}
+	for _, tc := range invalidRests {
+		t.Run(tc.name+" is an error", func(t *testing.T) {
+			t.Parallel()
+			converter := NewASTConverter(nil, nil, nil)
+
+			result, err := converter.convertBArray(tc.b)
+			require.ErrorIs(t, err, errUnsupportedExpression)
+			assert.Nil(t, result)
+		})
+	}
 }
 
 func TestConvertBObject(t *testing.T) {
@@ -217,7 +302,7 @@ func TestConvertBObject(t *testing.T) {
 				{
 					Key:               js_ast.Expr{Data: keyIdent},
 					Value:             valueBinding,
-					DefaultValueOrNil: js_ast.Expr{Data: nil},
+					DefaultValueOrNil: js_ast.Expr{},
 				},
 			},
 			IsSingleLine: false,
@@ -244,9 +329,10 @@ func TestConvertBindingPropertyKey(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		key := js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 0}}}
+		key := js_ast.Expr{Data: &js_ast.EIdentifier{}}
 
-		result := converter.convertBindingPropertyKey(key)
+		result, err := converter.convertBindingPropertyKey(key)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, parsejs.IdentifierToken, result.Literal.TokenType)
 		assert.Equal(t, "myKey", string(result.Literal.Data))
@@ -258,7 +344,8 @@ func TestConvertBindingPropertyKey(t *testing.T) {
 
 		key := js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 999}}}
 
-		result := converter.convertBindingPropertyKey(key)
+		result, err := converter.convertBindingPropertyKey(key)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, "key", string(result.Literal.Data))
 	})
@@ -269,18 +356,33 @@ func TestConvertBindingPropertyKey(t *testing.T) {
 
 		key := js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'n', 'a', 'm', 'e'}}}
 
-		result := converter.convertBindingPropertyKey(key)
+		result, err := converter.convertBindingPropertyKey(key)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, parsejs.StringToken, result.Literal.TokenType)
 	})
 
-	t.Run("unsupported key type returns nil", func(t *testing.T) {
+	t.Run("numeric key", func(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
 		key := js_ast.Expr{Data: &js_ast.ENumber{Value: 42}}
 
-		result := converter.convertBindingPropertyKey(key)
+		result, err := converter.convertBindingPropertyKey(key)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, parsejs.DecimalToken, result.Literal.TokenType)
+		assert.Equal(t, "42", string(result.Literal.Data))
+	})
+
+	t.Run("unsupported key type returns an error", func(t *testing.T) {
+		t.Parallel()
+		converter := NewASTConverter(nil, nil, nil)
+
+		key := js_ast.Expr{Data: &js_ast.EBoolean{Value: true}}
+
+		result, err := converter.convertBindingPropertyKey(key)
+		require.ErrorIs(t, err, errUnsupportedExpression)
 		assert.Nil(t, result)
 	})
 }
@@ -302,7 +404,7 @@ func TestConvertParams(t *testing.T) {
 			},
 		}
 
-		result, err := converter.convertParams(arguments)
+		result, err := converter.convertParams(arguments, false)
 		require.NoError(t, err)
 		assert.Len(t, result.List, 1)
 		require.NotNil(t, result.List[0].Default)
@@ -317,12 +419,12 @@ func TestConvertParams(t *testing.T) {
 		arguments := []js_ast.Arg{
 			{
 				Binding:      binding,
-				DefaultOrNil: js_ast.Expr{Data: nil},
+				DefaultOrNil: js_ast.Expr{},
 				Decorators:   nil,
 			},
 		}
 
-		result, err := converter.convertParams(arguments)
+		result, err := converter.convertParams(arguments, false)
 		require.NoError(t, err)
 		assert.Len(t, result.List, 1)
 		assert.Nil(t, result.List[0].Default)
@@ -332,10 +434,57 @@ func TestConvertParams(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		result, err := converter.convertParams([]js_ast.Arg{})
+		result, err := converter.convertParams([]js_ast.Arg{}, false)
 		require.NoError(t, err)
 		assert.Empty(t, result.List)
+		assert.Nil(t, result.Rest)
 	})
+
+	t.Run("rest parameter moves the last argument into the rest binding", func(t *testing.T) {
+		t.Parallel()
+		registry := NewRegistryContext()
+		converter := NewASTConverter(nil, nil, registry)
+
+		arguments := []js_ast.Arg{
+			{Binding: registry.MakeBinding("first")},
+			{Binding: registry.MakeBinding("others")},
+		}
+
+		result, err := converter.convertParams(arguments, true)
+		require.NoError(t, err)
+		require.Len(t, result.List, 1)
+		rest, ok := result.Rest.(*parsejs.Var)
+		require.True(t, ok, "rest binding is %T", result.Rest)
+		assert.Equal(t, "others", string(rest.Data))
+	})
+
+	invalidRests := []struct {
+		name      string
+		arguments []js_ast.Arg
+	}{
+		{name: "rest flag without arguments", arguments: nil},
+		{
+			name: "rest parameter with a default",
+			arguments: []js_ast.Arg{{
+				Binding:      js_ast.Binding{Data: &js_ast.BIdentifier{}},
+				DefaultOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 1}},
+			}},
+		},
+		{name: "rest parameter without a binding", arguments: []js_ast.Arg{{}}},
+		{
+			name:      "rest parameter that is a hole",
+			arguments: []js_ast.Arg{{Binding: js_ast.Binding{Data: &js_ast.BMissing{}}}},
+		},
+	}
+	for _, tc := range invalidRests {
+		t.Run(tc.name+" is an error", func(t *testing.T) {
+			t.Parallel()
+			converter := NewASTConverter(nil, nil, nil)
+
+			_, err := converter.convertParams(tc.arguments, true)
+			require.ErrorIs(t, err, errUnsupportedExpression)
+		})
+	}
 }
 
 func TestConvertProperty(t *testing.T) {
@@ -347,17 +496,9 @@ func TestConvertProperty(t *testing.T) {
 		valIdent := registry.MakeIdentifier("other")
 		converter := NewASTConverter(nil, nil, registry)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: nil},
-			ValueOrNil:       js_ast.Expr{Data: valIdent},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertySpread,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.ValueOrNil = js_ast.Expr{Data: valIdent}
+		prop.Kind = js_ast.PropertySpread
 
 		result, err := converter.convertProperty(prop)
 		require.NoError(t, err)
@@ -372,15 +513,15 @@ func TestConvertProperty(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		identifier := &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 0}}
+		identifier := &js_ast.EIdentifier{}
 		prop := js_ast.Property{
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: identifier},
 			ValueOrNil:       js_ast.Expr{Data: identifier},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyField,
 			Flags:            js_ast.PropertyWasShorthand,
 		}
@@ -401,12 +542,12 @@ func TestConvertProperty(t *testing.T) {
 
 		prop := js_ast.Property{
 			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 0}}},
+			Key:              js_ast.Expr{Data: &js_ast.EIdentifier{}},
 			ValueOrNil:       js_ast.Expr{Data: &js_ast.ENumber{Value: 42}},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyField,
 			Flags:            0,
 		}
@@ -425,17 +566,9 @@ func TestConvertProperty(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 0}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyField,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.EIdentifier{}}
+		prop.Kind = js_ast.PropertyField
 
 		result, err := converter.convertProperty(prop)
 		require.NoError(t, err)
@@ -451,17 +584,9 @@ func TestTryConvertShorthandProperty(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 0}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyField,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.EIdentifier{}}
+		prop.Kind = js_ast.PropertyField
 
 		result := converter.tryConvertShorthandProperty(prop)
 		assert.Nil(t, result)
@@ -474,11 +599,11 @@ func TestTryConvertShorthandProperty(t *testing.T) {
 		prop := js_ast.Property{
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.ENumber{Value: 1}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			ValueOrNil:       js_ast.Expr{},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyField,
 			Flags:            js_ast.PropertyWasShorthand,
 		}
@@ -494,11 +619,11 @@ func TestTryConvertShorthandProperty(t *testing.T) {
 		prop := js_ast.Property{
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 999}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			ValueOrNil:       js_ast.Expr{},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyField,
 			Flags:            js_ast.PropertyWasShorthand,
 		}
@@ -532,7 +657,7 @@ func TestConvertPropertyName(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		key := js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 0}}}
+		key := js_ast.Expr{Data: &js_ast.EIdentifier{}}
 
 		result, err := converter.convertPropertyName(key)
 		require.NoError(t, err)
@@ -625,17 +750,9 @@ func TestGetClassElementName(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'r', 'u', 'n'}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyMethod,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'r', 'u', 'n'}}}
+		prop.Kind = js_ast.PropertyMethod
 
 		result, err := converter.getClassElementName(prop)
 		require.NoError(t, err)
@@ -647,17 +764,9 @@ func TestGetClassElementName(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'v', 'a', 'l'}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyGetter,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'v', 'a', 'l'}}}
+		prop.Kind = js_ast.PropertyGetter
 
 		result, err := converter.getClassElementName(prop)
 		require.NoError(t, err)
@@ -668,17 +777,9 @@ func TestGetClassElementName(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'f', 'l', 'd'}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyField,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'f', 'l', 'd'}}}
+		prop.Kind = js_ast.PropertyField
 
 		result, err := converter.getClassElementName(prop)
 		require.NoError(t, err)
@@ -691,17 +792,9 @@ func TestGetClassElementName(t *testing.T) {
 		identifier := registry.MakeIdentifier("memberName")
 		converter := NewASTConverter(nil, nil, registry)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: identifier},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyField,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: identifier}
+		prop.Kind = js_ast.PropertyField
 
 		result, err := converter.getClassElementName(prop)
 		require.NoError(t, err)
@@ -713,17 +806,9 @@ func TestGetClassElementName(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 999}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyField,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.EIdentifier{Ref: ast.Ref{InnerIndex: 999}}}
+		prop.Kind = js_ast.PropertyField
 
 		result, err := converter.getClassElementName(prop)
 		require.NoError(t, err)
@@ -734,17 +819,9 @@ func TestGetClassElementName(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.ENumber{Value: 42}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyField,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.ENumber{Value: 42}}
+		prop.Kind = js_ast.PropertyField
 
 		result, err := converter.getClassElementName(prop)
 		require.NoError(t, err)
@@ -763,9 +840,9 @@ func TestConvertClassMethod(t *testing.T) {
 			Fn: js_ast.Fn{
 				Name:         nil,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      false,
 				IsGenerator:  false,
 			},
@@ -775,10 +852,10 @@ func TestConvertClassMethod(t *testing.T) {
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'v', 'a', 'l'}}},
 			ValueOrNil:       js_ast.Expr{Data: jsFunction},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyGetter,
 			Flags:            0,
 		}
@@ -805,13 +882,13 @@ func TestConvertClassMethod(t *testing.T) {
 				Args: []js_ast.Arg{
 					{
 						Binding:      binding,
-						DefaultOrNil: js_ast.Expr{Data: nil},
+						DefaultOrNil: js_ast.Expr{},
 						Decorators:   nil,
 					},
 				},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      false,
 				IsGenerator:  false,
 			},
@@ -821,10 +898,10 @@ func TestConvertClassMethod(t *testing.T) {
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'v', 'a', 'l'}}},
 			ValueOrNil:       js_ast.Expr{Data: jsFunction},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertySetter,
 			Flags:            0,
 		}
@@ -847,9 +924,9 @@ func TestConvertClassMethod(t *testing.T) {
 			Fn: js_ast.Fn{
 				Name:         nil,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      true,
 				IsGenerator:  false,
 			},
@@ -859,10 +936,10 @@ func TestConvertClassMethod(t *testing.T) {
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'r', 'u', 'n'}}},
 			ValueOrNil:       js_ast.Expr{Data: jsFunction},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyMethod,
 			Flags:            js_ast.PropertyIsStatic,
 		}
@@ -888,11 +965,11 @@ func TestConvertClassField(t *testing.T) {
 		prop := js_ast.Property{
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'x'}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
+			ValueOrNil:       js_ast.Expr{},
 			InitializerOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 42}},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyField,
 			Flags:            0,
 		}
@@ -913,10 +990,10 @@ func TestConvertClassField(t *testing.T) {
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'y'}}},
 			ValueOrNil:       js_ast.Expr{Data: &js_ast.ENumber{Value: 10}},
-			InitializerOrNil: js_ast.Expr{Data: nil},
+			InitializerOrNil: js_ast.Expr{},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyField,
 			Flags:            0,
 		}
@@ -933,17 +1010,9 @@ func TestConvertClassField(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		prop := js_ast.Property{
-			ClassStaticBlock: nil,
-			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'z'}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
-			InitializerOrNil: js_ast.Expr{Data: nil},
-			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
-			Kind:             js_ast.PropertyField,
-			Flags:            0,
-		}
+		prop := js_ast.Property{}
+		prop.Key = js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'z'}}}
+		prop.Kind = js_ast.PropertyField
 		elemName, err := converter.getClassElementName(prop)
 		require.NoError(t, err)
 
@@ -960,11 +1029,11 @@ func TestConvertClassField(t *testing.T) {
 		prop := js_ast.Property{
 			ClassStaticBlock: nil,
 			Key:              js_ast.Expr{Data: &js_ast.EString{Value: []uint16{'s'}}},
-			ValueOrNil:       js_ast.Expr{Data: nil},
+			ValueOrNil:       js_ast.Expr{},
 			InitializerOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 99}},
 			Decorators:       nil,
-			Loc:              logger.Loc{Start: 0},
-			CloseBracketLoc:  logger.Loc{Start: 0},
+			Loc:              logger.Loc{},
+			CloseBracketLoc:  logger.Loc{},
 			Kind:             js_ast.PropertyField,
 			Flags:            js_ast.PropertyIsStatic,
 		}
@@ -1055,6 +1124,68 @@ func TestConvertUnaryOp(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestConvertBObjectRest(t *testing.T) {
+	t.Parallel()
+
+	t.Run("identifier target becomes the rest variable", func(t *testing.T) {
+		t.Parallel()
+		registry := NewRegistryContext()
+		converter := NewASTConverter(nil, nil, registry)
+
+		rest, err := converter.convertBObjectRest(js_ast.PropertyBinding{IsSpread: true, Value: registry.MakeBinding("others")})
+		require.NoError(t, err)
+		assert.Equal(t, "others", string(rest.Data))
+	})
+
+	invalidTargets := []struct {
+		value js_ast.Binding
+		name  string
+	}{
+		{name: "array pattern target", value: js_ast.Binding{Data: &js_ast.BArray{}}},
+		{name: "hole target", value: js_ast.Binding{Data: &js_ast.BMissing{}}},
+	}
+	for _, tc := range invalidTargets {
+		t.Run(tc.name+" is an error", func(t *testing.T) {
+			t.Parallel()
+			converter := NewASTConverter(nil, nil, nil)
+
+			rest, err := converter.convertBObjectRest(js_ast.PropertyBinding{IsSpread: true, Value: tc.value})
+			require.ErrorIs(t, err, errUnsupportedExpression)
+			assert.Nil(t, rest)
+		})
+	}
+}
+
+func TestConvertSpreadWithoutOperand(t *testing.T) {
+	t.Parallel()
+
+	emptySpread := js_ast.Expr{Data: &js_ast.ESpread{}}
+	testCases := []struct {
+		expression js_ast.Expr
+		name       string
+	}{
+		{name: "array element", expression: js_ast.Expr{Data: &js_ast.EArray{Items: []js_ast.Expr{emptySpread}}}},
+		{name: "call argument", expression: js_ast.Expr{Data: &js_ast.ECall{
+			Target: js_ast.Expr{Data: &js_ast.ENull{}},
+			Args:   []js_ast.Expr{emptySpread},
+		}}},
+		{name: "new argument", expression: js_ast.Expr{Data: &js_ast.ENew{
+			Target: js_ast.Expr{Data: &js_ast.ENull{}},
+			Args:   []js_ast.Expr{emptySpread},
+		}}},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			converter := NewASTConverter(nil, nil, nil)
+
+			result, err := converter.convertExpression(tc.expression)
+			require.ErrorIs(t, err, errUnsupportedExpression)
+			assert.Nil(t, result)
 		})
 	}
 }

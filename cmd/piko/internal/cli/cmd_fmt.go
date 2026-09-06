@@ -142,10 +142,14 @@ func RunFmtWithIO(arguments []string, stdout, stderr io.Writer) int {
 	ctx := context.Background()
 
 	stats := &Statistics{
-		formatter:  fmtService,
-		newSandbox: safedisk.NewNoOpSandbox,
-		stdout:     stdout,
-		stderr:     stderr,
+		formatter:       fmtService,
+		newSandbox:      safedisk.NewNoOpSandbox,
+		stdout:          stdout,
+		stderr:          stderr,
+		total:           0,
+		formatted:       0,
+		needsFormatting: 0,
+		errors:          0,
 	}
 
 	exitCode := processAllPaths(ctx, stats, flagSet.Args(), flags)

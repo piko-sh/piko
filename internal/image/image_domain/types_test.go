@@ -782,10 +782,8 @@ func Test_validatePlaceholderSpec(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "disabled placeholder is valid",
-			spec: &image_dto.PlaceholderSpec{
-				Enabled: false,
-			},
+			name:    "disabled placeholder is valid",
+			spec:    &image_dto.PlaceholderSpec{},
 			wantErr: false,
 		},
 		{

@@ -23,29 +23,6 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// NewLocation creates a zero-valued Location for generated nodes. Generated nodes do not
-// have source positions, so all fields are zero.
-//
-// Returns ast_domain.Location which is a zero-valued location.
-func NewLocation() ast_domain.Location {
-	return ast_domain.Location{
-		Line:   0,
-		Column: 0,
-		Offset: 0,
-	}
-}
-
-// NewRange creates a Range with zero values for start and end locations. Generated nodes
-// do not have source ranges, so all fields are zero.
-//
-// Returns ast_domain.Range which contains zero-valued start and end locations.
-func NewRange() ast_domain.Range {
-	return ast_domain.Range{
-		Start: NewLocation(),
-		End:   NewLocation(),
-	}
-}
-
 // NewElementNode creates a TemplateNode representing an HTML element. All optional
 // TemplateNode fields are explicitly set to their zero values.
 //
@@ -63,46 +40,7 @@ func NewElementNode(tagName string, attributes []ast_domain.HTMLAttribute, child
 	if children == nil {
 		children = []*ast_domain.TemplateNode{}
 	}
-
-	return &ast_domain.TemplateNode{
-		NodeType:           ast_domain.NodeElement,
-		TagName:            tagName,
-		Attributes:         attributes,
-		Children:           children,
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TextContent:        "",
-		InnerHTML:          "",
-		RichText:           nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           NewLocation(),
-		NodeRange:          NewRange(),
-		OpeningTagRange:    NewRange(),
-		ClosingTagRange:    NewRange(),
-		PreferredFormat:    ast_domain.FormatAuto,
-		IsPooled:           false,
-		IsContentEditable:  false,
-	}
+	return ast_domain.NewElementNode(tagName, attributes, children)
 }
 
 // NewRawHTMLNode creates a TemplateNode representing raw HTML content. This node type
@@ -113,7 +51,10 @@ func NewElementNode(tagName string, attributes []ast_domain.HTMLAttribute, child
 //
 // Returns *ast_domain.TemplateNode which contains the raw HTML content.
 func NewRawHTMLNode(content string) *ast_domain.TemplateNode {
-	return newNodeWithContent(ast_domain.NodeRawHTML, content)
+	node := ast_domain.TemplateNode{}
+	node.NodeType = ast_domain.NodeRawHTML
+	node.TextContent = content
+	return &node
 }
 
 // NewFragmentNode creates a TemplateNode representing a document fragment. Fragments do
@@ -128,45 +69,10 @@ func NewFragmentNode(children []*ast_domain.TemplateNode) *ast_domain.TemplateNo
 		children = []*ast_domain.TemplateNode{}
 	}
 
-	return &ast_domain.TemplateNode{
-		NodeType:           ast_domain.NodeFragment,
-		Children:           children,
-		TagName:            "",
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TextContent:        "",
-		InnerHTML:          "",
-		RichText:           nil,
-		Attributes:         nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           NewLocation(),
-		NodeRange:          NewRange(),
-		OpeningTagRange:    NewRange(),
-		ClosingTagRange:    NewRange(),
-		PreferredFormat:    ast_domain.FormatAuto,
-		IsPooled:           false,
-		IsContentEditable:  false,
-	}
+	node := ast_domain.TemplateNode{}
+	node.NodeType = ast_domain.NodeFragment
+	node.Children = children
+	return &node
 }
 
 // NewSimpleTextNode creates a text node with fixed string content, such as special
@@ -176,7 +82,7 @@ func NewFragmentNode(children []*ast_domain.TemplateNode) *ast_domain.TemplateNo
 //
 // Returns *ast_domain.TemplateNode which is a text node with the given content.
 func NewSimpleTextNode(content string) *ast_domain.TemplateNode {
-	return newNodeWithContent(ast_domain.NodeText, content)
+	return ast_domain.NewTextNode(content)
 }
 
 // NewHTMLAttribute creates an HTMLAttribute with the given name and value. Location
@@ -190,9 +96,9 @@ func NewHTMLAttribute(name, value string) ast_domain.HTMLAttribute {
 	return ast_domain.HTMLAttribute{
 		Name:           name,
 		Value:          value,
-		Location:       NewLocation(),
-		NameLocation:   NewLocation(),
-		AttributeRange: NewRange(),
+		Location:       ast_domain.Location{},
+		NameLocation:   ast_domain.Location{},
+		AttributeRange: ast_domain.Range{},
 	}
 }
 
@@ -220,53 +126,5 @@ func NewEnumAttributeDefinition(allowedValues []string) pml_domain.AttributeDefi
 	return pml_domain.AttributeDefinition{
 		Type:          pml_domain.TypeEnum,
 		AllowedValues: allowedValues,
-	}
-}
-
-// newNodeWithContent creates a new template node with the given type and text content.
-//
-// Takes nodeType (ast_domain.NodeType) which specifies the kind of node.
-// Takes content (string) which provides the text content for the node.
-//
-// Returns *ast_domain.TemplateNode which is the new node with default values.
-func newNodeWithContent(nodeType ast_domain.NodeType, content string) *ast_domain.TemplateNode {
-	return &ast_domain.TemplateNode{
-		NodeType:           nodeType,
-		TextContent:        content,
-		TagName:            "",
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		InnerHTML:          "",
-		Children:           nil,
-		RichText:           nil,
-		Attributes:         nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           NewLocation(),
-		NodeRange:          NewRange(),
-		OpeningTagRange:    NewRange(),
-		ClosingTagRange:    NewRange(),
-		PreferredFormat:    ast_domain.FormatAuto,
-		IsPooled:           false,
-		IsContentEditable:  false,
 	}
 }

@@ -19,6 +19,7 @@
 package querier_domain
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -273,6 +274,30 @@ func TestFunctionResolver_Resolve(t *testing.T) {
 		require.NotNil(t, srcErr, "unknown function should produce an error")
 		assert.Equal(t, "Q005", srcErr.Code)
 		assert.Contains(t, srcErr.Message, "nonexistent")
+	})
+
+	t.Run("variadic function declared with a zero minimum resolves with no arguments", func(t *testing.T) {
+		t.Parallel()
+
+		builtins := &querier_dto.FunctionCatalogue{
+			Functions: map[string][]*querier_dto.FunctionSignature{
+				"json_build_object": {
+					querier_dto.NewFunctionSignature(
+						[]querier_dto.FunctionArgument{funcArg("key", unknownType), funcArg("value", unknownType)},
+						sqlType("json", querier_dto.TypeCategoryJSON),
+						querier_dto.FunctionNullableNeverNull,
+						querier_dto.WithVariadic(0),
+					),
+				},
+			},
+		}
+		resolver := newFunctionResolver(builtins, newTestCatalogue("public"), &mockEngine{})
+
+		match, srcErr := resolver.Resolve("json_build_object", "", nil)
+
+		assert.Nil(t, srcErr)
+		require.NotNil(t, match)
+		assert.Equal(t, querier_dto.TypeCategoryJSON, match.returnType.Category)
 	})
 
 	t.Run("exact arity match with single overload", func(t *testing.T) {
@@ -689,6 +714,43 @@ func TestScoreCandidate(t *testing.T) {
 			wantViable:     true,
 		},
 		{
+			name: "variadic function with a zero minimum accepts no arguments",
+			candidate: querier_dto.NewFunctionSignature(
+				[]querier_dto.FunctionArgument{funcArg("value", unknownType)},
+				textType,
+				querier_dto.FunctionNullableNeverNull,
+				querier_dto.WithVariadic(0),
+			),
+			argumentTypes:  nil,
+			wantScore:      1,
+			wantExactCount: 0,
+			wantViable:     true,
+		},
+		{
+			name: "variadic function with a minimum of one rejects no arguments",
+			candidate: querier_dto.NewFunctionSignature(
+				[]querier_dto.FunctionArgument{funcArg("value", textType)},
+				textType,
+				querier_dto.FunctionNullableNeverNull,
+				querier_dto.WithVariadic(1),
+			),
+			argumentTypes:  nil,
+			wantScore:      0,
+			wantExactCount: 0,
+			wantViable:     false,
+		},
+		{
+			name: "non-variadic zero minimum derives the required count from the arguments",
+			candidate: funcSig("f", intType,
+				funcArg("a", intType),
+				querier_dto.FunctionArgument{Name: "b", Type: intType, IsOptional: true},
+			),
+			argumentTypes:  nil,
+			wantScore:      0,
+			wantExactCount: 0,
+			wantViable:     false,
+		},
+		{
 			name:           "zero-argument function scores 1",
 			candidate:      funcSig("f", intType),
 			argumentTypes:  nil,
@@ -928,6 +990,73 @@ func TestScoreArgument(t *testing.T) {
 			score := resolver.scoreArgument(tt.expected, tt.actual)
 
 			assert.Equal(t, tt.wantScore, score)
+		})
+	}
+}
+
+func TestFunctionResolver_EngineResolverFallback(t *testing.T) {
+	t.Parallel()
+
+	jsonType := sqlType("json", querier_dto.TypeCategoryJSON)
+
+	testCases := []struct {
+		resolveFn      func(name string, argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error)
+		name           string
+		wantDiagnostic string
+		wantDataAccess querier_dto.FunctionDataAccess
+		wantMatch      bool
+	}{
+		{
+			name: "undeclared data access defaults to read-only with a warning",
+			resolveFn: func(string, []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+				return &querier_dto.FunctionResolution{ReturnType: jsonType, DataAccess: querier_dto.DataAccessUnknown}, nil
+			},
+			wantMatch:      true,
+			wantDataAccess: querier_dto.DataAccessReadOnly,
+			wantDiagnostic: querier_dto.CodeFunctionDataAccessUndeclared,
+		},
+		{
+			name: "declared data access is kept without a warning",
+			resolveFn: func(string, []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+				return &querier_dto.FunctionResolution{ReturnType: jsonType, DataAccess: querier_dto.DataAccessModifiesData}, nil
+			},
+			wantMatch:      true,
+			wantDataAccess: querier_dto.DataAccessModifiesData,
+		},
+		{
+			name: "engine resolver failure falls through to the unknown function diagnostic",
+			resolveFn: func(string, []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
+				return nil, errors.New("not resolvable")
+			},
+			wantMatch:      false,
+			wantDiagnostic: querier_dto.CodeUnknownFunction,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := &functionResolverMockEngine{mockEngine: &mockEngine{}, resolveFn: testCase.resolveFn}
+			builtins := &querier_dto.FunctionCatalogue{Functions: map[string][]*querier_dto.FunctionSignature{}}
+			resolver := newFunctionResolver(builtins, newTestCatalogue("public"), engine)
+
+			match, diagnostic := resolver.Resolve("engine_only", "", []querier_dto.SQLType{intType})
+
+			if testCase.wantMatch {
+				require.NotNil(t, match)
+				assert.Equal(t, testCase.wantDataAccess, match.dataAccess)
+				assert.Equal(t, jsonType, match.returnType)
+			} else {
+				assert.Nil(t, match)
+			}
+			if testCase.wantDiagnostic == "" {
+				assert.Nil(t, diagnostic)
+				return
+			}
+			require.NotNil(t, diagnostic)
+			assert.Equal(t, testCase.wantDiagnostic, diagnostic.Code)
+			assert.Equal(t, querier_dto.SeverityWarning, diagnostic.Severity)
 		})
 	}
 }

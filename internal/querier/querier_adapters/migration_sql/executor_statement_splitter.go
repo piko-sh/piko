@@ -594,9 +594,14 @@ func splitStatements(content string) ([]string, error) {
 // construct.
 func splitStatementsWithOptions(content string, backslashEscapes bool) ([]string, error) {
 	splitter := &statementSplitter{
-		statements:       make([]string, 0, defaultStatementCapacity),
-		runes:            []rune(content),
-		backslashEscapes: backslashEscapes,
+		statements:          make([]string, 0, defaultStatementCapacity),
+		runes:               []rune(content),
+		backslashEscapes:    backslashEscapes,
+		current:             strings.Builder{},
+		index:               0,
+		blockDepth:          0,
+		caseDepth:           0,
+		statementHasContent: false,
 	}
 	for splitter.index < len(splitter.runes) {
 		if err := splitter.step(); err != nil {

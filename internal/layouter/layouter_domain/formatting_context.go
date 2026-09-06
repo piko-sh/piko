@@ -66,6 +66,107 @@ type FormattingContext interface {
 	Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult
 }
 
+// blockContext implements block formatting context layout.
+type blockContext struct{}
+
+// inlineContext implements inline formatting context layout.
+type inlineContext struct{}
+
+// flexContext implements flex formatting context layout.
+type flexContext struct{}
+
+// gridContext implements grid formatting context layout.
+type gridContext struct{}
+
+// multiColumnContext implements multi-column formatting context layout.
+type multiColumnContext struct{}
+
+// tableContext implements table formatting context layout.
+type tableContext struct{}
+
+// Layout lays out children using the block formatting context algorithm, returning child
+// fragments with parent-relative offsets.
+//
+// Takes box (*LayoutBox) which is the block container to lay out.
+// Takes input (layoutInput) which carries the available width and font metrics.
+//
+// Returns formattingContextResult with the layout results.
+func (blockContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
+	return layoutBlockChildren(ctx, box, input)
+}
+
+// Layout lays out children using the inline formatting context algorithm.
+//
+// Takes box (*LayoutBox) which is the inline container to lay out.
+// Takes input (layoutInput) which carries the available width and font metrics.
+//
+// Returns formattingContextResult with the layout results.
+func (inlineContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
+	return layoutInlineContent(ctx, box, input)
+}
+
+// Layout lays out children using the flexbox algorithm.
+//
+// Takes box (*LayoutBox) which is the flex container to lay out.
+// Takes input (layoutInput) which carries the available width and font metrics.
+//
+// Returns formattingContextResult with the layout results.
+func (flexContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
+	return layoutFlexContainer(ctx, box, input)
+}
+
+// Layout lays out children using the CSS grid algorithm.
+//
+// Takes box (*LayoutBox) which is the grid container to lay out.
+// Takes input (layoutInput) which carries the available width and font metrics.
+//
+// Returns formattingContextResult with the layout results.
+func (gridContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
+	return layoutGridContainer(ctx, box, input)
+}
+
+// Layout lays out children using the multi-column algorithm.
+//
+// Takes box (*LayoutBox) which is the multi-column container to lay out.
+// Takes input (layoutInput) which carries the available width and font metrics.
+//
+// Returns formattingContextResult with the layout results.
+func (multiColumnContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
+	return layoutMultiColumnContainer(ctx, box, input)
+}
+
+// Layout lays out children using the table layout algorithm.
+//
+// Takes box (*LayoutBox) which is the table container to lay out.
+// Takes input (layoutInput) which carries the available width and font metrics.
+//
+// Returns formattingContextResult with the layout results.
+func (tableContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
+	return layoutTableContainer(ctx, box, input)
+}
+
+// newFormattingContextResult creates a formattingContextResult that keeps the box's own
+// CSS border, carrying the laid-out children, content height and resolved margins.
+//
+// Takes children ([]*Fragment) which are the child fragments in document order.
+// Takes contentHeight (float64) which is the intrinsic content height in points.
+// Takes margin (BoxEdges) which holds the resolved margin values.
+//
+// Returns formattingContextResult which holds the layout output with no border override.
+func newFormattingContextResult(
+	children []*Fragment,
+	contentHeight float64,
+	margin BoxEdges,
+) formattingContextResult {
+	return formattingContextResult{
+		Children:      children,
+		ContentHeight: contentHeight,
+		Margin:        margin,
+		Border:        BoxEdges{},
+		HasBorder:     false,
+	}
+}
+
 // resolveFormattingContext selects the correct formatting context implementation for a
 // box based on its type and children.
 //
@@ -107,83 +208,4 @@ func resolveFormattingContext(box *LayoutBox) (FormattingContext, error) {
 func isMultiColumnContainer(box *LayoutBox) bool {
 	return box.Style.ColumnCount > 1 ||
 		(!box.Style.ColumnWidth.IsAuto() && box.Style.ColumnWidth.Value > 0)
-}
-
-// blockContext implements block formatting context layout.
-type blockContext struct{}
-
-// Layout lays out children using the block formatting context algorithm, returning child
-// fragments with parent-relative offsets.
-//
-// Takes box (*LayoutBox) which is the block container to lay out.
-// Takes input (layoutInput) which carries the available width and font metrics.
-//
-// Returns formattingContextResult with the layout results.
-func (blockContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
-	return layoutBlockChildren(ctx, box, input)
-}
-
-// inlineContext implements inline formatting context layout.
-type inlineContext struct{}
-
-// Layout lays out children using the inline formatting context algorithm.
-//
-// Takes box (*LayoutBox) which is the inline container to lay out.
-// Takes input (layoutInput) which carries the available width and font metrics.
-//
-// Returns formattingContextResult with the layout results.
-func (inlineContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
-	return layoutInlineContent(ctx, box, input)
-}
-
-// flexContext implements flex formatting context layout.
-type flexContext struct{}
-
-// Layout lays out children using the flexbox algorithm.
-//
-// Takes box (*LayoutBox) which is the flex container to lay out.
-// Takes input (layoutInput) which carries the available width and font metrics.
-//
-// Returns formattingContextResult with the layout results.
-func (flexContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
-	return layoutFlexContainer(ctx, box, input)
-}
-
-// gridContext implements grid formatting context layout.
-type gridContext struct{}
-
-// Layout lays out children using the CSS grid algorithm.
-//
-// Takes box (*LayoutBox) which is the grid container to lay out.
-// Takes input (layoutInput) which carries the available width and font metrics.
-//
-// Returns formattingContextResult with the layout results.
-func (gridContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
-	return layoutGridContainer(ctx, box, input)
-}
-
-// multiColumnContext implements multi-column formatting context layout.
-type multiColumnContext struct{}
-
-// Layout lays out children using the multi-column algorithm.
-//
-// Takes box (*LayoutBox) which is the multi-column container to lay out.
-// Takes input (layoutInput) which carries the available width and font metrics.
-//
-// Returns formattingContextResult with the layout results.
-func (multiColumnContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
-	return layoutMultiColumnContainer(ctx, box, input)
-}
-
-// tableContext implements table formatting context layout.
-type tableContext struct{}
-
-// Layout lays out children using the table layout algorithm.
-//
-// Takes box (*LayoutBox) which is the table container to lay out.
-// Takes input (layoutInput) which carries the available width and font metrics.
-//
-// Returns formattingContextResult with the layout results.
-func (tableContext) Layout(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
-	return layoutTableContainer(ctx, box, input)
 }

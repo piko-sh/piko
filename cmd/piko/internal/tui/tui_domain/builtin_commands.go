@@ -36,9 +36,24 @@ func RegisterBuiltinCommands(registry *CommandRegistry) {
 	registry.Register(Command{Name: "quit", Aliases: []string{"q", "exit"}, Description: "Quit the TUI", Run: runQuitCommand})
 	registry.Register(Command{Name: "refresh", Aliases: []string{"r"}, Description: "Force-refresh all providers", Run: runRefreshCommand})
 	registry.Register(Command{Name: "help", Aliases: []string{"?"}, Description: "Open the help overlay", Run: runHelpCommand})
-	registry.Register(Command{Name: "theme", Description: "Switch theme. Without arguments, lists registered themes", Run: runThemeCommand})
-	registry.Register(Command{Name: "focus", Description: "Focus the panel with the given ID", Run: runFocusCommand})
-	registry.Register(Command{Name: "layout", Description: "Force a layout (single|two|three) or clear with no arguments", Run: runLayoutCommand})
+	registry.Register(Command{
+		Name:        "theme",
+		Description: "Switch theme. Without arguments, lists registered themes",
+		Run:         runThemeCommand,
+		Aliases:     nil,
+	})
+	registry.Register(Command{
+		Name:        "focus",
+		Description: "Focus the panel with the given ID",
+		Run:         runFocusCommand,
+		Aliases:     nil,
+	})
+	registry.Register(Command{
+		Name:        "layout",
+		Description: "Force a layout (single|two|three) or clear with no arguments",
+		Run:         runLayoutCommand,
+		Aliases:     nil,
+	})
 }
 
 // runQuitCommand emits the quit message.

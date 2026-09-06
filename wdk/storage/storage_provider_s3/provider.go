@@ -541,14 +541,7 @@ func (p *S3Provider) Close(context.Context) error {
 // Returns error when a batch request fails and ContinueOnError is false.
 func (p *S3Provider) RemoveMany(ctx context.Context, params storage.RemoveManyParams) (*storage.BatchResult, error) {
 	if len(params.Keys) == 0 {
-		return &storage.BatchResult{
-			TotalRequested:  0,
-			SuccessfulKeys:  nil,
-			FailedKeys:      nil,
-			TotalSuccessful: 0,
-			TotalFailed:     0,
-			ProcessingTime:  0,
-		}, nil
+		return &storage.BatchResult{}, nil
 	}
 
 	if err := p.rateLimiter.Wait(ctx); err != nil {
@@ -561,14 +554,8 @@ func (p *S3Provider) RemoveMany(ctx context.Context, params storage.RemoveManyPa
 	}
 
 	startTime := time.Now()
-	result := &storage.BatchResult{
-		TotalRequested:  len(params.Keys),
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		ProcessingTime:  0,
-	}
+	result := &storage.BatchResult{}
+	result.TotalRequested = len(params.Keys)
 
 	for i := 0; i < len(params.Keys); i += s3MaxKeysPerDelete {
 		end := min(i+s3MaxKeysPerDelete, len(params.Keys))
@@ -597,14 +584,7 @@ func (p *S3Provider) RemoveMany(ctx context.Context, params storage.RemoveManyPa
 // Returns error which is always nil; individual failures are recorded in the result.
 func (p *S3Provider) PutMany(ctx context.Context, params *storage.PutManyParams) (*storage.BatchResult, error) {
 	if len(params.Objects) == 0 {
-		return &storage.BatchResult{
-			TotalRequested:  0,
-			SuccessfulKeys:  nil,
-			FailedKeys:      nil,
-			TotalSuccessful: 0,
-			TotalFailed:     0,
-			ProcessingTime:  0,
-		}, nil
+		return &storage.BatchResult{}, nil
 	}
 
 	concurrency := params.Concurrency
@@ -843,6 +823,7 @@ func NewS3Provider(ctx context.Context, s3Config *Config, opts ...storage.Provid
 	defaultConfig := storage.ProviderRateLimitConfig{
 		CallsPerSecond: defaultCallsPerSecond,
 		Burst:          defaultBurst,
+		Clock:          nil,
 	}
 	rateLimiter := storage.ApplyProviderOptions(defaultConfig, opts...)
 
@@ -851,6 +832,7 @@ func NewS3Provider(ctx context.Context, s3Config *Config, opts ...storage.Provid
 		presignClient:     s3.NewPresignClient(client),
 		repositoryBuckets: s3Config.RepositoryMappings,
 		rateLimiter:       rateLimiter,
+		closed:            atomic.Bool{},
 	}, nil
 }
 
@@ -1067,14 +1049,8 @@ func collectBatchResults(results <-chan batchResult, result *storage.BatchResult
 // Safe for concurrent use. Spawns worker goroutines tracked by a WaitGroup; closes the
 // results channel when all workers finish.
 func runBatchWorkers[T any](ctx context.Context, items []T, concurrency int, continueOnError bool, workerFunc func(context.Context, T) (string, error)) *storage.BatchResult {
-	result := &storage.BatchResult{
-		TotalRequested:  len(items),
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		ProcessingTime:  0,
-	}
+	result := &storage.BatchResult{}
+	result.TotalRequested = len(items)
 	jobs := make(chan batchJob[T], len(items))
 	results := make(chan batchResult, len(items))
 

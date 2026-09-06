@@ -275,4 +275,12 @@ const (
 	// command, or combined with dynamic runtime builders or optional predicate params, it
 	// has no meaning, so it is rejected rather than silently ignored.
 	CodeOptionalNonOneCommand = "Q047"
+
+	// CodeIgnoredMigrationFile indicates a .sql file in the migration directory was skipped
+	// because its name ends in neither .up.sql nor .down.sql.
+	CodeIgnoredMigrationFile = "Q048"
+
+	// CodeUnusableGoTypeOverride indicates a migration go_type override names a type the
+	// generator cannot use, so the column keeps its inferred Go type.
+	CodeUnusableGoTypeOverride = "Q049"
 )

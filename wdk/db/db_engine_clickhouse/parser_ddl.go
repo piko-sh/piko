@@ -21,11 +21,9 @@ package db_engine_clickhouse
 import (
 	"cmp"
 	"fmt"
-	"runtime/debug"
 	"strings"
 	"unicode/utf8"
 
-	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -79,7 +77,9 @@ const (
 // column metadata.
 // Returns error on malformed input.
 func (p *parser) parseCreateTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("CREATE")
+	if _, err := p.expectKeyword("CREATE"); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
 	if !p.matchKeyword("TABLE") {
 		return nil, fmt.Errorf("expected TABLE keyword at position %d", p.current().position)
@@ -91,25 +91,22 @@ func (p *parser) parseCreateTable() (*querier_dto.CatalogueMutation, error) {
 		return nil, fmt.Errorf("parsing table name: %w", nameError)
 	}
 
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationCreateTable,
-		SchemaName:     database,
-		TableName:      name,
-		EngineSpecific: map[string]string{},
-	}
+	mutation := querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateTable,
+		database,
+		name,
+		querier_dto.WithEngineSpecific(map[string]string{}),
+	)
 
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific[engineClauseOnCluster] = cluster
 	}
 
 	if p.current().kind != tokenLeftParen {
-		if p.matchKeyword("AS") {
-			if err := p.populateCTASColumns(mutation); err != nil {
-				return nil, err
-			}
-			return mutation, nil
+		if err := p.parseCreateTableWithoutColumnList(mutation); err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("expected '(' or AS at position %d", p.current().position)
+		return mutation, nil
 	}
 
 	columns, primaryKey, parseErr := p.parseCreateTableBody()
@@ -122,8 +119,36 @@ func (p *parser) parseCreateTable() (*querier_dto.CatalogueMutation, error) {
 	if err := p.parseTableEngineClauses(mutation); err != nil {
 		return nil, err
 	}
+	if p.matchKeyword("AS") {
+		p.consumeRemainder()
+	}
 
 	return mutation, nil
+}
+
+// parseCreateTableWithoutColumnList handles the CREATE TABLE forms that take their
+// columns from an AS clause instead of a parenthesised column list.
+//
+// Recognises both `CREATE TABLE t AS source [ENGINE ...]` and `CREATE TABLE t ENGINE =
+// ... [ORDER BY ...] [EMPTY] AS SELECT ...`, in which the engine clauses precede the AS
+// body. The engine clauses are captured into the mutation's EngineSpecific map either
+// way.
+//
+// Takes mutation (*querier_dto.CatalogueMutation) which receives the columns and engine
+// clauses.
+//
+// Returns error when no AS clause follows the engine clauses or the AS body is malformed.
+func (p *parser) parseCreateTableWithoutColumnList(mutation *querier_dto.CatalogueMutation) error {
+	if err := p.parseTableEngineClauses(mutation); err != nil {
+		return err
+	}
+	if p.matchKeyword("EMPTY") {
+		mutation.EngineSpecific["EMPTY"] = "true"
+	}
+	if !p.matchKeyword("AS") {
+		return fmt.Errorf("expected '(' or AS at position %d", p.current().position)
+	}
+	return p.populateCTASColumns(mutation)
 }
 
 // populateCTASColumns lifts a CREATE TABLE AS body into the mutation's column list.
@@ -160,38 +185,22 @@ func (p *parser) populateCTASColumns(mutation *querier_dto.CatalogueMutation) er
 	return nil
 }
 
-// populateCTASFromSelect re-tokenises the remaining input through a fresh parser and runs
-// analyseSelect on it. The analyser's output columns are lifted into the mutation's
-// column list as nullable catalogue columns; subsequent type resolution refines them
-// through the function / expression resolvers.
+// populateCTASFromSelect analyses the remaining tokens as a SELECT through a child parser
+// and lifts the analyser's output columns into the mutation's column list as nullable
+// catalogue columns of unknown type.
 //
-// On analyser panic the recovered value becomes the returned error so a malformed CTAS
-// body cannot crash the apply loop; the stack trace is logged engine-side via log.Warn
-// rather than embedded in the error, so user-facing surfaces never expose internal paths.
-// The remainder of the source is consumed so the caller's engine-clause parse continues
-// from a known position.
+// The remainder of the statement is consumed so the caller continues from a known
+// position.
 //
 // Takes mutation (*querier_dto.CatalogueMutation) which receives the analysed columns.
 //
-// Returns error when the SELECT analyser fails or the analyser body panics.
-func (p *parser) populateCTASFromSelect(mutation *querier_dto.CatalogueMutation) (err error) {
-	remainingTokens := p.tokens[p.position:]
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			log.Warn("clickhouse: panic while analysing CTAS body",
-				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
-				logger_domain.String("stack", string(debug.Stack())),
-			)
-			err = fmt.Errorf("clickhouse: panic while analysing CTAS body: %v", recovered)
-		}
-	}()
-	nested := newParser(remainingTokens)
-	nested.analysisDepth = p.analysisDepth
-	nested.maxParseDepth = p.maxParseDepth
+// Returns error when the SELECT body is malformed.
+func (p *parser) populateCTASFromSelect(mutation *querier_dto.CatalogueMutation) error {
+	nested := p.newChildParser(p.tokens[p.position:])
 	analysis, analyseErr := nested.analyseSelect()
 	p.consumeRemainder()
-	if analyseErr != nil || analysis == nil {
-		return analyseErr
+	if analyseErr != nil {
+		return fmt.Errorf("analysing CREATE TABLE AS body: %w", analyseErr)
 	}
 	mutation.Columns = columnsFromCTASAnalysis(analysis)
 	return nil
@@ -201,8 +210,7 @@ func (p *parser) populateCTASFromSelect(mutation *querier_dto.CatalogueMutation)
 //
 // Each column's nullability defaults to true because CTAS produces virtual columns whose
 // nullability cannot be determined without full type resolution against the source
-// tables. The downstream catalogue builder may tighten the flag once it can look up the
-// source table.
+// tables.
 //
 // Takes analysis (*querier_dto.RawQueryAnalysis) which holds the analysed output columns.
 //
@@ -211,11 +219,7 @@ func columnsFromCTASAnalysis(analysis *querier_dto.RawQueryAnalysis) []querier_d
 	columns := make([]querier_dto.Column, 0, len(analysis.OutputColumns))
 	for _, output := range analysis.OutputColumns {
 		name := cmp.Or(output.Name, output.ColumnName)
-		columns = append(columns, querier_dto.Column{
-			Name:     name,
-			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			Nullable: true,
-		})
+		columns = append(columns, querier_dto.NewColumn(name, querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true))
 	}
 	return columns
 }
@@ -369,13 +373,18 @@ func (p *parser) parseCreateTableEntry() (createTableEntry, error) {
 		return createTableEntry{}, keyErr
 	}
 	if isPrimaryKey {
-		return createTableEntry{PrimaryKey: parsedKeys, IsPrimaryKey: true}, nil
+		return createTableEntry{
+			PrimaryKey:   parsedKeys,
+			IsPrimaryKey: true,
+			Column:       querier_dto.Column{},
+			IsColumn:     false,
+		}, nil
 	}
 	parsedColumn, columnErr := p.parseClickHouseColumn()
 	if columnErr != nil {
 		return createTableEntry{}, columnErr
 	}
-	return createTableEntry{Column: parsedColumn, IsColumn: true}, nil
+	return createTableEntry{Column: parsedColumn, IsColumn: true, PrimaryKey: nil, IsPrimaryKey: false}, nil
 }
 
 // tryParsePrimaryKeyClause checks for a table-level PRIMARY KEY declaration.
@@ -445,16 +454,15 @@ func (p *parser) parseClickHouseColumn() (querier_dto.Column, error) {
 	if err != nil {
 		return querier_dto.Column{}, fmt.Errorf("reading column %q type: %w", columnName, err)
 	}
-	typeResult, parseErr := parseClickHouseType(typeName)
+	typeResult, parseErr := parseClickHouseType(typeName, p.maxTypeParseDepth)
 	if parseErr != nil {
 		return querier_dto.Column{}, fmt.Errorf("parsing column %q type %q: %w", columnName, typeName, parseErr)
 	}
 
-	column := querier_dto.Column{
-		Name:     columnName,
-		SQLType:  typeResult.SQLType,
-		Nullable: typeResult.Nullable,
-	}
+	column := querier_dto.Column{}
+	column.Name = columnName
+	column.SQLType = typeResult.SQLType
+	column.Nullable = typeResult.Nullable
 
 	p.applyColumnNullSuffix(&column)
 
@@ -661,7 +669,9 @@ func (p *parser) skipUntilCommaOrCloseParen() {
 //
 // The clauses are `ENGINE = MergeTree(...) PARTITION BY ... ORDER BY ... SAMPLE BY ...
 // PRIMARY KEY ... TTL ... SETTINGS ...`. Each clause is stored verbatim under its keyword
-// so downstream code can inspect what was declared without re-parsing.
+// so downstream code can inspect what was declared without re-parsing. The loop stops,
+// without consuming it, at the first token that starts no clause (an AS body, for
+// example), leaving the caller to handle it.
 //
 // Takes mutation (*querier_dto.CatalogueMutation) whose EngineSpecific map is populated.
 //
@@ -715,10 +725,6 @@ func (p *parser) parseSingleEngineClause(mutation *querier_dto.CatalogueMutation
 			p.advance()
 		}
 		return true, nil
-	case p.matchKeyword("AS"):
-
-		p.consumeRemainder()
-		return false, nil
 	default:
 		return false, nil
 	}
@@ -1385,18 +1391,15 @@ func (p *parser) parseDropQualifiedObject(
 	objectKeyword string,
 	mutationKind querier_dto.MutationKind,
 ) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("DROP")
-	p.mustKeyword(objectKeyword)
+	if err := p.expectKeywordSequence("DROP", objectKeyword); err != nil {
+		return nil, err
+	}
 	p.matchIfExists()
 	database, name, err := p.parseDatabaseQualifiedName()
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       mutationKind,
-		SchemaName: database,
-		TableName:  name,
-	}
+	mutation := querier_dto.NewCatalogueMutation(mutationKind, database, name)
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific = map[string]string{engineClauseOnCluster: cluster}
 	}
@@ -1411,17 +1414,15 @@ func (p *parser) parseDropQualifiedObject(
 // Returns *querier_dto.CatalogueMutation with Kind=MutationDropSchema.
 // Returns error on malformed input.
 func (p *parser) parseDropDatabase() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("DROP")
-	p.mustKeyword("DATABASE")
+	if err := p.expectKeywordSequence("DROP", "DATABASE"); err != nil {
+		return nil, err
+	}
 	p.matchIfExists()
 	name, err := p.parseIdentifierOrKeyword()
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropSchema,
-		SchemaName: name,
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationDropSchema, name, "")
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific = map[string]string{engineClauseOnCluster: cluster}
 	}
@@ -1435,18 +1436,19 @@ func (p *parser) parseDropDatabase() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation with Kind=MutationCreateSchema.
 // Returns error on malformed input.
 func (p *parser) parseCreateDatabase() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("CREATE")
+	if _, err := p.expectKeyword("CREATE"); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
-	p.mustKeyword("DATABASE")
+	if _, err := p.expectKeyword("DATABASE"); err != nil {
+		return nil, err
+	}
 	p.matchIfNotExists()
 	name, err := p.parseIdentifierOrKeyword()
 	if err != nil {
 		return nil, err
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateSchema,
-		SchemaName: name,
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateSchema, name, "")
 	if cluster := p.matchOnCluster(); cluster != "" {
 		mutation.EngineSpecific = map[string]string{engineClauseOnCluster: cluster}
 	}

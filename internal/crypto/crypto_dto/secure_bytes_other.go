@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-//go:build !linux && !darwin && !freebsd && !openbsd && !netbsd && !windows && !(js && wasm)
+//go:build !linux && !darwin && !freebsd && !openbsd && !netbsd && (!windows || safe)
 
 package crypto_dto
 
@@ -24,24 +24,27 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"sync"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 // secureBytesCleanupData holds the data needed for runtime.AddCleanup.
 type secureBytesCleanupData struct {
-	// data holds the raw memory region to be securely zeroed.
-	data []byte
-
 	// id is a unique label used to track cleanup of secure memory.
 	id string
+
+	// data holds the raw memory region to be securely zeroed.
+	data []byte
 
 	// size is the byte length of the memory region to clear.
 	size int
 }
 
-// platformClose performs cleanup by zeroing memory. On this platform mmap and mlock are
-// not available, so memory protection is best-effort.
+// platformClose performs cleanup by zeroing memory. This build has no mmap or mlock (or,
+// on Windows built with the safe tag, does not use VirtualAlloc), so memory protection is
+// best-effort.
 //
 // Returns error which is always nil on this platform.
 func (secureBytes *SecureBytes) platformClose() error {
@@ -51,9 +54,10 @@ func (secureBytes *SecureBytes) platformClose() error {
 
 // NewSecureBytes creates a new SecureBytes instance using regular Go memory.
 //
-// This platform does not support mmap or mlock, so the memory is not protected against
-// swapping. Use a supported platform for production deployments that handle sensitive
-// data.
+// This build does not lock memory (WASM and other platforms without mmap or mlock, and
+// Windows built with the safe tag), so the memory is not protected against swapping. Use
+// a supported platform, without the safe tag on Windows, for production deployments that
+// handle sensitive data.
 //
 // Takes size (int) which specifies the number of bytes to allocate.
 // Takes opts (...Option) which provides optional configuration settings.
@@ -71,6 +75,10 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 		data:      data,
 		size:      size,
 		allocSize: size,
+		id:        "",
+		cleanup:   runtime.Cleanup{},
+		mu:        sync.RWMutex{},
+		closed:    atomic.Bool{},
 	}
 
 	for _, opt := range opts {

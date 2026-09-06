@@ -20,6 +20,7 @@ package registry_adapters
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
@@ -557,4 +558,69 @@ func TestMockMetadataStore_Close(t *testing.T) {
 
 		assert.NoError(t, store.Close())
 	})
+}
+
+func TestMockMetadataStore_RoundTripKeepsEveryFieldWithoutAliasing(t *testing.T) {
+	t.Parallel()
+
+	newArtefact := func() *registry_dto.ArtefactMeta {
+		tags := registry_dto.Tags{}
+		tags.Set(registry_dto.TagContentEncoding, "br")
+		params := registry_dto.ProfileParams{}
+		params.Set(registry_dto.ParamHeight, "600")
+
+		return &registry_dto.ArtefactMeta{
+			CreatedAt:  time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC),
+			UpdatedAt:  time.Date(2026, 10, 1, 12, 1, 0, 0, time.UTC),
+			ID:         "round-trip",
+			ReleaseID:  "release-1",
+			SourcePath: "videos/clip.mp4",
+			Status:     registry_dto.VariantStatusReady,
+			DesiredProfiles: []registry_dto.NamedProfile{{
+				Name:    "hls",
+				Profile: registry_dto.DesiredProfile{CapabilityName: "transcode", Params: params.Clone()},
+			}},
+			ActualVariants: []registry_dto.Variant{{
+				MetadataTags:     tags.Clone(),
+				SRIHash:          "sha384-abc",
+				Origin:           registry_dto.VariantOriginBuild,
+				StorageKey:       "blobs/hls",
+				VariantID:        "hls",
+				Status:           registry_dto.VariantStatusReady,
+				StorageBackendID: "local",
+				BuildRelease:     "release-1",
+				BuildHash:        "build-hash",
+				InputFingerprint: "fingerprint",
+				Transform: registry_dto.VariantTransform{
+					ParentVariantID: "source",
+					CapabilityName:  "transcode",
+					Params:          params.Clone(),
+				},
+				Chunks:   []registry_dto.VariantChunk{{ChunkID: "chunk-0", DurationSeconds: new(4.5)}},
+				Producer: registry_dto.ProducerBuild,
+				Kind:     registry_dto.KindDerived,
+			}},
+		}
+	}
+
+	store := NewMockMetadataStore()
+	ctx := context.Background()
+	stored := newArtefact()
+	require.NoError(t, store.AtomicUpdate(ctx, []registry_dto.AtomicAction{
+		{Type: registry_dto.ActionTypeUpsertArtefact, Artefact: stored},
+	}))
+	*stored.ActualVariants[0].Chunks[0].DurationSeconds = 1
+	stored.ActualVariants[0].MetadataTags.Set(registry_dto.TagContentEncoding, "gzip")
+
+	first, err := store.GetArtefact(ctx, "round-trip")
+	require.NoError(t, err)
+	assert.True(t, reflect.DeepEqual(newArtefact(), first), "the store lost or shared a field on write")
+
+	*first.ActualVariants[0].Chunks[0].DurationSeconds = 2
+	first.ActualVariants[0].Transform.Params.Set(registry_dto.ParamHeight, "1")
+	first.DesiredProfiles[0].Profile.Params.Set(registry_dto.ParamHeight, "1")
+
+	second, err := store.GetArtefact(ctx, "round-trip")
+	require.NoError(t, err)
+	assert.True(t, reflect.DeepEqual(newArtefact(), second), "the store shared state with a reader")
 }

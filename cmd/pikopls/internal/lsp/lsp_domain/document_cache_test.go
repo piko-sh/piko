@@ -104,25 +104,22 @@ func TestDocumentCache_ConcurrentSetGet(t *testing.T) {
 	const iterations = 1000
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			for j := range iterations {
 				content := fmt.Appendf(nil, "content-%d-%d", id, j)
 				cache.Set(uri, content)
 			}
-		}(i)
+		})
 	}
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range iterations {
 				_, _ = cache.Get(uri)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -139,25 +136,22 @@ func TestDocumentCache_ConcurrentSetDelete(t *testing.T) {
 	const iterations = 500
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
-	for i := range goroutines {
-		go func(id int) {
-			defer wg.Done()
+	for id := range goroutines {
+		wg.Go(func() {
 			for j := range iterations {
 				content := fmt.Appendf(nil, "content-%d-%d", id, j)
 				cache.Set(uri, content)
 			}
-		}(i)
+		})
 	}
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range iterations {
 				cache.Delete(uri)
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -179,36 +173,32 @@ func TestDocumentCache_ConcurrentMultipleURIs(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(numURIs * goroutinesPerURI * 3)
 
 	for _, uri := range uris {
 
-		for i := range goroutinesPerURI {
-			go func(id int) {
-				defer wg.Done()
+		for id := range goroutinesPerURI {
+			wg.Go(func() {
 				for j := range iterations {
 					content := fmt.Appendf(nil, "content-%d-%d", id, j)
 					cache.Set(uri, content)
 				}
-			}(i)
+			})
 		}
 
 		for range goroutinesPerURI {
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				for range iterations {
 					_, _ = cache.Get(uri)
 				}
-			}()
+			})
 		}
 
 		for range goroutinesPerURI {
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				for range iterations {
 					cache.Delete(uri)
 				}
-			}()
+			})
 		}
 	}
 

@@ -19,6 +19,7 @@
 package db_engine_mysql
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -31,6 +32,7 @@ import (
 // Returns querier_dto.Expression which is the parsed expression tree.
 func (p *parser) parseExpression() querier_dto.Expression {
 	if p.expressionDepth >= p.maxParseDepth {
+		p.recordSyntaxError(errExpressionDepthExceeded)
 		return &querier_dto.UnknownExpression{}
 	}
 	p.expressionDepth++
@@ -204,8 +206,8 @@ func (p *parser) parseSoundsLikeSuffix(left querier_dto.Expression) querier_dto.
 func (p *parser) parseComparisonOperator(left querier_dto.Expression) querier_dto.Expression {
 	operator := p.advance().value
 	if p.matchKeyword("ANY") || p.matchKeyword(keywordALL) || p.matchKeyword("SOME") {
-		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
+		if err := p.skipParenthesisedIfPresent(); err != nil {
+			p.recordSyntaxError(fmt.Errorf("parsing %s ANY/ALL operand: %w", operator, err))
 		}
 		return &querier_dto.ComparisonExpression{Operator: operator, Left: left, Right: &querier_dto.UnknownExpression{}}
 	}
@@ -474,7 +476,12 @@ func (p *parser) parseIdentifierExpression() querier_dto.Expression {
 				p.advance()
 			}
 		}
-		return &querier_dto.FunctionCallExpression{FunctionName: strings.ToLower(upper)}
+		return &querier_dto.FunctionCallExpression{
+			FunctionName:     strings.ToLower(upper),
+			FilterExpression: nil,
+			Schema:           "",
+			Arguments:        nil,
+		}
 	}
 
 	return p.parseColumnOrFunctionReference()
@@ -578,7 +585,12 @@ func (p *parser) parseRowConstructorExpression() querier_dto.Expression {
 func (p *parser) parseIfExpression() querier_dto.Expression {
 	p.advance()
 	if p.current().kind != tokenLeftParen {
-		return &querier_dto.FunctionCallExpression{FunctionName: "if"}
+		return &querier_dto.FunctionCallExpression{
+			FunctionName:     "if",
+			FilterExpression: nil,
+			Schema:           "",
+			Arguments:        nil,
+		}
 	}
 	return p.parseFunctionCall("if", "")
 }
@@ -706,6 +718,7 @@ func (p *parser) parseInListSuffix(left querier_dto.Expression) querier_dto.Expr
 		childParser.expressionDepth = p.expressionDepth
 		childParser.maxParseDepth = p.maxParseDepth
 		innerAnalysis, analyseError := childParser.analyseSelect()
+		p.adoptSyntaxError(childParser)
 		if analyseError != nil {
 			return &querier_dto.UnknownExpression{}
 		}
@@ -872,16 +885,7 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	return engine_shared.FindEnclosingLikeOperator(paramPosition,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingLikeOperator(paramPosition)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -1259,13 +1263,7 @@ func (p *parser) argumentOrdinalAt(openParen int, paramPosition int) int {
 //
 // Returns int which is the index of the enclosing `(`, or -1 when none.
 func (p *parser) findEnclosingParen(position int) int {
-	return engine_shared.FindEnclosingParen(position,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingParen(position)
 }
 
 // extractColumnReferenceBeforeIN returns the column before an IN keyword.
@@ -1380,6 +1378,7 @@ func (p *parser) extractColumnReference(position int) *querier_dto.ColumnReferen
 
 	return &querier_dto.ColumnReference{
 		ColumnName: tok.value,
+		TableAlias: "",
 	}
 }
 
@@ -1478,8 +1477,8 @@ func (p *parser) parseCastTypeName() string {
 	p.appendSchemaQualifier(&builder)
 	p.appendMultiWordTypeKeywords(&builder)
 
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+	if err := p.skipParenthesisedIfPresent(); err != nil {
+		p.recordSyntaxError(fmt.Errorf("parsing type modifiers of %s: %w", builder.String(), err))
 	}
 
 	return builder.String()
@@ -1545,6 +1544,7 @@ func (p *parser) analyseSubqueryBody() (*querier_dto.RawQueryAnalysis, bool) {
 	childParser.expressionDepth = p.expressionDepth
 	childParser.maxParseDepth = p.maxParseDepth
 	innerAnalysis, analyseError := childParser.analyseSelect()
+	p.adoptSyntaxError(childParser)
 	if analyseError != nil {
 		return nil, false
 	}

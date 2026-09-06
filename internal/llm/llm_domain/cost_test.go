@@ -179,14 +179,10 @@ func TestCostCalculator_Calculate(t *testing.T) {
 			wantTotalCost:  "11.25",
 		},
 		{
-			name:     "handles zero tokens",
-			model:    "gpt-5",
-			provider: "openai",
-			usage: &llm_dto.Usage{
-				PromptTokens:     0,
-				CompletionTokens: 0,
-				TotalTokens:      0,
-			},
+			name:           "handles zero tokens",
+			model:          "gpt-5",
+			provider:       "openai",
+			usage:          &llm_dto.Usage{},
 			wantInputCost:  "0",
 			wantOutputCost: "0",
 			wantTotalCost:  "0",

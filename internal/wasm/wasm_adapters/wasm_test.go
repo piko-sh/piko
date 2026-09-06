@@ -27,6 +27,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/wasm/wasm_dto"
 )
 
 func TestNoOpConsole(t *testing.T) {
@@ -212,4 +215,872 @@ func TestInMemoryFileInfo(t *testing.T) {
 		info := &inMemoryFileInfo{name: "test.txt"}
 		assert.Nil(t, info.Sys())
 	})
+}
+
+func TestInMemoryFSReader_ReadFile_PathNormalisation(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reads file with leading slash", func(t *testing.T) {
+		t.Parallel()
+
+		reader := NewInMemoryFSReader(map[string]string{
+			"pages/index.pk": "<p>hello</p>",
+		})
+
+		content, err := reader.ReadFile(context.Background(), "/pages/index.pk")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("<p>hello</p>"), content)
+	})
+
+	t.Run("reads file stored with leading slash by trimmed path", func(t *testing.T) {
+		t.Parallel()
+
+		reader := NewInMemoryFSReader(map[string]string{
+			"/pages/index.pk": "<p>hello</p>",
+		})
+
+		content, err := reader.ReadFile(context.Background(), "pages/index.pk")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("<p>hello</p>"), content)
+	})
+
+	t.Run("normalises double slashes", func(t *testing.T) {
+		t.Parallel()
+
+		reader := NewInMemoryFSReader(map[string]string{
+			"pages/index.pk": "<p>hello</p>",
+		})
+
+		content, err := reader.ReadFile(context.Background(), "pages//index.pk")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("<p>hello</p>"), content)
+	})
+
+	t.Run("normalises dot segments", func(t *testing.T) {
+		t.Parallel()
+
+		reader := NewInMemoryFSReader(map[string]string{
+			"pages/index.pk": "<p>hello</p>",
+		})
+
+		content, err := reader.ReadFile(context.Background(), "pages/./index.pk")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("<p>hello</p>"), content)
+	})
+}
+
+func TestInMemoryFSReaderFromBytes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates from byte map", func(t *testing.T) {
+		t.Parallel()
+
+		reader := NewInMemoryFSReaderFromBytes(map[string][]byte{
+			"file.txt": []byte("content"),
+		})
+		require.NotNil(t, reader)
+
+		content, err := reader.ReadFile(context.Background(), "file.txt")
+		require.NoError(t, err)
+		assert.Equal(t, []byte("content"), content)
+	})
+}
+
+func TestInMemoryFSReader_GetFiles(t *testing.T) {
+	t.Parallel()
+
+	reader := NewInMemoryFSReader(map[string]string{
+		"a.txt": "aaa",
+		"b.txt": "bbb",
+	})
+
+	files := reader.GetFiles()
+	assert.Len(t, files, 2)
+	assert.Equal(t, []byte("aaa"), files["a.txt"])
+	assert.Equal(t, []byte("bbb"), files["b.txt"])
+}
+
+func TestInMemoryFSReader_GetFiles_ReturnsCopy(t *testing.T) {
+	t.Parallel()
+
+	reader := NewInMemoryFSReader(map[string]string{
+		"a.txt": "aaa",
+	})
+
+	files := reader.GetFiles()
+	files["extra.txt"] = []byte("injected")
+
+	filesAgain := reader.GetFiles()
+	assert.Len(t, filesAgain, 1)
+}
+
+func TestInMemoryFSWriter_ReadDir(t *testing.T) {
+	t.Parallel()
+
+	t.Run("lists files in directory", func(t *testing.T) {
+		t.Parallel()
+
+		writer := NewInMemoryFSWriter()
+		_ = writer.WriteFile(context.Background(), "src/pages/index.pk", []byte("page"))
+		_ = writer.WriteFile(context.Background(), "src/pages/about.pk", []byte("about"))
+		_ = writer.WriteFile(context.Background(), "src/other.txt", []byte("other"))
+
+		entries, err := writer.ReadDir("src/pages")
+		require.NoError(t, err)
+		assert.Len(t, entries, 2)
+	})
+
+	t.Run("identifies subdirectories", func(t *testing.T) {
+		t.Parallel()
+
+		writer := NewInMemoryFSWriter()
+		_ = writer.WriteFile(context.Background(), "src/sub/deep/file.txt", []byte("deep"))
+		_ = writer.WriteFile(context.Background(), "src/top.txt", []byte("top"))
+
+		entries, err := writer.ReadDir("src")
+		require.NoError(t, err)
+		require.Len(t, entries, 2)
+
+		nameMap := make(map[string]bool)
+		for _, entry := range entries {
+			nameMap[entry.Name()] = entry.IsDir()
+		}
+
+		assert.True(t, nameMap["sub"])
+		assert.False(t, nameMap["top.txt"])
+	})
+
+	t.Run("entries sorted by name", func(t *testing.T) {
+		t.Parallel()
+
+		writer := NewInMemoryFSWriter()
+		_ = writer.WriteFile(context.Background(), "dir/zebra.txt", []byte("z"))
+		_ = writer.WriteFile(context.Background(), "dir/alpha.txt", []byte("a"))
+		_ = writer.WriteFile(context.Background(), "dir/middle.txt", []byte("m"))
+
+		entries, err := writer.ReadDir("dir")
+		require.NoError(t, err)
+		require.Len(t, entries, 3)
+		assert.Equal(t, "alpha.txt", entries[0].Name())
+		assert.Equal(t, "middle.txt", entries[1].Name())
+		assert.Equal(t, "zebra.txt", entries[2].Name())
+	})
+
+	t.Run("returns empty for non-existent directory", func(t *testing.T) {
+		t.Parallel()
+
+		writer := NewInMemoryFSWriter()
+		entries, err := writer.ReadDir("nonexistent")
+		require.NoError(t, err)
+		assert.Empty(t, entries)
+	})
+}
+
+func TestInMemoryFSWriter_GetWrittenFiles_ReturnsCopy(t *testing.T) {
+	t.Parallel()
+
+	writer := NewInMemoryFSWriter()
+	_ = writer.WriteFile(context.Background(), "test.txt", []byte("content"))
+
+	files := writer.GetWrittenFiles()
+	files["injected.txt"] = []byte("injected")
+
+	filesAgain := writer.GetWrittenFiles()
+	assert.Len(t, filesAgain, 1)
+}
+
+func TestInMemoryFSWriter_GetWrittenFile_NotFound(t *testing.T) {
+	t.Parallel()
+
+	writer := NewInMemoryFSWriter()
+	content, found := writer.GetWrittenFile("nonexistent.txt")
+	assert.Nil(t, content)
+	assert.False(t, found)
+}
+
+func TestInMemoryFSWriter_RemoveAll_ExactFile(t *testing.T) {
+	t.Parallel()
+
+	writer := NewInMemoryFSWriter()
+	_ = writer.WriteFile(context.Background(), "standalone.txt", []byte("alone"))
+
+	err := writer.RemoveAll("standalone.txt")
+	require.NoError(t, err)
+
+	_, found := writer.GetWrittenFile("standalone.txt")
+	assert.False(t, found)
+}
+
+func TestInMemoryDirEntry_Info(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns file info for file entry", func(t *testing.T) {
+		t.Parallel()
+
+		entry := &inMemoryDirEntry{name: "test.txt", isDir: false}
+		info, err := entry.Info()
+		require.NoError(t, err)
+		assert.Equal(t, "test.txt", info.Name())
+		assert.False(t, info.IsDir())
+	})
+
+	t.Run("returns file info for directory entry", func(t *testing.T) {
+		t.Parallel()
+
+		entry := &inMemoryDirEntry{name: "subdir", isDir: true}
+		info, err := entry.Info()
+		require.NoError(t, err)
+		assert.Equal(t, "subdir", info.Name())
+		assert.True(t, info.IsDir())
+	})
+}
+
+func TestInMemoryFileInfo_Mode(t *testing.T) {
+	t.Parallel()
+
+	t.Run("directory mode", func(t *testing.T) {
+		t.Parallel()
+
+		info := &inMemoryFileInfo{name: "dir", isDir: true}
+		assert.Equal(t, fs.ModeDir|dirPermission, info.Mode())
+	})
+
+	t.Run("file mode", func(t *testing.T) {
+		t.Parallel()
+
+		info := &inMemoryFileInfo{name: "file.txt", isDir: false}
+		assert.Equal(t, filePermission, info.Mode())
+	})
+}
+
+func TestNoOpEmitters(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NoOpCollectionEmitter returns empty path", func(t *testing.T) {
+		t.Parallel()
+
+		emitter := NewNoOpCollectionEmitter()
+		path, err := emitter.EmitCollection(context.Background(), "", nil, "")
+		require.NoError(t, err)
+		assert.Empty(t, path)
+	})
+
+	t.Run("NoOpSearchIndexEmitter returns nil error", func(t *testing.T) {
+		t.Parallel()
+
+		emitter := NewNoOpSearchIndexEmitter()
+		err := emitter.EmitSearchIndex(context.Background(), "", nil, "", nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("NoOpI18nEmitter returns nil error", func(t *testing.T) {
+		t.Parallel()
+
+		emitter := NewNoOpI18nEmitter()
+		err := emitter.EmitI18n(context.Background(), "")
+		require.NoError(t, err)
+	})
+
+	t.Run("NoOpActionGenerator returns nil error", func(t *testing.T) {
+		t.Parallel()
+
+		generator := NewNoOpActionGenerator()
+		err := generator.GenerateActions(context.Background(), nil, "", "")
+		require.NoError(t, err)
+	})
+
+	t.Run("NoOpSEOService returns nil error", func(t *testing.T) {
+		t.Parallel()
+
+		service := NewNoOpSEOService()
+		err := service.GenerateArtefacts(context.Background(), nil)
+		require.NoError(t, err)
+	})
+}
+
+func TestInMemoryRegisterEmitter(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Generate with empty package paths", func(t *testing.T) {
+		t.Parallel()
+
+		fsWriter := NewInMemoryFSWriter()
+		emitter := NewInMemoryRegisterEmitter(fsWriter)
+
+		content, err := emitter.Generate(context.Background(), nil)
+		require.NoError(t, err)
+		assert.Contains(t, string(content), "package dist")
+		assert.NotContains(t, string(content), "import (")
+	})
+
+	t.Run("Generate with package paths", func(t *testing.T) {
+		t.Parallel()
+
+		fsWriter := NewInMemoryFSWriter()
+		emitter := NewInMemoryRegisterEmitter(fsWriter)
+
+		content, err := emitter.Generate(context.Background(), []string{
+			"example.com/project/dist/pages/index",
+			"example.com/project/dist/pages/about",
+		})
+		require.NoError(t, err)
+
+		generated := string(content)
+		assert.Contains(t, generated, "package dist")
+		assert.Contains(t, generated, "import (")
+		assert.Contains(t, generated, `_ "example.com/project/dist/pages/index"`)
+		assert.Contains(t, generated, `_ "example.com/project/dist/pages/about"`)
+	})
+
+	t.Run("Emit writes to fs writer", func(t *testing.T) {
+		t.Parallel()
+
+		fsWriter := NewInMemoryFSWriter()
+		emitter := NewInMemoryRegisterEmitter(fsWriter)
+
+		err := emitter.Emit(context.Background(), "dist/register.go", []string{
+			"example.com/project/dist/pages/index",
+		})
+		require.NoError(t, err)
+
+		written, found := fsWriter.GetWrittenFile("dist/register.go")
+		assert.True(t, found)
+		assert.Contains(t, string(written), "package dist")
+	})
+
+	t.Run("GetContent returns last generated content", func(t *testing.T) {
+		t.Parallel()
+
+		fsWriter := NewInMemoryFSWriter()
+		emitter := NewInMemoryRegisterEmitter(fsWriter)
+
+		assert.Nil(t, emitter.GetContent())
+
+		_ = emitter.Emit(context.Background(), "dist/register.go", []string{"pkg/a"})
+		content := emitter.GetContent()
+		assert.NotNil(t, content)
+		assert.Contains(t, string(content), `_ "pkg/a"`)
+	})
+}
+
+func TestInMemoryManifestEmitter(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetManifest returns nil before emission", func(t *testing.T) {
+		t.Parallel()
+
+		emitter := NewInMemoryManifestEmitter()
+		assert.Nil(t, emitter.GetManifest())
+	})
+}
+
+func TestStdlibLoader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Load returns error without load function", func(t *testing.T) {
+		t.Parallel()
+
+		loader := NewStdlibLoader()
+		data, err := loader.Load()
+		require.Error(t, err)
+		assert.Nil(t, data)
+		assert.Contains(t, err.Error(), "no load function configured")
+	})
+
+	t.Run("Load returns error without decoder", func(t *testing.T) {
+		t.Parallel()
+
+		loader := NewStdlibLoader(
+			WithLoadFunc(func() ([]byte, error) {
+				return []byte("raw"), nil
+			}),
+		)
+
+		data, err := loader.Load()
+		require.Error(t, err)
+		assert.Nil(t, data)
+		assert.Contains(t, err.Error(), "no decoder configured")
+	})
+
+	t.Run("Load returns error when load function fails", func(t *testing.T) {
+		t.Parallel()
+
+		loader := NewStdlibLoader(
+			WithLoadFunc(func() ([]byte, error) {
+				return nil, errors.New("load failed")
+			}),
+		)
+
+		data, err := loader.Load()
+		require.Error(t, err)
+		assert.Nil(t, data)
+		assert.Contains(t, err.Error(), "load failed")
+	})
+
+	t.Run("Load returns error when decoder fails", func(t *testing.T) {
+		t.Parallel()
+
+		loader := NewStdlibLoader(
+			WithLoadFunc(func() ([]byte, error) {
+				return []byte("raw"), nil
+			}),
+			WithDecoder(func(_ []byte) (*inspector_dto.TypeData, error) {
+				return nil, errors.New("decode failed")
+			}),
+		)
+
+		data, err := loader.Load()
+		require.Error(t, err)
+		assert.Nil(t, data)
+		assert.Contains(t, err.Error(), "decode failed")
+	})
+
+	t.Run("Load succeeds with valid loader and decoder", func(t *testing.T) {
+		t.Parallel()
+
+		expected := &inspector_dto.TypeData{
+			Packages: map[string]*inspector_dto.Package{
+				"fmt":     {},
+				"strings": {},
+			},
+		}
+
+		loader := NewStdlibLoader(
+			WithLoadFunc(func() ([]byte, error) {
+				return []byte("raw"), nil
+			}),
+			WithDecoder(func(_ []byte) (*inspector_dto.TypeData, error) {
+				return expected, nil
+			}),
+		)
+
+		data, err := loader.Load()
+		require.NoError(t, err)
+		assert.Equal(t, expected, data)
+	})
+
+	t.Run("Load caches data on second call", func(t *testing.T) {
+		t.Parallel()
+
+		callCount := 0
+		expected := &inspector_dto.TypeData{
+			Packages: map[string]*inspector_dto.Package{
+				"fmt": {},
+			},
+		}
+
+		loader := NewStdlibLoader(
+			WithLoadFunc(func() ([]byte, error) {
+				callCount++
+				return []byte("raw"), nil
+			}),
+			WithDecoder(func(_ []byte) (*inspector_dto.TypeData, error) {
+				return expected, nil
+			}),
+		)
+
+		data1, err1 := loader.Load()
+		require.NoError(t, err1)
+		data2, err2 := loader.Load()
+		require.NoError(t, err2)
+
+		assert.Equal(t, data1, data2)
+		assert.Equal(t, 1, callCount)
+	})
+
+	t.Run("GetPackageList returns packages after Load", func(t *testing.T) {
+		t.Parallel()
+
+		loader := NewStdlibLoader(
+			WithLoadFunc(func() ([]byte, error) {
+				return []byte("raw"), nil
+			}),
+			WithDecoder(func(_ []byte) (*inspector_dto.TypeData, error) {
+				return &inspector_dto.TypeData{
+					Packages: map[string]*inspector_dto.Package{
+						"fmt":     {},
+						"strings": {},
+					},
+				}, nil
+			}),
+		)
+
+		assert.Empty(t, loader.GetPackageList())
+
+		_, err := loader.Load()
+		require.NoError(t, err)
+
+		packages := loader.GetPackageList()
+		assert.Len(t, packages, 2)
+		assert.Contains(t, packages, "fmt")
+		assert.Contains(t, packages, "strings")
+	})
+}
+
+func TestInterpreterStub(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Interpret returns error", func(t *testing.T) {
+		t.Parallel()
+
+		adapter := NewInterpreterAdapter()
+		response, err := adapter.Interpret(context.Background(), nil)
+		require.Error(t, err)
+		assert.Nil(t, response)
+		assert.Contains(t, err.Error(), "not available in non-WASM builds")
+	})
+
+	t.Run("WithInterpreterFactory is no-op", func(t *testing.T) {
+		t.Parallel()
+
+		option := WithInterpreterFactory(nil)
+		assert.NotNil(t, option)
+	})
+}
+
+func TestJSConsole(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NewJSConsole creates console", func(t *testing.T) {
+		t.Parallel()
+
+		console := NewJSConsole()
+		require.NotNil(t, console)
+	})
+
+	t.Run("methods do not panic", func(t *testing.T) {
+		t.Parallel()
+
+		console := NewJSConsole()
+		assert.NotPanics(t, func() {
+			console.Debug("debug message")
+			console.Info("info message")
+			console.Warn("warn message")
+			console.Error("error message")
+		})
+	})
+
+	t.Run("methods accept arguments", func(t *testing.T) {
+		t.Parallel()
+
+		console := NewJSConsole()
+		assert.NotPanics(t, func() {
+			console.Debug("message", "arg1", 42)
+			console.Info("message", "arg1", 42)
+			console.Warn("message", "arg1", 42)
+			console.Error("message", "arg1", 42)
+		})
+	})
+}
+
+func TestNoOpConsole_AllMethods(t *testing.T) {
+	t.Parallel()
+
+	console := newNoOpConsole()
+
+	t.Run("Info does not panic", func(t *testing.T) {
+		t.Parallel()
+		assert.NotPanics(t, func() { console.Info("msg", "arg") })
+	})
+
+	t.Run("Warn does not panic", func(t *testing.T) {
+		t.Parallel()
+		assert.NotPanics(t, func() { console.Warn("msg", "arg") })
+	})
+
+	t.Run("Error does not panic", func(t *testing.T) {
+		t.Parallel()
+		assert.NotPanics(t, func() { console.Error("msg", "arg") })
+	})
+}
+
+func TestNoOpComponentCache_Clear(t *testing.T) {
+	t.Parallel()
+
+	cache := NewNoOpComponentCache()
+	assert.NotPanics(t, func() {
+		cache.Clear(context.Background())
+	})
+}
+
+func TestDetermineArtefactType(t *testing.T) {
+	t.Parallel()
+
+	t.Run("identifies page artefact", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, wasm_dto.ArtefactTypePage, determineArtefactType("dist/pages/index.go"))
+	})
+
+	t.Run("identifies partial artefact", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, wasm_dto.ArtefactTypePartial, determineArtefactType("dist/partials/header.go"))
+	})
+
+	t.Run("identifies action artefact", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, wasm_dto.ArtefactTypeAction, determineArtefactType("dist/actions/submit.go"))
+	})
+
+	t.Run("identifies JS artefact", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, wasm_dto.ArtefactTypeJS, determineArtefactType("assets/script.js"))
+	})
+
+	t.Run("identifies register artefact", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, wasm_dto.ArtefactTypeRegister, determineArtefactType("dist/register.go"))
+	})
+
+	t.Run("identifies manifest artefact", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, wasm_dto.ArtefactTypeManifest, determineArtefactType("dist/manifest.json"))
+	})
+
+	t.Run("defaults to page for unknown paths", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, wasm_dto.ArtefactTypePage, determineArtefactType("something/unknown.go"))
+	})
+}
+
+func TestInMemoryResolver(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetModuleName returns module name", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		assert.Equal(t, "example.com/project", resolver.GetModuleName())
+	})
+
+	t.Run("GetBaseDir returns base dir", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "/base")
+		assert.Equal(t, "/base", resolver.GetBaseDir())
+	})
+
+	t.Run("DetectLocalModule is no-op", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		err := resolver.DetectLocalModule(context.Background())
+		require.NoError(t, err)
+	})
+
+	t.Run("ResolvePKPath strips module prefix", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		resolved, err := resolver.ResolvePKPath(context.Background(), "example.com/project/pages/index.pk", "")
+		require.NoError(t, err)
+		assert.Equal(t, "pages/index.pk", resolved)
+	})
+
+	t.Run("ResolvePKPath strips at-slash prefix", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		resolved, err := resolver.ResolvePKPath(context.Background(), "@/pages/index.pk", "")
+		require.NoError(t, err)
+		assert.Equal(t, "pages/index.pk", resolved)
+	})
+
+	t.Run("ResolveCSSPath strips at-slash prefix", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		resolved, err := resolver.ResolveCSSPath(context.Background(), "@/styles/main.css", "")
+		require.NoError(t, err)
+		assert.Equal(t, "styles/main.css", resolved)
+	})
+
+	t.Run("ResolveCSSPath resolves relative path", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		resolved, err := resolver.ResolveCSSPath(context.Background(), "../styles/main.css", "pages")
+		require.NoError(t, err)
+		assert.Equal(t, "styles/main.css", resolved)
+	})
+
+	t.Run("ResolveAssetPath strips module prefix", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		resolved, err := resolver.ResolveAssetPath(context.Background(), "example.com/project/assets/logo.png", "")
+		require.NoError(t, err)
+		assert.Equal(t, "assets/logo.png", resolved)
+	})
+
+	t.Run("ResolveAssetPath strips at-slash prefix", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		resolved, err := resolver.ResolveAssetPath(context.Background(), "@/assets/logo.png", "")
+		require.NoError(t, err)
+		assert.Equal(t, "assets/logo.png", resolved)
+	})
+
+	t.Run("ConvertEntryPointPathToManifestKey strips module prefix", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		key := resolver.ConvertEntryPointPathToManifestKey("example.com/project/pages/index")
+		assert.Equal(t, "pages/index", key)
+	})
+
+	t.Run("ConvertEntryPointPathToManifestKey returns original without prefix", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		key := resolver.ConvertEntryPointPathToManifestKey("other.com/module/pages/index")
+		assert.Equal(t, "other.com/module/pages/index", key)
+	})
+
+	t.Run("GetModuleDir returns error", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		dir, err := resolver.GetModuleDir(context.Background(), "github.com/other/module")
+		require.Error(t, err)
+		assert.Empty(t, dir)
+		assert.Contains(t, err.Error(), "not available in in-memory resolver")
+	})
+
+	t.Run("FindModuleBoundary splits local module path", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		modulePath, subpath, err := resolver.FindModuleBoundary(context.Background(), "example.com/project/pages/index")
+		require.NoError(t, err)
+		assert.Equal(t, "example.com/project", modulePath)
+		assert.Equal(t, "pages/index", subpath)
+	})
+
+	t.Run("FindModuleBoundary splits external module path", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		modulePath, subpath, err := resolver.FindModuleBoundary(context.Background(), "github.com/other/module/pkg")
+		require.NoError(t, err)
+		assert.Equal(t, "github.com/other/module", modulePath)
+		assert.Equal(t, "pkg", subpath)
+	})
+
+	t.Run("FindModuleBoundary handles short path", func(t *testing.T) {
+		t.Parallel()
+
+		resolver := newInMemoryResolver("example.com/project", "")
+		modulePath, subpath, err := resolver.FindModuleBoundary(context.Background(), "short")
+		require.NoError(t, err)
+		assert.Equal(t, "short", modulePath)
+		assert.Empty(t, subpath)
+	})
+}
+
+func TestInMemoryCoordinator(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Subscribe returns nil channel and no-op unsubscribe", func(t *testing.T) {
+		t.Parallel()
+
+		coordinator := NewInMemoryCoordinator(nil)
+		channel, unsubscribe := coordinator.Subscribe("test")
+		assert.Nil(t, channel)
+		assert.NotNil(t, unsubscribe)
+		assert.NotPanics(t, func() { unsubscribe() })
+	})
+
+	t.Run("RequestRebuild is no-op", func(t *testing.T) {
+		t.Parallel()
+
+		coordinator := NewInMemoryCoordinator(nil)
+		assert.NotPanics(t, func() {
+			coordinator.RequestRebuild(context.Background(), nil)
+		})
+	})
+
+	t.Run("GetLastSuccessfulBuild returns nil and false", func(t *testing.T) {
+		t.Parallel()
+
+		coordinator := NewInMemoryCoordinator(nil)
+		result, found := coordinator.GetLastSuccessfulBuild()
+		assert.Nil(t, result)
+		assert.False(t, found)
+	})
+
+	t.Run("Invalidate returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		coordinator := NewInMemoryCoordinator(nil)
+		err := coordinator.Invalidate(context.Background())
+		assert.NoError(t, err)
+	})
+
+	t.Run("Shutdown is no-op", func(t *testing.T) {
+		t.Parallel()
+
+		coordinator := NewInMemoryCoordinator(nil)
+		assert.NotPanics(t, func() {
+			coordinator.Shutdown(context.Background())
+		})
+	})
+}
+
+func TestGeneratorAdapter_DefaultModuleName(t *testing.T) {
+	t.Parallel()
+
+	adapter := NewGeneratorAdapter()
+	assert.Equal(t, "playground", adapter.moduleName)
+}
+
+func TestGeneratorAdapter_WithModuleName(t *testing.T) {
+	t.Parallel()
+
+	adapter := NewGeneratorAdapter(WithModuleName("example.com/project"))
+	assert.Equal(t, "example.com/project", adapter.moduleName)
+}
+
+func TestRenderAdapter_DefaultModuleName(t *testing.T) {
+	t.Parallel()
+
+	adapter := NewRenderAdapter()
+	assert.Equal(t, "playground", adapter.moduleName)
+}
+
+func TestRenderAdapter_WithModuleName(t *testing.T) {
+	t.Parallel()
+
+	adapter := NewRenderAdapter(WithRendererModuleName("example.com/project"))
+	assert.Equal(t, "example.com/project", adapter.moduleName)
+}
+
+func TestRenderAdapter_RenderFromAST_NilAST(t *testing.T) {
+	t.Parallel()
+
+	adapter := NewRenderAdapter()
+	response, err := adapter.RenderFromAST(context.Background(), &wasm_dto.RenderFromASTRequest{
+		AST: nil,
+		CSS: "body { colour: red; }",
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, response)
+	assert.True(t, response.Success)
+	assert.Empty(t, response.HTML)
+	assert.Equal(t, "body { colour: red; }", response.CSS)
+}
+
+func TestRenderAdapter_RenderFromAST_NoRenderer(t *testing.T) {
+	t.Parallel()
+
+	adapter := NewRenderAdapter()
+	response, err := adapter.RenderFromAST(context.Background(), &wasm_dto.RenderFromASTRequest{
+		AST: &ast_domain.TemplateAST{},
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, response)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Error, "headless renderer not configured")
 }

@@ -277,6 +277,7 @@ func newCSSScopeTransformer(scopeID string, template *ast_domain.TemplateAST, sy
 		fileSyms:       symbols,
 		keyframesDepth: 0,
 		sourceIndex:    0,
+		ruleDepth:      0,
 	}
 }
 

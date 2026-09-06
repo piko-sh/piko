@@ -72,10 +72,8 @@ func TestRateLimiterInspectorService_GetRateLimiterStatus(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "returns empty status",
-			inspector: &mockRateLimiterInspector{
-				statusReturn: ratelimiter_dto.Status{},
-			},
+			name:        "returns empty status",
+			inspector:   &mockRateLimiterInspector{},
 			expectError: false,
 		},
 		{

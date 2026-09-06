@@ -66,6 +66,11 @@ func TestResolveFunctionCall(t *testing.T) {
 			expectedElementType: &int4Type,
 		},
 		{
+			description:  "array_agg without arguments does not resolve",
+			functionName: "array_agg",
+			expectNil:    true,
+		},
+		{
 			description:        "unnest with text array returns text element and returns set",
 			functionName:       "unnest",
 			argumentTypes:      []querier_dto.SQLType{textArrayType},

@@ -72,7 +72,12 @@ func (e *engine) Transform(
 ) (*ast_domain.TemplateAST, string, []*Error) {
 	ctx, l := logger_domain.From(ctx, log)
 	if ast == nil {
-		return nil, "", []*Error{{Message: "Cannot transform nil AST", Severity: SeverityError}}
+		return nil, "", []*Error{{
+			Message:  "Cannot transform nil AST",
+			Severity: SeverityError,
+			TagName:  "",
+			Location: ast_domain.Location{},
+		}}
 	}
 	if config == nil {
 		config = pml_dto.DefaultConfig()
@@ -121,7 +126,12 @@ func (e *engine) TransformForEmail(
 ) (*ast_domain.TemplateAST, string, []*email_dto.EmailAssetRequest, []*Error) {
 	ctx, l := logger_domain.From(ctx, log)
 	if ast == nil {
-		return nil, "", nil, []*Error{{Message: "Cannot transform nil AST", Severity: SeverityError}}
+		return nil, "", nil, []*Error{{
+			Message:  "Cannot transform nil AST",
+			Severity: SeverityError,
+			TagName:  "",
+			Location: ast_domain.Location{},
+		}}
 	}
 	if config == nil {
 		config = pml_dto.DefaultConfig()

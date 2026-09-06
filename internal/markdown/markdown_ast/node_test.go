@@ -148,6 +148,7 @@ func TestNodeConstructors_AssignKindsAndTypes(t *testing.T) {
 		{markdown_ast.NewStrikethrough(), markdown_ast.KindStrikethrough, markdown_ast.TypeInline},
 		{markdown_ast.NewTaskCheckBox(true), markdown_ast.KindTaskCheckBox, markdown_ast.TypeInline},
 		{markdown_ast.NewFencedContainer(), markdown_ast.KindFencedContainer, markdown_ast.TypeBlock},
+		{markdown_ast.NewLineBreak(), markdown_ast.KindLineBreak, markdown_ast.TypeInline},
 	}
 
 	for _, tc := range cases {

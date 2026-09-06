@@ -36,6 +36,7 @@ import (
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/image/image_domain"
 	"piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/llm/llm_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
 	"piko.sh/piko/internal/markdown/markdown_domain"
@@ -3846,4 +3847,31 @@ func WithCSSImportMaxDepth(n int) Option {
 // Returns Option which applies the limit.
 func WithCSSImportMaxBytes(n int) Option {
 	return bootstrap.WithCSSImportMaxBytes(n)
+}
+
+// PdfLayoutLimits bounds the layout of one PDF document by limiting raw HTML size,
+// nesting depth, box count, table and grid sizes, repeat() counts and page count. Zero
+// fields keep their defaults.
+type PdfLayoutLimits = layouter_dto.LayoutLimits
+
+// WithPdfLayoutLimits bounds the work of every PDF layout, guarding against documents
+// (for example raw HTML from p-html) crafted to exhaust memory or CPU. Unset fields keep
+// their generous defaults; a render exceeding a limit fails with an error wrapping
+// pdf.ErrLayoutLimitExceeded.
+//
+// Takes limits (PdfLayoutLimits) which holds the limits to apply.
+//
+// Returns Option which applies the limits.
+func WithPdfLayoutLimits(limits PdfLayoutLimits) Option {
+	return bootstrap.WithPdfLayoutLimits(limits)
+}
+
+// WithPdfMaxImagePixels caps the pixel area (width times height) of any image a PDF
+// render embeds. Non-positive values keep the default of one hundred million pixels.
+//
+// Takes pixels (int) which is the maximum pixel area of one image.
+//
+// Returns Option which applies the cap.
+func WithPdfMaxImagePixels(pixels int) Option {
+	return bootstrap.WithPdfMaxImagePixels(pixels)
 }

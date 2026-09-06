@@ -28,7 +28,8 @@ import (
 // DetailView renders the detail-pane body for the history entry under the cursor, or a
 // panel-level summary when nothing is selected.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *WatchdogHistoryPanel) DetailView(width, height int) string {
@@ -64,23 +65,23 @@ func watchdogHistoryEntryDetailBody(e WatchdogStartupEntry, c clock.Clock) inspe
 	}
 
 	rows := []inspector.DetailRow{
-		{Label: "PID", Value: fmt.Sprintf(FormatPercentInt, e.PID)},
-		{Label: "Hostname", Value: e.Hostname},
-		{Label: "Version", Value: e.Version},
-		{Label: "State", Value: state},
-		{Label: "Reason", Value: defaultDash(e.Reason)},
-		{Label: "Started", Value: inspector.FormatDetailTime(e.StartedAt)},
-		{Label: "Stopped", Value: formatTimeOrDash(e.StoppedAt)},
-		{Label: "Duration", Value: inspector.FormatDuration(e.Duration(c))},
+		inspector.NewDetailRow("PID", fmt.Sprintf(FormatPercentInt, e.PID)),
+		inspector.NewDetailRow("Hostname", e.Hostname),
+		inspector.NewDetailRow("Version", e.Version),
+		inspector.NewDetailRow("State", state),
+		inspector.NewDetailRow("Reason", defaultDash(e.Reason)),
+		inspector.NewDetailRow("Started", inspector.FormatDetailTime(e.StartedAt)),
+		inspector.NewDetailRow("Stopped", formatTimeOrDash(e.StoppedAt)),
+		inspector.NewDetailRow("Duration", inspector.FormatDuration(e.Duration(c))),
 	}
 	if e.GomemlimitBytes > 0 {
-		rows = append(rows, inspector.DetailRow{Label: "GOMEMLIMIT", Value: inspector.FormatBytes(uint64(e.GomemlimitBytes))})
+		rows = append(rows, inspector.NewDetailRow("GOMEMLIMIT", inspector.FormatBytes(uint64(e.GomemlimitBytes))))
 	}
 
 	return inspector.DetailBody{
 		Title:    fmt.Sprintf("PID %d", e.PID),
 		Subtitle: state + " · " + e.Hostname,
-		Sections: []inspector.DetailSection{{Heading: "Startup entry", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Startup entry", rows)},
 	}
 }
 
@@ -108,20 +109,20 @@ func (p *WatchdogHistoryPanel) historyOverviewDetailBody() inspector.DetailBody 
 	}
 
 	rows := []inspector.DetailRow{
-		{Label: "Total entries", Value: fmt.Sprintf(FormatPercentInt, len(entries))},
-		{Label: "Running", Value: fmt.Sprintf(FormatPercentInt, running)},
-		{Label: "Clean exits", Value: fmt.Sprintf(FormatPercentInt, clean)},
-		{Label: "Unclean exits", Value: fmt.Sprintf(FormatPercentInt, unclean)},
+		inspector.NewDetailRow("Total entries", fmt.Sprintf(FormatPercentInt, len(entries))),
+		inspector.NewDetailRow("Running", fmt.Sprintf(FormatPercentInt, running)),
+		inspector.NewDetailRow("Clean exits", fmt.Sprintf(FormatPercentInt, clean)),
+		inspector.NewDetailRow("Unclean exits", fmt.Sprintf(FormatPercentInt, unclean)),
 	}
 	if status != nil && status.CrashLoopThreshold > 0 {
 		rows = append(rows,
-			inspector.DetailRow{Label: "Crash-loop threshold", Value: fmt.Sprintf(FormatPercentInt, status.CrashLoopThreshold)},
-			inspector.DetailRow{Label: "Crash-loop window", Value: status.CrashLoopWindow.String()},
+			inspector.NewDetailRow("Crash-loop threshold", fmt.Sprintf(FormatPercentInt, status.CrashLoopThreshold)),
+			inspector.NewDetailRow("Crash-loop window", status.CrashLoopWindow.String()),
 		)
 	}
 	return inspector.DetailBody{
 		Title:    "Startup history",
 		Subtitle: fmt.Sprintf("%d entries", len(entries)),
-		Sections: []inspector.DetailSection{{Heading: "Counts", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Counts", rows)},
 	}
 }

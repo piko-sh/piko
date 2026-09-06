@@ -905,19 +905,16 @@ func TestRenderEmailContent(t *testing.T) {
 				BodyInlineStyles: "background-color: white;",
 			},
 			metadata: &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Title: "Test Email", Language: "en"},
+				Title: "Test Email", Language: "en",
 			},
 			wantErr:     false,
 			wantContain: "Hello Email",
 		},
 		{
-			name: "renders email with nil AST and no error",
-			params: emailContentParams{
-				HTMLAST:  nil,
-				FinalCSS: "",
-			},
+			name:   "renders email with nil AST and no error",
+			params: emailContentParams{},
 			metadata: &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Title: "Empty Email", Language: "en"},
+				Title: "Empty Email", Language: "en",
 			},
 			wantErr: false,
 		},
@@ -952,7 +949,7 @@ func TestRenderEmailContent(t *testing.T) {
 				},
 			},
 			metadata: &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Title: "Table Email", Language: "en"},
+				Title: "Table Email", Language: "en",
 			},
 			wantErr:     false,
 			wantContain: "Cell Content",
@@ -973,7 +970,7 @@ func TestRenderEmailContent(t *testing.T) {
 				},
 			},
 			metadata: &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Title: "MSO Email", Language: "en"},
+				Title: "MSO Email", Language: "en",
 			},
 			wantErr:     false,
 			wantContain: "<!--[if mso]>",
@@ -992,7 +989,7 @@ func TestRenderEmailContent(t *testing.T) {
 				FinalCSS: ".custom-class { font-weight: bold; }",
 			},
 			metadata: &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Title: "Styled Email", Language: "en"},
+				Title: "Styled Email", Language: "en",
 			},
 			wantErr:     false,
 			wantContain: ".custom-class",
@@ -1043,7 +1040,7 @@ func TestRenderEmail(t *testing.T) {
 					RootNodes: []*ast_domain.TemplateNode{},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{Title: "Empty Template", Language: "en"},
+					Title: "Empty Template", Language: "en",
 				},
 				PageID: "test-empty",
 			},
@@ -1061,7 +1058,7 @@ func TestRenderEmail(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{Title: "Welcome", Language: "en"},
+					Title: "Welcome", Language: "en",
 				},
 				PageID:  "test-basic",
 				Styling: "",
@@ -1090,7 +1087,7 @@ func TestRenderEmail(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{Title: "Styled", Language: "en"},
+					Title: "Styled", Language: "en",
 				},
 				PageID:  "test-styled",
 				Styling: ".intro { color: navy; }",
@@ -1110,7 +1107,7 @@ func TestRenderEmail(t *testing.T) {
 					},
 				},
 				Metadata: &templater_dto.InternalMetadata{
-					Metadata: templater_dto.Metadata{Title: "PML Email", Language: "en"},
+					Title: "PML Email", Language: "en",
 				},
 				PageID: "test-pml",
 			},
@@ -1169,7 +1166,7 @@ func TestRenderEmail_IncludesBaseStyles(t *testing.T) {
 			},
 		},
 		Metadata: &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{Title: "Base Styles Test", Language: "en"},
+			Title: "Base Styles Test", Language: "en",
 		},
 		PageID: "test-base-styles",
 	})
@@ -1215,7 +1212,7 @@ func TestRenderEmail_TransformedASTAppearsInOutput(t *testing.T) {
 			},
 		},
 		Metadata: &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{Title: "Transform Test", Language: "en"},
+			Title: "Transform Test", Language: "en",
 		},
 		PageID: "test-transform",
 	})
@@ -1252,7 +1249,7 @@ func TestRenderEmail_StoresAssetRequestsFromPipeline(t *testing.T) {
 			},
 		},
 		Metadata: &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{Title: "Asset Test", Language: "en"},
+			Title: "Asset Test", Language: "en",
 		},
 		PageID: "test-assets",
 	})

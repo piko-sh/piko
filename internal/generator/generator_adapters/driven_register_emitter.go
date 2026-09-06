@@ -106,19 +106,10 @@ func createRegisterFileAST(allPackagePaths []string) *goast.File {
 		Rparen: 0,
 	}
 
-	return &goast.File{
-		Name:       goast.NewIdent("dist"),
-		Decls:      []goast.Decl{importDecl},
-		Doc:        nil,
-		Package:    0,
-		FileStart:  0,
-		FileEnd:    0,
-		Scope:      nil,
-		Imports:    nil,
-		Unresolved: nil,
-		Comments:   nil,
-		GoVersion:  "",
-	}
+	file := goast.File{}
+	file.Name = goast.NewIdent("dist")
+	file.Decls = []goast.Decl{importDecl}
+	return &file
 }
 
 // createImportSpecs creates import specifications for the given package paths.

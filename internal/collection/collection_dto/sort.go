@@ -19,7 +19,9 @@
 package collection_dto
 
 import (
-	"math/rand/v2"
+	"crypto/rand"
+	"math/bits"
+	mathrand "math/rand/v2"
 	"slices"
 	"strings"
 	"time"
@@ -61,9 +63,7 @@ func SortItems(items []*ContentItem, sortOptions []SortOption) {
 	}
 
 	if sortOptions[0].Order == SortRandom {
-		rand.Shuffle(len(items), func(i, j int) {
-			items[i], items[j] = items[j], items[i]
-		})
+		shuffleItems(items)
 		return
 	}
 
@@ -398,5 +398,44 @@ func toString(v any) string {
 		return string(rune(value)) //nolint:gosec // int-to-rune for codepoint conversion
 	default:
 		return ""
+	}
+}
+
+// shuffleItems puts items in a uniformly random order with a Fisher-Yates shuffle.
+//
+// The random stream is a ChaCha8 generator seeded once per call from crypto/rand, so each
+// shuffle is unpredictable without paying for a crypto/rand read per swap. When the seed
+// cannot be read the items keep their current order rather than being partly shuffled.
+//
+// Takes items ([]*ContentItem) which is the slice to shuffle in place.
+func shuffleItems(items []*ContentItem) {
+	if len(items) < 2 {
+		return
+	}
+	var seed [32]byte
+	if _, err := rand.Read(seed[:]); err != nil {
+		return
+	}
+	source := mathrand.NewChaCha8(seed)
+	for i := len(items) - 1; i > 0; i-- {
+		j := boundedIndex(source, uint64(i+1))
+		items[i], items[j] = items[j], items[i]
+	}
+}
+
+// boundedIndex draws a uniformly distributed index in [0, bound) from source using
+// Lemire's multiply-and-reject method, which avoids the modulo bias of value % bound.
+//
+// Takes source (*mathrand.ChaCha8) which supplies the random 64-bit values.
+// Takes bound (uint64) which is the exclusive upper bound and must be at least 1.
+//
+// Returns uint64 which is the drawn index.
+func boundedIndex(source *mathrand.ChaCha8, bound uint64) uint64 {
+	threshold := -bound % bound
+	for {
+		high, low := bits.Mul64(source.Uint64(), bound)
+		if low >= threshold {
+			return high
+		}
 	}
 }

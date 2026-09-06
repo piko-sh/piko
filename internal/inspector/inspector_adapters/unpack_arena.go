@@ -19,6 +19,8 @@
 package inspector_adapters
 
 import (
+	"fmt"
+
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/inspector/inspector_schema/inspector_schema_gen"
 )
@@ -62,58 +64,27 @@ type unpackCounts struct {
 	strings int
 }
 
-// countEntities walks a FlatBuffer TypeData to count all entities without allocating any
-// DTO structs.
+// elementBudget bounds the vector lengths read from one FlatBuffers payload.
 //
-// Takes fb (*inspector_schema_gen.TypeData) which is the root FlatBuffer table.
-//
-// Returns unpackCounts with counts for arena pre-allocation.
-func countEntities(fb *inspector_schema_gen.TypeData) unpackCounts {
-	var c unpackCounts
+// Every element of a vector in a well-formed buffer occupies at least
+// flatbufferVectorAlignment bytes and the encoder never shares sub-tables, so the sum of
+// all vector lengths read in one pass over a payload cannot exceed
+// len(payload)/flatbufferVectorAlignment. A corrupt length that breaks this bound is
+// recorded as an error instead of driving an allocation.
+type elementBudget struct {
+	// err records the first length that exceeded the budget.
+	err error
 
-	pkgLen := fb.PackagesLength()
-	c.packages = pkgLen
-
-	var pkgEntry inspector_schema_gen.PackageEntry
-	var pkg inspector_schema_gen.Package
-	var typeEntry inspector_schema_gen.NamedTypeEntry
-	var typ inspector_schema_gen.Type
-
-	for i := range pkgLen {
-		if !fb.Packages(&pkgEntry, i) {
-			continue
-		}
-		if pkgEntry.Value(&pkg) == nil {
-			continue
-		}
-
-		typesLen := pkg.NamedTypesLength()
-		c.types += typesLen
-		for j := range typesLen {
-			if !pkg.NamedTypes(&typeEntry, j) {
-				continue
-			}
-			if typeEntry.Value(&typ) == nil {
-				continue
-			}
-			c.fields += typ.FieldsLength()
-			c.methods += typ.MethodsLength()
-		}
-
-		c.functions += pkg.FunctionsLength()
-		c.variables += pkg.VariablesLength()
-	}
-
-	c.compositeParts = c.fields * compositePartsPerFieldEstimate
-
-	c.strings = (c.methods+c.functions)*stringsPerMethodEstimate + c.types/2
-
-	return c
+	// remaining is how many more vector elements the payload can still hold.
+	remaining int
 }
 
 // unpackArena provides bump-allocated slabs for DTO structs, eliminating per-entity heap
 // allocations during FlatBuffer unpacking.
 type unpackArena struct {
+	// elementBudget bounds the vector lengths read while unpacking.
+	elementBudget
+
 	// packages is the slab for Package values.
 	packages []inspector_dto.Package
 
@@ -184,10 +155,13 @@ type unpackArena struct {
 // newUnpackArena creates a pre-sized arena based on exact entity counts.
 //
 // Takes c (unpackCounts) which holds the entity counts from countEntities.
+// Takes payloadLength (int) which is the size of the payload in bytes and bounds the
+// vector lengths read while unpacking.
 //
 // Returns *unpackArena ready for bump allocation.
-func newUnpackArena(c unpackCounts) *unpackArena {
+func newUnpackArena(c unpackCounts, payloadLength int) *unpackArena {
 	return &unpackArena{
+		elementBudget:  newElementBudget(payloadLength),
 		packages:       make([]inspector_dto.Package, c.packages),
 		types:          make([]inspector_dto.Type, c.types),
 		fields:         make([]inspector_dto.Field, c.fields),
@@ -197,43 +171,103 @@ func newUnpackArena(c unpackCounts) *unpackArena {
 		variables:      make([]inspector_dto.Variable, c.variables),
 		strings:        make([]string, c.strings),
 
-		fieldPtrs:         make([]*inspector_dto.Field, c.fields),
-		methodPtrs:        make([]*inspector_dto.Method, c.methods),
-		compositePartPtrs: make([]*inspector_dto.CompositePart, c.compositeParts),
+		fieldPtrs:             make([]*inspector_dto.Field, c.fields),
+		methodPtrs:            make([]*inspector_dto.Method, c.methods),
+		compositePartPtrs:     make([]*inspector_dto.CompositePart, c.compositeParts),
+		packagesUsed:          0,
+		typesUsed:             0,
+		fieldsUsed:            0,
+		methodsUsed:           0,
+		compositePartsUsed:    0,
+		functionsUsed:         0,
+		variablesUsed:         0,
+		stringsUsed:           0,
+		fieldPtrsUsed:         0,
+		methodPtrsUsed:        0,
+		compositePartPtrsUsed: 0,
 	}
 }
 
-// AllocPackage bumps the package offset and returns the next slot.
+// claim reserves room for a vector of the given length, recording a corruption error when
+// the payload cannot hold that many elements.
 //
-// Returns *inspector_dto.Package from the slab.
+// Takes length (int) which is the vector length read from the buffer.
+//
+// Returns bool which is true when the vector fits in the remaining budget.
+func (b *elementBudget) claim(length int) bool {
+	if b.err != nil {
+		return false
+	}
+	if length < 0 || length > b.remaining {
+		b.err = fmt.Errorf("%w: vector length %d exceeds the %d elements the payload can hold",
+			errCorruptTypeData, length, b.remaining)
+		return false
+	}
+	b.remaining -= length
+	return true
+}
+
+// claimAll reserves room for several vectors, stopping at the first that does not fit.
+//
+// Takes lengths (...int) which are the vector lengths read from the buffer.
+//
+// Returns bool which is true when every vector fits in the remaining budget.
+func (b *elementBudget) claimAll(lengths ...int) bool {
+	for _, length := range lengths {
+		if !b.claim(length) {
+			return false
+		}
+	}
+	return true
+}
+
+// AllocPackage bumps the package offset and returns the next slot, falling back to the
+// heap if the slab is exhausted.
+//
+// Returns *inspector_dto.Package from the slab or heap.
 func (a *unpackArena) AllocPackage() *inspector_dto.Package {
+	if a.packagesUsed >= len(a.packages) {
+		return new(inspector_dto.Package)
+	}
 	p := &a.packages[a.packagesUsed]
 	a.packagesUsed++
 	return p
 }
 
-// AllocType bumps the type offset and returns the next slot.
+// AllocType bumps the type offset and returns the next slot, falling back to the heap if
+// the slab is exhausted.
 //
-// Returns *inspector_dto.Type from the slab.
+// Returns *inspector_dto.Type from the slab or heap.
 func (a *unpackArena) AllocType() *inspector_dto.Type {
+	if a.typesUsed >= len(a.types) {
+		return new(inspector_dto.Type)
+	}
 	t := &a.types[a.typesUsed]
 	a.typesUsed++
 	return t
 }
 
-// AllocField bumps the field offset and returns the next slot.
+// AllocField bumps the field offset and returns the next slot, falling back to the heap
+// if the slab is exhausted.
 //
-// Returns *inspector_dto.Field from the slab.
+// Returns *inspector_dto.Field from the slab or heap.
 func (a *unpackArena) AllocField() *inspector_dto.Field {
+	if a.fieldsUsed >= len(a.fields) {
+		return new(inspector_dto.Field)
+	}
 	f := &a.fields[a.fieldsUsed]
 	a.fieldsUsed++
 	return f
 }
 
-// AllocMethod bumps the method offset and returns the next slot.
+// AllocMethod bumps the method offset and returns the next slot, falling back to the heap
+// if the slab is exhausted.
 //
-// Returns *inspector_dto.Method from the slab.
+// Returns *inspector_dto.Method from the slab or heap.
 func (a *unpackArena) AllocMethod() *inspector_dto.Method {
+	if a.methodsUsed >= len(a.methods) {
+		return new(inspector_dto.Method)
+	}
 	m := &a.methods[a.methodsUsed]
 	a.methodsUsed++
 	return m
@@ -252,19 +286,27 @@ func (a *unpackArena) AllocCompositePart() *inspector_dto.CompositePart {
 	return cp
 }
 
-// AllocFunction bumps the function offset and returns the next slot.
+// AllocFunction bumps the function offset and returns the next slot, falling back to the
+// heap if the slab is exhausted.
 //
-// Returns *inspector_dto.Function from the slab.
+// Returns *inspector_dto.Function from the slab or heap.
 func (a *unpackArena) AllocFunction() *inspector_dto.Function {
+	if a.functionsUsed >= len(a.functions) {
+		return new(inspector_dto.Function)
+	}
 	f := &a.functions[a.functionsUsed]
 	a.functionsUsed++
 	return f
 }
 
-// AllocVariable bumps the variable offset and returns the next slot.
+// AllocVariable bumps the variable offset and returns the next slot, falling back to the
+// heap if the slab is exhausted.
 //
-// Returns *inspector_dto.Variable from the slab.
+// Returns *inspector_dto.Variable from the slab or heap.
 func (a *unpackArena) AllocVariable() *inspector_dto.Variable {
+	if a.variablesUsed >= len(a.variables) {
+		return new(inspector_dto.Variable)
+	}
 	v := &a.variables[a.variablesUsed]
 	a.variablesUsed++
 	return v
@@ -285,23 +327,31 @@ func (a *unpackArena) StringSlice(n int) []string {
 	return s
 }
 
-// FieldPtrSlice returns a sub-slice of n *Field pointers from the backing array.
+// FieldPtrSlice returns a sub-slice of n *Field pointers from the backing array, falling
+// back to the heap if exhausted.
 //
 // Takes n (int) which is the number of pointers needed.
 //
-// Returns []*inspector_dto.Field from the slab.
+// Returns []*inspector_dto.Field from the slab or heap.
 func (a *unpackArena) FieldPtrSlice(n int) []*inspector_dto.Field {
+	if a.fieldPtrsUsed+n > len(a.fieldPtrs) {
+		return make([]*inspector_dto.Field, n)
+	}
 	s := a.fieldPtrs[a.fieldPtrsUsed : a.fieldPtrsUsed+n : a.fieldPtrsUsed+n]
 	a.fieldPtrsUsed += n
 	return s
 }
 
-// MethodPtrSlice returns a sub-slice of n *Method pointers from the backing array.
+// MethodPtrSlice returns a sub-slice of n *Method pointers from the backing array,
+// falling back to the heap if exhausted.
 //
 // Takes n (int) which is the number of pointers needed.
 //
-// Returns []*inspector_dto.Method from the slab.
+// Returns []*inspector_dto.Method from the slab or heap.
 func (a *unpackArena) MethodPtrSlice(n int) []*inspector_dto.Method {
+	if a.methodPtrsUsed+n > len(a.methodPtrs) {
+		return make([]*inspector_dto.Method, n)
+	}
 	s := a.methodPtrs[a.methodPtrsUsed : a.methodPtrsUsed+n : a.methodPtrsUsed+n]
 	a.methodPtrsUsed += n
 	return s
@@ -320,4 +370,90 @@ func (a *unpackArena) CompositePartPtrSlice(n int) []*inspector_dto.CompositePar
 	s := a.compositePartPtrs[a.compositePartPtrsUsed : a.compositePartPtrsUsed+n : a.compositePartPtrsUsed+n]
 	a.compositePartPtrsUsed += n
 	return s
+}
+
+// newElementBudget creates a budget sized for a payload of the given length.
+//
+// Takes payloadLength (int) which is the size of the FlatBuffers payload in bytes.
+//
+// Returns elementBudget which allows len(payload)/flatbufferVectorAlignment elements.
+func newElementBudget(payloadLength int) elementBudget {
+	return elementBudget{
+		err:       nil,
+		remaining: payloadLength / flatbufferVectorAlignment,
+	}
+}
+
+// countEntities walks a FlatBuffer TypeData to count all entities without allocating any
+// DTO structs.
+//
+// Takes fb (*inspector_schema_gen.TypeData) which is the root FlatBuffer table.
+// Takes payloadLength (int) which is the size of the payload in bytes and bounds the
+// vector lengths read from it.
+//
+// Returns unpackCounts with counts for arena pre-allocation.
+// Returns error wrapping errCorruptTypeData when a vector length exceeds what the payload
+// can hold.
+func countEntities(fb *inspector_schema_gen.TypeData, payloadLength int) (unpackCounts, error) {
+	var c unpackCounts
+	budget := newElementBudget(payloadLength)
+
+	pkgLen := fb.PackagesLength()
+	if !budget.claim(pkgLen) {
+		return unpackCounts{}, budget.err
+	}
+	c.packages = pkgLen
+
+	var pkgEntry inspector_schema_gen.PackageEntry
+	var pkg inspector_schema_gen.Package
+	for i := range pkgLen {
+		if !fb.Packages(&pkgEntry, i) || pkgEntry.Value(&pkg) == nil {
+			continue
+		}
+		if !countPackageEntities(&pkg, &c, &budget) {
+			return unpackCounts{}, budget.err
+		}
+	}
+
+	c.compositeParts = c.fields * compositePartsPerFieldEstimate
+
+	c.strings = (c.methods+c.functions)*stringsPerMethodEstimate + c.types/2
+
+	return c, nil
+}
+
+// countPackageEntities adds the types, fields, methods, functions and variables of one
+// package to the running counts.
+//
+// Takes pkg (*inspector_schema_gen.Package) which is the package to count.
+// Takes c (*unpackCounts) which accumulates the counts.
+// Takes budget (*elementBudget) which bounds the vector lengths read from the buffer.
+//
+// Returns bool which is false when a vector length exceeds the budget.
+func countPackageEntities(pkg *inspector_schema_gen.Package, c *unpackCounts, budget *elementBudget) bool {
+	typesLen := pkg.NamedTypesLength()
+	functionsLen := pkg.FunctionsLength()
+	variablesLen := pkg.VariablesLength()
+	if !budget.claimAll(typesLen, functionsLen, variablesLen) {
+		return false
+	}
+	c.types += typesLen
+	c.functions += functionsLen
+	c.variables += variablesLen
+
+	var typeEntry inspector_schema_gen.NamedTypeEntry
+	var typ inspector_schema_gen.Type
+	for j := range typesLen {
+		if !pkg.NamedTypes(&typeEntry, j) || typeEntry.Value(&typ) == nil {
+			continue
+		}
+		fieldsLen := typ.FieldsLength()
+		methodsLen := typ.MethodsLength()
+		if !budget.claimAll(fieldsLen, methodsLen) {
+			return false
+		}
+		c.fields += fieldsLen
+		c.methods += methodsLen
+	}
+	return true
 }

@@ -19,6 +19,23 @@ Piko renders PDF output from PK templates using a fluent builder. The render pip
 | `pdf.GetDefaultService() (Service, error)` | Returns the bootstrap-configured service. |
 | `pdf.NewRenderBuilder(service) (*RenderBuilder, error)` | Constructs a render builder bound to the given service. |
 | `pdf.NewRenderBuilderFromDefault() (*RenderBuilder, error)` | Shortcut for the default service. |
+| `pdf.NewServiceFromManifest(manifestPath string, opts ...ServiceOption) (*ManifestService, error)` | Builds a standalone service for tests and CLI tools that render without the server. Construction does no I/O. |
+| `(*ManifestService).Load(ctx context.Context) error` | Reads the compiled manifest through a read-only sandbox rooted at its directory. Rendering requires a successful load. Subsequent calls replace the loaded manifest. |
+
+See [render outside the server](../how-to/pdf-generation.md#render-outside-the-server) for the loading and rendering sequence.
+
+### Service options
+
+`NewServiceFromManifest` accepts these `ServiceOption` values:
+
+| Option | Purpose |
+|---|---|
+| `WithFont(family string, weight int, style int, data []byte)` | Registers an extra static TTF or OTF font. NotoSans regular is always registered. |
+| `WithVariableFont(family string, weightMin, weightMax int, style int, data []byte)` | Registers an OpenType variable font covering a weight range. |
+| `WithExcludeDefaultBold()` | Skips the default NotoSans bold, so the painter synthesises bold. |
+| `WithSVGVectorRendering()` | Renders SVG data URIs as native PDF vector paths instead of raster images. |
+| `WithLayoutLimits(limits LayoutLimits)` | Service-wide layout limits. Unset fields keep the defaults. See [Limits](#limits). |
+| `WithMaxImagePixels(pixels int)` | Service-wide cap on the pixel area of any embedded image. Non-positive values keep the default. |
 
 ## Builder
 
@@ -34,6 +51,7 @@ The fluent `RenderBuilder` composes a single render operation. Chain setters, th
 | Compliance | `PdfA(level PdfALevel)`, `TaggedPDF()` |
 | SVG rendering | `SVGWriter(writer SVGWriterPort, data SVGDataPort)` |
 | Post-processing | `Transformations(registry *TransformerRegistry, config TransformConfig)` |
+| Limits | `WithLayoutLimits(limits LayoutLimits)`, `WithMaxImagePixels(pixels int)`, `WithEmbeddedDataLimits(limits EmbeddedDataLimits)` |
 | Execution | `Do(ctx) (*Result, error)` |
 
 `Watermark(text)` is the convenience form using default styling (60pt, light grey, 45 degrees). Use `WatermarkConfig` for full control. `PdfA(PdfA2A)` enables tagged-PDF accessibility output automatically. The builder has no `Fonts` setter - the service configures fonts at construction time, not per render.
@@ -43,6 +61,9 @@ The fluent `RenderBuilder` composes a single render operation. Chain setters, th
 | Type | Purpose |
 |---|---|
 | `Service` | Orchestrates the render pipeline. |
+| `ManifestService` | Standalone `Service` returned by `NewServiceFromManifest`. Adds `Load(ctx)`. |
+| `ServiceOption` | Configures a service built by `NewServiceFromManifest`. |
+| `LayoutLimits` | Bounds the work of one layout (alias of `layouter_dto.LayoutLimits`). See [Limits](#limits). |
 | `Result` | Rendered output. Fields: `Content []byte` (the PDF bytes), `PageCount int` (number of pages), and `LayoutDump string` (debug-only human-readable serialisation of the layout box tree, empty when not requested). |
 | `Config` | Full render configuration. |
 | `Metadata` | PDF info dictionary (title, author, subject, keywords, creator, producer, creation and modification dates). |
@@ -71,6 +92,43 @@ The fluent `RenderBuilder` composes a single render operation. Chain setters, th
 | Page size | `PageA4`, `PageA3`, `PageLetter` |
 | Transformer type | `TransformerContent`, `TransformerCompliance`, `TransformerDelivery`, `TransformerSecurity`, `TransformerCompression` |
 | Compression algorithm | `CompressZstd` |
+
+## Limits
+
+Layout limits bound raw HTML expansion, document structure, and pagination. Exceeding a limit returns an error, except for `MaxColspan` and `MaxRowspan`, which clamp table-cell spans to their configured maxima.
+
+`LayoutLimits` defines the following fields and errors.
+
+| Field | Default | Error |
+|---|---|---|
+| `MaxRawHTMLBytes` | 4 MiB (4,194,304 bytes) of raw HTML expanded in one layout | `ErrRawHTMLTooLarge` |
+| `MaxNestingDepth` | 512 levels of element nesting | `ErrNestingTooDeep` |
+| `MaxBoxNodes` | 200,000 document nodes and layout boxes | `ErrTooManyBoxes` |
+| `MaxColspan` | 1,000 | None. Clamps larger `colspan` values. |
+| `MaxRowspan` | 65,534 | None. Clamps larger `rowspan` values. |
+| `MaxTableColumns` | 10,000 columns in one table | `ErrTooManyTableColumns` |
+| `MaxGridTracks` | 10,000 tracks on one grid axis | `ErrTooManyGridTracks` |
+| `MaxGridCells` | 10,000,000 grid cells examined across one layout | `ErrGridTooLarge` |
+| `MaxRepeatCount` | 10,000 for a CSS `repeat()` count | `ErrRepeatCountTooLarge` |
+| `MaxPages` | 10,000 pages | `ErrTooManyPages` |
+
+Every layout sentinel wraps `ErrLayoutLimitExceeded`, so one `errors.Is(err, pdf.ErrLayoutLimitExceeded)` check detects any of them. Embedded images have a separate cap on pixel area (width times height), 100,000,000 pixels by default. An image above it fails the render with `ErrImageDimensionsTooLarge`.
+
+Limits resolve per field in the following order. Non-positive values fall through to the next level.
+
+1. The render builder's `WithLayoutLimits` and `WithMaxImagePixels` settings.
+2. The service settings from `piko.WithPdfLayoutLimits` and `piko.WithPdfMaxImagePixels`, or the equivalent `NewServiceFromManifest` options.
+3. The built-in defaults above.
+
+## Errors
+
+| Sentinel | Returned when |
+|---|---|
+| `ErrManifestNotLoaded` | A `ManifestService` renders before `Load` has succeeded. |
+| `ErrLayoutLimitExceeded` | Parent of every layout limit error in [Limits](#limits). |
+| `ErrImageDimensionsTooLarge` | An embedded image exceeds the pixel-area cap. |
+| `ErrTooManyEmbeddedFiles`, `ErrEmbeddedFileTooLarge`, `ErrStructuredMetadataTooLarge` | A payload passed to `EmbedData` or structured metadata exceeds its `EmbeddedDataLimits` field. |
+| `ErrEmbeddedFileMetadataTooLong`, `ErrEmbeddedMIMETypeTooLong` | An embedded file's name, description, or MIME type is too long. |
 
 ## Post-processing transformers
 
@@ -224,7 +282,19 @@ type TransformerPort interface {
 
 ## Bootstrap
 
-PDF does not expose a dedicated `With*` option. Piko constructs the default service from the PDF manifest produced by the project's scaffolded generator (`cmd/generator/main.go`) when a `pdfs/` directory is present in the project. Custom transformers register through the `TransformerRegistry`:
+Piko constructs the default service from the generated PDF manifest when the project has a `pdfs/` directory. `piko.WithPdfLayoutLimits` sets layout limits, and `piko.WithPdfMaxImagePixels` sets the image pixel cap. `PdfLayoutLimits` aliases `LayoutLimits`. See [Limits](#limits) for defaults and precedence.
+
+```go
+ssr := piko.New(
+    piko.WithPdfLayoutLimits(piko.PdfLayoutLimits{
+        MaxPages:        500,
+        MaxRawHTMLBytes: 1 << 20,
+    }),
+    piko.WithPdfMaxImagePixels(40_000_000),
+)
+```
+
+Custom transformers register through the `TransformerRegistry`:
 
 ```go
 registry := pdf.NewTransformerRegistry()

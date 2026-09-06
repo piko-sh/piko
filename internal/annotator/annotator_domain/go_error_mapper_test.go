@@ -490,9 +490,7 @@ func TestEstimateLineFromGeneratedLine(t *testing.T) {
 			name:          "without script block uses generated line",
 			generatedLine: 25,
 			vc: &annotator_dto.VirtualComponent{
-				Source: &annotator_dto.ParsedComponent{
-					Script: nil,
-				},
+				Source: &annotator_dto.ParsedComponent{},
 			},
 			expectedLine: 25,
 		},
@@ -501,9 +499,7 @@ func TestEstimateLineFromGeneratedLine(t *testing.T) {
 			generatedLine: 30,
 			vc: &annotator_dto.VirtualComponent{
 				Source: &annotator_dto.ParsedComponent{
-					Script: &annotator_dto.ParsedScript{
-						ScriptStartLocation: ast_domain.Location{Line: 0},
-					},
+					Script: &annotator_dto.ParsedScript{},
 				},
 			},
 			expectedLine: 30,
@@ -809,9 +805,7 @@ func TestCreateDiagnosticForGoFile(t *testing.T) {
 			Message:  "package clause expected",
 		}
 
-		vm := &annotator_dto.VirtualModule{
-			SourceOverlay: nil,
-		}
+		vm := &annotator_dto.VirtualModule{}
 
 		diagnostic, ok := createDiagnosticForGoFile(context.Background(), goErr, vm, fsReader)
 

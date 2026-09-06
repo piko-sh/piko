@@ -22,6 +22,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -234,3 +236,49 @@ var (
 	_ slog.Handler = (*discardHandler)(nil)
 	_ io.Closer    = (*trackingCloser)(nil)
 )
+
+type wrappingRoundTripper struct {
+	next http.RoundTripper
+}
+
+func (w wrappingRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	return w.next.RoundTrip(request)
+}
+
+func TestCloneBaseTransport(t *testing.T) {
+	t.Parallel()
+
+	proxyURL, err := url.Parse("http://proxy.example:3128")
+	require.NoError(t, err)
+	configured := &http.Transport{Proxy: http.ProxyURL(proxyURL), MaxIdleConns: 7}
+
+	testCases := []struct {
+		base          http.RoundTripper
+		name          string
+		wantSameProxy bool
+	}{
+		{name: "a plain transport is cloned with its settings", base: configured, wantSameProxy: true},
+		{name: "a wrapped transport falls back to a fresh transport", base: wrappingRoundTripper{next: configured}, wantSameProxy: false},
+		{name: "a nil transport falls back to a fresh transport", base: nil, wantSameProxy: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			transport := cloneBaseTransport(testCase.base)
+
+			require.NotNil(t, transport)
+			assert.NotSame(t, configured, transport, "the result must never alias the base transport")
+			require.NotNil(t, transport.Proxy)
+			request, requestErr := http.NewRequest(http.MethodGet, "http://service.example/", nil)
+			require.NoError(t, requestErr)
+			proxy, proxyErr := transport.Proxy(request)
+			require.NoError(t, proxyErr)
+			if testCase.wantSameProxy {
+				assert.Equal(t, proxyURL, proxy)
+				assert.Equal(t, 7, transport.MaxIdleConns)
+			}
+		})
+	}
+}

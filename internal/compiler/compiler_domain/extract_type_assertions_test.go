@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractTypeAssertions_BasicTypes(t *testing.T) {
@@ -399,6 +400,48 @@ func TestParseTypeString_NullableArrays(t *testing.T) {
 			assert.Equal(t, tt.expectedType, result.JSType, "type mismatch")
 			assert.Equal(t, tt.expectedElem, result.ElementType, "element type mismatch")
 			assert.Equal(t, tt.expectedNullable, result.IsNullable, "nullable mismatch")
+		})
+	}
+}
+
+func TestExtractTypeAssertions_TextTheLexerCannotReadAlone(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		want map[string]string
+		name string
+		code string
+	}{
+		{
+			name: "regular expression after the state object",
+			code: "const state = { count: 0 as number };\nconst digits = /\\d+/;",
+			want: map[string]string{"count": "number"},
+		},
+		{
+			name: "regular expression before the state object",
+			code: "const digits = /\\d+/;\nconst state = { count: 0 as number };",
+		},
+		{
+			name: "template text after a substitution",
+			code: "const label = `${prefix}\\d`;\nconst state = { count: 0 as number };",
+		},
+		{
+			name: "regular expression inside the state object",
+			code: "const state = { count: 0 as number, pattern: /\\w+/ as RegExp };",
+			want: map[string]string{"count": "number"},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var assertions map[string]TypeAssertion
+			require.NotPanics(t, func() {
+				assertions = ExtractTypeAssertions(tc.code)
+			})
+			require.NotNil(t, assertions)
+			for name, typeString := range tc.want {
+				assert.Equal(t, typeString, assertions[name].TypeString, "assertion for %s", name)
+			}
 		})
 	}
 }

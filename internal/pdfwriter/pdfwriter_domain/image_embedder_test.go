@@ -375,3 +375,37 @@ func TestImageEmbedder_RejectsHugeDimensions(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrImageDimensionsTooLarge)
 }
+
+func TestImageEmbedder_SetMaxPixels(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		pixels  int
+		want    int
+		wantErr bool
+	}{
+		{name: "custom cap below the image rejects it", pixels: 10, want: 10, wantErr: true},
+		{name: "non-positive cap restores the default", pixels: 0, want: DefaultMaxImagePixels},
+		{name: "generous cap admits the image", pixels: 1_000_000, want: 1_000_000},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			embedder := NewImageEmbedder()
+			embedder.SetMaxPixels(tt.pixels)
+			assert.Equal(t, tt.want, embedder.maxPixels)
+
+			embedder.RegisterImage("small.png", buildMinimalPNG(), "png", 4, 4)
+			writer := &PdfDocumentWriter{}
+			writer.WriteHeader()
+			_, err := embedder.WriteObjects(writer)
+			if tt.wantErr {
+				assert.ErrorIs(t, err, ErrImageDimensionsTooLarge)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}

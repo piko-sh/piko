@@ -171,11 +171,9 @@ func sendEmail(t *testing.T, cfg *emailConfig, tc testCase, spec TopLevelTestSpe
 	pmOpts := buildPremailerOptions(spec.PremailerOptions)
 
 	emailMetadata := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title:       spec.Metadata.Title,
-			Description: spec.Metadata.Description,
-			Language:    spec.Metadata.Language,
-		},
+		Title:       spec.Metadata.Title,
+		Description: spec.Metadata.Description,
+		Language:    spec.Metadata.Language,
 	}
 	if emailMetadata.Language == "" {
 		emailMetadata.Language = "en"
@@ -332,11 +330,9 @@ func runTestCase(t *testing.T, tc testCase) {
 	pmOpts := buildPremailerOptions(spec.PremailerOptions)
 
 	emailMetadata := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title:       spec.Metadata.Title,
-			Description: spec.Metadata.Description,
-			Language:    spec.Metadata.Language,
-		},
+		Title:       spec.Metadata.Title,
+		Description: spec.Metadata.Description,
+		Language:    spec.Metadata.Language,
 	}
 	if emailMetadata.Language == "" {
 		emailMetadata.Language = "en"

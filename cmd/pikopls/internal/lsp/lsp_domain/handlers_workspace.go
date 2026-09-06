@@ -518,9 +518,7 @@ func (*Server) ShowDocument(ctx context.Context, params *protocol.ShowDocumentPa
 	_, l := logger_domain.From(ctx, log)
 
 	l.Debug("ShowDocument", logger_domain.String(keyURI, string(params.URI)))
-	return &protocol.ShowDocumentResult{
-		Success: false,
-	}, nil
+	return &protocol.ShowDocumentResult{}, nil
 }
 
 // convertGoSymbolToLSP converts a Go symbol to an LSP SymbolInformation if it matches the

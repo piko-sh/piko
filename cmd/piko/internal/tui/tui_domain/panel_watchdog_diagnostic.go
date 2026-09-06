@@ -138,11 +138,10 @@ func NewWatchdogDiagnosticPanel(provider WatchdogProvider, clk clock.Clock) *Wat
 	if clk == nil {
 		clk = clock.RealClock()
 	}
-	panel := &WatchdogDiagnosticPanel{
-		BasePanel: NewBasePanel(WatchdogDiagnosticPanelID, WatchdogDiagnosticPanelTitle),
-		provider:  provider,
-		clock:     clk,
-	}
+	panel := &WatchdogDiagnosticPanel{}
+	panel.BasePanel = NewBasePanel(WatchdogDiagnosticPanelID, WatchdogDiagnosticPanelTitle)
+	panel.provider = provider
+	panel.clock = clk
 	panel.SetKeyMap([]KeyBinding{
 		{Key: "Enter / D", Description: "Run contention diagnostic"},
 		{Key: "R", Description: "Refresh status"},

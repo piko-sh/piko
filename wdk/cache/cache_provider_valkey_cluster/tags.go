@@ -55,6 +55,8 @@ func clusterHashTag(tag string) string {
 // tags) is stored per-key and may be on different nodes.
 //
 // Takes client (valkey.Client) which provides the Valkey cluster connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes key (string) which is the cache key to link with tags.
 // Takes tags ([]string) which contains the tag names to link with the key.
 //
@@ -87,6 +89,8 @@ func addTagsToKey(ctx context.Context, client valkey.Client, namespace string, k
 // which would panic in cluster mode when tag keys hash to different slots.
 //
 // Takes client (valkey.Client) which provides the Valkey cluster connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes tags ([]string) which specifies the tags to look up.
 //
 // Returns []string which contains the unique keys associated with the tags.
@@ -120,6 +124,8 @@ func getKeysByTags(ctx context.Context, client valkey.Client, namespace string, 
 // themselves. Uses DoMulti for efficiency.
 //
 // Takes client (valkey.Client) which provides the cluster connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes tags ([]string) which specifies the tags whose keys should be removed.
 //
 // Returns int which is the number of keys that were removed.
@@ -170,6 +176,8 @@ func performTagInvalidation(ctx context.Context, client valkey.Client, namespace
 // leaks when keys are deleted directly via Invalidate.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes key (string) which is the cache key to remove from tag sets.
 //
 // Returns error when getting tags fails or the pipeline fails to run.

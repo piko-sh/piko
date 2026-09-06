@@ -156,7 +156,7 @@ func (*RepetitionDetector) Mode() spamdetect_dto.DetectorMode {
 // Returns error when the context is cancelled or the cache fails.
 func (d *RepetitionDetector) Analyse(ctx context.Context, submission *spamdetect_dto.Submission, schema *spamdetect_dto.Schema) (*spamdetect_dto.DetectorResult, error) {
 	if submission == nil || schema == nil {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	if err := ctx.Err(); err != nil {
@@ -164,12 +164,12 @@ func (d *RepetitionDetector) Analyse(ctx context.Context, submission *spamdetect
 	}
 
 	if d.cache == nil {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	fields := schema.FieldsWithSignal(spamdetect_dto.SignalRepetition)
 	if len(fields) == 0 {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	contentHash := d.hashFieldContent(submission, fields)
@@ -182,10 +182,7 @@ func (d *RepetitionDetector) Analyse(ctx context.Context, submission *spamdetect
 
 	score, reason := d.scoreFromCount(count)
 
-	result := &spamdetect_dto.DetectorResult{
-		Score:  score,
-		IsSpam: score >= detectorSpamThreshold,
-	}
+	result := spamdetect_dto.NewReasonDetectorResult(score, score >= detectorSpamThreshold, nil)
 
 	if reason != "" {
 		result.Reasons = []string{reason}

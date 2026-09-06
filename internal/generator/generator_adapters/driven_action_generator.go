@@ -74,6 +74,7 @@ func NewActionGeneratorAdapter(opts ...ActionGeneratorOption) *ActionGeneratorAd
 		registryEmitter:   NewActionRegistryEmitter(),
 		wrapperEmitter:    NewActionWrapperEmitter(),
 		typeScriptEmitter: typegen_adapters.NewActionTypeScriptEmitter(),
+		sandbox:           nil,
 	}
 
 	for _, opt := range opts {

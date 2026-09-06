@@ -91,3 +91,45 @@ func TestEncodingFormatHelpers(t *testing.T) {
 		assert.Equal(t, "base64", *b)
 	})
 }
+
+func TestNewEmbeddingResponse(t *testing.T) {
+	t.Parallel()
+
+	embeddings := []Embedding{NewFloat32Embedding(0, []float32{0.1, 0.2})}
+	usage := NewEmbeddingUsage(3, 5)
+	response := NewEmbeddingResponse("text-embedding-3-small", embeddings, usage)
+
+	assert.Equal(t, "text-embedding-3-small", response.Model)
+	assert.Equal(t, embeddings, response.Embeddings)
+	assert.Same(t, usage, response.Usage)
+	assert.Empty(t, response.ID)
+}
+
+func TestNewEmbeddingResponse_NilUsage(t *testing.T) {
+	t.Parallel()
+
+	response := NewEmbeddingResponse("voyage-3.5", nil, nil)
+
+	assert.Nil(t, response.Usage)
+	assert.Nil(t, response.Embeddings)
+}
+
+func TestNewFloat32Embedding(t *testing.T) {
+	t.Parallel()
+
+	embedding := NewFloat32Embedding(2, []float32{1, 2, 3})
+
+	assert.Equal(t, 2, embedding.Index)
+	assert.Equal(t, []float32{1, 2, 3}, embedding.Vector)
+	assert.Nil(t, embedding.Base64)
+}
+
+func TestNewEmbeddingUsage(t *testing.T) {
+	t.Parallel()
+
+	usage := NewEmbeddingUsage(7, 9)
+
+	assert.Equal(t, 7, usage.PromptTokens)
+	assert.Equal(t, 9, usage.TotalTokens)
+	assert.Nil(t, usage.EstimatedCost)
+}

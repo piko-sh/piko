@@ -58,12 +58,12 @@ func parseAlterTableCompression(p db_engine_postgres.ParserContext) (*querier_dt
 
 	engineSpecific := buildCompressionEngineSpecific(isMaterialized, reloptions)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:           querier_dto.MutationAlterTableAlterColumn,
-		SchemaName:     schema,
-		TableName:      name,
-		EngineSpecific: engineSpecific,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableAlterColumn,
+		schema,
+		name,
+		querier_dto.WithEngineSpecific(engineSpecific),
+	), nil
 }
 
 // parseAlterCompressionHeader consumes the ALTER TABLE / ALTER MATERIALIZED VIEW header,
@@ -77,12 +77,18 @@ func parseAlterTableCompression(p db_engine_postgres.ParserContext) (*querier_dt
 // Returns name (string) which is the target table or view name.
 // Returns err (error) when the qualified name fails to parse.
 func parseAlterCompressionHeader(p db_engine_postgres.ParserContext) (isMaterialized bool, schema string, name string, err error) {
-	p.MustKeyword("ALTER")
+	if err := p.ExpectKeyword("ALTER"); err != nil {
+		return false, "", "", err
+	}
 	if p.MatchKeyword("MATERIALIZED") {
-		p.MustKeyword("VIEW")
+		if err := p.ExpectKeyword("VIEW"); err != nil {
+			return false, "", "", err
+		}
 		isMaterialized = true
 	} else {
-		p.MustKeyword("TABLE")
+		if err := p.ExpectKeyword("TABLE"); err != nil {
+			return false, "", "", err
+		}
 	}
 
 	p.MatchIfExists()

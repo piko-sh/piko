@@ -1114,8 +1114,10 @@ func NewSortOption(field string, order SortOrder) SortOption {
 //	pagination := pikoruntime.NewPaginationOptions(10, 20)  // Limit 10, Offset 20
 func NewPaginationOptions(limit, offset int) PaginationOptions {
 	return collection_dto.PaginationOptions{
-		Limit:  limit,
-		Offset: offset,
+		Limit:    limit,
+		Offset:   offset,
+		Page:     0,
+		PageSize: 0,
 	}
 }
 
@@ -1352,7 +1354,10 @@ func WithPagination(pagination PaginationOptions) CollectionOption {
 func WithLimit(limit int) CollectionOption {
 	return func(opts *FetchOptions) {
 		opts.Pagination = &PaginationOptions{
-			Limit: limit,
+			Limit:    limit,
+			Page:     0,
+			PageSize: 0,
+			Offset:   0,
 		}
 	}
 }
@@ -1623,12 +1628,16 @@ func AdvancedSearch[T any](
 	processor := search_domain.NewQueryProcessorForIndex(reader)
 
 	searchConfig := search_dto.SearchConfig{
-		Query:         query,
-		Fields:        advancedSearchConfig.fields,
-		Limit:         advancedSearchConfig.limit,
-		Offset:        advancedSearchConfig.offset,
-		MinScore:      advancedSearchConfig.minScore,
-		CaseSensitive: advancedSearchConfig.caseSensitive,
+		Query:                    query,
+		Fields:                   advancedSearchConfig.fields,
+		Limit:                    advancedSearchConfig.limit,
+		Offset:                   advancedSearchConfig.offset,
+		MinScore:                 advancedSearchConfig.minScore,
+		CaseSensitive:            advancedSearchConfig.caseSensitive,
+		FuzzyThreshold:           0,
+		EnableFuzzyFallback:      false,
+		FuzzySimilarityThreshold: 0,
+		FuzzyMaxResults:          0,
 	}
 
 	queryResults, err := processor.Search(ctx, query, reader, scorer, searchConfig)
@@ -1710,11 +1719,20 @@ func BuildNavigationFromMetadata(ctx context.Context, metadataItems []map[string
 
 	for _, metadata := range metadataItems {
 		item := collection_dto.ContentItem{
-			ID:       getString(metadata, "ID"),
-			Slug:     getString(metadata, "Slug"),
-			Locale:   getString(metadata, "Locale"),
-			URL:      getString(metadata, "URL"),
-			Metadata: metadata,
+			ID:             getString(metadata, "ID"),
+			Slug:           getString(metadata, "Slug"),
+			Locale:         getString(metadata, "Locale"),
+			URL:            getString(metadata, "URL"),
+			Metadata:       metadata,
+			ExcerptAST:     nil,
+			ContentAST:     nil,
+			PlainContent:   "",
+			TranslationKey: "",
+			RawContent:     "",
+			CreatedAt:      "",
+			UpdatedAt:      "",
+			PublishedAt:    "",
+			ReadingTime:    0,
 		}
 		contentItems = append(contentItems, item)
 	}
@@ -1816,6 +1834,7 @@ func applySearchOptions(opts ...SearchOption) searchConfig {
 		minScore:       0.0,
 		caseSensitive:  false,
 		searchMode:     "fast",
+		fields:         nil,
 	}
 
 	for _, opt := range opts {

@@ -44,11 +44,6 @@ const (
 	// maxAlpha holds the maximum alpha channel value for a fully opaque pixel.
 	maxAlpha = 255
 
-	// maxImagePixels caps the total pixel count (width * height) of a decoded image at one
-	// hundred million pixels (~10000 x 10000). Anything larger is treated as a
-	// denial-of-service attempt rather than a genuine document.
-	maxImagePixels = 100_000_000
-
 	// jpegMarkerPrefix holds the byte that precedes every JPEG marker.
 	jpegMarkerPrefix = 0xFF
 
@@ -94,6 +89,13 @@ const (
 	rgbChannelCount = 3
 )
 
+const (
+	// DefaultMaxImagePixels is the default cap on the total pixel count (width * height) of
+	// a decoded image, set to one hundred million pixels (~10000 x 10000). Anything larger
+	// is treated as a denial-of-service attempt rather than a genuine document.
+	DefaultMaxImagePixels = 100_000_000
+)
+
 var (
 	// ErrImageDimensionsTooLarge is returned when a decoded image exceeds the configured
 	// pixel-area cap. The cap protects against malicious or malformed images that would
@@ -128,16 +130,32 @@ type ImageEmbedder struct {
 
 	// nextIndex is the counter for generating resource names.
 	nextIndex int
+
+	// maxPixels caps the pixel area (width * height) of any decoded image.
+	maxPixels int
 }
 
-// NewImageEmbedder creates a new image embedder.
+// NewImageEmbedder creates a new image embedder with the default pixel-area cap.
 //
 // Returns *ImageEmbedder ready to accept image registrations.
 func NewImageEmbedder() *ImageEmbedder {
 	return &ImageEmbedder{
 		images:       make(map[string]*embeddedImageState),
 		sourceToName: make(map[string]string),
+		nextIndex:    0,
+		maxPixels:    DefaultMaxImagePixels,
 	}
+}
+
+// SetMaxPixels sets the cap on the pixel area (width * height) of any image the embedder
+// decodes. Non-positive values restore the default cap.
+//
+// Takes pixels (int) which is the maximum pixel area of one image.
+func (e *ImageEmbedder) SetMaxPixels(pixels int) {
+	if pixels <= 0 {
+		pixels = DefaultMaxImagePixels
+	}
+	e.maxPixels = pixels
 }
 
 // RegisterImage registers an image for embedding and returns its resource name (e.g.
@@ -236,10 +254,10 @@ func (*ImageEmbedder) writeJPEGXObject(writer *PdfDocumentWriter, state *embedde
 //
 // Returns int which is the object number of the written XObject.
 // Returns error which is non-nil if zlib compression fails.
-func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embeddedImageState) (int, error) {
+func (e *ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embeddedImageState) (int, error) {
 	if state.pixelWidth > 0 && state.pixelHeight > 0 {
-		if int64(state.pixelWidth)*int64(state.pixelHeight) > maxImagePixels {
-			return 0, fmt.Errorf("%w: declared %d x %d pixels exceeds cap of %d", ErrImageDimensionsTooLarge, state.pixelWidth, state.pixelHeight, maxImagePixels)
+		if int64(state.pixelWidth)*int64(state.pixelHeight) > int64(e.maxPixels) {
+			return 0, fmt.Errorf("%w: declared %d x %d pixels exceeds cap of %d", ErrImageDimensionsTooLarge, state.pixelWidth, state.pixelHeight, e.maxPixels)
 		}
 	}
 
@@ -257,8 +275,8 @@ func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embedded
 	if width <= 0 || height <= 0 {
 		return 0, fmt.Errorf("%w: width %d, height %d", ErrImageDimensionsTooLarge, width, height)
 	}
-	if int64(width)*int64(height) > maxImagePixels {
-		return 0, fmt.Errorf("%w: %d x %d pixels exceeds cap of %d", ErrImageDimensionsTooLarge, width, height, maxImagePixels)
+	if int64(width)*int64(height) > int64(e.maxPixels) {
+		return 0, fmt.Errorf("%w: %d x %d pixels exceeds cap of %d", ErrImageDimensionsTooLarge, width, height, e.maxPixels)
 	}
 
 	rgbPixels, alphaPixels, hasAlpha := extractPNGChannels(img, bounds, width, height)

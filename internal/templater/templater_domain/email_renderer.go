@@ -49,6 +49,7 @@ var (
 // Takes templatePath (string) which specifies the path to the email template.
 // Takes props (any) which contains the data to pass to the template.
 // Takes premailerOptions (*premailer.Options) which controls CSS inlining.
+// Takes isPreviewMode (bool) which enables preview-specific email rendering.
 //
 // Returns *templater_dto.RenderedEmailContent which contains the rendered HTML and plain
 // text versions of the email.

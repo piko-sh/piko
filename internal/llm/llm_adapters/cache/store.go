@@ -195,6 +195,9 @@ func New(ctx context.Context, config Config, options ...StoreOption) (*Store, er
 	store := &Store{
 		clock:   clk,
 		service: config.CacheService,
+		cache:   nil,
+		hits:    atomic.Int64{},
+		misses:  atomic.Int64{},
 	}
 
 	for _, option := range options {

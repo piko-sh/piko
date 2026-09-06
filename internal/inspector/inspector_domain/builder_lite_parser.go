@@ -136,6 +136,7 @@ func (e *liteTypeExtractor) extractPackage(ctx context.Context, packagePath stri
 		NamedTypes:  make(map[string]*inspector_dto.Type),
 		Funcs:       make(map[string]*inspector_dto.Function),
 		FileImports: make(map[string]map[string]string),
+		Variables:   nil,
 	}
 
 	for filePath, file := range files {
@@ -730,13 +731,10 @@ func (e *liteTypeExtractor) extractSignature(ft *ast.FuncType) inspector_dto.Fun
 // Returns []string which holds the type parameter names in declaration order, or nil when
 // none are declared.
 // Returns []string which holds the matching constraint type strings, in the same order.
-func (e *liteTypeExtractor) extractTypeParams(fields *ast.FieldList) ([]string, []string) {
+func (e *liteTypeExtractor) extractTypeParams(fields *ast.FieldList) (names, constraints []string) {
 	if fields == nil || len(fields.List) == 0 {
 		return nil, nil
 	}
-
-	var names []string
-	var constraints []string
 
 	for _, field := range fields.List {
 		constraint, _ := e.resolver.TypeExprToString(field.Type)

@@ -78,6 +78,7 @@ func NewRateLimiter(store ratelimiter_domain.TokenBucketStorePort, opts ...RateL
 		clock:   clock.RealClock(),
 		store:   store,
 		configs: make(map[string]*rateLimitConfig),
+		mu:      sync.RWMutex{},
 	}
 	for _, opt := range opts {
 		opt(l)

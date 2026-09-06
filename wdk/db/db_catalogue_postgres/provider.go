@@ -176,20 +176,19 @@ func (provider *PgIntrospectionProvider) listSchemas(
 // Takes query (string) which is the SQL selecting one text column per row.
 // Takes args (...any) which are the positional query parameters.
 //
-// Returns []string which contains the scanned values in row order.
-// Returns error when the query, a scan, or row iteration fails.
+// Returns names ([]string) which contains the scanned values in row order.
+// Returns err (error) when the query, a scan, row iteration, or closing the rows fails.
 func (provider *PgIntrospectionProvider) queryStringColumn(
 	ctx context.Context,
 	query string,
 	args ...any,
-) ([]string, error) {
+) (names []string, err error) {
 	rows, queryError := provider.database.QueryContext(ctx, query, args...)
 	if queryError != nil {
 		return nil, queryError
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err)
 
-	var names []string
 	for rows.Next() {
 		var name string
 		if scanError := rows.Scan(&name); scanError != nil {
@@ -198,7 +197,11 @@ func (provider *PgIntrospectionProvider) queryStringColumn(
 		names = append(names, name)
 	}
 
-	return names, rows.Err()
+	if rowError := rows.Err(); rowError != nil {
+		return nil, rowError
+	}
+
+	return names, nil
 }
 
 // introspectTables fills the schema's Tables map.
@@ -276,19 +279,27 @@ func (provider *PgIntrospectionProvider) introspectTable(
 	var constraints []querier_dto.Constraint
 	for _, unique := range uniqueConstraints {
 		constraints = append(constraints, querier_dto.Constraint{
-			Name:    unique.Name,
-			Kind:    querier_dto.ConstraintUnique,
-			Columns: unique.Columns,
+			Name:           unique.Name,
+			Kind:           querier_dto.ConstraintUnique,
+			Columns:        unique.Columns,
+			ForeignTable:   "",
+			ForeignColumns: nil,
+			Origin:         querier_dto.MigrationOrigin{},
 		})
 	}
 
 	return &querier_dto.Table{
-		Name:        tableName,
-		Schema:      schemaName,
-		Columns:     columns,
-		PrimaryKey:  primaryKeyColumns,
-		Indexes:     indexes,
-		Constraints: constraints,
+		Name:              tableName,
+		Schema:            schemaName,
+		Columns:           columns,
+		PrimaryKey:        primaryKeyColumns,
+		Indexes:           indexes,
+		Constraints:       constraints,
+		Comment:           "",
+		VirtualModuleName: "",
+		Origin:            querier_dto.MigrationOrigin{},
+		IsVirtual:         false,
+		IsWithoutRowID:    false,
 	}, nil
 }
 
@@ -297,20 +308,18 @@ func (provider *PgIntrospectionProvider) introspectTable(
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
-// Returns []querier_dto.Column which holds the column DTOs.
-// Returns error when the query or scan fails.
+// Returns columns ([]querier_dto.Column) which holds the column DTOs.
+// Returns err (error) when the query, a scan, or closing the rows fails.
 func (provider *PgIntrospectionProvider) introspectColumns(
 	ctx context.Context,
 	schemaName string,
 	tableName string,
-) ([]querier_dto.Column, error) {
+) (columns []querier_dto.Column, err error) {
 	rows, queryError := provider.queryColumns(ctx, schemaName, tableName)
 	if queryError != nil {
 		return nil, queryError
 	}
-	defer rows.Close()
-
-	var columns []querier_dto.Column
+	defer closeRows(rows, &err)
 
 	for rows.Next() {
 		column, scanError := provider.scanColumn(rows)
@@ -320,7 +329,11 @@ func (provider *PgIntrospectionProvider) introspectColumns(
 		columns = append(columns, column)
 	}
 
-	return columns, rows.Err()
+	if rowError := rows.Err(); rowError != nil {
+		return nil, rowError
+	}
+
+	return columns, nil
 }
 
 // queryColumns runs the information_schema.columns query.
@@ -424,12 +437,8 @@ func (provider *PgIntrospectionProvider) scanColumn(rows *sql.Rows) (querier_dto
 	modifiers := buildTypeModifiers(row)
 	sqlType := provider.typeNormaliser.NormaliseTypeName(row.udtName, modifiers...)
 
-	column := querier_dto.Column{
-		Name:       row.columnName,
-		SQLType:    sqlType,
-		Nullable:   row.isNullable == "YES",
-		HasDefault: row.columnDefault.Valid || row.isIdentity != "NO",
-	}
+	column := querier_dto.NewColumn(row.columnName, sqlType, row.isNullable == "YES")
+	column.HasDefault = row.columnDefault.Valid || row.isIdentity != "NO"
 
 	if row.isGenerated == "ALWAYS" {
 		column.IsGenerated = true
@@ -481,19 +490,19 @@ type constraintEntry struct {
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
-// Returns []string which lists primary-key columns in order.
-// Returns []constraintEntry which lists unique constraints.
-// Returns error when the query or scan fails.
+// Returns primaryKeyColumns ([]string) which lists primary-key columns in order.
+// Returns uniqueConstraints ([]constraintEntry) which lists unique constraints.
+// Returns err (error) when the query, a scan, or closing the rows fails.
 func (provider *PgIntrospectionProvider) introspectConstraints(
 	ctx context.Context,
 	schemaName string,
 	tableName string,
-) ([]string, []constraintEntry, error) {
+) (primaryKeyColumns []string, uniqueConstraints []constraintEntry, err error) {
 	rows, queryError := provider.queryConstraints(ctx, schemaName, tableName)
 	if queryError != nil {
 		return nil, nil, queryError
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err)
 
 	primaryKeyColumnMap := make(map[int]string)
 	uniqueConstraintMap := make(map[string][]string)
@@ -525,7 +534,7 @@ func (provider *PgIntrospectionProvider) introspectConstraints(
 		return nil, nil, rowError
 	}
 
-	primaryKeyColumns, uniqueConstraints := assembleConstraintResults(primaryKeyColumnMap, uniqueConstraintMap, uniqueConstraintOrder)
+	primaryKeyColumns, uniqueConstraints = assembleConstraintResults(primaryKeyColumnMap, uniqueConstraintMap, uniqueConstraintOrder)
 	return primaryKeyColumns, uniqueConstraints, nil
 }
 
@@ -606,18 +615,18 @@ type indexEntry struct {
 // Takes schemaName (string) which selects the owning schema.
 // Takes tableName (string) which identifies the relation.
 //
-// Returns []querier_dto.Index which holds the discovered indexes.
-// Returns error when the query or scan fails.
+// Returns indexes ([]querier_dto.Index) which holds the discovered indexes.
+// Returns err (error) when the query, a scan, or closing the rows fails.
 func (provider *PgIntrospectionProvider) introspectIndexes(
 	ctx context.Context,
 	schemaName string,
 	tableName string,
-) ([]querier_dto.Index, error) {
+) (indexes []querier_dto.Index, err error) {
 	rows, queryError := provider.queryIndexes(ctx, schemaName, tableName)
 	if queryError != nil {
 		return nil, queryError
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err)
 
 	indexMap := make(map[string]*indexEntry)
 	var indexOrder []string
@@ -636,7 +645,7 @@ func (provider *PgIntrospectionProvider) introspectIndexes(
 
 		entry, exists := indexMap[indexName]
 		if !exists {
-			entry = &indexEntry{isUnique: isUnique, isPrimary: isPrimary}
+			entry = &indexEntry{isUnique: isUnique, isPrimary: isPrimary, columns: nil}
 			indexMap[indexName] = entry
 			indexOrder = append(indexOrder, indexName)
 		}
@@ -705,7 +714,19 @@ func assembleIndexResults(
 			Columns:   entry.columns,
 			IsUnique:  entry.isUnique,
 			IsPrimary: entry.isPrimary,
+			Origin:    querier_dto.MigrationOrigin{},
 		})
 	}
 	return indexes
+}
+
+// closeRows closes rows and joins any close failure into the caller's named error result.
+//
+// Takes rows (*sql.Rows) which is the result set to close.
+// Takes err (*error) which is the caller's named error result that receives a close
+// failure.
+func closeRows(rows *sql.Rows, err *error) {
+	if closeError := rows.Close(); closeError != nil {
+		*err = errors.Join(*err, fmt.Errorf("closing rows: %w", closeError))
+	}
 }

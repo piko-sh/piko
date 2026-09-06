@@ -27,7 +27,8 @@ import (
 // DetailView renders the detail-pane body for the row currently under the cursor.
 // Artefact rows show metadata; otherwise the storage overview is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *StoragePanel) DetailView(width, height int) string {
@@ -56,15 +57,15 @@ func (p *StoragePanel) overviewDetailBody() inspector.DetailBody {
 	}
 
 	rows := []inspector.DetailRow{
-		{Label: "Total artefacts", Value: fmt.Sprintf(FormatPercentInt, len(p.artefacts))},
-		{Label: "Healthy", Value: fmt.Sprintf(FormatPercentInt, counts[ResourceStatusHealthy])},
-		{Label: "Degraded", Value: fmt.Sprintf(FormatPercentInt, counts[ResourceStatusDegraded])},
-		{Label: "Unhealthy", Value: fmt.Sprintf(FormatPercentInt, counts[ResourceStatusUnhealthy])},
-		{Label: "Pending", Value: fmt.Sprintf(FormatPercentInt, counts[ResourceStatusPending])},
+		inspector.NewDetailRow("Total artefacts", fmt.Sprintf(FormatPercentInt, len(p.artefacts))),
+		inspector.NewDetailRow("Healthy", fmt.Sprintf(FormatPercentInt, counts[ResourceStatusHealthy])),
+		inspector.NewDetailRow("Degraded", fmt.Sprintf(FormatPercentInt, counts[ResourceStatusDegraded])),
+		inspector.NewDetailRow("Unhealthy", fmt.Sprintf(FormatPercentInt, counts[ResourceStatusUnhealthy])),
+		inspector.NewDetailRow("Pending", fmt.Sprintf(FormatPercentInt, counts[ResourceStatusPending])),
 	}
 	return inspector.DetailBody{
 		Title:    "Storage overview",
 		Subtitle: fmt.Sprintf("%d artefacts", len(p.artefacts)),
-		Sections: []inspector.DetailSection{{Heading: "Counts", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Counts", rows)},
 	}
 }

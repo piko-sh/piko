@@ -39,7 +39,7 @@ func TestSemanticAnalyser_Enter_NilNode(t *testing.T) {
 		"test.piko",
 	)
 
-	resolver := &TypeResolver{inspector: nil}
+	resolver := &TypeResolver{}
 	analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 	visitor, err := analyser.Enter(context.Background(), nil)
@@ -65,7 +65,7 @@ func TestSemanticAnalyser_Enter_SimpleNode(t *testing.T) {
 		"test.piko",
 	)
 
-	resolver := &TypeResolver{inspector: nil}
+	resolver := &TypeResolver{}
 	analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 	node := &ast_domain.TemplateNode{
@@ -96,7 +96,7 @@ func TestSemanticAnalyser_Exit(t *testing.T) {
 		"test.piko",
 	)
 
-	resolver := &TypeResolver{inspector: nil}
+	resolver := &TypeResolver{}
 	analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 	node := &ast_domain.TemplateNode{
@@ -120,7 +120,7 @@ func TestSemanticAnalyser_newVisitorForChild(t *testing.T) {
 		"test.piko",
 	)
 
-	resolver := &TypeResolver{inspector: nil}
+	resolver := &TypeResolver{}
 	parentAnalyser := NewSemanticAnalyser(resolver, parentCtx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 	childCtx := &AnalysisContext{
@@ -168,7 +168,7 @@ func TestSemanticAnalyser_SpecialistsCreated(t *testing.T) {
 		"test.piko",
 	)
 
-	resolver := &TypeResolver{inspector: nil}
+	resolver := &TypeResolver{}
 	analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 	if analyser.typeResolver == nil {
@@ -248,10 +248,10 @@ func TestResolveAndValidate(t *testing.T) {
 
 			ctx.Symbols.Define(Symbol{
 				Name:     "condition",
-				TypeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				TypeInfo: &ast_domain.ResolvedTypeInfo{},
 			})
 
-			resolver := &TypeResolver{inspector: nil}
+			resolver := &TypeResolver{}
 			resolveAndValidate(context.Background(), tt.directive, ctx, resolver, tt.validateFunction)
 			if tt.directive != nil && tt.directive.Expression != nil {
 				if tt.directive.GoAnnotations == nil {
@@ -379,7 +379,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 	t.Run("returns nil for nil source", func(t *testing.T) {
 		t.Parallel()
 
-		vc := &annotator_dto.VirtualComponent{Source: nil}
+		vc := &annotator_dto.VirtualComponent{}
 		result := buildTranslationKeySet(vc, nil)
 		assert.Nil(t, result)
 	})
@@ -388,9 +388,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 		t.Parallel()
 
 		vc := &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{
-				LocalTranslations: nil,
-			},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 		result := buildTranslationKeySet(vc, nil)
 		assert.Nil(t, result)
@@ -467,9 +465,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 		t.Parallel()
 
 		vc := &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{
-				LocalTranslations: nil,
-			},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 		globalKeys := map[string]struct{}{
 			"home.subtitle": {},
@@ -507,9 +503,7 @@ func TestBuildTranslationKeySet(t *testing.T) {
 		t.Parallel()
 
 		vc := &annotator_dto.VirtualComponent{
-			Source: &annotator_dto.ParsedComponent{
-				LocalTranslations: nil,
-			},
+			Source: &annotator_dto.ParsedComponent{},
 		}
 
 		result := buildTranslationKeySet(vc, map[string]struct{}{})
@@ -573,9 +567,7 @@ func TestDetermineEffectiveKeyForChildren(t *testing.T) {
 		t.Parallel()
 
 		node := &ast_domain.TemplateNode{
-			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-				EffectiveKeyExpression: nil,
-			},
+			GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 		}
 		result := determineEffectiveKeyForChildren(node)
 		assert.Nil(t, result)
@@ -597,7 +589,7 @@ func TestGetClientScriptLocation(t *testing.T) {
 	t.Run("returns default location for nil source", func(t *testing.T) {
 		t.Parallel()
 
-		vc := &annotator_dto.VirtualComponent{Source: nil}
+		vc := &annotator_dto.VirtualComponent{}
 		result := getClientScriptLocation(vc)
 		assert.Equal(t, 1, result.Line)
 		assert.Equal(t, 1, result.Column)
@@ -625,7 +617,7 @@ func TestBuildPartialInvocationMap(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		result := analyser.buildPartialInvocationMap(nil)
@@ -637,7 +629,7 @@ func TestBuildPartialInvocationMap(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		pInfo := &ast_domain.PartialInvocationInfo{PartialPackageName: "", InvocationKey: "inv_abc"}
@@ -650,7 +642,7 @@ func TestBuildPartialInvocationMap(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		pInfo := &ast_domain.PartialInvocationInfo{PartialPackageName: "card_pkg", InvocationKey: "inv_123", PartialAlias: "card"}
@@ -663,7 +655,7 @@ func TestBuildPartialInvocationMap(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		existingPInfo := &ast_domain.PartialInvocationInfo{PartialPackageName: "header_pkg", InvocationKey: "inv_001"}
@@ -680,7 +672,7 @@ func TestBuildPartialInvocationMap(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		pInfo := &ast_domain.PartialInvocationInfo{PartialPackageName: "card_pkg", InvocationKey: "inv_123"}
@@ -696,7 +688,7 @@ func TestNewSemanticAnalyser_Extended(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		analysisMap := make(map[*ast_domain.TemplateNode]*AnalysisContext)
 		pInfo := &ast_domain.PartialInvocationInfo{PartialPackageName: "card", InvocationKey: "inv_001"}
 		config := SemanticAnalyserConfig{MainComponentHash: "main_abc"}
@@ -726,7 +718,7 @@ func TestSemanticAnalyser_newVisitorForChild_WithPartialInfo(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		parent := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		pInfo := &ast_domain.PartialInvocationInfo{PartialPackageName: "card_pkg", InvocationKey: "inv_123"}
@@ -742,7 +734,7 @@ func TestSemanticAnalyser_newVisitorForChild_WithPartialInfo(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		parent := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		parentKey := &ast_domain.Identifier{Name: "key"}
@@ -755,7 +747,7 @@ func TestSemanticAnalyser_newVisitorForChild_WithPartialInfo(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		parent := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		childCtx := ctx.ForChildScope()
@@ -773,7 +765,7 @@ func TestIsIterable_AdditionalCases(t *testing.T) {
 
 	t.Run("nil type expression returns false", func(t *testing.T) {
 		t.Parallel()
-		result := isIterable(&ast_domain.ResolvedTypeInfo{TypeExpression: nil})
+		result := isIterable(&ast_domain.ResolvedTypeInfo{})
 		assert.False(t, result)
 	})
 
@@ -964,9 +956,7 @@ func TestValidateForDirective(t *testing.T) {
 		ctx := NewRootAnalysisContext(&diagnostics, "test/pkg", "testpkg", "test.go", "test.piko")
 
 		collectionExpr := &ast_domain.Identifier{Name: "things"}
-		collectionExpr.SetGoAnnotation(&ast_domain.GoGeneratorAnnotation{
-			ResolvedType: nil,
-		})
+		collectionExpr.SetGoAnnotation(&ast_domain.GoGeneratorAnnotation{})
 
 		d := &ast_domain.Directive{
 			Type: ast_domain.DirectiveFor,
@@ -1104,7 +1094,7 @@ func TestRunASTTraversal(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		visitor := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 		tree := &ast_domain.TemplateAST{
@@ -1119,7 +1109,7 @@ func TestRunASTTraversal(t *testing.T) {
 		t.Parallel()
 
 		ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-		resolver := &TypeResolver{inspector: nil}
+		resolver := &TypeResolver{}
 		analysisMap := make(map[*ast_domain.TemplateNode]*AnalysisContext)
 		visitor := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, analysisMap, SemanticAnalyserConfig{})
 
@@ -1142,7 +1132,7 @@ func TestSemanticAnalyser_Enter_PopulatesAnalysisMap(t *testing.T) {
 	t.Parallel()
 
 	ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-	resolver := &TypeResolver{inspector: nil}
+	resolver := &TypeResolver{}
 	analysisMap := make(map[*ast_domain.TemplateNode]*AnalysisContext)
 	analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, analysisMap, SemanticAnalyserConfig{})
 
@@ -1378,7 +1368,7 @@ func TestSemanticAnalyser_Enter_NilAnalysisMap(t *testing.T) {
 	t.Parallel()
 
 	ctx := NewRootAnalysisContext(new([]*ast_domain.Diagnostic), "test/pkg", "testpkg", "test.go", "test.piko")
-	resolver := &TypeResolver{inspector: nil}
+	resolver := &TypeResolver{}
 	analyser := NewSemanticAnalyser(resolver, ctx, nil, nil, nil, nil, SemanticAnalyserConfig{})
 
 	node := &ast_domain.TemplateNode{

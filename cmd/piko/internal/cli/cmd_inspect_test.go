@@ -343,7 +343,7 @@ func TestEffectiveWALResult_DiscardBeforeClear(t *testing.T) {
 func TestEffectiveWALResult_Empty(t *testing.T) {
 	t.Parallel()
 
-	result := effectiveWALResult(walInspectResult{FileSize: 0})
+	result := effectiveWALResult(walInspectResult{})
 	assert.Equal(t, 0, result.EntryCount, "entryCount = %d, want 0", result.EntryCount)
 }
 

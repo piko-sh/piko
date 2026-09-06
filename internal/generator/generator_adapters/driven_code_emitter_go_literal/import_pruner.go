@@ -97,8 +97,8 @@ func importSpecPath(spec *goast.ImportSpec) string {
 //
 // Returns string which is the final path segment.
 func importPathBase(path string) string {
-	if i := strings.LastIndexByte(path, '/'); i >= 0 {
-		return path[i+1:]
+	if _, after, ok := strings.CutLast(path, "/"); ok {
+		return after
 	}
 	return path
 }

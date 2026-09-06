@@ -676,9 +676,21 @@ func tokeniseSVG(content string) (tokens []svgToken, ok bool) {
 func tokeniseText(content string, position int) (token svgToken, consumed int) {
 	next := strings.IndexByte(content[position:], '<')
 	if next < 0 {
-		return svgToken{kind: tokenText, raw: content[position:]}, len(content) - position
+		return svgToken{
+			kind:       tokenText,
+			raw:        content[position:],
+			name:       "",
+			attributes: nil,
+			selfClose:  false,
+		}, len(content) - position
 	}
-	return svgToken{kind: tokenText, raw: content[position : position+next]}, next
+	return svgToken{
+		kind:       tokenText,
+		raw:        content[position : position+next],
+		name:       "",
+		attributes: nil,
+		selfClose:  false,
+	}, next
 }
 
 // tokeniseMarkup parses the markup construct starting at position (a comment, CDATA
@@ -699,7 +711,7 @@ func tokeniseMarkup(content string, position int) (tokens []svgToken, consumed i
 		if !found {
 			return nil, 0, false
 		}
-		return []svgToken{{kind: tokenVerbatim, raw: segment}}, used, true
+		return []svgToken{{kind: tokenVerbatim, raw: segment, name: "", attributes: nil, selfClose: false}}, used, true
 	}
 
 	if strings.HasPrefix(remaining, "</") {
@@ -707,7 +719,13 @@ func tokeniseMarkup(content string, position int) (tokens []svgToken, consumed i
 		if end < 0 {
 			return nil, 0, false
 		}
-		return []svgToken{{kind: tokenEnd, name: strings.TrimSpace(remaining[2:end])}}, end + 1, true
+		return []svgToken{{
+			kind:       tokenEnd,
+			name:       strings.TrimSpace(remaining[2:end]),
+			raw:        "",
+			attributes: nil,
+			selfClose:  false,
+		}}, end + 1, true
 	}
 
 	if strings.HasPrefix(remaining, "<!") {
@@ -715,7 +733,13 @@ func tokeniseMarkup(content string, position int) (tokens []svgToken, consumed i
 		if end < 0 {
 			return nil, 0, false
 		}
-		return []svgToken{{kind: tokenVerbatim, raw: remaining[:end+1]}}, end + 1, true
+		return []svgToken{{
+			kind:       tokenVerbatim,
+			raw:        remaining[:end+1],
+			name:       "",
+			attributes: nil,
+			selfClose:  false,
+		}}, end + 1, true
 	}
 
 	return tokeniseStartTag(content, position)
@@ -810,8 +834,8 @@ func tokeniseRawTextElement(content string, position, bodyStart int, name string
 
 	produced := []svgToken{
 		startToken,
-		{kind: bodyKind, raw: content[bodyStart:closeStart]},
-		{kind: tokenEnd, name: name},
+		{kind: bodyKind, raw: content[bodyStart:closeStart], name: "", attributes: nil, selfClose: false},
+		{kind: tokenEnd, name: name, raw: "", attributes: nil, selfClose: false},
 	}
 	return produced, (closeStart + closeEnd + 1) - position, true
 }

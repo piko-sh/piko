@@ -163,8 +163,20 @@ Piko's hexagonal architecture lets a project substitute any backend at construct
 | `WithOrchestratorService(service)` | Replace the background-task orchestrator. |
 | `WithI18nService(service)` | Replace the i18n service. |
 | `WithHighlighter(h)` | Syntax highlighter for code blocks in markdown. |
-| `WithMarkdownParser(parser)` | Markdown parser implementation. |
+| `WithMarkdownParser(parser)` | Markdown parser implementation. See [Markdown parser options](#markdown-parser-options). |
 | `WithPMLTransformer(t)` | `Piko Markup Language` transformer. |
+
+### Markdown parser options
+
+`markdown_provider_goldmark.NewParser(opts...)` constructs the Goldmark provider accepted by `WithMarkdownParser`.
+
+| Option | Default | Purpose |
+|---|---|---|
+| `WithExtensions(extensions...)` | No additional extensions | Adds Goldmark extensions to the provider's built-in set. |
+| `WithMaxInputSize(bytes)` | 16 MiB | Maximum document size. Larger documents return `ErrInputTooLarge`. |
+| `WithMaxNestingDepth(depth)` | 1,000 | Maximum blockquote or list markers opening on one line. Deeper input returns `ErrNestingTooDeep`. |
+
+Values below one keep the default input-size or nesting limit. These options belong to `piko.sh/piko/wdk/markdown/markdown_provider_goldmark`.
 
 ## Security
 
@@ -415,6 +427,13 @@ Passed inside `WithGeneratorProfiling(...)`:
 | `WithDistServePath(path string)` | URL prefix for the build output. |
 | `WithArtefactServePath(path string)` | URL prefix for build artefacts. |
 
+## PDF rendering
+
+| Option | Purpose |
+|---|---|
+| `WithPdfLayoutLimits(limits PdfLayoutLimits)` | Sets service-wide [PDF layout limits](pdf-api.md#limits). Non-positive fields keep their defaults. Per-render limits take precedence. |
+| `WithPdfMaxImagePixels(pixels int)` | Cap the pixel area (width times height) of any image a PDF embeds. Defaults to 100,000,000 pixels. Non-positive values keep the default. |
+
 ## I18n
 
 | Option | Purpose |
@@ -446,8 +465,8 @@ The following are methods on `*SSRServer` returned by `piko.New(...)`, not `piko
 
 | Method | Purpose |
 |---|---|
-| `(*SSRServer).WithSymbols(symbols templater_domain.SymbolExports)` | Register custom Go symbols for interpreted mode. See [runtime symbols reference](runtime-symbols.md#register-custom-symbols). |
-| `(*SSRServer).WithInterpreterProvider(provider)` | Override the interpreter for `dev-i` mode. See [runtime symbols reference](runtime-symbols.md#register-custom-symbols). |
+| `(*SSRServer).WithSymbols(symbols templater_domain.SymbolExports)` | Optional. Register custom Go symbols for interpreted mode. See [runtime symbols reference](runtime-symbols.md#register-custom-symbols). |
+| `(*SSRServer).WithInterpreterProvider(provider)` | Registers the required provider for `dev-i`, typically `interp_provider_pipit.NewProvider()`. See the [interpreter API](interpreter-api.md) and [setup guide](../how-to/interpreted-mode.md). |
 | `(*SSRServer).RegisterLifecycle(component LifecycleComponent)` | Register a component for managed startup and shutdown. See [lifecycle API reference](lifecycle-api.md). |
 | `(*SSRServer).RetireRelease(ctx context.Context, release string) error` | Remove a retired release's records, references, and lease from the shared registry. Call from deploy tooling once the release has scaled to zero. See [how to canary and rolling deploys](../how-to/deployment/canary-and-rolling-deploys.md). |
 

@@ -281,8 +281,10 @@ func (a *ValkeyClusterAdapter[K, V]) executeSearch(ctx context.Context, query st
 // Returns error which is currently always nil but reserved for future use.
 func (a *ValkeyClusterAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []valkey.ValkeyMessage, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
-		Items: make([]cache.SearchHit[K, V], 0),
-		Total: total,
+		Items:  make([]cache.SearchHit[K, V], 0),
+		Total:  total,
+		Offset: 0,
+		Limit:  0,
 	}
 
 	if opts != nil {
@@ -349,7 +351,7 @@ func (a *ValkeyClusterAdapter[K, V]) parseSearchHit(ctx context.Context, rawResu
 		return zero, false
 	}
 
-	return cache.SearchHit[K, V]{Key: key, Value: value}, true
+	return cache.SearchHit[K, V]{Key: key, Value: value, Highlights: nil, Score: 0}, true
 }
 
 // setJSONValue stores a value as JSON for Valkey Search indexing.
@@ -456,10 +458,8 @@ func (a *ValkeyClusterAdapter[K, V]) queryWithValkeySearch(ctx context.Context, 
 	}
 	searchQuery := a.buildSearchQuery("", filters)
 
-	searchOpts := &cache.SearchOptions{
-		Limit:  DefaultSearchResultLimit,
-		Offset: 0,
-	}
+	searchOpts := &cache.SearchOptions{}
+	searchOpts.Limit = DefaultSearchResultLimit
 	if opts != nil {
 		searchOpts.Limit = opts.Limit
 		searchOpts.Offset = opts.Offset

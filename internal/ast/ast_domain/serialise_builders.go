@@ -33,7 +33,7 @@ import (
 	"slices"
 	"strconv"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 )
 
 const (

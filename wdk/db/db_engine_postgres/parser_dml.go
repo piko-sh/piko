@@ -22,7 +22,11 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// analyseSelect parses a SELECT statement into a raw query analysis.
+// analyseSelect parses a SELECT statement, including any UNION, INTERSECT, or EXCEPT
+// arms, into a raw query analysis.
+//
+// Set-operation arms are parsed iteratively into the flat CompoundBranches list, so a
+// long chain of arms consumes one level of analysis depth rather than one per arm.
 //
 // Returns *querier_dto.RawQueryAnalysis which describes the parsed query.
 // Returns error when the statement is malformed.
@@ -33,13 +37,42 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	p.analysisDepth++
 	defer func() { p.analysisDepth-- }()
 
+	analysis, err := p.analyseSelectArm()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.parseCompoundBranches(analysis); err != nil {
+		return nil, err
+	}
+
+	p.parseOrderByIfPresent()
+	p.parseLimitOffsetIfPresent()
+	p.skipForUpdateClause()
+
+	for index := range analysis.CompoundBranches {
+		p.finaliseSelectAnalysis(analysis.CompoundBranches[index].Query)
+	}
+	p.finaliseSelectAnalysis(analysis)
+	return analysis, nil
+}
+
+// analyseSelectArm parses one SELECT arm (its optional WITH list, projection, FROM,
+// WHERE, GROUP BY, and HAVING clauses) without any trailing set operation, ORDER BY, or
+// LIMIT.
+//
+// Returns *querier_dto.RawQueryAnalysis which describes the arm.
+// Returns error when the arm is malformed.
+func (p *parser) analyseSelectArm() (*querier_dto.RawQueryAnalysis, error) {
 	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if err := p.parseCTEListIfPresent(analysis); err != nil {
 		return nil, err
 	}
 
-	p.mustKeyword(keywordSELECT)
+	if err := p.requireKeyword(keywordSELECT); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword("DISTINCT") {
 		p.parseDistinctOn()
@@ -70,17 +103,16 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 		p.parseWhereClause()
 	}
 
-	if err := p.parseCompoundBranches(analysis); err != nil {
-		return nil, err
-	}
+	return analysis, nil
+}
 
-	p.parseOrderByIfPresent()
-	p.parseLimitOffsetIfPresent()
-	p.skipForUpdateClause()
-
+// finaliseSelectAnalysis records the statement-wide read-only flag and the parser's
+// accumulated references on a SELECT analysis or one of its set-operation arms.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which receives the final state.
+func (p *parser) finaliseSelectAnalysis(analysis *querier_dto.RawQueryAnalysis) {
 	analysis.ReadOnly = !p.hasForUpdate && !p.hasDataModifyingCTE
 	p.finaliseAnalysis(analysis)
-	return analysis, nil
 }
 
 // parseCTEListIfPresent parses a WITH clause when present.
@@ -120,7 +152,8 @@ func (p *parser) parseFromClauseIfPresent(analysis *querier_dto.RawQueryAnalysis
 	return nil
 }
 
-// parseCompoundBranches parses UNION, INTERSECT, and EXCEPT branches.
+// parseCompoundBranches parses the UNION, INTERSECT, and EXCEPT arms that follow the
+// first SELECT arm, appending each to the flat CompoundBranches list.
 //
 // Takes analysis (*querier_dto.RawQueryAnalysis) which receives each parsed compound
 // branch.
@@ -132,7 +165,7 @@ func (p *parser) parseCompoundBranches(analysis *querier_dto.RawQueryAnalysis) e
 		if compoundOperator == 0 {
 			break
 		}
-		branchAnalysis, branchError := p.analyseSelect()
+		branchAnalysis, branchError := p.analyseSelectArm()
 		if branchError != nil {
 			return branchError
 		}
@@ -181,10 +214,15 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.mustKeyword("INSERT")
+	if err := p.requireKeyword("INSERT"); err != nil {
+		return nil, err
+	}
 	p.matchKeyword("INTO")
 
-	schema, tableName := p.mustSchemaQualifiedName()
+	schema, tableName, err := p.requireSchemaQualifiedName()
+	if err != nil {
+		return nil, err
+	}
 	alias := p.parseOptionalAlias()
 	analysis.FromTables = []querier_dto.TableReference{{Schema: schema, Name: tableName, Alias: alias}}
 
@@ -201,7 +239,9 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 	analysis.InsertSelect = insertSelect
 
 	if p.matchKeyword(keywordON) {
-		p.parseOnConflict(tableName)
+		if err := p.parseOnConflict(tableName); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := p.parseReturningIfPresent(analysis); err != nil {
@@ -307,14 +347,21 @@ func (p *parser) analyseUpdate() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.mustKeyword("UPDATE")
+	if err := p.requireKeyword("UPDATE"); err != nil {
+		return nil, err
+	}
 	p.matchKeyword("ONLY")
 
-	schema, tableName := p.mustSchemaQualifiedName()
+	schema, tableName, err := p.requireSchemaQualifiedName()
+	if err != nil {
+		return nil, err
+	}
 	alias := p.parseUpdateAlias()
 	analysis.FromTables = []querier_dto.TableReference{{Schema: schema, Name: tableName, Alias: alias}}
 
-	p.mustKeyword(keywordSET)
+	if err := p.requireKeyword(keywordSET); err != nil {
+		return nil, err
+	}
 	p.parseSetClause(tableName)
 
 	if err := p.parseAdditionalFromClause(analysis); err != nil {
@@ -399,11 +446,15 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 		return nil, err
 	}
 
-	p.mustKeyword("DELETE")
-	p.mustKeyword(keywordFROM)
+	if err := p.requireKeywordSequence("DELETE", keywordFROM); err != nil {
+		return nil, err
+	}
 	p.matchKeyword("ONLY")
 
-	schema, tableName := p.mustSchemaQualifiedName()
+	schema, tableName, err := p.requireSchemaQualifiedName()
+	if err != nil {
+		return nil, err
+	}
 	alias := p.parseDeleteAlias()
 	analysis.FromTables = []querier_dto.TableReference{{Schema: schema, Name: tableName, Alias: alias}}
 
@@ -461,9 +512,12 @@ func (p *parser) parseUsingClause(analysis *querier_dto.RawQueryAnalysis) error 
 // Returns *querier_dto.RawQueryAnalysis which describes the parsed values.
 // Returns error which is always nil for VALUES analysis.
 func (p *parser) analyseValues() (*querier_dto.RawQueryAnalysis, error) {
-	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: true}
+	analysis := &querier_dto.RawQueryAnalysis{}
+	analysis.ReadOnly = true
 
-	p.mustKeyword(keywordVALUES)
+	if err := p.requireKeyword(keywordVALUES); err != nil {
+		return nil, err
+	}
 
 	if p.current().kind != tokenLeftParen {
 		analysis.ParameterReferences = p.parameterRefs

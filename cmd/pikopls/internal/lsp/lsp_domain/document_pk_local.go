@@ -400,29 +400,24 @@ func buildResolvedTypeFromExpr(typeExpr ast.Expr) *ast_domain.ResolvedTypeInfo {
 
 	switch t := typeExpr.(type) {
 	case *ast.Ident:
-		return &ast_domain.ResolvedTypeInfo{
-			TypeExpression:       t,
-			PackageAlias:         "",
-			CanonicalPackagePath: "",
-		}
+		info := ast_domain.ResolvedTypeInfo{}
+		info.TypeExpression = t
+		return &info
 	case *ast.SelectorExpr:
 		pkgAlias := ""
 		if identifier, ok := t.X.(*ast.Ident); ok {
 			pkgAlias = identifier.Name
 		}
-		return &ast_domain.ResolvedTypeInfo{
-			TypeExpression:       t,
-			PackageAlias:         pkgAlias,
-			CanonicalPackagePath: "",
-		}
+		resolvedTypeInfo := ast_domain.ResolvedTypeInfo{}
+		resolvedTypeInfo.TypeExpression = t
+		resolvedTypeInfo.PackageAlias = pkgAlias
+		return &resolvedTypeInfo
 	case *ast.StarExpr:
 		return buildResolvedTypeFromExpr(t.X)
 	default:
-		return &ast_domain.ResolvedTypeInfo{
-			TypeExpression:       typeExpr,
-			PackageAlias:         "",
-			CanonicalPackagePath: "",
-		}
+		info := ast_domain.ResolvedTypeInfo{}
+		info.TypeExpression = typeExpr
+		return &info
 	}
 }
 
@@ -584,7 +579,7 @@ func formatLocalFieldLine(field *ast.Field, fieldName string) string {
 		if len(tag) >= 2 && tag[0] == '`' && tag[len(tag)-1] == '`' {
 			tag = tag[1 : len(tag)-1]
 		}
-		return fmt.Sprintf("%s %s `%s`", paddedName, typeString, tag)
+		return fmt.Sprintf("%s %s %#q", paddedName, typeString, tag)
 	}
 
 	return fmt.Sprintf("%s %s", paddedName, typeString)

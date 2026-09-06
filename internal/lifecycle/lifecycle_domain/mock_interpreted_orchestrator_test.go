@@ -209,21 +209,17 @@ func TestMockInterpretedOrchestrator_ConcurrentAccess(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 3)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.BuildRunner(context.Background(), &annotator_dto.ProjectAnnotationResult{})
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = m.MarkDirty(context.Background(), &annotator_dto.ProjectAnnotationResult{})
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = m.IsInitialised()
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -231,4 +227,26 @@ func TestMockInterpretedOrchestrator_ConcurrentAccess(t *testing.T) {
 	assert.Equal(t, int64(goroutines), m.BuildRunnerCallCount.Load())
 	assert.Equal(t, int64(goroutines), m.MarkDirtyCallCount.Load())
 	assert.Equal(t, int64(goroutines), m.IsInitialisedCallCount.Load())
+}
+
+func TestMockInterpretedOrchestrator_InvalidateUserPackages(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil InvalidateUserPackagesFunc only counts the call", func(t *testing.T) {
+		t.Parallel()
+
+		m := &MockInterpretedOrchestrator{}
+		m.InvalidateUserPackages()
+		assert.Equal(t, int64(1), m.InvalidateUserPackagesCallCount.Load())
+	})
+
+	t.Run("delegates to InvalidateUserPackagesFunc", func(t *testing.T) {
+		t.Parallel()
+
+		var called bool
+		m := &MockInterpretedOrchestrator{InvalidateUserPackagesFunc: func() { called = true }}
+		m.InvalidateUserPackages()
+		assert.True(t, called)
+		assert.Equal(t, int64(1), m.InvalidateUserPackagesCallCount.Load())
+	})
 }

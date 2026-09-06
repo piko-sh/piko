@@ -19,14 +19,12 @@
 package lsp_domain
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -60,8 +58,8 @@ type ModuleContext struct {
 	// PathsConfig holds the path settings used for entry point discovery.
 	PathsConfig *config.PathsConfig
 
-	// sandboxFactory creates sandboxes for filesystem access. If nil, a no-op sandbox is
-	// created as a fallback.
+	// sandboxFactory creates sandboxes for filesystem access. If nil, a kernel-backed
+	// read-only sandbox rooted at the module root is created directly.
 	sandboxFactory safedisk.Factory
 
 	// rootSandbox provides file system access for the module root folder. If nil, a sandbox
@@ -96,7 +94,27 @@ type ModuleContextOption func(*ModuleContext)
 func NewModuleContext(ctx context.Context, moduleRoot string, basePathsConfig *config.PathsConfig, opts ...ModuleContextOption) (*ModuleContext, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
-	localResolver := resolver_adapters.NewLocalModuleResolver(moduleRoot)
+	mc := &ModuleContext{
+		ModuleRoot:       moduleRoot,
+		ModuleName:       "",
+		Resolver:         nil,
+		PathsConfig:      clonePathsConfigForModule(basePathsConfig, moduleRoot),
+		rootSandbox:      nil,
+		sandboxFactory:   nil,
+		entryPoints:      nil,
+		entryPointsValid: false,
+		mu:               sync.RWMutex{},
+	}
+
+	for _, opt := range opts {
+		opt(mc)
+	}
+
+	localResolverOptions := make([]resolver_adapters.LocalModuleResolverOption, 0, 1)
+	if mc.sandboxFactory != nil {
+		localResolverOptions = append(localResolverOptions, resolver_adapters.WithSandboxFactory(mc.sandboxFactory))
+	}
+	localResolver := resolver_adapters.NewLocalModuleResolver(moduleRoot, localResolverOptions...)
 	cacheResolver := resolver_adapters.NewGoModuleCacheResolver()
 	resolver := resolver_adapters.NewChainedResolver(localResolver, cacheResolver)
 
@@ -104,19 +122,8 @@ func NewModuleContext(ctx context.Context, moduleRoot string, basePathsConfig *c
 		return nil, fmt.Errorf("failed to detect module at %s: %w", moduleRoot, err)
 	}
 
-	moduleConfig := clonePathsConfigForModule(basePathsConfig, moduleRoot)
-
-	mc := &ModuleContext{
-		ModuleRoot:  moduleRoot,
-		ModuleName:  resolver.GetModuleName(),
-		Resolver:    resolver,
-		PathsConfig: moduleConfig,
-		rootSandbox: nil,
-	}
-
-	for _, opt := range opts {
-		opt(mc)
-	}
+	mc.ModuleName = resolver.GetModuleName()
+	mc.Resolver = resolver
 
 	l.Debug("Created module context",
 		logger_domain.String("moduleRoot", moduleRoot),
@@ -185,9 +192,9 @@ func (mc *ModuleContext) InvalidateEntryPoints() {
 func (mc *ModuleContext) discoverEntryPoints(ctx context.Context) ([]annotator_dto.EntryPoint, error) {
 	paths := mc.PathsConfig
 	sourceDirs := map[string]sourceDirInfo{
-		"page":    {Dir: *paths.PagesSourceDir, IsPage: true, IsPublic: true},
-		"email":   {Dir: *paths.EmailsSourceDir, IsEmail: true, IsPublic: true},
-		"partial": {Dir: *paths.PartialsSourceDir, IsPage: false, IsPublic: true},
+		"page":    {Dir: *paths.PagesSourceDir, IsPage: true, IsPublic: true, IsEmail: false},
+		"email":   {Dir: *paths.EmailsSourceDir, IsEmail: true, IsPublic: true, IsPage: false},
+		"partial": {Dir: *paths.PartialsSourceDir, IsPage: false, IsPublic: true, IsEmail: false},
 	}
 
 	var entryPoints []annotator_dto.EntryPoint
@@ -257,17 +264,17 @@ func (mc *ModuleContext) sourceDirectoryExists(ctx context.Context, relDir, absD
 
 	sandbox := mc.rootSandbox
 	if sandbox == nil {
-		var err error
-		if mc.sandboxFactory != nil {
-			sandbox, err = mc.sandboxFactory.Create("lsp-module-source", mc.ModuleRoot, safedisk.ModeReadOnly)
-		} else {
-			sandbox, err = safedisk.NewNoOpSandbox(mc.ModuleRoot, safedisk.ModeReadOnly)
-		}
+		created, err := mc.openModuleRootSandbox()
 		if err != nil {
 			l.Warn("Failed to create sandbox for module root", logger_domain.Error(err))
 			return false
 		}
-		defer func() { _ = sandbox.Close() }()
+		defer func() {
+			if closeErr := created.Close(); closeErr != nil {
+				l.Warn("Failed to close module root sandbox", logger_domain.Error(closeErr))
+			}
+		}()
+		sandbox = created
 	}
 
 	_, statErr := sandbox.Stat(relDir)
@@ -277,6 +284,18 @@ func (mc *ModuleContext) sourceDirectoryExists(ctx context.Context, relDir, absD
 		return false
 	}
 	return true
+}
+
+// openModuleRootSandbox creates a read-only sandbox rooted at the module root, using the
+// configured factory when one is set and a kernel-backed sandbox otherwise.
+//
+// Returns safedisk.Sandbox which gives read-only access to the module root.
+// Returns error when the sandbox cannot be created.
+func (mc *ModuleContext) openModuleRootSandbox() (safedisk.Sandbox, error) {
+	if mc.sandboxFactory != nil {
+		return mc.sandboxFactory.Create("lsp-module-source", mc.ModuleRoot, safedisk.ModeReadOnly)
+	}
+	return safedisk.NewSandbox(mc.ModuleRoot, safedisk.ModeReadOnly)
 }
 
 // createEntryPoint creates an entry point from a discovered file path.
@@ -294,10 +313,18 @@ func (mc *ModuleContext) createEntryPoint(currentPath string, info sourceDirInfo
 	fullImportPath := filepath.ToSlash(filepath.Join(mc.ModuleName, relPath))
 
 	return annotator_dto.EntryPoint{
-		Path:     fullImportPath,
-		IsPage:   info.IsPage,
-		IsEmail:  info.IsEmail,
-		IsPublic: info.IsPublic,
+		Path:               fullImportPath,
+		IsPage:             info.IsPage,
+		IsEmail:            info.IsEmail,
+		IsPublic:           info.IsPublic,
+		VirtualPageSource:  nil,
+		ErrorStatusCode:    0,
+		ErrorStatusCodeMin: 0,
+		ErrorStatusCodeMax: 0,
+		IsPdf:              false,
+		IsE2EOnly:          false,
+		IsErrorPage:        false,
+		IsCatchAllError:    false,
 	}
 }
 
@@ -328,14 +355,13 @@ func WithModuleSandboxFactory(factory safedisk.Factory) ModuleContextOption {
 // FindGoModRoot searches upward from the given file path to find the nearest go.mod file.
 //
 // Takes filePath (string) which is the starting point for the search.
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
-// nil, a no-op sandbox is used as a fallback.
+// Takes factory (safedisk.Factory) which creates the sandbox each go.mod is read through.
+// When nil, or when it does not allow the module directory, a kernel-backed read-only
+// sandbox rooted at that directory is used.
 //
 // Returns string which is the absolute path to the folder containing go.mod.
 // Returns error when no go.mod file is found or the path is not valid.
 func FindGoModRoot(ctx context.Context, filePath string, factory safedisk.Factory) (string, error) {
-	_, l := logger_domain.From(ctx, log)
-
 	directory, err := filepath.Abs(filePath)
 	if err != nil {
 		return "", fmt.Errorf("invalid path for go.mod search: %w", err)
@@ -350,7 +376,7 @@ func FindGoModRoot(ctx context.Context, filePath string, factory safedisk.Factor
 	}
 
 	for {
-		found, walkErr := tryReadGoMod(directory, l, factory)
+		found, walkErr := tryReadGoMod(ctx, directory, factory)
 		if walkErr != nil {
 			return "", walkErr
 		}
@@ -381,6 +407,15 @@ func clonePathsConfigForModule(basePaths *config.PathsConfig, moduleRoot string)
 		PartialsSourceDir:   basePaths.PartialsSourceDir,
 		EmailsSourceDir:     basePaths.EmailsSourceDir,
 		AssetsSourceDir:     basePaths.AssetsSourceDir,
+		PdfsSourceDir:       nil,
+		E2ESourceDir:        nil,
+		I18nSourceDir:       nil,
+		BaseServePath:       nil,
+		PartialServePath:    nil,
+		ActionServePath:     nil,
+		LibServePath:        nil,
+		DistServePath:       nil,
+		ArtefactServePath:   nil,
 	}
 }
 
@@ -389,13 +424,12 @@ func clonePathsConfigForModule(basePaths *config.PathsConfig, moduleRoot string)
 // one, and a non-nil error for unexpected failures.
 //
 // Takes directory (string) which is the directory to check for a go.mod file.
-// Takes l (logger_domain.Logger) which receives debug and warning messages.
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access. When
-// nil, a no-op sandbox is used as a fallback.
+// Takes factory (safedisk.Factory) which creates the sandbox the go.mod is read through;
+// see resolver_adapters.ReadModuleName.
 //
 // Returns bool which is true when a valid go.mod was found.
 // Returns error when an unexpected failure occurs.
-func tryReadGoMod(directory string, l logger_domain.Logger, factory safedisk.Factory) (bool, error) {
+func tryReadGoMod(ctx context.Context, directory string, factory safedisk.Factory) (bool, error) {
 	modPath := filepath.Join(directory, "go.mod")
 	modInfo, statErr := os.Stat(modPath) //nolint:gosec // upward walk for go.mod
 
@@ -410,52 +444,13 @@ func tryReadGoMod(directory string, l logger_domain.Logger, factory safedisk.Fac
 		return false, nil
 	}
 
-	var modSandbox safedisk.Sandbox
-	var sErr error
-	if factory != nil {
-		modSandbox, sErr = factory.Create("lsp-module-gomod", directory, safedisk.ModeReadOnly)
-	} else {
-		modSandbox, sErr = safedisk.NewNoOpSandbox(directory, safedisk.ModeReadOnly)
+	moduleName, err := resolver_adapters.ReadModuleName(ctx, modPath, factory)
+	if err != nil {
+		return false, fmt.Errorf("cannot parse go.mod at %s: %w", modPath, err)
 	}
-	if sErr != nil {
-		return false, fmt.Errorf("creating sandbox for go.mod at %s: %w", directory, sErr)
-	}
-	moduleName, readErr := readModuleNameFromGoMod(modSandbox)
-	_ = modSandbox.Close()
-	if readErr != nil {
-		return false, fmt.Errorf("cannot parse go.mod at %s: %w", modPath, readErr)
-	}
+	_, l := logger_domain.From(ctx, log)
 	l.Debug("Found go.mod",
 		logger_domain.String("path", modPath),
 		logger_domain.String("module", moduleName))
 	return true, nil
-}
-
-// readModuleNameFromGoMod reads the module name from a go.mod file using a sandboxed
-// filesystem rooted at the directory containing the go.mod.
-//
-// Takes sandbox (safedisk.Sandbox) which provides access to the directory containing
-// go.mod.
-//
-// Returns string which is the module name.
-// Returns error when the file cannot be read or has no module line.
-func readModuleNameFromGoMod(sandbox safedisk.Sandbox) (string, error) {
-	data, err := sandbox.ReadFile("go.mod")
-	if err != nil {
-		return "", fmt.Errorf("reading go.mod: %w", err)
-	}
-
-	sc := bufio.NewScanner(strings.NewReader(string(data)))
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		if strings.HasPrefix(line, "module ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "module")), nil
-		}
-	}
-
-	if err := sc.Err(); err != nil {
-		return "", fmt.Errorf("scanning go.mod: %w", err)
-	}
-
-	return "", errors.New("no 'module' line found in go.mod")
 }

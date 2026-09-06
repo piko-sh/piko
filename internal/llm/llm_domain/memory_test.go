@@ -340,7 +340,7 @@ func TestNewSummaryMemory(t *testing.T) {
 	t.Run("uses default buffer size when zero", func(t *testing.T) {
 		store := NewMockMemoryStore()
 		summariser := NewMockSummariser()
-		config := llm_dto.MemoryConfig{BufferSize: 0}
+		config := llm_dto.MemoryConfig{}
 
 		mem := NewSummaryMemory(store, summariser, config)
 

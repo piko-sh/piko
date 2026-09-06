@@ -23,8 +23,8 @@ import (
 	goast "go/ast"
 	"go/token"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
@@ -316,41 +316,14 @@ func newStringConverter() *stringConverter {
 // Returns *ast_domain.GoGeneratorAnnotation which holds the type information for the
 // underlying type.
 func createUnderlyingTypeAnnotation(starExpr *goast.StarExpr, ann *ast_domain.GoGeneratorAnnotation) *ast_domain.GoGeneratorAnnotation {
-	underlyingTypeInfo := &ast_domain.ResolvedTypeInfo{
-		TypeExpression:       starExpr.X,
-		PackageAlias:         getPackageAliasFromType(starExpr.X, ann.ResolvedType.PackageAlias),
-		CanonicalPackagePath: "",
-		IsSynthetic:          false,
-	}
+	underlyingTypeInfo := &ast_domain.ResolvedTypeInfo{}
+	underlyingTypeInfo.TypeExpression = starExpr.X
+	underlyingTypeInfo.PackageAlias = getPackageAliasFromType(starExpr.X, ann.ResolvedType.PackageAlias)
 
-	return &ast_domain.GoGeneratorAnnotation{
-		ResolvedType:            underlyingTypeInfo,
-		Stringability:           ann.Stringability,
-		EffectiveKeyExpression:  nil,
-		PropDataSource:          nil,
-		BaseCodeGenVarName:      nil,
-		ParentTypeName:          nil,
-		GeneratedSourcePath:     nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		OriginalPackageAlias:    nil,
-		OriginalSourcePath:      nil,
-		DynamicAttributeOrigins: nil,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		Srcset:                  nil,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		StaticCollectionLiteral: nil,
-		StaticCollectionData:    nil,
-		DynamicCollectionInfo:   nil,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = underlyingTypeInfo
+	annotation.Stringability = ann.Stringability
+	return &annotation
 }
 
 // getPackageAliasFromType extracts the package alias from a type expression.

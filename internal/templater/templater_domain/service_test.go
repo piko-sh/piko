@@ -204,9 +204,7 @@ func TestTemplaterService_RenderPage_ServerRedirect(t *testing.T) {
 
 	ast := NewTestAST()
 	metadata := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			ServerRedirect: "/new-location",
-		},
+		ServerRedirect: "/new-location",
 	}
 
 	fixture.MockRunner.RunPageFunc = func(
@@ -249,9 +247,7 @@ func TestTemplaterService_RenderPage_ClientRedirect(t *testing.T) {
 
 	ast := NewTestAST()
 	metadata := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			ClientRedirect: "https://example.com/login",
-		},
+		ClientRedirect: "https://example.com/login",
 	}
 
 	fixture.MockRunner.RunPageFunc = func(
@@ -459,9 +455,7 @@ func TestTemplaterService_RenderPartial_Redirect(t *testing.T) {
 
 	ast := NewTestAST()
 	metadata := templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			ClientRedirect: "/redirected",
-		},
+		ClientRedirect: "/redirected",
 	}
 
 	fixture.MockRunner.RunPartialFunc = func(

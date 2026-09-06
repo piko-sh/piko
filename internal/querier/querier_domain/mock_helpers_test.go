@@ -426,10 +426,25 @@ func (e *catalogueResolverMockEngine) TableValuedFunctionColumnsFromCatalogue(
 	return nil
 }
 
+type functionResolverMockEngine struct {
+	*mockEngine
+	resolveFn func(name string, argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error)
+}
+
+func (e *functionResolverMockEngine) ResolveFunctionCall(
+	_ *querier_dto.Catalogue,
+	name string,
+	_ string,
+	argumentTypes []querier_dto.SQLType,
+) (*querier_dto.FunctionResolution, error) {
+	return e.resolveFn(name, argumentTypes)
+}
+
 var (
 	_ EnginePort                    = (*mockEngine)(nil)
 	_ EnginePort                    = (*catalogueResolverMockEngine)(nil)
 	_ CatalogueFunctionResolverPort = (*catalogueResolverMockEngine)(nil)
+	_ FunctionResolverPort          = (*functionResolverMockEngine)(nil)
 	_ FileReaderPort                = (*mockFileReader)(nil)
 	_ os.DirEntry                   = (*mockDirEntry)(nil)
 	_ CodeEmitterPort               = (*mockCodeEmitter)(nil)

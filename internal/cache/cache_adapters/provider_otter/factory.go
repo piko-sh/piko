@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/maypok86/otter/v2"
@@ -62,12 +63,25 @@ func OtterProviderFactory[K comparable, V any](options cache_dto.Options[K, V]) 
 	cache_domain.WarnUnbounded(context.Background(), options)
 
 	adapter := &OtterAdapter[K, V]{
-		client:         nil,
-		tagIndex:       newTagIndex[K](),
-		weigher:        options.Weigher,
-		onDeletion:     options.OnDeletion,
-		maxEntryWeight: options.MaxEntryWeight,
-		weightBounded:  options.Weigher != nil && options.MaximumWeight > 0,
+		client:            nil,
+		tagIndex:          newTagIndex[K](),
+		weigher:           options.Weigher,
+		onDeletion:        options.OnDeletion,
+		closeErr:          nil,
+		maxEntryWeight:    options.MaxEntryWeight,
+		weightBounded:     options.Weigher != nil && options.MaximumWeight > 0,
+		wal:               nil,
+		snapshot:          nil,
+		fieldExtractor:    nil,
+		invertedIndex:     nil,
+		sortedIndexes:     nil,
+		vectorIndexes:     nil,
+		schema:            nil,
+		snapshotThreshold: 0,
+		maxWALSize:        0,
+		checkpointMu:      sync.RWMutex{},
+		closeOnce:         sync.Once{},
+		walEnabled:        false,
 	}
 
 	if options.SearchSchema != nil {

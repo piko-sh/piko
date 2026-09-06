@@ -57,7 +57,12 @@ const (
 var (
 	// deterministicJSON encodes Metadata with sorted map keys so that the generated
 	// FlatBuffer blob is byte-stable across runs.
-	deterministicJSON = json.Freeze(json.Config{SortMapKeys: true})
+	deterministicJSON = json.Freeze(json.Config{
+		SortMapKeys: true,
+		CopyString:  false,
+		UseInt64:    false,
+		EscapeHTML:  false,
+	})
 
 	// ErrEmptyCollection is returned when EncodeCollection receives no items.
 	ErrEmptyCollection = errors.New("cannot encode empty collection")

@@ -52,7 +52,7 @@ func TestFlatBufferRoundTrip_Simple(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, relPath)
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	entry, found := loadedStore.Get("en-GB", "greeting")
@@ -86,7 +86,7 @@ func TestFlatBufferRoundTrip_MultipleLocales(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, relPath)
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	locales := loadedStore.Locales()
@@ -122,7 +122,7 @@ func TestFlatBufferRoundTrip_Placeholders(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, relPath)
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	entry, found := loadedStore.Get("en-GB", "greeting")
@@ -153,7 +153,7 @@ func TestFlatBufferRoundTrip_Plurals(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, relPath)
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	entry, found := loadedStore.Get("en-GB", "items")
@@ -187,7 +187,7 @@ func TestFlatBufferRoundTrip_ComplexTranslations(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, relPath)
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	entry, found := loadedStore.Get("en-GB", "greeting")
@@ -224,7 +224,7 @@ func TestFlatBufferRoundTrip_UsageWithTranslation(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, relPath)
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	pool := i18n_domain.NewStrBufPool(256)
@@ -248,7 +248,7 @@ func TestFlatBufferProvider_FileNotFound(t *testing.T) {
 	sandbox, _ := safedisk.NewNoOpSandbox(t.TempDir(), safedisk.ModeReadWrite)
 	defer func() { _ = sandbox.Close() }()
 	provider := newFlatBufferProvider(sandbox, "nonexistent/path/i18n.bin")
-	_, err := provider.load()
+	_, err := provider.load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no such file or directory")
 }
@@ -257,7 +257,7 @@ func TestFlatBufferProvider_EmptyPath(t *testing.T) {
 	sandbox, _ := safedisk.NewNoOpSandbox(t.TempDir(), safedisk.ModeReadWrite)
 	defer func() { _ = sandbox.Close() }()
 	provider := newFlatBufferProvider(sandbox, "")
-	_, err := provider.load()
+	_, err := provider.load(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "requires a valid file path")
 }
@@ -308,7 +308,7 @@ func BenchmarkFlatBufferLoad(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		provider := newFlatBufferProvider(sandbox, relPath)
-		_, err := provider.load()
+		_, err := provider.load(context.Background())
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -333,7 +333,7 @@ func BenchmarkFlatBufferLookup(b *testing.B) {
 	require.NoError(b, err)
 
 	provider := newFlatBufferProvider(sandbox, relPath)
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(b, err)
 
 	b.ResetTimer()

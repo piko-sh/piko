@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -128,6 +129,197 @@ func (e *cascadingExecutor) getCalls() []cascadingCall {
 	result := make([]cascadingCall, len(e.calls))
 	copy(result, e.calls)
 	return result
+}
+
+type gatedExecutor struct {
+	inner   *cascadingExecutor
+	gates   map[string]chan struct{}
+	entered map[string]chan struct{}
+	once    map[string]*sync.Once
+}
+
+func newGatedExecutor(inner *cascadingExecutor, profileNames ...string) *gatedExecutor {
+	e := &gatedExecutor{
+		inner:   inner,
+		gates:   make(map[string]chan struct{}, len(profileNames)),
+		entered: make(map[string]chan struct{}, len(profileNames)),
+		once:    make(map[string]*sync.Once, len(profileNames)),
+	}
+	for _, name := range profileNames {
+		e.gates[name] = make(chan struct{})
+		e.entered[name] = make(chan struct{})
+		e.once[name] = &sync.Once{}
+	}
+	return e
+}
+
+func (e *gatedExecutor) Execute(ctx context.Context, payload map[string]any) (map[string]any, error) {
+	profileName, ok := payload["desiredProfileName"].(string)
+	if !ok {
+		return nil, fmt.Errorf("payload has no desiredProfileName")
+	}
+
+	if once, gated := e.once[profileName]; gated {
+		once.Do(func() { close(e.entered[profileName]) })
+		select {
+		case <-e.gates[profileName]:
+		case <-ctx.Done():
+			return nil, context.Cause(ctx)
+		}
+	}
+
+	return e.inner.Execute(ctx, payload)
+}
+
+type staleSnapshotRegistry struct {
+	registry_domain.RegistryService
+	snapshotTaken chan struct{}
+	release       chan struct{}
+	watched       [2]string
+	once          sync.Once
+}
+
+func newStaleSnapshotRegistry(inner registry_domain.RegistryService, first, second string) *staleSnapshotRegistry {
+	return &staleSnapshotRegistry{
+		RegistryService: inner,
+		snapshotTaken:   make(chan struct{}),
+		release:         make(chan struct{}),
+		watched:         [2]string{first, second},
+	}
+}
+
+func (r *staleSnapshotRegistry) GetArtefact(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
+	artefact, err := r.RegistryService.GetArtefact(ctx, artefactID)
+	if err != nil || readyVariantCount(artefact, r.watched[:]) != 1 {
+		return artefact, err
+	}
+
+	hold := false
+	r.once.Do(func() { hold = true })
+	if hold {
+		close(r.snapshotTaken)
+		select {
+		case <-r.release:
+		case <-ctx.Done():
+		}
+	}
+	return artefact, nil
+}
+
+func readyVariantCount(artefact *registry_dto.ArtefactMeta, variantIDs []string) int {
+	ready := 0
+	for i := range artefact.ActualVariants {
+		variant := &artefact.ActualVariants[i]
+		if slices.Contains(variantIDs, variant.VariantID) && variant.Status == registry_dto.VariantStatusReady {
+			ready++
+		}
+	}
+	return ready
+}
+
+type sourceTrackingExecutor struct {
+	registryService registry_domain.RegistryService
+	gate            chan struct{}
+	entered         chan struct{}
+	builtFrom       []string
+	once            sync.Once
+	mu              sync.Mutex
+	failFirst       bool
+}
+
+func newSourceTrackingExecutor(registryService registry_domain.RegistryService) *sourceTrackingExecutor {
+	return &sourceTrackingExecutor{
+		registryService: registryService,
+		gate:            make(chan struct{}),
+		entered:         make(chan struct{}),
+	}
+}
+
+func (e *sourceTrackingExecutor) Execute(ctx context.Context, payload map[string]any) (map[string]any, error) {
+	artefactID, hasArtefact := payload["artefactID"].(string)
+	profileName, hasProfile := payload["desiredProfileName"].(string)
+	parentID, hasParent := payload["sourceVariantID"].(string)
+	if !hasArtefact || !hasProfile || !hasParent {
+		return nil, fmt.Errorf("payload is missing artefact, profile or parent: %v", payload)
+	}
+
+	artefact, err := e.registryService.GetArtefact(ctx, artefactID)
+	if err != nil {
+		return nil, fmt.Errorf("reading artefact: %w", err)
+	}
+	var parentHash string
+	for i := range artefact.ActualVariants {
+		if artefact.ActualVariants[i].VariantID == parentID {
+			parentHash = artefact.ActualVariants[i].ContentHash
+			break
+		}
+	}
+
+	e.mu.Lock()
+	first := len(e.builtFrom) == 0
+	e.builtFrom = append(e.builtFrom, parentHash)
+	e.mu.Unlock()
+
+	if first {
+		e.once.Do(func() { close(e.entered) })
+		select {
+		case <-e.gate:
+		case <-ctx.Done():
+			return nil, context.Cause(ctx)
+		}
+		if e.failFirst {
+			return nil, fmt.Errorf("build of %s from %s failed", profileName, parentHash)
+		}
+	}
+
+	content := fmt.Appendf(nil, "%s built from %s", profileName, parentHash)
+	storageKey := fmt.Sprintf("%s/%s/%d", artefactID, profileName, len(e.inputs()))
+	blobStore, err := e.registryService.GetBlobStore("test_store")
+	if err != nil {
+		return nil, fmt.Errorf("getting blob store: %w", err)
+	}
+	if err := blobStore.Put(ctx, storageKey, bytes.NewReader(content)); err != nil {
+		return nil, fmt.Errorf("storing blob: %w", err)
+	}
+
+	variant := &registry_dto.Variant{
+		VariantID:        profileName,
+		StorageBackendID: "test_store",
+		StorageKey:       storageKey,
+		MimeType:         "application/octet-stream",
+		SizeBytes:        int64(len(content)),
+		ContentHash:      fmt.Sprintf("hash-%s-%s", profileName, parentHash),
+		CreatedAt:        time.Now().UTC(),
+		Status:           registry_dto.VariantStatusReady,
+		Kind:             registry_dto.KindDerived,
+		Transform: registry_dto.VariantTransform{
+			ParentVariantID:   parentID,
+			ParentContentHash: parentHash,
+			CapabilityName:    "compile-component",
+			CapabilityVersion: 1,
+		},
+	}
+	if _, err := e.registryService.AddVariant(ctx, artefactID, variant); err != nil {
+		return nil, fmt.Errorf("adding variant: %w", err)
+	}
+	return map[string]any{"status": "success"}, nil
+}
+
+func (e *sourceTrackingExecutor) inputs() []string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return slices.Clone(e.builtFrom)
+}
+
+func sourceProfile(name string, priority registry_dto.ProfilePriority) registry_dto.NamedProfile {
+	return registry_dto.NamedProfile{
+		Name: name,
+		Profile: registry_dto.DesiredProfile{
+			Priority:       priority,
+			CapabilityName: "compile-component",
+			DependsOn:      registry_dto.DependenciesFromSlice([]string{"source"}),
+		},
+	}
 }
 
 func pkcProfiles(componentName string) []registry_dto.NamedProfile {
@@ -443,6 +635,131 @@ func TestProfileChain_ProductionConfig_RealClock(t *testing.T) {
 	stats := h.dispatcher.Stats()
 	assert.Equal(t, int64(4), stats.TasksDispatched, "all 4 profiles dispatched")
 	assert.Equal(t, int64(4), stats.TasksCompleted, "all 4 profiles completed")
+}
+
+func TestProfileChain_ProfileCompletedAfterSnapshotIsNotDispatchedAgain(t *testing.T) {
+	var stale *staleSnapshotRegistry
+	h := newPipelineHarness(t,
+		withProductionConfig(),
+		withClock(clockpkg.RealClock()),
+		withMaxRetries(1),
+		withBridgeRegistry(func(inner registry_domain.RegistryService) registry_domain.RegistryService {
+			stale = newStaleSnapshotRegistry(inner, "first", "second")
+			return stale
+		}),
+	)
+
+	exec := newGatedExecutor(newCascadingExecutor(h.registryService), "first", "second")
+	h.dispatcher.RegisterExecutor(context.Background(), "artefact.compiler", exec)
+
+	h.seedArtefact("stale-snapshot.pkc", []registry_dto.NamedProfile{
+		sourceProfile("first", registry_dto.PriorityNeed),
+		sourceProfile("second", registry_dto.PriorityWant),
+	})
+
+	waitForSignal(t, exec.entered["first"], "first profile should start executing")
+	waitForSignal(t, exec.entered["second"], "second profile should start executing")
+
+	close(exec.gates["first"])
+	waitForSignal(t, stale.snapshotTaken, "bridge should read a snapshot in which only the first profile is built")
+
+	close(exec.gates["second"])
+	require.Eventually(t, func() bool {
+		return h.dispatcher.Stats().TasksCompleted == 2
+	}, 10*time.Second, 10*time.Millisecond, "second profile should finish while the bridge holds its stale snapshot")
+
+	close(stale.release)
+
+	flushed, idle := h.waitUntilIdle(10*time.Second, 10*time.Second)
+	require.True(t, flushed, "flush should complete")
+	require.True(t, idle, "idle should complete")
+
+	stats := h.dispatcher.Stats()
+	assert.Equal(t, int64(2), stats.TasksDispatched, "each profile dispatched exactly once")
+	assert.Equal(t, int64(2), stats.TasksCompleted, "each profile completed exactly once")
+
+	profileCalls := make(map[string]int)
+	for _, call := range exec.inner.getCalls() {
+		profileCalls[call.ProfileName]++
+	}
+	assert.Equal(t, map[string]int{"first": 1, "second": 1}, profileCalls,
+		"the stale snapshot must not run the already completed profile again")
+}
+
+func TestProfileChain_SourceChangeDuringBuildRerunsOnce(t *testing.T) {
+	testCases := []struct {
+		name           string
+		changes        int
+		wantExecutions int
+		failFirst      bool
+	}{
+		{name: "no change during the build needs no rerun", changes: 0, wantExecutions: 1},
+		{name: "a change during the build reruns exactly once", changes: 1, wantExecutions: 2},
+		{name: "several changes during the build still rerun exactly once", changes: 3, wantExecutions: 2},
+		{name: "a change during a build that fails reruns once from the new source", changes: 1, wantExecutions: 2, failFirst: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newPipelineHarness(t,
+				withProductionConfig(),
+				withClock(clockpkg.RealClock()),
+				withMaxRetries(1),
+			)
+
+			exec := newSourceTrackingExecutor(h.registryService)
+			exec.failFirst = tc.failFirst
+			h.dispatcher.RegisterExecutor(context.Background(), "artefact.compiler", exec)
+
+			const artefactID = "rerun.pkc"
+			profiles := []registry_dto.NamedProfile{sourceProfile("compiled", registry_dto.PriorityNeed)}
+
+			h.seedArtefactWithContent(artefactID, []byte("version 0"), profiles)
+			waitForSignal(t, exec.entered, "the first build should start")
+
+			for change := range tc.changes {
+				h.seedArtefactWithContent(artefactID, fmt.Appendf(nil, "version %d", change+1), profiles)
+				require.True(t, h.waitForFlush(10*time.Second),
+					"the bridge should handle each change while the first build is running")
+			}
+
+			close(exec.gate)
+
+			flushed, idle := h.waitUntilIdle(10*time.Second, 10*time.Second)
+			require.True(t, flushed, "flush should complete")
+			require.True(t, idle, "idle should complete")
+
+			inputs := exec.inputs()
+			require.Len(t, inputs, tc.wantExecutions, "builds of the profile")
+
+			wantFailed := int64(0)
+			if tc.failFirst {
+				wantFailed = 1
+			}
+			stats := h.dispatcher.Stats()
+			assert.Equal(t, int64(tc.wantExecutions), stats.TasksDispatched)
+			assert.Equal(t, int64(tc.wantExecutions)-wantFailed, stats.TasksCompleted)
+			assert.Equal(t, wantFailed, stats.TasksFailed)
+
+			artefact, err := h.registryService.GetArtefact(h.ctx, artefactID)
+			require.NoError(t, err)
+			var sourceHash string
+			var compiled *registry_dto.Variant
+			for i := range artefact.ActualVariants {
+				switch artefact.ActualVariants[i].VariantID {
+				case "source":
+					sourceHash = artefact.ActualVariants[i].ContentHash
+				case "compiled":
+					compiled = &artefact.ActualVariants[i]
+				}
+			}
+			require.NotNil(t, compiled)
+			assert.Equal(t, registry_dto.VariantStatusReady, compiled.Status)
+			assert.Equal(t, sourceHash, compiled.Transform.ParentContentHash,
+				"the final output is built from the latest source")
+			assert.Equal(t, sourceHash, inputs[len(inputs)-1])
+		})
+	}
 }
 
 func TestProfileChain_TwoPhaseRace(t *testing.T) {

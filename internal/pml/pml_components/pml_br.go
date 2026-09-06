@@ -47,9 +47,7 @@ const (
 //
 // Returns *LineBreak which is the new component ready for configuration.
 func NewLineBreak() *LineBreak {
-	return &LineBreak{
-		BaseComponent: BaseComponent{},
-	}
+	return &LineBreak{}
 }
 
 // TagName returns the tag name for this component.

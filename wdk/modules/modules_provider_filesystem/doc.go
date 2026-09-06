@@ -17,9 +17,8 @@
 // strip others of their rights and dignity.
 
 // Package modules_provider_filesystem implements [modules.ModuleProvider] backed by a
-// directory of bundle files on local disk. Intended for piko CLI use ("piko run
-// --module-dir ./vendor"), test fixtures, and air-gapped deployments that ship a
-// pre-populated bundle tree.
+// directory of bundle files on local disk. Intended for vendored bundles, test fixtures,
+// and air-gapped deployments that ship a pre-populated bundle tree.
 //
 // # Directory layout
 //
@@ -29,8 +28,17 @@
 //
 // where <encoded-path> is the module path with '/' replaced by '__' so the filesystem
 // treats it as a single directory name, and .pkbundle is the deterministic envelope
-// produced by piko's bundler. Each .pkbundle file contains the descriptor JSON followed
-// by the bytecode payload, separated by a single null byte.
+// produced by piko's bundler.
+//
+// # Envelope format
+//
+// Every .pkbundle file starts with the five bytes "PKBND" and a version byte. Version 2,
+// which Write produces, follows the magic with three sections, each a big-endian uint32
+// length and that many bytes, containing the canonical descriptor JSON, bytecode, and
+// types export (which may be empty), respectively. Version 1 files hold the descriptor
+// section followed by bytecode running to the end of the file and carry no types export;
+// they are still read. Every declared length is checked against the bytes that remain,
+// and Resolve refuses files larger than the configured limit (see WithMaxBundleBytes).
 //
 // # Concurrency
 //

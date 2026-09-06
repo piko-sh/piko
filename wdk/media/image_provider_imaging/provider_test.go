@@ -25,8 +25,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"piko.sh/piko/wdk/media"
 )
 
 func newTestImage(w, h int) image.Image {
@@ -479,9 +477,7 @@ func TestNewProvider_CustomConfig(t *testing.T) {
 	t.Parallel()
 
 	p := NewProvider(Config{
-		ImageServiceConfig: media.ImageServiceConfig{
-			MaxFileSizeBytes: 1024,
-		},
+		MaxFileSizeBytes: 1024,
 	})
 	require.NotNil(t, p)
 	assert.Equal(t, int64(1024), p.config.MaxFileSizeBytes)

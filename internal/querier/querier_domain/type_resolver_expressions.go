@@ -28,10 +28,7 @@ import (
 
 var (
 	// booleanNotNull is the pre-built SQL type descriptor for a non-nullable boolean column.
-	booleanNotNull = querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryBoolean,
-		EngineName: querier_dto.CanonicalBoolean,
-	}
+	booleanNotNull = querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, querier_dto.CanonicalBoolean)
 )
 
 // resolveExpressionType infers the SQL type and nullability of a typed expression from
@@ -52,18 +49,18 @@ func (r *typeResolver) resolveExpressionType(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 
 	if r.expressionDepth >= maxExpressionResolveDepth {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 	r.expressionDepth++
 	defer func() { r.expressionDepth-- }()
 
 	feature := expressionFeature(expression)
 	if feature != 0 && !r.engine.SupportedExpressions().Has(feature) {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			fmt.Errorf("unsupported expression: %s", feature.String())
 	}
 
@@ -99,7 +96,7 @@ func (r *typeResolver) resolveExpressionType(
 	case *querier_dto.StructFieldAccessExpression:
 		return r.resolveStructFieldAccessExpression(expr, scope, dataModifying)
 	default:
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 }
 
@@ -118,15 +115,15 @@ func (*typeResolver) resolveColumnRefExpression(
 	scope *scopeChain,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil column reference expression during type resolution")
 	}
 	column, _, err := scope.ResolveColumn(expression.TableAlias, expression.ColumnName)
 	if err != nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, err
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, err
 	}
 	if column == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			fmt.Errorf("%s: nil column resolved for %s", querier_dto.CodeInternalNilGuard, expression.ColumnName)
 	}
 	return column.SQLType, column.Nullable, nil
@@ -152,7 +149,7 @@ func (r *typeResolver) resolveFunctionCallExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil function call expression during type resolution")
 	}
 
@@ -161,7 +158,7 @@ func (r *typeResolver) resolveFunctionCallExpression(
 
 	for _, argument := range expression.Arguments {
 		if argument == nil {
-			argumentTypes = append(argumentTypes, querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown})
+			argumentTypes = append(argumentTypes, querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""))
 			anyArgumentNullable = true
 			continue
 		}
@@ -178,11 +175,11 @@ func (r *typeResolver) resolveFunctionCallExpression(
 		if dataModifying != nil {
 			*dataModifying = true
 		}
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			fmt.Errorf("%s: %s", resolveError.Code, resolveError.Message)
 	}
 	if match == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			fmt.Errorf("%s: nil function match for %s during type resolution", querier_dto.CodeInternalNilGuard, expression.FunctionName)
 	}
 
@@ -222,11 +219,11 @@ func (r *typeResolver) resolveCoalesceExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil COALESCE expression during type resolution")
 	}
 
-	resultType := querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+	resultType := querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	allNullable := true
 
 	for _, argument := range expression.Arguments {
@@ -263,7 +260,7 @@ func (r *typeResolver) resolveCastExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil cast expression during type resolution")
 	}
 	innerNullable := true
@@ -274,7 +271,7 @@ func (r *typeResolver) resolveCastExpression(
 	if expression.TypeName != "" {
 		return r.engine.NormaliseTypeName(expression.TypeName), innerNullable, nil
 	}
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, innerNullable, nil
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), innerNullable, nil
 }
 
 // resolveLiteralExpression resolves a literal expression by normalising its type name
@@ -291,13 +288,13 @@ func (r *typeResolver) resolveLiteralExpression(
 	expression *querier_dto.LiteralExpression,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil literal expression during type resolution")
 	}
 	if expression.TypeName != "" {
 		return r.engine.NormaliseTypeName(expression.TypeName), false, nil
 	}
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, nil
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), false, nil
 }
 
 // resolveBinaryOpExpression resolves a binary operator expression by inferring the result
@@ -320,7 +317,7 @@ func (r *typeResolver) resolveBinaryOpExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil binary operator expression during type resolution")
 	}
 
@@ -330,29 +327,17 @@ func (r *typeResolver) resolveBinaryOpExpression(
 
 	switch expression.Operator {
 	case "||":
-		return querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryText,
-			EngineName: querier_dto.CanonicalText,
-		}, nullable, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryText, querier_dto.CanonicalText), nullable, nil
 	case "->", "#>":
 
 		if leftType.Category == querier_dto.TypeCategoryJSON {
 			return leftType, true, nil
 		}
-		return querier_dto.SQLType{
-			Category:   leftType.Category,
-			EngineName: querier_dto.CanonicalJSON,
-		}, true, nil
+		return querier_dto.NewSQLType(leftType.Category, querier_dto.CanonicalJSON), true, nil
 	case "->>", "#>>":
-		return querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryText,
-			EngineName: querier_dto.CanonicalText,
-		}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryText, querier_dto.CanonicalText), true, nil
 	case "&", "|", "<<", ">>":
-		return querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryInteger,
-			EngineName: querier_dto.CanonicalInt8,
-		}, nullable, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, querier_dto.CanonicalInt8), nullable, nil
 	default:
 		return r.commonSupertype(leftType, rightType), nullable, nil
 	}
@@ -376,7 +361,7 @@ func (r *typeResolver) resolveUnaryOpExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil unary operator expression during type resolution")
 	}
 
@@ -408,11 +393,11 @@ func (r *typeResolver) resolveCaseWhenExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil CASE expression during type resolution")
 	}
 
-	resultType := querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+	resultType := querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 	nullable := expression.ElseResult == nil
 
 	for _, branch := range expression.Branches {
@@ -458,7 +443,7 @@ func (r *typeResolver) resolveWindowFunctionExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil || expression.Function == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true,
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true,
 			errors.New(querier_dto.CodeInternalNilGuard + ": nil window function expression during type resolution")
 	}
 	return r.resolveFunctionCallExpression(expression.Function, scope, dataModifying)
@@ -541,10 +526,10 @@ func (r *typeResolver) resolveScalarSubqueryExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 	if expression.InnerQuery == nil || len(expression.InnerQuery.OutputColumns) == 0 {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 
 	innerScope := newScopeChain(querier_dto.ScopeKindQuery, outerScope)
@@ -552,12 +537,12 @@ func (r *typeResolver) resolveScalarSubqueryExpression(
 
 	firstColumn := expression.InnerQuery.OutputColumns[0]
 	if firstColumn.Expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 
 	resolvedType, _, err := r.resolveExpressionType(firstColumn.Expression, innerScope, dataModifying)
 	if err != nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 	return resolvedType, true, nil
 }
@@ -582,11 +567,11 @@ func (r *typeResolver) resolveArraySubscriptExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 	arrayType, _, err := r.resolveExpressionType(expression.Array, scope, dataModifying)
 	if err != nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, err
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, err
 	}
 	if arrayType.ElementType != nil {
 		return *arrayType.ElementType, true, nil
@@ -610,7 +595,7 @@ func (r *typeResolver) resolveLambdaExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression.Body == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 	return r.resolveExpressionType(expression.Body, scope, dataModifying)
 }
@@ -635,11 +620,11 @@ func (r *typeResolver) resolveStructFieldAccessExpression(
 	dataModifying *bool,
 ) (querier_dto.SQLType, bool, error) {
 	if expression == nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 	}
 	structType, nullable, err := r.resolveExpressionType(expression.Struct, scope, dataModifying)
 	if err != nil {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, err
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, err
 	}
 
 	for i := range structType.StructFields {
@@ -648,7 +633,7 @@ func (r *typeResolver) resolveStructFieldAccessExpression(
 		}
 	}
 
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true, nil
 }
 
 // addRawTablesToScope registers the FROM, JOIN, FROM-clause derived-table, and
@@ -843,6 +828,7 @@ func (r *typeResolver) addRawDerivedTableToScope(
 		Alias:    rawDerived.Alias,
 		Columns:  columns,
 		JoinKind: rawDerived.JoinKind,
+		Source:   0,
 	})
 }
 
@@ -911,7 +897,19 @@ func (r *typeResolver) catalogueRelation(reference querier_dto.TableReference) *
 		return table
 	}
 	if view, viewExists := schema.Views[reference.Name]; viewExists {
-		return &querier_dto.Table{Name: view.Name, Schema: view.Schema, Columns: view.Columns}
+		return &querier_dto.Table{
+			Name:              view.Name,
+			Schema:            view.Schema,
+			Columns:           view.Columns,
+			Comment:           "",
+			VirtualModuleName: "",
+			PrimaryKey:        nil,
+			Indexes:           nil,
+			Constraints:       nil,
+			Origin:            querier_dto.MigrationOrigin{},
+			IsVirtual:         false,
+			IsWithoutRowID:    false,
+		}
 	}
 	return nil
 }
@@ -948,7 +946,7 @@ func (r *typeResolver) commonSupertype(left querier_dto.SQLType, right querier_d
 		return left
 	}
 
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "")
 }
 
 // isBooleanExpression returns true for expression types that always resolve to a

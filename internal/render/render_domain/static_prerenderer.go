@@ -52,10 +52,9 @@ func (ro *RenderOrchestrator) RenderStaticNode(node *ast_domain.TemplateNode) ([
 	qw := qt.AcquireWriter(bufWriter)
 	defer qt.ReleaseWriter(qw)
 
-	rctx := &renderContext{
-		originalCtx:       context.Background(),
-		stripHTMLComments: ro.stripHTMLComments,
-	}
+	rctx := &renderContext{}
+	rctx.originalCtx = context.Background()
+	rctx.stripHTMLComments = ro.stripHTMLComments
 
 	if err := ro.renderNode(context.Background(), node, qw, rctx); err != nil {
 		return nil, fmt.Errorf("rendering static node: %w", err)

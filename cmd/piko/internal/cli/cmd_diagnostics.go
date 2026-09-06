@@ -103,6 +103,8 @@ func formatDiagnosticResult(result *tui.DiagnosticsResult, p *Printer, stdout io
 			Connected: result.Connected,
 			Passed:    result.Passed,
 			Failed:    result.Failed,
+			Error:     "",
+			Services:  nil,
 		}
 		if result.ConnectionError != nil {
 			jr.Error = result.ConnectionError.Error()
@@ -113,6 +115,7 @@ func formatDiagnosticResult(result *tui.DiagnosticsResult, p *Printer, stdout io
 				Method:  s.Method,
 				OK:      s.OK,
 				Details: s.Details,
+				Error:   "",
 			}
 			if s.Error != nil {
 				service.Error = s.Error.Error()

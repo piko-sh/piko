@@ -113,7 +113,19 @@ func actionCompressMiddleware(enabled bool) func(http.Handler) http.Handler {
 				return
 			}
 
-			compressing := &actionCompressWriter{ResponseWriter: writer, encoding: encoding, request: request}
+			compressing := &actionCompressWriter{
+				ResponseWriter: writer,
+				encoding:       encoding,
+				request:        request,
+				compressor:     nil,
+				pending:        nil,
+				status:         0,
+				once:           sync.Once{},
+				buffering:      false,
+				headerWritten:  false,
+				decided:        false,
+				isBrotli:       false,
+			}
 			defer compressing.release()
 
 			next.ServeHTTP(compressing, request)

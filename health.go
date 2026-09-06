@@ -239,9 +239,11 @@ func (p *ssrReadinessProbe) CheckReadiness(ctx context.Context) readiness.Snapsh
 	probe, inspector := p.resolve()
 	if probe == nil {
 		return readiness.Snapshot{
-			Name:    "readiness",
-			State:   readiness.StateUnhealthy,
-			Message: "monitoring health probe not configured",
+			Name:         "readiness",
+			State:        readiness.StateUnhealthy,
+			Message:      "monitoring health probe not configured",
+			Duration:     "",
+			Dependencies: nil,
 		}
 	}
 	return readinessSnapshotFrom(ctx, probe.CheckReadiness(ctx), inspector, p.keyFilter())

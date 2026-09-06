@@ -113,12 +113,6 @@ test-coverage-report: ## Generate full coverage report
 test-profile: ## Profile a package (PKG=internal/ast)
 	@$(HACK_DIR)/test/profile.sh $(PKG)
 
-##@ Benchmark
-
-.PHONY: bench-full
-bench-full: ## Run the full cross-language benchmark sweep (one process per cell, JSONL output). Override knobs with ARGS='--resume cpython_20_invert_binary_tree --runs 20'
-	@$(HACK_DIR)/bench/full.sh $(ARGS)
-
 ##@ Lint
 
 .PHONY: lint
@@ -215,7 +209,7 @@ tools-protoc: ## Download protoc (Protocol Buffers compiler)
 ##@ Generate
 
 .PHONY: generate-all
-generate-all: ## Run all code generators (dal, flatc, protoc, qt, interp, asmgen)
+generate-all: ## Run all code generators (dal, flatc, protoc, qt, interp symbols)
 	@$(HACK_DIR)/generate/all.sh
 
 .PHONY: generate-dal
@@ -225,14 +219,6 @@ generate-dal: ## Generate Go code from SQL using generate_dal
 .PHONY: generate-dal-validate
 generate-dal-validate: ## Validate generated DAL code is up to date
 	@$(HACK_DIR)/generate/dal.sh --validate
-
-.PHONY: generate-asmgen
-generate-asmgen: ## Generate Plan 9 assembly files for interp and vectormaths
-	@$(HACK_DIR)/generate/asmgen.sh
-
-.PHONY: generate-asmgen-validate
-generate-asmgen-validate: ## Validate generated assembly files are up to date
-	@$(HACK_DIR)/generate/asmgen.sh --validate
 
 .PHONY: generate-flatc
 generate-flatc: ## Generate Go code from FlatBuffers schemas
@@ -246,13 +232,13 @@ generate-protoc: ## Generate Go code from Protocol Buffers
 generate-qt: ## Generate Go code from quicktemplate files
 	@$(HACK_DIR)/generate/qt.sh
 
-.PHONY: generate-interp-symbols
-generate-interp-symbols: ## Generate bytecode interpreter stdlib symbol tables
-	@$(HACK_DIR)/generate/interp_symbols.sh
-
 .PHONY: generate-interp-piko-symbols
 generate-interp-piko-symbols: ## Generate bytecode interpreter piko runtime symbol tables
 	@$(HACK_DIR)/generate/interp_piko_symbols.sh
+
+.PHONY: generate-interp-piko-symbols-validate
+generate-interp-piko-symbols-validate: ## Validate generated piko runtime symbol tables and types export data are up to date
+	@$(HACK_DIR)/generate/interp_piko_symbols.sh --validate
 
 .PHONY: generate-stdlib-bundle
 generate-stdlib-bundle: ## Generate the embedded stdlib type bundle for the wasm playground
@@ -322,15 +308,9 @@ plugin-zed-clean: ## Clean Zed extension build artefacts
 
 .PHONY: check
 check: ## Run local validation (vet, lint, tests) before pushing
-	$(GO) vet -tags "vips integration ffmpeg" -unsafeptr=false piko.sh/piko/internal/interp/...
-	$(GO) vet -tags "vips integration ffmpeg" $$($(GO) list -tags "vips integration ffmpeg" piko.sh/piko/... | grep -vE '^piko.sh/piko/(internal/interp|tmp/)')
+	$(GO) vet -tags "vips integration ffmpeg" $$($(GO) list -tags "vips integration ffmpeg" piko.sh/piko/... | grep -vE '^piko.sh/piko/tmp/')
 	@$(MAKE) lint-go-all
 	$(GO) test -race -count=1 -shuffle=on piko.sh/piko/... -short
-
-.PHONY: check-arm64
-check-arm64: ## Run interp arm64 cross-arch tests under Docker+QEMU
-	$(GO) test -tags=integration -count=1 -timeout=10m -run TestCrossArch -v ./internal/interp/interp_domain/
-	$(GO) test -tags=integration -count=1 -timeout=10m -run TestCrossArchEvalParity -v ./internal/interp/interp_test/snippets/
 
 ##@ Development
 

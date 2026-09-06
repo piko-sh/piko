@@ -44,9 +44,11 @@ const (
 // hint, and underlying error.
 func newProviderError(response *http.Response, message string, cause error) *llm_domain.ProviderError {
 	providerErr := &llm_domain.ProviderError{
-		Provider: providerNameMistral,
-		Message:  message,
-		Err:      cause,
+		Provider:   providerNameMistral,
+		Message:    message,
+		Err:        cause,
+		StatusCode: 0,
+		RetryAfter: 0,
 	}
 	if response != nil {
 		providerErr.StatusCode = response.StatusCode

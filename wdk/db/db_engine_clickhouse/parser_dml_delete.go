@@ -39,7 +39,7 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	p.analysisDepth++
 	defer func() { p.analysisDepth-- }()
 
-	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: false}
+	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if _, err := p.expectKeyword("DELETE"); err != nil {
 		return nil, err
@@ -52,13 +52,11 @@ func (p *parser) analyseDelete() (*querier_dto.RawQueryAnalysis, error) {
 	if err != nil {
 		return nil, err
 	}
-	analysis.FromTables = []querier_dto.TableReference{{Schema: database, Name: name}}
+	analysis.FromTables = []querier_dto.TableReference{{Schema: database, Name: name, Alias: ""}}
 
 	if p.matchKeyword(kwWhere) {
 		analysis.HasWhereClause = true
-		if err := p.parseWhereClause(analysis); err != nil {
-			return nil, err
-		}
+		p.parseWhereClause(analysis)
 	}
 
 	if p.analysisDepth == 1 && p.firstParameterTypeError != nil {

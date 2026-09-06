@@ -36,5 +36,6 @@ func ClickHouse() db.EngineConfig {
 		DriverName:       "clickhouse",
 		Engine:           NewClickHouseEngine(),
 		MigrationDialect: migration_sql.ClickHouseDialect(),
+		CatalogueFactory: nil,
 	}
 }

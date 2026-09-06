@@ -73,59 +73,59 @@ var (
 
 	// infoDetailColumns defines the two-column layout for detail views.
 	infoDetailColumns = []Column{
-		{Header: "FIELD"},
-		{Header: "VALUE"},
+		newColumn("FIELD"),
+		newColumn("VALUE"),
 	}
 
 	// systemOverviewColumns defines the table column layout for the system overview section.
 	systemOverviewColumns = []Column{
-		{Header: "UPTIME"},
-		{Header: "CPU"},
-		{Header: "GOROUTINES"},
-		{Header: "CGO CALLS"},
+		newColumn("UPTIME"),
+		newColumn("CPU"),
+		newColumn("GOROUTINES"),
+		newColumn("CGO CALLS"),
 	}
 
 	// buildOverviewColumns defines the table column layout for the build overview section.
 	buildOverviewColumns = []Column{
-		{Header: "VERSION"},
-		{Header: "COMMIT"},
-		{Header: "GO"},
-		{Header: "OS/ARCH"},
+		newColumn("VERSION"),
+		newColumn("COMMIT"),
+		newColumn("GO"),
+		newColumn("OS/ARCH"),
 	}
 
 	// runtimeOverviewColumns defines the table column layout for the runtime overview
 	// section.
 	runtimeOverviewColumns = []Column{
-		{Header: "GOGC"},
-		{Header: "GOMEMLIMIT"},
-		{Header: "COMPILER"},
+		newColumn("GOGC"),
+		newColumn("GOMEMLIMIT"),
+		newColumn("COMPILER"),
 	}
 
 	// memoryOverviewColumns defines the table column layout for the memory overview section.
 	memoryOverviewColumns = []Column{
-		{Header: "HEAP ALLOC"},
-		{Header: "SYS TOTAL"},
-		{Header: "LIVE OBJECTS"},
-		{Header: "HEAP OBJECTS"},
+		newColumn("HEAP ALLOC"),
+		newColumn("SYS TOTAL"),
+		newColumn("LIVE OBJECTS"),
+		newColumn("HEAP OBJECTS"),
 	}
 
 	// gcOverviewColumns defines the table column layout for the garbage collection overview
 	// section.
 	gcOverviewColumns = []Column{
-		{Header: "CYCLES"},
-		{Header: "LAST PAUSE"},
-		{Header: "CPU FRACTION"},
-		{Header: "NEXT GC"},
+		newColumn("CYCLES"),
+		newColumn("LAST PAUSE"),
+		newColumn("CPU FRACTION"),
+		newColumn("NEXT GC"),
 	}
 
 	// processOverviewColumns defines the table column layout for the process overview
 	// section.
 	processOverviewColumns = []Column{
-		{Header: "PID"},
-		{Header: "THREADS"},
-		{Header: "FDS"},
-		{Header: "RSS"},
-		{Header: "HOSTNAME"},
+		newColumn("PID"),
+		newColumn("THREADS"),
+		newColumn("FDS"),
+		newColumn("RSS"),
+		newColumn("HOSTNAME"),
 	}
 )
 

@@ -70,6 +70,7 @@ func NewCSSProcessor(
 			Options:              options,
 			DiagnosticCode:       annotator_dto.CodeCSSProcessingError,
 			ImportDiagnosticCode: annotator_dto.CodeCSSImportError,
+			Limits:               cssinliner.Limits{},
 		}),
 	}
 }
@@ -416,7 +417,7 @@ func makeScopeAttributeSelector(scopeID string, location es_logger.Loc) css_ast.
 // Returns string which is the pre-processed CSS output.
 // Returns *scopingMarkers which tracks which pseudo-classes were found.
 func preprocessScopingPseudoClasses(css string) (string, *scopingMarkers) {
-	markers := &scopingMarkers{hasGlobal: false, hasDeep: false}
+	markers := &scopingMarkers{}
 	result := css
 
 	if globalPseudoRegex.MatchString(result) {

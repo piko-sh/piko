@@ -172,11 +172,12 @@ func (p *stdoutProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) h
 	startTime := time.Now()
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   "Stdout email provider operational",
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Stdout email provider operational",
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -284,7 +285,7 @@ func (*stdoutProvider) recordMetrics(ctx context.Context, startTime time.Time, s
 // Returns email_domain.EmailProviderPort which is ready to use for email output.
 // Returns error when the provider cannot be created.
 func New(_ context.Context, opts ...email_domain.ProviderOption) (email_domain.EmailProviderPort, error) {
-	defaultConfig := email_domain.ProviderRateLimitConfig{CallsPerSecond: 0, Burst: 0, Clock: nil}
+	defaultConfig := email_domain.ProviderRateLimitConfig{}
 	rl := email_domain.ApplyProviderOptions(defaultConfig, opts...)
 	return &stdoutProvider{rateLimiter: rl}, nil
 }

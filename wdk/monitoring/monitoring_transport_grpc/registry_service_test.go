@@ -188,7 +188,7 @@ func TestRegistryInspectorService_ListRecentArtefacts(t *testing.T) {
 					{ID: "art-1"},
 				},
 			},
-			request:       &pb.ListRecentArtefactsRequest{Limit: 0},
+			request:       &pb.ListRecentArtefactsRequest{},
 			expectedCount: 1,
 			expectError:   false,
 		},

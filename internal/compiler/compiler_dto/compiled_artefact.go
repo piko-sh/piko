@@ -18,6 +18,16 @@
 
 package compiler_dto
 
+const (
+	// DiagnosticSeverityError marks a diagnostic that means the compiled output must not be
+	// used.
+	DiagnosticSeverityError = "error"
+
+	// DiagnosticSeverityWarning marks a diagnostic the output can ship with but the author
+	// should see.
+	DiagnosticSeverityWarning = "warning"
+)
+
 // CompiledArtefact holds the output of compiling a component.
 type CompiledArtefact struct {
 	// Files maps output file paths to their compiled content.
@@ -39,16 +49,17 @@ type CompiledArtefact struct {
 	// These are imports that used the @/ alias and were changed to served paths.
 	JSDependencies []JSDependency
 
-	// Diagnostics carries non-fatal issues surfaced during compilation.
+	// Diagnostics carries issues surfaced during compilation. A diagnostic with
+	// DiagnosticSeverityError severity means the output must not be used.
 	Diagnostics []CompilationDiagnostic
 }
 
-// CompilationDiagnostic is a non-fatal compile-time issue.
+// CompilationDiagnostic is a compile-time issue reported alongside the compiled output.
 //
 // The message is suitable for surfacing directly to the playground or developer logs and
 // avoids leaking framework error chains.
 type CompilationDiagnostic struct {
-	// Severity is "error", "warning", or "info".
+	// Severity is DiagnosticSeverityError, DiagnosticSeverityWarning, or "info".
 	Severity string
 
 	// Message is the human-readable description.

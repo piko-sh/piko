@@ -88,12 +88,11 @@ func runRefCount(t *testing.T, config Config) {
 		const workers = 16
 
 		var wg sync.WaitGroup
-		wg.Add(workers)
 		for range workers {
-			go func() {
-				defer wg.Done()
-				incrementRef(t, store, "blob/shared")
-			}()
+			wg.Go(func() {
+				_, err := store.IncrementBlobRefCount(t.Context(), blobReference("blob/shared"))
+				assert.NoError(t, err, "incrementing the shared ref count")
+			})
 		}
 		wg.Wait()
 

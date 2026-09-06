@@ -16,14 +16,19 @@
 
 package llm_provider_ollama
 
-import "os/exec"
+import (
+	"os/exec"
+)
 
 // configureManagedOllamaCommand is a no-op on non-Unix platforms.
 //
 // Takes command (*exec.Cmd) which is the subprocess to configure.
-func configureManagedOllamaCommand(command *exec.Cmd) {}
+func configureManagedOllamaCommand(_ *exec.Cmd) {}
 
 // interruptManagedOllamaCommand sends an interrupt signal to the managed process.
+//
+// Windows cannot deliver an interrupt to another process, so the error returned there
+// makes Stop kill the process straight away instead of waiting out the grace period.
 //
 // Takes command (*exec.Cmd) which is the subprocess to interrupt.
 //

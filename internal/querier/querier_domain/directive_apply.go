@@ -173,6 +173,16 @@ func applySortableHeaderCall(result *querier_dto.DirectiveBlock, spec *querier_d
 		Span:          mergeSpan(call.openSpan, call.closeSpan),
 		KindSpan:      mergeSpan(call.openSpan, call.closeSpan),
 		NameSpan:      nameSpan,
+		TypeHint:      nil,
+		Nullable:      nil,
+		DefaultVal:    nil,
+		MaxVal:        nil,
+		Columns:       nil,
+		Number:        0,
+		NumberSpan:    querier_dto.TextSpan{},
+		IsNamed:       false,
+		IsOptional:    false,
+		IsSlice:       false,
 	}
 	if len(call.positionals) >= 2 && len(spec.Positionals) >= 2 {
 		applyParameterValue(directive, spec.Positionals[1].Name, &call.positionals[1].value)
@@ -213,7 +223,11 @@ func resolveDirectiveName(call *callArgs) (string, querier_dto.TextSpan, bool) {
 // Takes call (*callArgs) which holds the parsed positionals and keyword arguments.
 func applyEmbedHeaderCall(result *querier_dto.DirectiveBlock, call *callArgs) {
 	embed := &querier_dto.EmbedDirective{
-		Span: mergeSpan(call.openSpan, call.closeSpan),
+		Span:      mergeSpan(call.openSpan, call.closeSpan),
+		Table:     "",
+		From:      "",
+		As:        "",
+		TableSpan: querier_dto.TextSpan{},
 	}
 	if len(call.positionals) > 0 {
 		embed.Table = call.positionals[0].value.raw
@@ -238,6 +252,8 @@ func applyEmbedHeaderCall(result *querier_dto.DirectiveBlock, call *callArgs) {
 		Directive: "embed",
 		Value:     embed.Table,
 		Span:      embed.Span,
+		KeySpan:   querier_dto.TextSpan{},
+		ValueSpan: querier_dto.TextSpan{},
 	})
 }
 
@@ -250,9 +266,8 @@ func applyEmbedHeaderCall(result *querier_dto.DirectiveBlock, call *callArgs) {
 // Takes errorBuilder (querier_dto.ErrorBuilder) which builds source-mapped diagnostics.
 // Takes diagnostics (*[]querier_dto.SourceError) which accumulates emitted diagnostics.
 func applyColumnHeaderCall(result *querier_dto.DirectiveBlock, call *callArgs, errorBuilder querier_dto.ErrorBuilder, diagnostics *[]querier_dto.SourceError) {
-	override := &querier_dto.ColumnOverride{
-		Span: mergeSpan(call.openSpan, call.closeSpan),
-	}
+	override := &querier_dto.ColumnOverride{}
+	override.Span = mergeSpan(call.openSpan, call.closeSpan)
 	if len(call.positionals) > 0 {
 		override.Name = call.positionals[0].value.raw
 		override.NameSpan = call.positionals[0].span
@@ -321,6 +336,13 @@ func buildParameterDirective(spec *querier_dto.DirectiveSpec, call *callArgs, an
 		NumberSpan:    anchorToken.span,
 		KindSpan:      kindSpan,
 		NameSpan:      nameSpan,
+		TypeHint:      nil,
+		Nullable:      nil,
+		DefaultVal:    nil,
+		MaxVal:        nil,
+		Columns:       nil,
+		IsOptional:    false,
+		IsSlice:       false,
 	}
 	if len(call.positionals) >= 2 && len(spec.Positionals) >= 2 {
 		applyParameterValue(directive, spec.Positionals[1].Name, &call.positionals[1].value)

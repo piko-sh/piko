@@ -117,8 +117,17 @@ var (
 	// dialectConfig declares DuckDB lexical rules for the shared scanners: nested block
 	// comments and 0x/0o/0b base-prefixed integer literals.
 	dialectConfig = engine_shared.DialectConfig{
-		Comments: engine_shared.CommentRules{NestedBlockComments: true},
-		Numbers:  engine_shared.NumberRules{HexPrefix: true, OctalPrefix: true, BinaryPrefix: true},
+		Comments: engine_shared.CommentRules{
+			NestedBlockComments:          true,
+			DoubleDashRequiresWhitespace: false,
+			HashLineComment:              false,
+		},
+		Numbers: engine_shared.NumberRules{
+			HexPrefix:                true,
+			OctalPrefix:              true,
+			BinaryPrefix:             true,
+			RequireDigitsAfterPrefix: false,
+		},
 	}
 )
 
@@ -129,7 +138,7 @@ var (
 // Returns []token which is the ordered token stream ending with tokenEOF.
 // Returns error when an unterminated literal or unexpected character is found.
 func tokenise(input string) ([]token, error) {
-	lexer := &tokeniser{input: input}
+	lexer := &tokeniser{input: input, position: 0}
 	var tokens []token
 
 	for {
@@ -156,7 +165,7 @@ func (t *tokeniser) next() (token, error) {
 	}
 
 	if t.position >= len(t.input) {
-		return token{kind: tokenEOF, position: t.position}, nil
+		return token{kind: tokenEOF, position: t.position, value: ""}, nil
 	}
 
 	character := t.input[t.position]
@@ -375,13 +384,20 @@ func (t *tokeniser) readIdentifier() (token, error) {
 // scanned as a dollar-quoted string.
 //
 // Returns token which is the lexed tokenDollarParam or tokenDollarString.
-// Returns error when the dollar-quoted literal is malformed or unterminated.
+// Returns error when the parameter number exceeds maxDollarParameterNumber or the
+// dollar-quoted literal is malformed or unterminated.
 func (t *tokeniser) readDollarToken() (token, error) {
 	startPosition := t.position
 
 	if t.position+1 < len(t.input) && isDigit(t.input[t.position+1]) {
 		t.position++
+		number := 0
 		for t.position < len(t.input) && isDigit(t.input[t.position]) {
+			number = number*parameterNumberBase + int(t.input[t.position]-'0')
+			if number > maxDollarParameterNumber {
+				return token{}, fmt.Errorf("%w at position %d: exceeds maximum of %d",
+					errInvalidParameterNumber, startPosition, maxDollarParameterNumber)
+			}
 			t.position++
 		}
 		return token{kind: tokenDollarParam, value: t.input[startPosition:t.position], position: startPosition}, nil

@@ -102,6 +102,13 @@ type GeneratorService interface {
 	//
 	// Returns resolver_domain.ResolverPort which provides symbol lookup.
 	Resolver() resolver_domain.ResolverPort
+
+	// EnsureDistPackage creates the dist directory and its placeholder generated.go when
+	// they are missing, so the project's dist package is a valid Go package before the first
+	// build. It does nothing in in-memory mode.
+	//
+	// Returns error when the placeholder cannot be checked or written.
+	EnsureDistPackage(ctx context.Context) error
 }
 
 // CodeEmitterFactoryPort defines a factory that creates CodeEmitterPort instances,

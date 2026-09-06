@@ -36,7 +36,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/sfcparser"
@@ -85,10 +84,6 @@ const (
 
 	// previewEntryPoint is the virtual file path used for the preview template.
 	previewEntryPoint = "pages/preview.pk"
-
-	// minCatchAllSegmentLength is the minimum length of a catch-all route segment like {x*}
-	// (opening brace + at least one char + star + closing brace).
-	minCatchAllSegmentLength = 3
 )
 
 var (
@@ -123,9 +118,6 @@ type Orchestrator struct {
 	// stdlibLoader loads standard library package data.
 	stdlibLoader StdlibLoaderPort
 
-	// jsInterop provides JavaScript interoperability.
-	jsInterop JSInteropPort
-
 	// console handles log output at different levels; nil turns off logging.
 	console ConsolePort
 
@@ -157,9 +149,8 @@ type Orchestrator struct {
 //
 // Returns *Orchestrator which is ready to use with default settings.
 func NewOrchestrator(opts ...Option) *Orchestrator {
-	o := &Orchestrator{
-		config: DefaultConfig(),
-	}
+	o := &Orchestrator{}
+	o.config = DefaultConfig()
 
 	for _, opt := range opts {
 		opt(o)
@@ -397,8 +388,11 @@ func (o *Orchestrator) RenderPreview(ctx context.Context, request *wasm_dto.Rend
 
 	if o.renderer == nil {
 		return &wasm_dto.RenderPreviewResponse{
-			Success: false,
-			Error:   "renderer not configured",
+			Success:     false,
+			Error:       "renderer not configured",
+			HTML:        "",
+			CSS:         "",
+			Diagnostics: nil,
 		}, nil
 	}
 
@@ -419,8 +413,11 @@ func (o *Orchestrator) RenderPreview(ctx context.Context, request *wasm_dto.Rend
 	result, err := o.renderer.Render(ctx, renderReq)
 	if err != nil {
 		return &wasm_dto.RenderPreviewResponse{
-			Success: false,
-			Error:   fmt.Sprintf("preview rendering failed: %v", err),
+			Success:     false,
+			Error:       fmt.Sprintf("preview rendering failed: %v", err),
+			HTML:        "",
+			CSS:         "",
+			Diagnostics: nil,
 		}, nil
 	}
 
@@ -544,17 +541,35 @@ func instrumentedOperation[Response any](
 func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateFromSourcesRequest) (*wasm_dto.GenerateFromSourcesResponse, error) {
 	if err := checkSourceSize(ctx, request.Sources, o.config.MaxSourceSize); err != nil {
 		generateErrorCount.Add(ctx, 1)
-		return &wasm_dto.GenerateFromSourcesResponse{Success: false, Error: err.Error()}, nil
+		return &wasm_dto.GenerateFromSourcesResponse{
+			Success:     false,
+			Error:       err.Error(),
+			Manifest:    nil,
+			Artefacts:   nil,
+			Diagnostics: nil,
+		}, nil
 	}
 
 	return instrumentedOperation(
 		ctx,
 		operationInstrumentation{generateCount, generateDuration, generateErrorCount},
 		o.generator,
-		&wasm_dto.GenerateFromSourcesResponse{Success: false, Error: "generator not configured"},
+		&wasm_dto.GenerateFromSourcesResponse{
+			Success:     false,
+			Error:       "generator not configured",
+			Manifest:    nil,
+			Artefacts:   nil,
+			Diagnostics: nil,
+		},
 		func() (*wasm_dto.GenerateFromSourcesResponse, error) { return o.generator.Generate(ctx, request) },
 		func(err error) *wasm_dto.GenerateFromSourcesResponse {
-			return &wasm_dto.GenerateFromSourcesResponse{Success: false, Error: fmt.Sprintf("generation failed: %v", err)}
+			return &wasm_dto.GenerateFromSourcesResponse{
+				Success:     false,
+				Error:       fmt.Sprintf("generation failed: %v", err),
+				Manifest:    nil,
+				Artefacts:   nil,
+				Diagnostics: nil,
+			}
 		},
 		func(r *wasm_dto.GenerateFromSourcesResponse) bool { return r.Success },
 	)
@@ -571,17 +586,28 @@ func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateF
 func (o *Orchestrator) Render(ctx context.Context, request *wasm_dto.RenderFromSourcesRequest) (*wasm_dto.RenderFromSourcesResponse, error) {
 	if err := checkSourceSize(ctx, request.Sources, o.config.MaxSourceSize); err != nil {
 		renderErrorCount.Add(ctx, 1)
-		return &wasm_dto.RenderFromSourcesResponse{Success: false, Error: err.Error()}, nil
+		response := wasm_dto.RenderFromSourcesResponse{}
+		response.Error = err.Error()
+		return &response, nil
 	}
 
 	return instrumentedOperation(
 		ctx,
 		operationInstrumentation{renderCount, renderDuration, renderErrorCount},
 		o.renderer,
-		&wasm_dto.RenderFromSourcesResponse{Success: false, Error: "renderer not configured"},
+		&wasm_dto.RenderFromSourcesResponse{
+			Success:      false,
+			Error:        "renderer not configured",
+			HTML:         "",
+			CSS:          "",
+			Diagnostics:  nil,
+			IsStaticOnly: false,
+		},
 		func() (*wasm_dto.RenderFromSourcesResponse, error) { return o.renderer.Render(ctx, request) },
 		func(err error) *wasm_dto.RenderFromSourcesResponse {
-			return &wasm_dto.RenderFromSourcesResponse{Success: false, Error: fmt.Sprintf("rendering failed: %v", err)}
+			renderFromSourcesResponse := wasm_dto.RenderFromSourcesResponse{}
+			renderFromSourcesResponse.Error = fmt.Sprintf("rendering failed: %v", err)
+			return &renderFromSourcesResponse
 		},
 		func(r *wasm_dto.RenderFromSourcesResponse) bool { return r.Success },
 	)
@@ -604,7 +630,7 @@ func (o *Orchestrator) DynamicRender(ctx context.Context, request *wasm_dto.Dyna
 
 	if err := checkSourceSize(ctx, request.Sources, o.config.MaxSourceSize); err != nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return &wasm_dto.DynamicRenderResponse{Success: false, Error: err.Error()}, nil
+		return newDynamicRenderErrorResponse(err.Error(), nil), nil
 	}
 
 	if errResp := o.validateDynamicRenderAdapters(ctx); errResp != nil {
@@ -647,11 +673,11 @@ func (o *Orchestrator) GetStdlibData() (*inspector_dto.TypeData, error) {
 func (o *Orchestrator) validateDynamicRenderAdapters(ctx context.Context) *wasm_dto.DynamicRenderResponse {
 	if o.generator == nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return &wasm_dto.DynamicRenderResponse{Success: false, Error: "generator not configured"}
+		return newDynamicRenderErrorResponse("generator not configured", nil)
 	}
 	if o.interpreter == nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return &wasm_dto.DynamicRenderResponse{Success: false, Error: "interpreter not configured"}
+		return newDynamicRenderErrorResponse("interpreter not configured", nil)
 	}
 	return nil
 }
@@ -670,17 +696,15 @@ func (o *Orchestrator) dynamicRenderGenerate(ctx context.Context, request *wasm_
 	genResp, err := o.generator.Generate(ctx, &wasm_dto.GenerateFromSourcesRequest{
 		Sources:    request.Sources,
 		ModuleName: request.ModuleName,
+		BaseDir:    "",
 	})
 	if err != nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return nil, &wasm_dto.DynamicRenderResponse{
-			Success: false,
-			Error:   fmt.Sprintf("code generation failed: %v", err),
-		}
+		return nil, newDynamicRenderErrorResponse(fmt.Sprintf("code generation failed: %v", err), nil)
 	}
 	if !genResp.Success {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return nil, &wasm_dto.DynamicRenderResponse{Success: false, Error: genResp.Error}
+		return nil, newDynamicRenderErrorResponse(genResp.Error, nil)
 	}
 	return genResp, nil
 }
@@ -704,10 +728,7 @@ func (o *Orchestrator) dynamicRenderInterpret(
 	pageArtefact, packagePath, deps := findPageArtefactForURL(genResp.Artefacts, genResp.Manifest, request.RequestURL, request.ModuleName)
 	if pageArtefact == nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return nil, &wasm_dto.DynamicRenderResponse{
-			Success: false,
-			Error:   fmt.Sprintf("no page found for URL: %s", request.RequestURL),
-		}
+		return nil, newDynamicRenderErrorResponse(fmt.Sprintf("no page found for URL: %s", request.RequestURL), nil)
 	}
 
 	o.log(logLevelDebug, "DynamicRender: Phase 2 - Interpreting code...")
@@ -720,19 +741,19 @@ func (o *Orchestrator) dynamicRenderInterpret(
 	})
 	if err != nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return nil, &wasm_dto.DynamicRenderResponse{
-			Success:     false,
-			Error:       fmt.Sprintf("interpretation failed: %v", err),
-			Diagnostics: interpResp.Diagnostics,
+		var diagnostics []wasm_dto.Diagnostic
+		if interpResp != nil {
+			diagnostics = interpResp.Diagnostics
 		}
+		return nil, newDynamicRenderErrorResponse(fmt.Sprintf("interpretation failed: %v", err), diagnostics)
+	}
+	if interpResp == nil {
+		dynamicRenderErrorCount.Add(ctx, 1)
+		return nil, newDynamicRenderErrorResponse("interpretation returned no response", nil)
 	}
 	if !interpResp.Success {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return nil, &wasm_dto.DynamicRenderResponse{
-			Success:     false,
-			Error:       interpResp.Error,
-			Diagnostics: interpResp.Diagnostics,
-		}
+		return nil, newDynamicRenderErrorResponse(interpResp.Error, interpResp.Diagnostics)
 	}
 	return interpResp, nil
 }
@@ -763,11 +784,7 @@ func (o *Orchestrator) dynamicRenderHTML(
 	html, renderErr := o.renderASTToHTML(ctx, interpResp.AST, interpResp.Metadata, styleBlock)
 	if renderErr != nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
-		return &wasm_dto.DynamicRenderResponse{
-			Success:     false,
-			Error:       fmt.Sprintf("rendering failed: %v", renderErr),
-			Diagnostics: interpResp.Diagnostics,
-		}, nil
+		return newDynamicRenderErrorResponse(fmt.Sprintf("rendering failed: %v", renderErr), interpResp.Diagnostics), nil
 	}
 
 	return &wasm_dto.DynamicRenderResponse{
@@ -777,6 +794,7 @@ func (o *Orchestrator) dynamicRenderHTML(
 		Scripts:        collectScriptArtefacts(genResp),
 		RuntimeImports: defaultRuntimeImports,
 		Diagnostics:    interpResp.Diagnostics,
+		Error:          "",
 	}, nil
 }
 
@@ -919,16 +937,9 @@ func prepareSourceBytes(sources map[string]string, moduleName string) map[string
 // Returns *wasm_dto.AnalyseResponse which contains the analysis results or error details.
 // Returns error when an unexpected failure occurs.
 func runAnalysis(ctx context.Context, stdlibData *inspector_dto.TypeData, sourceBytes map[string][]byte, moduleName string) (*wasm_dto.AnalyseResponse, error) {
-	config := inspector_dto.Config{
-		BaseDir:         pathSeparator + moduleName,
-		ModuleName:      moduleName,
-		MaxParseWorkers: nil,
-		GOOS:            "",
-		GOARCH:          "",
-		GOCACHE:         "",
-		GOMODCACHE:      "",
-		BuildFlags:      nil,
-	}
+	config := inspector_dto.Config{}
+	config.BaseDir = pathSeparator + moduleName
+	config.ModuleName = moduleName
 
 	builder, err := inspector_domain.NewLiteBuilder(stdlibData, config)
 	if err != nil {
@@ -967,6 +978,25 @@ func newAnalyseErrorResponse(errMessage string, diagnostics []wasm_dto.Diagnosti
 		Functions:   nil,
 		Imports:     nil,
 		Diagnostics: diagnostics,
+	}
+}
+
+// newDynamicRenderErrorResponse creates a failed response for dynamic render requests.
+//
+// Takes errMessage (string) which is the error message to include.
+// Takes diagnostics ([]wasm_dto.Diagnostic) which holds any diagnostic details to attach.
+//
+// Returns *wasm_dto.DynamicRenderResponse with Success set to false and the given error
+// details filled in.
+func newDynamicRenderErrorResponse(errMessage string, diagnostics []wasm_dto.Diagnostic) *wasm_dto.DynamicRenderResponse {
+	return &wasm_dto.DynamicRenderResponse{
+		Success:        false,
+		Error:          errMessage,
+		HTML:           "",
+		CSS:            "",
+		Scripts:        nil,
+		RuntimeImports: nil,
+		Diagnostics:    diagnostics,
 	}
 }
 
@@ -1107,261 +1137,6 @@ func extractInitFromFuncDecl(d *ast.FuncDecl, info *wasm_dto.ScriptBlockInfo) {
 // Returns string which is the combined template with embedded script block.
 func assemblePreviewTemplate(template, script string) string {
 	return "<script>\n" + script + "\n</script>\n\n" + template
-}
-
-// findPageArtefactForURL finds the page artefact that matches the given URL.
-//
-// It first checks the manifest for a matching page. If no match is found, it falls back
-// to returning the first page artefact.
-//
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated files.
-// Takes manifest (*wasm_dto.GeneratedManifest) which contains page metadata and package
-// paths.
-// Takes requestURL (string) which is the URL to match against page routes.
-//
-// Returns *wasm_dto.GeneratedArtefact which is the matching page artefact.
-// Returns string which is the package path for the page.
-// Returns map[string]string which contains dependency paths mapped to content.
-func findPageArtefactForURL(artefacts []wasm_dto.GeneratedArtefact, manifest *wasm_dto.GeneratedManifest, requestURL, moduleName string) (*wasm_dto.GeneratedArtefact, string, map[string]string) {
-	deps := collectPartialDependencies(artefacts, moduleName)
-
-	if manifest != nil && manifest.Pages != nil {
-		if artefact, packagePath := findMatchingPageFromManifest(artefacts, manifest, requestURL); artefact != nil {
-			return artefact, packagePath, deps
-		}
-	}
-
-	pageArtefact, packagePath := findFirstPageArtefact(artefacts, manifest)
-	return pageArtefact, packagePath, deps
-}
-
-// collectPartialDependencies builds a dependency map from partial artefacts so the
-// interpreter can resolve partial imports during type checking.
-//
-// It derives import paths directly from artefact file paths rather than relying on the
-// manifest, since the generator may not populate partial manifest entries.
-//
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated files
-// including partial artefacts.
-// Takes moduleName (string) which is the Go module name prefix for import paths.
-//
-// Returns map[string]string which maps partial package paths to their generated source
-// code.
-func collectPartialDependencies(artefacts []wasm_dto.GeneratedArtefact, moduleName string) map[string]string {
-	deps := make(map[string]string)
-
-	for i := range artefacts {
-		if artefacts[i].Type != wasm_dto.ArtefactTypePartial {
-			continue
-		}
-		if !strings.HasSuffix(artefacts[i].Path, ".go") {
-			continue
-		}
-
-		artefactDir := artefactDirectory(artefacts[i].Path)
-		if artefactDir == "" || !strings.Contains(artefactDir, "/partials/") {
-			continue
-		}
-		packagePath := moduleName + "/" + artefactDir
-		deps[packagePath] = artefacts[i].Content
-	}
-
-	return deps
-}
-
-// artefactDirectory returns the directory portion of an artefact path.
-//
-// Takes path (string) which is the artefact file path (e.g.,
-// "dist/partials/partials_info_card_14ceb24d/generated.go").
-//
-// Returns string which is the directory (e.g.,
-// "dist/partials/partials_info_card_14ceb24d"), or empty if the path has no directory
-// separator.
-func artefactDirectory(path string) string {
-	lastSlash := strings.LastIndex(path, "/")
-	if lastSlash <= 0 {
-		return ""
-	}
-	return path[:lastSlash]
-}
-
-// findMatchingPageFromManifest searches the manifest for a page that matches the request
-// URL.
-//
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated files.
-// Takes manifest (*wasm_dto.GeneratedManifest) which contains page metadata.
-// Takes requestURL (string) which is the URL to match.
-//
-// Returns *wasm_dto.GeneratedArtefact which is the matching artefact, or nil.
-// Returns string which is the package path for the page.
-func findMatchingPageFromManifest(artefacts []wasm_dto.GeneratedArtefact, manifest *wasm_dto.GeneratedManifest, requestURL string) (*wasm_dto.GeneratedArtefact, string) {
-	for _, pageEntry := range manifest.Pages {
-		if !pageMatchesURL(pageEntry.RoutePatterns, requestURL) {
-			continue
-		}
-		if artefact := findArtefactBySourcePath(artefacts, pageEntry.SourcePath); artefact != nil {
-			return artefact, pageEntry.PackagePath
-		}
-	}
-	return nil, ""
-}
-
-// pageMatchesURL checks whether any route pattern matches the request URL.
-//
-// Takes patterns (map[string]string) which maps locale codes to route patterns.
-// Takes requestURL (string) which is the URL to match against.
-//
-// Returns bool which is true if any pattern matches the URL.
-func pageMatchesURL(patterns map[string]string, requestURL string) bool {
-	for _, pattern := range patterns {
-		if matchesRoute(pattern, requestURL) {
-			return true
-		}
-	}
-	return false
-}
-
-// findArtefactBySourcePath finds a page artefact with the given source path.
-//
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains the list of artefacts to
-// search through.
-// Takes sourcePath (string) which is the path to match against.
-//
-// Returns *wasm_dto.GeneratedArtefact which is the matching artefact, or nil if no match
-// is found.
-func findArtefactBySourcePath(artefacts []wasm_dto.GeneratedArtefact, sourcePath string) *wasm_dto.GeneratedArtefact {
-	for i := range artefacts {
-		if artefacts[i].Type == wasm_dto.ArtefactTypePage && artefacts[i].SourcePath == sourcePath {
-			return &artefacts[i]
-		}
-	}
-	return nil
-}
-
-// findFirstPageArtefact finds the first page artefact to use as a fallback.
-//
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains the artefacts to search
-// through.
-// Takes manifest (*wasm_dto.GeneratedManifest) which provides package path lookup.
-//
-// Returns *wasm_dto.GeneratedArtefact which is the first page artefact found, or nil if
-// none exists.
-// Returns string which is the package path for the page, or empty if not found.
-func findFirstPageArtefact(artefacts []wasm_dto.GeneratedArtefact, manifest *wasm_dto.GeneratedManifest) (*wasm_dto.GeneratedArtefact, string) {
-	for i := range artefacts {
-		if artefacts[i].Type != wasm_dto.ArtefactTypePage {
-			continue
-		}
-		packagePath := lookupPackagePath(manifest, artefacts[i].SourcePath)
-		return &artefacts[i], packagePath
-	}
-	return nil, ""
-}
-
-// lookupPackagePath finds the package path for an artefact in the manifest.
-//
-// Takes manifest (*wasm_dto.GeneratedManifest) which holds page metadata.
-// Takes sourcePath (string) which is the artefact source path to look up.
-//
-// Returns string which is the package path, or empty if not found.
-func lookupPackagePath(manifest *wasm_dto.GeneratedManifest, sourcePath string) string {
-	if manifest == nil || manifest.Pages == nil {
-		return ""
-	}
-	for _, pageEntry := range manifest.Pages {
-		if pageEntry.SourcePath == sourcePath {
-			return pageEntry.PackagePath
-		}
-	}
-	return ""
-}
-
-// matchesRoute checks if a URL matches a route pattern.
-//
-// Supports Chi-style dynamic segments:
-//   - {param} matches a single non-empty path segment
-//   - {param*} matches all remaining path segments (catch-all, must be last)
-//
-// The URL's query string and fragment are stripped before comparison so that
-// `/?sort=name` and `/#section` both match the pattern `/`. Without this, a page-level
-// link click that sends e.g. `/?sort=department` would fail to match its own page route,
-// and dynamicRender would fall back to findFirstPageArtefact (no styles, wrong page).
-//
-// Takes pattern (string) which is the route pattern to match against.
-// Takes url (string) which is the URL to check.
-//
-// Returns bool which is true if the URL matches the pattern.
-func matchesRoute(pattern, url string) bool {
-	if i := strings.IndexAny(url, "?#"); i >= 0 {
-		url = url[:i]
-	}
-	pattern = strings.TrimSuffix(pattern, "/")
-	url = strings.TrimSuffix(url, "/")
-
-	if pattern == url {
-		return true
-	}
-
-	if pattern == "" && (url == "" || url == "/") {
-		return true
-	}
-
-	patternSegs := strings.Split(strings.TrimPrefix(pattern, "/"), "/")
-	urlSegs := strings.Split(strings.TrimPrefix(url, "/"), "/")
-
-	return matchSegments(patternSegs, urlSegs)
-}
-
-// matchSegments compares pattern segments against URL segments.
-//
-// Takes patternSegs ([]string) which contains the pattern path segments.
-// Takes urlSegs ([]string) which contains the URL path segments.
-//
-// Returns bool which is true if all segments match.
-func matchSegments(patternSegs, urlSegs []string) bool {
-	for i, pSeg := range patternSegs {
-		if isCatchAllSegment(pSeg) {
-			return true
-		}
-
-		if i >= len(urlSegs) {
-			return false
-		}
-
-		if isDynamicSegment(pSeg) {
-			if urlSegs[i] == "" {
-				return false
-			}
-
-			continue
-		}
-
-		if pSeg != urlSegs[i] {
-			return false
-		}
-	}
-
-	return len(patternSegs) == len(urlSegs)
-}
-
-// isDynamicSegment reports whether a path segment is a Chi-style dynamic parameter like
-// {slug}.
-//
-// Takes seg (string) which is the path segment to check.
-//
-// Returns bool which is true if the segment is a dynamic parameter.
-func isDynamicSegment(seg string) bool {
-	return len(seg) > 2 && seg[0] == '{' && seg[len(seg)-1] == '}' && !strings.HasSuffix(seg, "*}")
-}
-
-// isCatchAllSegment reports whether a path segment is a Chi-style catch-all parameter
-// like {path*}.
-//
-// Takes seg (string) which is the path segment to check.
-//
-// Returns bool which is true if the segment is a catch-all parameter.
-func isCatchAllSegment(seg string) bool {
-	return len(seg) > minCatchAllSegmentLength && seg[0] == '{' && strings.HasSuffix(seg, "*}")
 }
 
 // typeDataToResponse converts type inspection data into an analysis response.
@@ -1514,12 +1289,8 @@ func errorToDiagnostics(err error) []wasm_dto.Diagnostic {
 		{
 			Severity: severityError,
 			Message:  err.Error(),
-			Location: wasm_dto.Location{
-				FilePath: "",
-				Line:     0,
-				Column:   0,
-			},
-			Code: "",
+			Location: wasm_dto.Location{},
+			Code:     "",
 		},
 	}
 }
@@ -1602,76 +1373,4 @@ func parseErrorStringToDiagnostics(errMessage, filePath string) []wasm_dto.Diagn
 			Code: "",
 		},
 	}
-}
-
-// collectScriptArtefacts pulls every JavaScript artefact out of a generator response so
-// the dynamic-render path can surface them to the consumer.
-//
-// The generator returns a mixed bag (Go code, manifests, register files, CSS) so we
-// filter to ArtefactTypeJS. The returned slice preserves generator order, which keeps
-// responses deterministic for golden tests.
-//
-// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries every artefact
-// captured during generation.
-//
-// Returns []wasm_dto.ScriptArtefact where each entry is one compiled ES module.
-// Returns nil when genResp is nil or no JS artefacts were emitted; JSON-omitempty hides
-// the field from the response in that case.
-func collectScriptArtefacts(genResp *wasm_dto.GenerateFromSourcesResponse) []wasm_dto.ScriptArtefact {
-	if genResp == nil || len(genResp.Artefacts) == 0 {
-		return nil
-	}
-
-	scripts := make([]wasm_dto.ScriptArtefact, 0, len(genResp.Artefacts))
-	for _, artefact := range genResp.Artefacts {
-		if artefact.Type != wasm_dto.ArtefactTypeJS {
-			continue
-		}
-		scripts = append(scripts, wasm_dto.ScriptArtefact{
-			Path:    artefact.Path,
-			Content: artefact.Content,
-		})
-	}
-	if len(scripts) == 0 {
-		return nil
-	}
-	return scripts
-}
-
-var (
-	// defaultRuntimeImports lists the framework-runtime URLs.
-	//
-	// The dynamic-render path echoes this list in every response so consumers can
-	// pre-resolve the imports (typically by fetching the framework bundles from the parent
-	// daemon and adding entries to an importmap) without having to scan emitted JS for
-	// `import` statements. Sourced from the exported constants in generator_domain so any
-	// future path change ripples through automatically.
-	defaultRuntimeImports = []string{
-		generator_domain.PKFrameworkURL,
-		generator_domain.PKComponentsURL,
-		generator_domain.PKActionsGenURL,
-	}
-)
-
-// findPageStyleBlock returns the aggregated CSS for the page that matches requestURL. The
-// block already includes CSS from every transitively referenced partial (the manifest
-// builder collapses them at generation time), so it can be used verbatim as the page's
-// <style> contents.
-//
-// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries the manifest
-// produced this run.
-// Takes requestURL (string) which is matched against each page entry's route patterns.
-//
-// Returns string which is the matched page's StyleBlock, or empty when no page matches or
-// the manifest is absent.
-func findPageStyleBlock(genResp *wasm_dto.GenerateFromSourcesResponse, requestURL string) string {
-	if genResp == nil || genResp.Manifest == nil {
-		return ""
-	}
-	for _, pageEntry := range genResp.Manifest.Pages {
-		if pageMatchesURL(pageEntry.RoutePatterns, requestURL) {
-			return pageEntry.StyleBlock
-		}
-	}
-	return ""
 }

@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"golang.org/x/sync/errgroup"
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -118,15 +117,16 @@ func (s *AnnotatorService) processAnnotationJob(
 	config *annotationWorkerConfig,
 ) *annotationJobResult {
 	pipeline := &componentAnnotationPipeline{
-		service:           s,
-		vc:                job.vc,
-		componentGraph:    config.componentGraph,
-		virtualModule:     config.virtualModule,
-		typeResolver:      config.typeResolver,
-		actions:           config.actions,
-		options:           config.options,
-		diagnostics:       nil,
-		componentRegistry: s.componentRegistry,
+		service:            s,
+		vc:                 job.vc,
+		componentGraph:     config.componentGraph,
+		virtualModule:      config.virtualModule,
+		typeResolver:       config.typeResolver,
+		actions:            config.actions,
+		options:            config.options,
+		diagnostics:        nil,
+		componentRegistry:  s.componentRegistry,
+		importedStylePaths: nil,
 	}
 	compResult, compDiags, err := pipeline.run(job.ctx)
 
@@ -181,7 +181,7 @@ func (*AnnotatorService) createErrorJobResult(
 func (s *AnnotatorService) prepareAnnotationJob(ctx context.Context, vc *annotator_dto.VirtualComponent) *annotationJob {
 	relPath, err := filepath.Rel(s.resolver.GetBaseDir(), vc.Source.SourcePath)
 	if err != nil {
-		relPath = strings.ReplaceAll(vc.Source.SourcePath, string(filepath.Separator), "_")
+		relPath = vc.Source.SourcePath
 	}
 
 	sessionLogger := s.logStore.StartSession(ctx, vc.Source.SourcePath, relPath)

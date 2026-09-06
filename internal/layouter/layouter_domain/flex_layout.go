@@ -124,13 +124,15 @@ func resolveFlexContainerParams(box *LayoutBox, input layoutInput) flexContainer
 	}
 
 	params := flexContainerParams{
-		containerMainSize: containerWidth,
-		isRowDirection:    isRow,
-		isReversed:        isReversed,
-		isWrap:            box.Style.FlexWrap == FlexWrapWrap || box.Style.FlexWrap == FlexWrapWrapReverse,
-		isWrapReverse:     box.Style.FlexWrap == FlexWrapWrapReverse,
-		mainGap:           box.Style.ColumnGap,
-		crossGap:          box.Style.RowGap,
+		containerMainSize:  containerWidth,
+		isRowDirection:     isRow,
+		isReversed:         isReversed,
+		isWrap:             box.Style.FlexWrap == FlexWrapWrap || box.Style.FlexWrap == FlexWrapWrapReverse,
+		isWrapReverse:      box.Style.FlexWrap == FlexWrapWrapReverse,
+		mainGap:            box.Style.ColumnGap,
+		crossGap:           box.Style.RowGap,
+		containerCrossSize: 0,
+		mainSizeIndefinite: false,
 	}
 
 	if !isRow {
@@ -217,12 +219,11 @@ func layoutFlexContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 	)
 
 	if len(items) == 0 {
-		return formattingContextResult{
-			Margin: BoxEdges{
-				Top:    input.Edges.MarginTop,
-				Bottom: input.Edges.MarginBottom,
-			},
-		}
+		return newFormattingContextResult(
+			nil,
+			0,
+			newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+		)
 	}
 
 	sortItemsByOrder(items)
@@ -248,14 +249,11 @@ func layoutFlexContainer(ctx context.Context, box *LayoutBox, input layoutInput)
 
 	containerHeight := computeFlexContainerHeight(box, lines, params.isRowDirection, params.crossGap)
 
-	return formattingContextResult{
-		Children:      collectFlexFragments(lines),
-		ContentHeight: containerHeight,
-		Margin: BoxEdges{
-			Top:    input.Edges.MarginTop,
-			Bottom: input.Edges.MarginBottom,
-		},
-	}
+	return newFormattingContextResult(
+		collectFlexFragments(lines),
+		containerHeight,
+		newVerticalMarginEdges(input.Edges.MarginTop, input.Edges.MarginBottom),
+	)
 }
 
 // collectFlexFragments gathers all item fragments from the resolved flex lines into a
@@ -302,11 +300,16 @@ func collectFlexItems(
 		baseSize := resolveFlexBaseSize(ctx, child, isRowDirection, containerMainSize, input)
 
 		items = append(items, &flexItem{
-			box:          child,
-			flexBaseSize: baseSize,
-			mainSize:     baseSize,
-			flexGrow:     child.Style.FlexGrow,
-			flexShrink:   child.Style.FlexShrink,
+			box:             child,
+			flexBaseSize:    baseSize,
+			mainSize:        baseSize,
+			flexGrow:        child.Style.FlexGrow,
+			flexShrink:      child.Style.FlexShrink,
+			fragment:        nil,
+			crossSize:       0,
+			targetMainSize:  0,
+			autoMarginStart: 0,
+			autoMarginEnd:   0,
 		})
 	}
 
@@ -395,6 +398,8 @@ func resolveExplicitMainSize(child *LayoutBox, isRowDirection bool, containerMai
 // Takes child (*LayoutBox) which is the flex item box.
 // Takes isRowDirection (bool) which selects horizontal or vertical measurement.
 // Takes containerMainSize (float64) which is the main axis size for column layout.
+// Takes input (layoutInput) which provides available dimensions, font metrics, and shared
+// layout state.
 //
 // Returns float64 which is the intrinsic content size in points.
 func resolveFlexIntrinsicSize(
@@ -404,7 +409,12 @@ func resolveFlexIntrinsicSize(
 		return measureMaxContentWidth(child, input.FontMetrics)
 	}
 
-	fragment := layoutBox(ctx, child, layoutInput{AvailableWidth: containerMainSize, FontMetrics: input.FontMetrics, Cache: input.Cache})
+	fragment := layoutBox(ctx, child, newLayoutInput(
+		input,
+		containerMainSize,
+		0,
+		resolvedEdges{},
+	))
 	return fragment.ContentHeight + fragment.Padding.Vertical() + fragment.Border.Vertical()
 }
 
@@ -441,7 +451,7 @@ func collectFlexLines(
 				totalMainSize += mainGap
 			}
 		}
-		return []*flexLine{{items: items, mainSize: totalMainSize}}
+		return []*flexLine{{items: items, mainSize: totalMainSize, crossSize: 0}}
 	}
 
 	var lines []*flexLine
@@ -456,8 +466,9 @@ func collectFlexLines(
 
 		if index > lineStart && candidateSize > containerMainSize {
 			lines = append(lines, &flexLine{
-				items:    items[lineStart:index],
-				mainSize: lineMainSize,
+				items:     items[lineStart:index],
+				mainSize:  lineMainSize,
+				crossSize: 0,
 			})
 			lineStart = index
 			lineMainSize = item.flexBaseSize
@@ -468,230 +479,13 @@ func collectFlexLines(
 
 	if lineStart < len(items) {
 		lines = append(lines, &flexLine{
-			items:    items[lineStart:],
-			mainSize: lineMainSize,
+			items:     items[lineStart:],
+			mainSize:  lineMainSize,
+			crossSize: 0,
 		})
 	}
 
 	return lines
-}
-
-// resolveFlexibleLengths distributes free space among flex items on a line using
-// flex-grow or flex-shrink factors.
-//
-// The algorithm follows CSS Flexbox spec section 9.7: determine whether the line is
-// growing or shrinking, freeze inflexible items, then iteratively redistribute free space
-// until no min/max violations remain.
-//
-// Takes line (*flexLine) which is the flex line whose items receive distributed space.
-// Takes containerMainSize (float64) which is the main axis size of the container.
-// Takes mainGap (float64) which is the gap between items along the main axis.
-// Takes isRowDirection (bool) which is true for row flex.
-func resolveFlexibleLengths(line *flexLine, containerMainSize, mainGap float64, isRowDirection bool) {
-	totalGaps := mainGap * float64(len(line.items)-1)
-
-	growing := isFlexLineGrowing(line, totalGaps, isRowDirection, containerMainSize)
-	frozen := freezeInflexibleItems(line, growing, isRowDirection, containerMainSize)
-
-	flexFreezeLoop(line, frozen, growing, totalGaps, containerMainSize, isRowDirection)
-}
-
-// isFlexLineGrowing returns true when the sum of hypothetical main sizes (base sizes
-// clamped to min/max) plus gaps does not exceed the container main size, meaning items
-// should grow rather than shrink.
-//
-// Takes line (*flexLine) which is the flex line to check.
-// Takes totalGaps (float64) which is the total gap space between items.
-// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
-// Takes containerMainSize (float64) which is the main axis size of the container.
-//
-// Returns bool which is true when items should grow.
-func isFlexLineGrowing(line *flexLine, totalGaps float64, isRowDirection bool, containerMainSize float64) bool {
-	used := totalGaps
-	for _, item := range line.items {
-		used += clampFlexMainSize(item.flexBaseSize, item.box, isRowDirection, containerMainSize)
-	}
-	return used <= containerMainSize
-}
-
-// freezeInflexibleItems freezes items that have a zero flex factor for the current
-// grow/shrink mode, setting their main size to the clamped base size.
-//
-// Takes line (*flexLine) which is the flex line to process.
-// Takes growing (bool) which indicates the grow/shrink mode.
-// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
-// Takes containerMainSize (float64) which is the main axis size for percentage
-// resolution.
-//
-// Returns []bool which holds the frozen flag for each item.
-func freezeInflexibleItems(line *flexLine, growing, isRowDirection bool, containerMainSize float64) []bool {
-	frozen := make([]bool, len(line.items))
-	for i, item := range line.items {
-		if (growing && item.flexGrow == 0) || (!growing && item.flexShrink == 0) {
-			item.mainSize = clampFlexMainSize(
-				item.flexBaseSize, item.box, isRowDirection, containerMainSize,
-			)
-			item.targetMainSize = item.mainSize
-			frozen[i] = true
-		}
-	}
-	return frozen
-}
-
-// flexFreezeLoop performs the iterative freeze-and-redistribute loop per CSS Flexbox spec
-// section 9.7, distributing free space to unfrozen items and freezing any that violate
-// their min/max constraints until convergence.
-//
-// Takes line (*flexLine) which is the flex line to process.
-// Takes frozen ([]bool) which tracks which items are frozen.
-// Takes growing (bool) which indicates the grow/shrink mode.
-// Takes totalGaps (float64) which is the total gap space.
-// Takes containerMainSize (float64) which is the main axis size.
-// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
-func flexFreezeLoop(
-	line *flexLine, frozen []bool, growing bool,
-	totalGaps, containerMainSize float64, isRowDirection bool,
-) {
-	for {
-		freeSpace, totalFactor := computeFlexFreeSpace(line, frozen, growing, totalGaps, containerMainSize)
-		distributeFlexFreeSpace(line, frozen, growing, freeSpace, totalFactor)
-
-		if !freezeFlexViolators(line, frozen, isRowDirection, containerMainSize) {
-			applyUnfrozenTargets(line, frozen)
-			break
-		}
-	}
-}
-
-// computeFlexFreeSpace calculates the remaining free space and the total flex factor
-// among unfrozen items.
-//
-// Takes line (*flexLine) which is the flex line to measure.
-// Takes frozen ([]bool) which tracks which items are frozen.
-// Takes growing (bool) which indicates the grow/shrink mode.
-// Takes totalGaps (float64) which is the total gap space.
-// Takes containerMainSize (float64) which is the main axis size.
-//
-// Returns freeSpace (float64) which is the remaining free space in points.
-// Returns totalFactor (float64) which is the flex-grow sum when growing or weighted
-// flex-shrink sum when shrinking.
-func computeFlexFreeSpace(
-	line *flexLine, frozen []bool, growing bool,
-	totalGaps, containerMainSize float64,
-) (freeSpace float64, totalFactor float64) {
-	usedByFrozen := totalGaps
-	for i, item := range line.items {
-		if frozen[i] {
-			usedByFrozen += item.mainSize
-		} else {
-			usedByFrozen += item.flexBaseSize
-			if growing {
-				totalFactor += item.flexGrow
-			} else {
-				totalFactor += item.flexShrink * item.flexBaseSize
-			}
-		}
-	}
-	return containerMainSize - usedByFrozen, totalFactor
-}
-
-// distributeFlexFreeSpace assigns target main sizes to unfrozen items by distributing the
-// available free space according to their flex factors.
-//
-// Takes line (*flexLine) which is the flex line to update.
-// Takes frozen ([]bool) which tracks which items are frozen.
-// Takes growing (bool) which indicates the grow/shrink mode.
-// Takes freeSpace (float64) which is the available free space.
-// Takes totalFactor (float64) which is the total flex factor.
-func distributeFlexFreeSpace(line *flexLine, frozen []bool, growing bool, freeSpace, totalFactor float64) {
-	for i, item := range line.items {
-		if frozen[i] {
-			continue
-		}
-		if growing && totalFactor > 0 {
-			item.targetMainSize = item.flexBaseSize +
-				freeSpace*(item.flexGrow/totalFactor)
-		} else if !growing && totalFactor > 0 {
-			ratio := (item.flexShrink * item.flexBaseSize) / totalFactor
-			item.targetMainSize = math.Max(0, item.flexBaseSize+freeSpace*ratio)
-		} else {
-			item.targetMainSize = item.flexBaseSize
-		}
-	}
-}
-
-// freezeFlexViolators clamps each unfrozen item's target main size to its min/max
-// constraints and freezes any item that was clamped.
-//
-// Takes line (*flexLine) which is the flex line to check.
-// Takes frozen ([]bool) which tracks which items are frozen.
-// Takes isRowDirection (bool) which selects horizontal or vertical clamping.
-// Takes containerMainSize (float64) which is the main axis size for percentage
-// resolution.
-//
-// Returns bool which is true if at least one item was frozen.
-func freezeFlexViolators(line *flexLine, frozen []bool, isRowDirection bool, containerMainSize float64) bool {
-	anyFrozen := false
-	for i, item := range line.items {
-		if frozen[i] {
-			continue
-		}
-		clamped := clampFlexMainSize(
-			item.targetMainSize, item.box, isRowDirection, containerMainSize,
-		)
-		if clamped != item.targetMainSize {
-			item.mainSize = clamped
-			item.targetMainSize = clamped
-			frozen[i] = true
-			anyFrozen = true
-		}
-	}
-	return anyFrozen
-}
-
-// applyUnfrozenTargets copies the target main size to the resolved main size for all
-// items that were never frozen.
-//
-// Takes line (*flexLine) which is the flex line to update.
-// Takes frozen ([]bool) which tracks which items are frozen.
-func applyUnfrozenTargets(line *flexLine, frozen []bool) {
-	for i, item := range line.items {
-		if !frozen[i] {
-			item.mainSize = item.targetMainSize
-		}
-	}
-}
-
-// clampFlexMainSize applies min/max main-axis constraints to a flex item's border-box
-// size.
-//
-// Takes size (float64) which is the border-box main size.
-// Takes box (*LayoutBox) which is the flex item.
-// Takes isRowDirection (bool) which is true for row flex.
-// Takes containerMainSize (float64) for percentage resolution.
-//
-// Returns the clamped border-box size.
-func clampFlexMainSize(size float64, box *LayoutBox, isRowDirection bool, containerMainSize float64) float64 {
-	if isRowDirection {
-		if !box.Style.MinWidth.IsAuto() && !box.Style.MinWidth.IsFitContent() {
-			minWidth := resolveFlexDimension(box, box.Style.MinWidth, containerMainSize, true)
-			size = math.Max(size, minWidth)
-		}
-		if !box.Style.MaxWidth.IsAuto() && !box.Style.MaxWidth.IsFitContent() {
-			maxWidth := resolveFlexDimension(box, box.Style.MaxWidth, containerMainSize, true)
-			size = math.Min(size, maxWidth)
-		}
-	} else {
-		if !box.Style.MinHeight.IsAuto() && !box.Style.MinHeight.IsFitContent() {
-			minHeight := resolveFlexDimension(box, box.Style.MinHeight, 0, false)
-			size = math.Max(size, minHeight)
-		}
-		if !box.Style.MaxHeight.IsAuto() && !box.Style.MaxHeight.IsFitContent() {
-			maxHeight := resolveFlexDimension(box, box.Style.MaxHeight, 0, false)
-			size = math.Min(size, maxHeight)
-		}
-	}
-	return size
 }
 
 // resolveFlexLineCrossSizes computes the cross size for each flex line and adjusts for
@@ -816,12 +610,12 @@ func distributeAlignContent(
 			line.crossSize += extra
 		}
 	case AlignContentFlexEnd:
-		return alignContentResult{initialOffset: remainingSpace}
+		return alignContentResult{initialOffset: remainingSpace, lineSpacing: 0}
 	case AlignContentCentre:
-		return alignContentResult{initialOffset: remainingSpace / 2}
+		return alignContentResult{initialOffset: remainingSpace / 2, lineSpacing: 0}
 	case AlignContentSpaceBetween:
 		if len(lines) > 1 {
-			return alignContentResult{lineSpacing: remainingSpace / float64(len(lines)-1)}
+			return alignContentResult{lineSpacing: remainingSpace / float64(len(lines)-1), initialOffset: 0}
 		}
 	case AlignContentSpaceAround:
 		if len(lines) > 0 {
@@ -882,6 +676,7 @@ type flexPositionContext struct {
 // Takes container (*LayoutBox) which is the flex container box.
 // Takes isRowDirection (bool) which is true when the main axis is horizontal.
 // Takes isReversed (bool) which is true when the main axis direction is reversed.
+// Takes isWrap (bool) which indicates whether flex items may wrap onto multiple lines.
 // Takes mainGap (float64) which is the gap between items along the main axis.
 // Takes crossGap (float64) which is the gap between lines along the cross axis.
 // Takes input (layoutInput) which carries font metrics and cache from the parent context.
@@ -932,6 +727,8 @@ func buildFlexPositionContext(
 // Takes lines ([]*flexLine) which is the slice of flex lines containing items to
 // position.
 // Takes isWrapReverse (bool) which is true when line ordering is reversed.
+// Takes acResult (alignContentResult) which provides the initial cross-axis offset and
+// spacing between flex lines.
 // Takes positionContext (*flexPositionContext) which holds the positioning parameters.
 func positionFlexItems(ctx context.Context, lines []*flexLine, isWrapReverse bool, acResult alignContentResult, positionContext *flexPositionContext) {
 	lineOrder := make([]int, len(lines))
@@ -975,6 +772,8 @@ func positionFlexLine(ctx context.Context, line *flexLine, crossOffset float64, 
 //
 // Takes ctx (context.Context) which carries cancellation signals.
 // Takes line (*flexLine) which is the flex line to lay out.
+// Takes positionContext (*flexPositionContext) which provides flex positioning parameters
+// and shared layout inputs.
 func layoutFlexLineItems(ctx context.Context, line *flexLine, positionContext *flexPositionContext) {
 	for _, item := range line.items {
 		layoutFlexItem(
@@ -1004,6 +803,8 @@ func clampLineCrossToContainer(line *flexLine, positionContext *flexPositionCont
 //
 // Takes ctx (context.Context) which carries cancellation signals.
 // Takes line (*flexLine) which is the flex line to re-lay out.
+// Takes positionContext (*flexPositionContext) which provides flex positioning parameters
+// and shared layout inputs.
 func stretchRelayoutLineItems(ctx context.Context, line *flexLine, positionContext *flexPositionContext) {
 	if !positionContext.isRowDirection || line.crossSize <= 0 {
 		return
@@ -1099,6 +900,8 @@ func positionFlexLineItems(
 // Takes ctx (context.Context) which carries cancellation signals.
 // Takes item (*flexItem) which is the flex item to re-lay out.
 // Takes lineCrossSize (float64) which is the definite cross size.
+// Takes positionContext (*flexPositionContext) which provides flex positioning parameters
+// and shared layout inputs.
 func relayoutFlexItemWithCrossSize(ctx context.Context, item *flexItem, lineCrossSize float64, positionContext *flexPositionContext) {
 	child := item.box
 	childEdges := resolveEdgesFromStyle(&child.Style, positionContext.containerMainSize)
@@ -1121,14 +924,12 @@ func relayoutFlexItemWithCrossSize(ctx context.Context, item *flexItem, lineCros
 	child.Style.Height = DimensionPt(crossContentHeight)
 	positionContext.input.Cache.Invalidate(child)
 
-	item.fragment = layoutBox(ctx, child, layoutInput{
-		AvailableWidth:     childContentWidth,
-		AvailableBlockSize: crossContentHeight,
-		FontMetrics:        positionContext.input.FontMetrics,
-		Cache:              positionContext.input.Cache,
-		IsFixedInlineSize:  true,
-		Edges:              childEdges,
-	})
+	item.fragment = layoutBox(ctx, child, newFixedInlineSizeInput(
+		positionContext.input,
+		childContentWidth,
+		crossContentHeight,
+		childEdges,
+	))
 
 	child.Style.Height = originalHeight
 
@@ -1244,14 +1045,12 @@ func layoutFlexItem(
 			childMarginLeft - childMarginRight
 		childContentWidth = math.Max(0, childContentWidth)
 
-		item.fragment = layoutBox(ctx, child, layoutInput{
-			AvailableWidth:     childContentWidth,
-			AvailableBlockSize: containerCrossSize,
-			FontMetrics:        input.FontMetrics,
-			Cache:              input.Cache,
-			IsFixedInlineSize:  true,
-			Edges:              childEdges,
-		})
+		item.fragment = layoutBox(ctx, child, newFixedInlineSizeInput(
+			input,
+			childContentWidth,
+			containerCrossSize,
+			childEdges,
+		))
 
 		item.crossSize = item.fragment.ContentHeight +
 			childEdges.Padding.Vertical() + childEdges.Border.Vertical() +
@@ -1261,14 +1060,12 @@ func layoutFlexItem(
 			childEdges.Padding.Horizontal() - childEdges.Border.Horizontal() -
 			childMarginLeft - childMarginRight
 		childContentWidth = math.Max(0, childContentWidth)
-		item.fragment = layoutBox(ctx, child, layoutInput{
-			AvailableWidth:     childContentWidth,
-			AvailableBlockSize: containerMainSize,
-			FontMetrics:        input.FontMetrics,
-			Cache:              input.Cache,
-			IsFixedInlineSize:  true,
-			Edges:              childEdges,
-		})
+		item.fragment = layoutBox(ctx, child, newFixedInlineSizeInput(
+			input,
+			childContentWidth,
+			containerMainSize,
+			childEdges,
+		))
 
 		mainContentHeight := item.mainSize -
 			childEdges.Padding.Vertical() - childEdges.Border.Vertical()

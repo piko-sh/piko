@@ -62,89 +62,89 @@ var (
 	// normalised SQLType representations.
 	builtinTypeMap = map[string]querier_dto.SQLType{
 		// Integer types (signed)
-		"tinyint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "int1"},
-		"int1":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int1"},
-		"smallint": {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-		"int2":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-		"integer":  {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"int":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"int4":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"bigint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-		"int8":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-		"hugeint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "hugeint"},
+		"tinyint":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int1"),
+		"int1":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int1"),
+		"smallint": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int2"),
+		"int2":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int2"),
+		"integer":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"int":      querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"int4":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"bigint":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
+		"int8":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
+		"hugeint":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "hugeint"),
 
 		// Integer types (unsigned)
-		"utinyint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "utinyint"},
-		"usmallint": {Category: querier_dto.TypeCategoryInteger, EngineName: "usmallint"},
-		"uinteger":  {Category: querier_dto.TypeCategoryInteger, EngineName: "uinteger"},
-		"ubigint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "ubigint"},
-		"uhugeint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "uhugeint"},
+		"utinyint":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "utinyint"),
+		"usmallint": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "usmallint"),
+		"uinteger":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "uinteger"),
+		"ubigint":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "ubigint"),
+		"uhugeint":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "uhugeint"),
 
 		// Serial types (normalise to underlying integer)
-		"smallserial": {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-		"serial2":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-		"serial":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"serial4":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-		"bigserial":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-		"serial8":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
+		"smallserial": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int2"),
+		"serial2":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int2"),
+		"serial":      querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"serial4":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int4"),
+		"bigserial":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
+		"serial8":     querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int8"),
 
 		// Float types
-		"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
-		"float4":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
-		"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
-		"double":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
-		"float8":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
-		"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
+		"real":             querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float4"),
+		"float4":           querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float4"),
+		"double precision": querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float8"),
+		"double":           querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float8"),
+		"float8":           querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float8"),
+		"float":            querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float8"),
 
 		// Decimal types
-		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
-		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
+		"numeric": querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "numeric"),
+		"decimal": querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "numeric"),
 
 		// Boolean
-		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
-		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
+		"boolean": querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "bool"),
+		"bool":    querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "bool"),
 
 		// Text types (DuckDB canonical text type is varchar)
-		"text":              {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-		"varchar":           {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-		"character varying": {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-		"character":         {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-		"char":              {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-		"bpchar":            {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-		"name":              {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
+		"text":              querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar"),
+		"varchar":           querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar"),
+		"character varying": querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar"),
+		"character":         querier_dto.NewSQLType(querier_dto.TypeCategoryText, "char"),
+		"char":              querier_dto.NewSQLType(querier_dto.TypeCategoryText, "char"),
+		"bpchar":            querier_dto.NewSQLType(querier_dto.TypeCategoryText, "char"),
+		"name":              querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar"),
 
 		// Binary types
-		"bytea": {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
-		"blob":  {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
+		"bytea": querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "blob"),
+		"blob":  querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "blob"),
 
 		// Temporal types
-		"timestamp without time zone": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
-		"timestamp":                   {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
-		"timestamp with time zone":    {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamptz"},
-		"timestamptz":                 {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamptz"},
-		"timestamp_s":                 {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp_s"},
-		"timestamp_ms":                {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp_ms"},
-		"timestamp_ns":                {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp_ns"},
-		"date":                        {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
-		"time without time zone":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
-		"time":                        {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
-		"time with time zone":         {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
-		"timetz":                      {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
-		"interval":                    {Category: querier_dto.TypeCategoryTemporal, EngineName: "interval"},
+		"timestamp without time zone": querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamp"),
+		"timestamp":                   querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamp"),
+		"timestamp with time zone":    querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamptz"),
+		"timestamptz":                 querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamptz"),
+		"timestamp_s":                 querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamp_s"),
+		"timestamp_ms":                querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamp_ms"),
+		"timestamp_ns":                querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamp_ns"),
+		"date":                        querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "date"),
+		"time without time zone":      querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "time"),
+		"time":                        querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "time"),
+		"time with time zone":         querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timetz"),
+		"timetz":                      querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timetz"),
+		"interval":                    querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "interval"),
 
 		// JSON types
-		"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+		"json": querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, "json"),
 
 		// UUID
-		"uuid": {Category: querier_dto.TypeCategoryUUID, EngineName: "uuid"},
+		"uuid": querier_dto.NewSQLType(querier_dto.TypeCategoryUUID, "uuid"),
 
 		// Compound types (bare keywords - compound type parsing provides fields)
-		"struct": {Category: querier_dto.TypeCategoryStruct, EngineName: "struct"},
-		"map":    {Category: querier_dto.TypeCategoryMap, EngineName: "map"},
-		"union":  {Category: querier_dto.TypeCategoryUnion, EngineName: "union"},
+		"struct": querier_dto.NewSQLType(querier_dto.TypeCategoryStruct, "struct"),
+		"map":    querier_dto.NewSQLType(querier_dto.TypeCategoryMap, "map"),
+		"union":  querier_dto.NewSQLType(querier_dto.TypeCategoryUnion, "union"),
 
 		// Void
-		"void": {Category: querier_dto.TypeCategoryUnknown, EngineName: "void"},
+		"void": querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "void"),
 	}
 )
 
@@ -187,7 +187,7 @@ func normaliseTypeName(
 	}
 
 	if lowered == "" {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar")
 	}
 
 	if result, matched := normaliseArrayType(lowered, hook, modifiers); matched {
@@ -223,11 +223,11 @@ func normaliseArrayType(
 		}
 		baseName = trimmed
 	}
-	return querier_dto.SQLType{
-		Category:    querier_dto.TypeCategoryArray,
-		EngineName:  lowered,
-		ElementType: new(normaliseTypeName(baseName, hook, modifiers...)),
-	}, true
+	arrayType := querier_dto.SQLType{}
+	arrayType.Category = querier_dto.TypeCategoryArray
+	arrayType.EngineName = lowered
+	arrayType.ElementType = new(normaliseTypeName(baseName, hook, modifiers...))
+	return arrayType, true
 }
 
 // lookupBuiltinType resolves a known DuckDB type name and applies any numeric modifiers.
@@ -243,7 +243,7 @@ func lookupBuiltinType(lowered string, modifiers []int) querier_dto.SQLType {
 		applyModifiers(&result, modifiers)
 		return result
 	}
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: lowered}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, lowered)
 }
 
 // applyModifiers writes numeric modifier values onto a SQLType according to its category.
@@ -348,4 +348,16 @@ func floatPromotionRank(engineName string) int {
 	default:
 		return 2
 	}
+}
+
+// newArrayType returns the DuckDB list type whose elements are element, named with the
+// element's name and a [] suffix.
+//
+// Takes element (querier_dto.SQLType) which is the element type.
+//
+// Returns querier_dto.SQLType which is the array type.
+func newArrayType(element querier_dto.SQLType) querier_dto.SQLType {
+	arrayType := querier_dto.NewSQLType(querier_dto.TypeCategoryArray, element.EngineName+arraySubscriptSuffix)
+	arrayType.ElementType = &element
+	return arrayType
 }

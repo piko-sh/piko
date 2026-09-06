@@ -19,6 +19,9 @@
 package db_engine_clickhouse
 
 import (
+	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -398,4 +401,190 @@ func TestBuiltinFunctions_NoCaseVariantDuplicateRegistrations(t *testing.T) {
 		"CAST should have a single registration despite case-insensitive keys")
 	assert.Len(t, functions.Functions["hostname"], 1,
 		"hostName should have a single registration despite case-insensitive keys")
+}
+
+func TestWithMaxTokensPerStatement(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		limit int
+		want  int
+	}{
+		{name: "positive limit is applied", limit: 42, want: 42},
+		{name: "zero keeps the default", limit: 0, want: defaultMaxTokensPerStatement},
+		{name: "negative keeps the default", limit: -7, want: defaultMaxTokensPerStatement},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			dialect := ClickHouseDialect{}
+			WithMaxTokensPerStatement(testCase.limit)(&dialect)
+			assert.Equal(t, testCase.want, dialect.resolvedMaxTokensPerStatement())
+		})
+	}
+}
+
+func TestWithMaxTypeParseDepth(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		depth int
+		want  int
+	}{
+		{name: "positive depth is applied", depth: 5, want: 5},
+		{name: "zero keeps the default", depth: 0, want: defaultMaxTypeParseDepth},
+		{name: "negative keeps the default", depth: -1, want: defaultMaxTypeParseDepth},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			dialect := ClickHouseDialect{}
+			WithMaxTypeParseDepth(testCase.depth)(&dialect)
+			assert.Equal(t, testCase.want, dialect.resolvedMaxTypeParseDepth())
+		})
+	}
+}
+
+func TestTokenBudgetRejectsLongStatements(t *testing.T) {
+	t.Parallel()
+
+	const limit = 20
+	longSelect := "SELECT " + strings.TrimSuffix(strings.Repeat("1, ", limit), ", ")
+	testCases := []struct {
+		name      string
+		sql       string
+		isDDL     bool
+		wantError bool
+	}{
+		{name: "query over the budget", sql: longSelect, isDDL: false, wantError: true},
+		{name: "query within the budget", sql: "SELECT 1, 2", isDDL: false, wantError: false},
+		{name: "DDL over the budget", sql: "CREATE TABLE t (" + strings.TrimSuffix(strings.Repeat("c UInt8, ", limit), ", ") + ") ENGINE = Memory", isDDL: true, wantError: true},
+		{name: "statement without a DDL handler is not walked", sql: "INSERT INTO t VALUES " + strings.TrimSuffix(strings.Repeat("(1), ", limit), ", "), isDDL: true, wantError: false},
+		{name: "statement kind AnalyseQuery does not walk", sql: "SHOW TABLES " + strings.Repeat("x ", limit), isDDL: false, wantError: false},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewClickHouseEngine(WithMaxTokensPerStatement(limit))
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+			require.Len(t, statements, 1)
+
+			if testCase.isDDL {
+				_, err = engine.ApplyDDL(t.Context(), statements[0])
+			} else {
+				_, err = engine.AnalyseQuery(nil, statements[0])
+			}
+			if !testCase.wantError {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorIs(t, err, errTokenBudgetExceeded)
+			assert.Contains(t, err.Error(), "limit is 20")
+		})
+	}
+}
+
+func TestDefaultTokenBudgetAdmitsLargeInLists(t *testing.T) {
+	t.Parallel()
+
+	engine := NewClickHouseEngine()
+	sql := "SELECT 1 WHERE x IN (" + strings.TrimSuffix(strings.Repeat("1, ", 20_000), ", ") + ")"
+	statements, err := engine.ParseStatements(sql)
+	require.NoError(t, err)
+	require.Len(t, statements, 1)
+
+	_, err = engine.AnalyseQuery(nil, statements[0])
+	require.NoError(t, err)
+}
+
+func TestTypeParseDepthOptionAppliesToStatementsAndNormalisation(t *testing.T) {
+	t.Parallel()
+
+	const nesting = 6
+	deepType := strings.Repeat("Array(", nesting) + "UInt8" + strings.Repeat(")", nesting)
+
+	t.Run("default depth accepts the nesting", func(t *testing.T) {
+		t.Parallel()
+
+		engine := NewClickHouseEngine()
+		assert.Equal(t, querier_dto.TypeCategoryArray, engine.NormaliseTypeName(deepType).Category)
+		mutation, err := applyDDLWith(t, engine, "CREATE TABLE t (c "+deepType+") ENGINE = Memory")
+		require.NoError(t, err)
+		require.Len(t, mutation.Columns, 1)
+		assert.Equal(t, querier_dto.TypeCategoryArray, mutation.Columns[0].SQLType.Category)
+	})
+
+	t.Run("lowered depth rejects the nesting", func(t *testing.T) {
+		t.Parallel()
+
+		engine := NewClickHouseEngine(WithMaxTypeParseDepth(3))
+		assert.Equal(t, querier_dto.TypeCategoryUnknown, engine.NormaliseTypeName(deepType).Category)
+		_, err := applyDDLWith(t, engine, "CREATE TABLE t (c "+deepType+") ENGINE = Memory")
+		require.ErrorIs(t, err, errTypeDepthExceeded)
+	})
+}
+
+func applyDDLWith(t *testing.T, engine *ClickHouseEngine, sql string) (*querier_dto.CatalogueMutation, error) {
+	t.Helper()
+	statements, err := engine.ParseStatements(sql)
+	require.NoError(t, err)
+	require.Len(t, statements, 1)
+	return engine.ApplyDDL(t.Context(), statements[0])
+}
+
+func TestApplyDDLAndAnalyseQueryRejectForeignStatements(t *testing.T) {
+	t.Parallel()
+
+	engine := NewClickHouseEngine()
+	statement := querier_dto.ParsedStatement{Raw: nil, Location: 0, Length: 0}
+
+	_, err := engine.ApplyDDL(t.Context(), statement)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected statement type")
+
+	_, err = engine.AnalyseQuery(nil, statement)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected statement type")
+}
+
+func TestApplyDDLHonoursCancellation(t *testing.T) {
+	t.Parallel()
+
+	engine := NewClickHouseEngine()
+	statements, err := engine.ParseStatements("CREATE TABLE t (id UInt64) ENGINE = Memory")
+	require.NoError(t, err)
+	require.Len(t, statements, 1)
+
+	cause := errors.New("catalogue build abandoned")
+	ctx, cancel := context.WithCancelCause(t.Context())
+	cancel(cause)
+
+	mutation, err := engine.ApplyDDL(ctx, statements[0])
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, mutation)
+}
+
+func TestEntryPointsRecoverFromParserBugsWithoutLeakingStacks(t *testing.T) {
+	t.Parallel()
+
+	engine := NewClickHouseEngine()
+	statement := querier_dto.ParsedStatement{Raw: (*parsedStatement)(nil), Location: 0, Length: 0}
+
+	mutation, err := engine.ApplyDDL(t.Context(), statement)
+	require.Error(t, err)
+	assert.Nil(t, mutation)
+	assert.Contains(t, err.Error(), "clickhouse: ddl panic:")
+	assert.NotContains(t, err.Error(), "goroutine")
+
+	analysis, err := engine.AnalyseQuery(nil, statement)
+	require.Error(t, err)
+	assert.Nil(t, analysis)
+	assert.Contains(t, err.Error(), "clickhouse: analyse panic:")
+	assert.NotContains(t, err.Error(), "goroutine")
 }

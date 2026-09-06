@@ -330,6 +330,7 @@ func newProfileStore(directory string, maxPerType int, clk clock.Clock) (*profil
 		sandbox:            sandbox,
 		clock:              clk,
 		maxProfilesPerType: maxPerType,
+		mu:                 sync.Mutex{},
 	}, nil
 }
 
@@ -644,12 +645,12 @@ func profileEntryFromDirEntry(entry fs.DirEntry, sidecars map[string]struct{}) (
 	}
 
 	baseName := strings.TrimSuffix(name, profileFileExtension)
-	lastDash := strings.LastIndex(baseName, profileNameSeparator)
-	if lastDash < 0 {
+	before, after, ok := strings.CutLast(baseName, profileNameSeparator)
+	if !ok {
 		return profileEntry{}, false
 	}
 
-	timestampPart := baseName[lastDash+1:]
+	timestampPart := after
 	captureTime, parseErr := time.Parse(profileTimestampFormat, timestampPart)
 	if parseErr != nil {
 		return profileEntry{}, false
@@ -663,7 +664,7 @@ func profileEntryFromDirEntry(entry fs.DirEntry, sidecars map[string]struct{}) (
 	_, hasSidecar := sidecars[baseName]
 	return profileEntry{
 		Filename:   name,
-		Type:       baseName[:lastDash],
+		Type:       before,
 		Timestamp:  captureTime,
 		SizeBytes:  info.Size(),
 		HasSidecar: hasSidecar,

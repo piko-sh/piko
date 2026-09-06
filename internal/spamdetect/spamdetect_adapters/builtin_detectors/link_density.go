@@ -89,13 +89,13 @@ func (d *LinkDensityDetector) Analyse(ctx context.Context, submission *spamdetec
 	}
 
 	if submission == nil || schema == nil {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	maxLinks := d.resolveMaxLinks(schema)
 	fields := schema.FieldsWithSignal(spamdetect_dto.SignalLinkDensity)
 	if len(fields) == 0 {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	totalLinks := 0
@@ -126,17 +126,12 @@ func (d *LinkDensityDetector) Analyse(ctx context.Context, submission *spamdetec
 	}
 
 	if totalLinks == 0 {
-		return &spamdetect_dto.DetectorResult{Score: 0, FieldScores: fieldScores}, nil
+		return spamdetect_dto.NewFieldDetectorResult(0, false, fieldScores, nil), nil
 	}
 
 	score := min(float64(totalLinks)/float64(maxLinks), 1.0)
 
-	return &spamdetect_dto.DetectorResult{
-		Score:        score,
-		IsSpam:       score >= detectorSpamThreshold,
-		FieldScores:  fieldScores,
-		FieldReasons: fieldReasons,
-	}, nil
+	return spamdetect_dto.NewFieldDetectorResult(score, score >= detectorSpamThreshold, fieldScores, fieldReasons), nil
 }
 
 // HealthCheck always succeeds because the detector has no external dependencies.

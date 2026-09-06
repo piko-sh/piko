@@ -1511,7 +1511,7 @@ func TestCheckRateLimit_NilRateLimit_ReturnsTrue(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
-	action := &mockRateLimitableAction{rateLimit: nil}
+	action := &mockRateLimitableAction{}
 
 	result := handler.checkRateLimit(context.Background(), recorder, request, action, ActionHandlerEntry{Name: "test"})
 
@@ -1627,7 +1627,7 @@ func TestApplyResponseMetadata_NilResponse_NoOp(t *testing.T) {
 	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 
-	action := &mockResponseGetterAction{response: nil}
+	action := &mockResponseGetterAction{}
 	handler.applyResponseMetadata(recorder, action)
 
 	assert.Empty(t, recorder.Result().Cookies())
@@ -1998,7 +1998,7 @@ func TestNewActionHandler_WithRateLimit_CreatesMiddleware(t *testing.T) {
 func TestNewActionHandler_WithoutRateLimit_NilMiddleware(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{Enabled: false}, false, nil, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	assert.Nil(t, handler.rateLimitMw)
 }
 
@@ -2200,7 +2200,7 @@ func TestValidateCaptcha_ServiceUnavailable(t *testing.T) {
 func TestValidateCaptcha_ServiceDisabled(t *testing.T) {
 	t.Parallel()
 
-	captchaSvc := &mockCaptchaService{enabled: false}
+	captchaSvc := &mockCaptchaService{}
 	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
 	arguments := map[string]any{
 		"_captcha_token": "some-token",

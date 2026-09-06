@@ -27,13 +27,11 @@ func runConcurrent(t *testing.T, n int, callback func(int)) {
 	t.Helper()
 
 	var wg sync.WaitGroup
-	wg.Add(n)
 
-	for i := range n {
-		go func(index int) {
-			defer wg.Done()
+	for index := range n {
+		wg.Go(func() {
 			callback(index)
-		}(i)
+		})
 	}
 
 	wg.Wait()

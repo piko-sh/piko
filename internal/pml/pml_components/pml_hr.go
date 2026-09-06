@@ -58,9 +58,7 @@ const (
 //
 // Returns *ThematicBreak which is a configured component ready for use.
 func NewThematicBreak() *ThematicBreak {
-	return &ThematicBreak{
-		BaseComponent: BaseComponent{},
-	}
+	return &ThematicBreak{}
 }
 
 // TagName returns the tag name for this component.

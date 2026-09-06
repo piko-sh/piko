@@ -25,6 +25,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/capabilities/capabilities_dto"
 )
 
 func sourceVariant(contentHash string) Variant {
@@ -51,8 +53,8 @@ func derivedVariant(variantID, storageKey, parentHash string) Variant {
 		Transform: VariantTransform{
 			ParentVariantID:   "source",
 			ParentContentHash: parentHash,
-			CapabilityName:    "image-transform",
-			CapabilityVersion: 1,
+			CapabilityName:    string(capabilities_dto.CapabilityImageTransform),
+			CapabilityVersion: capabilities_dto.Version(capabilities_dto.CapabilityImageTransform),
 		},
 	}
 }

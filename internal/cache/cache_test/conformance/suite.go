@@ -196,23 +196,23 @@ func RunSearchSuite(t *testing.T, config ProductConfig) {
 }
 
 func defaultStringOptions() cache_dto.Options[string, string] {
-	return cache_dto.Options[string, string]{
-		MaximumEntries:   1000,
-		ExpiryCalculator: &variableExpiryCalculator[string, string]{},
-	}
+	options := cache_dto.Options[string, string]{}
+	options.MaximumEntries = 1000
+	options.ExpiryCalculator = &variableExpiryCalculator[string, string]{}
+	return options
 }
 
 func defaultProductOptions() cache_dto.Options[string, Product] {
-	return cache_dto.Options[string, Product]{
-		MaximumEntries:   1000,
-		ExpiryCalculator: &variableExpiryCalculator[string, Product]{},
-		SearchSchema: cache_dto.NewSearchSchema(
-			cache_dto.TextField("name"),
-			cache_dto.TextField("description"),
-			cache_dto.SortableNumericField("price"),
-			cache_dto.TagField("category"),
-		),
-	}
+	options := cache_dto.Options[string, Product]{}
+	options.MaximumEntries = 1000
+	options.ExpiryCalculator = &variableExpiryCalculator[string, Product]{}
+	options.SearchSchema = cache_dto.NewSearchSchema(
+		cache_dto.TextField("name"),
+		cache_dto.TextField("description"),
+		cache_dto.SortableNumericField("price"),
+		cache_dto.TagField("category"),
+	)
+	return options
 }
 
 // waitForExpiry waits for a cache entry to expire.

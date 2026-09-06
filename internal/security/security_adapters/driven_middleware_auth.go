@@ -34,21 +34,16 @@ import (
 type AuthMiddleware struct {
 	// provider holds the auth provider that resolves authentication state.
 	provider daemon_dto.AuthProvider
-
-	// logger holds the logger for recording authentication errors.
-	logger logger_domain.Logger
 }
 
 // NewAuthMiddleware creates an AuthMiddleware that delegates to the given provider.
 //
 // Takes provider (daemon_dto.AuthProvider) which resolves auth state.
-// Takes logger (logger_domain.Logger) which receives error logs.
 //
 // Returns *AuthMiddleware which is ready for use as HTTP middleware.
-func NewAuthMiddleware(provider daemon_dto.AuthProvider, logger logger_domain.Logger) *AuthMiddleware {
+func NewAuthMiddleware(provider daemon_dto.AuthProvider) *AuthMiddleware {
 	return &AuthMiddleware{
 		provider: provider,
-		logger:   logger,
 	}
 }
 
@@ -68,8 +63,8 @@ func (m *AuthMiddleware) Handler(next http.Handler) http.Handler {
 
 		auth, err := m.provider.Authenticate(request.Context(), request)
 		if err != nil {
-			_, logger := logger_domain.From(request.Context(), m.logger)
-			logger.Warn("Auth provider returned error",
+			_, l := logger_domain.From(request.Context(), log)
+			l.Warn("Auth provider returned error",
 				logger_domain.Error(err),
 			)
 			next.ServeHTTP(writer, request)

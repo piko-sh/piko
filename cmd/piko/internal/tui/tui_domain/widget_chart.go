@@ -280,7 +280,8 @@ func (c *Chart) SetTheme(theme *Theme) {
 
 // Resize updates the chart's cell dimensions and rescales the data.
 //
-// Takes width (int) and height (int) which are the new dimensions.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 func (c *Chart) Resize(width, height int) {
 	if width < chartMinWidth {
 		width = chartMinWidth

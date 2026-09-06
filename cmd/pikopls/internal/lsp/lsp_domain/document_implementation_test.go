@@ -177,7 +177,7 @@ func TestGetImplementations_GuardClauses(t *testing.T) {
 			document: newTestDocumentBuilder().
 				WithURI("file:///test.pk").
 				Build(),
-			position: protocol.Position{Line: 0, Character: 0},
+			position: protocol.Position{},
 			wantLen:  0,
 			wantErr:  false,
 		},
@@ -189,7 +189,7 @@ func TestGetImplementations_GuardClauses(t *testing.T) {
 					AnnotatedAST: &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{}},
 				}).
 				Build(),
-			position: protocol.Position{Line: 0, Character: 0},
+			position: protocol.Position{},
 			wantLen:  0,
 			wantErr:  false,
 		},
@@ -197,11 +197,9 @@ func TestGetImplementations_GuardClauses(t *testing.T) {
 			name: "nil annotated AST returns empty locations",
 			document: newTestDocumentBuilder().
 				WithURI("file:///test.pk").
-				WithAnnotationResult(&annotator_dto.AnnotationResult{
-					AnnotatedAST: nil,
-				}).
+				WithAnnotationResult(&annotator_dto.AnnotationResult{}).
 				Build(),
-			position: protocol.Position{Line: 0, Character: 0},
+			position: protocol.Position{},
 			wantLen:  0,
 			wantErr:  false,
 		},
@@ -239,7 +237,7 @@ func TestGetImplementations_WithTypeInspector(t *testing.T) {
 		WithTypeInspector(mockTI).
 		Build()
 
-	locations, err := document.GetImplementations(context.Background(), protocol.Position{Line: 0, Character: 0})
+	locations, err := document.GetImplementations(context.Background(), protocol.Position{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

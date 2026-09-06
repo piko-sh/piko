@@ -145,8 +145,11 @@ func (s *service) ListProviders(ctx context.Context) []provider_domain.ProviderI
 func (s *service) NewEmail() *EmailBuilder {
 	return &EmailBuilder{
 		baseEmailBuilder: &baseEmailBuilder{
-			service: s,
-			params:  &email_dto.SendParams{},
+			service:       s,
+			params:        &email_dto.SendParams{},
+			buildError:    nil,
+			providerName:  "",
+			immediateSend: false,
 		},
 	}
 }
@@ -339,11 +342,12 @@ func (s *service) checkLiveness(startTime time.Time, providerCount int) healthpr
 	}
 
 	return healthprobe_dto.Status{
-		Name:      s.Name(),
-		State:     state,
-		Message:   message,
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         s.Name(),
+		State:        state,
+		Message:      message,
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -432,9 +436,12 @@ func (*service) checkSingleProvider(
 		providerLabel += " [default]"
 	}
 	return &healthprobe_dto.Status{
-		Name:    providerLabel,
-		State:   healthprobe_dto.StateHealthy,
-		Message: "Provider does not support health checks (skipped)",
+		Name:         providerLabel,
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Provider does not support health checks (skipped)",
+		Timestamp:    time.Time{},
+		Duration:     "",
+		Dependencies: nil,
 	}, currentState
 }
 
@@ -449,8 +456,12 @@ func NewService(_ context.Context, opts ...ServiceOption) Service {
 		opt(&config)
 	}
 	return &service{
-		registry: provider_domain.NewStandardRegistry[EmailProviderPort](serviceName),
-		config:   config,
+		registry:      provider_domain.NewStandardRegistry[EmailProviderPort](serviceName),
+		config:        config,
+		dispatcher:    nil,
+		templater:     nil,
+		assetResolver: nil,
+		mu:            sync.RWMutex{},
 	}
 }
 
@@ -466,8 +477,12 @@ func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
 		opt(&config)
 	}
 	s := &service{
-		registry: provider_domain.NewStandardRegistry[EmailProviderPort](serviceName),
-		config:   config,
+		registry:      provider_domain.NewStandardRegistry[EmailProviderPort](serviceName),
+		config:        config,
+		dispatcher:    nil,
+		templater:     nil,
+		assetResolver: nil,
+		mu:            sync.RWMutex{},
 	}
 	return s
 }
@@ -488,8 +503,12 @@ func NewServiceWithProvider(ctx context.Context, provider EmailProviderPort, opt
 		opt(&config)
 	}
 	s := &service{
-		registry: provider_domain.NewStandardRegistry[EmailProviderPort](serviceName),
-		config:   config,
+		registry:      provider_domain.NewStandardRegistry[EmailProviderPort](serviceName),
+		config:        config,
+		dispatcher:    nil,
+		templater:     nil,
+		assetResolver: nil,
+		mu:            sync.RWMutex{},
 	}
 	if err := s.registry.RegisterProvider(ctx, defaultProviderName, provider); err != nil {
 		log.ReportError(nil, err, "Failed to register default email provider")
@@ -527,6 +546,7 @@ func NewServiceWithProviderAndDispatcher(
 		config:        config,
 		templater:     templater,
 		assetResolver: assetResolver,
+		mu:            sync.RWMutex{},
 	}
 	if err := s.registry.RegisterProvider(ctx, defaultProviderName, provider); err != nil {
 		log.ReportError(nil, err, "Failed to register default email provider")
@@ -569,11 +589,19 @@ func NewTemplatedEmail[PropsT any](s Service) (*TemplatedEmailBuilder[PropsT], e
 
 	return &TemplatedEmailBuilder[PropsT]{
 		baseEmailBuilder: &baseEmailBuilder{
-			service: serviceImpl,
-			params:  &email_dto.SendParams{},
+			service:       serviceImpl,
+			params:        &email_dto.SendParams{},
+			buildError:    nil,
+			providerName:  "",
+			immediateSend: false,
 		},
-		templater:     serviceImpl.templater,
-		assetResolver: serviceImpl.assetResolver,
+		templater:        serviceImpl.templater,
+		assetResolver:    serviceImpl.assetResolver,
+		templateProps:    *new(PropsT),
+		premailerOptions: nil,
+		templateRequest:  nil,
+		templatePath:     "",
+		useTemplate:      false,
 	}, nil
 }
 
@@ -589,12 +617,15 @@ func NewTemplatedEmail[PropsT any](s Service) (*TemplatedEmailBuilder[PropsT], e
 //
 // Returns *TemplatedEmailBuilder[PropsT] which is a non-nil builder in an error state.
 func NewFailedTemplatedEmail[PropsT any](buildError error) *TemplatedEmailBuilder[PropsT] {
-	return &TemplatedEmailBuilder[PropsT]{
-		baseEmailBuilder: &baseEmailBuilder{
-			params:     &email_dto.SendParams{},
-			buildError: buildError,
-		},
+	builder := new(TemplatedEmailBuilder[PropsT])
+	builder.baseEmailBuilder = &baseEmailBuilder{
+		params:        &email_dto.SendParams{},
+		buildError:    buildError,
+		service:       nil,
+		providerName:  "",
+		immediateSend: false,
 	}
+	return builder
 }
 
 // NewFailedEmailBuilder returns a plain email builder in a permanent error state so a
@@ -610,8 +641,11 @@ func NewFailedTemplatedEmail[PropsT any](buildError error) *TemplatedEmailBuilde
 func NewFailedEmailBuilder(buildError error) *EmailBuilder {
 	return &EmailBuilder{
 		baseEmailBuilder: &baseEmailBuilder{
-			params:     &email_dto.SendParams{},
-			buildError: buildError,
+			params:        &email_dto.SendParams{},
+			buildError:    buildError,
+			service:       nil,
+			providerName:  "",
+			immediateSend: false,
 		},
 	}
 }
@@ -676,11 +710,12 @@ func sendIndividuallyWithMultiError(ctx context.Context, provider EmailProviderP
 				logger_domain.String("subject", email.Subject))
 
 			emailError := EmailError{
-				Email:       *email,
-				Error:       err,
-				Attempt:     1,
-				LastAttempt: time.Now(),
-				NextRetry:   time.Time{},
+				Email:        *email,
+				Error:        err,
+				Attempt:      1,
+				LastAttempt:  time.Now(),
+				NextRetry:    time.Time{},
+				FirstAttempt: time.Time{},
 			}
 
 			if multiError == nil {

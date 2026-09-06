@@ -20,7 +20,9 @@ package runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -31,6 +33,7 @@ import (
 	"piko.sh/piko/internal/templater/templater_adapters"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -121,9 +124,7 @@ type LayoutPositionConfig struct {
 // Returns map[string]LayoutPositionRect which maps attribute values to positioned
 // bounding boxes in pixel coordinates.
 // Returns error when any step of the pipeline fails.
-func ExtractLayoutPositions(config LayoutPositionConfig) (map[string]LayoutPositionRect, error) {
-	ctx := context.Background()
-
+func ExtractLayoutPositions(ctx context.Context, config LayoutPositionConfig) (map[string]LayoutPositionRect, error) {
 	tree, styling, err := loadLayoutAST(ctx, config)
 	if err != nil {
 		return nil, err
@@ -144,7 +145,7 @@ func ExtractLayoutPositions(config LayoutPositionConfig) (map[string]LayoutPosit
 		return nil, err
 	}
 
-	if _, err := layouter_domain.LayoutBoxTree(ctx, rootBox, fontMetrics); err != nil {
+	if _, err := layouter_domain.LayoutBoxTree(ctx, rootBox, fontMetrics, nil); err != nil {
 		return nil, err
 	}
 
@@ -153,7 +154,9 @@ func ExtractLayoutPositions(config LayoutPositionConfig) (map[string]LayoutPosit
 		pageGeometry = layouter_domain.UniformPageGeometry(
 			(config.PageHeightPx - 2*config.PageMarginPx) * pointsPerPixel,
 		)
-		_ = layouter_domain.Paginate(ctx, rootBox, pageGeometry)
+		if _, err := layouter_domain.Paginate(ctx, rootBox, pageGeometry, nil); err != nil {
+			return nil, fmt.Errorf("paginating layout: %w", err)
+		}
 	}
 
 	positions := make(map[string]LayoutPositionRect)
@@ -171,10 +174,9 @@ func ExtractLayoutPositions(config LayoutPositionConfig) (map[string]LayoutPosit
 // Returns string which is the CSS styling for the page.
 // Returns error when the manifest cannot be loaded or the page is not found.
 func loadLayoutAST(ctx context.Context, config LayoutPositionConfig) (*ast_domain.TemplateAST, string, error) {
-	provider := generator_adapters.NewFlatBufferManifestProvider(config.ManifestPath)
-	store, err := templater_adapters.NewManifestStore(ctx, provider)
+	store, err := loadLayoutManifestStore(ctx, config.ManifestPath)
 	if err != nil {
-		return nil, "", fmt.Errorf("loading manifest: %w", err)
+		return nil, "", err
 	}
 
 	entry, found := store.GetPageEntry(config.RequestPath)
@@ -215,10 +217,13 @@ func buildLayoutBoxTree(
 ) (*layouter_domain.LayoutBox, *layouter_adapters.GoTextFontMetrics, error) {
 	fontMetrics, err := layouter_adapters.NewGoTextFontMetrics([]layouter_dto.FontEntry{
 		{
-			Family: "NotoSans",
-			Weight: 400,
-			Style:  int(layouter_domain.FontStyleNormal),
-			Data:   config.FontData,
+			Family:     "NotoSans",
+			Weight:     400,
+			Style:      int(layouter_domain.FontStyleNormal),
+			Data:       config.FontData,
+			WeightMin:  0,
+			WeightMax:  0,
+			IsVariable: false,
 		},
 	})
 	if err != nil {
@@ -237,15 +242,15 @@ func buildLayoutBoxTree(
 
 	imageResolver := &layouter_adapters.MockImageResolver{}
 
-	rootBox, err := layouter_domain.BuildBoxTree(
-		ctx,
-		tree,
-		styleMap,
-		pseudoStyleMap,
-		imageResolver,
-		viewportWidthPoints,
-		viewportHeightPoints,
-	)
+	rootBox, err := layouter_domain.BuildBoxTree(ctx, layouter_domain.BoxTreeInput{
+		Tree:           tree,
+		Styles:         styleMap,
+		PseudoStyles:   pseudoStyleMap,
+		ImageResolver:  imageResolver,
+		Limits:         nil,
+		ViewportWidth:  viewportWidthPoints,
+		ViewportHeight: viewportHeightPoints,
+	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("building box tree: %w", err)
 	}
@@ -308,10 +313,12 @@ func collectMatchingAttribute(
 		}
 
 		rect := LayoutPositionRect{
-			X:      box.BorderBoxX() / pointsPerPixel,
-			Y:      yPt / pointsPerPixel,
-			Width:  box.BorderBoxWidth() / pointsPerPixel,
-			Height: box.BorderBoxHeight() / pointsPerPixel,
+			X:         box.BorderBoxX() / pointsPerPixel,
+			Y:         yPt / pointsPerPixel,
+			Width:     box.BorderBoxWidth() / pointsPerPixel,
+			Height:    box.BorderBoxHeight() / pointsPerPixel,
+			TextRects: nil,
+			PageIndex: 0,
 		}
 		if paginate {
 			rect.PageIndex = box.PageIndex
@@ -349,10 +356,12 @@ func collectTextRunRectsRecursive(box *layouter_domain.LayoutBox, pointsPerPixel
 		}
 		if child.Type == layouter_domain.BoxTextRun && !child.IsListMarker {
 			*rects = append(*rects, LayoutPositionRect{
-				X:      child.ContentX / pointsPerPixel,
-				Y:      child.ContentY / pointsPerPixel,
-				Width:  child.ContentWidth / pointsPerPixel,
-				Height: child.ContentHeight / pointsPerPixel,
+				X:         child.ContentX / pointsPerPixel,
+				Y:         child.ContentY / pointsPerPixel,
+				Width:     child.ContentWidth / pointsPerPixel,
+				Height:    child.ContentHeight / pointsPerPixel,
+				TextRects: nil,
+				PageIndex: 0,
 			})
 			continue
 		}
@@ -397,4 +406,33 @@ func findPageEntryByRoute(store templater_domain.ManifestStoreView, requestPath 
 	}
 	pageKey := "pages/" + pageName + ".pk"
 	return store.GetPageEntry(pageKey)
+}
+
+// loadLayoutManifestStore reads the compiled manifest through a read-only sandbox rooted
+// at the manifest's directory and builds a manifest store from it.
+//
+// Takes manifestPath (string) which is the path to the compiled manifest file.
+//
+// Returns *templater_adapters.ManifestStore which holds the loaded page entries.
+// Returns error when the manifest directory cannot be opened or the manifest cannot be
+// read or parsed.
+func loadLayoutManifestStore(ctx context.Context, manifestPath string) (store *templater_adapters.ManifestStore, err error) {
+	sandbox, err := safedisk.NewSandbox(filepath.Dir(manifestPath), safedisk.ModeReadOnly)
+	if err != nil {
+		return nil, fmt.Errorf("opening manifest directory for %q: %w", manifestPath, err)
+	}
+	defer func() {
+		if closeErr := sandbox.Close(); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("closing manifest sandbox: %w", closeErr))
+		}
+	}()
+
+	provider := generator_adapters.NewFlatBufferManifestProvider(
+		manifestPath, generator_adapters.WithFlatBufferManifestSandbox(sandbox),
+	)
+	store, err = templater_adapters.NewManifestStore(ctx, provider)
+	if err != nil {
+		return nil, fmt.Errorf("loading manifest: %w", err)
+	}
+	return store, nil
 }

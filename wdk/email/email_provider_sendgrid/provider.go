@@ -395,6 +395,7 @@ func NewSendGridProvider(ctx context.Context, arguments SendGridProviderArgs, op
 	defaultConfig := email_domain.ProviderRateLimitConfig{
 		CallsPerSecond: defaultCallsPerSecond,
 		Burst:          defaultBurst,
+		Clock:          nil,
 	}
 	rateLimiter := email_domain.ApplyProviderOptions(defaultConfig, opts...)
 

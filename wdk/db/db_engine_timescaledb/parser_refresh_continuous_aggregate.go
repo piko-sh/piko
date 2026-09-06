@@ -47,7 +47,9 @@ import (
 // Returns error when the statement fails to parse.
 func parseRefreshContinuousAggregateCall(p db_engine_postgres.ParserContext) (*querier_dto.CatalogueMutation, error) {
 	operation := funcNameRefreshContinuousAggregate
-	p.MustKeyword("CALL")
+	if err := p.ExpectKeyword("CALL"); err != nil {
+		return nil, err
+	}
 	if !p.MatchKeyword(operation) {
 		return nil, fmt.Errorf("expected %s at position %d", operation, p.CurrentToken().Position())
 	}
@@ -102,15 +104,10 @@ func parseRefreshContinuousAggregateCall(p db_engine_postgres.ParserContext) (*q
 // Returns *querier_dto.CatalogueMutation with EngineSpecific populated.
 func buildRefreshContinuousAggregateMutation(target string) *querier_dto.CatalogueMutation {
 	schema, name := splitMaybeSchemaQualified(target)
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAlterColumn,
-		SchemaName: schema,
-		TableName:  name,
-		EngineSpecific: map[string]string{
-			"TIMESCALE_REFRESH_CONTINUOUS_AGGREGATE_TARGET": target,
-			"TIMESCALE_POLICY_OP":                           funcNameRefreshContinuousAggregate,
-		},
-	}
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTableAlterColumn, schema, name, querier_dto.WithEngineSpecific(map[string]string{
+		"TIMESCALE_REFRESH_CONTINUOUS_AGGREGATE_TARGET": target,
+		"TIMESCALE_POLICY_OP":                           funcNameRefreshContinuousAggregate,
+	}))
 }
 
 // captureRefreshWindowBound reads a single window-bound argument: a literal (string or

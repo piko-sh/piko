@@ -29,7 +29,8 @@ import (
 // rows show a probe-level summary plus dependency states; dependency rows show that
 // dependency's detail; otherwise the panel-level summary is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *HealthPanel) DetailView(width, height int) string {
@@ -66,28 +67,25 @@ func (p *HealthPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing the probe and its dependency states.
 func healthProbeDetailBody(probeKey string, status *HealthStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "State", Value: status.State.String()},
-		{Label: "Duration", Value: inspector.FormatDuration(status.Duration)},
-		{Label: "Dependencies", Value: fmt.Sprintf(FormatPercentInt, len(status.Dependencies))},
+		inspector.NewDetailRow("State", status.State.String()),
+		inspector.NewDetailRow("Duration", inspector.FormatDuration(status.Duration)),
+		inspector.NewDetailRow("Dependencies", fmt.Sprintf(FormatPercentInt, len(status.Dependencies))),
 	}
 	if !status.Timestamp.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last check", Value: inspector.FormatDetailTime(status.Timestamp)})
+		rows = append(rows, inspector.NewDetailRow("Last check", inspector.FormatDetailTime(status.Timestamp)))
 	}
 	if status.Message != "" {
-		rows = append(rows, inspector.DetailRow{Label: "Message", Value: status.Message})
+		rows = append(rows, inspector.NewDetailRow("Message", status.Message))
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Probe", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Probe", rows)}
 
 	if len(status.Dependencies) > 0 {
 		depRows := make([]inspector.DetailRow, 0, len(status.Dependencies))
 		for _, d := range status.Dependencies {
-			depRows = append(depRows, inspector.DetailRow{
-				Label: d.Name,
-				Value: d.State.String(),
-			})
+			depRows = append(depRows, inspector.NewDetailRow(d.Name, d.State.String()))
 		}
-		sections = append(sections, inspector.DetailSection{Heading: "Dependencies", Rows: depRows})
+		sections = append(sections, inspector.NewDetailSection("Dependencies", depRows))
 	}
 
 	return inspector.DetailBody{
@@ -104,19 +102,19 @@ func healthProbeDetailBody(probeKey string, status *HealthStatus) inspector.Deta
 // Returns inspector.DetailBody describing the dependency state and last check.
 func healthDependencyDetailBody(d *HealthStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "State", Value: d.State.String()},
-		{Label: "Duration", Value: inspector.FormatDuration(d.Duration)},
+		inspector.NewDetailRow("State", d.State.String()),
+		inspector.NewDetailRow("Duration", inspector.FormatDuration(d.Duration)),
 	}
 	if !d.Timestamp.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last check", Value: inspector.FormatDetailTime(d.Timestamp)})
+		rows = append(rows, inspector.NewDetailRow("Last check", inspector.FormatDetailTime(d.Timestamp)))
 	}
 	if d.Message != "" {
-		rows = append(rows, inspector.DetailRow{Label: "Message", Value: d.Message})
+		rows = append(rows, inspector.NewDetailRow("Message", d.Message))
 	}
 	return inspector.DetailBody{
 		Title:    d.Name,
 		Subtitle: "dependency · " + d.State.String(),
-		Sections: []inspector.DetailSection{{Heading: "Dependency", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Dependency", rows)},
 	}
 }
 
@@ -131,20 +129,21 @@ func healthDependencyDetailBody(d *HealthStatus) inspector.DetailBody {
 func healthOverviewDetailBody(liveness, readiness *HealthStatus, lastRefresh time.Time, err error) inspector.DetailBody {
 	rows := []inspector.DetailRow{}
 	if liveness != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Liveness", Value: liveness.State.String()})
+		rows = append(rows, inspector.NewDetailRow("Liveness", liveness.State.String()))
 	}
 	if readiness != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Readiness", Value: readiness.State.String()})
+		rows = append(rows, inspector.NewDetailRow("Readiness", readiness.State.String()))
 	}
 	if !lastRefresh.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last refresh", Value: inspector.FormatDetailTime(lastRefresh)})
+		rows = append(rows, inspector.NewDetailRow("Last refresh", inspector.FormatDetailTime(lastRefresh)))
 	}
 	if err != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: err.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", err.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    "Health overview",
-		Sections: []inspector.DetailSection{{Heading: "Probes", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Probes", rows)},
+		Subtitle: "",
 	}
 }
 

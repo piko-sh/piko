@@ -303,3 +303,32 @@ func TestParseCreateHypertable_DoesNotAffectRegularCreateTable(t *testing.T) {
 	assert.Equal(t, "widgets", mutation.TableName)
 	assert.Empty(t, mutation.EngineSpecific["TIMESCALE_HYPERTABLE"], "regular CREATE TABLE should not carry hypertable marker")
 }
+
+func TestCreateHypertable_PrimaryKeyWithoutKeyKeywordIsAnError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		sql  string
+	}{
+		{name: "bare PRIMARY", sql: "CREATE HYPERTABLE readings (ts TIMESTAMPTZ NOT NULL, PRIMARY (ts))"},
+		{name: "named constraint PRIMARY", sql: "CREATE HYPERTABLE readings (ts TIMESTAMPTZ NOT NULL, CONSTRAINT pk PRIMARY (ts))"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := db_engine_timescaledb.NewTimescaleDBEngine()
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+			require.Len(t, statements, 1)
+
+			_, err = engine.ApplyDDL(context.Background(), statements[0])
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "expected keyword [KEY]")
+			assert.NotContains(t, err.Error(), "panic")
+		})
+	}
+}

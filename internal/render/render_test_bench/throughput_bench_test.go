@@ -76,11 +76,9 @@ func BenchmarkRenderThroughput_FullPageVsFragment(b *testing.B) {
 
 	ast := BuildMixedAST(5)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title:       "Benchmark Page",
-			Description: "A benchmark test page",
-		},
-		CustomTags: []string{"my-card", "another-component"},
+		Title:       "Benchmark Page",
+		Description: "A benchmark test page",
+		CustomTags:  []string{"my-card", "another-component"},
 	}
 
 	WarmUpOrchestrator(orchestrator, ast)
@@ -192,9 +190,7 @@ func BenchmarkRenderThroughput_WithStyling(b *testing.B) {
 
 	ast := BuildMixedAST(5)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Styled Page",
-		},
+		Title:      "Styled Page",
 		CustomTags: []string{"my-card", "another-component"},
 	}
 
@@ -244,11 +240,9 @@ func BenchmarkRenderThroughput_RealWorld(b *testing.B) {
 	b.Run("SimpleLandingPage", func(b *testing.B) {
 		ast := BuildMixedAST(3)
 		metadata := &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{
-				Title:       "Landing Page",
-				Description: "Welcome to our site",
-			},
-			CustomTags: []string{"my-card"},
+			Title:       "Landing Page",
+			Description: "Welcome to our site",
+			CustomTags:  []string{"my-card"},
 		}
 
 		WarmUpOrchestrator(orchestrator, ast)
@@ -267,11 +261,9 @@ func BenchmarkRenderThroughput_RealWorld(b *testing.B) {
 	b.Run("ProductListingPage", func(b *testing.B) {
 		ast := BuildMixedAST(10)
 		metadata := &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{
-				Title:       "Products",
-				Description: "Browse our products",
-			},
-			CustomTags: []string{"my-card", "another-component"},
+			Title:       "Products",
+			Description: "Browse our products",
+			CustomTags:  []string{"my-card", "another-component"},
 		}
 
 		WarmUpOrchestrator(orchestrator, ast)
@@ -290,11 +282,9 @@ func BenchmarkRenderThroughput_RealWorld(b *testing.B) {
 	b.Run("DashboardPage", func(b *testing.B) {
 		ast := BuildMixedAST(20)
 		metadata := &templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{
-				Title:       "Dashboard",
-				Description: "User dashboard",
-			},
-			CustomTags: []string{"my-card", "another-component", "custom-button"},
+			Title:       "Dashboard",
+			Description: "User dashboard",
+			CustomTags:  []string{"my-card", "another-component", "custom-button"},
 		}
 
 		WarmUpOrchestrator(orchestrator, ast)
@@ -317,9 +307,7 @@ func BenchmarkRenderThroughput_Concurrent(b *testing.B) {
 
 	ast := BuildMixedAST(5)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Concurrent Test",
-		},
+		Title:      "Concurrent Test",
 		CustomTags: []string{"my-card", "another-component"},
 	}
 

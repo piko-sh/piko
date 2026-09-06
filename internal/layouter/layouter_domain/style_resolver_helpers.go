@@ -411,7 +411,7 @@ func parseSingleTabStop(part string, context ResolutionContext) (TabStop, bool) 
 		return TabStop{}, false
 	}
 
-	stop := TabStop{Position: position, Align: TabAlignLeft}
+	stop := TabStop{Position: position, Align: TabAlignLeft, Leader: 0}
 	for _, token := range tokens[1:] {
 		applyTabStopToken(&stop, token)
 	}
@@ -528,12 +528,36 @@ func (t *tabStopTokeniser) flush() {
 }
 
 // resolveLength converts a CSS length string with units into a resolved point value.
+// Non-finite results (NaN, or an infinity from "inf" or an overflowing value) are invalid
+// lengths and resolve to zero, so they cannot poison later layout arithmetic.
 //
 // Takes value (string) which is the CSS length string to resolve.
 // Takes context (ResolutionContext) which provides the values needed for unit resolution.
 //
 // Returns float64 which is the resolved length in points.
 func resolveLength(value string, context ResolutionContext) float64 {
+	return finiteOrZero(resolveRawLength(value, context))
+}
+
+// resolveGapLength resolves a row-gap or column-gap length. CSS forbids negative gaps, so
+// a negative value resolves to zero rather than overlapping tracks.
+//
+// Takes value (string) which is the CSS gap length.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
+//
+// Returns float64 which is the non-negative gap in points.
+func resolveGapLength(value string, context ResolutionContext) float64 {
+	return max(resolveLength(value, context), 0)
+}
+
+// resolveRawLength converts a CSS length string with units into a point value without
+// validating that the result is finite.
+//
+// Takes value (string) which is the CSS length string to resolve.
+// Takes context (ResolutionContext) which provides the values needed for unit resolution.
+//
+// Returns float64 which is the resolved length in points.
+func resolveRawLength(value string, context ResolutionContext) float64 {
 	value = strings.TrimSpace(value)
 	if value == "0" {
 		return 0
@@ -637,4 +661,16 @@ func classifyShorthandChar(ch byte, i, start, depth int, value string, parts *[]
 		}
 	}
 	return start, depth
+}
+
+// finiteOrZero returns value when it is finite, otherwise zero.
+//
+// Takes value (float64) which is the value to check.
+//
+// Returns float64 which is value, or zero for NaN and infinities.
+func finiteOrZero(value float64) float64 {
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0
+	}
+	return value
 }

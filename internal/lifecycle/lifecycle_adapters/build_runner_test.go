@@ -288,9 +288,7 @@ func TestBuildService_buildResult(t *testing.T) {
 	t.Run("returns zero counts when no tasks were dispatched", func(t *testing.T) {
 		t.Parallel()
 
-		dispatcher := &stubTaskDispatcher{
-			stats: orchestrator_domain.DispatcherStats{},
-		}
+		dispatcher := &stubTaskDispatcher{}
 		bs := &buildService{
 			orchestratorService: &stubOrchestratorService{dispatcher: dispatcher},
 		}

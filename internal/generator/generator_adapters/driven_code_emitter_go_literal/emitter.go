@@ -34,11 +34,11 @@ import (
 	"strings"
 	"sync"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
@@ -644,6 +644,8 @@ func (em *emitter) nextLoopIterName() string {
 // to gather imports from.
 // Takes mainComponent (*annotator_dto.VirtualComponent) which supplies the hashed name
 // used to find partial imports.
+// Takes fileAST (*goast.File) which provides the generated file whose referenced packages
+// determine imports.
 //
 // Returns *goast.GenDecl which contains the merged import declaration, or nil if no
 // imports are needed.
@@ -765,7 +767,7 @@ func checkReservedUserImportAliases(comp *annotator_dto.VirtualComponent, em *em
 				path, qualifier, reservedPath,
 			),
 			qualifier,
-			ast_domain.Location{Line: importLines[qualifier], Column: 1},
+			ast_domain.Location{Line: importLines[qualifier], Column: 1, Offset: 0},
 			userCodeSourcePath(comp, em),
 		)
 	}
@@ -952,11 +954,8 @@ func (*emitter) buildRegistrationInitFunction(result *annotator_dto.AnnotationRe
 
 // NewEmitter creates a new emitter for Go code literals.
 //
-// Takes ctx (context.Context) which provides the base context for logging in pool
-// initialisation paths.
-//
 // Returns Emitter which is ready to output Go code literals.
-func NewEmitter(_ context.Context) Emitter {
+func NewEmitter() Emitter {
 	return &emitter{}
 }
 
@@ -967,9 +966,15 @@ func NewEmitter(_ context.Context) Emitter {
 // HTML bytes at generation time. May be nil to disable prerendering.
 //
 // Returns Emitter which is ready to output Go code literals with prerendering.
-func NewEmitterWithPrerenderer(_ context.Context, prerenderer generator_domain.StaticPrerenderer) Emitter {
+func NewEmitterWithPrerenderer(prerenderer generator_domain.StaticPrerenderer) Emitter {
 	return &emitter{
-		prerenderer: prerenderer,
+		prerenderer:      prerenderer,
+		AnnotationResult: nil,
+		guardedKeys:      nil,
+		ctx:              nil,
+		astBuilder:       nil,
+		staticEmitter:    nil,
+		config:           EmitterConfig{},
 	}
 }
 
@@ -1177,7 +1182,7 @@ func checkReservedUserDeclNames(
 				name,
 			),
 			name,
-			ast_domain.Location{Line: userDeclLines[name], Column: 1},
+			ast_domain.Location{Line: userDeclLines[name], Column: 1, Offset: 0},
 			userCodeSourcePath(comp, em),
 		)
 	}

@@ -188,7 +188,7 @@ func TestGenerateQuickFixes_UnknownCode_ReturnsFallbackFixes(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Message:  "some generic error",
@@ -216,7 +216,7 @@ func TestGenerateFallbackFixes_UndefinedMessage_GeneratesAction(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Message:  "undefined: myVariable not found",
@@ -257,7 +257,7 @@ func TestGenerateFallbackFixes_NotFoundMessage_GeneratesAction(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Message:  "'myVar' not found in scope",
@@ -283,7 +283,7 @@ func TestGenerateQuickFixes_TypeMismatchCode_DispatchesToCoerceFix(t *testing.T)
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Code: DiagCodeTypeMismatch,
@@ -311,7 +311,7 @@ func TestGenerateQuickFixes_UndefinedVariableCode_DispatchesToVariableFixes(t *t
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Code: DiagCodeUndefinedVariable,
@@ -342,7 +342,7 @@ func TestGenerateQuickFixes_UndefinedPartialAliasCode(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Code: DiagCodeUndefinedPartialAlias,
@@ -369,7 +369,7 @@ func TestGenerateQuickFixes_MissingRequiredPropCode(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Code: DiagCodeMissingRequiredProp,
@@ -394,7 +394,7 @@ func TestGenerateQuickFixes_MissingImportCode(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Code: DiagCodeMissingImport,
@@ -422,7 +422,7 @@ func TestGenerateFallbackFixes_NoMatchingPattern_ReturnsEmpty(t *testing.T) {
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 10},
 		},
 		Message:  "syntax error: unexpected token",

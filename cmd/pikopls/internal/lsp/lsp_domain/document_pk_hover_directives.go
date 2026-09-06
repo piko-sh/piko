@@ -63,6 +63,8 @@ var (
 			Accepts:      "Boolean expression",
 			Example:      `<div p-if="state.isLoggedIn">Welcome back!</div>`,
 			DocumentsURL: "/docs/api/directives/p-if",
+			Note:         "",
+			Modifiers:    nil,
 		},
 		"p-else-if": {
 			Name:        "p-else-if",
@@ -73,6 +75,7 @@ var (
 	<div p-else-if="state.role == 'user'">User</div>`,
 			Note:         "Must immediately follow a p-if or another p-else-if element.",
 			DocumentsURL: "/docs/api/directives/p-else-if",
+			Modifiers:    nil,
 		},
 		"p-else": {
 			Name:        "p-else",
@@ -83,6 +86,7 @@ var (
 	<div p-else>No items</div>`,
 			Note:         "Must immediately follow a p-if or p-else-if element.",
 			DocumentsURL: "/docs/api/directives/p-else",
+			Modifiers:    nil,
 		},
 		"p-for": {
 			Name:        "p-for",
@@ -94,6 +98,7 @@ var (
 	</li>`,
 			Note:         "Always use p-key with p-for for proper DOM reconciliation.",
 			DocumentsURL: "/docs/api/directives/p-for",
+			Modifiers:    nil,
 		},
 		"p-show": {
 			Name:         "p-show",
@@ -103,6 +108,7 @@ var (
 			Example:      `<div p-show="state.isVisible">This toggles visibility</div>`,
 			Note:         "Unlike p-if, the element is always rendered but hidden with display:none when false.",
 			DocumentsURL: "/docs/api/directives/p-show",
+			Modifiers:    nil,
 		},
 
 		"p-bind": {
@@ -114,6 +120,7 @@ var (
 	<img p-bind:src="state.imageUrl" p-bind:alt="state.imageAlt" />`,
 			Note:         "Shorthand: :attributeName (e.g., :href instead of p-bind:href)",
 			DocumentsURL: "/docs/api/directives/p-bind",
+			Modifiers:    nil,
 		},
 		"p-text": {
 			Name:         "p-text",
@@ -123,6 +130,7 @@ var (
 			Example:      `<span p-text="state.userName">Placeholder</span>`,
 			Note:         "Content is automatically HTML-escaped for security.",
 			DocumentsURL: "/docs/api/directives/p-text",
+			Modifiers:    nil,
 		},
 		"p-html": {
 			Name:         "p-html",
@@ -132,6 +140,7 @@ var (
 			Example:      `<div p-html="state.richContent"></div>`,
 			Note:         "Only use with trusted content to avoid XSS vulnerabilities.",
 			DocumentsURL: "/docs/api/directives/p-html",
+			Modifiers:    nil,
 		},
 		"p-model": {
 			Name:        "p-model",
@@ -142,6 +151,7 @@ var (
 	<textarea p-model="state.form.message"></textarea>`,
 			Note:         "Works with input, textarea, and select elements.",
 			DocumentsURL: "/docs/api/directives/p-model",
+			Modifiers:    nil,
 		},
 
 		"p-on": {
@@ -174,6 +184,7 @@ var (
 			Example:      `<div p-class="{ active: state.isActive, disabled: state.isDisabled }">...</div>`,
 			Note:         "Merged with static class attribute if present.",
 			DocumentsURL: "/docs/api/directives/p-class",
+			Modifiers:    nil,
 		},
 		"p-style": {
 			Name:         "p-style",
@@ -182,6 +193,8 @@ var (
 			Accepts:      "Style object with CSS properties",
 			Example:      `<div p-style="{ color: state.textColor, fontSize: state.fontSize + 'px' }">...</div>`,
 			DocumentsURL: "/docs/api/directives/p-style",
+			Note:         "",
+			Modifiers:    nil,
 		},
 
 		"p-ref": {
@@ -193,6 +206,7 @@ var (
 	<!-- Access via refs.myCanvas in client script -->`,
 			Note:         "Value must be a simple identifier (no expressions).",
 			DocumentsURL: "/docs/api/directives/p-ref",
+			Modifiers:    nil,
 		},
 		"p-slot": {
 			Name:        "p-slot",
@@ -204,6 +218,7 @@ var (
 	</div>`,
 			Note:         "Used when invoking partials to target specific slot locations.",
 			DocumentsURL: "/docs/api/directives/p-slot",
+			Modifiers:    nil,
 		},
 		"p-key": {
 			Name:         "p-key",
@@ -213,6 +228,7 @@ var (
 			Example:      `<li p-for="item in state.items" p-key="item.id">...</li>`,
 			Note:         "Essential for efficient updates when list items change.",
 			DocumentsURL: "/docs/api/directives/p-key",
+			Modifiers:    nil,
 		},
 		"p-memo": {
 			Name:         "p-memo",
@@ -222,6 +238,7 @@ var (
 			Example:      `<li p-for="row in state.rows" p-key="row.id" p-memo="row">...</li>`,
 			Note:         "PKC only. The dependencies must cover every non-static value the row renders, and the row must not contain a controlled input.",
 			DocumentsURL: "/docs/api/directives/p-memo",
+			Modifiers:    nil,
 		},
 		"p-context": {
 			Name:         "p-context",
@@ -231,6 +248,7 @@ var (
 			Example:      `<div p-context="'section-' + state.sectionId">...</div>`,
 			Note:         "Framework-internal directive for key scoping.",
 			DocumentsURL: "/docs/api/directives/p-context",
+			Modifiers:    nil,
 		},
 
 		"p-scaffold": {
@@ -241,6 +259,7 @@ var (
 			Example:      `<div p-scaffold>...</div>`,
 			Note:         "Used internally during component compilation.",
 			DocumentsURL: "/docs/api/directives/p-scaffold",
+			Modifiers:    nil,
 		},
 
 		"p-timeline": {
@@ -253,6 +272,7 @@ var (
 			Note: "Elements with p-timeline:hidden are hidden via CSS until the animation timeline's show action reveals them. " +
 				"The compiler transforms the attribute to p-timeline-hidden in the output. " +
 				"Only supported in PKC files with enable=\"animation\".",
+			Modifiers: nil,
 		},
 	}
 )

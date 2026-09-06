@@ -40,12 +40,7 @@ func TestMockCSRFTokenService_GenerateCSRFPair(t *testing.T) {
 	t.Run("nil GenerateCSRFPairFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc: nil,
-			ValidateCSRFPairFunc: nil,
-			NameFunc:             nil,
-			CheckFunc:            nil,
-		}
+		mock := &MockCSRFTokenService{}
 
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -127,12 +122,7 @@ func TestMockCSRFTokenService_ValidateCSRFPair(t *testing.T) {
 	t.Run("nil ValidateCSRFPairFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc: nil,
-			ValidateCSRFPairFunc: nil,
-			NameFunc:             nil,
-			CheckFunc:            nil,
-		}
+		mock := &MockCSRFTokenService{}
 
 		r := httptest.NewRequest(http.MethodPost, "/submit", nil)
 
@@ -205,12 +195,7 @@ func TestMockCSRFTokenService_Name(t *testing.T) {
 	t.Run("nil NameFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc: nil,
-			ValidateCSRFPairFunc: nil,
-			NameFunc:             nil,
-			CheckFunc:            nil,
-		}
+		mock := &MockCSRFTokenService{}
 
 		name := mock.Name()
 
@@ -243,12 +228,7 @@ func TestMockCSRFTokenService_Check(t *testing.T) {
 	t.Run("nil CheckFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc: nil,
-			ValidateCSRFPairFunc: nil,
-			NameFunc:             nil,
-			CheckFunc:            nil,
-		}
+		mock := &MockCSRFTokenService{}
 
 		ctx := context.Background()
 		status := mock.Check(ctx, healthprobe_dto.CheckTypeReadiness)
@@ -325,40 +305,30 @@ func TestMockCSRFTokenService_ZeroValueIsUsable(t *testing.T) {
 func TestMockCSRFTokenService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockCSRFTokenService{
-		GenerateCSRFPairFunc: nil,
-		ValidateCSRFPairFunc: nil,
-		NameFunc:             nil,
-		CheckFunc:            nil,
-	}
+	mock := &MockCSRFTokenService{}
 
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 4)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			w := httptest.NewRecorder()
 			r := httptest.NewRequest(http.MethodGet, "/", nil)
 			buffer := &bytes.Buffer{}
 			_, _ = mock.GenerateCSRFPair(w, r, buffer)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			r := httptest.NewRequest(http.MethodPost, "/submit", nil)
 			_, _ = mock.ValidateCSRFPair(r, "token", []byte("action"))
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.Name()
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			ctx := context.Background()
 			_ = mock.Check(ctx, healthprobe_dto.CheckTypeReadiness)
-		}()
+		})
 	}
 
 	wg.Wait()

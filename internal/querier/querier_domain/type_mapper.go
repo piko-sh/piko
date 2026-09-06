@@ -155,18 +155,19 @@ func (m *TypeMapper) resolveOverrideTypeDepth(override querier_dto.TypeOverride,
 
 	if depth < maxArrayDimensions {
 		if stripped, found := strings.CutSuffix(lower, "[]"); found {
-			return querier_dto.SQLType{
-				Category:    querier_dto.TypeCategoryArray,
-				EngineName:  lower,
-				ElementType: new(m.resolveOverrideTypeDepth(querier_dto.TypeOverride{SQLTypeName: stripped}, depth+1)),
-			}
+			arrayType := querier_dto.SQLType{}
+			arrayType.Category = querier_dto.TypeCategoryArray
+			arrayType.EngineName = lower
+			arrayType.ElementType = new(m.resolveOverrideTypeDepth(querier_dto.TypeOverride{
+				SQLTypeName: stripped,
+				GoPackage:   "",
+				GoName:      "",
+			}, depth+1))
+			return arrayType
 		}
 	}
 
-	return querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryUnknown,
-		EngineName: override.SQLTypeName,
-	}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, override.SQLTypeName)
 }
 
 // defaultMappings returns the framework-owned default SQL-to-Go type mapping table. These
@@ -198,8 +199,8 @@ func integerMapping(sqlName string, goName string) querier_dto.TypeMapping {
 	return querier_dto.TypeMapping{
 		SQLCategory: querier_dto.TypeCategoryInteger,
 		SQLName:     sqlName,
-		NotNull:     querier_dto.GoType{Name: goName},
-		Nullable:    querier_dto.GoType{Name: "*" + goName},
+		NotNull:     querier_dto.GoType{Name: goName, Package: ""},
+		Nullable:    querier_dto.GoType{Name: "*" + goName, Package: ""},
 	}
 }
 
@@ -301,17 +302,53 @@ func duckdbIntegerMappings() []querier_dto.TypeMapping {
 // Returns []querier_dto.TypeMapping which holds the numeric type mapping entries.
 func numericMappings() []querier_dto.TypeMapping {
 	return []querier_dto.TypeMapping{
-		{SQLCategory: querier_dto.TypeCategoryInteger, SQLName: querier_dto.CanonicalInt2, NotNull: querier_dto.GoType{Name: "int16"}, Nullable: querier_dto.GoType{Name: "*int16"}},
-		{SQLCategory: querier_dto.TypeCategoryInteger, SQLName: querier_dto.CanonicalInt4, NotNull: querier_dto.GoType{Name: "int32"}, Nullable: querier_dto.GoType{Name: "*int32"}},
-		{SQLCategory: querier_dto.TypeCategoryInteger, SQLName: querier_dto.CanonicalInt8, NotNull: querier_dto.GoType{Name: "int64"}, Nullable: querier_dto.GoType{Name: "*int64"}},
-		{SQLCategory: querier_dto.TypeCategoryInteger, NotNull: querier_dto.GoType{Name: "int32"}, Nullable: querier_dto.GoType{Name: "*int32"}},
-		{SQLCategory: querier_dto.TypeCategoryFloat, SQLName: querier_dto.CanonicalFloat4, NotNull: querier_dto.GoType{Name: "float32"}, Nullable: querier_dto.GoType{Name: "*float32"}},
-		{SQLCategory: querier_dto.TypeCategoryFloat, SQLName: querier_dto.CanonicalFloat8, NotNull: querier_dto.GoType{Name: "float64"}, Nullable: querier_dto.GoType{Name: "*float64"}},
-		{SQLCategory: querier_dto.TypeCategoryFloat, NotNull: querier_dto.GoType{Name: "float64"}, Nullable: querier_dto.GoType{Name: "*float64"}},
+		{
+			SQLCategory: querier_dto.TypeCategoryInteger,
+			SQLName:     querier_dto.CanonicalInt2,
+			NotNull:     querier_dto.GoType{Name: "int16", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*int16", Package: ""},
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryInteger,
+			SQLName:     querier_dto.CanonicalInt4,
+			NotNull:     querier_dto.GoType{Name: "int32", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*int32", Package: ""},
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryInteger,
+			SQLName:     querier_dto.CanonicalInt8,
+			NotNull:     querier_dto.GoType{Name: "int64", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*int64", Package: ""},
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryInteger,
+			NotNull:     querier_dto.GoType{Name: "int32", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*int32", Package: ""},
+			SQLName:     "",
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryFloat,
+			SQLName:     querier_dto.CanonicalFloat4,
+			NotNull:     querier_dto.GoType{Name: "float32", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*float32", Package: ""},
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryFloat,
+			SQLName:     querier_dto.CanonicalFloat8,
+			NotNull:     querier_dto.GoType{Name: "float64", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*float64", Package: ""},
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryFloat,
+			NotNull:     querier_dto.GoType{Name: "float64", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*float64", Package: ""},
+			SQLName:     "",
+		},
 		{
 			SQLCategory: querier_dto.TypeCategoryDecimal,
 			NotNull:     querier_dto.GoType{Package: goPackageMaths, Name: "Decimal"},
 			Nullable:    querier_dto.GoType{Package: goPackageMaths, Name: "*Decimal"},
+			SQLName:     "",
 		},
 	}
 }
@@ -321,9 +358,24 @@ func numericMappings() []querier_dto.TypeMapping {
 // Returns []querier_dto.TypeMapping which holds the scalar type mapping entries.
 func scalarMappings() []querier_dto.TypeMapping {
 	return []querier_dto.TypeMapping{
-		{SQLCategory: querier_dto.TypeCategoryBoolean, NotNull: querier_dto.GoType{Name: "bool"}, Nullable: querier_dto.GoType{Name: "*bool"}},
-		{SQLCategory: querier_dto.TypeCategoryText, NotNull: querier_dto.GoType{Name: "string"}, Nullable: querier_dto.GoType{Name: "*string"}},
-		{SQLCategory: querier_dto.TypeCategoryBytea, NotNull: querier_dto.GoType{Name: goTypeByteSlice}, Nullable: querier_dto.GoType{Name: goTypeByteSlice}},
+		{
+			SQLCategory: querier_dto.TypeCategoryBoolean,
+			NotNull:     querier_dto.GoType{Name: "bool", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*bool", Package: ""},
+			SQLName:     "",
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryText,
+			NotNull:     querier_dto.GoType{Name: "string", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*string", Package: ""},
+			SQLName:     "",
+		},
+		{
+			SQLCategory: querier_dto.TypeCategoryBytea,
+			NotNull:     querier_dto.GoType{Name: goTypeByteSlice, Package: ""},
+			Nullable:    querier_dto.GoType{Name: goTypeByteSlice, Package: ""},
+			SQLName:     "",
+		},
 	}
 }
 
@@ -345,7 +397,7 @@ func temporalMappings() []querier_dto.TypeMapping {
 			NotNull:     querier_dto.GoType{Package: goPackageTime, Name: "Duration"},
 			Nullable:    querier_dto.GoType{Package: goPackageTime, Name: "*Duration"},
 		},
-		{SQLCategory: querier_dto.TypeCategoryTemporal, NotNull: timeType, Nullable: timePointer},
+		{SQLCategory: querier_dto.TypeCategoryTemporal, NotNull: timeType, Nullable: timePointer, SQLName: ""},
 	}
 }
 
@@ -359,36 +411,45 @@ func temporalMappings() []querier_dto.TypeMapping {
 //
 // Returns []querier_dto.TypeMapping which holds the complex type mapping entries.
 func complexMappings() []querier_dto.TypeMapping {
-	goTypeAny := querier_dto.GoType{Name: "any"}
-	goTypeAnySlice := querier_dto.GoType{Name: "[]any"}
+	goTypeAny := querier_dto.GoType{Name: "any", Package: ""}
+	goTypeAnySlice := querier_dto.GoType{Name: "[]any", Package: ""}
 
 	jsonType := querier_dto.GoType{Package: goPackageDBJSON, Name: goTypeDBJSON}
-	byteSlice := querier_dto.GoType{Name: goTypeByteSlice}
+	byteSlice := querier_dto.GoType{Name: goTypeByteSlice, Package: ""}
 
 	return []querier_dto.TypeMapping{
 		{
 			SQLCategory: querier_dto.TypeCategoryJSON,
 			NotNull:     jsonType,
 			Nullable:    jsonType,
+			SQLName:     "",
 		},
 		{
 			SQLCategory: querier_dto.TypeCategoryUUID,
 			NotNull:     querier_dto.GoType{Package: "github.com/google/uuid", Name: "UUID"},
 			Nullable:    querier_dto.GoType{Package: "github.com/google/uuid", Name: "*UUID"},
+			SQLName:     "",
 		},
-		{SQLCategory: querier_dto.TypeCategoryEnum, NotNull: querier_dto.GoType{Name: "string"}, Nullable: querier_dto.GoType{Name: "*string"}},
-		{SQLCategory: querier_dto.TypeCategoryArray, NotNull: goTypeAnySlice, Nullable: goTypeAnySlice},
-		{SQLCategory: querier_dto.TypeCategoryStruct, NotNull: goTypeAny, Nullable: goTypeAny},
-		{SQLCategory: querier_dto.TypeCategoryMap, NotNull: goTypeAny, Nullable: goTypeAny},
+		{
+			SQLCategory: querier_dto.TypeCategoryEnum,
+			NotNull:     querier_dto.GoType{Name: "string", Package: ""},
+			Nullable:    querier_dto.GoType{Name: "*string", Package: ""},
+			SQLName:     "",
+		},
+		{SQLCategory: querier_dto.TypeCategoryArray, NotNull: goTypeAnySlice, Nullable: goTypeAnySlice, SQLName: ""},
+		{SQLCategory: querier_dto.TypeCategoryStruct, NotNull: goTypeAny, Nullable: goTypeAny, SQLName: ""},
+		{SQLCategory: querier_dto.TypeCategoryMap, NotNull: goTypeAny, Nullable: goTypeAny, SQLName: ""},
 		{
 			SQLCategory: querier_dto.TypeCategoryUnion,
 			NotNull:     jsonType,
 			Nullable:    jsonType,
+			SQLName:     "",
 		},
 		{
 			SQLCategory: querier_dto.TypeCategoryAggregateState,
 			NotNull:     byteSlice,
 			Nullable:    byteSlice,
+			SQLName:     "",
 		},
 	}
 }

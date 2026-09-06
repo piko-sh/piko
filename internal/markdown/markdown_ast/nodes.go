@@ -65,6 +65,7 @@ func NewHeading(level int) *Heading {
 	n := &Heading{
 		BaseNode: NewBaseNode(KindHeading, TypeBlock),
 		Level:    level,
+		items:    nil,
 	}
 	n.SetSelf(n)
 	return n
@@ -132,13 +133,17 @@ type FencedCodeBlock struct {
 	Content [][]byte
 
 	BaseNode
+
+	// InfoSegment is the byte range of Info in the source, or the zero Segment when the
+	// parser did not record it.
+	InfoSegment Segment
 }
 
 // NewFencedCodeBlock creates a new fenced code block node.
 //
 // Returns *FencedCodeBlock which is the new code block.
 func NewFencedCodeBlock() *FencedCodeBlock {
-	n := &FencedCodeBlock{BaseNode: NewBaseNode(KindFencedCodeBlock, TypeBlock)}
+	n := &FencedCodeBlock{BaseNode: NewBaseNode(KindFencedCodeBlock, TypeBlock), Language: "", Info: "", Content: nil, InfoSegment: Segment{}}
 	n.SetSelf(n)
 	return n
 }
@@ -155,7 +160,7 @@ type HTMLBlock struct {
 //
 // Returns *HTMLBlock which is the new raw HTML block.
 func NewHTMLBlock() *HTMLBlock {
-	n := &HTMLBlock{BaseNode: NewBaseNode(KindHTMLBlock, TypeBlock)}
+	n := &HTMLBlock{BaseNode: NewBaseNode(KindHTMLBlock, TypeBlock), Content: nil}
 	n.SetSelf(n)
 	return n
 }
@@ -195,6 +200,7 @@ func NewText(value []byte) *Text {
 	n := &Text{
 		BaseNode: NewBaseNode(KindText, TypeInline),
 		Value:    value,
+		Segment:  Segment{},
 	}
 	n.SetSelf(n)
 	return n
@@ -215,7 +221,7 @@ type RawHTML struct {
 //
 // Returns *RawHTML which is the new inline raw HTML element.
 func NewRawHTML() *RawHTML {
-	n := &RawHTML{BaseNode: NewBaseNode(KindRawHTML, TypeInline)}
+	n := &RawHTML{BaseNode: NewBaseNode(KindRawHTML, TypeInline), SourceSegments: Segments{}, Content: nil}
 	n.SetSelf(n)
 	return n
 }
@@ -420,6 +426,22 @@ type FencedContainer struct {
 // Returns *FencedContainer which is the new named container block.
 func NewFencedContainer() *FencedContainer {
 	n := &FencedContainer{BaseNode: NewBaseNode(KindFencedContainer, TypeBlock)}
+	n.SetSelf(n)
+	return n
+}
+
+// LineBreak is an inline hard line break, written in the source as a line ending preceded
+// by two or more spaces or by a backslash. Soft line breaks are not represented by this
+// node; they stay as newlines inside the surrounding Text.
+type LineBreak struct {
+	BaseNode
+}
+
+// NewLineBreak creates a new hard line break node.
+//
+// Returns *LineBreak which is the new inline line break.
+func NewLineBreak() *LineBreak {
+	n := &LineBreak{BaseNode: NewBaseNode(KindLineBreak, TypeInline)}
 	n.SetSelf(n)
 	return n
 }

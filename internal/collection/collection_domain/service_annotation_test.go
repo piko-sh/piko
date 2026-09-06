@@ -24,8 +24,10 @@ import (
 	"go/ast"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
 )
 
@@ -333,6 +335,61 @@ func TestBuildDynamicAnnotation(t *testing.T) {
 	}
 	if annotation.StaticCollectionLiteral != nil {
 		t.Error("expected nil StaticCollectionLiteral for dynamic")
+	}
+}
+
+func TestCollectionAnnotationConstructors(t *testing.T) {
+	resolvedType := &ast_domain.ResolvedTypeInfo{}
+	dynamicInfo := &collection_dto.DynamicCollectionInfo{}
+	sliceLiteral := &ast.CompositeLit{}
+	staticData := []any{"item"}
+
+	testCases := []struct {
+		annotation          *ast_domain.GoGeneratorAnnotation
+		expectedDynamicInfo any
+		expectedLiteral     ast.Expr
+		name                string
+		expectedData        []any
+		expectStatic        bool
+		expectHybrid        bool
+	}{
+		{
+			name:            "static collection",
+			annotation:      newStaticCollectionAnnotation(resolvedType, sliceLiteral, staticData),
+			expectedLiteral: sliceLiteral,
+			expectedData:    staticData,
+			expectStatic:    true,
+			expectHybrid:    false,
+		},
+		{
+			name:                "dynamic collection",
+			annotation:          newDynamicCollectionAnnotation(resolvedType, dynamicInfo),
+			expectedDynamicInfo: dynamicInfo,
+			expectStatic:        false,
+			expectHybrid:        false,
+		},
+		{
+			name:                "hybrid collection",
+			annotation:          newHybridCollectionAnnotation(resolvedType, dynamicInfo, sliceLiteral, staticData),
+			expectedDynamicInfo: dynamicInfo,
+			expectedLiteral:     sliceLiteral,
+			expectedData:        staticData,
+			expectStatic:        true,
+			expectHybrid:        true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Same(t, resolvedType, tc.annotation.ResolvedType)
+			assert.True(t, tc.annotation.IsCollectionCall)
+			assert.Equal(t, tc.expectStatic, tc.annotation.IsStatic)
+			assert.Equal(t, tc.expectStatic, tc.annotation.IsStructurallyStatic)
+			assert.Equal(t, tc.expectHybrid, tc.annotation.IsHybridCollection)
+			assert.Equal(t, tc.expectedDynamicInfo, tc.annotation.DynamicCollectionInfo)
+			assert.Equal(t, tc.expectedLiteral, tc.annotation.StaticCollectionLiteral)
+			assert.Equal(t, tc.expectedData, tc.annotation.StaticCollectionData)
+		})
 	}
 }
 

@@ -120,6 +120,7 @@ func buildSpamSubmission(
 		FormLoadedAt:    formLoadedAt,
 		PageURL:         request.Referer(),
 		ActionName:      actionName,
+		ID:              "",
 	}
 }
 

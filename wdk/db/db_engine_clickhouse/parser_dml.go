@@ -20,7 +20,6 @@ package db_engine_clickhouse
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/querier/querier_dto"
@@ -303,10 +302,13 @@ var (
 // specifier.
 //
 // The parser is bounded by maxParseDepth so adversarial inputs that nest subqueries
-// unboundedly do not blow the stack.
+// unboundedly do not blow the stack. The arms of a flat UNION / INTERSECT / EXCEPT chain
+// are siblings and are parsed iteratively into one flat CompoundBranches list and share a
+// single depth level, so a long chain of arms never approaches the cap.
 //
 // Returns *querier_dto.RawQueryAnalysis which is the parsed analysis.
-// Returns error when the statement is malformed or a parameter type tag is bad.
+// Returns error when the statement is malformed, nests too deeply, or a parameter type
+// tag is bad.
 func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	if p.analysisDepth >= p.maxParseDepth {
 		return nil, errAnalysisDepthExceeded
@@ -314,23 +316,40 @@ func (p *parser) analyseSelect() (*querier_dto.RawQueryAnalysis, error) {
 	p.analysisDepth++
 	defer func() { p.analysisDepth-- }()
 
-	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: true}
+	analysis, err := p.analyseSelectArm()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.analyseCompoundBranches(analysis); err != nil {
+		return nil, err
+	}
+	if p.syntaxError != nil {
+		return nil, p.syntaxError
+	}
+	if p.analysisDepth == 1 && p.firstParameterTypeError != nil {
+		return analysis, p.firstParameterTypeError
+	}
+	return analysis, nil
+}
+
+// analyseSelectArm parses one SELECT arm from the optional WITH clause to the trailing
+// FORMAT specifier, stopping before any UNION / INTERSECT / EXCEPT operator.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the arm's analysis.
+// Returns error when the arm is malformed.
+func (p *parser) analyseSelectArm() (*querier_dto.RawQueryAnalysis, error) {
+	analysis := &querier_dto.RawQueryAnalysis{}
+	analysis.ReadOnly = true
 
 	if err := p.analyseSelectHeader(analysis); err != nil {
 		return nil, err
 	}
-	if err := p.analyseSelectFilters(analysis); err != nil {
-		return nil, err
-	}
+	p.analyseSelectFilters(analysis)
 	if err := p.analyseSelectGroupings(analysis); err != nil {
 		return nil, err
 	}
 	if err := p.analyseSelectTail(analysis); err != nil {
 		return nil, err
-	}
-
-	if p.analysisDepth == 1 && p.firstParameterTypeError != nil {
-		return analysis, p.firstParameterTypeError
 	}
 	return analysis, nil
 }
@@ -378,22 +397,15 @@ func (p *parser) analyseSelectHeader(analysis *querier_dto.RawQueryAnalysis) err
 // the downstream rewriter takes the WHERE path even on PREWHERE-only queries.
 //
 // Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to populate.
-//
-// Returns error when a filter expression is malformed.
-func (p *parser) analyseSelectFilters(analysis *querier_dto.RawQueryAnalysis) error {
+func (p *parser) analyseSelectFilters(analysis *querier_dto.RawQueryAnalysis) {
 	if p.matchKeyword(kwPrewhere) {
 		analysis.HasWhereClause = true
-		if err := p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterPrewhere...); err != nil {
-			return err
-		}
+		p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterPrewhere...)
 	}
 	if p.matchKeyword(kwWhere) {
 		analysis.HasWhereClause = true
-		if err := p.parseWhereClause(analysis); err != nil {
-			return err
-		}
+		p.parseWhereClause(analysis)
 	}
-	return nil
 }
 
 // analyseSelectGroupings parses the GROUP BY, HAVING, and WINDOW clauses of a SELECT,
@@ -409,14 +421,10 @@ func (p *parser) analyseSelectGroupings(analysis *querier_dto.RawQueryAnalysis) 
 		}
 	}
 	if p.matchKeyword(kwHaving) {
-		if err := p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterHaving...); err != nil {
-			return err
-		}
+		p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterHaving...)
 	}
 	if p.matchKeyword(kwWindow) {
-		if err := p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterWindow...); err != nil {
-			return err
-		}
+		p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterWindow...)
 	}
 	return nil
 }
@@ -493,9 +501,8 @@ func (p *parser) parseGroupingSetsBody(analysis *querier_dto.RawQueryAnalysis) e
 	return nil
 }
 
-// analyseSelectTail parses the optional QUALIFY clause, the ORDER BY, LIMIT, SETTINGS,
-// and FORMAT clauses, plus the UNION, INTERSECT, and EXCEPT compound branches of a
-// SELECT.
+// analyseSelectTail parses the optional QUALIFY clause and the ORDER BY, LIMIT, SETTINGS,
+// and FORMAT clauses of a SELECT arm.
 //
 // QUALIFY filters rows after window-function evaluation; it mirrors the HAVING clause
 // shape and is parsed with the same expression helper. The predicate text is captured
@@ -507,9 +514,7 @@ func (p *parser) parseGroupingSetsBody(analysis *querier_dto.RawQueryAnalysis) e
 // Returns error when a tail clause is malformed.
 func (p *parser) analyseSelectTail(analysis *querier_dto.RawQueryAnalysis) error {
 	if p.matchKeyword(kwQualify) {
-		if err := p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterOrderBy...); err != nil {
-			return err
-		}
+		p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterOrderBy...)
 		if analysis.EngineSpecific == nil {
 			analysis.EngineSpecific = map[string]string{}
 		}
@@ -525,26 +530,23 @@ func (p *parser) analyseSelectTail(analysis *querier_dto.RawQueryAnalysis) error
 		p.parseLimitClause(analysis)
 	}
 	if p.matchKeyword(kwSettings) {
-		if err := p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterSettings...); err != nil {
-			return err
-		}
+		p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopAfterSettings...)
 	}
 	if p.matchKeyword(kwFormat) {
 		p.advance()
 	}
-	return p.analyseCompoundBranches(analysis)
+	return nil
 }
 
 // analyseCompoundBranches handles the UNION, INTERSECT, and EXCEPT branches that may
 // follow a SELECT.
 //
-// Each branch is parsed recursively through the same parser instance, so the
-// analysisDepth counter established by the outer analyseSelect call continues to bound
-// the recursion. The inner analyseSelect re-enters with the incremented depth so a SELECT
-// tree of N stacked UNION branches still terminates within maxParseDepth recursive
-// frames.
+// The arms are parsed iteratively, each through analyseSelectArm, and appended to one
+// flat CompoundBranches list on the primary analysis. No arm re-enters analyseSelect, so
+// a chain of N arms consumes a single analysis depth level rather than N, and the domain
+// layer sees every arm when it resolves and promotes the branch types.
 //
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to populate.
+// Takes analysis (*querier_dto.RawQueryAnalysis) which is the primary arm's analysis.
 //
 // Returns error when a compound branch is malformed.
 func (p *parser) analyseCompoundBranches(analysis *querier_dto.RawQueryAnalysis) error {
@@ -553,7 +555,7 @@ func (p *parser) analyseCompoundBranches(analysis *querier_dto.RawQueryAnalysis)
 		if !matched {
 			return nil
 		}
-		branch, branchErr := p.analyseSelect()
+		branch, branchErr := p.analyseSelectArm()
 		if branchErr != nil {
 			return branchErr
 		}
@@ -633,9 +635,7 @@ func (p *parser) parseSingleCTE(analysis *querier_dto.RawQueryAnalysis, isRecurs
 		return false, parseErr
 	}
 	if !p.matchKeyword(kwAs) {
-		if consumeErr := p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, "SELECT", kwWith); consumeErr != nil {
-			return false, consumeErr
-		}
+		p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, "SELECT", kwWith)
 		if p.current().kind == tokenComma {
 			p.advance()
 			return true, nil
@@ -649,9 +649,7 @@ func (p *parser) parseSingleCTE(analysis *querier_dto.RawQueryAnalysis, isRecurs
 	if bodyErr != nil {
 		return false, bodyErr
 	}
-	nested := newParser(body)
-	nested.analysisDepth = p.analysisDepth
-	nested.maxParseDepth = p.maxParseDepth
+	nested := p.newChildParser(body)
 	nestedAnalysis, nestedErr := nested.analyseSelect()
 	if nestedErr != nil {
 		return false, fmt.Errorf("CTE %q: %w", cteName, nestedErr)
@@ -665,6 +663,7 @@ func (p *parser) parseSingleCTE(analysis *querier_dto.RawQueryAnalysis, isRecurs
 
 		ParameterReferences: nestedAnalysis.ParameterReferences,
 		IsRecursive:         isRecursive,
+		EngineSpecific:      nil,
 	}
 	p.captureCTEMaterializedQualifier(&definition)
 	p.mergeNestedParameterReferences(analysis, nested, nestedAnalysis)
@@ -732,7 +731,13 @@ func (p *parser) parseProjectionColumn(analysis *querier_dto.RawQueryAnalysis) (
 	if err != nil {
 		return querier_dto.RawOutputColumn{}, err
 	}
-	return querier_dto.RawOutputColumn{Name: alias, Expression: expression}, nil
+	return querier_dto.RawOutputColumn{
+		Name:       alias,
+		Expression: expression,
+		TableAlias: "",
+		ColumnName: "",
+		IsStar:     false,
+	}, nil
 }
 
 // tryParseStarProjection consumes a `*` or `table.*` star expansion when the cursor is
@@ -745,7 +750,13 @@ func (p *parser) parseProjectionColumn(analysis *querier_dto.RawQueryAnalysis) (
 func (p *parser) tryParseStarProjection() (column querier_dto.RawOutputColumn, ok bool) {
 	if p.current().kind == tokenStar {
 		p.advance()
-		return querier_dto.RawOutputColumn{IsStar: true}, true
+		return querier_dto.RawOutputColumn{
+			IsStar:     true,
+			Expression: nil,
+			Name:       "",
+			TableAlias: "",
+			ColumnName: "",
+		}, true
 	}
 	if p.current().kind == tokenIdentifier && p.peek().kind == tokenDot {
 		identifier := p.current().value
@@ -754,7 +765,13 @@ func (p *parser) tryParseStarProjection() (column querier_dto.RawOutputColumn, o
 			p.advance()
 			p.advance()
 			p.advance()
-			return querier_dto.RawOutputColumn{IsStar: true, TableAlias: identifier}, true
+			return querier_dto.RawOutputColumn{
+				IsStar:     true,
+				TableAlias: identifier,
+				Expression: nil,
+				Name:       "",
+				ColumnName: "",
+			}, true
 		}
 	}
 	return querier_dto.RawOutputColumn{}, false
@@ -782,6 +799,8 @@ func (p *parser) finaliseDirectColumnProjection(tableAlias string, columnName st
 		Name:       name,
 		TableAlias: tableAlias,
 		ColumnName: columnName,
+		Expression: nil,
+		IsStar:     false,
 	}, nil
 }
 
@@ -934,10 +953,11 @@ func (p *parser) parseOptionalAlias() (string, bool, error) {
 // expression as an infix operator such as `+`, `=`, `IN`, or `AND`.
 //
 // parseProjectionColumn uses it to disambiguate `SELECT col, ...` (direct column) from
-// `SELECT col + 1, ...` (computed expression). Without this check the direct-column
-// branch consumes `col` and leaves the binary operator dangling, corrupting subsequent
-// projection parsing. The keyword set is owned by infixOperatorKeywords at package level
-// so the membership test is a single map fetch.
+// `SELECT col + 1, ...` or `SELECT col * 2, ...` (computed expression; the tokeniser
+// gives `*` its own star kind, which after a column can only be multiplication). Without
+// this check the direct-column branch consumes `col` and leaves the binary operator
+// dangling, corrupting subsequent projection parsing. The keyword set is owned by
+// infixOperatorKeywords at package level so the membership test is a single map fetch.
 //
 // Returns bool which is true when the current token continues an expression.
 func (p *parser) cursorLooksLikeOperator() bool {
@@ -951,7 +971,9 @@ func (p *parser) cursorLooksLikeOperator() bool {
 	if tok.kind == tokenLeftBracket {
 		return true
 	}
-
+	if tok.kind == tokenStar {
+		return true
+	}
 	if tok.kind == tokenDot {
 		return true
 	}
@@ -1014,9 +1036,10 @@ func (p *parser) parseSingleArrayJoinEntry(
 ) (querier_dto.RawArrayJoinClause, error) {
 	if column, alias, isBare := p.tryParseBareArrayJoinSource(); isBare {
 		return querier_dto.RawArrayJoinClause{
-			Alias:        alias,
-			SourceColumn: column,
-			IsLeft:       isLeft,
+			Alias:            alias,
+			SourceColumn:     column,
+			IsLeft:           isLeft,
+			SourceExpression: "",
 		}, nil
 	}
 	expression := p.captureExpressionTrackingParams(
@@ -1038,6 +1061,7 @@ func (p *parser) parseSingleArrayJoinEntry(
 		Alias:            alias,
 		SourceExpression: expression,
 		IsLeft:           isLeft,
+		SourceColumn:     "",
 	}, nil
 }
 
@@ -1118,9 +1142,7 @@ func (p *parser) parseFromTrailingModifiers(analysis *querier_dto.RawQueryAnalys
 			continue
 		}
 		if p.matchKeyword("SAMPLE") {
-			if err := p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopFromClause...); err != nil {
-				return err
-			}
+			p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopFromClause...)
 			continue
 		}
 		return nil
@@ -1176,9 +1198,7 @@ func (p *parser) parseFromJoinChain(analysis *querier_dto.RawQueryAnalysis) erro
 			return err
 		}
 		_ = p.matchKeyword(kwFinal)
-		if err := p.parseJoinQualifier(analysis); err != nil {
-			return err
-		}
+		p.parseJoinQualifier(analysis)
 	}
 }
 
@@ -1188,16 +1208,14 @@ func (p *parser) parseFromJoinChain(analysis *querier_dto.RawQueryAnalysis) erro
 // max-control-nesting linter.
 //
 // Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to populate.
-//
-// Returns error when the join qualifier is malformed.
-func (p *parser) parseJoinQualifier(analysis *querier_dto.RawQueryAnalysis) error {
+func (p *parser) parseJoinQualifier(analysis *querier_dto.RawQueryAnalysis) {
 	if p.matchKeyword(kwOn) {
-		return p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopJoinOnClause...)
+		p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopJoinOnClause...)
+		return
 	}
 	if p.matchKeyword("USING") && p.current().kind == tokenLeftParen {
 		_ = p.skipParenthesised()
 	}
-	return nil
 }
 
 // parseFromSource reads one table reference in a FROM or JOIN clause, handling plain
@@ -1226,8 +1244,9 @@ func (p *parser) parseFromSource(analysis *querier_dto.RawQueryAnalysis, joinKin
 		return aliasErr
 	}
 	appendTableReference(analysis, querier_dto.TableReference{
-		Name:  first,
-		Alias: alias,
+		Name:   first,
+		Alias:  alias,
+		Schema: "",
 	}, joinKind)
 	return nil
 }
@@ -1246,9 +1265,7 @@ func (p *parser) parseFromDerivedSubquery(analysis *querier_dto.RawQueryAnalysis
 	if err != nil {
 		return err
 	}
-	nested := newParser(body)
-	nested.analysisDepth = p.analysisDepth
-	nested.maxParseDepth = p.maxParseDepth
+	nested := p.newChildParser(body)
 	nestedAnalysis, nestedErr := nested.analyseSelect()
 	if nestedErr != nil {
 		return nestedErr
@@ -1288,9 +1305,10 @@ func (p *parser) parseFromQualifiedTable(analysis *querier_dto.RawQueryAnalysis,
 			return aliasErr
 		}
 		analysis.RawTableValuedFunctions = append(analysis.RawTableValuedFunctions, querier_dto.RawTableValuedFunctionReference{
-			FunctionName: schemaName + "." + second,
-			Alias:        alias,
-			JoinKind:     joinKind,
+			FunctionName:      schemaName + "." + second,
+			Alias:             alias,
+			JoinKind:          joinKind,
+			ColumnDefinitions: nil,
 		})
 		return nil
 	}
@@ -1334,30 +1352,12 @@ func (p *parser) parseFromTableValuedFunction(analysis *querier_dto.RawQueryAnal
 		return aliasErr
 	}
 	analysis.RawTableValuedFunctions = append(analysis.RawTableValuedFunctions, querier_dto.RawTableValuedFunctionReference{
-		FunctionName: functionName,
-		Alias:        alias,
-		JoinKind:     joinKind,
+		FunctionName:      functionName,
+		Alias:             alias,
+		JoinKind:          joinKind,
+		ColumnDefinitions: nil,
 	})
 	return nil
-}
-
-// appendTableReference adds the table to the FROM list, and also records a JoinClause
-// when the join kind is non-Inner so downstream consumers can track per-join nullability.
-//
-// The first FROM entry is always treated as inner-joined; subsequent joined entries need
-// both the FromTables append and the JoinClauses append.
-//
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to populate.
-// Takes ref (querier_dto.TableReference) which is the table reference to append.
-// Takes joinKind (querier_dto.JoinKind) which is the join kind for this table.
-func appendTableReference(analysis *querier_dto.RawQueryAnalysis, ref querier_dto.TableReference, joinKind querier_dto.JoinKind) {
-	analysis.FromTables = append(analysis.FromTables, ref)
-	if len(analysis.FromTables) > 1 && joinKind != querier_dto.JoinInner {
-		analysis.JoinClauses = append(analysis.JoinClauses, querier_dto.JoinClause{
-			Table: ref,
-			Kind:  joinKind,
-		})
-	}
 }
 
 // parseWhereClause consumes the WHERE expression. Tracks any `{name:Type}` parameter
@@ -1373,10 +1373,8 @@ func appendTableReference(analysis *querier_dto.RawQueryAnalysis, ref querier_dt
 // here.
 //
 // Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to populate.
-//
-// Returns error when the WHERE expression is malformed.
-func (p *parser) parseWhereClause(analysis *querier_dto.RawQueryAnalysis) error {
-	return p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopGroupByClause...)
+func (p *parser) parseWhereClause(analysis *querier_dto.RawQueryAnalysis) {
+	p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, stopGroupByClause...)
 }
 
 // parseGroupByColumns reads the GROUP BY column list.
@@ -1428,11 +1426,11 @@ func (p *parser) parseLimitClause(analysis *querier_dto.RawQueryAnalysis) {
 	for {
 		switch {
 		case p.matchKeyword(kwOffset):
-			_ = p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, limitOffsetStops...)
+			p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, limitOffsetStops...)
 		case p.matchKeyword(kwWith):
 			p.parseLimitWithModifier(analysis)
 		case p.matchKeyword(kwBy):
-			_ = p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, limitByStops...)
+			p.consumeExpressionTrackingParams(analysis, querier_dto.ParameterContextComparison, limitByStops...)
 			return
 		case p.current().kind == tokenComma:
 			p.advance()
@@ -1440,42 +1438,6 @@ func (p *parser) parseLimitClause(analysis *querier_dto.RawQueryAnalysis) {
 		default:
 			return
 		}
-	}
-}
-
-// consumeExpressionTrackingParamsCommaAware consumes an expression body like
-// consumeExpressionTrackingParams but also stops on a top-level comma.
-//
-// Clauses such as `LIMIT m, n` and `ORDER BY x, y, ...` use it where commas separate
-// sibling expressions rather than continuing a single expression. The function never
-// returns an error; the signature is kept void so the loop body stays free of an
-// uninspected return value.
-//
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to register
-// placeholders against.
-// Takes context (querier_dto.ParameterContext) which is the context to record for any
-// placeholder found.
-// Takes stopKeywords (...string) which are the clause keywords that halt the scan.
-func (p *parser) consumeExpressionTrackingParamsCommaAware(
-	analysis *querier_dto.RawQueryAnalysis,
-	context querier_dto.ParameterContext,
-	stopKeywords ...string,
-) {
-	depth := 0
-	for !p.atEnd() {
-		tok := p.current()
-		if depth == 0 && tokenIsTopLevelStop(tok, stopKeywords) {
-			return
-		}
-		if tok.kind == tokenClickHouseParam {
-			p.registerClickHouseParameter(analysis, tok, context)
-		}
-		newDepth, halt := advanceParenDepth(tok, depth)
-		if halt {
-			return
-		}
-		depth = newDepth
-		p.advance()
 	}
 }
 
@@ -1500,236 +1462,23 @@ func (p *parser) matchCompoundOperator() (querier_dto.CompoundOperator, bool) {
 	return 0, false
 }
 
-// consumeOneExpression consumes a single expression, terminating at a comma or top-level
-// clause keyword.
+// appendTableReference adds the table to the FROM list, and also records a JoinClause
+// when the join kind is non-Inner so downstream consumers can track per-join nullability.
 //
-// The expression may be any combination of identifiers, numbers, strings, parameters,
-// parenthesised groups, and infix operators. GROUP BY items use it. Any `{name:Type}`
-// placeholder is registered against the analysis so a parameter inside a non-column GROUP
-// BY expression (for example `GROUP BY toStartOfInterval(ts, {step:UInt32})`) is
-// retained.
+// The first FROM entry is always treated as inner-joined; subsequent joined entries need
+// both the FromTables append and the JoinClauses append.
 //
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to register
-// placeholders against.
-// Takes context (querier_dto.ParameterContext) which is the context to record for any
-// placeholder found.
-func (p *parser) consumeOneExpression(analysis *querier_dto.RawQueryAnalysis, context querier_dto.ParameterContext) {
-	depth := 0
-	for !p.atEnd() {
-		tok := p.current()
-		if depth == 0 {
-			if tok.kind == tokenComma {
-				return
-			}
-			if tok.kind == tokenIdentifier && isTopClauseKeyword(tok.value) {
-				return
-			}
-		}
-		if tok.kind == tokenClickHouseParam {
-			p.registerClickHouseParameter(analysis, tok, context)
-		}
-		newDepth, halt := advanceParenDepth(tok, depth)
-		if halt {
-			return
-		}
-		depth = newDepth
-		p.advance()
+// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to populate.
+// Takes ref (querier_dto.TableReference) which is the table reference to append.
+// Takes joinKind (querier_dto.JoinKind) which is the join kind for this table.
+func appendTableReference(analysis *querier_dto.RawQueryAnalysis, ref querier_dto.TableReference, joinKind querier_dto.JoinKind) {
+	analysis.FromTables = append(analysis.FromTables, ref)
+	if len(analysis.FromTables) > 1 && joinKind != querier_dto.JoinInner {
+		analysis.JoinClauses = append(analysis.JoinClauses, querier_dto.JoinClause{
+			Table: ref,
+			Kind:  joinKind,
+		})
 	}
-}
-
-// identifierMatchesAny reports whether name matches one of the supplied stop keywords
-// case-insensitively.
-//
-// It is extracted to avoid inlining a nested loop in the consume helpers.
-//
-// Takes name (string) which is the identifier to test.
-// Takes stopKeywords ([]string) which are the keywords to match against.
-//
-// Returns bool which is true when name matches a stop keyword.
-func identifierMatchesAny(name string, stopKeywords []string) bool {
-	return slices.ContainsFunc(stopKeywords, func(stop string) bool {
-		return strings.EqualFold(name, stop)
-	})
-}
-
-// consumeExpressionTrackingParams consumes an expression body and records every
-// `{name:Type}` parameter token it encounters as a parameter reference on the analysis.
-//
-// WHERE clauses use it where parameter context matters for downstream codegen.
-//
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to register
-// placeholders against.
-// Takes context (querier_dto.ParameterContext) which is the context to record for any
-// placeholder found.
-// Takes stopKeywords (...string) which are the clause keywords that halt the scan.
-//
-// Returns error which is always nil; the signature keeps the error result so callers can
-// chain it inline.
-func (p *parser) consumeExpressionTrackingParams(
-	analysis *querier_dto.RawQueryAnalysis,
-	context querier_dto.ParameterContext,
-	stopKeywords ...string,
-) error {
-	depth := 0
-	for !p.atEnd() {
-		tok := p.current()
-		if depth == 0 && tok.kind == tokenIdentifier && identifierMatchesAny(tok.value, stopKeywords) {
-			return nil
-		}
-		if tok.kind == tokenClickHouseParam {
-			p.registerClickHouseParameter(analysis, tok, context)
-		}
-		newDepth, halt := advanceParenDepth(tok, depth)
-		if halt {
-			return nil
-		}
-		depth = newDepth
-		p.advance()
-	}
-	return nil
-}
-
-// collectClickHouseParametersUntilEnd walks the rest of the statement and registers any
-// `{name:Type}` placeholders with the analysis.
-//
-// INSERT VALUES paths use it where the rest of the statement is parsed opaquely, because
-// the driver handles the values list at runtime, but parameter references must still be
-// surfaced to the codegen layer so the generated method gets typed arguments.
-//
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to register
-// placeholders against.
-// Takes context (querier_dto.ParameterContext) which is the context to record for any
-// placeholder found.
-func (p *parser) collectClickHouseParametersUntilEnd(
-	analysis *querier_dto.RawQueryAnalysis,
-	context querier_dto.ParameterContext,
-) {
-	for !p.atEnd() {
-		tok := p.current()
-		if tok.kind == tokenClickHouseParam {
-			p.registerClickHouseParameter(analysis, tok, context)
-		}
-		p.advance()
-	}
-}
-
-// registerClickHouseParameter records a `{name:Type}` placeholder on the analysis. The
-// token's value is `name:Type`; we split on `:` to extract the name and the type tag for
-// downstream resolution.
-//
-// Type-parse errors are tracked on the parser so the surrounding analyser (analyseSelect
-// / analyseInsert) can surface a warning via the engine's diagnostic channel. The
-// parameter is still registered with a nil CastType so codegen falls back to the
-// unknown-type path instead of dropping the binding entirely.
-//
-// A tag that parses cleanly but names no known type (for example {x:Strign}) resolves to
-// the Unknown category rather than an error. That case is also recorded on the parser so
-// the binding is no longer silently untyped; the parameter keeps its Unknown cast so
-// codegen retains the binding.
-//
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the analysis to register the
-// placeholder against.
-// Takes tok (token) which is the `{name:Type}` placeholder token.
-// Takes context (querier_dto.ParameterContext) which is the context to record.
-func (p *parser) registerClickHouseParameter(
-	analysis *querier_dto.RawQueryAnalysis,
-	tok token,
-	context querier_dto.ParameterContext,
-) {
-	name, typeName := splitClickHouseParamBody(tok.value)
-	number, exists := p.namedParameterMap[name]
-	if !exists {
-		p.parameterCount++
-		number = p.parameterCount
-		p.namedParameterMap[name] = number
-	}
-	var castType *querier_dto.SQLType
-	if typeName != "" {
-		t, err := parseClickHouseType(typeName)
-
-		if err == nil && t.Nullable {
-			t.SQLType.Nullable = true
-		}
-		switch {
-		case err != nil:
-			if p.firstParameterTypeError == nil {
-				p.firstParameterTypeError = fmt.Errorf("clickhouse: parameter %q has malformed type tag %q at position %d: %w", name, typeName, tok.position, err)
-			}
-		case t.SQLType.Category == querier_dto.TypeCategoryUnknown:
-
-			castType = &t.SQLType
-			if p.firstParameterTypeError == nil {
-				p.firstParameterTypeError = fmt.Errorf("clickhouse: parameter %q has unrecognised type tag %q at position %d", name, typeName, tok.position)
-			}
-		default:
-			castType = &t.SQLType
-		}
-	}
-	analysis.ParameterReferences = append(analysis.ParameterReferences, querier_dto.RawParameterReference{
-		Name:     name,
-		Number:   number,
-		Context:  context,
-		CastType: castType,
-	})
-}
-
-// mergeNestedParameterReferences folds a nested parser's parameter references into the
-// parent analysis so they appear in the final parameter list.
-//
-// The nested parser is the one for a CTE body or a FROM-derived subquery. Each named
-// placeholder is re-keyed through the parent parser's namedParameterMap so binding
-// numbers stay consistent across the whole statement and the same {name:Type} used in
-// several scopes collapses to one parameter. This mirrors the INSERT ... SELECT merge in
-// analyseInsertBody; without it CTE and derived-subquery parameters are dropped because
-// each nested parser numbers from one and never flattens into the outer list.
-//
-// The first malformed parameter-type tag seen inside a nested body is also lifted onto
-// the parent parser so the surrounding analyser surfaces a diagnostic, matching the
-// behaviour for top-level SELECT and INSERT placeholders.
-//
-// Takes analysis (*querier_dto.RawQueryAnalysis) which is the parent analysis to extend.
-// Takes nested (*parser) which is the sub-parser that produced nestedAnalysis.
-// Takes nestedAnalysis (*querier_dto.RawQueryAnalysis) which holds the nested references.
-func (p *parser) mergeNestedParameterReferences(
-	analysis *querier_dto.RawQueryAnalysis,
-	nested *parser,
-	nestedAnalysis *querier_dto.RawQueryAnalysis,
-) {
-	if nestedAnalysis != nil {
-		for index := range nestedAnalysis.ParameterReferences {
-			ref := nestedAnalysis.ParameterReferences[index]
-			if ref.Name != "" {
-				number, exists := p.namedParameterMap[ref.Name]
-				if !exists {
-					p.parameterCount++
-					number = p.parameterCount
-					p.namedParameterMap[ref.Name] = number
-				}
-				ref.Number = number
-			}
-			analysis.ParameterReferences = append(analysis.ParameterReferences, ref)
-		}
-	}
-	if p.firstParameterTypeError == nil && nested != nil && nested.firstParameterTypeError != nil {
-		p.firstParameterTypeError = nested.firstParameterTypeError
-	}
-}
-
-// splitClickHouseParamBody splits the placeholder body `name:Type` into its two halves.
-//
-// Type may be empty when malformed; the catalogue resolver surfaces a diagnostic in that
-// case.
-//
-// Takes body (string) which is the placeholder body of shape `name:Type`.
-//
-// Returns name (string) which is the parameter identifier.
-// Returns typeName (string) which is the type tag, possibly empty.
-func splitClickHouseParamBody(body string) (name string, typeName string) {
-	nameSegment, typeSegment, found := strings.Cut(body, ":")
-	if !found {
-		return body, ""
-	}
-	return strings.TrimSpace(nameSegment), strings.TrimSpace(typeSegment)
 }
 
 // isTopClauseKeyword reports whether the supplied identifier is one of the top-level

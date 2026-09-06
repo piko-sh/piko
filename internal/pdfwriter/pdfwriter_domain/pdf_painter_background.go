@@ -110,6 +110,8 @@ func (painter *PdfPainter) paintBackground(ctx context.Context, stream *ContentS
 // Takes ctx (context.Context) which controls cancellation.
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes box (*layouter_domain.LayoutBox) which is the target box.
+// Takes bg (layouter_domain.BackgroundImage) which specifies the background image or
+// gradient to paint.
 func (painter *PdfPainter) paintBackgroundImage(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox, bg layouter_domain.BackgroundImage) {
 	if painter.imageData == nil {
 		return
@@ -280,8 +282,10 @@ func (painter *PdfPainter) paintTileRow(
 // background-size value, area dimensions, and intrinsic image dimensions.
 //
 // Takes bgSize (string) which is the CSS background-size value.
-// Takes areaW, areaH (float64) which define the positioning area dimensions.
-// Takes intrinsicW, intrinsicH (float64) which are the image's natural dimensions.
+// Takes areaW (float64) which is the positioning area width in points.
+// Takes areaH (float64) which is the positioning area height in points.
+// Takes intrinsicW (float64) which is the natural image width.
+// Takes intrinsicH (float64) which is the natural image height.
 //
 // Returns imgWidth (float64) which is the computed rendering width.
 // Returns imgHeight (float64) which is the computed rendering height.
@@ -452,8 +456,10 @@ func (painter *PdfPainter) paintRadialGradient(stream *ContentStream, box *layou
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes stops ([]ResolvedStop) which are the gradient colour stops.
 // Takes isCircle (bool) which selects circular versus elliptical shape.
-// Takes pdfAreaX, pdfAreaY (float64) which specify the area origin in PDF coordinates.
-// Takes areaW, areaH (float64) which are the area dimensions in points.
+// Takes pdfAreaX (float64) which is the area horizontal origin in PDF coordinates.
+// Takes pdfAreaY (float64) which is the area vertical origin in PDF coordinates.
+// Takes areaW (float64) which is the positioning area width in points.
+// Takes areaH (float64) which is the positioning area height in points.
 func (painter *PdfPainter) applyRadialAlphaMask(
 	stream *ContentStream,
 	stops []ResolvedStop,
@@ -485,8 +491,10 @@ func (painter *PdfPainter) applyRadialAlphaMask(
 //
 // Takes stream (*ContentStream) which receives PDF operators.
 // Takes shadingName (string) which is the registered shading key.
-// Takes x, y (float64) which specify the mask position in PDF coordinates.
-// Takes w, h (float64) which are the mask dimensions in points.
+// Takes x (float64) which is the horizontal position in PDF coordinates.
+// Takes y (float64) which is the vertical position in PDF coordinates.
+// Takes w (float64) which is the rectangle width in points.
+// Takes h (float64) which is the rectangle height in points.
 func (painter *PdfPainter) applyShadingSoftMask(stream *ContentStream, shadingName string, x, y, w, h float64) {
 	var maskStream ContentStream
 	maskStream.PaintShading(shadingName)
@@ -578,6 +586,7 @@ func (*PdfPainter) convertToGrayscaleStops(stops []ResolvedStop) []ResolvedStop 
 			Green:    luminance,
 			Blue:     luminance,
 			Position: stop.Position,
+			Alpha:    0,
 		}
 	}
 	return grayStops
@@ -586,7 +595,8 @@ func (*PdfPainter) convertToGrayscaleStops(stops []ResolvedStop) []ResolvedStop 
 // buildMaskShading registers and returns the shading name for a mask gradient.
 //
 // Takes bg (layouter_domain.BackgroundImage) which holds the gradient definition.
-// Takes bbw, bbh (float64) which are the border box dimensions.
+// Takes bbw (float64) which is the border box width in points.
+// Takes bbh (float64) which is the border box height in points.
 // Takes grayStops ([]ResolvedStop) which are the greyscale stops.
 //
 // Returns string which is the registered shading resource name.

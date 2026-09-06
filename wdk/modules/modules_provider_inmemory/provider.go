@@ -28,9 +28,9 @@ import (
 // Provider serves the ModuleProvider port from an in-memory map.
 //
 // Holds a map of modules.ModuleRef to modules.ModuleBundle and looks up exact matches.
-// The map is keyed by (Path, Version); Pin is checked separately by the bundle's
-// VerifyAgainstRef. Hosts may Inject multiple versions of the same module path; lookups
-// match on Version equality.
+// The map is keyed by (Path, Version); Pin is not part of the key, because the
+// interpreter checks the bundle against the pin when the module is loaded. Hosts may
+// Inject multiple versions of the same module path; lookups match on Version equality.
 //
 // Safe for concurrent Inject and Resolve calls.
 type Provider struct {
@@ -59,6 +59,7 @@ type providerKey struct {
 func New() *Provider {
 	return &Provider{
 		bundles: make(map[providerKey]*modules.ModuleBundle),
+		mu:      sync.RWMutex{},
 	}
 }
 
@@ -97,7 +98,7 @@ func (p *Provider) Remove(ref modules.ModuleRef) {
 //
 // Looks up the bundle stored for the ref's (Path, Version) tuple, yielding
 // modules.ErrModuleNotFound when no entry matches. The bundle's Pin is not verified here;
-// the loader does that via modules.ModuleBundle.VerifyAgainstRef.
+// the interpreter checks it when the module is loaded.
 //
 // Takes ctx (context.Context) which is observed for cancellation only; in-memory
 // resolution does no I/O.

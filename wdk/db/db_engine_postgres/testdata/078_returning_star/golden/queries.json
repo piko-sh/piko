@@ -1646,7 +1646,7 @@
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": true,
-        "Kind": 0,
+        "Kind": 1,
         "Context": 1
       },
       {
@@ -1672,7 +1672,7 @@
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": true,
-        "Kind": 0,
+        "Kind": 1,
         "Context": 1
       },
       {
@@ -1698,7 +1698,7 @@
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0,
+        "Kind": 1,
         "Context": 1
       }
     ],
@@ -1917,7 +1917,7 @@
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": true,
-        "Kind": 0,
+        "Kind": 1,
         "Context": 1
       },
       {
@@ -1943,7 +1943,7 @@
         "Nullable": true,
         "IsSlice": false,
         "IsOptional": true,
-        "Kind": 0,
+        "Kind": 1,
         "Context": 1
       },
       {
@@ -1969,7 +1969,7 @@
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0,
+        "Kind": 1,
         "Context": 1
       },
       {
@@ -1995,7 +1995,7 @@
         "Nullable": false,
         "IsSlice": false,
         "IsOptional": false,
-        "Kind": 0,
+        "Kind": 1,
         "Context": 0
       }
     ],

@@ -174,7 +174,7 @@ func TestGetScopeCompletionsWithPrefix_NilAnnotationResult(t *testing.T) {
 		WithURI("file:///test/component.pk").
 		Build()
 
-	result, err := document.getScopeCompletionsWithPrefix(protocol.Position{Line: 0, Character: 0}, "test")
+	result, err := document.getScopeCompletionsWithPrefix(protocol.Position{}, "test")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -571,7 +571,7 @@ func TestGetMemberCompletions_FullPath(t *testing.T) {
 		RawExpression: "state.",
 		Expression: &ast_domain.MemberExpression{
 			Base:     stateIdent,
-			Property: &ast_domain.Identifier{Name: ""},
+			Property: &ast_domain.Identifier{},
 		},
 		Location: ast_domain.Location{Line: 2, Column: 1},
 	}
@@ -1257,7 +1257,7 @@ func TestResolveExpressionFromText_EmptyExpression(t *testing.T) {
 		WithContent("<template><div></div></template>").
 		Build()
 
-	result := document.resolveExpressionFromText(context.Background(), "", protocol.Position{Line: 0, Character: 0})
+	result := document.resolveExpressionFromText(context.Background(), "", protocol.Position{})
 	if result != nil {
 		t.Error("expected nil for empty expression")
 	}
@@ -1450,7 +1450,7 @@ func TestGetHoverInfo_FullPositivePath(t *testing.T) {
 
 	stateIdent := &ast_domain.Identifier{
 		Name:             "count",
-		RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+		RelativeLocation: ast_domain.Location{},
 		SourceLength:     5,
 	}
 	stateIdent.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
@@ -1517,7 +1517,7 @@ func TestResolveIdentifierFromScope_FallbackContext(t *testing.T) {
 		}).
 		Build()
 
-	result := document.resolveIdentifierFromScope(context.Background(), "title", protocol.Position{Line: 0, Character: 0})
+	result := document.resolveIdentifierFromScope(context.Background(), "title", protocol.Position{})
 	if result == nil {
 		t.Fatal("expected non-nil result from fallback context")
 	}

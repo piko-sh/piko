@@ -24,8 +24,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+)
 
-	"github.com/cloudflare/cloudflare-go"
+const (
+	// statementTerminatorCutset is trimmed from the end of each queued statement before its
+	// separator is appended, so a statement that already ends in a semicolon does not leave
+	// an empty statement behind.
+	statementTerminatorCutset = " \t\r\n;"
 )
 
 var (
@@ -67,6 +72,9 @@ type batchStatement struct {
 // Commit flushes all collected statements as a single batch request wrapped in
 // BEGIN/COMMIT. If no statements were collected, Commit is a no-op.
 //
+// The request is bounded by the context captured at BeginTx and by the configured request
+// timeout, and is never resent automatically, so a batch cannot be applied twice.
+//
 // Returns error when the batch execution fails or Commit has already been called.
 func (tx *d1Tx) Commit() error {
 	if tx.committed {
@@ -81,54 +89,11 @@ func (tx *d1Tx) Commit() error {
 
 	sql, allParams := buildBatch(tx.statements)
 
-	commitCtx := tx.ctx
-	if commitCtx == nil {
-		commitCtx = context.Background()
-	}
-
-	results, err := tx.conn.api.QueryD1Database(commitCtx, tx.conn.rc, cloudflare.QueryD1DatabaseParams{
-		DatabaseID: tx.conn.databaseID,
-		SQL:        sql,
-		Parameters: allParams,
-	})
-	if err != nil {
+	if _, err := tx.conn.client.query(tx.ctx, sql, allParams); err != nil {
 		return fmt.Errorf("db_driver_d1: commit: %w", err)
 	}
 
-	for index, result := range results {
-		if successErr := checkD1Success(result); successErr != nil {
-			return fmt.Errorf("db_driver_d1: commit: statement %d: %w", index, successErr)
-		}
-	}
-
 	return nil
-}
-
-// buildBatch concatenates the queued statements into a single BEGIN/COMMIT-wrapped SQL
-// string and flattens their parameters into one slice.
-//
-// The D1 HTTP API binds a single '?'-sequence across the whole batch, so the parameters
-// are appended in statement order, each statement's bindings following the previous
-// statement's. Callers must therefore queue statements in the order their placeholders
-// should consume the flattened parameter list.
-//
-// Takes statements ([]batchStatement) which are the queued statements in execution order.
-//
-// Returns string which is the BEGIN/COMMIT-wrapped batch SQL.
-// Returns []string which holds every statement's parameters concatenated in order.
-func buildBatch(statements []batchStatement) (string, []string) {
-	var batch strings.Builder
-	var allParams []string
-
-	batch.WriteString("BEGIN;\n")
-	for _, statement := range statements {
-		batch.WriteString(statement.query)
-		batch.WriteString(";\n")
-		allParams = append(allParams, statement.params...)
-	}
-	batch.WriteString("COMMIT;")
-
-	return batch.String(), allParams
 }
 
 // Rollback discards all collected statements. Since D1 transactions are client-side only
@@ -154,4 +119,35 @@ func (tx *d1Tx) addStatement(query string, params []string) {
 		query:  query,
 		params: params,
 	})
+}
+
+// buildBatch concatenates the queued statements into a single BEGIN/COMMIT-wrapped SQL
+// string and flattens their parameters into one slice.
+//
+// The D1 HTTP API binds a single '?'-sequence across the whole batch, so the parameters
+// are appended in statement order, each statement's bindings following the previous
+// statement's. Callers must therefore queue statements in the order their placeholders
+// should consume the flattened parameter list.
+//
+// Each statement's trailing whitespace and semicolons are trimmed and the separator is
+// written on its own line, so a statement ending in a "--" line comment cannot swallow
+// the semicolon that terminates it.
+//
+// Takes statements ([]batchStatement) which are the queued statements in execution order.
+//
+// Returns string which is the BEGIN/COMMIT-wrapped batch SQL.
+// Returns []string which holds every statement's parameters concatenated in order.
+func buildBatch(statements []batchStatement) (string, []string) {
+	var batch strings.Builder
+	var allParams []string
+
+	batch.WriteString("BEGIN;\n")
+	for _, statement := range statements {
+		batch.WriteString(strings.TrimRight(statement.query, statementTerminatorCutset))
+		batch.WriteString("\n;\n")
+		allParams = append(allParams, statement.params...)
+	}
+	batch.WriteString("COMMIT;")
+
+	return batch.String(), allParams
 }

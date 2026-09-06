@@ -42,12 +42,11 @@ func newTestAnnotatorService(t *testing.T, collectionService CollectionServicePo
 		},
 	}
 
-	svc, err := NewAnnotatorService(context.Background(), &AnnotatorServiceConfig{
+	svc := NewAnnotatorService(&AnnotatorServiceConfig{
 		Resolver:          resolver,
 		CollectionService: collectionService,
 		InMemoryMode:      true,
 	})
-	require.NoError(t, err)
 
 	return svc
 }

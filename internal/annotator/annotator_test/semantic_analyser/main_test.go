@@ -24,12 +24,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_test/semantic_analyser/testdata/001_basic_resolution"
 	"piko.sh/piko/internal/annotator/annotator_test/semantic_analyser/testdata/002_pfor_scoping"
 	"piko.sh/piko/internal/annotator/annotator_test/semantic_analyser/testdata/003_slotted_content_context_switch"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 
 	"github.com/stretchr/testify/require"

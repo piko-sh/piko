@@ -56,7 +56,7 @@ func NotFound(resource, id string) *NotFoundError {
 //
 // Returns *NotFoundError which contains the resource type for error messages.
 func NotFoundResource(resource string) *NotFoundError {
-	return &NotFoundError{Resource: resource}
+	return &NotFoundError{Resource: resource, ID: ""}
 }
 
 // Conflict creates a conflict error with the default CONFLICT code.

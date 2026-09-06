@@ -75,6 +75,8 @@ func (b *catalogueBuilder) applyCreateTable(mutation *querier_dto.CatalogueMutat
 		VirtualModuleName: mutation.VirtualModuleName,
 		IsWithoutRowID:    mutation.IsWithoutRowID,
 		Origin:            mutation.Origin,
+		Comment:           "",
+		Indexes:           nil,
 	}
 	return nil
 }
@@ -303,8 +305,11 @@ func (b *catalogueBuilder) applyCreateIndex(mutation *querier_dto.CatalogueMutat
 		return nil
 	}
 	table.Indexes = append(table.Indexes, querier_dto.Index{
-		Name:   mutation.NewName,
-		Origin: mutation.Origin,
+		Name:      mutation.NewName,
+		Origin:    mutation.Origin,
+		Columns:   nil,
+		IsUnique:  false,
+		IsPrimary: false,
 	})
 	return nil
 }

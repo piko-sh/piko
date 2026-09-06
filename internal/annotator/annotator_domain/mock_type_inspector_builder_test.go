@@ -213,21 +213,17 @@ func TestMockTypeInspectorBuilder_ConcurrentAccess(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 3)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			mock.SetConfig(inspector_dto.Config{BaseDir: "/test"})
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.Build(context.Background(), nil, nil)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.GetQuerier()
-		}()
+		})
 	}
 
 	wg.Wait()

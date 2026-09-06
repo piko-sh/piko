@@ -174,21 +174,18 @@ func TestMockOnDemandVariantGenerator_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = mock.GenerateVariant(
 				context.Background(),
 				&registry_dto.ArtefactMeta{ID: "art-1"},
 				"image_w240_webp",
 			)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.ParseProfileName("image_w240_webp")
-		}()
+		})
 	}
 
 	wg.Wait()

@@ -35,18 +35,14 @@ import (
 //
 //	service := cache.NewService("mock")
 //	provider := cache_provider_mock.NewMockProvider()
-//	service.RegisterProvider("mock", provider)
+//	err := service.RegisterProvider(ctx, "mock", provider)
 //
 //	// Create multiple namespaced caches (all sharing ONE map)
-//	userCache, _ := cache.NewCacheBuilder[string, User](service).
-//	    WithProvider("mock").
-//	    WithNamespace("users").
-//	    Build(ctx)
+//	userBuilder, _ := cache.NewCacheBuilder[string, User](service)
+//	userCache, _ := userBuilder.Provider("mock").Namespace("users").Build(ctx)
 //
-//	productCache, _ := cache.NewCacheBuilder[int, Product](service).
-//	    WithProvider("mock").
-//	    WithNamespace("products").
-//	    Build(ctx)
+//	productBuilder, _ := cache.NewCacheBuilder[int, Product](service)
+//	productCache, _ := productBuilder.Provider("mock").Namespace("products").Build(ctx)
 func NewMockProvider() cache.Provider {
 	return provider_mock.NewMockProvider()
 }

@@ -439,12 +439,9 @@ func TestMockLLMProvider_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			_, _ = m.Complete(ctx, request)
 			eventChannel, _ := m.Stream(ctx, request)
 			if eventChannel != nil {
@@ -456,7 +453,7 @@ func TestMockLLMProvider_ConcurrentAccess(t *testing.T) {
 			_ = m.SupportsTools()
 			_ = m.DefaultModel()
 			_, _ = m.ListModels(ctx)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -670,17 +667,14 @@ func TestMockEmbeddingProvider_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			request := &llm_dto.EmbeddingRequest{Model: "m", Input: []string{"hello"}}
 			_, _ = m.Embed(ctx, request)
 			_, _ = m.ListEmbeddingModels(ctx)
 			_ = m.EmbeddingDimensions()
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -915,18 +909,15 @@ func TestMockCacheStore_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
-
+	for index := range goroutines {
+		wg.Go(func() {
 			key := fmt.Sprintf("key-%d", index)
 			_ = m.Set(ctx, key, &llm_dto.CacheEntry{})
 			_, _ = m.Get(ctx, key)
 			_ = m.Delete(ctx, key)
 			_, _ = m.GetStats(ctx)
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -1172,12 +1163,9 @@ func TestMockBudgetStore_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
-
+	for index := range goroutines {
+		wg.Go(func() {
 			scope := fmt.Sprintf("scope-%d", index%5)
 			cost := &llm_dto.CostEstimate{
 				TotalCost: maths.ZeroMoney(llm_dto.CostCurrency),
@@ -1186,7 +1174,7 @@ func TestMockBudgetStore_ConcurrentAccess(t *testing.T) {
 			_, _ = m.GetStatus(ctx, scope)
 			_ = m.IncrementRequests(ctx, scope, 1)
 			_ = m.IncrementTokens(ctx, scope, 10)
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -1346,12 +1334,9 @@ func TestMockMemoryStore_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
-
+	for index := range goroutines {
+		wg.Go(func() {
 			id := fmt.Sprintf("conv-%d", index)
 			state := &llm_dto.ConversationState{ID: id}
 
@@ -1359,7 +1344,7 @@ func TestMockMemoryStore_ConcurrentAccess(t *testing.T) {
 			_, _ = m.Load(ctx, id)
 			_, _ = m.List(ctx, "")
 			_ = m.Delete(ctx, id)
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -1442,13 +1427,11 @@ func TestMockSummariser_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.Complete(ctx, request)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -1671,17 +1654,14 @@ func TestMockRateLimiterStore_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
-	for i := range goroutines {
-		go func(index int) {
-			defer wg.Done()
-
+	for index := range goroutines {
+		wg.Go(func() {
 			key := fmt.Sprintf("bucket-%d", index%5)
 			_, _ = m.TryTake(ctx, key, 1, config)
 			_, _ = m.WaitDuration(ctx, key, 1, config)
 			_ = m.DeleteBucket(ctx, key)
-		}(i)
+		})
 	}
 
 	wg.Wait()

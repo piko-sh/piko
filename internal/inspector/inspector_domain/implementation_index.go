@@ -74,6 +74,7 @@ type interfaceSpec struct {
 func NewImplementationIndex(typeData *inspector_dto.TypeData) *ImplementationIndex {
 	index := &ImplementationIndex{
 		interfaceToImplementors: make(map[string][]ImplementorInfo),
+		mu:                      sync.RWMutex{},
 	}
 	index.buildFromTypeData(typeData)
 	return index

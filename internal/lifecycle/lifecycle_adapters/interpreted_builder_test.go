@@ -204,6 +204,73 @@ func TestCreatePageEntryFromManifest(t *testing.T) {
 		assert.Nil(t, result)
 	})
 
+	t.Run("carries the same partial fields as the compiled store", func(t *testing.T) {
+		t.Parallel()
+
+		manifest := &generator_dto.Manifest{
+			Partials: map[string]generator_dto.ManifestPartialEntry{
+				"partials/card.pk": {
+					PackagePath:        "example.com/project/partials/card",
+					OriginalSourcePath: "partials/card.pk",
+					PartialSrc:         "/_partials/card",
+					JSArtefactID:       "pk-js/partials/card.js",
+					IsE2EOnly:          true,
+					HasPreview:         true,
+				},
+			},
+		}
+
+		result := createPageEntryFromManifest(manifest, "partials/card.pk")
+
+		require.NotNil(t, result)
+		assert.Equal(t, []string{"pk-js/partials/card.js"}, result.JSArtefactIDs)
+		assert.True(t, result.GetIsE2EOnly())
+		assert.True(t, result.HasPreview)
+	})
+
+	t.Run("carries the email preview flag", func(t *testing.T) {
+		t.Parallel()
+
+		manifest := &generator_dto.Manifest{
+			Emails: map[string]generator_dto.ManifestEmailEntry{
+				"emails/welcome.pk": {
+					PackagePath:        "example.com/project/emails/welcome",
+					OriginalSourcePath: "emails/welcome.pk",
+					HasPreview:         true,
+				},
+			},
+		}
+
+		result := createPageEntryFromManifest(manifest, "emails/welcome.pk")
+
+		require.NotNil(t, result)
+		assert.True(t, result.HasPreview)
+	})
+
+	t.Run("returns page entry for existing pdf", func(t *testing.T) {
+		t.Parallel()
+
+		manifest := &generator_dto.Manifest{
+			Pdfs: map[string]generator_dto.ManifestPdfEntry{
+				"pdfs/invoice.pk": {
+					PackagePath:         "example.com/project/pdfs/invoice",
+					OriginalSourcePath:  "pdfs/invoice.pk",
+					StyleBlock:          ".invoice{}",
+					HasSupportedLocales: true,
+					HasPreview:          true,
+				},
+			},
+		}
+
+		result := createPageEntryFromManifest(manifest, "pdfs/invoice.pk")
+
+		require.NotNil(t, result, "PDF entries must come from the manifest, not the bare private-partial fallback")
+		assert.Equal(t, "example.com/project/pdfs/invoice", result.PackagePath)
+		assert.Equal(t, ".invoice{}", result.StyleBlock)
+		assert.True(t, result.HasSupportedLocales)
+		assert.True(t, result.HasPreview)
+	})
+
 	t.Run("prioritises pages over partials with same path", func(t *testing.T) {
 		t.Parallel()
 
@@ -250,33 +317,13 @@ func TestNewInterpretedBuildOrchestrator(t *testing.T) {
 		assert.NotNil(t, orchestrator.dirtyCodeCache)
 		assert.NotNil(t, orchestrator.reverseDepsMap)
 		assert.NotNil(t, orchestrator.artefactByPackagePath)
-		assert.NotNil(t, orchestrator.interpSemaphore)
-	})
-
-	t.Run("creates semaphore with at least 1 slot", func(t *testing.T) {
-		t.Parallel()
-
-		orchestrator := NewInterpretedBuildOrchestrator(
-			InterpretedBuildOrchestratorDeps{
-				ModuleName:  "module",
-				ProjectRoot: "/root",
-			},
-		)
-
-		select {
-		case orchestrator.interpSemaphore <- struct{}{}:
-
-			<-orchestrator.interpSemaphore
-		default:
-			t.Fatal("Expected semaphore to have at least 1 slot")
-		}
 	})
 }
 
 func TestInterpretedBuildOrchestrator_IsInitialised(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns false when vfsAdapter is nil", func(t *testing.T) {
+	t.Run("returns false before the initial build", func(t *testing.T) {
 		t.Parallel()
 
 		orchestrator := NewInterpretedBuildOrchestrator(
@@ -334,9 +381,7 @@ func TestInterpretedBuildOrchestrator_isEmptyVirtualModule(t *testing.T) {
 	t.Run("returns true when virtual module is nil", func(t *testing.T) {
 		t.Parallel()
 
-		result := &annotator_dto.ProjectAnnotationResult{
-			VirtualModule: nil,
-		}
+		result := &annotator_dto.ProjectAnnotationResult{}
 
 		assert.True(t, orchestrator.isEmptyVirtualModule(result))
 	})

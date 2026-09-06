@@ -103,6 +103,44 @@ func TestParseSnippetAsStatement(t *testing.T) {
 	})
 }
 
+func TestParseModuleLevelStatement(t *testing.T) {
+	t.Parallel()
+
+	t.Run("parses an import statement", func(t *testing.T) {
+		t.Parallel()
+		statement, statementAST, err := parseModuleLevelStatement(context.Background(), `import { a } from './a'`)
+		require.NoError(t, err)
+		require.NotNil(t, statementAST)
+		_, ok := statement.Data.(*js_ast.SImport)
+		assert.True(t, ok, "expected SImport, got %T", statement.Data)
+	})
+
+	elided := []struct {
+		name    string
+		snippet string
+	}{
+		{name: "inline type-only import", snippet: `import { type Foo } from './types'`},
+		{name: "several inline type-only bindings", snippet: `import { type A, type B } from './x';`},
+		{name: "type alias", snippet: `type Count = number;`},
+		{name: "interface", snippet: `interface Shape { size: number }`},
+	}
+	for _, tc := range elided {
+		t.Run(tc.name+" is reported as elided", func(t *testing.T) {
+			t.Parallel()
+			_, statementAST, err := parseModuleLevelStatement(context.Background(), tc.snippet)
+			require.ErrorIs(t, err, errStatementElided)
+			assert.Nil(t, statementAST)
+		})
+	}
+
+	t.Run("a parse error is not reported as elided", func(t *testing.T) {
+		t.Parallel()
+		_, _, err := parseModuleLevelStatement(context.Background(), `import { from`)
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, errStatementElided)
+	})
+}
+
 func TestParseSnippetAsBlock(t *testing.T) {
 	t.Run("parses multiple statements", func(t *testing.T) {
 		block, err := parseSnippetAsBlock("const x = 1; const y = 2;")
@@ -442,39 +480,107 @@ func TestInjectInitIntoConnectedCallback(t *testing.T) {
 }
 
 func TestFindClassDeclarationByName(t *testing.T) {
-	t.Run("finds class by name", func(t *testing.T) {
-		parser := NewTypeScriptParser()
-		code := `class MyElement extends PPElement {}`
-		ast, err := parser.ParseTypeScript(code, "test.ts")
-		require.NoError(t, err)
+	t.Parallel()
 
-		classDecl := findClassDeclarationByName(ast, "MyElement")
-		require.NotNil(t, classDecl)
-	})
+	testCases := []struct {
+		name      string
+		code      string
+		className string
+		wantBody  string
+		wantFound bool
+	}{
+		{
+			name:      "only class",
+			code:      `class MyElement extends PPElement {}`,
+			className: "MyElement",
+			wantFound: true,
+		},
+		{
+			name:      "target after other classes",
+			code:      `class Helper { help() {} } class Other {} class MyElement extends PPElement { mark() {} }`,
+			className: "MyElement",
+			wantFound: true,
+			wantBody:  "mark",
+		},
+		{
+			name:      "target before other classes",
+			code:      `class MyElement extends PPElement { mark() {} } class Helper { help() {} }`,
+			className: "MyElement",
+			wantFound: true,
+			wantBody:  "mark",
+		},
+		{
+			name:      "export default class",
+			code:      `class Helper {} export default class MyElement extends PPElement { mark() {} }`,
+			className: "MyElement",
+			wantFound: true,
+			wantBody:  "mark",
+		},
+		{
+			name:      "missing target among other classes",
+			code:      `class Helper {} class Other extends PPElement {}`,
+			className: "MyElement",
+		},
+		{
+			name:      "no classes",
+			code:      `const x = 1;`,
+			className: "MyElement",
+		},
+		{
+			name:      "anonymous default export",
+			code:      `export default class extends PPElement {}`,
+			className: "MyElement",
+		},
+		{
+			name:      "class nested in a function is not top level",
+			code:      `function make() { class MyElement {} return MyElement; }`,
+			className: "MyElement",
+		},
+		{
+			name:      "empty name",
+			code:      `class MyElement extends PPElement {}`,
+			className: "",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tree, err := NewTypeScriptParser().ParseTypeScript(tc.code, "test.ts")
+			require.NoError(t, err)
 
-	t.Run("returns nil for non-existent class", func(t *testing.T) {
-		parser := NewTypeScriptParser()
-		code := `const x = 1;`
-		ast, err := parser.ParseTypeScript(code, "test.ts")
-		require.NoError(t, err)
-
-		classDecl := findClassDeclarationByName(ast, "NonExistent")
-		assert.Nil(t, classDecl)
-	})
+			classDecl := findClassDeclarationByName(tree, tc.className)
+			if !tc.wantFound {
+				assert.Nil(t, classDecl)
+				return
+			}
+			require.NotNil(t, classDecl)
+			assert.Equal(t, tc.className, classDeclarationName(tree, classDecl.Name))
+			if tc.wantBody != "" {
+				require.Len(t, classDecl.Properties, 1)
+				key, ok := classDecl.Properties[0].Key.Data.(*js_ast.EString)
+				require.True(t, ok, "method key is %T", classDecl.Properties[0].Key.Data)
+				assert.Equal(t, tc.wantBody, helpers.UTF16ToString(key.Value))
+			}
+		})
+	}
 
 	t.Run("nil AST returns nil", func(t *testing.T) {
-		classDecl := findClassDeclarationByName(nil, "Test")
-		assert.Nil(t, classDecl)
+		t.Parallel()
+		assert.Nil(t, findClassDeclarationByName(nil, "Test"))
 	})
 
-	t.Run("finds export default class", func(t *testing.T) {
-		parser := NewTypeScriptParser()
-		code := `export default class MyElement extends PPElement {}`
-		ast, err := parser.ParseTypeScript(code, "test.ts")
+	t.Run("generated component class is found beside the author's classes", func(t *testing.T) {
+		t.Parallel()
+		tree, err := NewTypeScriptParser().ParseTypeScript(`class Helper {} class Other {}`, "test.ts")
 		require.NoError(t, err)
+		require.Nil(t, findClassDeclarationByName(tree, "GeneratedWidgetElement"))
 
-		classDecl := findClassDeclarationByName(ast, "MyElement")
+		ensurePPElementClass(context.Background(), tree, "GeneratedWidgetElement")
+
+		classDecl := findClassDeclarationByName(tree, "GeneratedWidgetElement")
 		require.NotNil(t, classDecl)
+		assert.NotNil(t, classDecl.ExtendsOrNil.Data, "the generated class extends PPElement")
+		assert.NotNil(t, findClassDeclarationByName(tree, "Helper"))
 	})
 }
 

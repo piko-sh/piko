@@ -1,7 +1,0 @@
-package consts
-
-const (
-	Pi  = 3
-	E   = 2
-	Tau = Pi * 2
-)

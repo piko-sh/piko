@@ -163,14 +163,21 @@ type CommandDirective struct {
 }
 
 // ParameterDirectiveKind identifies the role of a parameter declared with the $N as
-// piko.param(name) header syntax. Cardinality (slice) and presence (optional) are now
-// qualities on a parameter (IsSlice/IsOptional), not distinct kinds, and limit/offset are
-// inferred from clause position, so only the standard and sortable kinds remain.
+// piko.param(name) header syntax.
+//
+// Cardinality (slice) and presence (optional) are now qualities on a parameter
+// (IsSlice/IsOptional), not distinct kinds, and limit/offset are inferred from clause
+// position, so only the standard and sortable kinds remain beside the zero value, which
+// marks the absence of a directive.
 type ParameterDirectiveKind uint8
 
 const (
+	// ParameterDirectiveNone marks parameters inferred without a piko.param declaration and
+	// directive specs whose roles declare no parameter.
+	ParameterDirectiveNone ParameterDirectiveKind = iota
+
 	// ParameterDirectiveParam defines a standard query parameter.
-	ParameterDirectiveParam ParameterDirectiveKind = iota
+	ParameterDirectiveParam
 
 	// ParameterDirectiveSortable defines a sortable input (dynamic ORDER BY) declared with
 	// the standalone piko.sortable directive; it does not bind a placeholder.

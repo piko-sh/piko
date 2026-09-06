@@ -121,7 +121,7 @@ type directiveLexer struct {
 //
 // Returns *directiveLexer which is the lexer ready to scan the line.
 func newDirectiveLexer(logical logicalLine) *directiveLexer {
-	return &directiveLexer{logical: logical}
+	return &directiveLexer{logical: logical, peeked: nil, pos: 0, scannedAny: false}
 }
 
 // next returns the next token, consuming it.
@@ -167,7 +167,7 @@ func (l *directiveLexer) peekN(offset int) token {
 func (l *directiveLexer) scan() token {
 	l.skipWhitespace()
 	if l.pos >= len(l.logical.content) {
-		return token{kind: tokenEOF, span: l.spanAt(l.pos, l.pos)}
+		return token{kind: tokenEOF, span: l.spanAt(l.pos, l.pos), lexeme: ""}
 	}
 	start := l.pos
 	ch := l.logical.content[l.pos]

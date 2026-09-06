@@ -62,7 +62,10 @@ type WatchdogInspectorService struct {
 //
 // Returns *WatchdogInspectorService ready for gRPC registration.
 func NewWatchdogInspectorService(inspector monitoring_domain.WatchdogInspector) *WatchdogInspectorService {
-	return &WatchdogInspectorService{inspector: inspector}
+	return &WatchdogInspectorService{
+		inspector: inspector,
+		UnimplementedWatchdogInspectorServiceServer: pb.UnimplementedWatchdogInspectorServiceServer{},
+	}
 }
 
 // ListProfiles returns metadata for all stored watchdog profile files.
@@ -226,7 +229,7 @@ func (s *WatchdogInspectorService) RunContentionDiagnostic(ctx context.Context, 
 			Error:   err.Error(),
 		}, nil
 	}
-	return &pb.RunContentionDiagnosticResponse{Started: true}, nil
+	return &pb.RunContentionDiagnosticResponse{Started: true, Error: ""}, nil
 }
 
 // GetStartupHistory returns the parsed startup-history ring.
@@ -381,6 +384,7 @@ func sendDownloadChunks(stream pb.WatchdogInspectorService_DownloadProfileServer
 	if len(data) == 0 {
 		if err := stream.Send(&pb.DownloadProfileChunk{
 			IsLast: true,
+			Data:   nil,
 		}); err != nil {
 			return fmt.Errorf("sending empty download response: %w", err)
 		}

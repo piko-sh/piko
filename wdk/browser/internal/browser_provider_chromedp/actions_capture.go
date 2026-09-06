@@ -321,9 +321,7 @@ func GetFullPageHTML(ctx context.Context) (string, error) {
 // Returns error when the screenshot cannot be captured.
 func FullPageScreenshot(ctx context.Context) ([]byte, error) {
 	var buffer []byte
-	err := chromedp.Run(ctx,
-		chromedp.FullScreenshot(&buffer, ScreenshotQualityFull),
-	)
+	err := runBoundedCapture(ctx, defaultScreenshotTimeout, chromedp.FullScreenshot(&buffer, ScreenshotQualityFull))
 	if err != nil {
 		return nil, fmt.Errorf("capturing full page screenshot: %w", err)
 	}
@@ -350,23 +348,17 @@ func FullPageScreenshotWithFormat(
 
 	cdpFormat := toCDPFormat(format)
 
-	var buffer []byte
-	err = chromedp.Run(ctx, chromedp.ActionFunc(func(ctx2 context.Context) error {
-		var captureErr error
-		buffer, captureErr = page.CaptureScreenshot().
-			WithFormat(cdpFormat).
-			WithQuality(int64(quality)).
-			WithCaptureBeyondViewport(true).
-			WithClip(&page.Viewport{
-				X:      0,
-				Y:      0,
-				Width:  dims.ViewportWidth,
-				Height: dims.ScrollHeight,
-				Scale:  1,
-			}).
-			Do(ctx2)
-		return captureErr
-	}))
+	buffer, err := captureScreenshot(ctx, defaultScreenshotTimeout, page.CaptureScreenshot().
+		WithFormat(cdpFormat).
+		WithQuality(int64(quality)).
+		WithCaptureBeyondViewport(true).
+		WithClip(&page.Viewport{
+			X:      0,
+			Y:      0,
+			Width:  dims.ViewportWidth,
+			Height: dims.ScrollHeight,
+			Scale:  1,
+		}))
 	if err != nil {
 		return nil, fmt.Errorf("capturing full page screenshot with format: %w", err)
 	}
@@ -710,24 +702,17 @@ func captureChunk(
 		h = p.totalHeight - y
 	}
 
-	var buffer []byte
-	err := chromedp.Run(ctx, chromedp.ActionFunc(func(ctx2 context.Context) error {
-		var captureErr error
-		buffer, captureErr = page.CaptureScreenshot().
-			WithFormat(p.cdpFormat).
-			WithQuality(int64(p.quality)).
-			WithCaptureBeyondViewport(true).
-			WithClip(&page.Viewport{
-				X:      0,
-				Y:      y,
-				Width:  p.chunkW,
-				Height: h,
-				Scale:  p.scale,
-			}).
-			Do(ctx2)
-		return captureErr
-	}))
-	return buffer, err
+	return captureScreenshot(ctx, defaultScreenshotTimeout, page.CaptureScreenshot().
+		WithFormat(p.cdpFormat).
+		WithQuality(int64(p.quality)).
+		WithCaptureBeyondViewport(true).
+		WithClip(&page.Viewport{
+			X:      0,
+			Y:      y,
+			Width:  p.chunkW,
+			Height: h,
+			Scale:  p.scale,
+		}))
 }
 
 // toCDPFormat converts a ScreenshotFormat to the CDP protocol format enum.

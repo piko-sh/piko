@@ -762,6 +762,7 @@ func (l *slogLogger) createSpanLogger(
 		stackTraceProvider: l.stackTraceProvider,
 		useDynamicDefault:  false,
 		attrs:              allSpanAttrs,
+		autoCaller:         false,
 	}
 }
 
@@ -1115,6 +1116,7 @@ func NewLogger(logger *slog.Logger, tracer trace.Tracer, ctx ...context.Context)
 		stackTraceProvider: newRuntimeStackTraceProvider(),
 		useDynamicDefault:  false,
 		autoCaller:         true,
+		attrs:              nil,
 	}
 }
 
@@ -1189,8 +1191,8 @@ func extractPackageAndMethod(name string) (pkg, method string) {
 	}
 
 	shortName := name
-	if index := strings.LastIndex(name, "/"); index >= 0 {
-		shortName = name[index+1:]
+	if _, after, ok := strings.CutLast(name, "/"); ok {
+		shortName = after
 	}
 
 	if pkg, method, found := strings.Cut(shortName, "."); found {
@@ -1223,6 +1225,7 @@ func newLoggerWithStackTraceProvider(logger *slog.Logger, tracer trace.Tracer, p
 		stackTraceProvider: provider,
 		autoCaller:         true,
 		useDynamicDefault:  false,
+		attrs:              nil,
 	}
 }
 

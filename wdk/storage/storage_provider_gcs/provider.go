@@ -609,14 +609,7 @@ func executeBatchOperation(
 	runWorkers func(ctx context.Context, concurrency int) *storage.BatchResult,
 ) (*storage.BatchResult, error) {
 	if itemCount == 0 {
-		return &storage.BatchResult{
-			TotalRequested:  0,
-			SuccessfulKeys:  nil,
-			FailedKeys:      nil,
-			TotalSuccessful: 0,
-			TotalFailed:     0,
-			ProcessingTime:  0,
-		}, nil
+		return &storage.BatchResult{}, nil
 	}
 
 	concurrency := givenConcurrency
@@ -828,6 +821,7 @@ func NewGCSProvider(ctx context.Context, config Config, opts ...storage.Provider
 	defaultConfig := storage.ProviderRateLimitConfig{
 		CallsPerSecond: defaultCallsPerSecond,
 		Burst:          defaultBurst,
+		Clock:          nil,
 	}
 	rateLimiter := storage.ApplyProviderOptions(defaultConfig, opts...)
 
@@ -1090,14 +1084,8 @@ func processUploadJob(ctx context.Context, job uploadJob, jobs <-chan uploadJob,
 // Returns *storage.BatchResult which contains the gathered success and failure counts
 // along with their keys.
 func collectBatchResults[T jobResult](resultsChan <-chan T, total int) *storage.BatchResult {
-	result := &storage.BatchResult{
-		TotalRequested:  total,
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		ProcessingTime:  0,
-	}
+	result := &storage.BatchResult{}
+	result.TotalRequested = total
 	for batchRes := range resultsChan {
 		if batchRes.Error() == nil {
 			result.SuccessfulKeys = append(result.SuccessfulKeys, batchRes.Key())

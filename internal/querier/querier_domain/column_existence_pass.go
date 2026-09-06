@@ -235,12 +235,15 @@ func (p *columnExistencePass) gateUnknownColumn(
 		line = context.Query.Line
 	}
 	return &querier_dto.SourceError{
-		Filename: context.Filename,
-		Line:     line,
-		Column:   1,
-		Message:  message,
-		Severity: querier_dto.SeverityWarning,
-		Code:     extractErrorCode(err),
+		Filename:   context.Filename,
+		Line:       line,
+		Column:     1,
+		Message:    message,
+		Severity:   querier_dto.SeverityWarning,
+		Code:       extractErrorCode(err),
+		Suggestion: "",
+		EndLine:    0,
+		EndColumn:  0,
 	}, true
 }
 

@@ -219,11 +219,11 @@ func (p *parser) parseGroupByColumn() (querier_dto.ColumnReference, bool) {
 	}
 	first := p.advance().value
 	if p.current().kind != tokenDot {
-		return querier_dto.ColumnReference{ColumnName: first}, true
+		return querier_dto.ColumnReference{ColumnName: first, TableAlias: ""}, true
 	}
 	p.advance()
 	if p.current().kind != tokenIdentifier {
-		return querier_dto.ColumnReference{ColumnName: first}, true
+		return querier_dto.ColumnReference{ColumnName: first, TableAlias: ""}, true
 	}
 	second := p.advance().value
 	return querier_dto.ColumnReference{TableAlias: first, ColumnName: second}, true

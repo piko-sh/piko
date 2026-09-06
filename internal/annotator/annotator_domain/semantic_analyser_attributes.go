@@ -29,9 +29,9 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 const (
@@ -954,28 +954,17 @@ func createEventContextWithSymbols(ctx *AnalysisContext) *AnalysisContext {
 // Returns *ast_domain.ResolvedTypeInfo which is a synthetic type info marked with
 // IsSynthetic set to true.
 func newSyntheticTypeInfo(typeName string) *ast_domain.ResolvedTypeInfo {
-	return &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          goast.NewIdent(typeName),
-		PackageAlias:            "",
-		CanonicalPackagePath:    "",
-		IsSynthetic:             true,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	info := ast_domain.ResolvedTypeInfo{}
+	info.TypeExpression = goast.NewIdent(typeName)
+	info.IsSynthetic = true
+	return &info
 }
 
 // newSyntheticAnyTypeInfo creates a synthetic ResolvedTypeInfo for the "any" type.
 //
 // Returns *ast_domain.ResolvedTypeInfo which represents the built-in any type.
 func newSyntheticAnyTypeInfo() *ast_domain.ResolvedTypeInfo {
-	return &ast_domain.ResolvedTypeInfo{
-		TypeExpression:          goast.NewIdent(typeAny),
-		PackageAlias:            "",
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
-	}
+	info := ast_domain.ResolvedTypeInfo{}
+	info.TypeExpression = goast.NewIdent(typeAny)
+	return &info
 }

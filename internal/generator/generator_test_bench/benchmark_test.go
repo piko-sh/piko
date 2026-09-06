@@ -158,7 +158,7 @@ func createServiceStack(
 		inspector_domain.WithProvider(inspectorProvider),
 	)
 
-	annotatorService, _ := annotator_domain.NewAnnotatorService(context.Background(), &annotator_domain.AnnotatorServiceConfig{
+	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:            resolver,
 		FSReader:            fsReader,
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
@@ -176,9 +176,9 @@ func createServiceStack(
 	tb.Cleanup(func() { coordinatorService.Shutdown(context.Background()) })
 
 	prerenderer := render_domain.NewRenderOrchestrator(nil, nil, nil, nil)
-	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(context.Background(), prerenderer)
+	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(prerenderer)
 	registerEmitter := generator_adapters.NewRegisterEmitter(fsWriter)
-	generatorService, err := generator_domain.NewGeneratorService(context.Background(), bootstrap.NewGeneratorPathsConfig(serverConfig), "en", generator_domain.GeneratorPorts{
+	generatorService, err := generator_domain.NewGeneratorService(bootstrap.NewGeneratorPathsConfig(serverConfig), "en", generator_domain.GeneratorPorts{
 		FSWriter:           fsWriter,
 		ManifestEmitter:    manifestEmitter,
 		Coordinator:        coordinatorService,
@@ -188,6 +188,7 @@ func createServiceStack(
 		SEOService:         nil,
 	})
 	require.NoError(tb, err)
+	require.NoError(tb, generatorService.EnsureDistPackage(context.Background()))
 
 	entryPoints := discoverEntryPoints(tb, resolver, *serverConfig)
 	require.NotEmpty(tb, entryPoints, "Benchmark discovery failed: no entry points found in src directory")
@@ -303,7 +304,7 @@ func createServiceStackWithFileCache(
 		inspector_domain.WithBuilderCacheKeyGenerator(&staticKeyGenerator{}),
 	)
 
-	annotatorService, _ := annotator_domain.NewAnnotatorService(context.Background(), &annotator_domain.AnnotatorServiceConfig{
+	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:            resolver,
 		FSReader:            fsReader,
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
@@ -321,9 +322,9 @@ func createServiceStackWithFileCache(
 	tb.Cleanup(func() { coordinatorService.Shutdown(context.Background()) })
 
 	prerenderer := render_domain.NewRenderOrchestrator(nil, nil, nil, nil)
-	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(context.Background(), prerenderer)
+	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(prerenderer)
 	registerEmitter := generator_adapters.NewRegisterEmitter(fsWriter)
-	generatorService, err := generator_domain.NewGeneratorService(context.Background(), bootstrap.NewGeneratorPathsConfig(serverConfig), "en", generator_domain.GeneratorPorts{
+	generatorService, err := generator_domain.NewGeneratorService(bootstrap.NewGeneratorPathsConfig(serverConfig), "en", generator_domain.GeneratorPorts{
 		FSWriter:           fsWriter,
 		ManifestEmitter:    manifestEmitter,
 		Coordinator:        coordinatorService,
@@ -333,6 +334,7 @@ func createServiceStackWithFileCache(
 		SEOService:         nil,
 	})
 	require.NoError(tb, err)
+	require.NoError(tb, generatorService.EnsureDistPackage(context.Background()))
 
 	entryPoints := discoverEntryPoints(tb, resolver, *serverConfig)
 	require.NotEmpty(tb, entryPoints, "Benchmark discovery failed: no entry points found in src directory")
@@ -785,7 +787,7 @@ func generateCacheForTestCase(t *testing.T, tc testCase) {
 		},
 	}
 
-	annotatorService, _ := annotator_domain.NewAnnotatorService(context.Background(), &annotator_domain.AnnotatorServiceConfig{
+	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:            resolver,
 		FSReader:            fsReader,
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
@@ -813,10 +815,10 @@ func generateCacheForTestCase(t *testing.T, tc testCase) {
 	defer coordinatorService.Shutdown(context.Background())
 
 	prerenderer := render_domain.NewRenderOrchestrator(nil, nil, nil, nil)
-	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(context.Background(), prerenderer)
+	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(prerenderer)
 	persistSandbox, _ := safedisk.NewNoOpSandbox(absSrcDir, safedisk.ModeReadWrite)
 	defer persistSandbox.Close()
-	generatorService, err := generator_domain.NewGeneratorService(context.Background(), bootstrap.NewGeneratorPathsConfig(serverConfig), "en", generator_domain.GeneratorPorts{
+	generatorService, err := generator_domain.NewGeneratorService(bootstrap.NewGeneratorPathsConfig(serverConfig), "en", generator_domain.GeneratorPorts{
 		FSWriter:           &generator_domain.MockFSWriter{},
 		ManifestEmitter:    generator_adapters.NewJSONManifestEmitter(persistSandbox),
 		Coordinator:        coordinatorService,
@@ -826,6 +828,7 @@ func generateCacheForTestCase(t *testing.T, tc testCase) {
 		SEOService:         nil,
 	})
 	require.NoError(t, err)
+	require.NoError(t, generatorService.EnsureDistPackage(context.Background()))
 
 	entryPoints := discoverEntryPoints(t, resolver, *serverConfig)
 	require.NotEmpty(t, entryPoints, "No entry points found")

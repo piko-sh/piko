@@ -1,5 +1,0 @@
-{
-  "description": "Diamond dependency: A imports B and C, both import D",
-  "modulePath": "testpkg",
-  "expected": "B:hello-d C:hello-d"
-}

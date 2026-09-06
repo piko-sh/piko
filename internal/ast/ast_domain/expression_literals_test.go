@@ -46,7 +46,7 @@ func TestLiteral_String(t *testing.T) {
 		},
 		{
 			name:     "StringLiteral empty",
-			literal:  &StringLiteral{Value: ""},
+			literal:  &StringLiteral{},
 			expected: `""`,
 		},
 		{
@@ -56,7 +56,7 @@ func TestLiteral_String(t *testing.T) {
 		},
 		{
 			name:     "IntegerLiteral zero",
-			literal:  &IntegerLiteral{Value: 0},
+			literal:  &IntegerLiteral{},
 			expected: "0",
 		},
 		{
@@ -71,7 +71,7 @@ func TestLiteral_String(t *testing.T) {
 		},
 		{
 			name:     "FloatLiteral zero",
-			literal:  &FloatLiteral{Value: 0.0},
+			literal:  &FloatLiteral{},
 			expected: "0",
 		},
 		{
@@ -156,7 +156,7 @@ func TestLiteral_String(t *testing.T) {
 		},
 		{
 			name:     "BooleanLiteral false",
-			literal:  &BooleanLiteral{Value: false},
+			literal:  &BooleanLiteral{},
 			expected: "false",
 		},
 		{

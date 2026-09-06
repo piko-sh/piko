@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -33,9 +34,6 @@ import (
 )
 
 const (
-	// intFormat is the fmt verb for formatting integers in PRAGMA values.
-	intFormat = "%d"
-
 	// driverName is the database/sql driver registration name for modernc SQLite.
 	driverName = "sqlite"
 
@@ -61,6 +59,10 @@ const (
 
 	// connMaxLifetime caps the lifetime of any individual connection.
 	connMaxLifetime = 1 * time.Hour
+
+	// pragmaParameter is the modernc DSN query parameter whose values the driver executes as
+	// PRAGMA statements on every connection it opens.
+	pragmaParameter = "_pragma"
 )
 
 var (
@@ -100,9 +102,10 @@ type Config struct {
 // The returned *sql.DB is configured with a single connection (SQLite's single-writer
 // model) and WAL mode enabled.
 //
-// The busy timeout, journal mode and foreign-key enforcement are seeded through the DSN
-// so they are in effect from the first connection, and the remaining tuning PRAGMAs are
-// then applied explicitly after opening the connection.
+// Every PRAGMA is carried in the DSN, so the driver applies the full set to each
+// connection it opens. Most of them are per-connection settings, so applying them once
+// through the pool would let them revert whenever the pool replaced a connection that had
+// reached its idle or lifetime limit.
 //
 // Takes path (string) which is the filesystem path to the SQLite database file.
 // Takes config (Config) which provides optional tuning parameters.
@@ -122,15 +125,7 @@ func Open(ctx context.Context, path string, config Config) (*sql.DB, error) {
 		_ = sandbox.Close()
 	}
 
-	busyTimeout, cachePages, mmapSize, journalSizeLimit := resolveConfig(config)
-
-	dsn := fmt.Sprintf(
-		"file:%s?_pragma=busy_timeout=%d&_pragma=journal_mode=WAL&_pragma=foreign_keys=ON",
-		sqliteFilePathEscaper.Replace(path),
-		busyTimeout,
-	)
-
-	database, err := sql.Open(driverName, dsn)
+	database, err := sql.Open(driverName, buildDSN(path, connectionPragmas(resolveConfig(config))))
 	if err != nil {
 		return nil, fmt.Errorf("db_driver_sqlite_nocgo: opening database: %w", err)
 	}
@@ -142,12 +137,7 @@ func Open(ctx context.Context, path string, config Config) (*sql.DB, error) {
 
 	if err := database.PingContext(ctx); err != nil {
 		closeErr := database.Close()
-		return nil, fmt.Errorf("db_driver_sqlite_nocgo: pinging database: %w", errors.Join(err, closeErr))
-	}
-
-	if err := applyPragmas(ctx, database, busyTimeout, cachePages, mmapSize, journalSizeLimit); err != nil {
-		closeErr := database.Close()
-		return nil, fmt.Errorf("db_driver_sqlite_nocgo: applying PRAGMAs: %w", errors.Join(err, closeErr))
+		return nil, fmt.Errorf("db_driver_sqlite_nocgo: opening first connection with PRAGMAs: %w", errors.Join(err, closeErr))
 	}
 
 	return database, nil
@@ -182,40 +172,46 @@ func resolveConfig(config Config) (busyTimeout, cachePages, mmapSize, journalSiz
 	return busyTimeout, cachePages, mmapSize, journalSizeLimit
 }
 
-// applyPragmas executes PRAGMA statements for performance and safety.
+// connectionPragmas lists the PRAGMA assignments applied to every connection, in the form
+// modernc's _pragma DSN parameter executes verbatim.
 //
-// Takes database (*sql.DB) which is the open SQLite connection pool.
+// Every value is either a fixed keyword or an integer formatted here, so no configured
+// text reaches the PRAGMA statements.
+//
 // Takes busyTimeout (int) which sets PRAGMA busy_timeout in milliseconds.
 // Takes cachePages (int) which sets PRAGMA cache_size in pages or KiB.
 // Takes mmapSize (int) which sets PRAGMA mmap_size in bytes.
 // Takes journalSizeLimit (int) which sets PRAGMA journal_size_limit in bytes.
 //
-// Returns error when any PRAGMA statement fails to execute.
-func applyPragmas(ctx context.Context, database *sql.DB, busyTimeout, cachePages, mmapSize, journalSizeLimit int) error {
-	pragmas := []struct {
-		name  string
-		value string
-	}{
-		{"journal_mode", "WAL"},
-		{"wal_autocheckpoint", "1000"},
-		{"busy_timeout", fmt.Sprintf(intFormat, busyTimeout)},
-		{"synchronous", "NORMAL"},
-		{"foreign_keys", "ON"},
-		{"cell_size_check", "ON"},
-		{"cache_size", fmt.Sprintf(intFormat, cachePages)},
-		{"temp_store", "MEMORY"},
-		{"mmap_size", fmt.Sprintf(intFormat, mmapSize)},
-		{"journal_size_limit", fmt.Sprintf(intFormat, journalSizeLimit)},
-		{"secure_delete", "OFF"},
+// Returns []string which holds one name(value) assignment per PRAGMA.
+func connectionPragmas(busyTimeout, cachePages, mmapSize, journalSizeLimit int) []string {
+	return []string{
+		fmt.Sprintf("busy_timeout(%d)", busyTimeout),
+		"journal_mode(WAL)",
+		"wal_autocheckpoint(1000)",
+		"synchronous(NORMAL)",
+		"foreign_keys(ON)",
+		"cell_size_check(ON)",
+		fmt.Sprintf("cache_size(%d)", cachePages),
+		"temp_store(MEMORY)",
+		fmt.Sprintf("mmap_size(%d)", mmapSize),
+		fmt.Sprintf("journal_size_limit(%d)", journalSizeLimit),
+		"secure_delete(OFF)",
 	}
+}
 
-	for _, pragma := range pragmas {
-		if _, err := database.ExecContext(ctx, fmt.Sprintf("PRAGMA %s = %s", pragma.name, pragma.value)); err != nil {
-			return fmt.Errorf("PRAGMA %s: %w", pragma.name, err)
-		}
-	}
-
-	return nil
+// buildDSN builds the modernc file: URI for path with each PRAGMA as a _pragma parameter.
+//
+// modernc runs busy_timeout first and the remaining PRAGMAs in name order whenever it
+// opens a connection.
+//
+// Takes path (string) which is the database file path.
+// Takes pragmas ([]string) which holds the name(value) assignments to apply.
+//
+// Returns string which is the DSN passed to sql.Open.
+func buildDSN(path string, pragmas []string) string {
+	query := url.Values{pragmaParameter: pragmas}
+	return "file:" + sqliteFilePathEscaper.Replace(path) + "?" + query.Encode()
 }
 
 // DriverName returns the database/sql driver name used for nocgo SQLite.

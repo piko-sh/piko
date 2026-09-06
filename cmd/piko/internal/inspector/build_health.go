@@ -69,16 +69,13 @@ func BuildHealthDetailSections(response *pb.GetHealthResponse, filter string) []
 //
 // Returns DetailSection which contains the labelled rows and any dependency sub-sections.
 func healthStatusSection(name string, status *pb.HealthStatus) DetailSection {
-	section := DetailSection{
-		Heading: name,
-		Rows: []DetailRow{
-			{Label: "State", Value: status.GetState(), IsStatus: true},
-			{Label: "Message", Value: status.GetMessage()},
-			{Label: "Duration", Value: status.GetDuration()},
-			{Label: "Timestamp", Value: FormatUnixSeconds(status.GetTimestampMs())},
-			{Label: "Dependencies", Value: formatHealthReady(status)},
-		},
-	}
+	section := NewDetailSection(name, []DetailRow{
+		{Label: "State", Value: status.GetState(), IsStatus: true},
+		NewDetailRow("Message", status.GetMessage()),
+		NewDetailRow("Duration", status.GetDuration()),
+		NewDetailRow("Timestamp", FormatUnixSeconds(status.GetTimestampMs())),
+		NewDetailRow("Dependencies", formatHealthReady(status)),
+	})
 
 	for _, dependency := range status.GetDependencies() {
 		section.SubSections = append(section.SubSections, healthDependencySection(dependency))
@@ -93,15 +90,12 @@ func healthStatusSection(name string, status *pb.HealthStatus) DetailSection {
 //
 // Returns DetailSection which contains the dependency rows.
 func healthDependencySection(dependency *pb.HealthStatus) DetailSection {
-	section := DetailSection{
-		Heading: dependency.GetName(),
-		Rows: []DetailRow{
-			{Label: "State", Value: dependency.GetState(), IsStatus: true},
-			{Label: "Duration", Value: dependency.GetDuration()},
-		},
-	}
+	section := NewDetailSection(dependency.GetName(), []DetailRow{
+		{Label: "State", Value: dependency.GetState(), IsStatus: true},
+		NewDetailRow("Duration", dependency.GetDuration()),
+	})
 	if dependency.GetMessage() != "" {
-		section.Rows = append(section.Rows, DetailRow{Label: "Message", Value: dependency.GetMessage()})
+		section.Rows = append(section.Rows, NewDetailRow("Message", dependency.GetMessage()))
 	}
 	return section
 }

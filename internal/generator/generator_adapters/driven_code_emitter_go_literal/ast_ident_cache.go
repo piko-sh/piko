@@ -21,7 +21,7 @@ package driven_code_emitter_go_literal
 import (
 	goast "go/ast"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 )
 
 // cachedIdent returns a cached identifier node for the given name. A thin wrapper around

@@ -20,7 +20,6 @@ package layouter_domain
 
 import (
 	"context"
-	"fmt"
 	"math"
 )
 
@@ -29,31 +28,28 @@ import (
 // Takes root (*LayoutBox) which is the root box of the tree to lay out.
 // Takes fontMetrics (FontMetricsPort) which provides font measurement capabilities for
 // text layout.
+// Takes limits (*LimitTracker) which enforces the layout limits, or nil for the defaults.
 //
 // Returns *Fragment which holds the layout results for the entire box tree.
-// Returns error when ctx is cancelled mid-layout, so the caller does not treat a silently
-// truncated (partial) layout as a finished document.
-func LayoutBoxTree(ctx context.Context, root *LayoutBox, fontMetrics FontMetricsPort) (*Fragment, error) {
+// Returns error when ctx is cancelled mid-layout or a layout limit is breached, so the
+// caller does not treat a silently truncated (partial) layout as a finished document.
+func LayoutBoxTree(ctx context.Context, root *LayoutBox, fontMetrics FontMetricsPort, limits *LimitTracker) (*Fragment, error) {
+	limits = trackerOrDefault(limits)
 	viewportHeight := root.ContentHeight
 	cache := newLayoutCache()
-	input := layoutInput{
-		AvailableWidth:     root.ContentWidth,
-		AvailableBlockSize: root.ContentHeight,
-		FontMetrics:        fontMetrics,
-		Cache:              cache,
-	}
+	input := newRootLayoutInput(fontMetrics, cache, limits, root.ContentWidth, root.ContentHeight)
 	fragment := layoutBox(ctx, root, input)
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("box-tree layout cancelled: %w", err)
+	if err := layoutStageError(ctx, limits); err != nil {
+		return nil, err
 	}
 	writeFragmentsToBoxTree(fragment, 0, 0)
 	root.ContentHeight = viewportHeight
 	layoutListMarkers(root, fontMetrics)
 	applyAllRelativeOffsets(root)
 	layoutPositionedElements(ctx, root, input)
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("box-tree layout cancelled: %w", err)
+	if err := layoutStageError(ctx, limits); err != nil {
+		return nil, err
 	}
 	return fragment, nil
 }
@@ -97,8 +93,8 @@ type boxDimensions struct {
 //
 // Returns *Fragment which captures the layout results for this box and its descendants.
 func layoutBox(ctx context.Context, box *LayoutBox, input layoutInput) *Fragment {
-	if ctx.Err() != nil {
-		return &Fragment{Box: box}
+	if ctx.Err() != nil || input.Limits.failed() {
+		return newFragment(box, 0, 0, 0, 0)
 	}
 
 	if cached := input.Cache.Lookup(box, input); cached != nil {
@@ -115,7 +111,7 @@ func layoutBox(ctx context.Context, box *LayoutBox, input layoutInput) *Fragment
 
 	fcResult, ok := runFormattingContext(ctx, box, dims, input)
 	if !ok {
-		return &Fragment{Box: box}
+		return newFragment(box, 0, 0, 0, 0)
 	}
 
 	contentHeight := resolveBoxContentHeight(box, fcResult.ContentHeight, &box.Style, dims.contentWidth, input.AvailableBlockSize)
@@ -139,6 +135,8 @@ func layoutBox(ctx context.Context, box *LayoutBox, input layoutInput) *Fragment
 			Left:   dims.marginLeft,
 			Right:  dims.marginRight,
 		},
+		OffsetX: 0,
+		OffsetY: 0,
 	}
 	input.Cache.Store(box, input, fragment)
 	return fragment
@@ -166,18 +164,13 @@ func runFormattingContext(
 	if formattingContextError != nil {
 		return formattingContextResult{}, false
 	}
-	fcInput := layoutInput{
-		AvailableWidth:      dims.contentWidth,
-		AvailableBlockSize:  resolveAvailableBlockSize(&box.Style, input.AvailableBlockSize),
-		FontMetrics:         input.FontMetrics,
-		Cache:               input.Cache,
-		SizingMode:          input.SizingMode,
-		Edges:               dims.edges,
-		Floats:              input.Floats,
-		FloatBFCOffsetY:     input.FloatBFCOffsetY,
-		FloatContainerX:     input.FloatContainerX,
-		FloatContainerWidth: input.FloatContainerWidth,
-	}
+	availableBlockSize := resolveAvailableBlockSize(&box.Style, input.AvailableBlockSize)
+	fcInput := newLayoutInput(input, dims.contentWidth, availableBlockSize, dims.edges)
+	fcInput.SizingMode = input.SizingMode
+	fcInput.Floats = input.Floats
+	fcInput.FloatBFCOffsetY = input.FloatBFCOffsetY
+	fcInput.FloatContainerX = input.FloatContainerX
+	fcInput.FloatContainerWidth = input.FloatContainerWidth
 	return formattingContext.Layout(ctx, box, fcInput), true
 }
 
@@ -258,6 +251,8 @@ type resolvedWidth struct {
 // Takes box (*LayoutBox) which is the box used for intrinsic sizing measurement only.
 // Takes fontMetrics (FontMetricsPort) which provides text measurement for intrinsic
 // sizing.
+// Takes containingBlockDirection (DirectionType) which specifies the containing block
+// text direction for horizontal sizing.
 //
 // Returns resolvedWidth with the resolved values.
 func resolveWidthFromStyle(
@@ -377,6 +372,8 @@ func resolveAutoWidthFromStyle(style *ComputedStyle, availableWidth, horizontalE
 // Takes style (*ComputedStyle) which is the style to resolve.
 // Takes availableWidth (float64) which is the width available from the containing block.
 // Takes horizontalEdges (float64) which is the sum of horizontal padding and border.
+// Takes containingBlockDirection (DirectionType) which specifies the containing block
+// text direction for horizontal sizing.
 //
 // Returns resolvedWidth with the resolved values.
 func resolveExplicitWidthFromStyle(style *ComputedStyle, availableWidth, horizontalEdges float64, containingBlockDirection DirectionType) resolvedWidth {
@@ -541,13 +538,15 @@ type blockLayoutContext struct {
 // children.
 func layoutBlockChildren(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
 	layoutContext := blockLayoutContext{
-		box:                 box,
-		input:               input,
-		cursorY:             0,
-		childAvailableWidth: input.AvailableWidth,
-		parentMarginTop:     input.Edges.MarginTop,
-		parentMarginBottom:  input.Edges.MarginBottom,
-		firstInFlowIndex:    -1,
+		box:                  box,
+		input:                input,
+		cursorY:              0,
+		childAvailableWidth:  input.AvailableWidth,
+		parentMarginTop:      input.Edges.MarginTop,
+		parentMarginBottom:   input.Edges.MarginBottom,
+		firstInFlowIndex:     -1,
+		floats:               floatContext{},
+		previousMarginBottom: 0,
 	}
 
 	var childFragments []*Fragment
@@ -569,14 +568,11 @@ func layoutBlockChildren(ctx context.Context, box *LayoutBox, input layoutInput)
 
 	contentHeight := layoutContext.finaliseBlockHeight()
 
-	return formattingContextResult{
-		Children:      childFragments,
-		ContentHeight: contentHeight,
-		Margin: BoxEdges{
-			Top:    layoutContext.parentMarginTop,
-			Bottom: layoutContext.parentMarginBottom,
-		},
-	}
+	return newFormattingContextResult(
+		childFragments,
+		contentHeight,
+		newVerticalMarginEdges(layoutContext.parentMarginTop, layoutContext.parentMarginBottom),
+	)
 }
 
 // layoutFloatChild lays out a floated child and positions it using the float placement
@@ -586,13 +582,13 @@ func layoutBlockChildren(ctx context.Context, box *LayoutBox, input layoutInput)
 //
 // Returns *Fragment with the float's layout results.
 func (layoutContext *blockLayoutContext) layoutFloatChild(ctx context.Context, child *LayoutBox) *Fragment {
-	childInput := layoutInput{
-		AvailableWidth:           layoutContext.childAvailableWidth,
-		AvailableBlockSize:       layoutContext.input.AvailableBlockSize,
-		FontMetrics:              layoutContext.input.FontMetrics,
-		Cache:                    layoutContext.input.Cache,
-		ContainingBlockDirection: layoutContext.box.Style.Direction,
-	}
+	childInput := newLayoutInput(
+		layoutContext.input,
+		layoutContext.childAvailableWidth,
+		layoutContext.input.AvailableBlockSize,
+		resolvedEdges{},
+	)
+	childInput.ContainingBlockDirection = layoutContext.box.Style.Direction
 	childFragment := layoutBox(ctx, child, childInput)
 
 	floatWidth := childFragment.MarginBoxWidth()
@@ -641,17 +637,17 @@ func (layoutContext *blockLayoutContext) layoutInFlowChild(ctx context.Context, 
 		leftOffset = layoutContext.floats.leftOffsetAtY(layoutContext.cursorY, 0, contentStartX)
 	}
 
-	childInput := layoutInput{
-		AvailableWidth:           effectiveWidth,
-		AvailableBlockSize:       layoutContext.input.AvailableBlockSize,
-		FontMetrics:              layoutContext.input.FontMetrics,
-		Cache:                    layoutContext.input.Cache,
-		Floats:                   &layoutContext.floats,
-		FloatBFCOffsetY:          layoutContext.cursorY,
-		FloatContainerX:          contentStartX,
-		FloatContainerWidth:      layoutContext.childAvailableWidth,
-		ContainingBlockDirection: layoutContext.box.Style.Direction,
-	}
+	childInput := newLayoutInput(
+		layoutContext.input,
+		effectiveWidth,
+		layoutContext.input.AvailableBlockSize,
+		resolvedEdges{},
+	)
+	childInput.Floats = &layoutContext.floats
+	childInput.FloatBFCOffsetY = layoutContext.cursorY
+	childInput.FloatContainerX = contentStartX
+	childInput.FloatContainerWidth = layoutContext.childAvailableWidth
+	childInput.ContainingBlockDirection = layoutContext.box.Style.Direction
 	childFragment := layoutBox(ctx, child, childInput)
 	layoutContext.collapseChildMarginTop(childFragment, index)
 
@@ -851,8 +847,13 @@ func applyAspectRatio(contentWidth, contentHeight float64, style *ComputedStyle,
 // Takes contentWidth (float64) which is the resolved content width.
 // Takes contentHeight (float64) which is the resolved content height.
 // Takes style (*ComputedStyle) which carries the min/max properties.
-// Takes box (*LayoutBox) and fontMetrics (FontMetricsPort) for intrinsic measurement when
-// min/max uses fit-content.
+// Takes containingBlockWidth (float64) which provides the reference width for resolving
+// percentage constraints.
+// Takes availableBlockSize (float64) which provides the available block size for
+// resolving height constraints.
+// Takes box (*LayoutBox) which provides the content measured for intrinsic size
+// constraints.
+// Takes fontMetrics (FontMetricsPort) which measures text for intrinsic size constraints.
 //
 // Returns the clamped width and height.
 func clampDimensions(
@@ -1039,8 +1040,8 @@ func layoutOutsideListMarker(listItem *LayoutBox, fontMetrics FontMetricsPort) {
 		fontSize := child.Style.FontSize
 		metrics := fontMetrics.GetMetrics(font, fontSize)
 
-		markerWidth := fontMetrics.MeasureText(font, fontSize, child.Text, child.Style.Direction)
-		child.Glyphs = fontMetrics.ShapeText(font, fontSize, child.Text, child.Style.Direction)
+		glyphs, markerWidth := fontMetrics.ShapeAndMeasureText(font, fontSize, child.Text, child.Style.Direction)
+		child.Glyphs = glyphs
 		fontLineHeight := metrics.Ascent + metrics.Descent + metrics.LineGap
 		markerHeight := child.Style.LineHeight
 		if markerHeight < fontLineHeight {

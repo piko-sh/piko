@@ -327,6 +327,7 @@ func (d *decoder) unpackIdentifier(fb *ast_schema_gen.IdentifierFB, sourceLength
 		Name:             mem.String(fb.Name()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -349,6 +350,7 @@ func (d *decoder) unpackStringLiteral(fb *ast_schema_gen.StringLiteralFB, source
 		Value:            mem.String(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -373,6 +375,7 @@ func (d *decoder) unpackIntegerLiteral(fb *ast_schema_gen.IntegerLiteralFB, sour
 		Value:            fb.Value(),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -395,6 +398,7 @@ func (d *decoder) unpackFloatLiteral(fb *ast_schema_gen.FloatLiteralFB, sourceLe
 		Value:            fb.Value(),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -417,6 +421,7 @@ func (d *decoder) unpackBooleanLiteral(fb *ast_schema_gen.BooleanLiteralFB, sour
 		Value:            fb.Value(),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -438,6 +443,7 @@ func (d *decoder) unpackNilLiteral(fb *ast_schema_gen.NilLiteralFB, sourceLength
 	return &ast_domain.NilLiteral{
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -461,6 +467,7 @@ func (d *decoder) unpackDecimalLiteral(fb *ast_schema_gen.DecimalLiteralFB, sour
 		Value:            mem.String(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -483,6 +490,7 @@ func (d *decoder) unpackBigIntLiteral(fb *ast_schema_gen.BigIntLiteralFB, source
 		Value:            mem.String(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -505,6 +513,7 @@ func (d *decoder) unpackRuneLiteral(fb *ast_schema_gen.RuneLiteralFB, sourceLeng
 		Value:            rune(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -527,6 +536,7 @@ func (d *decoder) unpackDateTimeLiteral(fb *ast_schema_gen.DateTimeLiteralFB, so
 		Value:            mem.String(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -550,6 +560,7 @@ func (d *decoder) unpackDateLiteral(fb *ast_schema_gen.DateLiteralFB, sourceLeng
 		Value:            mem.String(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -573,6 +584,7 @@ func (d *decoder) unpackTimeLiteral(fb *ast_schema_gen.TimeLiteralFB, sourceLeng
 		Value:            mem.String(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }
 
@@ -597,5 +609,6 @@ func (d *decoder) unpackDurationLiteral(fb *ast_schema_gen.DurationLiteralFB, so
 		Value:            mem.String(fb.Value()),
 		RelativeLocation: location,
 		SourceLength:     sourceLength,
+		GoAnnotations:    nil,
 	}, nil
 }

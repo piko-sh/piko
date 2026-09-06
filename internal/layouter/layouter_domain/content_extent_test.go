@@ -73,9 +73,6 @@ func TestMeasureContentExtent_WithMargins(t *testing.T) {
 }
 
 func TestMeasureContentExtent_EmptyRoot(t *testing.T) {
-	root := &LayoutBox{
-		ContentY:      0,
-		ContentHeight: 0,
-	}
+	root := &LayoutBox{}
 	assert.InDelta(t, 0.0, MeasureContentExtent(root), 0.001)
 }

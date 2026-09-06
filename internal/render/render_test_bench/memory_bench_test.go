@@ -50,9 +50,7 @@ func BenchmarkMemory_Allocations(b *testing.B) {
 			name: "StandardPage",
 			ast:  func() *ast_domain.TemplateAST { return BuildMixedAST(5) },
 			meta: &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{
-					Title: "Standard Page",
-				},
+				Title:      "Standard Page",
 				CustomTags: []string{"my-card", "another-component"},
 			},
 		},
@@ -133,9 +131,7 @@ func BenchmarkMemory_PoolEfficiency(b *testing.B) {
 
 	ast := BuildMixedAST(10)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Pool Test",
-		},
+		Title:      "Pool Test",
 		CustomTags: []string{"my-card", "another-component"},
 	}
 
@@ -178,9 +174,7 @@ func BenchmarkMemory_GCPressure(b *testing.B) {
 
 	ast := BuildMixedAST(20)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "GC Pressure Test",
-		},
+		Title:      "GC Pressure Test",
 		CustomTags: []string{"my-card", "another-component"},
 	}
 

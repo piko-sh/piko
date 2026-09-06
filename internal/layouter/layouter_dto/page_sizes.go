@@ -23,25 +23,45 @@ package layouter_dto
 var (
 	// PageA4 is the ISO A4 page size (210mm x 297mm).
 	PageA4 = PageConfig{
-		Width:  595.28,
-		Height: 841.89,
+		Width:        595.28,
+		Height:       841.89,
+		MarginTop:    0,
+		MarginRight:  0,
+		MarginBottom: 0,
+		MarginLeft:   0,
+		AutoHeight:   false,
 	}
 
 	// PageA3 is the ISO A3 page size (297mm x 420mm).
 	PageA3 = PageConfig{
-		Width:  841.89,
-		Height: 1190.55,
+		Width:        841.89,
+		Height:       1190.55,
+		MarginTop:    0,
+		MarginRight:  0,
+		MarginBottom: 0,
+		MarginLeft:   0,
+		AutoHeight:   false,
 	}
 
 	// PageLetter is the US Letter page size (8.5in x 11in).
 	PageLetter = PageConfig{
-		Width:  612.0,
-		Height: 792.0,
+		Width:        612.0,
+		Height:       792.0,
+		MarginTop:    0,
+		MarginRight:  0,
+		MarginBottom: 0,
+		MarginLeft:   0,
+		AutoHeight:   false,
 	}
 
 	// PageLegal is the US Legal page size (8.5in x 14in).
 	PageLegal = PageConfig{
-		Width:  612.0,
-		Height: 1008.0,
+		Width:        612.0,
+		Height:       1008.0,
+		MarginTop:    0,
+		MarginRight:  0,
+		MarginBottom: 0,
+		MarginLeft:   0,
+		AutoHeight:   false,
 	}
 )

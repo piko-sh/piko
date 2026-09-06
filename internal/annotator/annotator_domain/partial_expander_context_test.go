@@ -1343,9 +1343,9 @@ func TestExpansionContext_getSortedPartialInvocations(t *testing.T) {
 
 		ec := &expansionContext{
 			uniqueInvocations: map[string]*annotator_dto.PartialInvocation{
-				"zebra": {InvocationKey: "zebra", PartialAlias: "z", PartialHashedName: "zh", PassedProps: nil, RequestOverrides: nil, InvokerHashedName: "", InvokerInvocationKey: "", DependsOn: nil, Location: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
-				"alpha": {InvocationKey: "alpha", PartialAlias: "a", PartialHashedName: "ah", PassedProps: nil, RequestOverrides: nil, InvokerHashedName: "", InvokerInvocationKey: "", DependsOn: nil, Location: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
-				"mango": {InvocationKey: "mango", PartialAlias: "m", PartialHashedName: "mh", PassedProps: nil, RequestOverrides: nil, InvokerHashedName: "", InvokerInvocationKey: "", DependsOn: nil, Location: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
+				"zebra": {InvocationKey: "zebra", PartialAlias: "z", PartialHashedName: "zh", PassedProps: nil, RequestOverrides: nil, InvokerHashedName: "", InvokerInvocationKey: "", DependsOn: nil, Location: ast_domain.Location{}},
+				"alpha": {InvocationKey: "alpha", PartialAlias: "a", PartialHashedName: "ah", PassedProps: nil, RequestOverrides: nil, InvokerHashedName: "", InvokerInvocationKey: "", DependsOn: nil, Location: ast_domain.Location{}},
+				"mango": {InvocationKey: "mango", PartialAlias: "m", PartialHashedName: "mh", PassedProps: nil, RequestOverrides: nil, InvokerHashedName: "", InvokerInvocationKey: "", DependsOn: nil, Location: ast_domain.Location{}},
 			},
 		}
 

@@ -19,6 +19,9 @@
 package i18n_domain
 
 import (
+	"cmp"
+	"maps"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -95,6 +98,9 @@ func NewStore(defaultLocale string) *Store {
 
 // NewStoreFromTranslations creates a populated Store from a Translations map.
 //
+// Templates that cannot be parsed render as their literal text. Callers that need the
+// parse problems build the store with NewStore and AddAllTranslations instead.
+//
 // Takes translations (Translations) which maps locale codes to key-value translation
 // pairs.
 // Takes defaultLocale (string) which specifies the fallback locale.
@@ -102,9 +108,7 @@ func NewStore(defaultLocale string) *Store {
 // Returns *Store which is the populated store ready for use.
 func NewStoreFromTranslations(translations Translations, defaultLocale string) *Store {
 	store := NewStore(defaultLocale)
-	for locale, entries := range translations {
-		store.AddTranslations(locale, entries)
-	}
+	store.AddAllTranslations(translations)
 	return store
 }
 
@@ -139,17 +143,50 @@ func (s *Store) AddLocale(locale string, entries map[string]*Entry) {
 	s.fallbackChain[locale] = buildFallbackChain(locale, s.defaultLocale)
 }
 
-// AddTranslations adds raw translation strings for a locale, parsing them into entries.
+// AddTranslations adds raw translation strings for a locale, parsing them into entries. A
+// template, or plural form, that cannot be parsed is kept as literal text and returned as
+// a problem for the caller to report.
 //
 // Takes locale (string) which identifies the target locale.
 // Takes translations (map[string]string) which provides the raw translation strings to
 // parse.
-func (s *Store) AddTranslations(locale string, translations map[string]string) {
+//
+// Returns []TemplateProblem which lists the templates that failed to parse, ordered by
+// key and plural form, or nil when every template parsed.
+func (s *Store) AddTranslations(locale string, translations map[string]string) []TemplateProblem {
 	entries := make(map[string]*Entry, len(translations))
+	var problems []TemplateProblem
 	for key, template := range translations {
-		entries[key] = parseEntry(template)
+		entry, entryProblems := parseEntry(template)
+		entries[key] = entry
+		for _, problem := range entryProblems {
+			problem.Locale = locale
+			problem.Key = key
+			problems = append(problems, problem)
+		}
 	}
 	s.AddLocale(locale, entries)
+	slices.SortFunc(problems, func(a, b TemplateProblem) int {
+		return cmp.Or(cmp.Compare(a.Key, b.Key), cmp.Compare(a.FormIndex, b.FormIndex))
+	})
+	return problems
+}
+
+// AddAllTranslations adds raw translation strings for every locale in translations,
+// parsing them into entries. Templates that cannot be parsed are kept as literal text and
+// returned as problems for the caller to report.
+//
+// Takes translations (Translations) which maps locale codes to key-value translation
+// pairs.
+//
+// Returns []TemplateProblem which lists the templates that failed to parse, ordered by
+// locale, key and plural form, or nil when every template parsed.
+func (s *Store) AddAllTranslations(translations Translations) []TemplateProblem {
+	perLocale := make([][]TemplateProblem, 0, len(translations))
+	for _, locale := range slices.Sorted(maps.Keys(translations)) {
+		perLocale = append(perLocale, s.AddTranslations(locale, translations[locale]))
+	}
+	return slices.Concat(perLocale...)
 }
 
 // Get retrieves a translation entry for the given locale and key. It follows the fallback
@@ -272,11 +309,9 @@ func (s *Store) ResolveMessage(key, locale string, scope map[string]any, depth i
 	buffer := resolveMessageBufPool.Get()
 	defer resolveMessageBufPool.Put(buffer)
 
-	var parts []TemplatePart
-	if len(entry.Parts) > 0 {
-		parts = entry.Parts
-	} else {
-		parts, _ = ParseTemplate(entry.Template)
+	parts := entry.Parts
+	if len(parts) == 0 {
+		parts = renderTimeParts(entry.Template)
 	}
 
 	ctx := &renderContext{
@@ -310,12 +345,15 @@ var (
 	_ messageResolver = (*Store)(nil)
 )
 
-// parseEntry parses a template string into an Entry.
+// parseEntry parses a template string into an Entry. A template or plural form that
+// cannot be parsed is kept as literal text so it renders verbatim.
 //
 // Takes template (string) which is the translation template to parse.
 //
 // Returns *Entry which holds the parsed template parts and plural forms.
-func parseEntry(template string) *Entry {
+// Returns []TemplateProblem which lists the parse failures, with the locale and key left
+// for the caller to fill in.
+func parseEntry(template string) (*Entry, []TemplateProblem) {
 	hasPlurals := HasPluralForms(template)
 
 	entry := &Entry{
@@ -326,22 +364,29 @@ func parseEntry(template string) *Entry {
 		HasPlurals:       hasPlurals,
 	}
 
-	if hasPlurals {
-		entry.PluralForms = SplitPluralForms(template)
-		entry.PluralFormsParts = make([][]TemplatePart, len(entry.PluralForms))
-		for i, form := range entry.PluralForms {
-			entry.PluralFormsParts[i], _ = ParseTemplate(form)
-			preparseExpressions(entry.PluralFormsParts[i])
-		}
-		if len(entry.PluralFormsParts) > 0 {
-			entry.Parts = entry.PluralFormsParts[0]
-		}
-	} else {
-		entry.Parts, _ = ParseTemplate(template)
+	if !hasPlurals {
+		parts, messages := parseTemplateOrLiteral(template)
+		entry.Parts = parts
 		preparseExpressions(entry.Parts)
+		if len(messages) == 0 {
+			return entry, nil
+		}
+		problem := TemplateProblem{}
+		problem.FormIndex = NoPluralForm
+		problem.Messages = messages
+		return entry, []TemplateProblem{problem}
 	}
 
-	return entry
+	entry.PluralForms = SplitPluralForms(template)
+	formsParts, problems := ParsePluralForms(entry.PluralForms)
+	entry.PluralFormsParts = formsParts
+	for _, parts := range entry.PluralFormsParts {
+		preparseExpressions(parts)
+	}
+	if len(entry.PluralFormsParts) > 0 {
+		entry.Parts = entry.PluralFormsParts[0]
+	}
+	return entry, problems
 }
 
 // preparseExpressions parses all expression ASTs in the given parts at load time rather

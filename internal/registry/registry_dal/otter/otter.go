@@ -1170,6 +1170,7 @@ func NewOtterDAL(config Config, opts ...Option) (registry_dal.RegistryDALWithTx,
 		gcHints:         make([]registry_dto.GCHint, 0),
 		ownsCache:       true,
 		mu:              sync.RWMutex{},
+		artefacts:       nil,
 	}
 
 	for _, opt := range opts {
@@ -1182,9 +1183,8 @@ func NewOtterDAL(config Config, opts ...Option) (registry_dal.RegistryDALWithTx,
 			capacity = defaultCacheCapacity
 		}
 
-		cacheOpts := cache_dto.Options[string, *registry_dto.ArtefactMeta]{
-			MaximumEntries: int(capacity),
-		}
+		cacheOpts := cache_dto.Options[string, *registry_dto.ArtefactMeta]{}
+		cacheOpts.MaximumEntries = int(capacity)
 
 		cache, err := provider_otter.OtterProviderFactory(cacheOpts)
 		if err != nil {

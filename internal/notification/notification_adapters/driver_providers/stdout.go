@@ -87,14 +87,9 @@ func (*StdoutProvider) SupportsBulkSending() bool {
 // Returns notification_domain.ProviderCapabilities which describes the supported features
 // including bulk sending but no rich formatting, images, or attachments.
 func (*StdoutProvider) GetCapabilities() notification_domain.ProviderCapabilities {
-	return notification_domain.ProviderCapabilities{
-		SupportsRichFormatting: false,
-		SupportsImages:         false,
-		SupportsAttachments:    false,
-		MaxMessageLength:       0,
-		SupportsBulkSending:    true,
-		RequiresAuthentication: false,
-	}
+	capabilities := notification_domain.ProviderCapabilities{}
+	capabilities.SupportsBulkSending = true
+	return capabilities
 }
 
 // Close releases any resources held by the provider.

@@ -52,8 +52,9 @@ func (stream *ContentStream) RestoreState() {
 
 // SetFillColourRGB sets the fill colour using RGB values in [0, 1].
 //
-// Takes red, green, blue (float64) which are the colour channel intensities, each in the
-// range [0, 1].
+// Takes red (float64) which sets the red channel from 0 to 1.
+// Takes green (float64) which sets the green channel from 0 to 1.
+// Takes blue (float64) which sets the blue channel from 0 to 1.
 func (stream *ContentStream) SetFillColourRGB(red, green, blue float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s rg\n",
 		formatFloat(red), formatFloat(green), formatFloat(blue))
@@ -61,8 +62,9 @@ func (stream *ContentStream) SetFillColourRGB(red, green, blue float64) {
 
 // SetStrokeColourRGB sets the stroke colour using RGB values in [0, 1].
 //
-// Takes red, green, blue (float64) which are the colour channel intensities, each in the
-// range [0, 1].
+// Takes red (float64) which sets the red channel from 0 to 1.
+// Takes green (float64) which sets the green channel from 0 to 1.
+// Takes blue (float64) which sets the blue channel from 0 to 1.
 func (stream *ContentStream) SetStrokeColourRGB(red, green, blue float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s RG\n",
 		formatFloat(red), formatFloat(green), formatFloat(blue))
@@ -84,8 +86,10 @@ func (stream *ContentStream) SetStrokeColourGrey(grey float64) {
 
 // SetFillColourCMYK sets the fill colour using CMYK values in [0, 1].
 //
-// Takes cyan, magenta, yellow, key (float64) which are the CMYK channel values, each in
-// the range [0, 1].
+// Takes cyan (float64) which sets the cyan channel from 0 to 1.
+// Takes magenta (float64) which sets the magenta channel from 0 to 1.
+// Takes yellow (float64) which sets the yellow channel from 0 to 1.
+// Takes key (float64) which sets the black channel from 0 to 1.
 func (stream *ContentStream) SetFillColourCMYK(cyan, magenta, yellow, key float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s k\n",
 		formatFloat(cyan), formatFloat(magenta), formatFloat(yellow), formatFloat(key))
@@ -93,8 +97,10 @@ func (stream *ContentStream) SetFillColourCMYK(cyan, magenta, yellow, key float6
 
 // SetStrokeColourCMYK sets the stroke colour using CMYK values in [0, 1].
 //
-// Takes cyan, magenta, yellow, key (float64) which are the CMYK channel values, each in
-// the range [0, 1].
+// Takes cyan (float64) which sets the cyan channel from 0 to 1.
+// Takes magenta (float64) which sets the magenta channel from 0 to 1.
+// Takes yellow (float64) which sets the yellow channel from 0 to 1.
+// Takes key (float64) which sets the black channel from 0 to 1.
 func (stream *ContentStream) SetStrokeColourCMYK(cyan, magenta, yellow, key float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s K\n",
 		formatFloat(cyan), formatFloat(magenta), formatFloat(yellow), formatFloat(key))
@@ -109,8 +115,10 @@ func (stream *ContentStream) SetLineWidth(width float64) {
 
 // Rectangle appends a rectangle path. PDF coordinates: x, y is the lower-left corner.
 //
-// Takes x, y (float64) which specify the lower-left corner position.
-// Takes width, height (float64) which specify the rectangle dimensions.
+// Takes x (float64) which is the left edge position in PDF coordinates.
+// Takes y (float64) which is the bottom edge position in PDF coordinates.
+// Takes width (float64) which is the rectangle width in points.
+// Takes height (float64) which is the rectangle height in points.
 func (stream *ContentStream) Rectangle(x, y, width, height float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s re\n",
 		formatFloat(x), formatFloat(y), formatFloat(width), formatFloat(height))
@@ -138,14 +146,16 @@ func (stream *ContentStream) FillAndStroke() {
 
 // MoveTo starts a new subpath at the given point.
 //
-// Takes x, y (float64) which specify the starting coordinates.
+// Takes x (float64) which is the horizontal position in PDF coordinates.
+// Takes y (float64) which is the vertical position in PDF coordinates.
 func (stream *ContentStream) MoveTo(x, y float64) {
 	fmt.Fprintf(&stream.builder, "%s %s m\n", formatFloat(x), formatFloat(y))
 }
 
 // LineTo appends a straight line segment from the current point.
 //
-// Takes x, y (float64) which specify the endpoint coordinates.
+// Takes x (float64) which is the horizontal position in PDF coordinates.
+// Takes y (float64) which is the vertical position in PDF coordinates.
 func (stream *ContentStream) LineTo(x, y float64) {
 	fmt.Fprintf(&stream.builder, "%s %s l\n", formatFloat(x), formatFloat(y))
 }
@@ -153,9 +163,12 @@ func (stream *ContentStream) LineTo(x, y float64) {
 // CurveTo appends a cubic Bezier curve from the current point using two control points
 // (x1, y1) and (x2, y2) and the endpoint (x3, y3).
 //
-// Takes x1, y1 (float64) which specify the first control point.
-// Takes x2, y2 (float64) which specify the second control point.
-// Takes x3, y3 (float64) which specify the curve endpoint.
+// Takes x1 (float64) which is the horizontal coordinate of the first control point.
+// Takes y1 (float64) which is the vertical coordinate of the first control point.
+// Takes x2 (float64) which is the horizontal coordinate of the second control point.
+// Takes y2 (float64) which is the vertical coordinate of the second control point.
+// Takes x3 (float64) which is the horizontal coordinate of the curve endpoint.
+// Takes y3 (float64) which is the vertical coordinate of the curve endpoint.
 func (stream *ContentStream) CurveTo(x1, y1, x2, y2, x3, y3 float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s %s %s c\n",
 		formatFloat(x1), formatFloat(y1),
@@ -172,7 +185,8 @@ func (stream *ContentStream) ClosePath() {
 // Circle appends a closed circular path centred at (cx, cy) with radius r, using four
 // cubic Bezier curves (the standard kappa approximation with k = 0.5522847498).
 //
-// Takes cx, cy (float64) which specify the centre coordinates.
+// Takes cx (float64) which is the horizontal centre coordinate in points.
+// Takes cy (float64) which is the vertical centre coordinate in points.
 // Takes r (float64) which is the circle radius in points.
 func (stream *ContentStream) Circle(cx, cy, r float64) {
 	const kappa = 0.5522847498
@@ -260,7 +274,12 @@ func (stream *ContentStream) SetExtGState(name string) {
 // ConcatMatrix concatenates a 2D affine transformation matrix with the current
 // transformation matrix. The six values [a b c d e f] define the matrix.
 //
-// Takes a, b, c, d, e, f (float64) which are the affine matrix components.
+// Takes a (float64) which is the horizontal scale component of the affine matrix.
+// Takes b (float64) which is the vertical shear component of the affine matrix.
+// Takes c (float64) which is the horizontal shear component of the affine matrix.
+// Takes d (float64) which is the vertical scale component of the affine matrix.
+// Takes e (float64) which is the horizontal translation component of the affine matrix.
+// Takes f (float64) which is the vertical translation component of the affine matrix.
 func (stream *ContentStream) ConcatMatrix(a, b, c, d, e, f float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s %s %s cm\n",
 		formatFloat(a), formatFloat(b),
@@ -331,7 +350,8 @@ func (stream *ContentStream) SetFont(name string, size float64) {
 
 // MoveText moves the text position by the given offsets.
 //
-// Takes x, y (float64) which are the horizontal and vertical offsets.
+// Takes x (float64) which is the horizontal text offset.
+// Takes y (float64) which is the vertical text offset.
 func (stream *ContentStream) MoveText(x, y float64) {
 	fmt.Fprintf(&stream.builder, "%s %s Td\n", formatFloat(x), formatFloat(y))
 }
@@ -340,7 +360,12 @@ func (stream *ContentStream) MoveText(x, y float64) {
 // [a b c d e f] define an affine transformation applied to text drawn within the current
 // text object.
 //
-// Takes a, b, c, d, e, f (float64) which are the affine matrix components.
+// Takes a (float64) which is the horizontal scale component of the affine matrix.
+// Takes b (float64) which is the vertical shear component of the affine matrix.
+// Takes c (float64) which is the horizontal shear component of the affine matrix.
+// Takes d (float64) which is the vertical scale component of the affine matrix.
+// Takes e (float64) which is the horizontal translation component of the affine matrix.
+// Takes f (float64) which is the vertical translation component of the affine matrix.
 func (stream *ContentStream) SetTextMatrix(a, b, c, d, e, f float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s %s %s Tm\n",
 		formatFloat(a), formatFloat(b),

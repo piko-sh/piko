@@ -96,7 +96,7 @@ func TestPdfTransformerRegistry_Register_Nil(t *testing.T) {
 
 func TestPdfTransformerRegistry_Register_EmptyName(t *testing.T) {
 	registry := pdfwriter_domain.NewPdfTransformerRegistry()
-	err := registry.Register(&mockTransformer{name: ""})
+	err := registry.Register(&mockTransformer{})
 	assert.Error(t, err)
 }
 

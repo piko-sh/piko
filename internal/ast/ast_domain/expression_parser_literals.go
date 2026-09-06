@@ -576,9 +576,9 @@ func (p *templateLiteralParser) calculateLocation(offset int) Location {
 	column := p.parentLocation.Column + 1
 	contentUpToOffset := p.content[:offset]
 
-	if lastNewlineIndex := strings.LastIndex(contentUpToOffset, "\n"); lastNewlineIndex != -1 {
+	if _, after, ok := strings.CutLast(contentUpToOffset, "\n"); ok {
 		line += strings.Count(contentUpToOffset, "\n")
-		column = utf8.RuneCountInString(contentUpToOffset[lastNewlineIndex+1:]) + 1
+		column = utf8.RuneCountInString(after) + 1
 	} else {
 		column += utf8.RuneCountInString(contentUpToOffset)
 	}

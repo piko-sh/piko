@@ -52,11 +52,11 @@ func mergeCustomFunctions(
 	for _, config := range customFunctions {
 		signature, conversionError := convertCustomFunction(config, engine)
 		if conversionError != nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  fmt.Sprintf("custom function %q: %v", config.Name, conversionError),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeInternalNilGuard,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeInternalNilGuard,
+				querier_dto.SeverityWarning,
+				fmt.Sprintf("custom function %q: %v", config.Name, conversionError),
+			))
 		}
 		if signature == nil {
 			continue
@@ -90,8 +90,9 @@ func convertCustomFunction(
 	arguments := make([]querier_dto.FunctionArgument, len(config.Arguments))
 	for argumentIndex, typeName := range config.Arguments {
 		arguments[argumentIndex] = querier_dto.FunctionArgument{
-			Name: fmt.Sprintf("arg%d", argumentIndex+1),
-			Type: engine.NormaliseTypeName(typeName),
+			Name:       fmt.Sprintf("arg%d", argumentIndex+1),
+			Type:       engine.NormaliseTypeName(typeName),
+			IsOptional: false,
 		}
 	}
 
@@ -110,6 +111,16 @@ func convertCustomFunction(
 		NullableBehaviour: nullableBehaviour,
 		IsVariadic:        config.IsVariadic,
 		MinArguments:      minimumArguments,
+		BodyExpression:    nil,
+		Schema:            "",
+		Language:          "",
+		BodySQL:           "",
+		CalledFunctions:   nil,
+		BodyParameters:    nil,
+		Origin:            querier_dto.MigrationOrigin{},
+		ReturnsSet:        false,
+		IsStrict:          false,
+		DataAccess:        querier_dto.DataAccessUnknown,
 	}, nullableError
 }
 

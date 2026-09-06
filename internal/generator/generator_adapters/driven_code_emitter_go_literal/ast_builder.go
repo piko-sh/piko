@@ -64,7 +64,7 @@ type AstBuilder interface {
 	// Returns statements ([]goast.Stmt) which contains the generated Go statements.
 	// Returns nodesConsumed (int) which shows how many nodes were processed.
 	// Returns diagnostics ([]*ast_domain.Diagnostic) which contains any issues found.
-	emitNode(emitCtx *nodeEmissionContext) (statements []goast.Stmt, nodesConsumed int, diagnostics []*ast_domain.Diagnostic)
+	emitNode(ctx context.Context, emitCtx *nodeEmissionContext) (statements []goast.Stmt, nodesConsumed int, diagnostics []*ast_domain.Diagnostic)
 
 	// topologicallySortInvocations sorts the given invocations based on their dependencies
 	// within the virtual module.
@@ -315,7 +315,7 @@ func (b *astBuilder) emitAllRootNodes(
 	i := 0
 	for i < len(result.AnnotatedAST.RootNodes) {
 		node := result.AnnotatedAST.RootNodes[i]
-		emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+		emitCtx := newNodeEmissionContext(nodeEmissionParams{
 			Node:                  node,
 			ParentSliceExpression: rootNodesSlice,
 			Index:                 i,
@@ -324,7 +324,7 @@ func (b *astBuilder) emitAllRootNodes(
 			PartialScopeID:        partialScopeID,
 			MainComponentScope:    partialScopeID,
 		})
-		nodeStmts, nodesConsumed, nodeDiags := b.emitNode(emitCtx)
+		nodeStmts, nodesConsumed, nodeDiags := b.emitNode(ctx, emitCtx)
 		statements = append(statements, nodeStmts...)
 		allDiags = append(allDiags, nodeDiags...)
 		i += nodesConsumed
@@ -342,14 +342,8 @@ func (b *astBuilder) emitAllRootNodes(
 //
 // Returns *astBuilder which is the fully wired builder ready for use.
 func newAstBuilder(emitter *emitter) *astBuilder {
-	b := &astBuilder{
-		emitter:           emitter,
-		nodeEmitter:       nil,
-		ifEmitter:         nil,
-		forEmitter:        nil,
-		staticEmitter:     nil,
-		expressionEmitter: nil,
-	}
+	b := &astBuilder{}
+	b.emitter = emitter
 
 	mainComponentScope := ""
 	if mainComp, err := generator_domain.GetMainComponent(emitter.AnnotationResult); err == nil {

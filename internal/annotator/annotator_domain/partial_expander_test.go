@@ -756,7 +756,7 @@ func TestStampDirectivesWithSourcePath(t *testing.T) {
 		node := &ast_domain.TemplateNode{
 			DirIf:       &ast_domain.Directive{RawExpression: "state.show"},
 			DirElseIf:   &ast_domain.Directive{RawExpression: "state.other"},
-			DirElse:     &ast_domain.Directive{RawExpression: ""},
+			DirElse:     &ast_domain.Directive{},
 			DirFor:      &ast_domain.Directive{RawExpression: "item in items"},
 			DirShow:     &ast_domain.Directive{RawExpression: "state.visible"},
 			DirModel:    &ast_domain.Directive{RawExpression: "state.value"},

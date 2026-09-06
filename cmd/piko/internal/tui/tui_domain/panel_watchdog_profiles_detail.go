@@ -30,7 +30,8 @@ import (
 // DetailView renders the detail-pane body for the profile currently under the cursor;
 // otherwise renders a profile-inventory summary.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *WatchdogProfilesPanel) DetailView(width, height int) string {
@@ -59,17 +60,17 @@ func (p *WatchdogProfilesPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing the profile metadata.
 func watchdogProfileDetailBody(prof WatchdogProfile, c clock.Clock) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Type", Value: prof.Type},
-		{Label: "Filename", Value: prof.Filename},
-		{Label: "Captured", Value: inspector.FormatDetailTime(prof.Timestamp)},
-		{Label: "Age", Value: inspector.FormatDuration(prof.AgeFromNow(c))},
-		{Label: "Size", Value: prof.DisplaySize()},
-		{Label: "Sidecar", Value: yesNo(prof.HasSidecar)},
+		inspector.NewDetailRow("Type", prof.Type),
+		inspector.NewDetailRow("Filename", prof.Filename),
+		inspector.NewDetailRow("Captured", inspector.FormatDetailTime(prof.Timestamp)),
+		inspector.NewDetailRow("Age", inspector.FormatDuration(prof.AgeFromNow(c))),
+		inspector.NewDetailRow("Size", prof.DisplaySize()),
+		inspector.NewDetailRow("Sidecar", yesNo(prof.HasSidecar)),
 	}
 	return inspector.DetailBody{
 		Title:    prof.Filename,
 		Subtitle: prof.Type + " · " + prof.DisplaySize(),
-		Sections: []inspector.DetailSection{{Heading: "Profile", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Profile", rows)},
 	}
 }
 
@@ -92,22 +93,19 @@ func (p *WatchdogProfilesPanel) profilesOverviewDetailBody() inspector.DetailBod
 	}
 
 	rows := []inspector.DetailRow{
-		{Label: "Total profiles", Value: fmt.Sprintf(FormatPercentInt, len(profiles))},
-		{Label: "Total size", Value: inspector.FormatBytes(totalSize)},
+		inspector.NewDetailRow("Total profiles", fmt.Sprintf(FormatPercentInt, len(profiles))),
+		inspector.NewDetailRow("Total size", inspector.FormatBytes(totalSize)),
 	}
 	for _, t := range sortedKeys(typeCounts) {
-		rows = append(rows, inspector.DetailRow{
-			Label: t,
-			Value: fmt.Sprintf(FormatPercentInt, typeCounts[t]),
-		})
+		rows = append(rows, inspector.NewDetailRow(t, fmt.Sprintf(FormatPercentInt, typeCounts[t])))
 	}
 	if last != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: last.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", last.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    "Profile inventory",
 		Subtitle: fmt.Sprintf("%d profiles · %s", len(profiles), inspector.FormatBytes(totalSize)),
-		Sections: []inspector.DetailSection{{Heading: "Stats", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Stats", rows)},
 	}
 }
 

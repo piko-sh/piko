@@ -1294,7 +1294,7 @@ func TestHandleSemanticError(t *testing.T) {
 			{Message: "type error", SourcePath: "/test.pk"},
 		})
 
-		logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+		logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 		request := &coordinator_dto.BuildRequest{CausationID: "cause-1"}
 		allSourceContents := map[string][]byte{"/test.pk": []byte("content")}
 
@@ -1338,7 +1338,7 @@ func TestHandleSemanticError(t *testing.T) {
 		)
 
 		semErr := annotator_domain.NewSemanticError(nil)
-		logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+		logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 		request := &coordinator_dto.BuildRequest{CausationID: "cause-2"}
 
 		result, err := service.handleSemanticError(
@@ -1381,7 +1381,7 @@ func TestHandleSemanticError(t *testing.T) {
 		semErr := annotator_domain.NewSemanticError([]*ast_domain.Diagnostic{
 			{Message: "error 1", SourcePath: "/a.pk"},
 		})
-		logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+		logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 		request := &coordinator_dto.BuildRequest{CausationID: "cause-3"}
 
 		_, _ = service.handleSemanticError(
@@ -1689,7 +1689,7 @@ func TestOutputInternalCompilerLogs(t *testing.T) {
 
 	t.Run("no-op when diagnostics are empty", func(t *testing.T) {
 		t.Parallel()
-		logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+		logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 		assert.NotPanics(t, func() {
 			outputInternalCompilerLogs(nil, logStore)
 		})
@@ -1697,7 +1697,7 @@ func TestOutputInternalCompilerLogs(t *testing.T) {
 
 	t.Run("no-op when diagnostics have empty slice", func(t *testing.T) {
 		t.Parallel()
-		logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+		logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 		assert.NotPanics(t, func() {
 			outputInternalCompilerLogs([]*ast_domain.Diagnostic{}, logStore)
 		})
@@ -1705,7 +1705,7 @@ func TestOutputInternalCompilerLogs(t *testing.T) {
 
 	t.Run("handles diagnostics with no matching log file", func(t *testing.T) {
 		t.Parallel()
-		logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+		logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 		diagnostics := []*ast_domain.Diagnostic{
 			{SourcePath: "/nonexistent.pk", Message: "error"},
 		}

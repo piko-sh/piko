@@ -31,10 +31,14 @@ import (
 // Returns *querier_dto.CatalogueMutation which describes the new view.
 // Returns error when the view name or column list cannot be parsed.
 func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 	p.matchKeyword("TEMP")
 	p.matchKeyword("TEMPORARY")
-	p.mustKeyword("VIEW")
+	if _, err := p.expectKeyword("VIEW"); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordIF) {
 		p.matchKeyword(keywordNOT)
@@ -55,12 +59,11 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 		columnNames = names
 	}
 
-	p.mustKeyword(keywordAS)
-
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:      querier_dto.MutationCreateView,
-		TableName: viewName,
+	if _, err := p.expectKeyword(keywordAS); err != nil {
+		return nil, err
 	}
+
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateView, "", viewName)
 
 	bodyStart := p.position
 	mutation.ViewDefinition = p.analyseViewBody(columnNames)
@@ -77,8 +80,10 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 // analyseViewBody analyses the SELECT body of a CREATE VIEW so the catalogue can store
 // typed columns.
 //
-// Recovers from panics in the inner analyser so a malformed view body (e.g. CREATE VIEW v
-// AS (SELECT ...) or CREATE VIEW v AS VALUES (...)) cannot crash the whole DDL apply.
+// A body the analyser cannot handle (e.g. CREATE VIEW v AS (SELECT ...) or CREATE VIEW v
+// AS VALUES (...)) degrades to the bare column-name list. The inner analyser is also
+// guarded by a panic recovery so a parser bug in the body cannot fail the whole DDL
+// apply.
 //
 // Takes columnNames ([]string) which is the declared column list overlaid onto the
 // inferred projection names.
@@ -134,7 +139,13 @@ func (p *parser) analyseViewBody(columnNames []string) (result *querier_dto.RawQ
 // Takes columnNames ([]string) which is the declared column list to overlay.
 func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
 	for columnIndex, name := range columnNames {
-		column := querier_dto.RawOutputColumn{Name: name}
+		column := querier_dto.RawOutputColumn{
+			Name:       name,
+			Expression: nil,
+			TableAlias: "",
+			ColumnName: "",
+			IsStar:     false,
+		}
 		if columnIndex < len(analysis.OutputColumns) {
 			column.Expression = analysis.OutputColumns[columnIndex].Expression
 			column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
@@ -163,11 +174,7 @@ func columnsFromNames(names []string) []querier_dto.Column {
 	}
 	columns := make([]querier_dto.Column, len(names))
 	for index, name := range names {
-		columns[index] = querier_dto.Column{
-			Name:     name,
-			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			Nullable: true,
-		}
+		columns[index] = querier_dto.NewColumn(name, querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true)
 	}
 	return columns
 }
@@ -439,8 +446,9 @@ func isReservedProjectionKeyword(value string) bool {
 // Returns *querier_dto.CatalogueMutation which describes the dropped view.
 // Returns error when the view name cannot be parsed.
 func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("VIEW")
+	if err := p.expectKeywordSequence(keywordDROP, "VIEW"); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordIF) {
 		p.matchKeyword(keywordEXISTS)
@@ -451,10 +459,7 @@ func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:      querier_dto.MutationDropView,
-		TableName: viewName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropView, "", viewName), nil
 }
 
 // parseCreateIndex parses a CREATE [UNIQUE] INDEX statement.
@@ -462,9 +467,13 @@ func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which records the indexed table.
 // Returns error when an identifier cannot be parsed.
 func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 	p.matchKeyword(keywordUNIQUE)
-	p.mustKeyword("INDEX")
+	if _, err := p.expectKeyword("INDEX"); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordIF) {
 		p.matchKeyword(keywordNOT)
@@ -476,17 +485,16 @@ func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	p.mustKeyword(keywordON)
+	if _, err := p.expectKeyword(keywordON); err != nil {
+		return nil, err
+	}
 
 	tableName, tableError := p.parseTableName()
 	if tableError != nil {
 		return nil, tableError
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:      querier_dto.MutationCreateIndex,
-		TableName: tableName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateIndex, "", tableName), nil
 }
 
 // parseDropIndex parses a DROP INDEX statement.
@@ -494,8 +502,9 @@ func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which records the drop kind.
 // Returns error when the index name cannot be parsed.
 func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("INDEX")
+	if err := p.expectKeywordSequence(keywordDROP, "INDEX"); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordIF) {
 		p.matchKeyword(keywordEXISTS)
@@ -506,9 +515,7 @@ func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationDropIndex,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropIndex, "", ""), nil
 }
 
 // parseCreateVirtualTable parses a CREATE VIRTUAL TABLE statement and extracts
@@ -520,9 +527,9 @@ func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 // no USING clause is present.
 // Returns error when the table name cannot be parsed.
 func (p *parser) parseCreateVirtualTable(engine *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
-	p.mustKeyword("VIRTUAL")
-	p.mustKeyword(keywordTABLE)
+	if err := p.expectKeywordSequence(keywordCREATE, "VIRTUAL", keywordTABLE); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordIF) {
 		p.matchKeyword(keywordNOT)
@@ -544,38 +551,49 @@ func (p *parser) parseCreateVirtualTable(engine *SQLiteEngine) (*querier_dto.Cat
 	}
 
 	if p.current().kind != tokenLeftParen {
-		return &querier_dto.CatalogueMutation{
-			Kind:              querier_dto.MutationCreateTable,
-			TableName:         tableName,
-			IsVirtual:         true,
-			VirtualModuleName: moduleName,
-		}, nil
+		return querier_dto.NewCatalogueMutation(
+			querier_dto.MutationCreateTable,
+			"",
+			tableName,
+			querier_dto.WithVirtualModule(moduleName),
+		), nil
 	}
 
-	argumentTokens, _ := p.collectParenthesised()
+	argumentTokens, err := p.collectParenthesised()
+	if err != nil {
+		return nil, fmt.Errorf("parsing virtual table arguments: %w", err)
+	}
 
 	lowerModule := strings.ToLower(moduleName)
+	columns, primaryKeyColumns := extractVirtualTableColumns(lowerModule, argumentTokens, engine)
 
-	var columns []querier_dto.Column
-	var primaryKeyColumns []string
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateTable,
+		"",
+		tableName,
+		querier_dto.WithVirtualModule(lowerModule),
+		querier_dto.WithColumns(columns),
+		querier_dto.WithPrimaryKey(primaryKeyColumns),
+	), nil
+}
 
+// extractVirtualTableColumns derives a virtual table's columns from its module arguments.
+//
+// Takes lowerModule (string) which is the lower-cased module name.
+// Takes tokens ([]token) which are the argument tokens of the USING clause.
+// Takes engine (*SQLiteEngine) which supplies type normalisation.
+//
+// Returns []querier_dto.Column which is the module's column schema.
+// Returns []string which lists the primary key columns, nil when the module has none.
+func extractVirtualTableColumns(lowerModule string, tokens []token, engine *SQLiteEngine) ([]querier_dto.Column, []string) {
 	switch lowerModule {
 	case "fts5":
-		columns = extractFTS5Columns(argumentTokens, engine)
+		return extractFTS5Columns(tokens, engine), nil
 	case "rtree", "rtree_i32":
-		columns, primaryKeyColumns = extractRTreeColumns(argumentTokens, engine)
+		return extractRTreeColumns(tokens, engine)
 	default:
-		columns = extractGenericVirtualColumns(argumentTokens, engine)
+		return extractGenericVirtualColumns(tokens, engine), nil
 	}
-
-	return &querier_dto.CatalogueMutation{
-		Kind:              querier_dto.MutationCreateTable,
-		TableName:         tableName,
-		Columns:           columns,
-		PrimaryKey:        primaryKeyColumns,
-		IsVirtual:         true,
-		VirtualModuleName: lowerModule,
-	}, nil
 }
 
 // extractFTS5Columns derives the searchable columns of an FTS5 virtual table from its
@@ -598,20 +616,13 @@ func extractFTS5Columns(tokens []token, engine *SQLiteEngine) []querier_dto.Colu
 			continue
 		}
 
-		columns = append(columns, querier_dto.Column{
-			Name:     segment[0].value,
-			SQLType:  engine.NormaliseTypeName("text"),
-			Nullable: true,
-		})
+		columns = append(columns, querier_dto.NewColumn(segment[0].value, engine.NormaliseTypeName("text"), true))
 	}
 
-	columns = append(columns, querier_dto.Column{
-		Name:          "rank",
-		SQLType:       engine.NormaliseTypeName("real"),
-		Nullable:      true,
-		IsGenerated:   true,
-		GeneratedKind: querier_dto.GeneratedKindVirtual,
-	})
+	rank := querier_dto.NewColumn("rank", engine.NormaliseTypeName("real"), true)
+	rank.IsGenerated = true
+	rank.GeneratedKind = querier_dto.GeneratedKindVirtual
+	columns = append(columns, rank)
 
 	return columns
 }
@@ -661,19 +672,12 @@ func extractRTreeColumns(tokens []token, engine *SQLiteEngine) ([]querier_dto.Co
 		name := segment[0].value
 
 		if columnIndex == 0 {
-			columns = append(columns, querier_dto.Column{
-				Name:       name,
-				SQLType:    engine.NormaliseTypeName("integer"),
-				Nullable:   false,
-				HasDefault: true,
-			})
+			identifier := querier_dto.NewColumn(name, engine.NormaliseTypeName("integer"), false)
+			identifier.HasDefault = true
+			columns = append(columns, identifier)
 			primaryKeyColumns = append(primaryKeyColumns, name)
 		} else {
-			columns = append(columns, querier_dto.Column{
-				Name:     name,
-				SQLType:  engine.NormaliseTypeName("real"),
-				Nullable: true,
-			})
+			columns = append(columns, querier_dto.NewColumn(name, engine.NormaliseTypeName("real"), true))
 		}
 	}
 
@@ -704,11 +708,7 @@ func extractGenericVirtualColumns(tokens []token, engine *SQLiteEngine) []querie
 			continue
 		}
 
-		columns = append(columns, querier_dto.Column{
-			Name:     segment[0].value,
-			SQLType:  engine.NormaliseTypeName("text"),
-			Nullable: true,
-		})
+		columns = append(columns, querier_dto.NewColumn(segment[0].value, engine.NormaliseTypeName("text"), true))
 	}
 
 	return columns
@@ -775,10 +775,14 @@ func (p *parser) parseTableName() (string, error) {
 // Returns *querier_dto.CatalogueMutation which records the trigger name and target table.
 // Returns error when the trigger name cannot be parsed.
 func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 	p.matchKeyword("TEMP")
 	p.matchKeyword("TEMPORARY")
-	p.mustKeyword("TRIGGER")
+	if _, err := p.expectKeyword("TRIGGER"); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordIF) {
 		p.matchKeyword(keywordNOT)
@@ -809,14 +813,17 @@ func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 		}
 	}
 
-	p.mustKeyword(keywordON)
+	if _, err := p.expectKeyword(keywordON); err != nil {
+		return nil, err
+	}
 	tableName, _ := p.parseTableName()
 
-	return &querier_dto.CatalogueMutation{
-		Kind:        querier_dto.MutationCreateTrigger,
-		TriggerName: triggerName,
-		TableName:   tableName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateTrigger,
+		"",
+		tableName,
+		querier_dto.WithTriggerName(triggerName),
+	), nil
 }
 
 // parseDropTrigger parses a DROP TRIGGER statement.
@@ -824,8 +831,9 @@ func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which records the dropped trigger.
 // Returns error when the trigger name cannot be parsed.
 func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword("TRIGGER")
+	if err := p.expectKeywordSequence(keywordDROP, "TRIGGER"); err != nil {
+		return nil, err
+	}
 
 	if p.matchKeyword(keywordIF) {
 		p.matchKeyword(keywordEXISTS)
@@ -836,8 +844,10 @@ func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:        querier_dto.MutationDropTrigger,
-		TriggerName: triggerName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropTrigger,
+		"",
+		"",
+		querier_dto.WithTriggerName(triggerName),
+	), nil
 }

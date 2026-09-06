@@ -709,7 +709,7 @@ func TestCloneR(t *testing.T) {
 
 	t.Run("clones RComment with empty text", func(t *testing.T) {
 		t.Parallel()
-		original := &css_ast.RComment{Text: ""}
+		original := &css_ast.RComment{}
 		result := cloneR(original)
 		require.NotNil(t, result)
 		cloned, ok := result.(*css_ast.RComment)
@@ -1128,9 +1128,7 @@ func TestCloneAST(t *testing.T) {
 
 	t.Run("clones AST with empty slices", func(t *testing.T) {
 		t.Parallel()
-		original := &css_ast.AST{
-			ApproximateLineCount: 0,
-		}
+		original := &css_ast.AST{}
 		clone := CloneAST(original)
 
 		require.NotNil(t, clone)

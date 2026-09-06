@@ -36,10 +36,10 @@ func (s Store) Describe[T any](value T) string {
 	return s.Label
 }
 
-// line pages/main.pk:51
+// line pages/main.pk:47
 type Response struct{ Store Store }
 
-// line pages/main.pk:55
+// line pages/main.pk:51
 func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
 	return Response{Store: Store{Label: "hello"}}, piko.Metadata{}, nil
 }

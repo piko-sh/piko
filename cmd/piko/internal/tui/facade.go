@@ -136,15 +136,12 @@ func LoadConfig(configPath string, opts ...LoadConfigOption) (Config, error) {
 
 	filePaths := discoverConfigFiles(configPath, o.homeDir)
 
-	loaderOpts := config_domain.LoaderOptions{
-		FilePaths:          filePaths,
-		StrictFile:         false,
-		UseGlobalResolvers: false,
-		PassOrder: []config_domain.Pass{
-			config_domain.PassDefaults,
-			config_domain.PassFiles,
-			config_domain.PassEnv,
-		},
+	loaderOpts := config_domain.LoaderOptions{}
+	loaderOpts.FilePaths = filePaths
+	loaderOpts.PassOrder = []config_domain.Pass{
+		config_domain.PassDefaults,
+		config_domain.PassFiles,
+		config_domain.PassEnv,
 	}
 
 	var tuiConfig Config

@@ -192,15 +192,26 @@ func NewManager(config ManagerConfig) *Manager {
 		maxOverlays = defaultMaxOverlaysPerChild
 	}
 	return &Manager{
-		clock:         managerClock,
-		children:      make(map[string]*Child),
-		subscribers:   make(map[uint64]Subscriber),
-		spawnFailures: make(map[string]int64),
-		done:          make(chan struct{}),
-		goplsPath:     config.GoplsPath,
-		maxChildren:   maxChildren,
-		maxOverlays:   maxOverlays,
-		allow:         config.Allow,
+		clock:            managerClock,
+		children:         make(map[string]*Child),
+		subscribers:      make(map[uint64]Subscriber),
+		spawnFailures:    make(map[string]int64),
+		done:             make(chan struct{}),
+		goplsPath:        config.GoplsPath,
+		maxChildren:      maxChildren,
+		maxOverlays:      maxOverlays,
+		allow:            config.Allow,
+		group:            singleflight.Group{},
+		reapSnapshotHook: nil,
+		resolvedPath:     "",
+		mu:               sync.Mutex{},
+		discoverOnce:     sync.Once{},
+		reaperOnce:       sync.Once{},
+		reaperWG:         sync.WaitGroup{},
+		nextSubID:        0,
+		nextConnID:       0,
+		available:        false,
+		closed:           false,
 	}
 }
 

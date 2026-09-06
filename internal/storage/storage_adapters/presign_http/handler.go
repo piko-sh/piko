@@ -329,7 +329,7 @@ func (h *Handler) validateRequestContentType(w http.ResponseWriter, r *http.Requ
 // Returns int64 which is the number of bytes written.
 // Returns error when the upload fails.
 func (h *Handler) uploadFile(ctx context.Context, body io.Reader, tokenData *storage_domain.PresignTokenData, providerName string, contentLength int64) (int64, error) {
-	countingReader := &countingReader{reader: body}
+	countingReader := &countingReader{reader: body, bytesRead: 0}
 
 	size := contentLength
 	if size <= 0 {
@@ -337,11 +337,17 @@ func (h *Handler) uploadFile(ctx context.Context, body io.Reader, tokenData *sto
 	}
 
 	params := &storage_dto.PutParams{
-		Repository:  tokenData.Repository,
-		Key:         tokenData.TempKey,
-		Reader:      countingReader,
-		Size:        size,
-		ContentType: tokenData.ContentType,
+		Repository:           tokenData.Repository,
+		Key:                  tokenData.TempKey,
+		Reader:               countingReader,
+		Size:                 size,
+		ContentType:          tokenData.ContentType,
+		MultipartConfig:      nil,
+		TransformConfig:      nil,
+		Metadata:             nil,
+		HashAlgorithm:        "",
+		ExpectedHash:         "",
+		UseContentAddressing: false,
 	}
 
 	if err := h.storageService.PutObject(ctx, providerName, params); err != nil {
@@ -530,8 +536,10 @@ func (h *DownloadHandler) validateDownloadRequest(w http.ResponseWriter, r *http
 func (h *DownloadHandler) statFile(ctx context.Context, w http.ResponseWriter, providerName string, tokenData *storage_domain.PresignDownloadTokenData) (*storage_domain.ObjectInfo, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	info, err := h.storageService.StatObject(ctx, providerName, storage_dto.GetParams{
-		Repository: tokenData.Repository,
-		Key:        tokenData.Key,
+		Repository:      tokenData.Repository,
+		Key:             tokenData.Key,
+		ByteRange:       nil,
+		TransformConfig: nil,
 	})
 	if err != nil {
 		l.Error("Failed to stat file for download",
@@ -597,8 +605,10 @@ func (*DownloadHandler) setDownloadHeaders(
 func (h *DownloadHandler) streamFile(ctx context.Context, w http.ResponseWriter, providerName string, tokenData *storage_domain.PresignDownloadTokenData) {
 	ctx, l := logger_domain.From(ctx, log)
 	reader, err := h.storageService.GetObject(ctx, providerName, storage_dto.GetParams{
-		Repository: tokenData.Repository,
-		Key:        tokenData.Key,
+		Repository:      tokenData.Repository,
+		Key:             tokenData.Key,
+		ByteRange:       nil,
+		TransformConfig: nil,
 	})
 	if err != nil {
 		l.Error("Failed to get file for download",

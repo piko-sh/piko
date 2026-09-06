@@ -24,11 +24,14 @@ package annotator_domain
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	goast "go/ast"
 	"go/parser"
 	"go/scanner"
 	"go/token"
+	"slices"
+	"strconv"
 	"strings"
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
@@ -129,7 +132,7 @@ func ParsePK(ctx context.Context, data []byte, sourcePath string) (*annotator_dt
 
 	parsedScript, pikoImports, scriptErr := analyseGoScript(srcs.ScriptSource, scriptStartLocation)
 
-	localTranslations, i18nErr := parseI18nBlocks(sfcResult, sourcePath)
+	localTranslations, i18nErr := parseI18nBlocksInto(parsedTemplate, sfcResult, sourcePath)
 	if i18nErr != nil {
 		return nil, srcs, i18nErr
 	}
@@ -139,6 +142,11 @@ func ParsePK(ctx context.Context, data []byte, sourcePath string) (*annotator_dt
 	}
 
 	component := buildParsedComponent(parsedTemplate, parsedScript, localTranslations, sourcePath, sfcResult, pikoImports)
+
+	collectionDiagnostic := applyCollectionDirective(component, sfcResult, parsedScript, sourcePath)
+	if collectionDiagnostic != nil && scriptErr == nil {
+		templateErr = attachComponentDiagnostic(component, templateErr, collectionDiagnostic, srcs.TemplateSource)
+	}
 
 	if templateErr != nil {
 		return component, srcs, templateErr
@@ -231,6 +239,7 @@ func validateScriptBlocks(sfcResult *sfcparser.ParseResult, sourcePath string) [
 		location := ast_domain.Location{
 			Line:   script.Location.Line,
 			Column: script.Location.Column,
+			Offset: 0,
 		}
 
 		var message string
@@ -288,37 +297,28 @@ func buildParsedComponent(
 	}
 
 	component := &annotator_dto.ParsedComponent{
-		Template:            parsedTemplate,
-		Script:              parsedScript,
-		LocalTranslations:   localTranslations,
-		SourcePath:          sourcePath,
-		ModuleImportPath:    "",
-		IsExternal:          false,
-		StyleBlocks:         sfcResult.Styles,
-		PikoImports:         pikoImports,
-		ComponentType:       "",
-		HasCollection:       false,
-		CollectionName:      "",
-		CollectionProvider:  "",
-		CollectionParamName: "",
-		ClientScript:        clientScript,
-		ContentModulePath:   "",
-	}
-
-	if sfcResult.HasCollectionDirective() {
-		component.HasCollection = true
-		component.CollectionName = sfcResult.GetCollectionName()
-		component.CollectionProvider = sfcResult.GetCollectionProvider()
-		component.CollectionParamName = sfcResult.GetCollectionParamName()
-
-		if sfcResult.HasCollectionSource() {
-			alias := sfcResult.GetCollectionSource()
-			var goImports []*goast.ImportSpec
-			if parsedScript != nil && parsedScript.AST != nil {
-				goImports = parsedScript.AST.Imports
-			}
-			component.ContentModulePath = resolveCollectionSourceAlias(alias, goImports)
-		}
+		Template:               parsedTemplate,
+		Script:                 parsedScript,
+		LocalTranslations:      localTranslations,
+		SourcePath:             sourcePath,
+		ModuleImportPath:       "",
+		IsExternal:             false,
+		StyleBlocks:            sfcResult.Styles,
+		PikoImports:            pikoImports,
+		ComponentType:          "",
+		HasCollection:          false,
+		CollectionName:         "",
+		CollectionProvider:     "",
+		CollectionParamName:    "",
+		ClientScript:           clientScript,
+		ContentModulePath:      "",
+		VisibilityOverride:     nil,
+		RouteSourceName:        "",
+		RouteSourceParamName:   "",
+		SitemapPriority:        "",
+		SitemapChangeFrequency: "",
+		SitemapCanonical:       "",
+		SitemapNoindex:         false,
 	}
 
 	if sfcResult.HasRouteSourceDirective() {
@@ -340,31 +340,195 @@ func buildParsedComponent(
 	return component
 }
 
+// applyCollectionDirective copies the collection directive settings from the SFC parse
+// result onto the component, resolving any collection source alias against the script's
+// Go imports.
+//
+// Takes component (*annotator_dto.ParsedComponent) which receives the collection
+// settings.
+// Takes sfcResult (*sfcparser.ParseResult) which holds the parsed directives.
+// Takes parsedScript (*annotator_dto.ParsedScript) which provides the Go imports used to
+// resolve the collection source alias, or nil when the component has no script.
+// Takes sourcePath (string) which identifies the file for diagnostic reporting.
+//
+// Returns *ast_domain.Diagnostic which is an error diagnostic when the collection source
+// alias matches no Go import, or nil when the directive is absent or resolved.
+func applyCollectionDirective(
+	component *annotator_dto.ParsedComponent,
+	sfcResult *sfcparser.ParseResult,
+	parsedScript *annotator_dto.ParsedScript,
+	sourcePath string,
+) *ast_domain.Diagnostic {
+	if !sfcResult.HasCollectionDirective() {
+		return nil
+	}
+
+	component.HasCollection = true
+	component.CollectionName = sfcResult.GetCollectionName()
+	component.CollectionProvider = sfcResult.GetCollectionProvider()
+	component.CollectionParamName = sfcResult.GetCollectionParamName()
+
+	if !sfcResult.HasCollectionSource() {
+		return nil
+	}
+
+	alias := strings.TrimSpace(sfcResult.GetCollectionSource())
+	var goImports []*goast.ImportSpec
+	if parsedScript != nil && parsedScript.AST != nil {
+		goImports = parsedScript.AST.Imports
+	}
+
+	modulePath, found := resolveCollectionSourceAlias(alias, goImports)
+	if !found {
+		return newCollectionSourceNotFoundDiagnostic(alias, sfcResult.TemplateLocation, sourcePath)
+	}
+	component.ContentModulePath = modulePath
+	return nil
+}
+
+// attachComponentDiagnostic records a diagnostic found while assembling a component so
+// that it reaches the caller through the same path as template parse diagnostics.
+//
+// The diagnostic is appended to the component's template diagnostics when a template
+// exists, and to the existing parse diagnostic error when there is one. Any other
+// template error is fatal and is returned unchanged.
+//
+// Takes component (*annotator_dto.ParsedComponent) which owns the diagnostic.
+// Takes templateErr (error) which is the error returned from template parsing, if any.
+// Takes diagnostic (*ast_domain.Diagnostic) which is the diagnostic to record.
+// Takes templateSource (string) which is the raw template content for error context.
+//
+// Returns error which carries the diagnostic alongside any earlier template diagnostics.
+func attachComponentDiagnostic(
+	component *annotator_dto.ParsedComponent,
+	templateErr error,
+	diagnostic *ast_domain.Diagnostic,
+	templateSource string,
+) error {
+	if component.Template != nil {
+		component.Template.Diagnostics = append(component.Template.Diagnostics, diagnostic)
+	}
+
+	if diagErr, ok := errors.AsType[*ParseDiagnosticError](templateErr); ok {
+		diagErr.Diagnostics = append(slices.Clip(diagErr.Diagnostics), diagnostic)
+		return templateErr
+	}
+	if templateErr != nil {
+		return templateErr
+	}
+
+	diagnostics := []*ast_domain.Diagnostic{diagnostic}
+	if component.Template != nil {
+		diagnostics = component.Template.Diagnostics
+	}
+	return NewParseDiagnosticError(diagnostics, component.SourcePath, templateSource)
+}
+
+// newCollectionSourceNotFoundDiagnostic creates the error diagnostic reported when a
+// p-collection-source alias matches no Go import.
+//
+// Takes alias (string) which is the unresolved import alias.
+// Takes templateLocation (sfcparser.Location) which is where the template tag starts.
+// Takes sourcePath (string) which identifies the file for diagnostic reporting.
+//
+// Returns *ast_domain.Diagnostic which is the error-severity diagnostic.
+func newCollectionSourceNotFoundDiagnostic(alias string, templateLocation sfcparser.Location, sourcePath string) *ast_domain.Diagnostic {
+	return ast_domain.NewDiagnosticWithCode(
+		ast_domain.Error,
+		fmt.Sprintf("p-collection-source %q does not match the name of any import in the Go script block; "+
+			"import the content module under that name", alias),
+		fmt.Sprintf("p-collection-source=%q", alias),
+		annotator_dto.CodeCollectionSourceNotFound,
+		ast_domain.Location{Line: templateLocation.Line, Column: templateLocation.Column, Offset: 0},
+		sourcePath,
+	)
+}
+
 // resolveCollectionSourceAlias finds the full import path for a given alias. Resolves
 // p-collection-source attributes that reference Go imports for external markdown content.
+//
+// An explicitly named import matches only by its name. An unnamed import matches by its
+// assumed package name, derived from the last path element after skipping a trailing
+// `/vN` major-version element.
 //
 // Takes alias (string) which is the import alias to look up.
 // Takes goImports ([]*goast.ImportSpec) which contains the parsed Go imports.
 //
-// Returns string which is the full import path, or an empty string if not found.
-func resolveCollectionSourceAlias(alias string, goImports []*goast.ImportSpec) string {
+// Returns string which is the full import path of the matching import.
+// Returns bool which is true when an import matches the alias.
+func resolveCollectionSourceAlias(alias string, goImports []*goast.ImportSpec) (string, bool) {
+	if alias == "" || alias == "_" || alias == "." {
+		return "", false
+	}
+
 	for _, imp := range goImports {
 		if imp == nil || imp.Path == nil {
 			continue
 		}
 
-		pathVal := strings.Trim(imp.Path.Value, `"`)
-
-		if imp.Name != nil && imp.Name.Name == alias {
-			return pathVal
+		importPath, err := strconv.Unquote(imp.Path.Value)
+		if err != nil {
+			continue
 		}
 
-		segments := strings.Split(pathVal, "/")
-		if len(segments) > 0 && segments[len(segments)-1] == alias {
-			return pathVal
+		if importedPackageName(imp, importPath) == alias {
+			return importPath, true
 		}
 	}
-	return ""
+	return "", false
+}
+
+// importedPackageName returns the name an import binds in the importing file.
+//
+// Takes imp (*goast.ImportSpec) which is the import to inspect.
+// Takes importPath (string) which is the unquoted import path.
+//
+// Returns string which is the explicit import name when present, otherwise the assumed
+// package name derived from the path.
+func importedPackageName(imp *goast.ImportSpec, importPath string) string {
+	if imp.Name != nil {
+		return imp.Name.Name
+	}
+	return assumedPackageName(importPath)
+}
+
+// assumedPackageName derives the conventional package name from the last import path
+// element, or the preceding element when the last is a `/vN` major-version suffix.
+//
+// Takes importPath (string) which is the unquoted import path.
+//
+// Returns string which is the assumed package name.
+func assumedPackageName(importPath string) string {
+	parent, last, found := strings.CutLast(importPath, "/")
+	if !found {
+		return importPath
+	}
+	if !isMajorVersionElement(last) {
+		return last
+	}
+	if _, previous, ok := strings.CutLast(parent, "/"); ok {
+		return previous
+	}
+	return parent
+}
+
+// isMajorVersionElement reports whether an import path element is a major-version suffix
+// such as v2 or v10.
+//
+// Takes element (string) which is a single import path element.
+//
+// Returns bool which is true when the element is "v" followed by one or more digits.
+func isMajorVersionElement(element string) bool {
+	digits, ok := strings.CutPrefix(element, "v")
+	if !ok || digits == "" {
+		return false
+	}
+	for _, character := range digits {
+		if character < '0' || character > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // createEmptyParsedScript creates a default ParsedScript for empty script blocks.
@@ -373,21 +537,10 @@ func resolveCollectionSourceAlias(alias string, goImports []*goast.ImportSpec) s
 // with default values.
 func createEmptyParsedScript() *annotator_dto.ParsedScript {
 	const defaultPackageName = "piko_default"
-	return &annotator_dto.ParsedScript{
-		AST:                        &goast.File{Name: goast.NewIdent(defaultPackageName)},
-		GoPackageName:              defaultPackageName,
-		ScriptStartLocation:        ast_domain.Location{},
-		PropsTypeExpression:        nil,
-		RenderReturnTypeExpression: nil,
-		Fset:                       nil,
-		ProvisionalGoPackagePath:   "",
-		MiddlewaresFuncName:        "",
-		CachePolicyFuncName:        "",
-		SupportedLocalesFuncName:   "",
-		HasMiddleware:              false,
-		HasCachePolicy:             false,
-		HasSupportedLocales:        false,
-	}
+	script := annotator_dto.ParsedScript{}
+	script.AST = &goast.File{Name: goast.NewIdent(defaultPackageName)}
+	script.GoPackageName = defaultPackageName
+	return &script
 }
 
 // analyseGoScript parses Go source code and extracts script metadata.
@@ -418,21 +571,10 @@ func analyseGoScript(scriptSource string, scriptStartLocation ast_domain.Locatio
 		return createEmptyParsedScript(), nil, nil
 	}
 
-	parsedScript := &annotator_dto.ParsedScript{
-		PropsTypeExpression:        nil,
-		RenderReturnTypeExpression: nil,
-		AST:                        file,
-		Fset:                       fset,
-		ProvisionalGoPackagePath:   "",
-		GoPackageName:              "",
-		MiddlewaresFuncName:        "",
-		CachePolicyFuncName:        "",
-		SupportedLocalesFuncName:   "",
-		ScriptStartLocation:        scriptStartLocation,
-		HasMiddleware:              false,
-		HasCachePolicy:             false,
-		HasSupportedLocales:        false,
-	}
+	parsedScript := &annotator_dto.ParsedScript{}
+	parsedScript.AST = file
+	parsedScript.Fset = fset
+	parsedScript.ScriptStartLocation = scriptStartLocation
 	if file.Name != nil {
 		parsedScript.GoPackageName = file.Name.Name
 	} else {
@@ -696,6 +838,65 @@ func parseI18nBlocks(sfcResult *sfcparser.ParseResult, sourcePath string) (i18n_
 		}
 	}
 	return localTranslations, nil
+}
+
+// parseI18nBlocksInto parses a component's i18n blocks and attaches a warning to template
+// for each translation template that cannot be parsed.
+//
+// Takes template (*ast_domain.TemplateAST) which receives the warnings; nil skips them.
+// Takes sfcResult (*sfcparser.ParseResult) which contains the parsed SFC with i18n
+// blocks.
+// Takes sourcePath (string) which identifies the source file for messages.
+//
+// Returns i18n_domain.Translations which contains the flattened translations grouped by
+// locale.
+// Returns error when an i18n JSON block cannot be parsed.
+func parseI18nBlocksInto(template *ast_domain.TemplateAST, sfcResult *sfcparser.ParseResult, sourcePath string) (i18n_domain.Translations, error) {
+	translations, err := parseI18nBlocks(sfcResult, sourcePath)
+	if err != nil {
+		return nil, err
+	}
+	if template != nil {
+		template.Diagnostics = append(template.Diagnostics, newI18nTemplateDiagnostics(translations, sfcResult, sourcePath)...)
+	}
+	return translations, nil
+}
+
+// newI18nTemplateDiagnostics reports the translation templates in a component's i18n
+// blocks that cannot be parsed, as warnings located at the first i18n block.
+//
+// They are reported here, when the component is compiled, because the runtime stores
+// built from the same translations render them as literal text without logging on the
+// render path.
+//
+// Takes translations (i18n_domain.Translations) which are the component's local
+// translations.
+// Takes sfcResult (*sfcparser.ParseResult) which locates the i18n blocks.
+// Takes sourcePath (string) which identifies the file for diagnostic reporting.
+//
+// Returns []*ast_domain.Diagnostic which holds one warning per template that cannot be
+// parsed, or nil when every template parses.
+func newI18nTemplateDiagnostics(translations i18n_domain.Translations, sfcResult *sfcparser.ParseResult, sourcePath string) []*ast_domain.Diagnostic {
+	if len(translations) == 0 || len(sfcResult.I18nBlocks) == 0 {
+		return nil
+	}
+	problems := i18n_domain.NewStore("").AddAllTranslations(translations)
+	if len(problems) == 0 {
+		return nil
+	}
+	blockLocation := sfcResult.I18nBlocks[0].Location
+	location := ast_domain.Location{Line: blockLocation.Line, Column: blockLocation.Column, Offset: 0}
+	diagnostics := make([]*ast_domain.Diagnostic, 0, len(problems))
+	for _, problem := range problems {
+		diagnostics = append(diagnostics, ast_domain.NewDiagnostic(
+			ast_domain.Warning,
+			"Translation template could not be parsed and renders as literal text: "+problem.String(),
+			translations[problem.Locale][problem.Key],
+			location,
+			sourcePath,
+		))
+	}
+	return diagnostics
 }
 
 // isEffectivelyEmpty checks whether Go source code contains only whitespace and comments.

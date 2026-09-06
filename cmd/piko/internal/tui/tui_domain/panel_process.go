@@ -91,6 +91,8 @@ func NewProcessPanel(provider SystemProvider, c clock.Clock) *ProcessPanel {
 		fdHistory:     NewHistoryRing(processHistorySize),
 		rssHistory:    NewHistoryRing(processHistorySize),
 		stateMutex:    sync.RWMutex{},
+		err:           nil,
+		stats:         nil,
 	}
 	p.SetKeyMap([]KeyBinding{{Key: "r", Description: "Refresh"}})
 	return p
@@ -139,7 +141,8 @@ func (p *ProcessPanel) View(width, height int) string {
 
 // DetailView renders the right-pane detail with thread/FD/RSS charts.
 //
-// Takes width (int) and height (int) for the inner content.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *ProcessPanel) DetailView(width, height int) string {
@@ -153,10 +156,10 @@ func (p *ProcessPanel) DetailView(width, height int) string {
 	now := p.clock.Now()
 	series := make([]ChartSeries, 0, processChartSeriesCap)
 	if len(snap.rss) >= 2 {
-		series = append(series, ChartSeries{Name: "RSS", Points: pointsFromHistory(snap.rss, now)})
+		series = append(series, ChartSeries{Name: "RSS", Points: pointsFromHistory(snap.rss, now), Severity: 0})
 	}
 	if len(snap.fds) >= 2 {
-		series = append(series, ChartSeries{Name: "FDs", Points: pointsFromHistory(snap.fds, now)})
+		series = append(series, ChartSeries{Name: "FDs", Points: pointsFromHistory(snap.fds, now), Severity: 0})
 	}
 	if len(snap.threads) >= 2 {
 		series = append(series, ChartSeries{Name: "Threads", Points: pointsFromHistory(snap.threads, now), Severity: SeverityWarning})
@@ -250,27 +253,31 @@ func (p *ProcessPanel) renderBody(stats *SystemStats, err error) string {
 func (*ProcessPanel) detailBody(stats *SystemStats, err error) inspector.DetailBody {
 	if err != nil {
 		return inspector.DetailBody{
-			Title:    titleProcess,
-			Sections: []inspector.DetailSection{{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: err.Error()}}}},
+			Title: titleProcess,
+			Sections: []inspector.DetailSection{inspector.NewDetailSection(
+				"Error",
+				[]inspector.DetailRow{inspector.NewDetailRow("Reason", err.Error())},
+			)},
+			Subtitle: "",
 		}
 	}
 	if stats == nil {
-		return inspector.DetailBody{Title: titleProcess, Subtitle: "no data yet"}
+		return inspector.DetailBody{Title: titleProcess, Subtitle: "no data yet", Sections: nil}
 	}
 
 	rows := []inspector.DetailRow{
-		{Label: "PID", Value: formatInt(stats.Process.PID)},
-		{Label: "Threads", Value: formatInt(stats.Process.ThreadCount)},
-		{Label: "FDs", Value: formatInt(stats.Process.FDCount)},
-		{Label: "RSS", Value: inspector.FormatBytes(stats.Process.RSS)},
-		{Label: "Goroutines", Value: formatInt(stats.NumGoroutines)},
-		{Label: "Uptime", Value: stats.Uptime.Truncate(time.Second).String()},
+		inspector.NewDetailRow("PID", formatInt(stats.Process.PID)),
+		inspector.NewDetailRow("Threads", formatInt(stats.Process.ThreadCount)),
+		inspector.NewDetailRow("FDs", formatInt(stats.Process.FDCount)),
+		inspector.NewDetailRow("RSS", inspector.FormatBytes(stats.Process.RSS)),
+		inspector.NewDetailRow("Goroutines", formatInt(stats.NumGoroutines)),
+		inspector.NewDetailRow("Uptime", stats.Uptime.Truncate(time.Second).String()),
 	}
 
 	return inspector.DetailBody{
 		Title:    titleProcess,
 		Subtitle: "PID " + formatInt(stats.Process.PID),
-		Sections: []inspector.DetailSection{{Heading: "Snapshot", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Snapshot", rows)},
 	}
 }
 

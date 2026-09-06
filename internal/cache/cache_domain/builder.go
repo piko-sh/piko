@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -708,7 +709,7 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterRead(cache_dto.Entry[K, V]) ti
 //   - Creates registries for transformers and encoders
 //   - Wraps providers with TransformerWrapper when needed
 //   - Configures provider-specific options
-//   - Constructs multi-level caches when WithMultiLevel was called
+//   - Constructs multi-level caches when MultiLevel was called
 //   - Returns a fully configured, ready-to-use Cache[K, V]
 //
 // When transformers or custom encoders are used, the returned cache is a
@@ -716,13 +717,19 @@ func (c *accessExpiryCalculator[K, V]) ExpireAfterRead(cache_dto.Entry[K, V]) ti
 // advanced methods like Compute, ComputeIfAbsent, etc.
 //
 // Returns Cache[K, V] which is the fully configured cache instance.
-// Returns error when validation, provider creation, or wiring fails.
+// Returns error when validation, provider creation, or wiring fails, including when
+// MultiLevel is combined with FactoryBlueprint, Provider, transformers or encoders, none
+// of which a multi-level cache can honour.
 func (b *CacheBuilder[K, V]) Build(ctx context.Context) (Cache[K, V], error) {
 	if err := b.validateSearchSchema(); err != nil {
 		return nil, fmt.Errorf("validating search schema: %w", err)
 	}
 
 	if err := ValidateOptions(b.baseOptions()); err != nil {
+		return nil, err
+	}
+
+	if err := b.validateMultiLevelCompatibility(); err != nil {
 		return nil, err
 	}
 
@@ -734,13 +741,49 @@ func (b *CacheBuilder[K, V]) Build(ctx context.Context) (Cache[K, V], error) {
 		return b.buildMultiLevelCache(ctx)
 	}
 
-	needsWrapper := len(b.transformers) > 0 || len(b.encoders) > 0 || b.defaultEncoder != nil
-
-	if !needsWrapper {
+	if !b.needsWrapper() {
 		return b.buildSimpleCache(ctx)
 	}
 
 	return b.buildWrappedCache(ctx)
+}
+
+// needsWrapper reports whether values must pass through transformers or encoders.
+//
+// Returns bool which is true when a transformer, encoder or default encoder is set.
+func (b *CacheBuilder[K, V]) needsWrapper() bool {
+	return len(b.transformers) > 0 || len(b.encoders) > 0 || b.defaultEncoder != nil
+}
+
+// validateMultiLevelCompatibility reports the options a multi-level build would otherwise
+// drop without a word.
+//
+// Returns error naming every option that cannot be combined with MultiLevel, or nil when
+// the builder is not multi-level or the combination is sound.
+func (b *CacheBuilder[K, V]) validateMultiLevelCompatibility() error {
+	if !b.isMultiLevel {
+		return nil
+	}
+
+	var unsupported []string
+	if b.factoryBlueprint != "" {
+		unsupported = append(unsupported, "FactoryBlueprint")
+	}
+	if b.providerName != "" {
+		unsupported = append(unsupported, "Provider")
+	}
+	if b.needsWrapper() {
+		unsupported = append(unsupported, "transformers/encoders")
+	}
+
+	if len(unsupported) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"%w: %s cannot be used with MultiLevel, which names its own L1 and L2 providers and "+
+			"stores values unencoded; configure them on a single-level cache instead",
+		errInvalidConfiguration, strings.Join(unsupported, ", "))
 }
 
 // buildFromBlueprint creates a cache using a registered factory blueprint. This enables
@@ -914,6 +957,8 @@ func (b *CacheBuilder[K, V]) createBaseByteCache(_ context.Context) (ProviderPor
 		Clock:             b.clock,
 		Logger:            b.cacheLogger,
 		StatsRecorder:     b.statsRecorder,
+		SearchSchema:      nil,
+		MaxEntryWeight:    0,
 	}
 
 	baseCache, err := NewCache[K, []byte](b.service, baseOptions)
@@ -993,6 +1038,10 @@ func (b *CacheBuilder[K, V]) buildWrappedCache(ctx context.Context) (*transforme
 // buildMultiLevelCache creates a multi-level cache by constructing L1 and L2 providers
 // and wrapping them with the MultiLevelAdapter.
 //
+// The builder's per-entry ceiling also gates the combined cache, so a value too heavy for
+// the cache is refused before it reaches either level rather than being stored in L2 and
+// silently dropped by L1.
+//
 // Returns Cache[K, V] which is the combined multi-level cache instance.
 // Returns error when L1/L2 creation or adapter construction fails.
 func (b *CacheBuilder[K, V]) buildMultiLevelCache(ctx context.Context) (Cache[K, V], error) {
@@ -1006,7 +1055,7 @@ func (b *CacheBuilder[K, V]) buildMultiLevelCache(ctx context.Context) (Cache[K,
 		return nil, fmt.Errorf("failed to create multi-level adapter: %w", err)
 	}
 
-	return multilevelProvider, nil
+	return newAdmissionGate(multilevelProvider, b.baseOptions()), nil
 }
 
 // createL1L2Providers creates and returns the L1 and L2 cache providers for multi-level
@@ -1039,48 +1088,35 @@ func (b *CacheBuilder[K, V]) createL1L2Providers(_ context.Context) (l1 Provider
 }
 
 // buildL1Options constructs the cache options for the L1 (local/fast) cache layer. L1
-// includes size/weight limits and local capacity settings.
+// carries the builder's namespace, size and weight limits, per-entry ceiling and local
+// capacity settings.
 //
 // Returns cache_dto.Options[K, V] which contains the L1 configuration.
 func (b *CacheBuilder[K, V]) buildL1Options() cache_dto.Options[K, V] {
-	return cache_dto.Options[K, V]{
-		Provider:          b.l1ProviderName,
-		ProviderSpecific:  b.l1ProviderOptions,
-		MaximumEntries:    b.maximumSize,
-		MaximumWeight:     b.maximumWeight,
-		InitialCapacity:   b.initialCapacity,
-		Weigher:           b.weigher,
-		ExpiryCalculator:  b.expiryCalculator,
-		OnDeletion:        b.onDeletion,
-		OnAtomicDeletion:  b.onAtomicDeletion,
-		RefreshCalculator: b.refreshCalculator,
-		Executor:          b.executor,
-		Clock:             b.clock,
-		Logger:            b.cacheLogger,
-		StatsRecorder:     b.statsRecorder,
-		SearchSchema:      b.searchSchema,
-	}
+	options := b.baseOptions()
+	options.Provider = b.l1ProviderName
+	options.ProviderSpecific = b.l1ProviderOptions
+
+	return options
 }
 
 // buildL2Options constructs the cache options for the L2 (remote/distributed) cache
-// layer. L2 excludes size/weight limits as those are typically managed by the remote
-// system.
+// layer. L2 shares the builder's namespace, so caches built with different namespaces
+// never see each other's keys, but carries no size or weight limits, which the remote
+// system manages.
 //
 // Returns cache_dto.Options[K, V] which contains the L2 configuration.
 func (b *CacheBuilder[K, V]) buildL2Options() cache_dto.Options[K, V] {
-	return cache_dto.Options[K, V]{
-		Provider:          b.l2ProviderName,
-		ProviderSpecific:  b.l2ProviderOptions,
-		ExpiryCalculator:  b.expiryCalculator,
-		OnDeletion:        b.onDeletion,
-		OnAtomicDeletion:  b.onAtomicDeletion,
-		RefreshCalculator: b.refreshCalculator,
-		Executor:          b.executor,
-		Clock:             b.clock,
-		Logger:            b.cacheLogger,
-		StatsRecorder:     b.statsRecorder,
-		SearchSchema:      b.searchSchema,
-	}
+	options := b.baseOptions()
+	options.Provider = b.l2ProviderName
+	options.ProviderSpecific = b.l2ProviderOptions
+	options.MaximumEntries = 0
+	options.MaximumWeight = 0
+	options.MaxEntryWeight = 0
+	options.InitialCapacity = 0
+	options.Weigher = nil
+
+	return options
 }
 
 // createMultiLevelAdapter is a helper to construct the multi-level adapter. This is
@@ -1284,37 +1320,17 @@ func (*CacheBuilder[K, V]) adaptRefreshCalculator() cache_dto.RefreshCalculator[
 	return nil
 }
 
-// Clone creates a deep copy of the CacheBuilder, allowing for the creation of a cache
-// template that can be modified and used multiple times.
+// Clone creates a copy of the CacheBuilder that keeps every setting, allowing for the
+// creation of a cache template that can be modified and used multiple times.
+//
+// The transformer and encoder lists are copied, so adding to the clone never changes the
+// original; provider-specific option values and callbacks are shared.
 //
 // Returns *CacheBuilder[K, V] which is an independent copy of this builder.
 func (b *CacheBuilder[K, V]) Clone() *CacheBuilder[K, V] {
-	cloned := &CacheBuilder[K, V]{
-		service:           b.service,
-		providerName:      b.providerName,
-		namespace:         b.namespace,
-		providerOptions:   b.providerOptions,
-		maximumSize:       b.maximumSize,
-		maximumWeight:     b.maximumWeight,
-		initialCapacity:   b.initialCapacity,
-		weigher:           b.weigher,
-		expiryCalculator:  b.expiryCalculator,
-		onDeletion:        b.onDeletion,
-		onAtomicDeletion:  b.onAtomicDeletion,
-		refreshCalculator: b.refreshCalculator,
-		executor:          b.executor,
-		clock:             b.clock,
-		cacheLogger:       b.cacheLogger,
-		statsRecorder:     b.statsRecorder,
-		defaultEncoder:    b.defaultEncoder,
-		searchSchema:      b.searchSchema,
-	}
-
-	cloned.transformers = make([]transformerSpec, len(b.transformers))
-	copy(cloned.transformers, b.transformers)
-
-	cloned.encoders = make([]AnyEncoder, len(b.encoders))
-	copy(cloned.encoders, b.encoders)
+	cloned := new(*b)
+	cloned.transformers = slices.Clone(b.transformers)
+	cloned.encoders = slices.Clone(b.encoders)
 
 	return cloned
 }
@@ -1378,11 +1394,11 @@ func RegisterTransformerBlueprint(name string, factory TransformerBlueprintFacto
 //
 // Returns *CacheBuilder[K, V] which is the new builder ready for configuration.
 func NewCacheBuilder[K comparable, V any](service Service) *CacheBuilder[K, V] {
-	return &CacheBuilder[K, V]{
-		service:      service,
-		transformers: make([]transformerSpec, 0),
-		encoders:     make([]AnyEncoder, 0),
-	}
+	builder := CacheBuilder[K, V]{}
+	builder.service = service
+	builder.transformers = make([]transformerSpec, 0)
+	builder.encoders = make([]AnyEncoder, 0)
+	return &builder
 }
 
 // getMultiLevelAdapterConstructor gets the registered multi-level adapter constructor.

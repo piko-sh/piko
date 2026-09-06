@@ -28,7 +28,7 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
@@ -185,7 +185,14 @@ func validate(td *inspector_dto.TypeData) error {
 // Takes expectedPath (string) which is the expected import path for the package.
 // Takes collector (*errorCollector) which gathers any validation errors found.
 func validatePackage(pkg *inspector_dto.Package, expectedPath string, collector *errorCollector) {
-	ctx := validationContext{kind: vctxPackage, name: expectedPath}
+	ctx := validationContext{
+		kind:      vctxPackage,
+		name:      expectedPath,
+		ownerPkg:  "",
+		ownerType: "",
+		fieldName: "",
+		index:     0,
+	}
 	if pkg == nil {
 		collector.add(ctx, "package data is nil")
 		return
@@ -255,7 +262,14 @@ func validatePackageFuncs(pkg *inspector_dto.Package, collector *errorCollector)
 // Takes expectedName (string) which is the name the type should have.
 // Takes collector (*errorCollector) which gathers any validation errors.
 func validateType(typ *inspector_dto.Type, ownerPackagePath, expectedName string, collector *errorCollector) {
-	ctx := validationContext{kind: vctxType, name: expectedName, ownerPkg: ownerPackagePath}
+	ctx := validationContext{
+		kind:      vctxType,
+		name:      expectedName,
+		ownerPkg:  ownerPackagePath,
+		ownerType: "",
+		fieldName: "",
+		index:     0,
+	}
 	if typ == nil {
 		collector.add(ctx, "type data is nil")
 		return
@@ -290,10 +304,24 @@ func validateType(typ *inspector_dto.Type, ownerPackagePath, expectedName string
 // Takes collector (*errorCollector) which gathers any errors found.
 func validateField(field *inspector_dto.Field, ownerPackagePath, ownerTypeName string, collector *errorCollector) {
 	if field == nil {
-		collector.add(validationContext{kind: vctxType, name: ownerTypeName, ownerPkg: ownerPackagePath}, "contains a nil field")
+		collector.add(validationContext{
+			kind:      vctxType,
+			name:      ownerTypeName,
+			ownerPkg:  ownerPackagePath,
+			ownerType: "",
+			fieldName: "",
+			index:     0,
+		}, "contains a nil field")
 		return
 	}
-	ctx := validationContext{kind: vctxField, name: field.Name, ownerPkg: ownerPackagePath, ownerType: ownerTypeName}
+	ctx := validationContext{
+		kind:      vctxField,
+		name:      field.Name,
+		ownerPkg:  ownerPackagePath,
+		ownerType: ownerTypeName,
+		fieldName: "",
+		index:     0,
+	}
 
 	validateFieldBasicProperties(field, ctx, collector)
 	validateFieldDeclaringInfo(field, ownerPackagePath, ownerTypeName, ctx, collector)
@@ -398,7 +426,14 @@ func validateFieldCompositeParts(field *inspector_dto.Field, ownerPackage, owner
 // Takes collector (*errorCollector) which gathers any errors found during the check.
 func validateCompositePart(part *inspector_dto.CompositePart, fieldName, ownerPackage, ownerType string, index int, collector *errorCollector) {
 	if part == nil {
-		collector.add(validationContext{kind: vctxFieldShort, name: fieldName, ownerPkg: ownerPackage, ownerType: ownerType}, "contains a nil composite part at index %d", index)
+		collector.add(validationContext{
+			kind:      vctxFieldShort,
+			name:      fieldName,
+			ownerPkg:  ownerPackage,
+			ownerType: ownerType,
+			fieldName: "",
+			index:     0,
+		}, "contains a nil composite part at index %d", index)
 		return
 	}
 	ctx := validationContext{kind: vctxCompositePart, index: index, name: part.Role, fieldName: fieldName, ownerPkg: ownerPackage, ownerType: ownerType}
@@ -606,10 +641,24 @@ func containsNamedType(typeString string) bool {
 // Takes collector (*errorCollector) which gathers any errors found.
 func validateMethod(method *inspector_dto.Method, ownerPackagePath, ownerTypeName string, collector *errorCollector) {
 	if method == nil {
-		collector.add(validationContext{kind: vctxType, name: ownerTypeName, ownerPkg: ownerPackagePath}, "contains a nil method")
+		collector.add(validationContext{
+			kind:      vctxType,
+			name:      ownerTypeName,
+			ownerPkg:  ownerPackagePath,
+			ownerType: "",
+			fieldName: "",
+			index:     0,
+		}, "contains a nil method")
 		return
 	}
-	ctx := validationContext{kind: vctxMethod, name: method.Name, ownerPkg: ownerPackagePath, ownerType: ownerTypeName}
+	ctx := validationContext{
+		kind:      vctxMethod,
+		name:      method.Name,
+		ownerPkg:  ownerPackagePath,
+		ownerType: ownerTypeName,
+		fieldName: "",
+		index:     0,
+	}
 
 	if method.Name == "" {
 		collector.add(ctx, "has an empty Name")
@@ -630,7 +679,14 @@ func validateMethod(method *inspector_dto.Method, ownerPackagePath, ownerTypeNam
 // Takes expectedName (string) which is the name the function should have.
 // Takes collector (*errorCollector) which gathers any errors found.
 func validateFunc(inspectedFunction *inspector_dto.Function, ownerPackagePath, expectedName string, collector *errorCollector) {
-	ctx := validationContext{kind: vctxFunc, name: expectedName, ownerPkg: ownerPackagePath}
+	ctx := validationContext{
+		kind:      vctxFunc,
+		name:      expectedName,
+		ownerPkg:  ownerPackagePath,
+		ownerType: "",
+		fieldName: "",
+		index:     0,
+	}
 	if inspectedFunction == nil {
 		collector.add(ctx, "function data is nil")
 		return
@@ -705,8 +761,8 @@ func extractBaseTypeNameFromString(typeString string) string {
 // Returns string which is the bare type name without package qualifier or generic
 // arguments.
 func stripWrapperFromBaseType(s string) string {
-	if dot := strings.LastIndexByte(s, '.'); dot >= 0 {
-		name := s[dot+1:]
+	if _, after, ok := strings.CutLast(s, "."); ok {
+		name := after
 		before, _, _ := strings.Cut(name, "[")
 		return before
 	}

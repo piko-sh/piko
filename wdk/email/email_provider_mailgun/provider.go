@@ -156,6 +156,7 @@ func NewMailgunProvider(ctx context.Context, arguments MailgunProviderArgs, opts
 	defaultConfig := email_domain.ProviderRateLimitConfig{
 		CallsPerSecond: defaultCallsPerSecond,
 		Burst:          defaultBurst,
+		Clock:          nil,
 	}
 	rateLimiter := email_domain.ApplyProviderOptions(defaultConfig, opts...)
 

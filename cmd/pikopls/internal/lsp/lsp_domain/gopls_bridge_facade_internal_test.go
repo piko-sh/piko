@@ -107,7 +107,7 @@ func newTestGoplsRequest() *goplsRequest {
 			testSatelliteDistURI: {},
 		},
 		virtualURI:     testPrimaryURI,
-		mappedPosition: protocol.Position{Line: 0, Character: 0},
+		mappedPosition: protocol.Position{},
 	}
 }
 
@@ -452,4 +452,73 @@ func TestBuildAliasToCanonicalSkipsUnknownHashes(t *testing.T) {
 
 	aliasToCanonical := buildAliasToCanonical(module, primary)
 	assert.Empty(t, aliasToCanonical, "aliases pointing at unknown components are skipped")
+}
+
+func TestMergeTemplateRenameEditsKeepsGoplsEdit(t *testing.T) {
+	t.Parallel()
+
+	const goBlockSource = "<template><p>hi</p></template>\n<script type=\"application/x-go\">\npackage main\n\nvar count = 1\n</script>\n"
+	insideGoBlock := protocol.Position{Line: 4, Character: 5}
+
+	testCases := []struct {
+		name       string
+		position   protocol.Position
+		open       bool
+		superseded bool
+	}{
+		{
+			name:     "position outside any Go block",
+			position: protocol.Position{Line: 0, Character: 3},
+			open:     true,
+		},
+		{
+			name:     "no template references to the symbol",
+			position: insideGoBlock,
+			open:     true,
+		},
+		{
+			name:       "template reference search fails",
+			position:   insideGoBlock,
+			superseded: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ws := createTestWorkspace()
+			t.Cleanup(func() { assert.NoError(t, ws.Close(context.Background())) })
+			server := &Server{workspace: ws}
+			openDocument := newTestDocumentBuilder().
+				WithURI(testRealURI).
+				WithContent(goBlockSource).
+				Build()
+			if testCase.open {
+				ws.documents[testRealURI] = openDocument
+			}
+			if testCase.superseded {
+				ws.inFlight[testRealURI] = analysisOwner{token: 1, gen: 1}
+			}
+			goplsEdit := &protocol.WorkspaceEdit{
+				Changes: map[protocol.DocumentURI][]protocol.TextEdit{
+					testRealURI: {{Range: sampleRange(4, 4, 9), NewText: "total"}},
+				},
+			}
+
+			merged := server.mergeTemplateRenameEdits(context.Background(), openDocument, testCase.position, "total", goplsEdit)
+
+			assert.Same(t, goplsEdit, merged)
+			assert.Len(t, merged.Changes[testRealURI], 1, "only the gopls edit remains")
+		})
+	}
+}
+
+func TestMergeTemplateRenameEditsWithoutGoplsEdit(t *testing.T) {
+	t.Parallel()
+
+	server := &Server{workspace: createTestWorkspace()}
+	openDocument := newTestDocumentBuilder().WithURI(testRealURI).Build()
+
+	assert.Nil(t, server.mergeTemplateRenameEdits(context.Background(), openDocument, protocol.Position{}, "total", nil))
 }

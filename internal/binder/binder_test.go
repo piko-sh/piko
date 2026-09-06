@@ -348,17 +348,15 @@ func TestASTCache(t *testing.T) {
 		var wg sync.WaitGroup
 		numGoroutines := 50
 
-		wg.Add(numGoroutines)
-		for i := range numGoroutines {
-			go func(index int) {
-				defer wg.Done()
+		for index := range numGoroutines {
+			wg.Go(func() {
 				var form SliceForm
 				src := map[string][]string{
 					"Items[0].Name": {fmt.Sprintf("Item%d", index)},
 				}
 				err := binder.Bind(context.Background(), &form, src)
-				require.NoError(t, err)
-			}(i)
+				assert.NoError(t, err)
+			})
 		}
 		wg.Wait()
 

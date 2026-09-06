@@ -96,7 +96,7 @@ func TestFindFuncSignature(t *testing.T) {
 	t.Run("should return nil for nil typeData", func(t *testing.T) {
 		t.Parallel()
 
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Nil(t, querier.FindFuncSignature("pkg", "NewUser", "my/main", "/src/app.go"))
 	})
 
@@ -162,7 +162,7 @@ func TestFindFuncReturnType(t *testing.T) {
 	t.Run("should return nil for nil typeData", func(t *testing.T) {
 		t.Parallel()
 
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Nil(t, querier.FindFuncReturnType("pkg", "NewUser", "my/main", "/src/app.go"))
 	})
 }
@@ -193,7 +193,7 @@ func TestFindFuncInfo(t *testing.T) {
 	t.Run("should return nil for nil typeData", func(t *testing.T) {
 		t.Parallel()
 
-		querier := &TypeQuerier{typeData: nil}
+		querier := &TypeQuerier{}
 		assert.Nil(t, querier.FindFuncInfo("pkg", "NewUser", "my/main", "/src/app.go"))
 	})
 

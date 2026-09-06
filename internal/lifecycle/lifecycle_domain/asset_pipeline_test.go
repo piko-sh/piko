@@ -1295,11 +1295,7 @@ func TestBuildVariantParams(t *testing.T) {
 	t.Run("handles empty config", func(t *testing.T) {
 		t.Parallel()
 
-		config := imageProfileConfig{
-			quality:        0,
-			standardParams: nil,
-			modifiers:      nil,
-		}
+		config := imageProfileConfig{}
 
 		params := buildVariantParams(320, "png", config)
 

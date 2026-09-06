@@ -94,7 +94,9 @@ func (p *parser) parseCreateRole() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is the parsed CREATE POLICY mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseCreatePolicy() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCreate)
+	if _, err := p.expectKeyword(keywordCreate); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
 	p.matchKeyword(keywordRow)
 	return p.captureRBACPolicyOrProfile(keywordPolicy, querier_dto.MutationCreatePolicy, engineKeyPolicyName, true)
@@ -116,7 +118,9 @@ func (p *parser) parseCreateQuota() (*querier_dto.CatalogueMutation, error) {
 // mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseCreateSettingsProfile() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCreate)
+	if _, err := p.expectKeyword(keywordCreate); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
 	p.matchKeyword(keywordSettings)
 	return p.captureRBACPolicyOrProfile(keywordProfile, querier_dto.MutationCreateSettingsProfile, engineKeyProfileName, true)
@@ -149,13 +153,10 @@ func (p *parser) captureRBACPolicyOrProfile(objectKeyword string, kind querier_d
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind: kind,
-		EngineSpecific: map[string]string{
-			nameKey:                name,
-			engineKeyStatementBody: p.consumeRemainderAsText(),
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(kind, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		nameKey:                name,
+		engineKeyStatementBody: p.consumeRemainderAsText(),
+	})), nil
 }
 
 // matchRBACCreateModifiers consumes the optional create modifier that ClickHouse RBAC
@@ -183,7 +184,9 @@ func (p *parser) matchRBACCreateModifiers() {
 // Returns *querier_dto.CatalogueMutation which is the parsed CREATE mutation.
 // Returns error when the object keyword is missing or the name cannot be parsed.
 func (p *parser) parseRBACCreate(objectKeyword string, kind querier_dto.MutationKind, nameKey string) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCreate)
+	if _, err := p.expectKeyword(keywordCreate); err != nil {
+		return nil, err
+	}
 	p.skipCreatePrefixesInParser()
 	if !p.matchKeyword(objectKeyword) {
 		return nil, fmt.Errorf(errExpectedKeyword, objectKeyword, p.current().position)
@@ -193,13 +196,10 @@ func (p *parser) parseRBACCreate(objectKeyword string, kind querier_dto.Mutation
 	if err != nil {
 		return nil, err
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind: kind,
-		EngineSpecific: map[string]string{
-			nameKey:                name,
-			engineKeyStatementBody: p.consumeRemainderAsText(),
-		},
-	}, nil
+	return querier_dto.NewCatalogueMutation(kind, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		nameKey:                name,
+		engineKeyStatementBody: p.consumeRemainderAsText(),
+	})), nil
 }
 
 // parseAlterUser handles `ALTER USER [IF EXISTS] name [, ...] [...]`.
@@ -223,7 +223,9 @@ func (p *parser) parseAlterRole() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is the parsed ALTER POLICY mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseAlterPolicy() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("ALTER")
+	if _, err := p.expectKeyword("ALTER"); err != nil {
+		return nil, err
+	}
 	p.matchKeyword(keywordRow)
 	return p.captureRBACPolicyOrProfile(keywordPolicy, querier_dto.MutationAlterPolicy, engineKeyPolicyName, false)
 }
@@ -243,7 +245,9 @@ func (p *parser) parseAlterQuota() (*querier_dto.CatalogueMutation, error) {
 // mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseAlterSettingsProfile() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("ALTER")
+	if _, err := p.expectKeyword("ALTER"); err != nil {
+		return nil, err
+	}
 	p.matchKeyword(keywordSettings)
 	return p.captureRBACPolicyOrProfile(keywordProfile, querier_dto.MutationAlterSettingsProfile, engineKeyProfileName, false)
 }
@@ -281,7 +285,9 @@ func (p *parser) parseDropRole() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is the parsed DROP POLICY mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseDropPolicy() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDrop)
+	if _, err := p.expectKeyword(keywordDrop); err != nil {
+		return nil, err
+	}
 	p.matchKeyword(keywordRow)
 	return p.captureRBACPolicyOrProfile(keywordPolicy, querier_dto.MutationDropPolicy, engineKeyPolicyName, false)
 }
@@ -301,7 +307,9 @@ func (p *parser) parseDropQuota() (*querier_dto.CatalogueMutation, error) {
 // mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseDropSettingsProfile() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDrop)
+	if _, err := p.expectKeyword(keywordDrop); err != nil {
+		return nil, err
+	}
 	p.matchKeyword(keywordSettings)
 	return p.captureRBACPolicyOrProfile(keywordProfile, querier_dto.MutationDropSettingsProfile, engineKeyProfileName, false)
 }
@@ -332,7 +340,9 @@ func (p *parser) parseRBACDrop(objectKeyword string, kind querier_dto.MutationKi
 // Returns *querier_dto.CatalogueMutation which is the parsed mutation.
 // Returns error when the object keyword is missing or the name cannot be parsed.
 func (p *parser) parseRBACAlterOrDrop(verb, objectKeyword string, kind querier_dto.MutationKind, nameKey string) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(verb)
+	if _, err := p.expectKeyword(verb); err != nil {
+		return nil, err
+	}
 	if !p.matchKeyword(objectKeyword) {
 		return nil, fmt.Errorf(errExpectedKeyword, objectKeyword, p.current().position)
 	}
@@ -348,10 +358,7 @@ func (p *parser) parseRBACAlterOrDrop(verb, objectKeyword string, kind querier_d
 		engineSpecific[engineClauseOnCluster] = cluster
 	}
 	engineSpecific[engineKeyStatementBody] = p.consumeRemainderAsText()
-	return &querier_dto.CatalogueMutation{
-		Kind:           kind,
-		EngineSpecific: engineSpecific,
-	}, nil
+	return querier_dto.NewCatalogueMutation(kind, "", "", querier_dto.WithEngineSpecific(engineSpecific)), nil
 }
 
 // parseGrant handles `GRANT priv [, ...] ON target TO principal [, ...] [WITH GRANT
@@ -360,14 +367,13 @@ func (p *parser) parseRBACAlterOrDrop(verb, objectKeyword string, kind querier_d
 // Returns *querier_dto.CatalogueMutation which is the parsed GRANT mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseGrant() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("GRANT")
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationGrantManagement,
-		EngineSpecific: map[string]string{
-			engineKeyRBACKind:      "GRANT",
-			engineKeyStatementBody: p.consumeRemainderAsText(),
-		},
-	}, nil
+	if _, err := p.expectKeyword("GRANT"); err != nil {
+		return nil, err
+	}
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationGrantManagement, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyRBACKind:      "GRANT",
+		engineKeyStatementBody: p.consumeRemainderAsText(),
+	})), nil
 }
 
 // parseRevoke handles `REVOKE priv [, ...] ON target FROM principal [, ...]`.
@@ -375,12 +381,11 @@ func (p *parser) parseGrant() (*querier_dto.CatalogueMutation, error) {
 // Returns *querier_dto.CatalogueMutation which is the parsed REVOKE mutation.
 // Returns error when the statement cannot be parsed.
 func (p *parser) parseRevoke() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("REVOKE")
-	return &querier_dto.CatalogueMutation{
-		Kind: querier_dto.MutationGrantManagement,
-		EngineSpecific: map[string]string{
-			engineKeyRBACKind:      "REVOKE",
-			engineKeyStatementBody: p.consumeRemainderAsText(),
-		},
-	}, nil
+	if _, err := p.expectKeyword("REVOKE"); err != nil {
+		return nil, err
+	}
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationGrantManagement, "", "", querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyRBACKind:      "REVOKE",
+		engineKeyStatementBody: p.consumeRemainderAsText(),
+	})), nil
 }

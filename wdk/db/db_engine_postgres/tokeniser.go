@@ -125,8 +125,17 @@ var (
 	// dialectConfig declares Postgres lexical rules for the shared scanners: nested block
 	// comments and 0x/0o/0b base-prefixed integer literals.
 	dialectConfig = engine_shared.DialectConfig{
-		Comments: engine_shared.CommentRules{NestedBlockComments: true},
-		Numbers:  engine_shared.NumberRules{HexPrefix: true, OctalPrefix: true, BinaryPrefix: true},
+		Comments: engine_shared.CommentRules{
+			NestedBlockComments:          true,
+			DoubleDashRequiresWhitespace: false,
+			HashLineComment:              false,
+		},
+		Numbers: engine_shared.NumberRules{
+			HexPrefix:                true,
+			OctalPrefix:              true,
+			BinaryPrefix:             true,
+			RequireDigitsAfterPrefix: false,
+		},
 	}
 )
 
@@ -137,7 +146,7 @@ var (
 // Returns []token which is the ordered stream of tokens ending in tokenEOF.
 // Returns error when a lexical error occurs.
 func tokenise(input string) ([]token, error) {
-	lexer := &tokeniser{input: input}
+	lexer := &tokeniser{input: input, position: 0}
 	var tokens []token
 
 	for {
@@ -164,7 +173,7 @@ func (t *tokeniser) next() (token, error) {
 	}
 
 	if t.position >= len(t.input) {
-		return token{kind: tokenEOF, position: t.position}, nil
+		return token{kind: tokenEOF, position: t.position, value: ""}, nil
 	}
 
 	character := t.input[t.position]

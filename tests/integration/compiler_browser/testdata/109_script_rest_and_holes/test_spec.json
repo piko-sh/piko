@@ -1,0 +1,42 @@
+[
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.array-rest",
+    "expected": "1:2,3|4:5,6"
+  },
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.holes",
+    "expected": "2,4|8,9"
+  },
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.rest-params",
+    "expected": "3|6"
+  },
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.object-rest-param",
+    "expected": "1:b,c"
+  },
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.spread",
+    "expected": "1,2,3,4|4"
+  },
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.template-escape",
+    "expected": "x`x${name}"
+  },
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.enum",
+    "expected": "1"
+  },
+  {
+    "action": "checkText",
+    "selector": "rest-holes-component >>> p.pattern",
+    "expected": "true"
+  }
+]

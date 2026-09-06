@@ -100,8 +100,8 @@ func isDebuggerAttached() bool {
 		return false
 	}
 	base := exe
-	if i := strings.LastIndex(exe, "/"); i >= 0 {
-		base = exe[i+1:]
+	if _, after, ok := strings.CutLast(exe, "/"); ok {
+		base = after
 	}
 	return base == "dlv" || base == "dlv-dap" || strings.HasPrefix(base, "dlv")
 }

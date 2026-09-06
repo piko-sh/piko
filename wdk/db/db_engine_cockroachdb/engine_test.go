@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/querier/querier_dto"
+	"piko.sh/piko/wdk/db/db_engine_postgres"
 )
 
 func TestNewCockroachDBEngine(t *testing.T) {
@@ -148,6 +149,39 @@ func TestCockroachDB_BuiltinFunctions_ExtraFunctions(t *testing.T) {
 			require.NotEmpty(t, signatures, "function %q should have at least one signature", function.key)
 			assert.Equal(t, function.schema, signatures[0].Schema,
 				"function %q should be registered with schema %q", function.key, function.schema)
+		})
+	}
+}
+
+func TestNewCockroachDBEngineAppliesPostgresOptions(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		options []db_engine_postgres.Option
+		wantErr bool
+	}{
+		{name: "default token budget accepts the statement", options: nil, wantErr: false},
+		{name: "tight token budget rejects the statement", options: []db_engine_postgres.Option{db_engine_postgres.WithMaxTokensPerStatement(3)}, wantErr: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewCockroachDBEngine(testCase.options...)
+			statements, err := engine.ParseStatements("CREATE TABLE t (id INT PRIMARY KEY, name STRING)")
+			require.NoError(t, err)
+
+			_, err = engine.ApplyDDL(context.Background(), statements[0])
+
+			assert.Equal(t, "cockroachdb", engine.Dialect())
+			if testCase.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "token budget")
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }

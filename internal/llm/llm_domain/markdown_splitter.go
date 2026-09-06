@@ -94,6 +94,8 @@ func NewMarkdownSplitter(chunkSize, overlap int, opts ...MarkdownSplitterOption)
 		overlap:       overlap,
 		maxSplitLevel: 2,
 		fallback:      fallback,
+		parser:        nil,
+		minChunkSize:  0,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -818,7 +820,7 @@ func mergeChunkInto(dst, src *Document, prepend bool) {
 }
 
 // extractNodeText extracts the text content from a piko markdown AST node by recursively
-// walking its inline children.
+// walking its inline children. Hard line breaks contribute a newline.
 //
 // Takes node (markdown_ast.Node) which is the AST node to extract text from.
 //
@@ -826,9 +828,12 @@ func mergeChunkInto(dst, src *Document, prepend bool) {
 func extractNodeText(node markdown_ast.Node) string {
 	var result strings.Builder
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
-		if textNode, ok := child.(*markdown_ast.Text); ok {
-			result.Write(textNode.Value)
-		} else {
+		switch typed := child.(type) {
+		case *markdown_ast.Text:
+			result.Write(typed.Value)
+		case *markdown_ast.LineBreak:
+			result.WriteByte('\n')
+		default:
 			result.WriteString(extractNodeText(child))
 		}
 	}

@@ -137,9 +137,16 @@ func NewWatchdogProfilesPanel(provider WatchdogProvider, clk clock.Clock) *Watch
 		clk = clock.RealClock()
 	}
 	panel := &WatchdogProfilesPanel{
-		BasePanel: NewBasePanel(WatchdogProfilesPanelID, WatchdogProfilesPanelTitle),
-		provider:  provider,
-		clock:     clk,
+		BasePanel:     NewBasePanel(WatchdogProfilesPanelID, WatchdogProfilesPanelTitle),
+		provider:      provider,
+		clock:         clk,
+		lastFetchErr:  nil,
+		theme:         nil,
+		typeFilter:    "",
+		profiles:      nil,
+		sortMode:      0,
+		mu:            sync.RWMutex{},
+		pruneInFlight: false,
 	}
 	panel.SetKeyMap([]KeyBinding{
 		{Key: "j / Down", Description: "Next profile"},
@@ -353,7 +360,8 @@ func (*WatchdogProfilesPanel) columnLayout(width int) []int {
 
 // composeColumns formats a sequence of cells into a single padded row.
 //
-// Takes cells ([]string) and widths ([]int); their lengths must match.
+// Takes cells ([]string) which contains the rendered column contents.
+// Takes widths ([]int) which sets the width of each column in terminal cells.
 //
 // Returns string which is the formatted row.
 func (*WatchdogProfilesPanel) composeColumns(cells []string, widths []int) string {

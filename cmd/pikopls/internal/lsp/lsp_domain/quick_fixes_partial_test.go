@@ -95,7 +95,7 @@ func TestGenerateUndefinedPartialAliasFixes(t *testing.T) {
 
 			diagnostic := protocol.Diagnostic{
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 0, Character: 10},
 				},
 				Data: tc.data,

@@ -107,6 +107,10 @@ type CatalogueMutation struct {
 	IsVirtual bool
 }
 
+// CatalogueMutationOption sets an optional attribute of a mutation built by
+// NewCatalogueMutation.
+type CatalogueMutationOption func(*CatalogueMutation)
+
 // MutationKind identifies the type of DDL mutation.
 type MutationKind uint8
 
@@ -489,10 +493,11 @@ type FunctionSignature struct {
 	// MinArguments is the minimum number of arguments a caller must supply; arguments beyond
 	// this index are optional (they carry defaults).
 	//
-	// When left zero, the overload resolver derives the true minimum from the arguments'
-	// IsOptional flags via MinimumArguments, so a genuinely-zero minimum (a leading optional
-	// argument) is not conflated with an unpopulated field. Set it explicitly only to
-	// override that derivation.
+	// When left zero on a non-variadic signature, the overload resolver derives the true
+	// minimum from the arguments' IsOptional flags via MinimumArguments, so a genuinely-zero
+	// minimum (a leading optional argument) is not conflated with an unpopulated field. Set
+	// it explicitly only to override that derivation. On a variadic signature the value is
+	// always authoritative, so zero means a call may pass no arguments at all.
 	MinArguments int
 
 	// ReturnsSet indicates whether a set of rows is returned.
@@ -517,6 +522,10 @@ type FunctionSignature struct {
 	// resolver matches any arity >= MinArguments.
 	IsVariadic bool
 }
+
+// FunctionSignatureOption sets an optional attribute of a signature built by
+// NewFunctionSignature.
+type FunctionSignatureOption func(*FunctionSignature)
 
 // FunctionDataAccess describes whether a function may modify database state.
 type FunctionDataAccess uint8
@@ -819,4 +828,335 @@ func MinimumArguments(arguments []FunctionArgument) int {
 		}
 	}
 	return len(arguments)
+}
+
+// NewColumn returns a column of the given name, type, and nullability, with every other
+// attribute unset.
+//
+// Takes name (string) which is the column's name.
+// Takes sqlType (SQLType) which is the column's type.
+// Takes nullable (bool) which reports whether the column permits NULL values.
+//
+// Returns Column which carries only the name, type, and nullability.
+func NewColumn(name string, sqlType SQLType, nullable bool) Column {
+	column := Column{}
+	column.Name = name
+	column.SQLType = sqlType
+	column.Nullable = nullable
+	return column
+}
+
+// NewFunctionSignature returns a signature taking arguments and returning returnType,
+// with every other attribute unset unless an option sets it.
+//
+// Takes arguments ([]FunctionArgument) which are the declared arguments, or nil for none.
+// Takes returnType (SQLType) which specifies the result type.
+// Takes nullableBehaviour (FunctionNullableBehaviour) which says when the result is NULL.
+// Takes options (...FunctionSignatureOption) which set any further attributes.
+//
+// Returns *FunctionSignature which is the configured signature.
+func NewFunctionSignature(
+	arguments []FunctionArgument,
+	returnType SQLType,
+	nullableBehaviour FunctionNullableBehaviour,
+	options ...FunctionSignatureOption,
+) *FunctionSignature {
+	signature := &FunctionSignature{}
+	signature.Arguments = arguments
+	signature.ReturnType = returnType
+	signature.NullableBehaviour = nullableBehaviour
+	for _, option := range options {
+		option(signature)
+	}
+	return signature
+}
+
+// NewFunctionReference returns a signature that identifies a function by schema and name
+// alone, with no arguments and a zero return type, for statements that name a function
+// without declaring its full shape.
+//
+// Takes schemaName (string) which is the schema the function belongs to, or "" for the
+// default.
+// Takes functionName (string) which is the function's name.
+//
+// Returns *FunctionSignature which carries only the schema and the name.
+func NewFunctionReference(schemaName string, functionName string) *FunctionSignature {
+	return NewFunctionSignature(
+		nil,
+		SQLType{},
+		FunctionNullableCalledOnNull,
+		WithFunctionName(functionName),
+		withFunctionSchema(schemaName),
+	)
+}
+
+// WithFunctionName names the function a signature belongs to.
+//
+// Takes name (string) which is the function's name.
+//
+// Returns FunctionSignatureOption which sets the name.
+func WithFunctionName(name string) FunctionSignatureOption {
+	return func(signature *FunctionSignature) {
+		signature.Name = name
+	}
+}
+
+// withFunctionSchema sets the schema a signature's function belongs to.
+//
+// Takes schemaName (string) which is the schema's name.
+//
+// Returns FunctionSignatureOption which sets Schema.
+func withFunctionSchema(schemaName string) FunctionSignatureOption {
+	return func(signature *FunctionSignature) {
+		signature.Schema = schemaName
+	}
+}
+
+// WithAggregate marks a signature as an aggregate function.
+//
+// Returns FunctionSignatureOption which sets IsAggregate.
+func WithAggregate() FunctionSignatureOption {
+	return func(signature *FunctionSignature) {
+		signature.IsAggregate = true
+	}
+}
+
+// WithVariadic marks a signature as variadic, accepting at least minArguments arguments.
+//
+// Takes minArguments (int) which is the fewest arguments a call may pass.
+//
+// Returns FunctionSignatureOption which sets IsVariadic and MinArguments.
+func WithVariadic(minArguments int) FunctionSignatureOption {
+	return func(signature *FunctionSignature) {
+		signature.IsVariadic = true
+		signature.MinArguments = minArguments
+	}
+}
+
+// WithMinArguments sets the fewest arguments a call to a non-variadic signature may pass,
+// for functions whose trailing arguments are optional.
+//
+// Takes minArguments (int) which is the fewest arguments a call may pass.
+//
+// Returns FunctionSignatureOption which sets MinArguments.
+func WithMinArguments(minArguments int) FunctionSignatureOption {
+	return func(signature *FunctionSignature) {
+		signature.MinArguments = minArguments
+	}
+}
+
+// WithReturnsSet marks a signature as returning a set of rows.
+//
+// Returns FunctionSignatureOption which sets ReturnsSet.
+func WithReturnsSet() FunctionSignatureOption {
+	return func(signature *FunctionSignature) {
+		signature.ReturnsSet = true
+	}
+}
+
+// NewCatalogueMutation returns a mutation of the given kind against a schema and table,
+// with every other attribute unset unless an option sets it.
+//
+// Takes kind (MutationKind) which is the operation the mutation applies.
+// Takes schemaName (string) which is the schema it targets, or "" for the default.
+// Takes tableName (string) which is the table it targets, or "" when it targets none.
+// Takes options (...CatalogueMutationOption) which set any further attributes.
+//
+// Returns *CatalogueMutation which is the configured mutation.
+func NewCatalogueMutation(
+	kind MutationKind,
+	schemaName string,
+	tableName string,
+	options ...CatalogueMutationOption,
+) *CatalogueMutation {
+	mutation := &CatalogueMutation{}
+	mutation.Kind = kind
+	mutation.SchemaName = schemaName
+	mutation.TableName = tableName
+	for _, option := range options {
+		option(mutation)
+	}
+	return mutation
+}
+
+// WithEngineSpecific attaches engine-specific attributes to a mutation.
+//
+// Takes engineSpecific (map[string]string) which holds the attributes.
+//
+// Returns CatalogueMutationOption which sets EngineSpecific.
+func WithEngineSpecific(engineSpecific map[string]string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.EngineSpecific = engineSpecific
+	}
+}
+
+// WithNewName sets the name a renaming mutation gives its target.
+//
+// Takes newName (string) which is the new name.
+//
+// Returns CatalogueMutationOption which sets NewName.
+func WithNewName(newName string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.NewName = newName
+	}
+}
+
+// WithColumnName sets the column a mutation targets.
+//
+// Takes columnName (string) which is the column's name.
+//
+// Returns CatalogueMutationOption which sets ColumnName.
+func WithColumnName(columnName string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.ColumnName = columnName
+	}
+}
+
+// WithColumns sets the column definitions a mutation adds or replaces.
+//
+// Takes columns ([]Column) which are the column definitions.
+//
+// Returns CatalogueMutationOption which sets Columns.
+func WithColumns(columns []Column) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.Columns = columns
+	}
+}
+
+// WithEnum sets the enum type a mutation creates or alters, and its values.
+//
+// Takes enumName (string) which is the enum type's name.
+// Takes enumValues ([]string) which are its values, in order.
+//
+// Returns CatalogueMutationOption which sets EnumName and EnumValues.
+func WithEnum(enumName string, enumValues []string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.EnumName = enumName
+		mutation.EnumValues = enumValues
+	}
+}
+
+// WithFunction sets the function signature a mutation creates or drops.
+//
+// Takes signature (*FunctionSignature) which is the function's signature.
+//
+// Returns CatalogueMutationOption which sets FunctionSignature.
+func WithFunction(signature *FunctionSignature) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.FunctionSignature = signature
+	}
+}
+
+// WithTriggerName sets the trigger a mutation creates or drops.
+//
+// Takes triggerName (string) which is the trigger's name.
+//
+// Returns CatalogueMutationOption which sets TriggerName.
+func WithTriggerName(triggerName string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.TriggerName = triggerName
+	}
+}
+
+// WithPrimaryKey sets the primary key columns of a table a mutation creates.
+//
+// Takes primaryKey ([]string) which are the primary key column names, in order.
+//
+// Returns CatalogueMutationOption which sets PrimaryKey.
+func WithPrimaryKey(primaryKey []string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.PrimaryKey = primaryKey
+	}
+}
+
+// WithConstraints sets the table constraints a mutation creates or adds.
+//
+// Takes constraints ([]Constraint) which are the table constraints.
+//
+// Returns CatalogueMutationOption which sets Constraints.
+func WithConstraints(constraints []Constraint) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.Constraints = constraints
+	}
+}
+
+// WithConstraintName sets the constraint a mutation drops.
+//
+// Takes constraintName (string) which is the constraint's name.
+//
+// Returns CatalogueMutationOption which sets ConstraintName.
+func WithConstraintName(constraintName string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.ConstraintName = constraintName
+	}
+}
+
+// WithInheritsTables sets the parent tables a created table inherits columns from.
+//
+// Takes inheritsTables ([]TableReference) which are the parent tables, in order.
+//
+// Returns CatalogueMutationOption which sets InheritsTables.
+func WithInheritsTables(inheritsTables []TableReference) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.InheritsTables = inheritsTables
+	}
+}
+
+// WithWithoutRowID records whether a created table was declared WITHOUT ROWID.
+//
+// Takes isWithoutRowID (bool) which is true when the table has no implicit rowid.
+//
+// Returns CatalogueMutationOption which sets IsWithoutRowID.
+func WithWithoutRowID(isWithoutRowID bool) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.IsWithoutRowID = isWithoutRowID
+	}
+}
+
+// WithVirtualModule marks a created table as virtual, backed by the named module.
+//
+// Takes moduleName (string) which is the module from the USING clause.
+//
+// Returns CatalogueMutationOption which sets IsVirtual and VirtualModuleName.
+func WithVirtualModule(moduleName string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.IsVirtual = true
+		mutation.VirtualModuleName = moduleName
+	}
+}
+
+// WithSequence sets the sequence a mutation creates or drops.
+//
+// Takes sequenceName (string) which is the sequence's name.
+//
+// Returns CatalogueMutationOption which sets SequenceName.
+func WithSequence(sequenceName string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.SequenceName = sequenceName
+	}
+}
+
+// WithSequenceOwner sets the table column that owns a sequence.
+//
+// Takes ownedByTable (string) which is the owning table's name.
+// Takes ownedByColumn (string) which is the owning column's name.
+//
+// Returns CatalogueMutationOption which sets OwnedByTable and OwnedByColumn.
+func WithSequenceOwner(ownedByTable string, ownedByColumn string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.OwnedByTable = ownedByTable
+		mutation.OwnedByColumn = ownedByColumn
+	}
+}
+
+// WithTypeName sets the user-defined type, such as an enum or composite type, a mutation
+// creates, alters, or drops.
+//
+// Takes typeName (string) which is the type's name.
+//
+// Returns CatalogueMutationOption which sets EnumName.
+func WithTypeName(typeName string) CatalogueMutationOption {
+	return func(mutation *CatalogueMutation) {
+		mutation.EnumName = typeName
+	}
 }

@@ -1021,7 +1021,8 @@ func buildSignerInfo(
 		SignatureAlgorithm: pkix.AlgorithmIdentifier{
 			Algorithm: sigAlgorithmOID(cert),
 		},
-		Signature: signature,
+		Signature:     signature,
+		UnsignedAttrs: asn1.RawValue{},
 	}
 
 	if timestampToken != nil {

@@ -240,17 +240,15 @@ func TestMockRuntimeProviderRegistry_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = m.Register(&MockRuntimeProvider{})
 			_, _ = m.Get("md")
 			_ = m.List()
 			_ = m.Has("md")
 			_ = m.Fetch(context.Background(), "md", "blog", nil, nil)
-		}()
+		})
 	}
 
 	wg.Wait()

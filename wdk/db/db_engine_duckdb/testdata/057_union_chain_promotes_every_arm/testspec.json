@@ -1,0 +1,3 @@
+{
+  "description": "Every arm of a UNION ALL chain contributes to the result column types, so a NULL in the third arm makes the column nullable."
+}

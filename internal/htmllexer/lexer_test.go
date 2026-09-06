@@ -19,10 +19,18 @@
 package htmllexer
 
 import (
+	"bytes"
 	"errors"
 	"io"
+	"slices"
+	"sort"
+	"strings"
 	"testing"
+	"unicode/utf8"
 	"unsafe"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type expectedToken struct {
@@ -494,6 +502,141 @@ func TestPositionAt(t *testing.T) {
 	}
 }
 
+func TestPositionAt_MatchesFullRecount(t *testing.T) {
+	singleLine := strings.Repeat(`<a href="x">é日</a>`, 40)
+	multiLine := "ab\ncdéf\n\n<p class=\"x\">g日h</p>\nij"
+	invalidUTF8 := "a\xffb\x80c\xe2\x82d\n\xc3e\xf0\x9f\x98"
+
+	testCases := []struct {
+		offsets func(length int) []int
+		name    string
+		input   string
+	}{
+		{name: "forward along a single line", input: singleLine, offsets: ascendingOffsets},
+		{name: "backward along a single line", input: singleLine, offsets: descendingOffsets},
+		{name: "alternating ends of a single line", input: singleLine, offsets: alternatingOffsets},
+		{name: "forward across lines", input: multiLine, offsets: ascendingOffsets},
+		{name: "backward across lines", input: multiLine, offsets: descendingOffsets},
+		{name: "alternating across lines", input: multiLine, offsets: alternatingOffsets},
+		{name: "forward over invalid utf-8", input: invalidUTF8, offsets: ascendingOffsets},
+		{name: "backward over invalid utf-8", input: invalidUTF8, offsets: descendingOffsets},
+		{name: "out of range offsets are clamped", input: multiLine, offsets: outOfRangeOffsets},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			source := []byte(tc.input)
+			lexer := NewLexer(source)
+			for _, offset := range tc.offsets(len(source)) {
+				wantLine, wantColumn := recountPosition(source, offset)
+				line, column := lexer.PositionAt(offset)
+				assert.Equal(t, wantLine, line, "line at offset %d", offset)
+				assert.Equal(t, wantColumn, column, "column at offset %d", offset)
+			}
+		})
+	}
+}
+
+func TestPositionAt_TracksCursorWhileLexing(t *testing.T) {
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{name: "single line markup", input: strings.Repeat(`<span class="b" :x='y'>{{ a }} é</span><!-- c -->`, 20)},
+		{name: "multi line markup", input: "<div\n  class=\"a\"\n>\n  téxt\n</div>\n<script>\nlet x = '<p>';\n</script>\n<br/>"},
+		{name: "raw text and declarations", input: "<!DOCTYPE html><![CDATA[x\ny]]><style>a{}</style><textarea>\n</textarea><?pi?>"},
+		{name: "foreign content", input: "<svg viewBox=\"0 0 1 1\">\n<path d=\"M0\"/></svg><math><mi>x</mi></math>"},
+		{name: "invalid utf-8", input: "<p a=\"\xff\">\x80\xe2\x82</p>\n<b>\xc3</b>"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			source := []byte(tc.input)
+			lexer := NewLexer(source)
+			for lexer.Next() != ErrorToken {
+				wantLine, wantColumn := recountPosition(source, lexer.TokenStart())
+				assert.Equal(t, wantLine, lexer.TokenLine(), "token line at offset %d", lexer.TokenStart())
+				assert.Equal(t, wantColumn, lexer.TokenCol(), "token column at offset %d", lexer.TokenStart())
+
+				line, column := lexer.PositionAt(lexer.TokenStart())
+				assert.Equal(t, lexer.TokenLine(), line, "PositionAt line at token start %d", lexer.TokenStart())
+				assert.Equal(t, lexer.TokenCol(), column, "PositionAt column at token start %d", lexer.TokenStart())
+
+				if valueStart := lexer.AttrValStart(); valueStart >= 0 {
+					wantLine, wantColumn = recountPosition(source, valueStart)
+					line, column = lexer.PositionAt(valueStart)
+					assert.Equal(t, wantLine, line, "line at attribute value %d", valueStart)
+					assert.Equal(t, wantColumn, column, "column at attribute value %d", valueStart)
+				}
+
+				wantLine, wantColumn = recountPosition(source, lexer.TokenEnd())
+				line, column = lexer.PositionAt(lexer.TokenEnd())
+				assert.Equal(t, wantLine, line, "line at token end %d", lexer.TokenEnd())
+				assert.Equal(t, wantColumn, column, "column at token end %d", lexer.TokenEnd())
+			}
+		})
+	}
+}
+
+func TestPositionAt_ColumnsCountRunes(t *testing.T) {
+	source := []byte("xé日😀y\nzé")
+	lexer := NewLexer(source)
+
+	for offset := 0; offset <= len(source); offset++ {
+		if offset < len(source) && !utf8.RuneStart(source[offset]) {
+			continue
+		}
+		lineStart := bytes.LastIndexByte(source[:offset], '\n') + 1
+		_, column := lexer.PositionAt(offset)
+		assert.Equal(t, utf8.RuneCount(source[lineStart:offset])+1, column, "column at offset %d", offset)
+	}
+}
+
+func TestPositionAt_SingleLineLookupsStayLinear(t *testing.T) {
+	element := `<span class="b" :title="item.name">é text</span>`
+	source := []byte(strings.Repeat(element, (1<<20)/len(element)))
+	require.NotContains(t, string(source), "\n")
+
+	lexer := NewLexer(source)
+	scannedBytes := 0
+	lookups := 0
+	resolve := func(offset int) {
+		scannedBytes += columnScanDistance(lexer, offset)
+		lookups++
+		lexer.PositionAt(offset)
+	}
+
+	for lexer.Next() != ErrorToken {
+		resolve(lexer.TokenStart())
+		if valueStart := lexer.AttrValStart(); valueStart >= 0 {
+			resolve(valueStart)
+		}
+		resolve(lexer.TokenEnd())
+	}
+
+	require.Greater(t, lookups, len(source)/len(element))
+	assert.LessOrEqual(t, scannedBytes, 2*len(source),
+		"resolving %d positions on one %d byte line should scan a linear number of bytes", lookups, len(source))
+}
+
+func TestResumeAfterRawText_KeepsPositions(t *testing.T) {
+	source := []byte("<p>é</p>\n  <script>let a = 1;</script><b>x</b>")
+	lexer := NewLexer(source)
+
+	resumeAt := bytes.Index(source, []byte("</script>")) + len("</script>")
+	lexer.PositionAt(len(source))
+	lexer.ResumeAfterRawText(resumeAt)
+
+	require.Equal(t, StartTagToken, lexer.Next())
+	wantLine, wantColumn := recountPosition(source, lexer.TokenStart())
+	assert.Equal(t, wantLine, lexer.TokenLine())
+	assert.Equal(t, wantColumn, lexer.TokenCol())
+
+	line, column := lexer.PositionAt(3)
+	assert.Equal(t, 1, line)
+	assert.Equal(t, 4, column)
+}
+
 func TestAttrValStart(t *testing.T) {
 	testCases := []struct {
 		name              string
@@ -896,4 +1039,57 @@ func TestLexer_ZeroAllocPerLexPass(t *testing.T) {
 	if heapAllocs != 0 {
 		t.Errorf("NewLexer must inline + stack-allocate on newline-free input, got %v allocs", heapAllocs)
 	}
+}
+
+func recountPosition(source []byte, offset int) (line, column int) {
+	offset = min(max(offset, 0), len(source))
+	prefix := source[:offset]
+	lineStart := bytes.LastIndexByte(prefix, '\n') + 1
+	line = bytes.Count(prefix, []byte{'\n'}) + 1
+	column = 1
+	for _, b := range source[lineStart:offset] {
+		if b&0xC0 != 0x80 {
+			column++
+		}
+	}
+	return line, column
+}
+
+func columnScanDistance(lexer *Lexer, offset int) int {
+	lineIndex := sort.SearchInts(lexer.newlineOffsets, offset)
+	lineStart := 0
+	if lineIndex > 0 {
+		lineStart = lexer.newlineOffsets[lineIndex-1] + 1
+	}
+	anchor := lexer.nearestAnchor(lineStart, lineIndex+1, offset)
+	return offsetDistance(anchor.offset, offset)
+}
+
+func ascendingOffsets(length int) []int {
+	offsets := make([]int, 0, length+1)
+	for offset := range length + 1 {
+		offsets = append(offsets, offset)
+	}
+	return offsets
+}
+
+func descendingOffsets(length int) []int {
+	offsets := ascendingOffsets(length)
+	slices.Reverse(offsets)
+	return offsets
+}
+
+func alternatingOffsets(length int) []int {
+	offsets := make([]int, 0, length+1)
+	for low, high := 0, length; low <= high; low, high = low+1, high-1 {
+		offsets = append(offsets, low)
+		if high != low {
+			offsets = append(offsets, high)
+		}
+	}
+	return offsets
+}
+
+func outOfRangeOffsets(length int) []int {
+	return []int{-10, length + 5, -1, length, 0, length * 2}
 }

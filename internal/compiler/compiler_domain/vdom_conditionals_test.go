@@ -960,8 +960,8 @@ func TestVdomConditional_ChainContinuationRejectsANewChainHead(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
 		node *ast_domain.TemplateNode
+		name string
 		want bool
 	}{
 		{

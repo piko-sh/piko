@@ -537,10 +537,10 @@ func NewCache[K comparable, V any](service Service, options Options[K, V]) (Cach
 //	    return err
 //	}
 //	myCache, err := builder.
-//	    WithProvider("redis").
-//	    WithNamespace("products").
-//	    WithMaximumSize(10000).
-//	    WithCompression().
+//	    Provider("redis").
+//	    Namespace("products").
+//	    MaximumEntries(10000).
+//	    Compression().
 //	    Build(ctx)
 func NewCacheBuilder[K comparable, V any](service Service) (*Builder[K, V], error) {
 	if service == nil {
@@ -571,8 +571,12 @@ func NewEncodingRegistry(defaultEncoder AnyEncoder) *EncodingRegistry {
 //	if err != nil {
 //	    return err
 //	}
-//	myCache, err := cache.NewCacheBuilder[string, string](service).
-//	    WithMaximumSize(1000).
+//	builder, err := cache.NewCacheBuilder[string, string](service)
+//	if err != nil {
+//	    return err
+//	}
+//	myCache, err := builder.
+//	    MaximumEntries(1000).
 //	    Build(ctx)
 func GetDefaultService() (Service, error) {
 	service, err := bootstrap.GetCacheService()
@@ -616,7 +620,7 @@ func NewCacheFromDefault[K comparable, V any](options Options[K, V]) (Cache[K, V
 //	    return err
 //	}
 //	myCache, err := builder.
-//	    WithMaximumSize(1000).
+//	    MaximumEntries(1000).
 //	    Build(ctx)
 func NewCacheBuilderFromDefault[K comparable, V any]() (*Builder[K, V], error) {
 	service, err := GetDefaultService()

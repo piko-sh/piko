@@ -20,7 +20,7 @@ package bootstrap
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -28,11 +28,9 @@ import (
 )
 
 var (
-	// analyticsService is the lazily-created singleton.
-	analyticsService *analytics_domain.Service
-
-	// analyticsServiceOnce guards single initialisation.
-	analyticsServiceOnce sync.Once
+	// activeAnalyticsService points at the analytics service of the most recently started
+	// container, for package-level helpers that have no container reference.
+	activeAnalyticsService atomic.Pointer[analytics_domain.Service]
 )
 
 // AddAnalyticsCollector registers a backend analytics collector.
@@ -59,31 +57,37 @@ func (c *Container) AddAnalyticsCollector(collector analytics_domain.Collector) 
 // Returns *analytics_domain.Service which distributes events to collectors, or nil when
 // analytics is not enabled.
 func (c *Container) GetAnalyticsService() *analytics_domain.Service {
-	analyticsServiceOnce.Do(func() {
+	c.analyticsOnce.Do(func() {
 		if len(c.analyticsCollectors) == 0 {
 			return
 		}
 
 		ctx, l := logger_domain.From(c.GetAppContext(), log)
 
-		analyticsService = analytics_domain.NewService(c.analyticsCollectors)
-		analyticsService.Start(ctx)
+		service := analytics_domain.NewService(c.analyticsCollectors)
+		service.Start(ctx)
+		c.analyticsService = service
+		activeAnalyticsService.Store(service)
 
 		shutdown.Register(ctx, "analytics-service", func(ctx context.Context) error {
-			return analyticsService.Close(ctx)
+			activeAnalyticsService.CompareAndSwap(service, nil)
+			return service.Close(ctx)
 		})
 
 		l.Internal("Backend analytics service initialised",
 			logger_domain.Int("collector_count", len(c.analyticsCollectors)))
 	})
-	return analyticsService
+	return c.analyticsService
 }
 
-// GetGlobalAnalyticsService returns the analytics service singleton without requiring a
-// Container reference. Returns nil when no collectors are registered or the service has
-// not been initialised.
+// GetGlobalAnalyticsService returns the analytics service of the most recently started
+// container without requiring a Container reference.
+//
+// Each container owns its own service; this accessor exists for package-level helpers.
+// Returns nil when no container has started an analytics service, or once that service
+// has been shut down.
 //
 // Returns *analytics_domain.Service which distributes events, or nil.
 func GetGlobalAnalyticsService() *analytics_domain.Service {
-	return analyticsService
+	return activeAnalyticsService.Load()
 }

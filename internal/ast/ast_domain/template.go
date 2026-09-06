@@ -487,6 +487,35 @@ type TemplateNode struct {
 	PreserveWhitespace bool
 }
 
+// NewTextNode returns a text node holding text, with every other attribute unset.
+//
+// Takes text (string) which is the node's text content.
+//
+// Returns *TemplateNode which is the text node.
+func NewTextNode(text string) *TemplateNode {
+	node := TemplateNode{}
+	node.NodeType = NodeText
+	node.TextContent = text
+	return &node
+}
+
+// NewElementNode returns an element node with the given tag, attributes and children,
+// with every other attribute unset.
+//
+// Takes tagName (string) which is the element's tag.
+// Takes attributes ([]HTMLAttribute) which are its static attributes, or nil for none.
+// Takes children ([]*TemplateNode) which are its child nodes, or nil for none.
+//
+// Returns *TemplateNode which is the element node.
+func NewElementNode(tagName string, attributes []HTMLAttribute, children []*TemplateNode) *TemplateNode {
+	node := TemplateNode{}
+	node.NodeType = NodeElement
+	node.TagName = tagName
+	node.Attributes = attributes
+	node.Children = children
+	return &node
+}
+
 // directiveSetter assigns a directive to the appropriate field on a node.
 type directiveSetter func(n *TemplateNode, d *Directive)
 

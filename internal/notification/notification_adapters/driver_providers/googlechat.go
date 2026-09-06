@@ -187,42 +187,24 @@ func (*GoogleChatProvider) formatGoogleChatPayload(params *notification_dto.Send
 	widgets := []googleChatWidget{}
 
 	if params.Content.Message != "" {
-		widgets = append(widgets, googleChatWidget{
-			TextParagraph: &googleChatTextParagraph{
-				Text: params.Content.Message,
-			},
-		})
+		widgets = append(widgets, newGoogleChatTextWidget(params.Content.Message))
 	}
 
 	for key, value := range params.Content.Fields {
-		widgets = append(widgets, googleChatWidget{
-			KeyValue: &googleChatKeyValue{
-				TopLabel: key,
-				Content:  value,
-			},
-		})
+		widgets = append(widgets, newGoogleChatKeyValueWidget(key, value))
 	}
 
 	if params.Context.Source != "" {
-		widgets = append(widgets, googleChatWidget{
-			KeyValue: &googleChatKeyValue{
-				TopLabel: "Source",
-				Content:  params.Context.Source,
-			},
-		})
+		widgets = append(widgets, newGoogleChatKeyValueWidget("Source", params.Context.Source))
 	}
 	if params.Context.Environment != "" {
-		widgets = append(widgets, googleChatWidget{
-			KeyValue: &googleChatKeyValue{
-				TopLabel: "Environment",
-				Content:  params.Context.Environment,
-			},
-		})
+		widgets = append(widgets, newGoogleChatKeyValueWidget("Environment", params.Context.Environment))
 	}
 
 	header := &googleChatHeader{
 		Title:    params.Content.Title,
 		Subtitle: params.Context.Priority.String() + " Priority",
+		ImageURL: "",
 	}
 	if params.Content.ImageURL != "" {
 		header.ImageURL = params.Content.ImageURL
@@ -243,6 +225,38 @@ func (*GoogleChatProvider) formatGoogleChatPayload(params *notification_dto.Send
 	}
 
 	return json.Marshal(payload)
+}
+
+// newGoogleChatTextWidget creates a Google Chat widget holding a text paragraph.
+//
+// Takes text (string) which is the paragraph content.
+//
+// Returns googleChatWidget which renders the text paragraph.
+func newGoogleChatTextWidget(text string) googleChatWidget {
+	return googleChatWidget{
+		TextParagraph: &googleChatTextParagraph{
+			Text: text,
+		},
+		KeyValue: nil,
+	}
+}
+
+// newGoogleChatKeyValueWidget creates a Google Chat widget holding a single-line labelled
+// value.
+//
+// Takes label (string) which is the label shown above the value.
+// Takes content (string) which is the value to display.
+//
+// Returns googleChatWidget which renders the labelled value.
+func newGoogleChatKeyValueWidget(label string, content string) googleChatWidget {
+	return googleChatWidget{
+		KeyValue: &googleChatKeyValue{
+			TopLabel:         label,
+			Content:          content,
+			ContentMultiline: false,
+		},
+		TextParagraph: nil,
+	}
 }
 
 // NewGoogleChatProvider creates a new Google Chat notification provider.

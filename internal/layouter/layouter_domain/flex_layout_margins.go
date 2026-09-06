@@ -64,6 +64,7 @@ func countAutoMainMargins(line *flexLine, isRowDirection bool, mainGap float64) 
 // single flex item (0, 1, or 2).
 //
 // Takes item (*flexItem) which is the flex item to inspect.
+// Takes isRowDirection (bool) which reports whether the flex main axis is horizontal.
 //
 // Returns int which is the number of auto margins (0, 1, or 2).
 func countItemAutoMainMargins(item *flexItem, isRowDirection bool) int {

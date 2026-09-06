@@ -21,9 +21,11 @@ package db_driver_sqlite_cgo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"testing"
 
+	"github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,11 +69,11 @@ func TestOpenAppliesPragmas(t *testing.T) {
 func TestOpenResolvesConfigDefaults(t *testing.T) {
 	tests := []struct {
 		name                 string
-		config               Config
 		wantBusyTimeout      string
 		wantCachePages       string
 		wantMmapSize         string
 		wantJournalSizeLimit string
+		config               Config
 	}{
 		{
 			name:                 "all defaults",
@@ -104,7 +106,7 @@ func TestOpenResolvesConfigDefaults(t *testing.T) {
 		},
 		{
 			name:                 "zero values keep defaults",
-			config:               Config{BusyTimeoutMs: 0, CachePages: 0, MmapSize: 0, JournalSizeLimit: 0},
+			config:               Config{},
 			wantBusyTimeout:      "10000",
 			wantCachePages:       "-20000",
 			wantMmapSize:         "67108864",
@@ -146,35 +148,150 @@ func TestOpenEmptyPath(t *testing.T) {
 	assert.ErrorContains(t, err, "path must not be empty")
 }
 
-func TestApplyPragmas(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "apply_pragmas.db")
+func TestOpenReappliesPragmasOnNewConnections(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "recycled.db")
 
-	database, err := sql.Open(driverName, "file:"+path)
+	config := Config{
+		BusyTimeoutMs:    4321,
+		CachePages:       -1000,
+		MmapSize:         4096,
+		JournalSizeLimit: 8192,
+	}
+	database, err := Open(context.Background(), path, config)
 	require.NoError(t, err)
 	t.Cleanup(func() { assert.NoError(t, database.Close()) })
-	require.NoError(t, database.Ping())
 
-	require.NoError(t, applyPragmas(context.Background(), database, 4321, -1000, 4096, 8192))
+	database.SetMaxIdleConns(0)
 
-	assert.Equal(t, "4321", readPragma(t, database, "busy_timeout"))
-	assert.Equal(t, "-1000", readPragma(t, database, "cache_size"))
-	assert.Equal(t, "4096", readPragma(t, database, "mmap_size"))
-	assert.Equal(t, "8192", readPragma(t, database, "journal_size_limit"))
-	assert.Equal(t, "wal", readPragma(t, database, "journal_mode"))
+	_, err = database.ExecContext(t.Context(), "CREATE TEMP TABLE connection_marker (value INTEGER)")
+	require.NoError(t, err)
+
+	var markerCount int
+	require.NoError(t, database.QueryRowContext(t.Context(),
+		"SELECT count(*) FROM sqlite_temp_master WHERE name = 'connection_marker'").Scan(&markerCount))
+	require.Zero(t, markerCount, "the pool must hand out a fresh connection once idle connections are discarded")
+
+	pragmas := map[string]string{
+		"busy_timeout":       "4321",
+		"cache_size":         "-1000",
+		"mmap_size":          "4096",
+		"journal_size_limit": "8192",
+		"journal_mode":       "wal",
+		"foreign_keys":       "1",
+		"synchronous":        "1",
+		"temp_store":         "2",
+		"wal_autocheckpoint": "1000",
+		"cell_size_check":    "1",
+		"secure_delete":      "0",
+	}
+	for name, want := range pragmas {
+		assert.Equalf(t, want, readPragma(t, database, name), "PRAGMA %s on a recycled connection", name)
+	}
 }
 
-func TestApplyPragmasClosedDatabase(t *testing.T) {
-
-	path := filepath.Join(t.TempDir(), "closed.db")
-
-	database, err := sql.Open(driverName, "file:"+path)
-	require.NoError(t, err)
-	require.NoError(t, database.Ping())
-	require.NoError(t, database.Close())
-
-	err = applyPragmas(context.Background(), database, defaultBusyTimeoutMs, defaultCachePages, defaultMmapSize, defaultJournalSizeLimit)
+func TestOpenFailsWhenPathIsDirectory(t *testing.T) {
+	database, err := Open(context.Background(), t.TempDir(), Config{})
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "PRAGMA")
+	assert.Nil(t, database)
+	assert.ErrorContains(t, err, "opening first connection")
+}
+
+func TestResolveConfig(t *testing.T) {
+	tests := []struct {
+		name                 string
+		config               Config
+		wantBusyTimeout      int
+		wantCachePages       int
+		wantMmapSize         int
+		wantJournalSizeLimit int
+	}{
+		{
+			name:                 "all defaults",
+			config:               Config{},
+			wantBusyTimeout:      defaultBusyTimeoutMs,
+			wantCachePages:       defaultCachePages,
+			wantMmapSize:         defaultMmapSize,
+			wantJournalSizeLimit: defaultJournalSizeLimit,
+		},
+		{
+			name: "all overridden",
+			config: Config{
+				BusyTimeoutMs:    1234,
+				CachePages:       -8192,
+				MmapSize:         2048,
+				JournalSizeLimit: 4096,
+			},
+			wantBusyTimeout:      1234,
+			wantCachePages:       -8192,
+			wantMmapSize:         2048,
+			wantJournalSizeLimit: 4096,
+		},
+		{
+			name:                 "negative sizes fall back to defaults",
+			config:               Config{BusyTimeoutMs: -1, MmapSize: -1, JournalSizeLimit: -1},
+			wantBusyTimeout:      defaultBusyTimeoutMs,
+			wantCachePages:       defaultCachePages,
+			wantMmapSize:         defaultMmapSize,
+			wantJournalSizeLimit: defaultJournalSizeLimit,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			busyTimeout, cachePages, mmapSize, journalSizeLimit := resolveConfig(test.config)
+			assert.Equal(t, test.wantBusyTimeout, busyTimeout)
+			assert.Equal(t, test.wantCachePages, cachePages)
+			assert.Equal(t, test.wantMmapSize, mmapSize)
+			assert.Equal(t, test.wantJournalSizeLimit, journalSizeLimit)
+		})
+	}
+}
+
+func TestConnectionPragmasStartWithBusyTimeout(t *testing.T) {
+	pragmas := connectionPragmas(1, 2, 3, 4)
+
+	want := []pragmaAssignment{
+		{name: "busy_timeout", value: "1"},
+		{name: "journal_mode", value: "WAL"},
+		{name: "wal_autocheckpoint", value: "1000"},
+		{name: "synchronous", value: "NORMAL"},
+		{name: "foreign_keys", value: "ON"},
+		{name: "cell_size_check", value: "ON"},
+		{name: "cache_size", value: "2"},
+		{name: "temp_store", value: "MEMORY"},
+		{name: "mmap_size", value: "3"},
+		{name: "journal_size_limit", value: "4"},
+		{name: "secure_delete", value: "OFF"},
+	}
+	assert.Equal(t, want, pragmas)
+}
+
+func TestApplyPragmasFailsOnClosedConnection(t *testing.T) {
+	connection, err := (&sqlite3.SQLiteDriver{}).Open("file:" + filepath.Join(t.TempDir(), "closed.db"))
+	require.NoError(t, err)
+	sqliteConnection, ok := connection.(*sqlite3.SQLiteConn)
+	require.True(t, ok)
+	require.NoError(t, sqliteConnection.Close())
+
+	err = applyPragmas(sqliteConnection, connectionPragmas(defaultBusyTimeoutMs, defaultCachePages, defaultMmapSize, defaultJournalSizeLimit))
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "PRAGMA busy_timeout")
+}
+
+func TestPragmaConnector(t *testing.T) {
+	connector := newPragmaConnector("file:"+filepath.Join(t.TempDir(), "connector.db"), connectionPragmas(250, defaultCachePages, defaultMmapSize, defaultJournalSizeLimit))
+
+	assert.Same(t, connector.driver, connector.Driver())
+
+	cancelledContext, cancel := context.WithCancelCause(t.Context())
+	cancel(errors.New("caller gave up"))
+	connection, err := connector.Connect(cancelledContext)
+	require.ErrorIs(t, err, context.Canceled)
+	assert.Nil(t, connection)
+
+	database := sql.OpenDB(connector)
+	t.Cleanup(func() { assert.NoError(t, database.Close()) })
+	assert.Equal(t, "250", readPragma(t, database, "busy_timeout"))
 }
 
 func TestSQLiteFilePathEscaper(t *testing.T) {

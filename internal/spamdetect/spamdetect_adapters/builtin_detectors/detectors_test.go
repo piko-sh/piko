@@ -55,7 +55,7 @@ func TestHoneypotDetector_Filled(t *testing.T) {
 func TestHoneypotDetector_Empty(t *testing.T) {
 	t.Parallel()
 	detector := NewHoneypotDetector()
-	submission := &spamdetect_dto.Submission{HoneypotValue: ""}
+	submission := &spamdetect_dto.Submission{}
 
 	result, err := detector.Analyse(context.Background(), submission, nil)
 	require.NoError(t, err)

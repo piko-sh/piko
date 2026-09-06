@@ -99,16 +99,18 @@ func (c *inlineLayoutContext) layoutWrappedTextRun(
 	}
 
 	state := wrappedWordState{
-		child:          child,
-		font:           font,
-		fontSize:       fontSize,
-		spaceWidth:     spaceWidth,
-		textLineHeight: textLineHeight,
-		parentMetrics:  parentMetrics,
-		direction:      direction,
-		effectiveVA:    effectiveVA,
-		segmentStartX:  c.cursorX,
-		segmentEmpty:   true,
+		child:             child,
+		font:              font,
+		fontSize:          fontSize,
+		spaceWidth:        spaceWidth,
+		textLineHeight:    textLineHeight,
+		parentMetrics:     parentMetrics,
+		direction:         direction,
+		effectiveVA:       effectiveVA,
+		segmentStartX:     c.cursorX,
+		segmentEmpty:      true,
+		segmentText:       "",
+		lastWasSoftHyphen: false,
 	}
 
 	for _, word := range words {
@@ -123,34 +125,6 @@ func (c *inlineLayoutContext) layoutWrappedTextRun(
 	}
 
 	c.emitFinalWrappedSegment(&state, hasTrailingSpace)
-}
-
-// prepareWrappedWords normalises a text run's soft hyphens and splits it into the word
-// list that the wrapping loop consumes.
-//
-// Takes text (string) which is the run's text after whitespace handling.
-// Takes hyphens (HyphensType) which selects the hyphenation behaviour.
-// Takes language (string) which is the language code for auto-hyphenation.
-//
-// Returns []string which is the (possibly fragment-expanded) word list.
-func prepareWrappedWords(text string, hyphens HyphensType, language string) []string {
-	if hyphens == HyphensNone {
-		text = strings.ReplaceAll(text, softHyphen, "")
-	}
-
-	if hyphens == HyphensAuto {
-		text = autoHyphenateText(text, language)
-	}
-
-	words := splitIntoWords(text)
-	if len(words) == 0 {
-		return nil
-	}
-
-	if hyphens != HyphensNone {
-		words = expandSoftHyphens(words)
-	}
-	return words
 }
 
 // emitFinalWrappedSegment emits the trailing segment left over after the word loop
@@ -266,51 +240,6 @@ func (c *inlineLayoutContext) handleSoftHyphenBreak(state *wrappedWordState) {
 	}
 }
 
-// autoHyphenateText inserts soft hyphens into each word using the Liang-Knuth algorithm
-// for the given language. The existing soft hyphen pipeline then handles the rest.
-//
-// Takes text (string) which is the text to hyphenate.
-// Takes language (string) which is the language code for hyphenation patterns.
-//
-// Returns string which is the text with soft hyphens inserted.
-func autoHyphenateText(text, language string) string {
-	h := DefaultRegistry().Get(language)
-	words := strings.Fields(text)
-	for i, word := range words {
-		words[i] = h.InsertSoftHyphens(word)
-	}
-	return strings.Join(words, spaceChar)
-}
-
-// expandSoftHyphens splits words containing soft hyphens into fragments. Each fragment
-// except the last retains a trailing soft hyphen marker so the caller knows a visible
-// hyphen should appear when the break is taken.
-//
-// Takes words ([]string) which is the word list to expand.
-//
-// Returns []string which is the expanded fragment list.
-func expandSoftHyphens(words []string) []string {
-	var result []string
-	for _, word := range words {
-		if !strings.Contains(word, softHyphen) {
-			result = append(result, word)
-			continue
-		}
-		parts := strings.Split(word, softHyphen)
-		for partIndex, part := range parts {
-			if part == "" {
-				continue
-			}
-			if partIndex < len(parts)-1 {
-				result = append(result, part+softHyphen)
-			} else {
-				result = append(result, part)
-			}
-		}
-	}
-	return result
-}
-
 // layoutCharacterBreakTextRun splits a text run at grapheme cluster boundaries when
 // word-break: break-all is set.
 //
@@ -399,4 +328,77 @@ func (c *inlineLayoutContext) breakClustersAtBoundaries(
 		c.currentLineHeight = extendLineHeightForVerticalAlign(c.currentLineHeight, textLineHeight, parentMetrics, effectiveVA)
 		c.emitTextSegment(box, font, fontSize, segment, segmentStartX, textLineHeight, verticalAlignInputs{parentMetrics: parentMetrics, effective: effectiveVA})
 	}
+}
+
+// prepareWrappedWords normalises a text run's soft hyphens and splits it into the word
+// list that the wrapping loop consumes.
+//
+// Takes text (string) which is the run's text after whitespace handling.
+// Takes hyphens (HyphensType) which selects the hyphenation behaviour.
+// Takes language (string) which is the language code for auto-hyphenation.
+//
+// Returns []string which is the (possibly fragment-expanded) word list.
+func prepareWrappedWords(text string, hyphens HyphensType, language string) []string {
+	if hyphens == HyphensNone {
+		text = strings.ReplaceAll(text, softHyphen, "")
+	}
+
+	if hyphens == HyphensAuto {
+		text = autoHyphenateText(text, language)
+	}
+
+	words := splitIntoWords(text)
+	if len(words) == 0 {
+		return nil
+	}
+
+	if hyphens != HyphensNone {
+		words = expandSoftHyphens(words)
+	}
+	return words
+}
+
+// autoHyphenateText inserts soft hyphens into each word using the Liang-Knuth algorithm
+// for the given language. The existing soft hyphen pipeline then handles the rest.
+//
+// Takes text (string) which is the text to hyphenate.
+// Takes language (string) which is the language code for hyphenation patterns.
+//
+// Returns string which is the text with soft hyphens inserted.
+func autoHyphenateText(text, language string) string {
+	h := DefaultRegistry().Get(language)
+	words := strings.Fields(text)
+	for i, word := range words {
+		words[i] = h.InsertSoftHyphens(word)
+	}
+	return strings.Join(words, spaceChar)
+}
+
+// expandSoftHyphens splits words containing soft hyphens into fragments. Each fragment
+// except the last retains a trailing soft hyphen marker so the caller knows a visible
+// hyphen should appear when the break is taken.
+//
+// Takes words ([]string) which is the word list to expand.
+//
+// Returns []string which is the expanded fragment list.
+func expandSoftHyphens(words []string) []string {
+	var result []string
+	for _, word := range words {
+		if !strings.Contains(word, softHyphen) {
+			result = append(result, word)
+			continue
+		}
+		parts := strings.Split(word, softHyphen)
+		for partIndex, part := range parts {
+			if part == "" {
+				continue
+			}
+			if partIndex < len(parts)-1 {
+				result = append(result, part+softHyphen)
+			} else {
+				result = append(result, part)
+			}
+		}
+	}
+	return result
 }

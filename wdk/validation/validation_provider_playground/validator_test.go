@@ -267,7 +267,7 @@ func TestMoneyPointerValidation(t *testing.T) {
 	}
 
 	t.Run("nil pointer fails", func(t *testing.T) {
-		s := TestStruct{Amount: nil}
+		s := TestStruct{}
 		err := v.Struct(s)
 		assert.Error(t, err)
 	})
@@ -468,7 +468,7 @@ func TestDecimalPointerValidation(t *testing.T) {
 	}
 
 	t.Run("nil pointer fails", func(t *testing.T) {
-		s := TestStruct{Value: nil}
+		s := TestStruct{}
 		err := v.Struct(s)
 		assert.Error(t, err)
 	})

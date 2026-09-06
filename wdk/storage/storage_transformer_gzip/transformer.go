@@ -267,9 +267,10 @@ func (g *GzipTransformer) Reverse(ctx context.Context, input io.Reader, _ any) (
 // Returns *readerCloser which wraps the reader with the configured cap.
 func newCappedReader(reader *gzip.Reader, maxBytes int64) *readerCloser {
 	rc := &readerCloser{
-		reader:   reader,
-		source:   reader,
-		maxBytes: maxBytes,
+		reader:    reader,
+		source:    reader,
+		maxBytes:  maxBytes,
+		readBytes: 0,
 	}
 	if maxBytes > 0 {
 		rc.source = io.LimitReader(reader, maxBytes+1)

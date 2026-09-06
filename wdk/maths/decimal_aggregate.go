@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/cockroachdb/apd/v3"
 )
 
 // Allocate splits a Decimal value into parts based on the given ratios. Any remainder is
@@ -74,7 +76,7 @@ func SumDecimals(decimals ...Decimal) Decimal {
 // is empty.
 func AverageDecimals(decimals ...Decimal) Decimal {
 	if len(decimals) == 0 {
-		return Decimal{err: errors.New("maths: cannot calculate average of an empty slice")}
+		return Decimal{err: errors.New("maths: cannot calculate average of an empty slice"), value: apd.Decimal{}}
 	}
 	sum := SumDecimals(decimals...)
 	return sum.Divide(NewDecimalFromInt(int64(len(decimals))))
@@ -98,7 +100,7 @@ func MinDecimal(d1 Decimal, others ...Decimal) Decimal {
 		}
 		isLess, err := d.LessThan(minValue)
 		if err != nil {
-			return Decimal{err: fmt.Errorf("maths: Min comparison failed: %w", err)}
+			return Decimal{err: fmt.Errorf("maths: Min comparison failed: %w", err), value: apd.Decimal{}}
 		}
 		if isLess {
 			minValue = d
@@ -125,7 +127,7 @@ func MaxDecimal(d1 Decimal, others ...Decimal) Decimal {
 		}
 		isGreater, err := d.GreaterThan(maxValue)
 		if err != nil {
-			return Decimal{err: fmt.Errorf("maths: Max comparison failed: %w", err)}
+			return Decimal{err: fmt.Errorf("maths: Max comparison failed: %w", err), value: apd.Decimal{}}
 		}
 		if isGreater {
 			maxValue = d

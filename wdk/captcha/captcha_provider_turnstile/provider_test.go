@@ -23,38 +23,25 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/captcha/captcha_dto"
 )
 
-type urlRewriteTransport struct {
-	base      http.RoundTripper
-	targetURL string
-}
-
-func (transport *urlRewriteTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	request.URL, _ = url.Parse(transport.targetURL)
-	return transport.base.RoundTrip(request)
-}
-
-func newTestProvider(t *testing.T, serverURL string) *provider {
+func newTestProvider(t *testing.T, serverURL string, options ...Option) *provider {
 	t.Helper()
-	return &provider{
-		httpClient: &http.Client{
-			Transport: &urlRewriteTransport{
-				base:      http.DefaultTransport,
-				targetURL: serverURL,
-			},
-		},
-		config: Config{
-			SiteKey:   "test-site-key",
-			SecretKey: "test-secret-key",
-		},
-	}
+
+	testProvider, err := newProvider(Config{
+		SiteKey:   "test-site-key",
+		SecretKey: "test-secret-key",
+	}, serverURL, options...)
+	require.NoError(t, err)
+
+	return testProvider
 }
 
 func TestNewProvider_Valid(t *testing.T) {
@@ -170,9 +157,7 @@ func TestProvider_Verify_EmptyToken(t *testing.T) {
 
 	testProvider := newTestProvider(t, server.URL)
 
-	response, err := testProvider.Verify(context.Background(), &captcha_dto.VerifyRequest{
-		Token: "",
-	})
+	response, err := testProvider.Verify(context.Background(), &captcha_dto.VerifyRequest{})
 
 	require.NoError(t, err)
 	assert.False(t, response.Success)
@@ -263,4 +248,56 @@ func TestProvider_MalformedTimestamp(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, response.Success)
 	assert.True(t, response.Timestamp.IsZero())
+}
+
+func TestProvider_Verify_ResponseSizeLimit(t *testing.T) {
+	t.Parallel()
+
+	const limit = 256
+	verdictOfSize := func(size int) string {
+		const prefix, suffix = `{"success":true,"hostname":"`, `"}`
+		return prefix + strings.Repeat("a", size-len(prefix)-len(suffix)) + suffix
+	}
+
+	testCases := []struct {
+		name        string
+		body        string
+		wantSuccess bool
+		wantErr     bool
+	}{
+		{name: "a response of exactly the limit is accepted", body: verdictOfSize(limit), wantSuccess: true},
+		{name: "a response over the limit is refused", body: verdictOfSize(limit + 1), wantErr: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				writer.Header().Set("Content-Type", "application/json")
+				_, _ = writer.Write([]byte(tc.body))
+			}))
+			defer server.Close()
+
+			testProvider := newTestProvider(t, server.URL, WithMaxResponseBytes(limit), WithVerifyTimeout(5*time.Second))
+			response, err := testProvider.Verify(context.Background(), &captcha_dto.VerifyRequest{Token: "token"})
+
+			if tc.wantErr {
+				require.ErrorIs(t, err, captcha_dto.ErrProviderUnavailable)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantSuccess, response.Success)
+		})
+	}
+}
+
+func TestNewProvider_AcceptsOptions(t *testing.T) {
+	t.Parallel()
+
+	created, err := NewProvider(Config{SiteKey: "site", SecretKey: "secret"},
+		WithVerifyTimeout(time.Second), WithMaxResponseBytes(1024))
+
+	require.NoError(t, err)
+	assert.NotNil(t, created)
 }

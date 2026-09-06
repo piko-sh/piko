@@ -27,7 +27,8 @@ import (
 // DetailView renders the detail-pane body for the row currently under the cursor.
 // Category rows show their FD list; otherwise the panel- level FDs summary is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *ResourcesPanel) DetailView(width, height int) string {
@@ -53,11 +54,11 @@ func (p *ResourcesPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing the category and its open FDs.
 func resourcesCategoryDetailBody(c *FDCategory) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Category", Value: c.Category},
-		{Label: "Count", Value: fmt.Sprintf(FormatPercentInt, c.Count)},
+		inspector.NewDetailRow("Category", c.Category),
+		inspector.NewDetailRow("Count", fmt.Sprintf(FormatPercentInt, c.Count)),
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Category", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Category", rows)}
 
 	if len(c.FDs) > 0 {
 		fdRows := make([]inspector.DetailRow, 0, min(len(c.FDs), resourcesDetailMaxFDs))
@@ -65,12 +66,9 @@ func resourcesCategoryDetailBody(c *FDCategory) inspector.DetailBody {
 			if i >= resourcesDetailMaxFDs {
 				break
 			}
-			fdRows = append(fdRows, inspector.DetailRow{
-				Label: fmt.Sprintf("fd %d", fd.FD),
-				Value: fd.Target,
-			})
+			fdRows = append(fdRows, inspector.NewDetailRow(fmt.Sprintf("fd %d", fd.FD), fd.Target))
 		}
-		sections = append(sections, inspector.DetailSection{Heading: "Open FDs", Rows: fdRows})
+		sections = append(sections, inspector.NewDetailSection("Open FDs", fdRows))
 	}
 
 	return inspector.DetailBody{
@@ -95,18 +93,19 @@ func (p *ResourcesPanel) resourcesOverviewDetailBody() inspector.DetailBody {
 	rows := []inspector.DetailRow{}
 	if data != nil {
 		rows = append(rows,
-			inspector.DetailRow{Label: "Total FDs", Value: fmt.Sprintf(FormatPercentInt, data.Total)},
-			inspector.DetailRow{Label: "Categories", Value: fmt.Sprintf(FormatPercentInt, len(data.Categories))},
+			inspector.NewDetailRow("Total FDs", fmt.Sprintf(FormatPercentInt, data.Total)),
+			inspector.NewDetailRow("Categories", fmt.Sprintf(FormatPercentInt, len(data.Categories))),
 		)
 	}
 	if !last.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last refresh", Value: inspector.FormatDetailTime(last)})
+		rows = append(rows, inspector.NewDetailRow("Last refresh", inspector.FormatDetailTime(last)))
 	}
 	if err != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: err.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", err.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    "Resources overview",
-		Sections: []inspector.DetailSection{{Heading: "Status", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status", rows)},
+		Subtitle: "",
 	}
 }

@@ -69,6 +69,7 @@ func (f *logFactory) getLoggerForPackage(name string) Logger {
 		tracer:             tracer,
 		ctx:                context.Background(),
 		hooks:              nil,
+		attrs:              nil,
 		hooksMutex:         sync.RWMutex{},
 		stackTraceProvider: newRuntimeStackTraceProvider(),
 		useDynamicDefault:  true,

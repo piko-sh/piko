@@ -137,9 +137,10 @@ type DirectiveSpec struct {
 	// Role categorises where the directive may appear.
 	Role DirectiveRole
 
-	// ParamKind is set for Role==DirectiveRoleParam directives and maps to the existing
+	// ParamKind is the parameter kind the directive declares (the standard kind for a
+	// piko.param binding, the sortable kind for piko.sortable), mapped to the existing
 	// ParameterDirectiveKind enum so the AST shape downstream consumers depend on does not
-	// change.
+	// change. Directives that declare no parameter use ParameterDirectiveNone.
 	ParamKind ParameterDirectiveKind
 }
 
@@ -176,7 +177,13 @@ var (
 			Example: "-- piko.query(GetUser, one)",
 			DocsURL: "https://docs.piko.sh/reference/querier#piko-query",
 			Positionals: []PositionalSpec{
-				{Name: "name", Required: true, Kind: KeywordArgumentIdent, Description: "Go method name for the generated query."},
+				{
+					Name:          "name",
+					Required:      true,
+					Kind:          KeywordArgumentIdent,
+					Description:   "Go method name for the generated query.",
+					AllowedValues: nil,
+				},
 				{
 					Name:          "command",
 					Required:      true,
@@ -186,12 +193,43 @@ var (
 				},
 			},
 			KeywordArguments: []KeywordArgumentSpec{
-				{Name: "dynamic", Kind: KeywordArgumentIdent, AllowedValues: dynamicEnumValues, Description: "Emit a fluent runtime query builder instead of a static method."},
-				{Name: "readonly", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Override automatic read-only detection."},
-				{Name: "nullable", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Override automatic nullability propagation across the output columns."},
-				{Name: "optional", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "For command:one, return (row, false, nil) instead of the no-rows sentinel."},
-				{Name: "group_by", Kind: KeywordArgumentQualifiedIdent, Description: "Declare the grouping column for one-to-many embed joins."},
+				{
+					Name:          "dynamic",
+					Kind:          KeywordArgumentIdent,
+					AllowedValues: dynamicEnumValues,
+					Description:   "Emit a fluent runtime query builder instead of a static method.",
+					Required:      false,
+				},
+				{
+					Name:          "readonly",
+					Kind:          KeywordArgumentBool,
+					AllowedValues: boolEnumValues,
+					Description:   "Override automatic read-only detection.",
+					Required:      false,
+				},
+				{
+					Name:          "nullable",
+					Kind:          KeywordArgumentBool,
+					AllowedValues: boolEnumValues,
+					Description:   "Override automatic nullability propagation across the output columns.",
+					Required:      false,
+				},
+				{
+					Name:          "optional",
+					Kind:          KeywordArgumentBool,
+					AllowedValues: boolEnumValues,
+					Description:   "For command:one, return (row, false, nil) instead of the no-rows sentinel.",
+					Required:      false,
+				},
+				{
+					Name:          "group_by",
+					Kind:          KeywordArgumentQualifiedIdent,
+					Description:   "Declare the grouping column for one-to-many embed joins.",
+					AllowedValues: nil,
+					Required:      false,
+				},
 			},
+			ParamKind: ParameterDirectiveNone,
 		},
 		{
 			Name:      "piko.param",
@@ -201,15 +239,57 @@ var (
 			Example:   "-- $1 as piko.param(user_id, type: int8, nullable: false)",
 			DocsURL:   "https://docs.piko.sh/reference/querier#piko-param",
 			Positionals: []PositionalSpec{
-				{Name: "name", Required: true, Kind: KeywordArgumentIdent, Description: "The Go identifier for the parameter."},
+				{
+					Name:          "name",
+					Required:      true,
+					Kind:          KeywordArgumentIdent,
+					Description:   "The Go identifier for the parameter.",
+					AllowedValues: nil,
+				},
 			},
 			KeywordArguments: []KeywordArgumentSpec{
-				{Name: "type", Kind: KeywordArgumentIdent, Description: "Explicit SQL type that overrides inference."},
-				{Name: "nullable", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Override the inferred nullability for this parameter."},
-				{Name: "default", Kind: KeywordArgumentInt, Description: "Default integer for an omitted numeric (pagination) parameter, e.g. a LIMIT default. Excludes optional."},
-				{Name: "optional", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Drop the predicate this parameter appears in when the caller passes nil; excludes default."},
-				{Name: "kind", Kind: KeywordArgumentIdent, AllowedValues: kindEnumValues, Description: "Cardinality: scalar (default) or slice (expands to IN (...) at call time)."},
-				{Name: "max", Kind: KeywordArgumentInt, Description: "Inclusive upper bound enforced at call time for a numeric parameter (e.g. a LIMIT cap)."},
+				{
+					Name:          "type",
+					Kind:          KeywordArgumentIdent,
+					Description:   "Explicit SQL type that overrides inference.",
+					AllowedValues: nil,
+					Required:      false,
+				},
+				{
+					Name:          "nullable",
+					Kind:          KeywordArgumentBool,
+					AllowedValues: boolEnumValues,
+					Description:   "Override the inferred nullability for this parameter.",
+					Required:      false,
+				},
+				{
+					Name:          "default",
+					Kind:          KeywordArgumentInt,
+					Description:   "Default integer for an omitted numeric (pagination) parameter, e.g. a LIMIT default. Excludes optional.",
+					AllowedValues: nil,
+					Required:      false,
+				},
+				{
+					Name:          "optional",
+					Kind:          KeywordArgumentBool,
+					AllowedValues: boolEnumValues,
+					Description:   "Drop the predicate this parameter appears in when the caller passes nil; excludes default.",
+					Required:      false,
+				},
+				{
+					Name:          "kind",
+					Kind:          KeywordArgumentIdent,
+					AllowedValues: kindEnumValues,
+					Description:   "Cardinality: scalar (default) or slice (expands to IN (...) at call time).",
+					Required:      false,
+				},
+				{
+					Name:          "max",
+					Kind:          KeywordArgumentInt,
+					Description:   "Inclusive upper bound enforced at call time for a numeric parameter (e.g. a LIMIT cap).",
+					AllowedValues: nil,
+					Required:      false,
+				},
 			},
 		},
 		{
@@ -220,9 +300,22 @@ var (
 			Example:   "-- piko.sortable(order_by, [name, total, placed_at])",
 			DocsURL:   "https://docs.piko.sh/reference/querier#piko-sortable",
 			Positionals: []PositionalSpec{
-				{Name: "name", Required: true, Kind: KeywordArgumentIdent, Description: "The Go identifier for the sortable input."},
-				{Name: "columns", Required: true, Kind: KeywordArgumentList, Description: "Closed list of column names the caller may sort by."},
+				{
+					Name:          "name",
+					Required:      true,
+					Kind:          KeywordArgumentIdent,
+					Description:   "The Go identifier for the sortable input.",
+					AllowedValues: nil,
+				},
+				{
+					Name:          "columns",
+					Required:      true,
+					Kind:          KeywordArgumentList,
+					Description:   "Closed list of column names the caller may sort by.",
+					AllowedValues: nil,
+				},
 			},
+			KeywordArguments: nil,
 		},
 		{
 			Name:    "piko.embed",
@@ -231,12 +324,31 @@ var (
 			Example: "-- piko.embed(orders, from: o)",
 			DocsURL: "https://docs.piko.sh/reference/querier#piko-embed",
 			Positionals: []PositionalSpec{
-				{Name: "table", Required: true, Kind: KeywordArgumentIdent, Description: "Source table or view whose columns are embedded."},
+				{
+					Name:          "table",
+					Required:      true,
+					Kind:          KeywordArgumentIdent,
+					Description:   "Source table or view whose columns are embedded.",
+					AllowedValues: nil,
+				},
 			},
 			KeywordArguments: []KeywordArgumentSpec{
-				{Name: "from", Kind: KeywordArgumentIdent, Description: "FROM-clause alias whose columns belong to this embed group."},
-				{Name: "as", Kind: KeywordArgumentIdent, Description: "Override the Go field name for the embed."},
+				{
+					Name:          "from",
+					Kind:          KeywordArgumentIdent,
+					Description:   "FROM-clause alias whose columns belong to this embed group.",
+					AllowedValues: nil,
+					Required:      false,
+				},
+				{
+					Name:          "as",
+					Kind:          KeywordArgumentIdent,
+					Description:   "Override the Go field name for the embed.",
+					AllowedValues: nil,
+					Required:      false,
+				},
 			},
+			ParamKind: ParameterDirectiveNone,
 		},
 		{
 			Name: "piko.column",
@@ -248,31 +360,38 @@ var (
 			DocsURL: "https://docs.piko.sh/reference/querier#piko-column",
 			Positionals: []PositionalSpec{
 				{
-					Name:        "name",
-					Required:    true,
-					Kind:        KeywordArgumentQualifiedIdent,
-					Description: "Output column name (in a query header) or qualified table.column name (in a migration file).",
+					Name:          "name",
+					Required:      true,
+					Kind:          KeywordArgumentQualifiedIdent,
+					Description:   "Output column name (in a query header) or qualified table.column name (in a migration file).",
+					AllowedValues: nil,
 				},
 			},
 			KeywordArguments: []KeywordArgumentSpec{
 				{
-					Name:        "type",
-					Kind:        KeywordArgumentIdent,
-					Description: "SQL type that overrides the analyser's inference. Mapped to Go through the engine's type registry. Mutually exclusive with go_type.",
+					Name:          "type",
+					Kind:          KeywordArgumentIdent,
+					Description:   "SQL type that overrides the analyser's inference. Mapped to Go through the engine's type registry. Mutually exclusive with go_type.",
+					AllowedValues: nil,
+					Required:      false,
 				},
 				{
 					Name: "go_type",
 					Kind: KeywordArgumentString,
 					Description: "Explicit Go destination type with import path (e.g. github.com/google/uuid.UUID). " +
 						"The package is imported automatically. Mutually exclusive with type.",
+					AllowedValues: nil,
+					Required:      false,
 				},
 				{
 					Name:          "nullable",
 					Kind:          KeywordArgumentBool,
 					AllowedValues: boolEnumValues,
 					Description:   "Override the inferred nullability of this column.",
+					Required:      false,
 				},
 			},
+			ParamKind: ParameterDirectiveNone,
 		},
 		{
 			Name: "piko.migration",
@@ -283,9 +402,23 @@ var (
 			Example: "-- piko.migration(readonly: true)",
 			DocsURL: "https://docs.piko.sh/reference/querier#piko-migration",
 			KeywordArguments: []KeywordArgumentSpec{
-				{Name: "readonly", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Mark the following CREATE FUNCTION read-only (true) or modifying (false) in the catalogue."},
-				{Name: "no_transaction", Kind: KeywordArgumentBool, AllowedValues: boolEnumValues, Description: "Run the migration outside a transaction (e.g. CREATE INDEX CONCURRENTLY)."},
+				{
+					Name:          "readonly",
+					Kind:          KeywordArgumentBool,
+					AllowedValues: boolEnumValues,
+					Description:   "Mark the following CREATE FUNCTION read-only (true) or modifying (false) in the catalogue.",
+					Required:      false,
+				},
+				{
+					Name:          "no_transaction",
+					Kind:          KeywordArgumentBool,
+					AllowedValues: boolEnumValues,
+					Description:   "Run the migration outside a transaction (e.g. CREATE INDEX CONCURRENTLY).",
+					Required:      false,
+				},
 			},
+			Positionals: nil,
+			ParamKind:   ParameterDirectiveNone,
 		},
 	}
 

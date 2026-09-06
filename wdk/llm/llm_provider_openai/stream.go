@@ -67,8 +67,12 @@ type streamState struct {
 //
 // Spawns a goroutine to process incoming stream events. The channel is closed when the
 // stream completes or encounters an error.
-func (p *openaiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.openaiProvider.Stream")
+func (p *openaiProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (result <-chan llm_dto.StreamEvent, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.openaiProvider.Stream", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
@@ -184,6 +188,7 @@ func (p *openaiProvider) processChunkChoices(ctx context.Context, events chan<- 
 			Model:        chunk.Model,
 			Delta:        delta,
 			FinishReason: finishReason,
+			Usage:        nil,
 		}
 
 		p.extractUsage(chunk, streamChunk, state)
@@ -245,7 +250,7 @@ func (p *openaiProvider) buildToolCallDeltas(toolCalls []openai.ChatCompletionCh
 //
 // Returns llm_dto.ToolCallDelta which is the converted tool call delta.
 func (p *openaiProvider) buildSingleToolCallDelta(tc *openai.ChatCompletionChunkChoiceDeltaToolCall, state *streamState) llm_dto.ToolCallDelta {
-	tcd := llm_dto.ToolCallDelta{Index: int(tc.Index)}
+	tcd := llm_dto.ToolCallDelta{Index: int(tc.Index), ID: nil, Type: nil, Function: nil}
 
 	if tc.ID != "" {
 		tcd.ID = new(tc.ID)
@@ -313,6 +318,7 @@ func (*openaiProvider) extractUsage(chunk *openai.ChatCompletionChunk, streamChu
 		CompletionTokens: int(chunk.Usage.CompletionTokens),
 		TotalTokens:      int(chunk.Usage.TotalTokens),
 		CachedTokens:     int(chunk.Usage.PromptTokensDetails.CachedTokens),
+		EstimatedCost:    nil,
 	}
 	state.finalUsage = streamChunk.Usage
 }
@@ -343,9 +349,13 @@ func (*openaiProvider) sendEvent(ctx context.Context, events chan<- llm_dto.Stre
 // Returns *llm_dto.CompletionResponse which contains the assembled response.
 func (*openaiProvider) buildFinalResponse(state *streamState) *llm_dto.CompletionResponse {
 	finalResponse := &llm_dto.CompletionResponse{
-		ID:    state.lastID,
-		Model: state.lastModel,
-		Usage: state.finalUsage,
+		ID:           state.lastID,
+		Model:        state.lastModel,
+		Usage:        state.finalUsage,
+		FallbackInfo: nil,
+		Choices:      nil,
+		Sources:      nil,
+		Created:      0,
 	}
 
 	if state.lastFinishReason != nil {
@@ -353,8 +363,12 @@ func (*openaiProvider) buildFinalResponse(state *streamState) *llm_dto.Completio
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role:      llm_dto.RoleAssistant,
-					ToolCalls: state.accumulatedToolCalls,
+					Role:         llm_dto.RoleAssistant,
+					ToolCalls:    state.accumulatedToolCalls,
+					Name:         nil,
+					ToolCallID:   nil,
+					Content:      "",
+					ContentParts: nil,
 				},
 				FinishReason: *state.lastFinishReason,
 			},

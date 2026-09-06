@@ -30,6 +30,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/analytics"
@@ -37,16 +40,107 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
+type receivedEvent struct {
+	payload      eventPayload
+	userAgent    string
+	forwardedFor string
+}
+
+type eventRecorder struct {
+	received []receivedEvent
+	mu       sync.Mutex
+}
+
+func (r *eventRecorder) handler(t *testing.T) http.HandlerFunc {
+	t.Helper()
+	return func(w http.ResponseWriter, request *http.Request) {
+		body, err := io.ReadAll(request.Body)
+		if !assert.NoError(t, err, "reading request body") {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		var payload eventPayload
+		if !assert.NoError(t, json.Unmarshal(body, &payload), "unmarshalling Plausible body") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		r.mu.Lock()
+		r.received = append(r.received, receivedEvent{
+			payload:      payload,
+			userAgent:    request.Header.Get("User-Agent"),
+			forwardedFor: request.Header.Get("X-Forwarded-For"),
+		})
+		r.mu.Unlock()
+		w.WriteHeader(http.StatusAccepted)
+	}
+}
+
+func (r *eventRecorder) events() []receivedEvent {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]receivedEvent(nil), r.received...)
+}
+
+func newRecordingServer(t *testing.T) (*httptest.Server, *eventRecorder) {
+	t.Helper()
+	recorder := &eventRecorder{}
+	server := httptest.NewServer(recorder.handler(t))
+	t.Cleanup(server.Close)
+	return server, recorder
+}
+
+func newCountingServer(t *testing.T, status int) (*httptest.Server, *atomic.Int32) {
+	t.Helper()
+	requestCount := new(atomic.Int32)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(status)
+	}))
+	t.Cleanup(server.Close)
+	return server, requestCount
+}
+
+func requireCollector(t *testing.T, result any) *Collector {
+	t.Helper()
+	collector, ok := result.(*Collector)
+	require.Truef(t, ok, "NewCollector returned %T, want *Collector", result)
+	return collector
+}
+
+func newTestCollector(t *testing.T, testURL string, opts ...Option) *Collector {
+	t.Helper()
+	allOpts := append([]Option{WithFlushInterval(1 * time.Hour)}, opts...)
+	result, err := NewCollector("test.example.com", allOpts...)
+	require.NoError(t, err)
+	collector := requireCollector(t, result)
+	collector.endpoint = testURL
+	collector.Start(context.Background())
+	return collector
+}
+
+func collectFlushClose(t *testing.T, collector *Collector, events ...*analytics_dto.Event) error {
+	t.Helper()
+	ctx := context.Background()
+	for _, event := range events {
+		require.NoError(t, collector.Collect(ctx, event))
+	}
+	flushErr := collector.Flush(ctx)
+	require.NoError(t, collector.Close(ctx))
+	return flushErr
+}
+
+func requireSingleEvent(t *testing.T, recorder *eventRecorder) receivedEvent {
+	t.Helper()
+	received := recorder.events()
+	require.Len(t, received, 1)
+	return received[0]
+}
+
 func TestCollector_PageView(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
+	server, recorder := newRecordingServer(t)
+	collector := newTestCollector(t, server.URL)
 
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:  "example.com",
 		URL:       "/products?page=2",
 		Path:      "/products",
@@ -55,104 +149,67 @@ func TestCollector_PageView(t *testing.T) {
 		ClientIP:  "192.168.1.1",
 		Type:      analytics_dto.EventPageView,
 		Timestamp: time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	mu.Lock()
-	defer mu.Unlock()
-	if len(received) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(received))
-	}
-	ev := received[0]
-	if ev.payload.Domain != "example.com" {
-		t.Errorf("domain = %q, want example.com", ev.payload.Domain)
-	}
-	if ev.payload.Name != "pageview" {
-		t.Errorf("name = %q, want pageview", ev.payload.Name)
-	}
-	if ev.payload.URL != "https://example.com/products?page=2" {
-		t.Errorf("url = %q, want https://example.com/products?page=2", ev.payload.URL)
-	}
-	if ev.payload.Referrer != "https://google.com" {
-		t.Errorf("referrer = %q, want https://google.com", ev.payload.Referrer)
-	}
-	if ev.userAgent != "Mozilla/5.0" {
-		t.Errorf("User-Agent = %q, want Mozilla/5.0", ev.userAgent)
-	}
-	if ev.forwardedFor != "192.168.1.1" {
-		t.Errorf("X-Forwarded-For = %q, want 192.168.1.1", ev.forwardedFor)
-	}
+	event := requireSingleEvent(t, recorder)
+	assert.Equal(t, "example.com", event.payload.Domain)
+	assert.Equal(t, "pageview", event.payload.Name)
+	assert.Equal(t, "https://example.com/products?page=2", event.payload.URL)
+	assert.Equal(t, "https://google.com", event.payload.Referrer)
+	assert.Equal(t, "Mozilla/5.0", event.userAgent)
+	assert.Equal(t, "192.168.1.1", event.forwardedFor)
 }
 
-func TestCollector_CustomEvent(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
-
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
-		Hostname:  "example.com",
-		URL:       "/signup",
-		EventName: "signup",
-		UserAgent: "Bot",
-		Type:      analytics_dto.EventCustom,
-		Timestamp: time.Now(),
+func TestCollector_EventNameMapping(t *testing.T) {
+	testCases := []struct {
+		event        *analytics_dto.Event
+		name         string
+		expectedName string
+	}{
+		{
+			name: "custom event name is used",
+			event: &analytics_dto.Event{
+				Hostname:  "example.com",
+				URL:       "/signup",
+				EventName: "signup",
+				UserAgent: "Bot",
+				Type:      analytics_dto.EventCustom,
+				Timestamp: time.Now(),
+			},
+			expectedName: "signup",
+		},
+		{
+			name: "action name becomes the event name",
+			event: &analytics_dto.Event{
+				Hostname:   "example.com",
+				URL:        "/api/action",
+				ActionName: "cart.Purchase",
+				UserAgent:  "Bot",
+				Type:       analytics_dto.EventAction,
+				Timestamp:  time.Now(),
+			},
+			expectedName: "cart.Purchase",
+		},
 	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
 
-	mu.Lock()
-	defer mu.Unlock()
-	if received[0].payload.Name != "signup" {
-		t.Errorf("name = %q, want signup", received[0].payload.Name)
-	}
-}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			server, recorder := newRecordingServer(t)
+			collector := newTestCollector(t, server.URL)
 
-func TestCollector_ActionEvent(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
+			require.NoError(t, collectFlushClose(t, collector, testCase.event))
 
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
-		Hostname:   "example.com",
-		URL:        "/api/action",
-		ActionName: "cart.Purchase",
-		UserAgent:  "Bot",
-		Type:       analytics_dto.EventAction,
-		Timestamp:  time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
-
-	mu.Lock()
-	defer mu.Unlock()
-	if received[0].payload.Name != "cart.Purchase" {
-		t.Errorf("name = %q, want cart.Purchase", received[0].payload.Name)
+			assert.Equal(t, testCase.expectedName, requireSingleEvent(t, recorder).payload.Name)
+		})
 	}
 }
 
 func TestCollector_Revenue(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
-
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
+	server, recorder := newRecordingServer(t)
+	collector := newTestCollector(t, server.URL)
 
 	revenue := maths.NewMoneyFromString("29.99", "GBP")
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:  "shop.example.com",
 		URL:       "/checkout",
 		EventName: "purchase",
@@ -160,304 +217,274 @@ func TestCollector_Revenue(t *testing.T) {
 		Revenue:   &revenue,
 		Type:      analytics_dto.EventCustom,
 		Timestamp: time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	mu.Lock()
-	defer mu.Unlock()
-	if received[0].payload.Revenue == nil {
-		t.Fatal("revenue is nil")
-	}
-	if received[0].payload.Revenue.Currency != "GBP" {
-		t.Errorf("currency = %q, want GBP", received[0].payload.Revenue.Currency)
-	}
-	if received[0].payload.Revenue.Amount != "29.99" {
-		t.Errorf("amount = %q, want 29.99", received[0].payload.Revenue.Amount)
-	}
+	event := requireSingleEvent(t, recorder)
+	require.NotNil(t, event.payload.Revenue)
+	assert.Equal(t, "GBP", event.payload.Revenue.Currency)
+	assert.Equal(t, "29.99", event.payload.Revenue.Amount)
 }
 
 func TestCollector_Properties(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
+	server, recorder := newRecordingServer(t)
+	collector := newTestCollector(t, server.URL)
 
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:   "example.com",
 		URL:        "/pricing",
 		UserAgent:  "Bot",
 		Properties: map[string]string{"plan": "pro", "source": "organic"},
 		Type:       analytics_dto.EventPageView,
 		Timestamp:  time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	mu.Lock()
-	defer mu.Unlock()
-	if received[0].payload.Props["plan"] != "pro" {
-		t.Errorf("props[plan] = %q, want pro", received[0].payload.Props["plan"])
-	}
-	if received[0].payload.Props["source"] != "organic" {
-		t.Errorf("props[source] = %q, want organic", received[0].payload.Props["source"])
-	}
+	props := requireSingleEvent(t, recorder).payload.Props
+	assert.Equal(t, "pro", props["plan"])
+	assert.Equal(t, "organic", props["source"])
 }
 
 func TestCollector_PropsLimitedTo30(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
-
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
+	server, recorder := newRecordingServer(t)
+	collector := newTestCollector(t, server.URL)
 
 	props := make(map[string]string, 35)
 	for i := range 35 {
 		props[fmt.Sprintf("key_%d", i)] = fmt.Sprintf("val_%d", i)
 	}
 
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:   "example.com",
 		URL:        "/test",
 		UserAgent:  "Bot",
 		Properties: props,
 		Type:       analytics_dto.EventPageView,
 		Timestamp:  time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	mu.Lock()
-	defer mu.Unlock()
-	if len(received[0].payload.Props) > maxProps {
-		t.Errorf("props count = %d, want <= %d", len(received[0].payload.Props), maxProps)
-	}
+	assert.LessOrEqual(t, len(requireSingleEvent(t, recorder).payload.Props), maxProps)
 }
 
 func TestCollector_URLTruncation(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
+	server, recorder := newRecordingServer(t)
+	collector := newTestCollector(t, server.URL)
 
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	longPath := "/" + strings.Repeat("a", maxURLLength+100)
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:  "example.com",
-		URL:       longPath,
+		URL:       "/" + strings.Repeat("a", maxURLLength+100),
 		UserAgent: "Bot",
 		Type:      analytics_dto.EventPageView,
 		Timestamp: time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	mu.Lock()
-	defer mu.Unlock()
-	if len(received[0].payload.URL) > maxURLLength {
-		t.Errorf("url length = %d, want <= %d", len(received[0].payload.URL), maxURLLength)
-	}
+	assert.LessOrEqual(t, len(requireSingleEvent(t, recorder).payload.URL), maxURLLength)
 }
 
 func TestCollector_SelfHostedEndpoint(t *testing.T) {
-	var requestCount atomic.Int32
+	server, requestCount := newCountingServer(t, http.StatusAccepted)
+	collector := newTestCollector(t, server.URL)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount.Add(1)
-		w.WriteHeader(http.StatusAccepted)
-	}))
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:  "example.com",
 		URL:       "/test",
 		UserAgent: "Bot",
 		Type:      analytics_dto.EventPageView,
 		Timestamp: time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	if requestCount.Load() != 1 {
-		t.Errorf("expected 1 request to custom endpoint, got %d", requestCount.Load())
-	}
+	assert.Equal(t, int32(1), requestCount.Load())
 }
 
 func TestCollector_EmptyDomainReturnsError(t *testing.T) {
 	_, err := NewCollector("")
-	if err == nil {
-		t.Fatal("expected error on empty domain")
-	}
-	if !strings.Contains(err.Error(), "domain must not be empty") {
-		t.Errorf("unexpected error message: %v", err)
-	}
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "domain must not be empty")
 }
 
 func TestCollector_FlushEmpty(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		t.Error("unexpected request with empty buffer")
-		w.WriteHeader(http.StatusAccepted)
-	}))
-	defer srv.Close()
+	server, requestCount := newCountingServer(t, http.StatusAccepted)
+	collector := newTestCollector(t, server.URL)
 
-	collector := newTestCollector(t, srv.URL)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	require.NoError(t, collectFlushClose(t, collector))
+	assert.Zero(t, requestCount.Load(), "an empty buffer must not POST to Plausible")
 }
 
-func TestCollector_ErrorStatusCode(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-	}))
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
-		Hostname:  "example.com",
-		URL:       "/test",
-		UserAgent: "Bot",
-		Type:      analytics_dto.EventPageView,
-		Timestamp: time.Now(),
+func TestCollector_FailuresAreReturned(t *testing.T) {
+	testCases := []struct {
+		serverURL     func(t *testing.T) string
+		name          string
+		expectedError string
+	}{
+		{
+			name: "error status",
+			serverURL: func(t *testing.T) string {
+				t.Helper()
+				server, _ := newCountingServer(t, http.StatusBadRequest)
+				return server.URL
+			},
+			expectedError: "returned status 400",
+		},
+		{
+			name: "transport failure",
+			serverURL: func(t *testing.T) string {
+				t.Helper()
+				server := httptest.NewServer(http.NotFoundHandler())
+				server.Close()
+				return server.URL
+			},
+			expectedError: "posting analytics Plausible event",
+		},
+		{
+			name: "invalid endpoint",
+			serverURL: func(t *testing.T) string {
+				t.Helper()
+				return "http://invalid host"
+			},
+			expectedError: "creating analytics Plausible request",
+		},
 	}
-	_ = collector.Collect(context.Background(), event)
-	err := collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
 
-	if err == nil {
-		t.Error("expected error from 400 response")
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			collector := newTestCollector(t, testCase.serverURL(t))
+
+			err := collectFlushClose(t, collector, &analytics_dto.Event{
+				Hostname:  "example.com",
+				URL:       "/test",
+				UserAgent: "Bot",
+				Type:      analytics_dto.EventPageView,
+				Timestamp: time.Now(),
+			})
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), testCase.expectedError)
+		})
+	}
+}
+
+func TestCollector_RedirectReplaysRequestBody(t *testing.T) {
+	server, recorder := newRecordingServer(t)
+	redirector := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		http.Redirect(w, request, server.URL+eventPath, http.StatusTemporaryRedirect)
+	}))
+	defer redirector.Close()
+
+	collector := newTestCollector(t, redirector.URL)
+
+	require.NoError(t, collectFlushClose(t, collector,
+		&analytics_dto.Event{Hostname: "example.com", URL: "/first", UserAgent: "Bot", Type: analytics_dto.EventPageView},
+		&analytics_dto.Event{Hostname: "example.com", URL: "/second", UserAgent: "Bot", Type: analytics_dto.EventPageView},
+	))
+
+	received := recorder.events()
+	require.Len(t, received, 2)
+	assert.Equal(t, "https://example.com/first", received[0].payload.URL)
+	assert.Equal(t, "https://example.com/second", received[1].payload.URL)
+}
+
+func TestCollector_RequestBodyOutlivesSendEvent(t *testing.T) {
+	var requests []*http.Request
+	collector := newTestCollector(t, "http://plausible.invalid")
+	collector.client.Transport = roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		requests = append(requests, request)
+		return &http.Response{
+			StatusCode: http.StatusAccepted,
+			Body:       http.NoBody,
+			Header:     http.Header{},
+			Request:    request,
+		}, nil
+	})
+
+	require.NoError(t, collector.sendEvent(context.Background(), &snapshot{
+		payload: eventPayload{Domain: "example.com", Name: "first", URL: "/first"},
+	}))
+	require.NoError(t, collector.sendEvent(context.Background(), &snapshot{
+		payload: eventPayload{Domain: "example.com", Name: "second", URL: "/second"},
+	}))
+	require.NoError(t, collector.Close(context.Background()))
+
+	require.Len(t, requests, 2)
+	for index, expectedName := range []string{"first", "second"} {
+		body, err := requests[index].GetBody()
+		require.NoError(t, err)
+		data, err := io.ReadAll(body)
+		require.NoError(t, err)
+		require.NoError(t, body.Close())
+		assert.Contains(t, string(data), `"name":"`+expectedName+`"`,
+			"a request body must not change after sendEvent returns")
 	}
 }
 
 func TestCollector_Name(t *testing.T) {
 	result, err := NewCollector("example.com")
-	if err != nil {
-		t.Fatalf("NewCollector: %v", err)
-	}
-	collector := result.(*Collector)
-	defer collector.Close(context.Background())
+	require.NoError(t, err)
+	collector := requireCollector(t, result)
+	defer func() { _ = collector.Close(context.Background()) }()
 
-	if collector.Name() != "plausible" {
-		t.Errorf("Name() = %q, want plausible", collector.Name())
-	}
+	assert.Equal(t, "plausible", collector.Name())
 }
 
 func TestCollector_DoubleClose(t *testing.T) {
 	result, err := NewCollector("example.com")
-	if err != nil {
-		t.Fatalf("NewCollector: %v", err)
-	}
-	collector := result.(*Collector)
+	require.NoError(t, err)
+	collector := requireCollector(t, result)
 
-	if err := collector.Close(context.Background()); err != nil {
-		t.Fatalf("first Close: %v", err)
-	}
-	if err := collector.Close(context.Background()); err != nil {
-		t.Fatalf("second Close: %v", err)
-	}
+	require.NoError(t, collector.Close(context.Background()))
+	require.NoError(t, collector.Close(context.Background()))
 }
 
 func TestCollector_MultipleEvents(t *testing.T) {
-	var requestCount atomic.Int32
+	server, requestCount := newCountingServer(t, http.StatusAccepted)
+	collector := newTestCollector(t, server.URL)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requestCount.Add(1)
-		w.WriteHeader(http.StatusAccepted)
-	}))
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
+	events := make([]*analytics_dto.Event, 0, 3)
 	for range 3 {
-		event := &analytics_dto.Event{
+		events = append(events, &analytics_dto.Event{
 			Hostname:  "example.com",
 			URL:       "/page",
 			UserAgent: "Bot",
 			Type:      analytics_dto.EventPageView,
 			Timestamp: time.Now(),
-		}
-		_ = collector.Collect(context.Background(), event)
+		})
 	}
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	require.NoError(t, collectFlushClose(t, collector, events...))
 
-	if requestCount.Load() != 3 {
-		t.Errorf("expected 3 separate requests, got %d", requestCount.Load())
-	}
+	assert.Equal(t, int32(3), requestCount.Load(), "each event is sent as a separate request")
 }
 
 func TestCollector_NoClientIP(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
+	server, recorder := newRecordingServer(t)
+	collector := newTestCollector(t, server.URL)
 
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:  "example.com",
 		URL:       "/test",
 		UserAgent: "Bot",
 		ClientIP:  "",
 		Type:      analytics_dto.EventPageView,
 		Timestamp: time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	mu.Lock()
-	defer mu.Unlock()
-	if received[0].forwardedFor != "" {
-		t.Errorf("X-Forwarded-For = %q, want empty", received[0].forwardedFor)
-	}
+	assert.Empty(t, requireSingleEvent(t, recorder).forwardedFor)
 }
 
 func TestCollector_FallbackDomain(t *testing.T) {
-	var mu sync.Mutex
-	var received []receivedEvent
+	server, recorder := newRecordingServer(t)
+	collector := newTestCollector(t, server.URL)
 
-	srv := newTestServer(&mu, &received)
-	defer srv.Close()
-
-	collector := newTestCollector(t, srv.URL)
-
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		URL:       "/test",
 		UserAgent: "Bot",
 		Type:      analytics_dto.EventPageView,
 		Timestamp: time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	_ = collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	mu.Lock()
-	defer mu.Unlock()
-	if received[0].payload.Domain != "test.example.com" {
-		t.Errorf("domain = %q, want test.example.com (fallback)", received[0].payload.Domain)
-	}
+	assert.Equal(t, "test.example.com", requireSingleEvent(t, recorder).payload.Domain)
 }
 
 func TestResolveEventName(t *testing.T) {
 	tests := []struct {
-		name     string
 		event    *analytics_dto.Event
+		name     string
 		expected string
 	}{
 		{
@@ -491,18 +518,15 @@ func TestResolveEventName(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			got := resolveEventName(testCase.event)
-			if got != testCase.expected {
-				t.Errorf("resolveEventName() = %q, want %q", got, testCase.expected)
-			}
+			assert.Equal(t, testCase.expected, resolveEventName(testCase.event))
 		})
 	}
 }
 
 func TestResolveURL(t *testing.T) {
 	tests := []struct {
-		name     string
 		event    *analytics_dto.Event
+		name     string
 		expected string
 	}{
 		{
@@ -546,124 +570,63 @@ func TestResolveURL(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			got := resolveURL(testCase.event)
-			if got != testCase.expected {
-				t.Errorf("resolveURL() = %q, want %q", got, testCase.expected)
-			}
+			assert.Equal(t, testCase.expected, resolveURL(testCase.event))
 		})
 	}
 }
 
 func TestWithTimeout(t *testing.T) {
-	result, err := NewCollector("example.com",
-		WithTimeout(42*time.Second),
-	)
-	if err != nil {
-		t.Fatalf("NewCollector: %v", err)
-	}
-	collector := result.(*Collector)
-	defer collector.Close(context.Background())
+	result, err := NewCollector("example.com", WithTimeout(42*time.Second))
+	require.NoError(t, err)
+	collector := requireCollector(t, result)
+	defer func() { _ = collector.Close(context.Background()) }()
 
-	if collector.client.Timeout != 42*time.Second {
-		t.Errorf("client timeout = %v, want 42s", collector.client.Timeout)
-	}
+	assert.Equal(t, 42*time.Second, collector.client.Timeout)
 }
 
 func TestWithRetry(t *testing.T) {
 	var attempts atomic.Int32
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		count := attempts.Add(1)
-		if count <= 2 {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if attempts.Add(1) <= 2 {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
 	}))
-	defer srv.Close()
+	defer server.Close()
 
-	collector := newTestCollector(t, srv.URL, WithRetry(analytics.RetryConfig{
+	collector := newTestCollector(t, server.URL, WithRetry(analytics.RetryConfig{
 		MaxRetries:    3,
 		InitialDelay:  1 * time.Millisecond,
 		MaxDelay:      5 * time.Millisecond,
 		BackoffFactor: 2.0,
-		JitterFunc:    func(d time.Duration) time.Duration { return 0 },
+		JitterFunc:    func(time.Duration) time.Duration { return 0 },
 	}))
 
-	event := &analytics_dto.Event{
+	require.NoError(t, collectFlushClose(t, collector, &analytics_dto.Event{
 		Hostname:  "example.com",
 		URL:       "/retry-test",
 		UserAgent: "Bot",
 		Type:      analytics_dto.EventPageView,
 		Timestamp: time.Now(),
-	}
-	_ = collector.Collect(context.Background(), event)
-	err := collector.Flush(context.Background())
-	_ = collector.Close(context.Background())
+	}))
 
-	if err != nil {
-		t.Fatalf("expected successful retry, got error: %v", err)
-	}
-	if attempts.Load() < 3 {
-		t.Errorf("expected at least 3 attempts (2 failures + 1 success), got %d", attempts.Load())
-	}
+	assert.GreaterOrEqual(t, attempts.Load(), int32(3), "expected two failures and one success")
 }
 
 func TestWithClock(t *testing.T) {
 	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
-	result, err := NewCollector("example.com",
-		withClock(mockClock),
-	)
-	if err != nil {
-		t.Fatalf("NewCollector: %v", err)
-	}
-	collector := result.(*Collector)
-	defer collector.Close(context.Background())
+	result, err := NewCollector("example.com", withClock(mockClock))
+	require.NoError(t, err)
+	collector := requireCollector(t, result)
+	defer func() { _ = collector.Close(context.Background()) }()
 
-	if collector.clock != mockClock {
-		t.Error("expected collector clock to be the injected mock clock")
-	}
+	assert.Same(t, mockClock, collector.clock)
 }
 
-type receivedEvent struct {
-	payload      eventPayload
-	userAgent    string
-	forwardedFor string
-}
+type roundTripFunc func(*http.Request) (*http.Response, error)
 
-func newTestServer(mu *sync.Mutex, received *[]receivedEvent) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		var payload eventPayload
-		if err := json.Unmarshal(body, &payload); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		mu.Lock()
-		*received = append(*received, receivedEvent{
-			payload:      payload,
-			userAgent:    r.Header.Get("User-Agent"),
-			forwardedFor: r.Header.Get("X-Forwarded-For"),
-		})
-		mu.Unlock()
-		w.WriteHeader(http.StatusAccepted)
-	}))
-}
-
-func newTestCollector(t *testing.T, testURL string, opts ...Option) *Collector {
-	t.Helper()
-
-	allOpts := append([]Option{WithFlushInterval(1 * time.Hour)}, opts...)
-	result, err := NewCollector("test.example.com", allOpts...)
-	if err != nil {
-		t.Fatalf("newTestCollector: %v", err)
-	}
-	collector := result.(*Collector)
-	collector.endpoint = testURL
-	collector.Start(context.Background())
-	return collector
+func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return f(request)
 }

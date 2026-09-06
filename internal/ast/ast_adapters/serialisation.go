@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -29,6 +30,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_schema"
 	"piko.sh/piko/internal/ast/ast_schema/ast_schema_gen"
 	"piko.sh/piko/internal/fbs"
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 var (
@@ -43,6 +45,11 @@ var (
 	// errASTSchemaVersionMismatch indicates the cached AST was encoded with a different
 	// schema version. The caller should treat this as a cache miss and regenerate the AST.
 	errASTSchemaVersionMismatch = fbs.ErrSchemaVersionMismatch
+
+	// errCorruptAST indicates the encoded AST is structurally invalid, for example because
+	// it was truncated or a byte was flipped on disk. The caller should treat this as a
+	// cache miss and discard the data.
+	errCorruptAST = errors.New("corrupt AST data")
 )
 
 // encoder holds the state for converting Go types to FlatBuffers format.
@@ -100,6 +107,12 @@ type decoder struct {
 	// tableFB is a reusable generic FlatBuffers table for union decoding.
 	tableFB flatbuffers.Table
 
+	// remainingElements is how many more vector elements the payload can still hold. Every
+	// element of a vector in a well-formed buffer occupies at least uoffsetTSize bytes and
+	// the encoder never shares sub-tables, so the sum of all vector lengths decoded from one
+	// payload cannot exceed len(payload)/uoffsetTSize.
+	remainingElements int
+
 	// skipRanges when true omits location and range fields during decoding.
 	skipRanges bool
 }
@@ -115,6 +128,22 @@ type unpackerFunc[FBType any, GoType any] func(d *decoder, fb *FBType) (GoType, 
 // unpackerPtrFunc is a function type that converts a FlatBuffers table to a Go pointer
 // struct. FBType is the FlatBuffers type and GoType is the target Go type.
 type unpackerPtrFunc[FBType any, GoType any] func(d *decoder, fb *FBType) (*GoType, error)
+
+// reserveElements claims room for a vector of the given length from the payload's element
+// budget, rejecting lengths that the payload cannot possibly hold.
+//
+// Takes length (int) which is the vector length read from the buffer.
+//
+// Returns error wrapping errCorruptAST when length is negative or exceeds the elements
+// the payload has left.
+func (d *decoder) reserveElements(length int) error {
+	if length < 0 || length > d.remainingElements {
+		return fmt.Errorf("%w: vector length %d exceeds the %d elements the payload can hold",
+			errCorruptAST, length, d.remainingElements)
+	}
+	d.remainingElements -= length
+	return nil
+}
 
 // EncodeAST converts an in-memory TemplateAST to its versioned FlatBuffers byte
 // representation. The output includes a 32-byte schema hash prefix for automatic cache
@@ -152,12 +181,17 @@ func EncodeAST(ast *ast_domain.TemplateAST) ([]byte, error) {
 // DecodeAST converts a versioned FlatBuffers byte slice back into an in-memory
 // TemplateAST.
 //
+// Corrupt or truncated data cannot cause an unrecovered panic or unbounded allocation.
+// Every vector length read from the buffer is checked against the size of the payload,
+// and any panic raised by the FlatBuffers accessors is recovered and returned as an error
+// wrapping errCorruptAST.
+//
 // Takes ctx (context.Context) which carries logging and cancellation context through the
 // deserialisation path.
 // Takes data ([]byte) which contains the encoded FlatBuffers data.
 //
 // Returns *ast_domain.TemplateAST which is the decoded AST structure.
-// Returns error when the data is empty or cannot be unpacked.
+// Returns error when the data is empty, cannot be unpacked, or is corrupt.
 //
 // Returns errASTSchemaVersionMismatch if the data was encoded with a different schema
 // version.
@@ -166,21 +200,7 @@ func EncodeAST(ast *ast_domain.TemplateAST) ([]byte, error) {
 // mem.String. Go's GC keeps 'data' alive through these string references. The caller must
 // not modify 'data' while the AST is in use.
 func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error) {
-	if len(data) == 0 {
-		return nil, errors.New("cannot decode empty byte slice")
-	}
-
-	payload, err := ast_schema.Unpack(data)
-	if err != nil {
-		if errors.Is(err, fbs.ErrSchemaVersionMismatch) {
-			return nil, errASTSchemaVersionMismatch
-		}
-		return nil, fmt.Errorf("failed to unpack versioned AST data: %w", err)
-	}
-
-	root := ast_schema_gen.GetRootAsTemplateASTFB(payload, 0)
-	d := &decoder{}
-	ast, err := d.unpackTemplateAST(context.WithoutCancel(ctx), root)
+	ast, err := decodeVersionedAST(ctx, data, false)
 	if err != nil {
 		return nil, fmt.Errorf("decoding AST: %w", err)
 	}
@@ -191,12 +211,15 @@ func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error
 // TemplateAST, skipping location and range fields that are only needed by the LSP,
 // formatter, and error reporter.
 //
+// Corrupt or truncated data is reported as an error wrapping errCorruptAST, never as a
+// panic or an unbounded allocation.
+//
 // Takes ctx (context.Context) which carries logging and cancellation context through the
 // deserialisation path.
 // Takes data ([]byte) which contains the encoded FlatBuffers data.
 //
 // Returns *ast_domain.TemplateAST which is the decoded AST structure.
-// Returns error when the data is empty or cannot be unpacked.
+// Returns error when the data is empty, cannot be unpacked, or is corrupt.
 //
 // Returns errASTSchemaVersionMismatch if the data was encoded with a different schema
 // version.
@@ -205,6 +228,22 @@ func DecodeAST(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error
 // mem.String. Go's GC keeps 'data' alive through these string references. The caller must
 // not modify 'data' while the AST is in use.
 func DecodeASTForRender(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error) {
+	ast, err := decodeVersionedAST(ctx, data, true)
+	if err != nil {
+		return nil, fmt.Errorf("decoding AST for render: %w", err)
+	}
+	return ast, nil
+}
+
+// decodeVersionedAST strips the schema hash prefix from data and decodes the remaining
+// FlatBuffers payload into a TemplateAST.
+//
+// Takes data ([]byte) which contains the versioned FlatBuffers data.
+// Takes skipRanges (bool) which omits location and range fields when true.
+//
+// Returns *ast_domain.TemplateAST which is the decoded AST structure.
+// Returns error when the data is empty, has a different schema version, or is corrupt.
+func decodeVersionedAST(ctx context.Context, data []byte, skipRanges bool) (*ast_domain.TemplateAST, error) {
 	if len(data) == 0 {
 		return nil, errors.New("cannot decode empty byte slice")
 	}
@@ -217,11 +256,52 @@ func DecodeASTForRender(ctx context.Context, data []byte) (*ast_domain.TemplateA
 		return nil, fmt.Errorf("failed to unpack versioned AST data: %w", err)
 	}
 
-	root := ast_schema_gen.GetRootAsTemplateASTFB(payload, 0)
-	d := &decoder{skipRanges: true}
-	result, err := d.unpackTemplateAST(context.WithoutCancel(ctx), root)
-	if err != nil {
-		return nil, fmt.Errorf("decoding AST for render: %w", err)
+	return decodeASTPayload(ctx, payload, skipRanges)
+}
+
+// decodeASTPayload decodes an unversioned FlatBuffers payload into a TemplateAST,
+// converting any panic raised by the FlatBuffers accessors on corrupt data into an error.
+//
+// The recovered panic and its stack are logged once at warning level; the returned error
+// carries only the panic value.
+//
+// Takes payload ([]byte) which is the FlatBuffers payload without the schema prefix.
+// Takes skipRanges (bool) which omits location and range fields when true.
+//
+// Returns ast (*ast_domain.TemplateAST) which is the decoded AST structure.
+// Returns err (error) which wraps errCorruptAST when the payload is too short, declares
+// an impossible vector length, or makes the accessors panic.
+func decodeASTPayload(ctx context.Context, payload []byte, skipRanges bool) (ast *ast_domain.TemplateAST, err error) {
+	if len(payload) < uoffsetTSize {
+		return nil, fmt.Errorf("%w: payload too short (%d bytes)", errCorruptAST, len(payload))
 	}
-	return result, nil
+
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			ast = nil
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("Recovered from panic while decoding corrupt AST data",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
+			err = fmt.Errorf("%w: %v", errCorruptAST, recovered)
+		}
+	}()
+
+	root := ast_schema_gen.GetRootAsTemplateASTFB(payload, 0)
+	d := newDecoder(len(payload), skipRanges)
+	return d.unpackTemplateAST(context.WithoutCancel(ctx), root)
+}
+
+// newDecoder creates a decoder whose element budget is derived from the payload size.
+//
+// Takes payloadLength (int) which is the length of the FlatBuffers payload in bytes.
+// Takes skipRanges (bool) which omits location and range fields when true.
+//
+// Returns *decoder which is ready to unpack the payload.
+func newDecoder(payloadLength int, skipRanges bool) *decoder {
+	d := &decoder{}
+	d.remainingElements = payloadLength / uoffsetTSize
+	d.skipRanges = skipRanges
+	return d
 }

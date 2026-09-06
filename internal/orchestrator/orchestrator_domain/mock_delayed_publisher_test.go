@@ -50,17 +50,15 @@ func TestMockDelayedPublisher_ConcurrentAccess(t *testing.T) {
 	task := &Task{ID: "concurrent"}
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_ = m.Schedule(ctx, task)
 			m.Start(ctx)
 			m.Stop()
 			_ = m.PendingCount()
-		}()
+		})
 	}
 
 	wg.Wait()

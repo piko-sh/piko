@@ -43,9 +43,7 @@ var (
 //
 // Returns *OrderedList which is the component ready for configuration.
 func NewOrderedList() *OrderedList {
-	return &OrderedList{
-		BaseComponent: BaseComponent{},
-	}
+	return &OrderedList{}
 }
 
 // TagName returns the HTML custom element tag name for this component.

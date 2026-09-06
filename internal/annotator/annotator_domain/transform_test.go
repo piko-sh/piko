@@ -157,7 +157,7 @@ func TestHasDynamicKey(t *testing.T) {
 	}{
 		{
 			name:     "node with no key has no dynamic key",
-			node:     &ast_domain.TemplateNode{Key: nil},
+			node:     &ast_domain.TemplateNode{},
 			expected: false,
 		},
 		{
@@ -234,7 +234,7 @@ func TestHasStructuralOrPresenceDirectives(t *testing.T) {
 		{
 			name: "node with DirElse",
 			node: &ast_domain.TemplateNode{
-				DirElse: &ast_domain.Directive{RawExpression: ""},
+				DirElse: &ast_domain.Directive{},
 			},
 			expected: true,
 		},
@@ -560,13 +560,13 @@ func TestNodeHasPartialInvocation(t *testing.T) {
 	}{
 		{
 			name:     "node with nil GoAnnotations",
-			node:     &ast_domain.TemplateNode{GoAnnotations: nil},
+			node:     &ast_domain.TemplateNode{},
 			expected: false,
 		},
 		{
 			name: "node with GoAnnotations but nil PartialInfo",
 			node: &ast_domain.TemplateNode{
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{PartialInfo: nil},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			expected: false,
 		},
@@ -803,7 +803,7 @@ func TestAnalyseNodeForStaticity(t *testing.T) {
 					{
 						NodeType:      ast_domain.NodeElement,
 						TagName:       "span",
-						GoAnnotations: &ast_domain.GoGeneratorAnnotation{IsStatic: false},
+						GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 					},
 				},
 			},
@@ -1100,7 +1100,7 @@ func TestAnalyseNodeForPrerenderability(t *testing.T) {
 			node: &ast_domain.TemplateNode{
 				NodeType:      ast_domain.NodeElement,
 				TagName:       "div",
-				GoAnnotations: &ast_domain.GoGeneratorAnnotation{IsStatic: false},
+				GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 			},
 			expectedPrerenderable: false,
 		},
@@ -1797,7 +1797,7 @@ func TestOriginPathForNode(t *testing.T) {
 		{
 			name:                "falls back to entry point when source path nil",
 			originComponentPath: "pages/home.pk",
-			goAnnotations:       &ast_domain.GoGeneratorAnnotation{OriginalSourcePath: nil},
+			goAnnotations:       &ast_domain.GoGeneratorAnnotation{},
 			want:                "pages/home.pk",
 		},
 	}

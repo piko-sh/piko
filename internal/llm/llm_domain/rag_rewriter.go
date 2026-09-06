@@ -185,6 +185,9 @@ func LLMQueryRewriter(service Service, opts ...QueryRewriterOption) QueryRewrite
 	config := queryRewriterConfig{
 		maxQueries: defaultRewriterMaxQueries,
 		maxTokens:  defaultRewriterMaxTokens,
+		model:      "",
+		provider:   "",
+		prompt:     "",
 	}
 	for _, opt := range opts {
 		opt(&config)

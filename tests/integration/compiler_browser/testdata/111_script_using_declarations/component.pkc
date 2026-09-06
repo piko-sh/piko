@@ -1,0 +1,136 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="using-component">
+    <div>
+        <p class="order">{{ disposalOrder() }}</p>
+        <p class="early-return">{{ earlyReturn() }}</p>
+        <p class="loop">{{ loopDisposal() }}</p>
+        <p class="labelled">{{ labelledLoop() }}</p>
+        <p class="errors">{{ suppressedErrors() }}</p>
+        <p class="nulls">{{ nullResources() }}</p>
+        <p class="not-disposable">{{ notDisposable() }}</p>
+        <p class="async">{{ state.asyncLog }}</p>
+        <button p-on:click="runAsync">Run</button>
+    </div>
+</template>
+
+<script lang="ts">
+    (Symbol as any).dispose ??= Symbol.for('Symbol.dispose');
+    (Symbol as any).asyncDispose ??= Symbol.for('Symbol.asyncDispose');
+
+    const state = {
+        asyncLog: 'idle'
+    };
+
+    function resource(log: string[], name: string) {
+        return {
+            name,
+            [Symbol.dispose]() {
+                log.push('dispose ' + name);
+            }
+        };
+    }
+
+    function disposalOrder(): string {
+        const log: string[] = [];
+        {
+            using a = resource(log, 'a'), b = resource(log, 'b');
+            using c = resource(log, 'c');
+            log.push('body');
+        }
+        return log.join(',');
+    }
+
+    function earlyReturn(): string {
+        const log: string[] = [];
+        function inner(): string {
+            using held = resource(log, 'held');
+            return 'returned';
+        }
+        const value = inner();
+        return value + ':' + log.join(',');
+    }
+
+    function loopDisposal(): string {
+        const log: string[] = [];
+        for (using item of [resource(log, 'one'), resource(log, 'two')]) {
+            log.push('use ' + item.name);
+        }
+        return log.join(',');
+    }
+
+    function labelledLoop(): string {
+        const log: string[] = [];
+        let count = 0;
+        outer: for (using held = resource(log, 'loop'); count < 3; count++) {
+            for (;;) {
+                continue outer;
+            }
+        }
+        return count + ':' + log.join(',');
+    }
+
+    function suppressedErrors(): string {
+        try {
+            using failing = {
+                [Symbol.dispose]() {
+                    throw new Error('dispose failed');
+                }
+            };
+            throw new Error('body failed');
+        } catch (error: any) {
+            return error.name + ':' + error.error.message + ':' + error.suppressed.message;
+        }
+    }
+
+    function nullResources(): string {
+        using nothing = null, missing = undefined;
+        return 'skipped';
+    }
+
+    function notDisposable(): string {
+        try {
+            using plain = {} as any;
+            return 'accepted';
+        } catch (error: any) {
+            return error.constructor.name;
+        }
+    }
+
+    async function runAsync() {
+        const log: string[] = [];
+        {
+            await using first = {
+                async [Symbol.asyncDispose]() {
+                    await null;
+                    log.push('async first');
+                }
+            };
+            await using second = {
+                [Symbol.dispose]() {
+                    log.push('sync second');
+                }
+            };
+            log.push('body');
+        }
+        state.asyncLog = log.join(',');
+    }
+</script>

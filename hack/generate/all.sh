@@ -20,7 +20,7 @@
 # hack/generate/all.sh - Run all code generators
 #
 # Runs all code generation tools: dal, flatc, protoc, quicktemplate,
-# interp symbols, and asmgen.
+# and interp symbols.
 #
 # Usage:
 #   ./hack/generate/all.sh
@@ -54,11 +54,7 @@ generate_all() {
 
     piko::log::blank
     piko::log::info "Running interp symbol extraction..."
-    "${GENERATE_DIR}/interp_symbols.sh"
-
-    piko::log::blank
-    piko::log::info "Running asmgen..."
-    "${GENERATE_DIR}/asmgen.sh"
+    "${GENERATE_DIR}/interp_piko_symbols.sh"
 
     piko::log::footer
     piko::log::success "All code generation complete!"

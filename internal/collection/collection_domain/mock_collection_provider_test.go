@@ -455,11 +455,9 @@ func TestMockCollectionProvider_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			m.Name()
 			m.Type()
 			_, _ = m.DiscoverCollections(context.Background(), collection_dto.ProviderConfig{})
@@ -469,7 +467,7 @@ func TestMockCollectionProvider_ConcurrentAccess(t *testing.T) {
 			_, _ = m.ComputeETag(context.Background(), "c", collection_dto.ContentSource{})
 			_, _, _ = m.ValidateETag(context.Background(), "c", "e", collection_dto.ContentSource{})
 			_, _ = m.GenerateRevalidator(context.Background(), "c", &ast.Ident{Name: "T"}, collection_dto.HybridConfig{})
-		}()
+		})
 	}
 
 	wg.Wait()

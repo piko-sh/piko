@@ -63,6 +63,11 @@ type AFRelationship = pdfwriter_domain.AFRelationship
 // embed.
 type EmbeddedDataLimits = pdfwriter_domain.EmbeddedDataLimits
 
+// LayoutLimits bounds a single layout by limiting the raw HTML size, nesting depth, box
+// count, table and grid sizes, repeat() counts and page count. Zero fields use the
+// built-in defaults.
+type LayoutLimits = layouter_dto.LayoutLimits
+
 // ViewerPreferences configures how PDF viewers display the document.
 type ViewerPreferences = pdfwriter_domain.ViewerPreferences
 
@@ -241,6 +246,48 @@ var (
 	// ErrEmbeddedFileMetadataTooLong is returned when an embedded file name or description
 	// is too long.
 	ErrEmbeddedFileMetadataTooLong = pdfwriter_domain.ErrEmbeddedFileMetadataTooLong
+
+	// ErrEmbeddedMIMETypeTooLong is returned when an embedded file MIME type is too long.
+	ErrEmbeddedMIMETypeTooLong = pdfwriter_domain.ErrEmbeddedMIMETypeTooLong
+
+	// ErrImageDimensionsTooLarge is returned when an image exceeds the pixel-area cap.
+	ErrImageDimensionsTooLarge = pdfwriter_domain.ErrImageDimensionsTooLarge
+
+	// ErrLayoutLimitExceeded is the parent of every layout limit error; errors.Is reports
+	// whether a render failed because the document breached any LayoutLimits field.
+	ErrLayoutLimitExceeded = layouter_dto.ErrLayoutLimitExceeded
+
+	// ErrRawHTMLTooLarge is returned when the raw HTML in a document exceeds
+	// LayoutLimits.MaxRawHTMLBytes.
+	ErrRawHTMLTooLarge = layouter_dto.ErrRawHTMLTooLarge
+
+	// ErrNestingTooDeep is returned when a document nests deeper than
+	// LayoutLimits.MaxNestingDepth.
+	ErrNestingTooDeep = layouter_dto.ErrNestingTooDeep
+
+	// ErrTooManyBoxes is returned when a document holds more nodes or boxes than
+	// LayoutLimits.MaxBoxNodes.
+	ErrTooManyBoxes = layouter_dto.ErrTooManyBoxes
+
+	// ErrTooManyTableColumns is returned when a table has more columns than
+	// LayoutLimits.MaxTableColumns.
+	ErrTooManyTableColumns = layouter_dto.ErrTooManyTableColumns
+
+	// ErrTooManyGridTracks is returned when a grid axis has more tracks than
+	// LayoutLimits.MaxGridTracks.
+	ErrTooManyGridTracks = layouter_dto.ErrTooManyGridTracks
+
+	// ErrGridTooLarge is returned when grid placement examines more cells than
+	// LayoutLimits.MaxGridCells.
+	ErrGridTooLarge = layouter_dto.ErrGridTooLarge
+
+	// ErrRepeatCountTooLarge is returned when a CSS repeat() count exceeds
+	// LayoutLimits.MaxRepeatCount.
+	ErrRepeatCountTooLarge = layouter_dto.ErrRepeatCountTooLarge
+
+	// ErrTooManyPages is returned when a document needs more pages than
+	// LayoutLimits.MaxPages.
+	ErrTooManyPages = layouter_dto.ErrTooManyPages
 )
 
 // GetDefaultService returns the PDF writer service initialised by the framework during

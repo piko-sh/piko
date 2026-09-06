@@ -257,9 +257,10 @@ func (z *ZstdTransformer) Reverse(ctx context.Context, input io.Reader, _ any) (
 // Returns *decoderReadCloser which wraps the decoder with the configured cap.
 func newCappedReader(decoder *zstd.Decoder, maxBytes int64) *decoderReadCloser {
 	d := &decoderReadCloser{
-		source:   decoder,
-		decoder:  decoder,
-		maxBytes: maxBytes,
+		source:    decoder,
+		decoder:   decoder,
+		maxBytes:  maxBytes,
+		readBytes: 0,
 	}
 	if maxBytes > 0 {
 		d.source = io.LimitReader(decoder, maxBytes+1)

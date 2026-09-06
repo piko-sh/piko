@@ -23,6 +23,16 @@ import (
 	"math"
 )
 
+const (
+	// linearColumnFitSteps is the number of one-point height increases tried when fitting
+	// content into the column count, which settles every ordinary document.
+	linearColumnFitSteps = 1000
+
+	// maxColumnFitIterations bounds the doubling and bisection phases of column height
+	// fitting, so absurd content heights cost a fixed number of passes.
+	maxColumnFitIterations = 128
+)
+
 // layoutMultiColumnContainer performs multi-column layout for a container with
 // column-count or column-width set.
 //
@@ -43,14 +53,8 @@ func layoutMultiColumnContainer(ctx context.Context, box *LayoutBox, input layou
 		input.AvailableWidth,
 	)
 
-	singleColumnInput := layoutInput{
-		AvailableWidth:     columnWidth,
-		AvailableBlockSize: 0,
-		FontMetrics:        input.FontMetrics,
-		Cache:              input.Cache,
-		SizingMode:         input.SizingMode,
-		Edges:              input.Edges,
-	}
+	singleColumnInput := newLayoutInput(input, columnWidth, 0, input.Edges)
+	singleColumnInput.SizingMode = input.SizingMode
 
 	var singleColumnResult formattingContextResult
 	if hasOnlyInlineChildren(box) {
@@ -68,25 +72,14 @@ func layoutMultiColumnContainer(ctx context.Context, box *LayoutBox, input layou
 		&box.Style,
 	)
 
-	columns := fragmentIntoColumns(singleColumnResult.Children, columnHeight)
-	for len(columns) > columnCount && columnHeight > 0 {
-		columnHeight++
-		columns = fragmentIntoColumns(singleColumnResult.Children, columnHeight)
-	}
+	columnHeight, columns := fitColumnHeight(singleColumnResult.Children, columnHeight, columnCount)
 	if len(columns) == 0 {
-		return formattingContextResult{
-			ContentHeight: 0,
-			Margin:        singleColumnResult.Margin,
-		}
+		return newFormattingContextResult(nil, 0, singleColumnResult.Margin)
 	}
 
 	resultFragments := positionColumns(columns, columnWidth, gap)
 
-	return formattingContextResult{
-		Children:      resultFragments,
-		ContentHeight: columnHeight,
-		Margin:        singleColumnResult.Margin,
-	}
+	return newFormattingContextResult(resultFragments, columnHeight, singleColumnResult.Margin)
 }
 
 // resolveColumnDimensions computes the actual column count and column width from the CSS
@@ -195,17 +188,7 @@ func fragmentIntoColumns(children []*Fragment, columnHeight float64) [][]*Fragme
 			currentColumnHeight = 0
 		}
 
-		adjustedChild := &Fragment{
-			Box:           child.Box,
-			Children:      child.Children,
-			OffsetX:       0,
-			OffsetY:       currentColumnHeight,
-			ContentWidth:  child.ContentWidth,
-			ContentHeight: child.ContentHeight,
-			Padding:       child.Padding,
-			Border:        child.Border,
-			Margin:        child.Margin,
-		}
+		adjustedChild := newOffsetFragmentCopy(child, 0, currentColumnHeight)
 		currentColumn = append(currentColumn, adjustedChild)
 		currentColumnHeight += childHeight
 	}
@@ -232,20 +215,62 @@ func positionColumns(columns [][]*Fragment, columnWidth, gap float64) []*Fragmen
 		offsetX := float64(index) * (columnWidth + gap)
 
 		for _, child := range column {
-			positioned := &Fragment{
-				Box:           child.Box,
-				Children:      child.Children,
-				OffsetX:       offsetX + child.OffsetX,
-				OffsetY:       child.OffsetY,
-				ContentWidth:  child.ContentWidth,
-				ContentHeight: child.ContentHeight,
-				Padding:       child.Padding,
-				Border:        child.Border,
-				Margin:        child.Margin,
-			}
+			positioned := newOffsetFragmentCopy(child, offsetX+child.OffsetX, child.OffsetY)
 			result = append(result, positioned)
 		}
 	}
 
 	return result
+}
+
+// fitColumnHeight grows the column height until the children fit into at most columnCount
+// columns, returning the height and the resulting column groups.
+//
+// The height grows a point at a time for the first linearColumnFitSteps steps, which
+// settles every ordinary document exactly as before. A document that still needs more
+// columns (for example one with a child many thousands of points tall) is resolved by
+// doubling the growth and then bisecting, so the work is logarithmic rather than linear
+// in the content height.
+//
+// Takes children ([]*Fragment) which is the flat list of child fragments.
+// Takes columnHeight (float64) which is the balanced starting height in points.
+// Takes columnCount (int) which is the maximum number of columns.
+//
+// Returns float64 which is the fitted column height.
+// Returns [][]*Fragment which is the column groups at that height.
+func fitColumnHeight(children []*Fragment, columnHeight float64, columnCount int) (float64, [][]*Fragment) {
+	columns := fragmentIntoColumns(children, columnHeight)
+	for step := 0; len(columns) > columnCount && columnHeight > 0 && step < linearColumnFitSteps; step++ {
+		columnHeight++
+		columns = fragmentIntoColumns(children, columnHeight)
+	}
+	if len(columns) <= columnCount || !(columnHeight > 0) {
+		return columnHeight, columns
+	}
+
+	low := columnHeight
+	growth := 1.0
+	high := low
+	for range maxColumnFitIterations {
+		growth *= 2
+		high = low + growth
+		columns = fragmentIntoColumns(children, high)
+		if len(columns) <= columnCount || math.IsInf(high, 1) {
+			break
+		}
+	}
+
+	for range maxColumnFitIterations {
+		if high-low <= 1 {
+			break
+		}
+		middle := low + math.Floor((high-low)/2)
+		candidate := fragmentIntoColumns(children, middle)
+		if len(candidate) <= columnCount {
+			high, columns = middle, candidate
+		} else {
+			low = middle
+		}
+	}
+	return high, columns
 }

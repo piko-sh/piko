@@ -128,13 +128,15 @@ type DownloadTrackerOption func(*DownloadTracker)
 // Returns *DownloadTracker which is ready for use but not yet enabled.
 func NewDownloadTracker(downloadDir string, opts ...DownloadTrackerOption) *DownloadTracker {
 	dt := &DownloadTracker{
-		downloads:   make(map[string]*DownloadInfo),
-		downloadCh:  make(chan *DownloadInfo, downloadChannelBufferSize),
-		stopChan:    make(chan struct{}),
-		downloadDir: downloadDir,
-		mu:          sync.RWMutex{},
-		enabled:     false,
-		stopped:     false,
+		downloads:      make(map[string]*DownloadInfo),
+		downloadCh:     make(chan *DownloadInfo, downloadChannelBufferSize),
+		stopChan:       make(chan struct{}),
+		downloadDir:    downloadDir,
+		mu:             sync.RWMutex{},
+		enabled:        false,
+		stopped:        false,
+		sandbox:        nil,
+		sandboxFactory: nil,
 	}
 
 	for _, opt := range opts {
@@ -723,11 +725,7 @@ func CreateBlobDownload(ctx *ActionContext, content, mimeType, filename string) 
 //
 // Returns error when the screenshot cannot be captured.
 func DownloadScreenshot(ctx *ActionContext) error {
-	err := chromedp.Run(ctx.Ctx, chromedp.ActionFunc(func(ctx2 context.Context) error {
-		_, err := page.CaptureScreenshot().Do(ctx2)
-		return err
-	}))
-	if err != nil {
+	if _, err := captureScreenshot(ctx.Ctx, defaultScreenshotTimeout, page.CaptureScreenshot()); err != nil {
 		return fmt.Errorf("capturing screenshot for download: %w", err)
 	}
 	return nil

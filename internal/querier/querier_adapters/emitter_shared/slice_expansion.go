@@ -24,7 +24,7 @@ import (
 	"go/token"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -108,6 +108,8 @@ func NeedsSliceExpansion(query *querier_dto.AnalysedQuery, strategy MethodStrate
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the parameter metadata used to
 // build the preamble statements.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
 // Takes zeroValues ([]ast.Expr) which are the zero values returned ahead of the expansion
 // error (none for an error-only :exec method, the row struct for a :one method, and so
 // on).
@@ -125,6 +127,8 @@ func BuildSliceExpansionPreamble(query *querier_dto.AnalysedQuery, strategy Meth
 // returns from the closure instead of returning the error to the caller directly.
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the parameter metadata.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
 // Takes rowTypeName (string) which is the row struct name used for the zero row passed to
 // yield.
 //
@@ -142,6 +146,8 @@ func BuildSliceExpansionStreamPreamble(query *querier_dto.AnalysedQuery, strateg
 // the guard statement.
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the parameter metadata.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
 // Takes guard (ast.Stmt) which surfaces a non-nil expansionError.
 //
 // Returns []ast.Stmt which contains the preamble statements.
@@ -249,6 +255,8 @@ func buildExpansionErrorYieldGuard(rowTypeName string) *ast.IfStmt {
 //
 // Takes query (*querier_dto.AnalysedQuery) which provides the parameter list to generate
 // flattening code for.
+// Takes strategy (MethodStrategy) which provides database-specific code generation
+// behaviour.
 //
 // Returns []ast.Stmt which contains the range loops and append statements for all
 // parameters.

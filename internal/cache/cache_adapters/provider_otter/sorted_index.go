@@ -133,8 +133,9 @@ func (idx *SortedIndex[K]) addUnsafe(key K, value any) {
 	}
 
 	item := &treeItem[K]{
-		key:   key,
-		value: value,
+		key:     key,
+		value:   value,
+		isPivot: false,
 	}
 	idx.tree.ReplaceOrInsert(item)
 	idx.keyToItem[key] = item
@@ -310,7 +311,7 @@ func (idx *SortedIndex[K]) KeysGreaterThan(threshold any, ascending bool) []K {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 
-	pivot := &treeItem[K]{value: threshold}
+	pivot := &treeItem[K]{value: threshold, key: *new(K), isPivot: false}
 	result := make([]K, 0)
 
 	if ascending {
@@ -357,7 +358,7 @@ func (idx *SortedIndex[K]) KeysGreaterThanOrEqual(threshold any, ascending bool)
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 
-	pivot := &treeItem[K]{value: threshold}
+	pivot := &treeItem[K]{value: threshold, key: *new(K), isPivot: false}
 	result := make([]K, 0)
 
 	if ascending {
@@ -400,7 +401,7 @@ func (idx *SortedIndex[K]) KeysLessThan(threshold any, ascending bool) []K {
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 
-	pivot := &treeItem[K]{value: threshold}
+	pivot := &treeItem[K]{value: threshold, key: *new(K), isPivot: false}
 	result := make([]K, 0)
 
 	if ascending {
@@ -444,7 +445,7 @@ func (idx *SortedIndex[K]) KeysLessThanOrEqual(threshold any, ascending bool) []
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
 
-	pivot := &treeItem[K]{value: threshold}
+	pivot := &treeItem[K]{value: threshold, key: *new(K), isPivot: false}
 	result := make([]K, 0)
 
 	if ascending {
@@ -514,7 +515,7 @@ func (idx *SortedIndex[K]) KeysBetween(minValue, maxValue any, ascending bool) [
 // The caller must hold a read lock.
 func (idx *SortedIndex[K]) collectRangeAscending(minValue, maxValue any) []K {
 	result := make([]K, 0)
-	idx.tree.AscendGreaterOrEqual(&treeItem[K]{value: minValue, isPivot: true}, func(i btree.Item) bool {
+	idx.tree.AscendGreaterOrEqual(&treeItem[K]{value: minValue, isPivot: true, key: *new(K)}, func(i btree.Item) bool {
 		item, ok := i.(*treeItem[K])
 		if !ok {
 			return true
@@ -568,6 +569,7 @@ func NewSortedIndex[K comparable]() *SortedIndex[K] {
 	return &SortedIndex[K]{
 		tree:      btree.New(btreeDegree),
 		keyToItem: make(map[K]*treeItem[K]),
+		mu:        sync.RWMutex{},
 	}
 }
 

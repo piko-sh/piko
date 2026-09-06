@@ -37,9 +37,7 @@ func TestMockCounterStore_IncrementAndGet(t *testing.T) {
 	t.Run("nil IncrementAndGetFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockCounterStore{
-			IncrementAndGetFunc: nil,
-		}
+		mock := &MockCounterStore{}
 
 		ctx := context.Background()
 		result, err := mock.IncrementAndGet(ctx, "key", 1, time.Minute)
@@ -126,9 +124,7 @@ func TestMockCounterStore_IncrementAndGet_PassesArguments(t *testing.T) {
 func TestMockCounterStore_IncrementAndGet_MultipleCalls(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockCounterStore{
-		IncrementAndGetFunc: nil,
-	}
+	mock := &MockCounterStore{}
 
 	ctx := context.Background()
 
@@ -156,21 +152,17 @@ func TestMockCounterStore_ZeroValueIsUsable(t *testing.T) {
 func TestMockCounterStore_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockCounterStore{
-		IncrementAndGetFunc: nil,
-	}
+	mock := &MockCounterStore{}
 
 	ctx := context.Background()
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = mock.IncrementAndGet(ctx, "concurrent-key", 1, time.Minute)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -181,9 +173,7 @@ func TestMockCounterStore_ConcurrentAccess(t *testing.T) {
 func TestMockCounterStore_ImplementsCounterStorePort(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockCounterStore{
-		IncrementAndGetFunc: nil,
-	}
+	mock := &MockCounterStore{}
 
 	var _ CounterStorePort = mock
 }

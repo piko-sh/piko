@@ -51,3 +51,52 @@ type ModelInfo struct {
 	// SupportsVision indicates whether the model can process images.
 	SupportsVision bool
 }
+
+// NewFullCapabilityModelInfo creates a ModelInfo for a generation model that supports
+// streaming, tool calls, structured output and vision.
+//
+// Takes id (string) which is the provider's model identifier.
+// Takes name (string) which is the human-readable model name.
+// Takes provider (string) which is the name of the provider serving the model.
+// Takes contextWindow (int) which is the maximum context size in tokens.
+// Takes maxOutputTokens (int) which is the maximum number of tokens per response.
+//
+// Returns ModelInfo which describes the model.
+func NewFullCapabilityModelInfo(id, name, provider string, contextWindow, maxOutputTokens int) ModelInfo {
+	return ModelInfo{
+		ID:                       id,
+		Name:                     name,
+		Provider:                 provider,
+		Created:                  0,
+		ContextWindow:            contextWindow,
+		MaxOutputTokens:          maxOutputTokens,
+		SupportsStreaming:        true,
+		SupportsTools:            true,
+		SupportsStructuredOutput: true,
+		SupportsVision:           true,
+	}
+}
+
+// NewEmbeddingModelInfo creates a ModelInfo for an embedding model, named after its
+// identifier and reporting no context window, output limit or generation capabilities.
+//
+// Takes id (string) which is the provider's model identifier, also used as its name.
+// Takes provider (string) which is the name of the provider serving the model.
+// Takes created (int64) which is the model's creation time as a Unix timestamp, or 0 when
+// unknown.
+//
+// Returns ModelInfo which describes the embedding model.
+func NewEmbeddingModelInfo(id, provider string, created int64) ModelInfo {
+	return ModelInfo{
+		ID:                       id,
+		Name:                     id,
+		Provider:                 provider,
+		Created:                  created,
+		ContextWindow:            0,
+		MaxOutputTokens:          0,
+		SupportsStreaming:        false,
+		SupportsTools:            false,
+		SupportsStructuredOutput: false,
+		SupportsVision:           false,
+	}
+}

@@ -150,7 +150,7 @@ func lookupIdentifierName(identifier *js_ast.EIdentifier) string {
 //
 // Returns *js_ast.EIdentifier which is the newly created identifier.
 func makeIdentifier(name string) *js_ast.EIdentifier {
-	identifier := &js_ast.EIdentifier{Ref: ast.Ref{}}
+	identifier := &js_ast.EIdentifier{}
 	registerIdentifierName(identifier, name)
 	return identifier
 }
@@ -192,7 +192,7 @@ func lookupBindingName(bind *js_ast.BIdentifier) string {
 //
 // Returns js_ast.Binding which contains the registered identifier.
 func makeBinding(name string) js_ast.Binding {
-	bind := &js_ast.BIdentifier{Ref: ast.Ref{}}
+	bind := &js_ast.BIdentifier{}
 	registerBindingName(bind, name)
 	return js_ast.Binding{Data: bind}
 }
@@ -238,7 +238,7 @@ func lookupLocRefName(locRef *ast.LocRef) string {
 //
 // Returns *ast.LocRef which is the newly created and registered reference.
 func makeLocRef(name string) *ast.LocRef {
-	locRef := &ast.LocRef{Ref: ast.Ref{}}
+	locRef := &ast.LocRef{}
 	registerLocRefName(locRef, name)
 	return locRef
 }

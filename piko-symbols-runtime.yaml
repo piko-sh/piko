@@ -5,8 +5,8 @@
 #
 # Regenerate with: make generate-interp-piko-symbols
 
-package: driven_piko_symbols
-output: internal/interp/interp_adapters/driven_piko_symbols
+package: interp_piko_symbols
+output: wdk/interp/interp_piko_symbols
 
 packages:
   - piko.sh/piko:

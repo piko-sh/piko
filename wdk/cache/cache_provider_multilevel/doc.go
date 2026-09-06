@@ -37,27 +37,23 @@
 //
 // # Usage
 //
-// The multilevel provider requires two pre-configured cache instances. Create L1 and L2
-// caches using the cache builder, then combine them:
+// Register the L1 and L2 providers on the cache service, then let the builder combine
+// them. The namespace and the size and weight limits apply to L1, the namespace also to
+// L2, and the per-entry ceiling to the combined cache:
 //
-//	l1Cache, _ := cache.NewCacheBuilder[string, User](service).
-//	    WithProvider("otter").
-//	    WithMaximumSize(10000).
+//	builder, err := cache.NewCacheBuilder[string, User](service)
+//	if err != nil {
+//	    return err
+//	}
+//	userCache, err := builder.
+//	    Namespace("users").
+//	    MultiLevel("otter", "redis").
+//	    MaximumEntries(10000).
+//	    L2CircuitBreaker(5, 30*time.Second).
 //	    Build(ctx)
 //
-//	l2Cache, _ := cache.NewCacheBuilder[string, User](service).
-//	    WithProvider("redis").
-//	    Build(ctx)
-//
-//	multilevel := cache_provider_multilevel.NewMultiLevelAdapter(
-//	    "user-cache",
-//	    l1Cache,
-//	    l2Cache,
-//	    cache_provider_multilevel.Config{
-//	        MaxConsecutiveFailures: 5,
-//	        OpenStateTimeout:       30 * time.Second,
-//	    },
-//	)
+// NewMultiLevelAdapter combines two providers built by hand when the builder does not
+// fit.
 //
 // # Thread safety
 //

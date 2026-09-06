@@ -90,10 +90,13 @@ func NewContentOverviewPanel(provider ResourceProvider, c clock.Clock) *ContentO
 		c = clock.RealClock()
 	}
 	p := &ContentOverviewPanel{
-		BasePanel:  NewBasePanel("content-overview", "Overview"),
-		clock:      c,
-		provider:   provider,
-		stateMutex: sync.RWMutex{},
+		BasePanel:   NewBasePanel("content-overview", "Overview"),
+		clock:       c,
+		provider:    provider,
+		stateMutex:  sync.RWMutex{},
+		last:        contentOverviewMessage{},
+		lastRefresh: time.Time{},
+		hasData:     false,
 	}
 	p.SetKeyMap([]KeyBinding{{Key: "r", Description: "Refresh"}})
 	return p
@@ -161,13 +164,16 @@ func (p *ContentOverviewPanel) tileBody() inspector.DetailBody {
 	defer p.stateMutex.RUnlock()
 
 	if !p.hasData {
-		return inspector.DetailBody{Title: "Content", Subtitle: "fetching..."}
+		return inspector.DetailBody{Title: "Content", Subtitle: "fetching...", Sections: nil}
 	}
 	if p.last.err != nil {
 		return inspector.DetailBody{
 			Title:    "Content",
 			Subtitle: "refresh failed",
-			Sections: []inspector.DetailSection{{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: p.last.err.Error()}}}},
+			Sections: []inspector.DetailSection{inspector.NewDetailSection(
+				"Error",
+				[]inspector.DetailRow{inspector.NewDetailRow("Reason", p.last.err.Error())},
+			)},
 		}
 	}
 
@@ -176,18 +182,16 @@ func (p *ContentOverviewPanel) tileBody() inspector.DetailBody {
 		total += p.last.totalsByKind[kind]
 	}
 	rows := []inspector.DetailRow{
-		{Label: "Total artefacts", Value: formatInt(total)},
-		{Label: "Kinds", Value: formatInt(len(p.last.kinds))},
+		inspector.NewDetailRow("Total artefacts", formatInt(total)),
+		inspector.NewDetailRow("Kinds", formatInt(len(p.last.kinds))),
 	}
 	for _, kind := range p.last.kinds {
-		rows = append(rows, inspector.DetailRow{
-			Label: kind,
-			Value: formatInt(p.last.totalsByKind[kind]),
-		})
+		rows = append(rows, inspector.NewDetailRow(kind, formatInt(p.last.totalsByKind[kind])))
 	}
 	return inspector.DetailBody{
 		Title:    "Content",
-		Sections: []inspector.DetailSection{{Heading: "At a glance", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("At a glance", rows)},
+		Subtitle: "",
 	}
 }
 
@@ -203,12 +207,16 @@ func (p *ContentOverviewPanel) detailBody() inspector.DetailBody {
 	defer p.stateMutex.RUnlock()
 
 	if !p.hasData {
-		return inspector.DetailBody{Title: "Content overview", Subtitle: "fetching..."}
+		return inspector.DetailBody{Title: "Content overview", Subtitle: "fetching...", Sections: nil}
 	}
 	if p.last.err != nil {
 		return inspector.DetailBody{
-			Title:    "Content overview",
-			Sections: []inspector.DetailSection{{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: p.last.err.Error()}}}},
+			Title: "Content overview",
+			Sections: []inspector.DetailSection{inspector.NewDetailSection(
+				"Error",
+				[]inspector.DetailRow{inspector.NewDetailRow("Reason", p.last.err.Error())},
+			)},
+			Subtitle: "",
 		}
 	}
 
@@ -216,21 +224,22 @@ func (p *ContentOverviewPanel) detailBody() inspector.DetailBody {
 	for _, kind := range p.last.kinds {
 		statuses := p.last.summary[kind]
 		rows := make([]inspector.DetailRow, 0, len(statuses)+1)
-		rows = append(rows, inspector.DetailRow{Label: "Total", Value: formatInt(p.last.totalsByKind[kind])})
+		rows = append(rows, inspector.NewDetailRow("Total", formatInt(p.last.totalsByKind[kind])))
 		for _, status := range sortedResourceStatuses(statuses) {
-			rows = append(rows, inspector.DetailRow{Label: status.String(), Value: formatInt(statuses[status])})
+			rows = append(rows, inspector.NewDetailRow(status.String(), formatInt(statuses[status])))
 		}
-		sections = append(sections, inspector.DetailSection{Heading: kind, Rows: rows})
+		sections = append(sections, inspector.NewDetailSection(kind, rows))
 	}
 	if !p.lastRefresh.IsZero() {
-		sections = append(sections, inspector.DetailSection{
-			Heading: "Refresh",
-			Rows:    []inspector.DetailRow{{Label: "Last", Value: p.lastRefresh.Format(time.RFC3339)}},
-		})
+		sections = append(sections, inspector.NewDetailSection(
+			"Refresh",
+			[]inspector.DetailRow{inspector.NewDetailRow("Last", p.lastRefresh.Format(time.RFC3339))},
+		))
 	}
 	return inspector.DetailBody{
 		Title:    "Content overview",
 		Sections: sections,
+		Subtitle: "",
 	}
 }
 
@@ -266,14 +275,14 @@ func (p *ContentOverviewPanel) refresh() tea.Cmd {
 	provider := p.provider
 	return func() tea.Msg {
 		if provider == nil {
-			return contentOverviewMessage{err: errNoResourceProvider}
+			return contentOverviewMessage{err: errNoResourceProvider, summary: nil, totalsByKind: nil, kinds: nil}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), contentOverviewTimeout,
 			errors.New("content overview exceeded timeout"))
 		defer cancel()
 		summary, err := provider.Summary(ctx)
 		if err != nil {
-			return contentOverviewMessage{err: err}
+			return contentOverviewMessage{err: err, summary: nil, totalsByKind: nil, kinds: nil}
 		}
 		kinds := make([]string, 0, len(summary))
 		totals := make(map[string]int, len(summary))
@@ -286,6 +295,6 @@ func (p *ContentOverviewPanel) refresh() tea.Cmd {
 			kinds = append(kinds, kind)
 		}
 		slices.Sort(kinds)
-		return contentOverviewMessage{summary: summary, kinds: kinds, totalsByKind: totals}
+		return contentOverviewMessage{summary: summary, kinds: kinds, totalsByKind: totals, err: nil}
 	}
 }

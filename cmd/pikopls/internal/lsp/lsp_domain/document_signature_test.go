@@ -202,16 +202,14 @@ func TestGetSignatureHelp_GuardClauses(t *testing.T) {
 		{
 			name: "nil AnnotatedAST returns empty SignatureHelp",
 			document: newTestDocumentBuilder().
-				WithAnnotationResult(&annotator_dto.AnnotationResult{
-					AnnotatedAST: nil,
-				}).
+				WithAnnotationResult(&annotator_dto.AnnotationResult{}).
 				Build(),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			position := protocol.Position{Line: 0, Character: 0}
+			position := protocol.Position{}
 			got, err := tc.document.GetSignatureHelp(position)
 			if err != nil {
 				t.Fatalf("GetSignatureHelp() returned unexpected error: %v", err)

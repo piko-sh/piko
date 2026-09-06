@@ -143,31 +143,9 @@ var (
 //
 // Returns *MockStorageProvider which is ready for use with all error fields set to nil.
 func NewMockStorageProvider() *MockStorageProvider {
-	return &MockStorageProvider{
-		copyError:            nil,
-		removeManyError:      nil,
-		putManyError:         nil,
-		presignError:         nil,
-		getHashError:         nil,
-		removeError:          nil,
-		getError:             nil,
-		statError:            nil,
-		errToReturn:          nil,
-		putError:             nil,
-		storage:              make(map[string]map[string]*mockObject),
-		hashToReturn:         "",
-		presignedURLToReturn: "",
-		copyCalls:            nil,
-		removeManyCalls:      nil,
-		putManyCalls:         nil,
-		presignURLCalls:      nil,
-		getHashCalls:         nil,
-		removeCalls:          nil,
-		statCalls:            nil,
-		getCalls:             nil,
-		putCalls:             nil,
-		mu:                   sync.RWMutex{},
-	}
+	provider := MockStorageProvider{}
+	provider.storage = make(map[string]map[string]*mockObject)
+	return &provider
 }
 
 // GetProviderType returns the type identifier for this storage provider.
@@ -535,11 +513,12 @@ func (m *MockStorageProvider) Check(_ context.Context, _ healthprobe_dto.CheckTy
 	startTime := time.Now()
 
 	return healthprobe_dto.Status{
-		Name:      m.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   "Mock storage provider operational",
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         m.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Mock storage provider operational",
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -625,14 +604,8 @@ func (m *MockStorageProvider) PutMany(_ context.Context, params *storage_dto.Put
 	}
 
 	startTime := time.Now()
-	result := &storage_dto.BatchResult{
-		TotalRequested:  len(params.Objects),
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		ProcessingTime:  0,
-	}
+	result := &storage_dto.BatchResult{}
+	result.TotalRequested = len(params.Objects)
 	for _, storageObject := range params.Objects {
 		data, err := io.ReadAll(storageObject.Reader)
 		if err != nil {
@@ -685,14 +658,8 @@ func (m *MockStorageProvider) RemoveMany(_ context.Context, params storage_dto.R
 	}
 
 	startTime := time.Now()
-	result := &storage_dto.BatchResult{
-		TotalRequested:  len(params.Keys),
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		ProcessingTime:  0,
-	}
+	result := &storage_dto.BatchResult{}
+	result.TotalRequested = len(params.Keys)
 	for _, key := range params.Keys {
 		if repo, ok := m.storage[params.Repository]; ok {
 			delete(repo, key)
@@ -861,19 +828,7 @@ func (m *MockStorageProvider) GetLastPutCall() (storage_dto.PutParams, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if len(m.putCalls) == 0 {
-		return storage_dto.PutParams{
-			Repository:           "",
-			Key:                  "",
-			Reader:               nil,
-			Size:                 0,
-			ContentType:          "",
-			TransformConfig:      nil,
-			MultipartConfig:      nil,
-			Metadata:             nil,
-			HashAlgorithm:        "",
-			ExpectedHash:         "",
-			UseContentAddressing: false,
-		}, false
+		return storage_dto.PutParams{}, false
 	}
 	return m.putCalls[len(m.putCalls)-1], true
 }
@@ -901,12 +856,7 @@ func (m *MockStorageProvider) GetLastGetCall() (storage_dto.GetParams, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if len(m.getCalls) == 0 {
-		return storage_dto.GetParams{
-			Repository:      "",
-			Key:             "",
-			ByteRange:       nil,
-			TransformConfig: nil,
-		}, false
+		return storage_dto.GetParams{}, false
 	}
 	return m.getCalls[len(m.getCalls)-1], true
 }
@@ -934,12 +884,7 @@ func (m *MockStorageProvider) GetLastStatCall() (storage_dto.GetParams, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if len(m.statCalls) == 0 {
-		return storage_dto.GetParams{
-			Repository:      "",
-			Key:             "",
-			ByteRange:       nil,
-			TransformConfig: nil,
-		}, false
+		return storage_dto.GetParams{}, false
 	}
 	return m.statCalls[len(m.statCalls)-1], true
 }
@@ -967,12 +912,7 @@ func (m *MockStorageProvider) GetLastRemoveCall() (storage_dto.GetParams, bool) 
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if len(m.removeCalls) == 0 {
-		return storage_dto.GetParams{
-			Repository:      "",
-			Key:             "",
-			ByteRange:       nil,
-			TransformConfig: nil,
-		}, false
+		return storage_dto.GetParams{}, false
 	}
 	return m.removeCalls[len(m.removeCalls)-1], true
 }
@@ -1003,12 +943,7 @@ func (m *MockStorageProvider) GetLastCopyCall() (storage_dto.CopyParams, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if len(m.copyCalls) == 0 {
-		return storage_dto.CopyParams{
-			SourceRepository:      "",
-			SourceKey:             "",
-			DestinationRepository: "",
-			DestinationKey:        "",
-		}, false
+		return storage_dto.CopyParams{}, false
 	}
 	return m.copyCalls[len(m.copyCalls)-1], true
 }
@@ -1037,12 +972,7 @@ func (m *MockStorageProvider) GetLastGetHashCall() (storage_dto.GetParams, bool)
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if len(m.getHashCalls) == 0 {
-		return storage_dto.GetParams{
-			Repository:      "",
-			Key:             "",
-			ByteRange:       nil,
-			TransformConfig: nil,
-		}, false
+		return storage_dto.GetParams{}, false
 	}
 	return m.getHashCalls[len(m.getHashCalls)-1], true
 }
@@ -1070,12 +1000,7 @@ func (m *MockStorageProvider) GetLastPresignURLCall() (storage_dto.PresignParams
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if len(m.presignURLCalls) == 0 {
-		return storage_dto.PresignParams{
-			Repository:  "",
-			Key:         "",
-			ContentType: "",
-			ExpiresIn:   0,
-		}, false
+		return storage_dto.PresignParams{}, false
 	}
 	return m.presignURLCalls[len(m.presignURLCalls)-1], true
 }

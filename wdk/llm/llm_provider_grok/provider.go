@@ -177,9 +177,12 @@ func New(config Config) (llm_domain.LLMProviderPort, error) {
 	config = config.WithDefaults()
 
 	inner, err := llm_provider_openai.New(llm_provider_openai.Config{
-		APIKey:       config.APIKey,
-		BaseURL:      config.BaseURL,
-		DefaultModel: config.DefaultModel,
+		APIKey:                config.APIKey,
+		BaseURL:               config.BaseURL,
+		DefaultModel:          config.DefaultModel,
+		Organisation:          "",
+		DefaultEmbeddingModel: "",
+		EmbeddingDimensions:   0,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("grok: failed to initialise OpenAI-compatible client: %w", err)
@@ -215,6 +218,10 @@ func grokModels() []llm_dto.ModelInfo {
 			SupportsStreaming:        true,
 			SupportsTools:            true,
 			SupportsStructuredOutput: true,
+			Created:                  0,
+			ContextWindow:            0,
+			MaxOutputTokens:          0,
+			SupportsVision:           false,
 		}
 	}
 	return result

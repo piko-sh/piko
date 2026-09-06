@@ -201,7 +201,7 @@ func TestExtractStringLiteralFromPikoAST(t *testing.T) {
 		},
 		{
 			name:        "empty string literal",
-			expression:  &ast_domain.StringLiteral{Value: ""},
+			expression:  &ast_domain.StringLiteral{},
 			expected:    "",
 			expectError: false,
 		},

@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -495,4 +496,20 @@ func TestIsolatedRegistry_RealUsageScenario(t *testing.T) {
 	policy := policyFunc(reqData)
 	assert.True(t, policy.Enabled)
 	assert.Equal(t, 3600, policy.MaxAgeSeconds)
+}
+
+func TestIsolatedRegistry_GetAuthPolicyFunc(t *testing.T) {
+	t.Parallel()
+
+	registry := templater_domain.NewIsolatedRegistry()
+	missing, ok := registry.GetAuthPolicyFunc("test/pages/missing")
+	assert.False(t, ok, "a missing auth policy must be reported rather than replaced by a permissive default")
+	assert.Nil(t, missing)
+
+	registry.RegisterAuthPolicyFunc("test/pages/present", func(_ *templater_dto.RequestData) daemon_dto.AuthPolicy {
+		return daemon_dto.AuthPolicy{Required: true}
+	})
+	present, ok := registry.GetAuthPolicyFunc("test/pages/present")
+	require.True(t, ok)
+	assert.True(t, present(nil).Required)
 }

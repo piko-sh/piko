@@ -290,17 +290,15 @@ func TestInMemoryPKJSEmitter_ConcurrentEmitJSIsSafe(t *testing.T) {
 	const perGoroutine = 16
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 	for goroutineIndex := range goroutines {
-		go func(goroutineIndex int) {
-			defer wg.Done()
+		wg.Go(func() {
 			for iteration := range perGoroutine {
 				_, err := emitter.EmitJS(context.Background(), source,
 					"pages/p"+stringFromInt(goroutineIndex)+"_"+stringFromInt(iteration),
 					"m", "", false)
 				require.NoError(t, err)
 			}
-		}(goroutineIndex)
+		})
 	}
 	wg.Wait()
 

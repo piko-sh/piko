@@ -252,7 +252,7 @@ func TestFlatBufferProvider_RawData_AfterLoad(t *testing.T) {
 	require.NoError(t, emitter.Emit(context.Background(), store, "en", "i18n.bin"))
 
 	provider := newFlatBufferProvider(sandbox, "i18n.bin")
-	_, err := provider.load()
+	_, err := provider.load(context.Background())
 	require.NoError(t, err)
 	assert.NotNil(t, provider.rawData())
 	assert.NotEmpty(t, provider.rawData())
@@ -276,7 +276,7 @@ func TestJSONProvider_Load_EmptyDirectory(t *testing.T) {
 	defer func() { _ = sandbox.Close() }()
 
 	provider := newJSONProvider(sandbox, "")
-	_, err := provider.load("en")
+	_, err := provider.load(context.Background(), "en")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "requires a valid directory path")
 }
@@ -288,7 +288,7 @@ func TestJSONProvider_Load_NonexistentDir(t *testing.T) {
 	defer func() { _ = sandbox.Close() }()
 
 	provider := newJSONProvider(sandbox, "nonexistent")
-	_, err := provider.load("en")
+	_, err := provider.load(context.Background(), "en")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read i18n directory")
 }
@@ -310,7 +310,7 @@ func TestJSONProvider_Load_Success(t *testing.T) {
 	defer func() { _ = sandbox.Close() }()
 
 	provider := newJSONProvider(sandbox, "i18n")
-	store, err := provider.load("en")
+	store, err := provider.load(context.Background(), "en")
 	require.NoError(t, err)
 	require.NotNil(t, store)
 
@@ -336,7 +336,7 @@ func TestJSONProvider_Load_InvalidJSON(t *testing.T) {
 	defer func() { _ = sandbox.Close() }()
 
 	provider := newJSONProvider(sandbox, "i18n")
-	_, err := provider.load("en")
+	_, err := provider.load(context.Background(), "en")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to load")
 }
@@ -400,7 +400,7 @@ func TestEmitFromTranslations(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, "test_output.bin")
-	store, err := provider.load()
+	store, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	entry, found := store.Get("en", "hello")
@@ -518,7 +518,7 @@ func TestFlatBufferEmitter_EmptyStore(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, "empty.bin")
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 	assert.Empty(t, loadedStore.Locales())
 }
@@ -539,7 +539,7 @@ func TestFlatBufferRoundTrip_LinkedMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	provider := newFlatBufferProvider(sandbox, "linked.bin")
-	loadedStore, err := provider.load()
+	loadedStore, err := provider.load(context.Background())
 	require.NoError(t, err)
 
 	entry, found := loadedStore.Get("en", "welcome")

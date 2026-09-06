@@ -893,3 +893,21 @@ func TestOpenAIProvider_CapabilityMethods(t *testing.T) {
 	assert.Equal(t, true, p.SupportsParallelToolCalls())
 	assert.Equal(t, true, p.SupportsMessageName())
 }
+
+func TestOpenAIProvider_ReturnsPanicsAsErrors(t *testing.T) {
+	t.Parallel()
+
+	p := newTestProvider(t)
+
+	_, err := p.Complete(t.Context(), nil)
+	require.Error(t, err, "completion")
+	assert.Contains(t, err.Error(), "panic in llm.openaiProvider.Complete")
+
+	_, err = p.Stream(t.Context(), nil)
+	require.Error(t, err, "stream")
+	assert.Contains(t, err.Error(), "panic in llm.openaiProvider.Stream")
+
+	_, err = p.Embed(t.Context(), nil)
+	require.Error(t, err, "embedding")
+	assert.Contains(t, err.Error(), "panic in llm.openaiProvider.Embed")
+}

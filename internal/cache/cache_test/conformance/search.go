@@ -169,7 +169,19 @@ func testSearchEmptyCache(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	result, err := cache.Search(ctx, "laptop", &cache_dto.SearchOptions{Limit: 10})
+	result, err := cache.Search(ctx, "laptop", &cache_dto.SearchOptions{
+		Limit:       10,
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Fields:      nil,
+		Vector:      nil,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
+		Highlight:   false,
+	})
 	if err != nil {
 		t.Errorf("Search on empty cache failed: %v", err)
 	}
@@ -189,14 +201,40 @@ func testSearchBasicQuery(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Laptop Pro", Description: "High-performance laptop", Price: 1299.99, Category: "electronics"}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Laptop Pro",
+		Description: "High-performance laptop",
+		Price:       1299.99,
+		Category:    "electronics",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Desktop Computer", Description: "Powerful desktop", Price: 999.99, Category: "electronics"}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Desktop Computer",
+		Description: "Powerful desktop",
+		Price:       999.99,
+		Category:    "electronics",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
 
-	result, err := cache.Search(ctx, "laptop", &cache_dto.SearchOptions{Limit: 10})
+	result, err := cache.Search(ctx, "laptop", &cache_dto.SearchOptions{
+		Limit:       10,
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Fields:      nil,
+		Vector:      nil,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
+		Highlight:   false,
+	})
 	if err != nil {
 		t.Errorf("Search failed: %v", err)
 	}
@@ -228,11 +266,30 @@ func testSearchNoMatches(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Laptop Pro", Price: 1299.99}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Laptop Pro",
+		Price:       1299.99,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
 
-	result, err := cache.Search(ctx, "xyznonexistent", &cache_dto.SearchOptions{Limit: 10})
+	result, err := cache.Search(ctx, "xyznonexistent", &cache_dto.SearchOptions{
+		Limit:       10,
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Fields:      nil,
+		Vector:      nil,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
+		Highlight:   false,
+	})
 	if err != nil {
 		t.Errorf("Search failed: %v", err)
 	}
@@ -252,15 +309,37 @@ func testQueryFilterEq(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Laptop", Category: "electronics"}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Laptop",
+		Category:    "electronics",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Chair", Category: "furniture"}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Chair",
+		Category:    "furniture",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Filters: []cache_dto.Filter{cache_dto.Eq("category", "electronics")},
+		Filters:     []cache_dto.Filter{cache_dto.Eq("category", "electronics")},
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -283,15 +362,37 @@ func testQueryFilterNe(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Laptop", Category: "electronics"}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Laptop",
+		Category:    "electronics",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Chair", Category: "furniture"}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Chair",
+		Category:    "furniture",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Filters: []cache_dto.Filter{cache_dto.Ne("category", "electronics")},
+		Filters:     []cache_dto.Filter{cache_dto.Ne("category", "electronics")},
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -316,18 +417,47 @@ func runProductQueryTest(t *testing.T, config ProductConfig, filter cache_dto.Fi
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Cheap", Price: 10.00}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Cheap",
+		Price:       10.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Medium", Price: 50.00}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Medium",
+		Price:       50.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "3", Product{ID: "3", Name: "Expensive", Price: 100.00}); err != nil {
+	if err := cache.Set(ctx, "3", Product{
+		ID:          "3",
+		Name:        "Expensive",
+		Price:       100.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 3 failed: %v", err)
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Filters: []cache_dto.Filter{filter},
+		Filters:     []cache_dto.Filter{filter},
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -392,18 +522,47 @@ func testQueryFilterIn(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Laptop", Category: "electronics"}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Laptop",
+		Category:    "electronics",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Chair", Category: "furniture"}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Chair",
+		Category:    "furniture",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "3", Product{ID: "3", Name: "Shirt", Category: "clothing"}); err != nil {
+	if err := cache.Set(ctx, "3", Product{
+		ID:          "3",
+		Name:        "Shirt",
+		Category:    "clothing",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 3 failed: %v", err)
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Filters: []cache_dto.Filter{cache_dto.In("category", "electronics", "furniture")},
+		Filters:     []cache_dto.Filter{cache_dto.In("category", "electronics", "furniture")},
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -427,21 +586,57 @@ func testQueryFilterBetween(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Cheap", Price: 10.00}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Cheap",
+		Price:       10.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Medium", Price: 50.00}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Medium",
+		Price:       50.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "3", Product{ID: "3", Name: "Expensive", Price: 100.00}); err != nil {
+	if err := cache.Set(ctx, "3", Product{
+		ID:          "3",
+		Name:        "Expensive",
+		Price:       100.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 3 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "4", Product{ID: "4", Name: "Premium", Price: 200.00}); err != nil {
+	if err := cache.Set(ctx, "4", Product{
+		ID:          "4",
+		Name:        "Premium",
+		Price:       200.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 4 failed: %v", err)
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Filters: []cache_dto.Filter{cache_dto.Between("price", 25.00, 150.00)},
+		Filters:     []cache_dto.Filter{cache_dto.Between("price", 25.00, 150.00)},
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -464,18 +659,47 @@ func testQueryFilterPrefix(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Laptop", Category: "electronics"}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Laptop",
+		Category:    "electronics",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Chair", Category: "furniture"}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Chair",
+		Category:    "furniture",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "3", Product{ID: "3", Name: "Phone", Category: "electronics-mobile"}); err != nil {
+	if err := cache.Set(ctx, "3", Product{
+		ID:          "3",
+		Name:        "Phone",
+		Category:    "electronics-mobile",
+		Description: "",
+		Price:       0,
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 3 failed: %v", err)
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Filters: []cache_dto.Filter{cache_dto.Prefix("category", "elec")},
+		Filters:     []cache_dto.Filter{cache_dto.Prefix("category", "elec")},
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -499,13 +723,34 @@ func testQueryMultipleFilters(t *testing.T, config ProductConfig) {
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "Cheap Laptop", Category: "electronics", Price: 500.00}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "Cheap Laptop",
+		Category:    "electronics",
+		Price:       500.00,
+		Description: "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "Expensive Laptop", Category: "electronics", Price: 2000.00}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "Expensive Laptop",
+		Category:    "electronics",
+		Price:       2000.00,
+		Description: "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "3", Product{ID: "3", Name: "Chair", Category: "furniture", Price: 300.00}); err != nil {
+	if err := cache.Set(ctx, "3", Product{
+		ID:          "3",
+		Name:        "Chair",
+		Category:    "furniture",
+		Price:       300.00,
+		Description: "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 3 failed: %v", err)
 	}
 
@@ -514,6 +759,14 @@ func testQueryMultipleFilters(t *testing.T, config ProductConfig) {
 			cache_dto.Eq("category", "electronics"),
 			cache_dto.Lt("price", 1000.00),
 		},
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -538,19 +791,47 @@ func runProductSortTest(t *testing.T, config ProductConfig, sortOrder cache_dto.
 	cache := config.ProviderFactory(t, defaultProductOptions())
 	ctx := context.Background()
 
-	if err := cache.Set(ctx, "1", Product{ID: "1", Name: "C", Price: 300.00}); err != nil {
+	if err := cache.Set(ctx, "1", Product{
+		ID:          "1",
+		Name:        "C",
+		Price:       300.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 1 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "2", Product{ID: "2", Name: "A", Price: 100.00}); err != nil {
+	if err := cache.Set(ctx, "2", Product{
+		ID:          "2",
+		Name:        "A",
+		Price:       100.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 2 failed: %v", err)
 	}
-	if err := cache.Set(ctx, "3", Product{ID: "3", Name: "B", Price: 200.00}); err != nil {
+	if err := cache.Set(ctx, "3", Product{
+		ID:          "3",
+		Name:        "B",
+		Price:       200.00,
+		Description: "",
+		Category:    "",
+		InStock:     false,
+	}); err != nil {
 		t.Fatalf("Set 3 failed: %v", err)
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		SortBy:    "price",
-		SortOrder: sortOrder,
+		SortBy:      "price",
+		SortOrder:   sortOrder,
+		MinScore:    nil,
+		VectorField: "",
+		Filters:     nil,
+		Vector:      nil,
+		Limit:       0,
+		Offset:      0,
+		TopK:        0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -599,14 +880,28 @@ func testQueryPagination(t *testing.T, config ProductConfig) {
 	ctx := context.Background()
 
 	for i := range 10 {
-		if err := cache.Set(ctx, string(rune('a'+i)), Product{ID: string(rune('a' + i)), Name: "Product", Price: float64(i * 10)}); err != nil {
+		if err := cache.Set(ctx, string(rune('a'+i)), Product{
+			ID:          string(rune('a' + i)),
+			Name:        "Product",
+			Price:       float64(i * 10),
+			Description: "",
+			Category:    "",
+			InStock:     false,
+		}); err != nil {
 			t.Fatalf("Set failed: %v", err)
 		}
 	}
 
 	result1, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Limit:  3,
-		Offset: 0,
+		Limit:       3,
+		Offset:      0,
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Vector:      nil,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query page 1 failed: %v", err)
@@ -617,8 +912,15 @@ func testQueryPagination(t *testing.T, config ProductConfig) {
 	}
 
 	result2, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Limit:  3,
-		Offset: 3,
+		Limit:       3,
+		Offset:      3,
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Vector:      nil,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query page 2 failed: %v", err)
@@ -641,14 +943,28 @@ func testQueryHasMore(t *testing.T, config ProductConfig) {
 	ctx := context.Background()
 
 	for i := range 10 {
-		if err := cache.Set(ctx, string(rune('a'+i)), Product{ID: string(rune('a' + i)), Name: "Product"}); err != nil {
+		if err := cache.Set(ctx, string(rune('a'+i)), Product{
+			ID:          string(rune('a' + i)),
+			Name:        "Product",
+			Description: "",
+			Category:    "",
+			Price:       0,
+			InStock:     false,
+		}); err != nil {
 			t.Fatalf("Set failed: %v", err)
 		}
 	}
 
 	result, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Limit:  5,
-		Offset: 0,
+		Limit:       5,
+		Offset:      0,
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Vector:      nil,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query failed: %v", err)
@@ -659,8 +975,15 @@ func testQueryHasMore(t *testing.T, config ProductConfig) {
 	}
 
 	resultAll, err := cache.Query(ctx, &cache_dto.QueryOptions{
-		Limit:  100,
-		Offset: 0,
+		Limit:       100,
+		Offset:      0,
+		MinScore:    nil,
+		SortBy:      "",
+		VectorField: "",
+		Filters:     nil,
+		Vector:      nil,
+		TopK:        0,
+		SortOrder:   0,
 	})
 	if err != nil {
 		t.Errorf("Query all failed: %v", err)

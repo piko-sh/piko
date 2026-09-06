@@ -201,6 +201,8 @@ func NewModel(config *tui_dto.Config) *Model {
 		resourceDataMutex: sync.RWMutex{},
 		showHelp:          false,
 		quitting:          false,
+		commandBar:        nil,
+		activeGroupID:     "",
 	}
 	model.commandBar = NewCommandBar(registry, &theme)
 	return model
@@ -1138,8 +1140,8 @@ func (m *Model) renderLayout() string {
 // the GroupedView renderer. Falls back to a placeholder when no groups are registered or
 // visible.
 //
-// Takes width (int) and height (int) which are the layout area dimensions (chrome already
-// subtracted).
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the composed body.
 func (m *Model) renderGroupedBody(width, height int) string {

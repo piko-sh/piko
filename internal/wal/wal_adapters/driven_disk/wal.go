@@ -501,7 +501,7 @@ func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]
 	select {
 	case <-ctx.Done():
 		result.Release()
-		return ctx.Err()
+		return cancellationError(ctx)
 	default:
 	}
 
@@ -516,7 +516,7 @@ func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]
 	case <-ctx.Done():
 		result.Release()
 		putResultChan(resultChan)
-		return ctx.Err()
+		return cancellationError(ctx)
 	case <-w.stopChan:
 		result.Release()
 		putResultChan(resultChan)
@@ -526,7 +526,7 @@ func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]
 
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return cancellationError(ctx)
 	case <-w.stopChan:
 		select {
 		case err := <-resultChan:
@@ -562,8 +562,9 @@ func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]
 // entries promptly or break out of the loop to release the lock.
 func (w *DiskWAL[K, V]) Recover(ctx context.Context) iter.Seq2[wal_domain.Entry[K, V], error] {
 	return func(yield func(wal_domain.Entry[K, V], error) bool) {
+		var zero wal_domain.Entry[K, V]
 		if w.closed.Load() {
-			yield(wal_domain.Entry[K, V]{}, wal_domain.ErrWALClosed)
+			yield(zero, wal_domain.ErrWALClosed)
 			return
 		}
 
@@ -573,7 +574,7 @@ func (w *DiskWAL[K, V]) Recover(ctx context.Context) iter.Seq2[wal_domain.Entry[
 
 		reader, err := w.prepareForRecovery()
 		if err != nil {
-			yield(wal_domain.Entry[K, V]{}, err)
+			yield(zero, err)
 			return
 		}
 
@@ -612,16 +613,17 @@ func (w *DiskWAL[K, V]) yieldRecoveryEntries(
 ) (truncatePosition int64, entryCount int) {
 	truncatePosition = -1
 	var currentPos int64
+	var zero wal_domain.Entry[K, V]
 
 	for {
 		if ctx.Err() != nil {
-			yield(wal_domain.Entry[K, V]{}, ctx.Err())
+			yield(zero, cancellationError(ctx))
 			return truncatePosition, entryCount
 		}
 
 		entry, bytesRead, shouldTruncate, err := w.readNextEntry(ctx, reader, currentPos)
 		if err != nil {
-			yield(wal_domain.Entry[K, V]{}, err)
+			yield(zero, err)
 			return -1, entryCount
 		}
 
@@ -1070,10 +1072,23 @@ func NewDiskWAL[K comparable, V any](
 		codec:    codec,
 		config:   config,
 
-		clock:       clock.RealClock(),
-		pendingChan: make(chan pendingWrite, defaultChannelSize),
-		commitDone:  make(chan struct{}),
-		stopChan:    make(chan struct{}),
+		clock:        clock.RealClock(),
+		pendingChan:  make(chan pendingWrite, defaultChannelSize),
+		commitDone:   make(chan struct{}),
+		stopChan:     make(chan struct{}),
+		lastSync:     time.Time{},
+		file:         nil,
+		sandbox:      nil,
+		fatalErr:     atomic.Pointer[error]{},
+		tailBuf:      nil,
+		alignedBuf:   nil,
+		entryCount:   atomic.Int64{},
+		fileSize:     atomic.Int64{},
+		nextOffset:   0,
+		pendingSyncs: 0,
+		mu:           sync.Mutex{},
+		alignWrites:  false,
+		closed:       atomic.Bool{},
 	}
 
 	for _, opt := range opts {
@@ -1166,6 +1181,7 @@ func createWALSandbox(directory string) (safedisk.Sandbox, error) {
 	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
 		Enabled:      true,
 		AllowedPaths: []string{directory},
+		CWD:          "",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating sandbox factory: %w", err)
@@ -1202,4 +1218,18 @@ func sendResult(pw pendingWrite, err error) {
 	case pw.result <- err:
 	default:
 	}
+}
+
+// cancellationError reports why ctx ended, keeping context.Canceled or
+// context.DeadlineExceeded in the chain and adding the cancellation cause when one was
+// given.
+//
+// Returns error which wraps the context error and, when distinct, its cause.
+func cancellationError(ctx context.Context) error {
+	err := ctx.Err()
+	cause := context.Cause(ctx)
+	if cause == nil || errors.Is(err, cause) {
+		return err
+	}
+	return fmt.Errorf("%w: %w", err, cause)
 }

@@ -297,7 +297,7 @@ func TestRegistryRenderer_IsExpandable(t *testing.T) {
 		},
 		{
 			name:     "resource without metadata not expandable",
-			item:     registryDisplayItem{resource: &Resource{Metadata: nil}, itemType: registryItemResource},
+			item:     registryDisplayItem{resource: &Resource{}, itemType: registryItemResource},
 			expected: false,
 		},
 		{

@@ -239,22 +239,25 @@ func (c *Collector) Collect(ctx context.Context, e *analytics.Event) error {
 		userID = e.UserID
 	}
 	ev := telemetry_grpcfb.AnalyticsEvent{
-		Kind:           e.Type.String(),
-		TimestampMs:    e.Timestamp.UnixMilli(),
-		Hostname:       e.Hostname,
-		URL:            url,
-		Path:           e.Path,
-		MatchedPattern: e.MatchedPattern,
-		Method:         e.Method,
-		StatusCode:     safeconv.IntToInt32(e.StatusCode),
-		DurationMs:     e.Duration.Milliseconds(),
-		Referrer:       referrer,
-		UserAgent:      userAgent,
-		ClientIP:       clientIP,
-		Locale:         e.Locale,
-		UserID:         userID,
-		ActionName:     e.ActionName,
-		EventName:      e.EventName,
+		Kind:            e.Type.String(),
+		TimestampMs:     e.Timestamp.UnixMilli(),
+		Hostname:        e.Hostname,
+		URL:             url,
+		Path:            e.Path,
+		MatchedPattern:  e.MatchedPattern,
+		Method:          e.Method,
+		StatusCode:      safeconv.IntToInt32(e.StatusCode),
+		DurationMs:      e.Duration.Milliseconds(),
+		Referrer:        referrer,
+		UserAgent:       userAgent,
+		ClientIP:        clientIP,
+		Locale:          e.Locale,
+		UserID:          userID,
+		ActionName:      e.ActionName,
+		EventName:       e.EventName,
+		RevenueAmount:   "",
+		RevenueCurrency: "",
+		Properties:      nil,
 	}
 	if e.Revenue != nil {
 		if code, err := e.Revenue.CurrencyCode(); err == nil {
@@ -368,7 +371,7 @@ func (c *Collector) Close(ctx context.Context) error {
 //
 // Returns *Collector which is the configured collector wrapping the shared client.
 func New(client *telemetry_grpcfb.Client, opts ...Option) *Collector {
-	c := &Collector{client: client, privacy: defaultPrivacy()}
+	c := &Collector{client: client, privacy: defaultPrivacy(), ownsClient: false}
 	for _, opt := range opts {
 		if opt != nil {
 			opt(c)

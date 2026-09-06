@@ -1,5 +1,0 @@
-{
-  "description": "Transitive three-level import chain",
-  "modulePath": "testpkg",
-  "expected": ">>>core-value<<<"
-}

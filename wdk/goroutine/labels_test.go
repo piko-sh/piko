@@ -39,12 +39,10 @@ func TestLabelAppearsInTheGoroutineTraceback(t *testing.T) {
 		stack     string
 	)
 
-	waitGroup.Add(1)
-	go func() {
-		defer waitGroup.Done()
+	waitGroup.Go(func() {
 		goroutine.Label(context.Background(), "orchestrator.runHeartbeat", "task_id", "T-42")
 		stack = string(debug.Stack())
-	}()
+	})
 	waitGroup.Wait()
 
 	header, _, _ := strings.Cut(stack, "\n")

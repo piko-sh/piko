@@ -60,3 +60,46 @@ func TestIsFilesystemRoot(t *testing.T) {
 	assert.True(t, isFilesystemRoot(string(filepath.Separator)))
 	assert.False(t, isFilesystemRoot(t.TempDir()))
 }
+
+func TestContainerGetResolverDetectsModule(t *testing.T) {
+	testCases := []struct {
+		name            string
+		baseDirSuffix   string
+		allowModuleRoot bool
+	}{
+		{
+			name:          "go.mod in the base directory",
+			baseDirSuffix: "",
+		},
+		{
+			name:          "go.mod above the base directory and outside the allowed paths",
+			baseDirSuffix: "app",
+		},
+		{
+			name:            "go.mod above the base directory with its directory allowed",
+			baseDirSuffix:   "app",
+			allowModuleRoot: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			moduleRoot := t.TempDir()
+			baseDir := filepath.Join(moduleRoot, tc.baseDirSuffix)
+			require.NoError(t, os.MkdirAll(baseDir, 0o750))
+			require.NoError(t, os.WriteFile(filepath.Join(moduleRoot, "go.mod"), []byte("module example.com/app\n"), 0o600))
+
+			c := NewContainer()
+			c.serverConfig.Paths.BaseDir = new(baseDir)
+			c.serverConfig.Security.Sandbox.Enabled = new(true)
+			if tc.allowModuleRoot {
+				c.serverConfig.Security.Sandbox.AllowedPaths = []string{moduleRoot}
+			}
+
+			resolver, err := c.GetResolver()
+
+			require.NoError(t, err)
+			assert.Equal(t, "example.com/app", resolver.GetModuleName())
+		})
+	}
+}

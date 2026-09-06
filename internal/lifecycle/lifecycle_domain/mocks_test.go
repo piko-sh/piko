@@ -393,35 +393,28 @@ func TestMockFileSystem_ConcurrentAccess(t *testing.T) {
 	m.AddFile("/project/main.go", []byte("package main"))
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 6)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			m.AddFile("/project/concurrent.go", []byte("package main"))
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			m.AddDir("/project/concurrent")
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = m.Open("/project/main.go")
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = m.Stat("/project/main.go")
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = m.WalkDir("/project", func(_ string, _ fs.DirEntry, _ error) error {
 				return nil
 			})
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = m.Rel("/project", "/project/main.go")
-		}()
+		})
 	}
 
 	wg.Wait()

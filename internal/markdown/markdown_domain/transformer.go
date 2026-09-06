@@ -23,11 +23,33 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/markdown/markdown_ast"
+)
+
+const (
+	// shortcodeNameStart indexes the start of the component name in the result of
+	// pikoShortcodeRegex.FindStringSubmatchIndex.
+	shortcodeNameStart = 2
+
+	// shortcodeNameEnd indexes the end of the component name.
+	shortcodeNameEnd = 3
+
+	// shortcodePropsStart indexes the start of the props.
+	shortcodePropsStart = 4
+
+	// shortcodePropsEnd indexes the end of the props.
+	shortcodePropsEnd = 5
+)
+
+var (
+	// pikoShortcodeRegex matches piko shortcode names and arguments in fenced code blocks.
+	pikoShortcodeRegex = regexp.MustCompile(`piko\s+([a-zA-Z0-9_-]+)\s*(.*)`)
 )
 
 // nodeTransformer defines the interface for converting piko markdown AST nodes into Piko
@@ -61,14 +83,21 @@ type transformer struct {
 	// source holds the original Markdown input bytes used for location mapping and shortcode
 	// parsing.
 	source []byte
+
+	// depthLimitReported records that nesting beyond markdown_ast.MaxMarkdownDepth has
+	// already produced a diagnostic, so a deep document reports it once.
+	depthLimitReported bool
 }
 
 var (
 	_ nodeTransformer = (*transformer)(nil)
 )
 
-// TransformNode converts a piko markdown AST node to a template node. It uses helper
-// functions based on the node type and transforms any children.
+// TransformNode converts a piko markdown AST node to a template node.
+//
+// It uses helper functions based on the node type and transforms any children. Nesting
+// deeper than markdown_ast.MaxMarkdownDepth is not rendered and is reported once as a
+// diagnostic, so a pathologically nested document cannot overflow the stack.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes node (markdown_ast.Node) which is the piko markdown AST node to convert.
@@ -76,10 +105,26 @@ var (
 // Returns *ast_domain.TemplateNode which is the transformed node with all its children,
 // or nil if the node type is not supported.
 func (t *transformer) TransformNode(ctx context.Context, node markdown_ast.Node) *ast_domain.TemplateNode {
+	return t.transformNodeAt(ctx, node, 0)
+}
+
+// transformNodeAt is the depth-tracked recursion behind TransformNode.
+//
+// Takes node (markdown_ast.Node) which is the piko markdown AST node to convert.
+// Takes depth (int) which is the node's depth below the node passed to TransformNode.
+//
+// Returns *ast_domain.TemplateNode which is the transformed node with its children, or
+// nil when the node type is not supported or the node is beyond the depth limit.
+func (t *transformer) transformNodeAt(ctx context.Context, node markdown_ast.Node, depth int) *ast_domain.TemplateNode {
+	if depth >= markdown_ast.MaxMarkdownDepth {
+		t.reportDepthLimit(node)
+		return nil
+	}
+
 	var pikoNode *ast_domain.TemplateNode
 	switch n := node.(type) {
 	case *markdown_ast.FencedCodeBlock:
-		pikoNode = t.transformFencedCodeBlock(ctx, n)
+		pikoNode = t.transformFencedCodeBlock(ctx, n, depth)
 	case *markdown_ast.HTMLBlock:
 		pikoNode = t.transformHTMLBlock(n)
 	case *markdown_ast.Document, *markdown_ast.TextBlock, *markdown_ast.FencedContainer:
@@ -100,10 +145,23 @@ func (t *transformer) TransformNode(ctx context.Context, node markdown_ast.Node)
 	}
 
 	if pikoNode != nil && len(pikoNode.Children) == 0 && node.HasChildren() {
-		pikoNode.Children = t.transformChildren(ctx, node)
+		pikoNode.Children = t.transformChildren(ctx, node, depth)
 	}
 
 	return pikoNode
+}
+
+// reportDepthLimit records, once per document, that nesting beyond
+// markdown_ast.MaxMarkdownDepth was not rendered.
+//
+// Takes node (markdown_ast.Node) which is the first node found beyond the limit.
+func (t *transformer) reportDepthLimit(node markdown_ast.Node) {
+	if t.depthLimitReported || t.diagnostics == nil {
+		return
+	}
+	t.depthLimitReported = true
+	message := fmt.Sprintf("Markdown nested deeper than %d levels was not rendered", markdown_ast.MaxMarkdownDepth)
+	*t.diagnostics = append(*t.diagnostics, ast_domain.NewDiagnostic(ast_domain.Error, message, "", t.getNodeLocation(node), t.sourcePath))
 }
 
 // transformChildren iterates over a piko markdown node's children and transforms them
@@ -111,13 +169,18 @@ func (t *transformer) TransformNode(ctx context.Context, node markdown_ast.Node)
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes parent (markdown_ast.Node) which is the node whose children to transform.
+// Takes parentDepth (int) which is the depth of parent; its children are one deeper.
 //
 // Returns []*ast_domain.TemplateNode which contains the transformed children, with
-// fragment nodes flattened so their children appear directly in the result.
-func (t *transformer) transformChildren(ctx context.Context, parent markdown_ast.Node) []*ast_domain.TemplateNode {
+// fragment nodes flattened so their children appear directly in the result. Once ctx is
+// cancelled no further children are transformed; the walker reports the cancellation.
+func (t *transformer) transformChildren(ctx context.Context, parent markdown_ast.Node, parentDepth int) []*ast_domain.TemplateNode {
 	var children []*ast_domain.TemplateNode
 	for child := parent.FirstChild(); child != nil; child = child.NextSibling() {
-		if pikoChild := t.TransformNode(ctx, child); pikoChild != nil {
+		if ctx.Err() != nil {
+			return children
+		}
+		if pikoChild := t.transformNodeAt(ctx, child, parentDepth+1); pikoChild != nil {
 			if pikoChild.NodeType == ast_domain.NodeFragment {
 				children = append(children, pikoChild.Children...)
 			} else {
@@ -183,7 +246,8 @@ func (t *transformer) transformBlockNode(node markdown_ast.Node) *ast_domain.Tem
 	return nil
 }
 
-// transformInlineNode handles inline elements such as links, images, and emphasis.
+// transformInlineNode handles inline elements such as links, images, emphasis, and hard
+// line breaks.
 //
 // Takes node (markdown_ast.Node) which is the inline AST node to transform.
 //
@@ -221,6 +285,12 @@ func (t *transformer) transformInlineNode(node markdown_ast.Node) *ast_domain.Te
 		return pikoNode
 	case *markdown_ast.TaskCheckBox:
 		return t.transformTaskCheckBox(n)
+	case *markdown_ast.LineBreak:
+		pikoNode := new(ast_domain.TemplateNode)
+		pikoNode.NodeType = ast_domain.NodeElement
+		pikoNode.TagName = "br"
+		pikoNode.Location = t.getNodeLocation(n)
+		return pikoNode
 	}
 	return nil
 }
@@ -466,12 +536,13 @@ func (t *transformer) transformHTMLBlock(n *markdown_ast.HTMLBlock) *ast_domain.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes n (*markdown_ast.FencedCodeBlock) which is the AST node to convert.
+// Takes depth (int) which is the depth of n, used to bound shortcode slot content.
 //
 // Returns *ast_domain.TemplateNode which is the resulting template node, or nil on error.
-func (t *transformer) transformFencedCodeBlock(ctx context.Context, n *markdown_ast.FencedCodeBlock) *ast_domain.TemplateNode {
+func (t *transformer) transformFencedCodeBlock(ctx context.Context, n *markdown_ast.FencedCodeBlock, depth int) *ast_domain.TemplateNode {
 	if n.Info != "" {
 		if pikoShortcodeRegex.MatchString(n.Info) {
-			node, diagnostics := t.transformPikoShortcode(ctx, n.Info, n)
+			node, diagnostics := t.transformPikoShortcode(ctx, n.Info, n, depth)
 			if len(diagnostics) > 0 {
 				*t.diagnostics = append(*t.diagnostics, diagnostics...)
 			}
@@ -571,11 +642,6 @@ func (*transformer) renderPlainCodeBlock(code, language string, location ast_dom
 	return pikoNode
 }
 
-var (
-	// pikoShortcodeRegex matches piko shortcode names and arguments in fenced code blocks.
-	pikoShortcodeRegex = regexp.MustCompile(`piko\s+([a-zA-Z0-9_-]+)\s*(.*)`)
-)
-
 // transformPikoShortcode handles ` ```piko ` blocks by parsing the shortcode syntax and
 // converting it to a template node.
 //
@@ -583,34 +649,43 @@ var (
 // Takes infoString (string) which contains the fenced block info line with the component
 // name and optional props.
 // Takes fcb (*markdown_ast.FencedCodeBlock) which is the fenced code block to transform.
+// Takes depth (int) which is the depth of fcb, used to bound the slot content.
 //
 // Returns *ast_domain.TemplateNode which is the parsed component node with attributes and
 // slot content.
 // Returns []*ast_domain.Diagnostic which contains any parsing errors encountered.
-func (t *transformer) transformPikoShortcode(ctx context.Context, infoString string, fcb *markdown_ast.FencedCodeBlock) (*ast_domain.TemplateNode, []*ast_domain.Diagnostic) {
-	location := t.getNodeLocation(fcb)
-	matches := pikoShortcodeRegex.FindStringSubmatch(infoString)
-	if len(matches) < 2 {
+func (t *transformer) transformPikoShortcode(ctx context.Context, infoString string, fcb *markdown_ast.FencedCodeBlock, depth int) (*ast_domain.TemplateNode, []*ast_domain.Diagnostic) {
+	location := t.infoStringLocation(fcb, 0)
+	matchIndices := pikoShortcodeRegex.FindStringSubmatchIndex(infoString)
+	if matchIndices == nil {
 		message := fmt.Sprintf("Invalid piko component syntax: expected 'piko <component-name> [props...]', got %q", infoString)
 		return nil, []*ast_domain.Diagnostic{ast_domain.NewDiagnostic(ast_domain.Error, message, infoString, location, t.sourcePath)}
 	}
 
-	componentName := matches[1]
-	propsString := ""
-	if len(matches) > 2 {
-		propsString = matches[2]
-	}
+	componentName := infoString[matchIndices[shortcodeNameStart]:matchIndices[shortcodeNameEnd]]
+	propsStart := matchIndices[shortcodePropsStart]
+	propsString := infoString[propsStart:matchIndices[shortcodePropsEnd]]
 
-	dummyTag := fmt.Sprintf(`<piko-dummy is=%q %s></piko-dummy>`, componentName, propsString)
-	parsed, err := ast_domain.Parse(ctx, dummyTag, t.sourcePath, &location)
+	dummyPrefix := fmt.Sprintf(`<piko-dummy is=%q `, componentName)
+	dummyTag := dummyPrefix + propsString + `></piko-dummy>`
+	propsLocation := t.infoStringLocation(fcb, propsStart)
+	parseStart := ast_domain.Location{
+		Line:   propsLocation.Line,
+		Column: propsLocation.Column - utf8.RuneCountInString(dummyPrefix),
+		Offset: 0,
+	}
+	parsed, err := ast_domain.Parse(ctx, dummyTag, t.sourcePath, &parseStart)
 	if err != nil {
 		message := fmt.Sprintf("Internal parser error when parsing shortcode props: %v", err)
 		return nil, []*ast_domain.Diagnostic{ast_domain.NewDiagnostic(ast_domain.Error, message, dummyTag, location, t.sourcePath)}
 	}
 	if ast_domain.HasErrors(parsed.Diagnostics) {
-		return nil, parsed.Diagnostics
+		diagnostics := clampToShortcode(slices.Clone(parsed.Diagnostics), location)
+		ast_domain.PutTree(parsed)
+		return nil, diagnostics
 	}
 	if len(parsed.RootNodes) == 0 {
+		ast_domain.PutTree(parsed)
 		message := fmt.Sprintf("Internal parser error: no nodes returned for shortcode %q", componentName)
 		return nil, []*ast_domain.Diagnostic{ast_domain.NewDiagnostic(ast_domain.Error, message, dummyTag, location, t.sourcePath)}
 	}
@@ -625,7 +700,7 @@ func (t *transformer) transformPikoShortcode(ctx context.Context, infoString str
 	node.Location = location
 
 	if fcb.HasChildren() {
-		node.Children = t.transformChildren(ctx, fcb)
+		node.Children = t.transformChildren(ctx, fcb, depth)
 	}
 
 	ast_domain.PutTree(parsed)
@@ -633,7 +708,27 @@ func (t *transformer) transformPikoShortcode(ctx context.Context, infoString str
 	return node, nil
 }
 
+// infoStringLocation finds the source location of a byte in a fenced code block's info
+// string, so shortcode diagnostics point at the fence line rather than the block body.
+//
+// Takes fcb (*markdown_ast.FencedCodeBlock) which is the block whose info string is read.
+// Takes index (int) which is the byte index within the info string.
+//
+// Returns ast_domain.Location which is the location of that byte, or the block's own
+// location when the parser did not record where the info string is.
+func (t *transformer) infoStringLocation(fcb *markdown_ast.FencedCodeBlock, index int) ast_domain.Location {
+	segment := fcb.InfoSegment
+	if segment.Stop <= segment.Start || index < 0 || segment.Start+index > segment.Stop {
+		return t.getNodeLocation(fcb)
+	}
+	offset := segment.Start + index
+	line, column := t.locationMapper.Position(offset)
+	return ast_domain.Location{Line: line, Column: column, Offset: offset}
+}
+
 // getNodeLocation extracts the line and column number from a piko markdown AST node.
+// Inline containers take the position of their first descendant with one, searching at
+// most markdown_ast.MaxMarkdownDepth levels down.
 //
 // Takes node (markdown_ast.Node) which is the AST node to locate.
 //
@@ -641,31 +736,17 @@ func (t *transformer) transformPikoShortcode(ctx context.Context, infoString str
 // node.
 // Returns an empty location if the node is nil or has no position data.
 func (t *transformer) getNodeLocation(node markdown_ast.Node) ast_domain.Location {
-	if node == nil {
-		return ast_domain.Location{}
-	}
-
-	var startOffset = -1
-
-	switch node.Type() {
-	case markdown_ast.TypeBlock, markdown_ast.TypeDocument:
-		lines := node.Lines()
-		if lines.Len() > 0 {
-			startOffset = lines.At(0).Start
+	startOffset := -1
+	for range markdown_ast.MaxMarkdownDepth {
+		if node == nil {
+			break
 		}
-	case markdown_ast.TypeInline:
-		switch n := node.(type) {
-		case *markdown_ast.Text:
-			startOffset = n.Segment.Start
-		case *markdown_ast.RawHTML:
-			if n.SourceSegments.Len() > 0 {
-				startOffset = n.SourceSegments.At(0).Start
-			}
-		default:
-			if n.HasChildren() {
-				return t.getNodeLocation(n.FirstChild())
-			}
+		var descend bool
+		startOffset, descend = nodeStartOffset(node)
+		if !descend {
+			break
 		}
+		node = node.FirstChild()
 	}
 
 	if startOffset < 0 {
@@ -682,21 +763,41 @@ func (t *transformer) getNodeLocation(node markdown_ast.Node) ast_domain.Locatio
 }
 
 // extractNodeText extracts the text content from a piko markdown AST node and its
-// children. This traverses text children by hand to collect the full text.
+// children.
+//
+// This traverses text children by hand to collect the full text; hard line breaks
+// contribute a newline so the words either side stay separate. Text nested deeper than
+// markdown_ast.MaxMarkdownDepth below node is left out and reported once.
 //
 // Takes node (markdown_ast.Node) which is the node to extract text from.
 //
 // Returns string which contains the combined text of all child text nodes.
 func (t *transformer) extractNodeText(node markdown_ast.Node) string {
 	var result strings.Builder
+	t.extractNodeTextInto(&result, node, 0)
+	return result.String()
+}
+
+// extractNodeTextInto is the depth-tracked recursion behind extractNodeText.
+//
+// Takes result (*strings.Builder) which receives the text.
+// Takes node (markdown_ast.Node) which is the node whose children are read.
+// Takes depth (int) which is the depth of node below the node passed to extractNodeText.
+func (t *transformer) extractNodeTextInto(result *strings.Builder, node markdown_ast.Node, depth int) {
+	if depth >= markdown_ast.MaxMarkdownDepth {
+		t.reportDepthLimit(node)
+		return
+	}
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
-		if textNode, ok := child.(*markdown_ast.Text); ok {
-			_, _ = result.Write(textNode.Value)
-		} else {
-			_, _ = result.WriteString(t.extractNodeText(child))
+		switch typed := child.(type) {
+		case *markdown_ast.Text:
+			_, _ = result.Write(typed.Value)
+		case *markdown_ast.LineBreak:
+			_ = result.WriteByte('\n')
+		default:
+			t.extractNodeTextInto(result, child, depth+1)
 		}
 	}
-	return result.String()
 }
 
 // newTransformer creates a new transformer for processing markdown AST nodes.
@@ -713,11 +814,12 @@ func (t *transformer) extractNodeText(node markdown_ast.Node) string {
 // Returns *transformer which is ready to process markdown nodes.
 func newTransformer(sourcePath string, source []byte, locationMapper positionMapper, diagnostics *[]*ast_domain.Diagnostic, highlighter Highlighter) *transformer {
 	return &transformer{
-		sourcePath:     sourcePath,
-		source:         source,
-		locationMapper: locationMapper,
-		diagnostics:    diagnostics,
-		highlighter:    highlighter,
+		sourcePath:         sourcePath,
+		source:             source,
+		locationMapper:     locationMapper,
+		diagnostics:        diagnostics,
+		highlighter:        highlighter,
+		depthLimitReported: false,
 	}
 }
 
@@ -755,4 +857,54 @@ func attributeAsString(node markdown_ast.Attributable, name string) (string, boo
 	default:
 		return fmt.Sprint(v), true
 	}
+}
+
+// nodeStartOffset reads the source offset recorded on a single node.
+//
+// Takes node (markdown_ast.Node) which is the node to inspect.
+//
+// Returns offset (int) which is the start byte offset, or -1 when the node has none.
+// Returns descend (bool) which is true when the node is an inline container whose
+// position should be taken from its first child instead.
+func nodeStartOffset(node markdown_ast.Node) (offset int, descend bool) {
+	switch node.Type() {
+	case markdown_ast.TypeBlock, markdown_ast.TypeDocument:
+		if lines := node.Lines(); lines.Len() > 0 {
+			return lines.At(0).Start, false
+		}
+		return -1, false
+	case markdown_ast.TypeInline:
+		switch typed := node.(type) {
+		case *markdown_ast.Text:
+			return typed.Segment.Start, false
+		case *markdown_ast.RawHTML:
+			if typed.SourceSegments.Len() > 0 {
+				return typed.SourceSegments.At(0).Start, false
+			}
+			return -1, false
+		default:
+			return -1, node.HasChildren()
+		}
+	default:
+		return -1, false
+	}
+}
+
+// clampToShortcode keeps shortcode diagnostics inside the fence line. Positions in the
+// generated wrapper tag that precede the props are moved to the start of the shortcode.
+//
+// Takes diagnostics ([]*ast_domain.Diagnostic) which are adjusted in place.
+// Takes shortcodeLocation (ast_domain.Location) which is where the shortcode starts.
+//
+// Returns []*ast_domain.Diagnostic which is diagnostics with clamped locations.
+func clampToShortcode(diagnostics []*ast_domain.Diagnostic, shortcodeLocation ast_domain.Location) []*ast_domain.Diagnostic {
+	for _, diagnostic := range diagnostics {
+		if diagnostic == nil {
+			continue
+		}
+		if diagnostic.Location.Line != shortcodeLocation.Line || diagnostic.Location.Column < shortcodeLocation.Column {
+			diagnostic.Location = shortcodeLocation
+		}
+	}
+	return diagnostics
 }

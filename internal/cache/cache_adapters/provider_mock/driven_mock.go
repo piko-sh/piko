@@ -977,31 +977,12 @@ func WithMockClock[K comparable, V any](c clock.Clock) MockAdapterOption[K, V] {
 //
 // Returns *MockAdapter[K, V] which is the initialised mock adapter.
 func NewMockAdapter[K comparable, V any](opts ...MockAdapterOption[K, V]) *MockAdapter[K, V] {
-	m := &MockAdapter[K, V]{
-		clock:                    clock.RealClock(),
-		errToReturn:              nil,
-		setExpiresAfterCalls:     make(map[any]time.Duration),
-		storage:                  make(map[any]*mockEntry[V]),
-		tagIndex:                 make(map[string]map[any]struct{}),
-		entryToReturn:            nil,
-		bulkGetFunc:              nil,
-		setRefreshableAfterCalls: make(map[any]time.Duration),
-		setCalls:                 nil,
-		setMaximumCalls:          nil,
-		getCalls:                 nil,
-		refreshCalls:             nil,
-		bulkRefreshCalls:         nil,
-		getEntryCalls:            nil,
-		probeEntryCalls:          nil,
-		invalidateByTagsCalls:    nil,
-		getIfPresentCalls:        nil,
-		invalidateCalls:          nil,
-		invalidateAllCount:       0,
-		maximumToReturn:          0,
-		weightedSizeToReturn:     0,
-		closeCount:               0,
-		mu:                       sync.RWMutex{},
-	}
+	m := &MockAdapter[K, V]{}
+	m.clock = clock.RealClock()
+	m.setExpiresAfterCalls = make(map[any]time.Duration)
+	m.storage = make(map[any]*mockEntry[V])
+	m.tagIndex = make(map[string]map[any]struct{})
+	m.setRefreshableAfterCalls = make(map[any]time.Duration)
 
 	for _, opt := range opts {
 		opt(m)

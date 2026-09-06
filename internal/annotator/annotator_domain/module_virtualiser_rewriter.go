@@ -567,8 +567,8 @@ func (*astRewriter) handleSideEffectImport(
 	}
 
 	defaultPackageName := path
-	if lastSlash := strings.LastIndex(path, "/"); lastSlash != -1 {
-		defaultPackageName = path[lastSlash+1:]
+	if _, after, ok := strings.CutLast(path, "/"); ok {
+		defaultPackageName = after
 	}
 
 	if _, ok := templatePackageUses[defaultPackageName]; ok {
@@ -768,8 +768,8 @@ func getAliasFromSpec(spec *goast.ImportSpec) string {
 		return spec.Name.Name
 	}
 	path := strings.Trim(spec.Path.Value, `"`)
-	if lastSlash := strings.LastIndex(path, "/"); lastSlash != -1 {
-		return path[lastSlash+1:]
+	if _, after, ok := strings.CutLast(path, "/"); ok {
+		return after
 	}
 	return path
 }

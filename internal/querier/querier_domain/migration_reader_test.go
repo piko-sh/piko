@@ -279,3 +279,62 @@ func TestReadMigrationFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestWarnNonConformingMigrationFiles(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		reader        *mockFileReader
+		name          string
+		wantFilenames []string
+	}{
+		{
+			name: "warns about a .sql file without an up or down suffix",
+			reader: &mockFileReader{
+				dirs: map[string][]os.DirEntry{
+					"/migrations": {
+						&mockDirEntry{name: "001_init.up.sql", isDir: false},
+						&mockDirEntry{name: "001_init.down.sql", isDir: false},
+						&mockDirEntry{name: "notes.sql", isDir: false},
+						&mockDirEntry{name: "README.md", isDir: false},
+						&mockDirEntry{name: "archive.sql", isDir: true},
+					},
+				},
+			},
+			wantFilenames: []string{"notes.sql"},
+		},
+		{
+			name: "returns nothing when every file conforms",
+			reader: &mockFileReader{
+				dirs: map[string][]os.DirEntry{
+					"/migrations": {
+						&mockDirEntry{name: "001_init.up.sql", isDir: false},
+					},
+				},
+			},
+			wantFilenames: nil,
+		},
+		{
+			name:          "returns nothing when the directory cannot be read",
+			reader:        &mockFileReader{},
+			wantFilenames: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			diagnostics := warnNonConformingMigrationFiles(context.Background(), testCase.reader, "/migrations")
+
+			var filenames []string
+			for _, diagnostic := range diagnostics {
+				filenames = append(filenames, diagnostic.Filename)
+				assert.Equal(t, querier_dto.CodeIgnoredMigrationFile, diagnostic.Code)
+				assert.Equal(t, querier_dto.SeverityWarning, diagnostic.Severity)
+				assert.Contains(t, diagnostic.Message, "must end in .up.sql or .down.sql")
+			}
+			assert.Equal(t, testCase.wantFilenames, filenames)
+		})
+	}
+}

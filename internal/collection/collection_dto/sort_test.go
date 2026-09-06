@@ -19,8 +19,15 @@
 package collection_dto
 
 import (
+	"math"
+	mathrand "math/rand/v2"
+	"slices"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSortItems_SingleField(t *testing.T) {
@@ -602,19 +609,80 @@ func TestCalculatePaginationMeta_ZeroPageDefaultsToOne(t *testing.T) {
 }
 
 func TestSortItems_RandomOrder(t *testing.T) {
-	items := make([]*ContentItem, 20)
-	for i := range 20 {
-		items[i] = createTestItem(string(rune(i)), map[string]any{"index": i})
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		itemCount int
+	}{
+		{name: "empty slice", itemCount: 0},
+		{name: "single item", itemCount: 1},
+		{name: "two items", itemCount: 2},
+		{name: "many items", itemCount: 200},
 	}
 
-	sortOptions := []SortOption{
-		{Field: "index", Order: SortRandom},
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			items := make([]*ContentItem, testCase.itemCount)
+			for index := range testCase.itemCount {
+				items[index] = createTestItem(strconv.Itoa(index), map[string]any{"index": index})
+			}
+			original := slices.Clone(items)
+
+			SortItems(items, []SortOption{{Field: "index", Order: SortRandom}})
+
+			assert.ElementsMatch(t, original, items, "a random sort must be a permutation of the input")
+		})
+	}
+}
+
+func TestShuffleItems_ProducesDifferentOrders(t *testing.T) {
+	t.Parallel()
+
+	items := make([]*ContentItem, 50)
+	for index := range items {
+		items[index] = createTestItem(strconv.Itoa(index), map[string]any{"index": index})
+	}
+	original := slices.Clone(items)
+
+	shuffled := false
+	for range 10 {
+		candidate := slices.Clone(original)
+		shuffleItems(candidate)
+		require.ElementsMatch(t, original, candidate)
+		if !slices.Equal(original, candidate) {
+			shuffled = true
+		}
 	}
 
-	SortItems(items, sortOptions)
+	assert.True(t, shuffled, "ten shuffles of fifty items should not all keep the original order")
+}
 
-	if len(items) != 20 {
-		t.Errorf("Expected 20 items after random sort, got %d", len(items))
+func TestBoundedIndex(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		bound uint64
+	}{
+		{name: "bound of one always yields zero", bound: 1},
+		{name: "small bound", bound: 7},
+		{name: "power of two bound", bound: 64},
+		{name: "large bound", bound: 1 << 40},
+		{name: "maximum bound", bound: math.MaxUint64},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := mathrand.NewChaCha8([32]byte{1, 2, 3})
+			for range 1000 {
+				assert.Less(t, boundedIndex(source, testCase.bound), testCase.bound)
+			}
+		})
 	}
 }
 

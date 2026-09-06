@@ -27,12 +27,12 @@ import (
 
 	"piko.sh/piko/wdk/json"
 
-	"piko.sh/piko/internal/interp/interp_schema"
 	fbsCollection "piko.sh/piko/wdk/fbs/collection"
 	fbsI18n "piko.sh/piko/wdk/fbs/i18n"
 	fbsManifest "piko.sh/piko/wdk/fbs/manifest"
 	fbsSearch "piko.sh/piko/wdk/fbs/search"
 	"piko.sh/piko/wdk/safedisk"
+	"pipit.sh/pipit"
 )
 
 // inspectHandler reads raw binary payload bytes and returns a JSON-serialisable value.
@@ -73,8 +73,8 @@ var (
 			},
 		},
 		"bytecode": {
-			unpack:  interp_schema.Unpack,
-			convert: func(p []byte) (any, error) { return interp_schema.ConvertBytecode(p) },
+			unpack:  pipit.UnpackBytecode,
+			convert: pipit.InspectBytecode,
 		},
 		"wal": {
 			unpack:  func(data []byte) ([]byte, error) { return data, nil },

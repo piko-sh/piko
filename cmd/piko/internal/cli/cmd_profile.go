@@ -262,12 +262,14 @@ func (pipeline pipelineConfig) emitPhase(name string, status phaseStatus) {
 // Returns loadConfig which is the configured load generator settings.
 func (pipeline pipelineConfig) buildLoadConfig(phase string, errorCh chan<- loadErrorRecord) loadConfig {
 	lc := loadConfig{
-		url:         pipeline.url,
-		concurrency: pipeline.flags.concurrency,
-		maxRequests: 0,
-		headers:     pipeline.headers,
-		errorCh:     errorCh,
-		phase:       phase,
+		url:             pipeline.url,
+		concurrency:     pipeline.flags.concurrency,
+		maxRequests:     0,
+		headers:         pipeline.headers,
+		errorCh:         errorCh,
+		phase:           phase,
+		metricsCh:       nil,
+		metricsInterval: 0,
 	}
 	if pipeline.metricsCh != nil {
 		lc.metricsInterval = profileMetricsIntervalMs * time.Millisecond
@@ -402,6 +404,8 @@ func runProfileCLI(ctx context.Context, params profileCLIParams) int {
 		stdout:       params.stdout,
 		stderr:       params.stderr,
 		interrupt:    params.interrupt,
+		metricsCh:    nil,
+		phaseCh:      nil,
 	}); err != nil {
 		_, _ = fmt.Fprintf(params.stderr, "Error: %v\n", err)
 		return 1
@@ -950,8 +954,10 @@ func buildCPUSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
 				sampleIndex:  1,
 				focusRegex:   focusRegex,
 				topN:         topN,
+				byLine:       false,
 			},
 		},
+		delta: false,
 	}
 }
 
@@ -982,6 +988,7 @@ func buildAllocsSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
 				topN:         topN,
 			},
 		},
+		durationBased: false,
 	}
 }
 
@@ -1002,8 +1009,11 @@ func buildHeapSpec(topN int, focusRegex *regexp.Regexp) profileSpec {
 				sampleIndex:  heapInuseSpaceSampleIndex,
 				focusRegex:   focusRegex,
 				topN:         topN,
+				byLine:       false,
 			},
 		},
+		durationBased: false,
+		delta:         false,
 	}
 }
 
@@ -1025,8 +1035,10 @@ func buildContSpec(name string, topN int, focusRegex *regexp.Regexp) profileSpec
 				sampleIndex:  1,
 				focusRegex:   focusRegex,
 				topN:         topN,
+				byLine:       false,
 			},
 		},
+		delta: false,
 	}
 }
 

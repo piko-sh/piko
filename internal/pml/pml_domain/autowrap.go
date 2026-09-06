@@ -76,45 +76,9 @@ func createPMLNode(tagName string, location ast_domain.Location, children []*ast
 		children = []*ast_domain.TemplateNode{}
 	}
 
-	return &ast_domain.TemplateNode{
-		NodeType:           ast_domain.NodeElement,
-		TagName:            tagName,
-		Location:           location,
-		Children:           children,
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TextContent:        "",
-		InnerHTML:          "",
-		RichText:           nil,
-		Attributes:         nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		NodeRange:          ast_domain.Range{},
-		OpeningTagRange:    ast_domain.Range{},
-		ClosingTagRange:    ast_domain.Range{},
-		PreferredFormat:    0,
-		IsPooled:           false,
-		IsContentEditable:  false,
-	}
+	node := ast_domain.NewElementNode(tagName, nil, children)
+	node.Location = location
+	return node
 }
 
 // autowrapChildren wraps child nodes based on the parent node type. It is the main entry

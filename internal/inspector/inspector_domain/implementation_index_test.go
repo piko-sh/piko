@@ -338,7 +338,7 @@ func TestImplementationIndex(t *testing.T) {
 
 	t.Run("should handle TypeData with nil Packages", func(t *testing.T) {
 		t.Parallel()
-		index := NewImplementationIndex(&inspector_dto.TypeData{Packages: nil})
+		index := NewImplementationIndex(&inspector_dto.TypeData{})
 		impls := index.FindImplementations("pkg/a", "Reader")
 		assert.Empty(t, impls)
 	})

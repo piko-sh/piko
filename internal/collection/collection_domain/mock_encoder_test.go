@@ -153,14 +153,12 @@ func TestMockEncoder_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.EncodeCollection(nil)
 			_, _, _, _ = m.DecodeCollectionItem(nil, "")
-		}()
+		})
 	}
 
 	wg.Wait()

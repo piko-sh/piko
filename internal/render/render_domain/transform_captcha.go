@@ -375,6 +375,8 @@ func readCaptchaAttributes(node *ast_domain.TemplateNode) captchaWidgetParams {
 		theme:        getStaticAttribute(node, "theme"),
 		size:         getStaticAttribute(node, "size"),
 		action:       getStaticAttribute(node, "action"),
+		elementID:    "",
+		siteKey:      "",
 	}
 	if p.fieldName == "" {
 		p.fieldName = defaultCaptchaFieldName

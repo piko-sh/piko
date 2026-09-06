@@ -1,5 +1,0 @@
-{
-  "description": "main reads an exported int var from another package",
-  "modulePath": "testpkg",
-  "expected": "answer=42 doubled=84"
-}

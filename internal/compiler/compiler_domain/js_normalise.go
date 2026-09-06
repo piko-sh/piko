@@ -100,7 +100,7 @@ func normaliseExpression(expression parsejs.IExpr, required parsejs.OpPrec) (par
 //
 // Returns *normaliser which is ready to walk one tree.
 func newNormaliser() *normaliser {
-	return &normaliser{maxDepth: defaultMaxNormaliseDepth}
+	return &normaliser{maxDepth: defaultMaxNormaliseDepth, depth: 0, overflow: false}
 }
 
 // result reports whether the walk finished within its depth limit.

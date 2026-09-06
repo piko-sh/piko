@@ -19,7 +19,17 @@
 package provider_otter
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/wal/wal_domain"
 )
 
 func TestTagIndex_Invalidate_UnlinksKeyFromUnrequestedTags(t *testing.T) {
@@ -87,5 +97,172 @@ func TestTagIndex_Invalidate_EmptiesEveryBucketItDrains(t *testing.T) {
 
 	if remaining := index.Get("beta"); len(remaining) != 0 {
 		t.Errorf("Get(\"beta\") = %v, want empty: both keys carried beta and both were invalidated", remaining)
+	}
+}
+
+type loadContext struct {
+	cause   error
+	carrier *daemon_dto.PikoRequestCtx
+}
+
+func recordLoadContext(ctx context.Context) loadContext {
+	return loadContext{cause: context.Cause(ctx), carrier: daemon_dto.PikoRequestCtxFromContext(ctx)}
+}
+
+func TestRefresh_LoadsUnderADetachedContext(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		refresh func(ctx context.Context, cache *OtterAdapter[string, string], loads chan<- loadContext)
+		name    string
+	}{
+		{
+			name: "single key",
+			refresh: func(ctx context.Context, cache *OtterAdapter[string, string], loads chan<- loadContext) {
+				result := cache.Refresh(ctx, "key", loaderFunc{load: func(loadCtx context.Context, _ string) (string, error) {
+					loads <- recordLoadContext(loadCtx)
+					return "fresh", nil
+				}})
+				go func() { <-result }()
+			},
+		},
+		{
+			name: "bulk",
+			refresh: func(ctx context.Context, cache *OtterAdapter[string, string], loads chan<- loadContext) {
+				cache.BulkRefresh(ctx, []string{"key"}, cache_dto.BulkLoaderFunc[string, string](
+					func(loadCtx context.Context, keys []string) (map[string]string, error) {
+						loads <- recordLoadContext(loadCtx)
+						return map[string]string{keys[0]: "fresh"}, nil
+					}))
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			cache := newStringCache(t, cache_dto.Options[string, string]{
+				MaximumEntries:    100,
+				RefreshCalculator: alwaysRefreshCalculator[string, string]{},
+			})
+			require.NoError(t, cache.Set(context.Background(), "key", "stale"))
+
+			pctx := daemon_dto.AcquirePikoRequestCtx()
+			pctx.ClientIP = "10.0.0.1"
+			requestCtx, cancelRequest := context.WithCancelCause(
+				daemon_dto.WithPikoRequestCtx(context.Background(), pctx))
+			cancelRequest(errors.New("request finished"))
+
+			loads := make(chan loadContext, 1)
+			tc.refresh(requestCtx, cache, loads)
+			var load loadContext
+			select {
+			case load = <-loads:
+			case <-time.After(5 * time.Second):
+				require.FailNow(t, "the refresh never ran its loader")
+			}
+			daemon_dto.ReleasePikoRequestCtx(pctx)
+
+			require.NoError(t, load.cause, "a refresh must not inherit the request's cancellation")
+			require.NotNil(t, load.carrier)
+			assert.NotSame(t, pctx, load.carrier, "a refresh must not read the pooled carrier")
+			assert.Equal(t, "10.0.0.1", load.carrier.ClientIP)
+			require.Eventually(t, func() bool {
+				value, found, err := cache.GetIfPresent(context.Background(), "key")
+				return err == nil && found && value == "fresh"
+			}, time.Second, time.Millisecond)
+		})
+	}
+}
+
+type scriptedWAL struct {
+	wal_domain.WAL[string, string]
+	appendErr  error
+	closeErr   error
+	appended   []wal_domain.Operation
+	closeCalls int
+}
+
+func (w *scriptedWAL) Append(_ context.Context, entry wal_domain.Entry[string, string]) error {
+	w.appended = append(w.appended, entry.Operation)
+	return w.appendErr
+}
+
+func (w *scriptedWAL) Close() error {
+	w.closeCalls++
+	return w.closeErr
+}
+
+func TestOtterAdapter_CloseReportsTheFirstOutcomeOnEveryCall(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		closeErr error
+		name     string
+	}{
+		{name: "a failed close is reported again on later calls", closeErr: errors.New("disk detached")},
+		{name: "a clean close stays clean on later calls", closeErr: nil},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			adapter, err := OtterProviderFactory(cache_dto.Options[string, string]{MaximumEntries: 16})
+			require.NoError(t, err)
+			cache, ok := adapter.(*OtterAdapter[string, string])
+			require.True(t, ok)
+			wal := &scriptedWAL{closeErr: testCase.closeErr}
+			cache.wal = wal
+			cache.walEnabled = true
+
+			first := cache.Close(context.Background())
+			second := cache.Close(context.Background())
+
+			if testCase.closeErr == nil {
+				assert.NoError(t, first)
+				assert.NoError(t, second)
+			} else {
+				assert.ErrorIs(t, first, testCase.closeErr)
+				assert.ErrorIs(t, second, testCase.closeErr)
+			}
+			assert.Equal(t, 1, wal.closeCalls, "the persistence close path runs exactly once")
+		})
+	}
+}
+
+func TestOtterAdapter_InvalidateAllLogsTheClear(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		appendErr error
+		name      string
+	}{
+		{name: "a recorded clear empties the cache", appendErr: nil},
+		{name: "a clear the log rejects still empties the cache", appendErr: errors.New("disk full")},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			adapter, err := OtterProviderFactory(cache_dto.Options[string, string]{MaximumEntries: 16})
+			require.NoError(t, err)
+			cache, ok := adapter.(*OtterAdapter[string, string])
+			require.True(t, ok)
+			ctx := context.Background()
+			require.NoError(t, cache.Set(ctx, "page", "rendered"))
+			wal := &scriptedWAL{appendErr: testCase.appendErr}
+			cache.wal = wal
+			cache.walEnabled = true
+
+			require.NoError(t, cache.InvalidateAll(ctx))
+
+			assert.Equal(t, []wal_domain.Operation{wal_domain.OpClear}, wal.appended)
+			_, found, err := cache.GetIfPresent(ctx, "page")
+			require.NoError(t, err)
+			assert.False(t, found)
+		})
 	}
 }

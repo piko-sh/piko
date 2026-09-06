@@ -227,13 +227,11 @@ func newMultiError(errs []EmailError) *MultiError {
 // a dead letter queue enabled.
 func defaultRetryConfig() RetryConfig {
 	return RetryConfig{
-		Config: retry.Config{
-			JitterFunc:    flatJitter,
-			MaxRetries:    defaultMaxRetries,
-			InitialDelay:  defaultInitialDelay,
-			MaxDelay:      defaultMaxDelay,
-			BackoffFactor: defaultBackoffFactor,
-		},
+		JitterFunc:      flatJitter,
+		MaxRetries:      defaultMaxRetries,
+		InitialDelay:    defaultInitialDelay,
+		MaxDelay:        defaultMaxDelay,
+		BackoffFactor:   defaultBackoffFactor,
 		DeadLetterQueue: true,
 	}
 }

@@ -985,13 +985,11 @@ func (ls *lifecycleService) tryCreateEntryPoint(absPath string, d fs.DirEntry, d
 	}
 	pikoPath := filepath.ToSlash(ls.fs.Join(discoveryConfig.moduleName, relPath))
 
-	return &annotator_dto.EntryPoint{
-		Path:              pikoPath,
-		IsPage:            discoveryConfig.isPage,
-		IsPublic:          discoveryConfig.isPublic,
-		IsEmail:           false,
-		VirtualPageSource: nil,
-	}
+	point := annotator_dto.EntryPoint{}
+	point.Path = pikoPath
+	point.IsPage = discoveryConfig.isPage
+	point.IsPublic = discoveryConfig.isPublic
+	return &point
 }
 
 // getStaticWatchDirs finds the folders to watch for file changes.
@@ -1078,6 +1076,11 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 		entryPoints:             nil,
 		mu:                      sync.RWMutex{},
 		stopOnce:                sync.Once{},
+		gcTimer:                 nil,
+		currentRunner:           nil,
+		componentStyleDeps:      nil,
+		rebuildWG:               sync.WaitGroup{},
+		styleDepsMu:             sync.RWMutex{},
 	}
 }
 

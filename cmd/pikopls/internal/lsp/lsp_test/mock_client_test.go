@@ -135,7 +135,7 @@ func (c *MockClient) Initialize(ctx context.Context, rootURI protocol.DocumentUR
 	c.t.Logf("[MockClient] Sending Setup request with rootURI: %s", rootURI)
 
 	params := &protocol.InitializeParams{
-		RootURI: rootURI,
+		WorkspaceFolders: []protocol.WorkspaceFolder{{URI: string(rootURI), Name: "workspace"}},
 		Capabilities: protocol.ClientCapabilities{
 			TextDocument: &protocol.TextDocumentClientCapabilities{
 				Synchronization: &protocol.TextDocumentSyncClientCapabilities{
@@ -204,10 +204,8 @@ func (c *MockClient) Hover(ctx context.Context, fileURI protocol.DocumentURI, po
 	c.t.Logf("[MockClient] Sending Hover request for %s at %d:%d", fileURI, position.Line, position.Character)
 
 	params := &protocol.HoverParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
 	}
 
 	var result protocol.Hover
@@ -223,10 +221,8 @@ func (c *MockClient) Completion(ctx context.Context, fileURI protocol.DocumentUR
 	c.t.Logf("[MockClient] Sending Completion request for %s at %d:%d", fileURI, position.Line, position.Character)
 
 	params := &protocol.CompletionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
 	}
 
 	var result protocol.CompletionList
@@ -242,10 +238,8 @@ func (c *MockClient) Definition(ctx context.Context, fileURI protocol.DocumentUR
 	c.t.Logf("[MockClient] Sending Definition request for %s at %d:%d", fileURI, position.Line, position.Character)
 
 	params := &protocol.DefinitionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
 	}
 
 	var result []protocol.Location
@@ -331,11 +325,9 @@ func (c *MockClient) Rename(ctx context.Context, fileURI protocol.DocumentURI, p
 	c.t.Logf("[MockClient] Sending textDocument/rename request at %s:%d:%d -> %s", fileURI, position.Line, position.Character, newName)
 
 	params := &protocol.RenameParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
-		NewName: newName,
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
+		NewName:      newName,
 	}
 
 	var result protocol.WorkspaceEdit
@@ -352,10 +344,8 @@ func (c *MockClient) DocumentHighlight(ctx context.Context, fileURI protocol.Doc
 	c.t.Logf("[MockClient] Sending textDocument/documentHighlight request at %s:%d:%d", fileURI, position.Line, position.Character)
 
 	params := &protocol.DocumentHighlightParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
-			Position:     position,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: fileURI},
+		Position:     position,
 	}
 
 	var result []protocol.DocumentHighlight

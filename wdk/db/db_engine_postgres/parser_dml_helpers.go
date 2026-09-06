@@ -100,16 +100,7 @@ func (p *parser) resolveLikeContext(paramPosition int) (querier_dto.ParameterCon
 // Returns int which is the LIKE-style operator's token index when found.
 // Returns bool which is true when an operator was located.
 func (p *parser) findEnclosingLikeOperator(paramPosition int) (int, bool) {
-	return engine_shared.FindEnclosingLikeOperator(paramPosition,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikePatternKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingLikeOperator(paramPosition)
 }
 
 // resolveLikeOperatorColumn picks the column reference associated with a LIKE operator's
@@ -427,13 +418,7 @@ func (p *parser) detectParameterContext(paramPosition int) (querier_dto.Paramete
 // Returns int which is the enclosing `(` index, or -1 when position is not inside any
 // group.
 func (p *parser) findEnclosingParen(position int) int {
-	return engine_shared.FindEnclosingParen(position,
-		func(index int) bool { return p.tokens[index].kind == tokenLeftParen },
-		func(index int) bool { return p.tokens[index].kind == tokenRightParen },
-		func(index int) bool {
-			return p.tokens[index].kind == tokenIdentifier && isLikeBoundaryKeyword(strings.ToUpper(p.tokens[index].value))
-		},
-	)
+	return p.parenthesisScanIndex().EnclosingParen(position)
 }
 
 // extractColumnReferenceBeforeIN extracts the column reference one token before an IN
@@ -551,6 +536,7 @@ func (p *parser) extractColumnReference(position int) *querier_dto.ColumnReferen
 
 	return &querier_dto.ColumnReference{
 		ColumnName: tok.value,
+		TableAlias: "",
 	}
 }
 
@@ -651,7 +637,7 @@ func (p *parser) parseCastTypeName() string {
 	p.appendMultiWordTypeKeywords(&builder)
 
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+		_ = p.requireSkipParenthesised()
 	}
 
 	p.appendTypeArrayBrackets(&builder)

@@ -795,7 +795,7 @@ func (se *staticEmitter) staticDirectiveHasClientScript(d *ast_domain.Directive,
 //
 // Returns string which is the base64-encoded payload, or empty if encoding fails.
 func (*staticEmitter) buildStaticEventPayload(d *ast_domain.Directive) string {
-	callExpr := staticNormaliseToCallExpr(d.Expression)
+	callExpr := normaliseToCallExpr(d.Expression)
 	if callExpr == nil {
 		return ""
 	}
@@ -1034,31 +1034,6 @@ func computeAttrHash(attrs []attributeEntry) string {
 	return builder.String()
 }
 
-// staticNormaliseToCallExpr converts an expression to a CallExpr. Uses the same logic as
-// attribute_emitter_actions.normaliseToCallExpr.
-//
-// When the expression is a bare Identifier, wraps it with an implicit $event argument,
-// making bare handler equivalent to handler($event).
-//
-// Takes expression (ast_domain.Expression) which is the expression to convert.
-//
-// Returns *ast_domain.CallExpression which is the converted call expression, or nil if
-// the expression is not a CallExpr or Identifier.
-func staticNormaliseToCallExpr(expression ast_domain.Expression) *ast_domain.CallExpression {
-	if ce, isCall := expression.(*ast_domain.CallExpression); isCall {
-		return ce
-	}
-	if identifier, isIdent := expression.(*ast_domain.Identifier); isIdent {
-		return &ast_domain.CallExpression{
-			Callee: identifier,
-			Args: []ast_domain.Expression{
-				&ast_domain.Identifier{Name: "$event"},
-			},
-		}
-	}
-	return nil
-}
-
 // extractStaticArgs converts a slice of expressions into action arguments.
 //
 // Takes exprs ([]ast_domain.Expression) which contains the expressions to convert.
@@ -1087,10 +1062,10 @@ func extractStaticArg(expression ast_domain.Expression) (templater_dto.ActionArg
 	switch e := expression.(type) {
 	case *ast_domain.Identifier:
 		if e.Name == "$event" {
-			return templater_dto.ActionArgument{Type: "e"}, true
+			return templater_dto.ActionArgument{Type: "e", Value: nil}, true
 		}
 		if e.Name == "$form" {
-			return templater_dto.ActionArgument{Type: "f"}, true
+			return templater_dto.ActionArgument{Type: "f", Value: nil}, true
 		}
 		return templater_dto.ActionArgument{}, false
 	case *ast_domain.StringLiteral:
@@ -1229,7 +1204,7 @@ func encodeEventMap(events map[string][]ast_domain.Directive) {
 //
 // Returns string which is the base64-encoded payload, or empty if encoding fails.
 func encodeDirectivePayload(d *ast_domain.Directive) string {
-	callExpr := staticNormaliseToCallExpr(d.Expression)
+	callExpr := normaliseToCallExpr(d.Expression)
 	if callExpr == nil {
 		return ""
 	}

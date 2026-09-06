@@ -68,6 +68,24 @@ func TestLookupDirective_ReturnsPointerIntoRegistrySoParamKindIsCarried(t *testi
 	assert.Equal(t, ParameterDirectiveSortable, spec.ParamKind)
 }
 
+func TestDirectiveSpecsDeclareParameterKindsOnlyForParameterDirectives(t *testing.T) {
+	t.Parallel()
+
+	wantKinds := map[string]ParameterDirectiveKind{
+		"piko.param":    ParameterDirectiveParam,
+		"piko.sortable": ParameterDirectiveSortable,
+	}
+
+	for index := range DirectiveSpecs {
+		spec := &DirectiveSpecs[index]
+		t.Run(spec.Name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, wantKinds[spec.Name], spec.ParamKind)
+		})
+	}
+}
+
 func TestLookupKeywordArgument_ResolvesAcceptedKeysAndRejectsUnknown(t *testing.T) {
 	t.Parallel()
 

@@ -33,6 +33,10 @@ func (m *mockFontMetrics) ShapeText(font FontDescriptor, size float64, text stri
 	return positions
 }
 
+func (m *mockFontMetrics) ShapeAndMeasureText(font FontDescriptor, size float64, text string, direction DirectionType) ([]GlyphPosition, float64) {
+	return m.ShapeText(font, size, text, direction), m.MeasureText(font, size, text, direction)
+}
+
 func (m *mockFontMetrics) GetMetrics(font FontDescriptor, size float64) FontMetrics {
 	return FontMetrics{
 		Ascent:     size * 0.8,

@@ -119,7 +119,13 @@ func parseCallArgs(lexer *directiveLexer, errorBuilder querier_dto.ErrorBuilder,
 		diagnostics = append(diagnostics, errorBuilder.DirectiveSyntax(openToken.span, fmt.Sprintf("expected '(' after %s", directiveName)))
 		return nil, diagnostics
 	}
-	args := &callArgs{openSpan: openToken.span}
+	args := &callArgs{
+		openSpan:         openToken.span,
+		positionals:      nil,
+		keywordArguments: nil,
+		closeSpan:        querier_dto.TextSpan{},
+		closed:           false,
+	}
 
 	if next := lexer.peek(); next.kind == tokenRParen {
 		args.closeSpan = lexer.next().span
@@ -222,14 +228,24 @@ func parseValue(lexer *directiveLexer, errorBuilder querier_dto.ErrorBuilder, de
 	if depth >= maxDirectiveValueDepth {
 		lexer.next()
 		diagnostics = append(diagnostics, errorBuilder.DirectiveSyntax(tok.span, "value nesting too deep"))
-		return parsedValue{raw: tok.lexeme}, tok.span, diagnostics
+		return parsedValue{
+			raw:      tok.lexeme,
+			asList:   nil,
+			listSpan: querier_dto.TextSpan{},
+			isList:   false,
+		}, tok.span, diagnostics
 	}
 	switch tok.kind {
 	case tokenLBracket:
 		return parseListValue(lexer, errorBuilder, depth)
 	case tokenString:
 		lexer.next()
-		return parsedValue{raw: tok.lexeme}, tok.span, diagnostics
+		return parsedValue{
+			raw:      tok.lexeme,
+			asList:   nil,
+			listSpan: querier_dto.TextSpan{},
+			isList:   false,
+		}, tok.span, diagnostics
 	case tokenNumber, tokenIdent:
 		startTok := lexer.next()
 		var raw strings.Builder
@@ -246,11 +262,21 @@ func parseValue(lexer *directiveLexer, errorBuilder querier_dto.ErrorBuilder, de
 			raw.WriteString(tail.lexeme)
 			span = mergeSpan(span, tail.span)
 		}
-		return parsedValue{raw: raw.String()}, span, diagnostics
+		return parsedValue{
+			raw:      raw.String(),
+			asList:   nil,
+			listSpan: querier_dto.TextSpan{},
+			isList:   false,
+		}, span, diagnostics
 	default:
 		lexer.next()
 		diagnostics = append(diagnostics, errorBuilder.DirectiveSyntax(tok.span, fmt.Sprintf("unexpected token %q in value position", tok.lexeme)))
-		return parsedValue{raw: tok.lexeme}, tok.span, diagnostics
+		return parsedValue{
+			raw:      tok.lexeme,
+			asList:   nil,
+			listSpan: querier_dto.TextSpan{},
+			isList:   false,
+		}, tok.span, diagnostics
 	}
 }
 
@@ -271,7 +297,12 @@ func parseValue(lexer *directiveLexer, errorBuilder querier_dto.ErrorBuilder, de
 func parseListValue(lexer *directiveLexer, errorBuilder querier_dto.ErrorBuilder, depth int) (parsedValue, querier_dto.TextSpan, []querier_dto.SourceError) {
 	var diagnostics []querier_dto.SourceError
 	openTok := lexer.next()
-	value := parsedValue{isList: true}
+	value := parsedValue{
+		isList:   true,
+		raw:      "",
+		asList:   nil,
+		listSpan: querier_dto.TextSpan{},
+	}
 
 	if lexer.peek().kind == tokenRBracket {
 		closeTok := lexer.next()

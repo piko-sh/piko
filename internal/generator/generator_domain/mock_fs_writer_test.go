@@ -36,11 +36,7 @@ func TestMockFSWriter_WriteFile(t *testing.T) {
 	t.Run("nil WriteFileFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockFSWriter{
-			WriteFileFunc: nil,
-			ReadDirFunc:   nil,
-			RemoveAllFunc: nil,
-		}
+		mock := &MockFSWriter{}
 
 		ctx := context.Background()
 		err := mock.WriteFile(ctx, "/tmp/out.go", []byte("package main"))
@@ -143,11 +139,7 @@ func TestMockFSWriter_ReadDir(t *testing.T) {
 	t.Run("nil ReadDirFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockFSWriter{
-			WriteFileFunc: nil,
-			ReadDirFunc:   nil,
-			RemoveAllFunc: nil,
-		}
+		mock := &MockFSWriter{}
 
 		entries, err := mock.ReadDir("/some/directory")
 
@@ -228,11 +220,7 @@ func TestMockFSWriter_RemoveAll(t *testing.T) {
 	t.Run("nil RemoveAllFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockFSWriter{
-			WriteFileFunc: nil,
-			ReadDirFunc:   nil,
-			RemoveAllFunc: nil,
-		}
+		mock := &MockFSWriter{}
 
 		err := mock.RemoveAll("/tmp/old-output")
 
@@ -303,11 +291,7 @@ func TestMockFSWriter_RemoveAll_PassesArguments(t *testing.T) {
 func TestMockFSWriter_CallCountsAreIndependent(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockFSWriter{
-		WriteFileFunc: nil,
-		ReadDirFunc:   nil,
-		RemoveAllFunc: nil,
-	}
+	mock := &MockFSWriter{}
 
 	ctx := context.Background()
 
@@ -348,31 +332,23 @@ func TestMockFSWriter_ZeroValueIsUsable(t *testing.T) {
 func TestMockFSWriter_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockFSWriter{
-		WriteFileFunc: nil,
-		ReadDirFunc:   nil,
-		RemoveAllFunc: nil,
-	}
+	mock := &MockFSWriter{}
 
 	ctx := context.Background()
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 3)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = mock.WriteFile(ctx, "/concurrent/file.go", []byte("data"))
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.ReadDir("/concurrent")
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.RemoveAll("/concurrent/old")
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -385,11 +361,7 @@ func TestMockFSWriter_ConcurrentAccess(t *testing.T) {
 func TestMockFSWriter_ImplementsFSWriterPort(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockFSWriter{
-		WriteFileFunc: nil,
-		ReadDirFunc:   nil,
-		RemoveAllFunc: nil,
-	}
+	mock := &MockFSWriter{}
 
 	var _ FSWriterPort = mock
 }

@@ -175,12 +175,12 @@ func registerNgramAndShingleHashes(b *FunctionCatalogueBuilder) {
 //
 // Returns querier_dto.SQLType which is the Tuple(UInt64, UInt64) struct type.
 func ngramMinHashTupleType(b *FunctionCatalogueBuilder) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "min", SQLType: b.uint64Type},
-			{Name: "max", SQLType: b.uint64Type},
-		},
+	sqlType := querier_dto.SQLType{}
+	sqlType.Category = querier_dto.TypeCategoryStruct
+	sqlType.EngineName = "Tuple"
+	sqlType.StructFields = []querier_dto.StructField{
+		{Name: "min", SQLType: b.uint64Type},
+		{Name: "max", SQLType: b.uint64Type},
 	}
+	return sqlType
 }

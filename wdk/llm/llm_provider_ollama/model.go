@@ -45,7 +45,7 @@ const (
 // digest and are unverified.
 func (*ollamaProvider) resolveModel(reqModel string, defaultRef ModelRef) (string, ModelRef) {
 	if reqModel != "" {
-		return reqModel, ModelRef{Name: reqModel}
+		return reqModel, ModelRef{Name: reqModel, Digest: ""}
 	}
 	return defaultRef.Name, defaultRef
 }
@@ -59,20 +59,19 @@ func (*ollamaProvider) resolveModel(reqModel string, defaultRef ModelRef) (strin
 //
 // Returns error when the model cannot be found, pulled, or verified.
 func (p *ollamaProvider) ensureModel(ctx context.Context, model string, ref ModelRef) error {
-	ctx, l := logger.From(ctx, log)
-	_, err := p.client.Show(ctx, &api.ShowRequest{Model: model})
-	if err == nil {
+	_, showErr := p.client.Show(ctx, &api.ShowRequest{Model: model})
+	if showErr == nil {
 		return p.verifyModelDigest(ctx, model, ref)
 	}
 
-	if !*p.config.AutoPull {
+	if !p.config.autoPullEnabled() {
 		return fmt.Errorf(
-			"ollama model %q not found locally and AutoPull is disabled - run: ollama pull %s",
-			model, model,
+			"ollama model %q not found locally and AutoPull is disabled - run: ollama pull %s: %w",
+			model, model, wrapError(showErr),
 		)
 	}
 
-	if err := p.pullModel(ctx, l, model); err != nil {
+	if err := p.pullModel(ctx, model); err != nil {
 		return err
 	}
 
@@ -82,11 +81,11 @@ func (p *ollamaProvider) ensureModel(ctx context.Context, model string, ref Mode
 // pullModel downloads a model via the Ollama Pull API, logging layer progress as each new
 // layer is discovered.
 //
-// Takes l (logger.Logger) which receives progress log entries.
 // Takes model (string) which is the model name to pull.
 //
 // Returns error when the pull request fails.
-func (p *ollamaProvider) pullModel(ctx context.Context, l logger.Logger, model string) error {
+func (p *ollamaProvider) pullModel(ctx context.Context, model string) error {
+	ctx, l := logger.From(ctx, log)
 	l.Info("Pulling Ollama model",
 		logger.String(logKeyModel, model),
 	)
@@ -94,7 +93,7 @@ func (p *ollamaProvider) pullModel(ctx context.Context, l logger.Logger, model s
 	modelPullCount.Add(ctx, 1)
 	start := time.Now()
 
-	tracker := newPullTracker(l, model)
+	tracker := newPullTracker(ctx, model)
 
 	pullErr := p.client.Pull(ctx, &api.PullRequest{Model: model}, tracker.onProgress)
 
@@ -212,15 +211,17 @@ func (p *ollamaProvider) verifyModelDigest(ctx context.Context, model string, re
 
 // newPullTracker creates a pullTracker for the given model.
 //
-// Takes l (logger.Logger) which receives progress messages.
 // Takes model (string) which is the model being pulled.
 //
 // Returns *pullTracker which is the initialised tracker.
-func newPullTracker(l logger.Logger, model string) *pullTracker {
+func newPullTracker(ctx context.Context, model string) *pullTracker {
+	_, l := logger.From(ctx, log)
 	return &pullTracker{
-		l:      l,
-		model:  model,
-		layers: make(map[string]*layerProgress),
+		l:             l,
+		model:         model,
+		layers:        make(map[string]*layerProgress),
+		lastLogStatus: "",
+		layerOrder:    nil,
 	}
 }
 

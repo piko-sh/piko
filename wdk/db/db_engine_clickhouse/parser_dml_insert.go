@@ -63,7 +63,7 @@ func (p *parser) analyseInsert() (*querier_dto.RawQueryAnalysis, error) {
 // Returns *querier_dto.RawQueryAnalysis which is the analysis with the header populated.
 // Returns error when the prefix is malformed.
 func (p *parser) analyseInsertHeader() (*querier_dto.RawQueryAnalysis, error) {
-	analysis := &querier_dto.RawQueryAnalysis{ReadOnly: false}
+	analysis := &querier_dto.RawQueryAnalysis{}
 
 	if p.matchKeyword(kwWith) {
 		if err := p.parseCTEList(analysis); err != nil {
@@ -71,7 +71,9 @@ func (p *parser) analyseInsertHeader() (*querier_dto.RawQueryAnalysis, error) {
 		}
 	}
 
-	p.mustKeyword("INSERT")
+	if _, err := p.expectKeyword("INSERT"); err != nil {
+		return nil, err
+	}
 	if !p.matchKeyword("INTO") {
 		return nil, fmt.Errorf("expected INTO after INSERT at position %d", p.current().position)
 	}
@@ -86,6 +88,7 @@ func (p *parser) analyseInsertHeader() (*querier_dto.RawQueryAnalysis, error) {
 	analysis.FromTables = []querier_dto.TableReference{{
 		Schema: database,
 		Name:   name,
+		Alias:  "",
 	}}
 
 	if p.current().kind == tokenLeftParen {

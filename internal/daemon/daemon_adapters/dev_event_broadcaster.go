@@ -140,9 +140,9 @@ type DevEventBroadcaster struct {
 //
 // Returns *DevEventBroadcaster which is the initialised broadcaster.
 func NewDevEventBroadcaster() *DevEventBroadcaster {
-	return &DevEventBroadcaster{
-		clients: make(map[chan []byte]struct{}),
-	}
+	broadcaster := DevEventBroadcaster{}
+	broadcaster.clients = make(map[chan []byte]struct{})
+	return &broadcaster
 }
 
 // SetSystemStatsProvider configures the provider used to push periodic system-stats SSE

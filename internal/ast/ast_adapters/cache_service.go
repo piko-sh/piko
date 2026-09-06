@@ -27,6 +27,7 @@ import (
 	"github.com/maypok86/otter/v2"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
@@ -40,10 +41,17 @@ const (
 type ASTCacheService struct {
 	// cache stores parsed AST entries and provides Get, Set, and Delete methods.
 	cache ast_domain.ASTCache
+
+	// l2Cache is the persistent layer whose background workers Start launches.
+	l2Cache *fbsFileCache
 }
 
 // ASTCacheConfig holds all the necessary configuration for the cache service.
 type ASTCacheConfig struct {
+	// SandboxFactory creates the sandbox that confines the persistent cache to
+	// L2CacheBaseDir. When nil, a sandbox rooted at L2CacheBaseDir is created directly.
+	SandboxFactory safedisk.Factory
+
 	// L2CacheBaseDir is the folder path for the persistent FlatBuffers cache. This must be a
 	// folder that the application can read and write to.
 	L2CacheBaseDir string
@@ -64,15 +72,16 @@ var (
 )
 
 // NewASTCacheService creates and sets up the full caching stack based on the given
-// configuration.
+// configuration. Call Start to launch the background maintenance workers and Shutdown to
+// stop them.
 //
 // Takes config (ASTCacheConfig) which specifies the cache settings including L1 capacity,
-// TTL, and L2 base directory.
+// TTL, L2 base directory and sandbox factory.
 //
-// Returns *ASTCacheService which is the configured caching service ready for use.
+// Returns *ASTCacheService which is the configured caching service.
 // Returns error when the configuration is not valid, such as non-positive capacity or
 // TTL, empty base directory, or when L2 cache creation fails.
-func NewASTCacheService(ctx context.Context, config ASTCacheConfig) (*ASTCacheService, error) {
+func NewASTCacheService(config ASTCacheConfig) (*ASTCacheService, error) {
 	if config.L1CacheCapacity <= 0 {
 		return nil, fmt.Errorf("L1CacheCapacity must be positive, but was %d", config.L1CacheCapacity)
 	}
@@ -91,7 +100,14 @@ func NewASTCacheService(ctx context.Context, config ASTCacheConfig) (*ASTCacheSe
 		RefreshCalculator: otter.RefreshWriting[string, *ast_domain.TemplateAST](refreshTTL),
 	})
 
-	l2Cache, err := newFbsFileCache(fbsFileCacheConfig{Ctx: ctx, BaseDir: config.L2CacheBaseDir})
+	l2Cache, err := newFbsFileCache(fbsFileCacheConfig{
+		BaseDir:            config.L2CacheBaseDir,
+		Clock:              nil,
+		Sandbox:            nil,
+		SandboxFactory:     config.SandboxFactory,
+		NumDeletionWorkers: 0,
+		DeletionQueueSize:  0,
+	})
 	if err != nil {
 		l1Cache.StopAllGoroutines()
 		return nil, fmt.Errorf("failed to create L2 file cache: %w", err)
@@ -100,8 +116,15 @@ func NewASTCacheService(ctx context.Context, config ASTCacheConfig) (*ASTCacheSe
 	multiLevelCache := newMultiLevelCache(l1Cache, l2Cache, config.L1CacheTTL, nil)
 
 	return &ASTCacheService{
-		cache: multiLevelCache,
+		cache:   multiLevelCache,
+		l2Cache: l2Cache,
 	}, nil
+}
+
+// Start launches the background workers that remove expired and corrupt entries from the
+// persistent cache. Calling Start more than once has no further effect.
+func (s *ASTCacheService) Start(ctx context.Context) {
+	s.l2Cache.Start(ctx)
 }
 
 // Get retrieves an AST using the multi-level cache.
@@ -134,7 +157,8 @@ func (s *ASTCacheService) Get(ctx context.Context, key string) (*ast_domain.Cach
 
 	if ast != nil {
 		astEntry = &ast_domain.CachedASTEntry{
-			AST: ast,
+			AST:      ast,
+			Metadata: "",
 		}
 		if ast.Metadata != nil {
 			astEntry.Metadata = *ast.Metadata

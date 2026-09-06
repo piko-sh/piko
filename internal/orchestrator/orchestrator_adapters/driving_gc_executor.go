@@ -128,6 +128,8 @@ func NewGCExecutor(
 	return &gcExecutor{
 		registryService:     registry,
 		orchestratorService: orchestrator,
+		orphanFirstSeen:     nil,
+		orphanFirstSeenMu:   sync.Mutex{},
 	}
 }
 
@@ -288,7 +290,7 @@ func (e *gcExecutor) processOrphans(
 
 	deletedCount := 0
 	for _, backendID := range e.registryService.ListBlobStoreIDs() {
-		deleted := e.scanBlobStore(ctx, l, backendID, referencedKeys)
+		deleted := e.scanBlobStore(ctx, backendID, referencedKeys)
 		deletedCount += deleted
 	}
 
@@ -300,7 +302,6 @@ func (e *gcExecutor) processOrphans(
 
 // scanBlobStore scans a single blob store for orphaned keys and deletes them.
 //
-// Takes l (logger_domain.Logger) which logs warnings and trace messages.
 // Takes backendID (string) which identifies the blob store to scan.
 // Takes referencedKeys (map[string]struct{}) which holds the set of storage keys still
 // referenced by artefact variants.
@@ -308,10 +309,10 @@ func (e *gcExecutor) processOrphans(
 // Returns int which is the number of orphaned blobs deleted from this store.
 func (e *gcExecutor) scanBlobStore(
 	ctx context.Context,
-	l logger_domain.Logger,
 	backendID string,
 	referencedKeys map[string]struct{},
 ) int {
+	ctx, l := logger_domain.From(ctx, log)
 	store, storeErr := e.registryService.GetBlobStore(backendID)
 	if storeErr != nil {
 		l.Warn("Failed to get blob store for orphan scan",
@@ -406,7 +407,8 @@ type blobAger interface {
 // otherwise delete live bytes.
 //
 // Takes store (registry_domain.BlobStore) which holds the candidate.
-// Takes backendID (string) and key (string) which identify the candidate.
+// Takes backendID (string) which identifies the blob store holding the candidate.
+// Takes key (string) which is the candidate's storage key.
 //
 // Returns bool which is true when the candidate must be spared this scan.
 //
@@ -453,7 +455,8 @@ func (e *gcExecutor) orphanTooYoungToDelete(
 // forgetOrphan clears a deleted key from the two-scan grace tracker so the map does not
 // grow with keys that no longer exist.
 //
-// Takes backendID (string) and key (string) which identify the deleted blob.
+// Takes backendID (string) which identifies the blob store the key was deleted from.
+// Takes key (string) which is the deleted blob's storage key.
 //
 // Concurrency: acquires orphanFirstSeenMu while removing the deleted key.
 func (e *gcExecutor) forgetOrphan(backendID, key string) {

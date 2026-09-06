@@ -30,10 +30,10 @@ import (
 	"strings"
 	"sync"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_domain"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -427,38 +427,18 @@ func (tr *TypeResolver) tryResolveSymbol(ctx context.Context, analysisContext *A
 			sourceInvocationKey = &symbol.SourceInvocationKey
 		}
 
-		annotation := &ast_domain.GoGeneratorAnnotation{
-			EffectiveKeyExpression:  nil,
-			DynamicCollectionInfo:   nil,
-			StaticCollectionLiteral: nil,
-			ParentTypeName:          nil,
-			BaseCodeGenVarName:      &symbol.CodeGenVarName,
-			GeneratedSourcePath:     nil,
-			DynamicAttributeOrigins: nil,
-			ResolvedType:            symbol.TypeInfo,
-			Symbol: &ast_domain.ResolvedSymbol{
-				Name:                symbol.Name,
-				ReferenceLocation:   location,
-				DeclarationLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-			},
-			PartialInfo:             nil,
-			PropDataSource:          nil,
-			OriginalSourcePath:      &analysisContext.SFCSourcePath,
-			OriginalPackageAlias:    nil,
-			FieldTag:                nil,
-			SourceInvocationKey:     sourceInvocationKey,
-			StaticCollectionData:    nil,
-			Srcset:                  nil,
-			Stringability:           stringability,
-			IsStatic:                false,
-			NeedsCSRF:               false,
-			NeedsRuntimeSafetyCheck: false,
-			IsStructurallyStatic:    false,
-			IsPointerToStringable:   isPointer,
-			IsCollectionCall:        false,
-			IsHybridCollection:      false,
-			IsMapAccess:             false,
+		annotation := &ast_domain.GoGeneratorAnnotation{}
+		annotation.BaseCodeGenVarName = &symbol.CodeGenVarName
+		annotation.ResolvedType = symbol.TypeInfo
+		annotation.Symbol = &ast_domain.ResolvedSymbol{
+			Name:                symbol.Name,
+			ReferenceLocation:   location,
+			DeclarationLocation: ast_domain.Location{},
 		}
+		annotation.OriginalSourcePath = &analysisContext.SFCSourcePath
+		annotation.SourceInvocationKey = sourceInvocationKey
+		annotation.Stringability = stringability
+		annotation.IsPointerToStringable = isPointer
 		return annotation, true
 	}
 
@@ -560,7 +540,7 @@ func (tr *TypeResolver) tryInferFromArrayLiteral(ctx context.Context, analysisCo
 	}
 
 	if len(arrayLit.Elements) > 0 {
-		firstElementAnn := tr.Resolve(ctx, analysisContext, arrayLit.Elements[0], ast_domain.Location{Line: 0, Column: 0, Offset: 0})
+		firstElementAnn := tr.Resolve(ctx, analysisContext, arrayLit.Elements[0], ast_domain.Location{})
 		if firstElementAnn != nil && firstElementAnn.ResolvedType != nil {
 			return firstElementAnn.ResolvedType
 		}
@@ -662,15 +642,9 @@ func (tr *TypeResolver) newResolvedTypeInfo(ctx *AnalysisContext, typeExpr goast
 	}
 
 	if identifier, ok := typeExpr.(*goast.Ident); ok && goastutil.IsPrimitiveOrBuiltin(identifier.Name) {
-		return &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          typeExpr,
-			PackageAlias:            "",
-			CanonicalPackagePath:    "",
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		}
+		info := ast_domain.ResolvedTypeInfo{}
+		info.TypeExpression = typeExpr
+		return &info
 	}
 
 	_, localAlias, _ := inspector_domain.DeconstructTypeExpr(typeExpr)
@@ -704,6 +678,7 @@ func (tr *TypeResolver) newResolvedTypeInfo(ctx *AnalysisContext, typeExpr goast
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 }
 
@@ -831,37 +806,13 @@ func (tr *TypeResolver) buildReturnTypeAnnotation(
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 	stringability, isPointer := tr.determineStringability(ctx, analysisContext, resolvedTypeInfo)
 
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resolvedTypeInfo,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   isPointer,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := newAnnotationWithTypeAndStringability(resolvedTypeInfo, stringability)
+	annotation.IsPointerToStringable = isPointer
+	return annotation
 }
 
 // resolveReturnTypeCanonicalPath resolves the canonical package path for a return type.
@@ -1046,8 +997,11 @@ func (*TypeResolver) parseSignatureFromFuncType(fnType *goast.FuncType, packageA
 		return nil
 	}
 	return &inspector_dto.FunctionSignature{
-		Params:  parseFieldListTypeStrings(fnType.Params, packageAlias),
-		Results: parseFieldListTypeStrings(fnType.Results, packageAlias),
+		Params:               parseFieldListTypeStrings(fnType.Params, packageAlias),
+		Results:              parseFieldListTypeStrings(fnType.Results, packageAlias),
+		ParamNames:           nil,
+		TypeParamNames:       nil,
+		TypeParamConstraints: nil,
 	}
 }
 
@@ -1057,42 +1011,7 @@ func (*TypeResolver) parseSignatureFromFuncType(fnType *goast.FuncType, packageA
 // Returns *ast_domain.GoGeneratorAnnotation which is a minimal valid annotation with only
 // the ResolvedType field set.
 func newFallbackAnnotation() *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          goast.NewIdent(typeAny),
-			PackageAlias:            "",
-			CanonicalPackagePath:    "",
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	return newAnnotationWithType(newSimpleTypeInfo(goast.NewIdent(typeAny)))
 }
 
 // newPackageFunctionAnnotation creates an annotation for a package-level function
@@ -1104,46 +1023,24 @@ func newFallbackAnnotation() *ast_domain.GoGeneratorAnnotation {
 // Returns *ast_domain.GoGeneratorAnnotation which contains the function reference with
 // its resolved type and symbol details.
 func newPackageFunctionAnnotation(p packageMemberAnnotationParams) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      &p.packageAlias,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          goast.NewIdent(typeFunction),
-			PackageAlias:            p.packageAlias,
-			CanonicalPackagePath:    p.canonicalPath,
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol: &ast_domain.ResolvedSymbol{
-			Name:                p.memberName,
-			ReferenceLocation:   p.loc,
-			DeclarationLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0},
-		},
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.BaseCodeGenVarName = &p.packageAlias
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          goast.NewIdent(typeFunction),
+		PackageAlias:            p.packageAlias,
+		CanonicalPackagePath:    p.canonicalPath,
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
+	annotation.Symbol = &ast_domain.ResolvedSymbol{
+		Name:                p.memberName,
+		ReferenceLocation:   p.loc,
+		DeclarationLocation: ast_domain.Location{},
+	}
+	return &annotation
 }
 
 // newPackageVariableAnnotation creates an annotation for a package-level variable
@@ -1155,50 +1052,30 @@ func newPackageFunctionAnnotation(p packageMemberAnnotationParams) *ast_domain.G
 // Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type and symbol
 // data for the variable.
 func newPackageVariableAnnotation(p packageMemberAnnotationParams) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      &p.packageAlias,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType: &ast_domain.ResolvedTypeInfo{
-			TypeExpression:          p.typeExpr,
-			PackageAlias:            p.packageAlias,
-			CanonicalPackagePath:    p.canonicalPath,
-			IsSynthetic:             false,
-			IsExportedPackageSymbol: false,
-			InitialPackagePath:      "",
-			InitialFilePath:         "",
-		},
-		Symbol: &ast_domain.ResolvedSymbol{
-			Name:              p.memberName,
-			ReferenceLocation: p.loc,
-			DeclarationLocation: ast_domain.Location{
-				Line:   p.defLine,
-				Column: p.defColumn,
-				Offset: p.defOffset,
-			},
-		},
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           0,
-		IsStatic:                p.isConst,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    p.isConst,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.BaseCodeGenVarName = &p.packageAlias
+	annotation.ResolvedType = &ast_domain.ResolvedTypeInfo{
+		TypeExpression:          p.typeExpr,
+		PackageAlias:            p.packageAlias,
+		CanonicalPackagePath:    p.canonicalPath,
+		IsSynthetic:             false,
+		IsExportedPackageSymbol: false,
+		InitialPackagePath:      "",
+		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
+	annotation.Symbol = &ast_domain.ResolvedSymbol{
+		Name:              p.memberName,
+		ReferenceLocation: p.loc,
+		DeclarationLocation: ast_domain.Location{
+			Line:   p.defLine,
+			Column: p.defColumn,
+			Offset: p.defOffset,
+		},
+	}
+	annotation.IsStatic = p.isConst
+	annotation.IsStructurallyStatic = p.isConst
+	return &annotation
 }
 
 // isSignatureVariadic checks whether a function signature has a variadic parameter.
@@ -1378,6 +1255,7 @@ func newNilTypeAnnotation() *ast_domain.GoGeneratorAnnotation {
 			IsExportedPackageSymbol: false,
 			InitialPackagePath:      "",
 			InitialFilePath:         "",
+			UnderlyingTypeString:    "",
 		},
 		int(inspector_dto.StringablePrimitive),
 	)

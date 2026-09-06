@@ -268,7 +268,7 @@ func (ie *ifEmitter) buildConditionalBody(
 
 		tempNode.Children = originalNode.Children
 
-		emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+		emitCtx := newNodeEmissionContext(nodeEmissionParams{
 			Node:                  tempNode,
 			ParentSliceExpression: parentSliceExpr,
 			Index:                 0,
@@ -277,7 +277,7 @@ func (ie *ifEmitter) buildConditionalBody(
 			PartialScopeID:        ie.currentPartialScopeID,
 			MainComponentScope:    ie.currentMainComponentScope,
 		})
-		emittedStmts, _, emitDiags := ie.astBuilder.emitNode(emitCtx)
+		emittedStmts, _, emitDiags := ie.astBuilder.emitNode(ctx, emitCtx)
 		bodyStmts = emittedStmts
 		bodyDiags = append(bodyDiags, emitDiags...)
 	}
@@ -387,9 +387,11 @@ func (ie *ifEmitter) nodeContainsDynamicContent(node *ast_domain.TemplateNode) b
 // Returns *ifEmitter which is ready to output if statement code.
 func newIfEmitter(emitter *emitter, expressionEmitter ExpressionEmitter, astBuilder AstBuilder) *ifEmitter {
 	return &ifEmitter{
-		emitter:           emitter,
-		expressionEmitter: expressionEmitter,
-		astBuilder:        astBuilder,
+		emitter:                   emitter,
+		expressionEmitter:         expressionEmitter,
+		astBuilder:                astBuilder,
+		currentPartialScopeID:     "",
+		currentMainComponentScope: "",
 	}
 }
 

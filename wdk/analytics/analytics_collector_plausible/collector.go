@@ -70,17 +70,7 @@ const (
 	// maxResponseDiscardSize is the upper bound when draining an HTTP response body to
 	// enable connection reuse (64 KiB).
 	maxResponseDiscardSize = 64 << 10
-
-	// maxPooledBufferCapacity is the largest buffer capacity kept in the pool; buffers that
-	// grew beyond this during a spike are discarded to avoid lasting memory bloat.
-	maxPooledBufferCapacity = 256 << 10
 )
-
-// jsonBufferPool provides reusable bytes.Buffer instances for JSON encoding, avoiding
-// allocation on every event send.
-var jsonBufferPool = sync.Pool{
-	New: func() any { return new(bytes.Buffer) },
-}
 
 // eventPayload is the JSON body sent to the Plausible Events API.
 type eventPayload struct {
@@ -239,6 +229,14 @@ func withClock(c clock.Clock) Option {
 // flushInterval expires. Each event is sent as a separate HTTP POST (Plausible has no
 // batch endpoint).
 type Collector struct {
+	// propsPool recycles map[string]string instances to avoid per-event allocation in
+	// Collect.
+	propsPool sync.Pool
+
+	// clock provides time operations for the batcher. Nil defaults to clock.RealClock() in
+	// the batcher.
+	clock clock.Clock
+
 	// batcher manages the buffer, flush loop, and lifecycle.
 	batcher *analytics_domain.Batcher[snapshot]
 
@@ -251,19 +249,11 @@ type Collector struct {
 	// circuitBreakerConfig holds optional circuit breaker settings.
 	circuitBreakerConfig *analytics_domain.CircuitBreakerConfig
 
-	// propsPool recycles map[string]string instances to avoid per-event allocation in
-	// Collect.
-	propsPool sync.Pool
-
 	// domain is the site domain registered in Plausible.
 	domain string
 
 	// endpoint is the Plausible API base URL.
 	endpoint string
-
-	// clock provides time operations for the batcher. Nil defaults to clock.RealClock() in
-	// the batcher.
-	clock clock.Clock
 
 	// flushInterval is the time between automatic flushes.
 	flushInterval time.Duration
@@ -286,11 +276,16 @@ func NewCollector(domain string, opts ...Option) (analytics.Collector, error) {
 	}
 
 	c := &Collector{
-		client:        &http.Client{Timeout: defaultTimeout},
-		domain:        domain,
-		endpoint:      defaultEndpoint,
-		batchSize:     defaultBatchSize,
-		flushInterval: defaultFlushInterval,
+		client:               &http.Client{Timeout: defaultTimeout},
+		domain:               domain,
+		endpoint:             defaultEndpoint,
+		batchSize:            defaultBatchSize,
+		flushInterval:        defaultFlushInterval,
+		propsPool:            sync.Pool{},
+		clock:                nil,
+		batcher:              nil,
+		retryConfig:          nil,
+		circuitBreakerConfig: nil,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -304,6 +299,7 @@ func NewCollector(domain string, opts ...Option) (analytics.Collector, error) {
 			Clock:          c.clock,
 			Retry:          c.retryConfig,
 			CircuitBreaker: c.circuitBreakerConfig,
+			MaxBufferSize:  0,
 		},
 		c.sendBatch,
 	)
@@ -330,9 +326,13 @@ func (c *Collector) Collect(_ context.Context, event *analytics_dto.Event) error
 		userAgent: event.UserAgent,
 		clientIP:  event.ClientIP,
 		payload: eventPayload{
-			Domain: c.resolveDomain(event),
-			Name:   resolveEventName(event),
-			URL:    resolveURL(event),
+			Domain:      c.resolveDomain(event),
+			Name:        resolveEventName(event),
+			URL:         resolveURL(event),
+			Revenue:     nil,
+			Props:       nil,
+			Interactive: nil,
+			Referrer:    "",
 		},
 	}
 
@@ -488,9 +488,12 @@ func (c *Collector) sendBatch(ctx context.Context, batch []snapshot) error {
 
 // sendEvent encodes and POSTs a single event to the Plausible API.
 //
+// Failures are returned rather than logged; the batcher reports each failed flush once.
+//
 // Takes snap (*snapshot) which holds the event data.
 //
-// Returns error when encoding or the HTTP request fails.
+// Returns error when encoding or the HTTP request fails, or when Plausible responds with
+// an error status.
 func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -498,35 +501,16 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 		}
 	}()
 
-	ctx, l := logger_domain.From(ctx, log)
-	buf, ok := jsonBufferPool.Get().(*bytes.Buffer)
-	if !ok {
-		buf = new(bytes.Buffer)
-	}
-	buf.Reset()
-	defer func() {
-		if buf.Cap() <= maxPooledBufferCapacity {
-			jsonBufferPool.Put(buf)
-		}
-	}()
-
-	encoder := json.NewEncoder(buf)
-	if err := encoder.Encode(snap.payload); err != nil {
+	body, err := json.Marshal(snap.payload)
+	if err != nil {
 		errorCount.Add(ctx, 1)
-		l.Warn("Analytics Plausible JSON encoding failed", logger_domain.Error(err))
 		return fmt.Errorf("encoding analytics Plausible event: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		c.endpoint+eventPath, bytes.NewReader(buf.Bytes()))
+	request, err := c.newEventRequest(ctx, snap, body)
 	if err != nil {
 		errorCount.Add(ctx, 1)
 		return fmt.Errorf("creating analytics Plausible request: %w", err)
-	}
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("User-Agent", snap.userAgent)
-	if snap.clientIP != "" {
-		request.Header.Set("X-Forwarded-For", snap.clientIP)
 	}
 
 	start := time.Now()
@@ -535,7 +519,6 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 
 	if err != nil {
 		errorCount.Add(ctx, 1)
-		l.Warn("Analytics Plausible POST failed", logger_domain.Error(err))
 		return fmt.Errorf("posting analytics Plausible event: %w", err)
 	}
 	defer func() {
@@ -545,8 +528,6 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 
 	if response.StatusCode >= httpStatusErrorThreshold {
 		errorCount.Add(ctx, 1)
-		l.Warn("Analytics Plausible returned error status",
-			logger_domain.Int("status_code", response.StatusCode))
 		return fmt.Errorf("analytics Plausible returned status %d", response.StatusCode)
 	}
 
@@ -554,6 +535,30 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 	sendDuration.Record(ctx, duration)
 
 	return nil
+}
+
+// newEventRequest builds the POST request that delivers one encoded event to the
+// Plausible Events API, carrying the visitor's user agent and IP so Plausible can
+// attribute the event.
+//
+// Takes snap (*snapshot) which holds the visitor's user agent and IP.
+// Takes body ([]byte) which is the JSON-encoded event payload. The request owns body for
+// its whole lifetime, because the transport may still be writing it, or replay it for a
+// redirect, after the response has been returned.
+//
+// Returns *http.Request which is ready to send.
+// Returns error when the request cannot be created.
+func (c *Collector) newEventRequest(ctx context.Context, snap *snapshot, body []byte) (*http.Request, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint+eventPath, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("User-Agent", snap.userAgent)
+	if snap.clientIP != "" {
+		request.Header.Set("X-Forwarded-For", snap.clientIP)
+	}
+	return request, nil
 }
 
 // acquireProps returns a cleared map from the pool, or allocates a new one on pool miss.

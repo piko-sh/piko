@@ -86,7 +86,7 @@ func (m *mockAnnotator) AnnotateProject(ctx context.Context, entryPoints []annot
 		return nil, nil, ctx.Err()
 	}
 
-	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+	logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 	return result, logStore, errToReturn
 }
 
@@ -119,7 +119,7 @@ func (m *mockAnnotator) RunPhase1IntrospectionAndAnnotate(
 		return nil, errToReturn
 	}
 
-	logStore, _ := annotator_domain.NewCompilationLogStore(context.Background(), false, "", slog.LevelDebug)
+	logStore := annotator_domain.NewCompilationLogStore(false, "", slog.LevelDebug)
 	return &annotator_domain.Phase1Result{
 		Annotations: result,
 		Logs:        logStore,
@@ -411,14 +411,12 @@ func TestCoordinatorService(t *testing.T) {
 			numGoroutines := 10
 			results := make(chan *annotator_dto.ProjectAnnotationResult, numGoroutines)
 
-			wg.Add(numGoroutines)
 			for range numGoroutines {
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					buildResult, err := h.service.GetOrBuildProject(context.Background(), h.entryPoints)
 					require.NoError(t, err)
 					results <- buildResult
-				}()
+				})
 			}
 			wg.Wait()
 			close(results)

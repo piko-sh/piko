@@ -93,37 +93,55 @@ var (
 
 	// directiveCompletions defines all available directive completions with metadata.
 	directiveCompletions = []directiveCompletionInfo{
-		{Name: "if", NeedsValue: true, SortPriority: "01"},
-		{Name: "else-if", NeedsValue: true, SortPriority: "02"},
-		{Name: "else", NeedsValue: false, SortPriority: "03"},
-		{Name: "for", NeedsValue: true, SortPriority: "04"},
-		{Name: "show", NeedsValue: true, SortPriority: "05"},
+		{Name: "if", NeedsValue: true, SortPriority: "01", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "else-if", NeedsValue: true, SortPriority: "02", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "else", NeedsValue: false, SortPriority: "03", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "for", NeedsValue: true, SortPriority: "04", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "show", NeedsValue: true, SortPriority: "05", ArgumentPlaceholder: "", NeedsArgument: false},
 
-		{Name: "text", NeedsValue: true, SortPriority: "10"},
-		{Name: "html", NeedsValue: true, SortPriority: "11"},
-		{Name: "model", NeedsValue: true, SortPriority: "12"},
+		{Name: "text", NeedsValue: true, SortPriority: "10", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "html", NeedsValue: true, SortPriority: "11", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "model", NeedsValue: true, SortPriority: "12", ArgumentPlaceholder: "", NeedsArgument: false},
 		{Name: "bind", NeedsValue: true, NeedsArgument: true, ArgumentPlaceholder: "attr", SortPriority: "13"},
 
 		{Name: "on", NeedsValue: true, NeedsArgument: true, ArgumentPlaceholder: "event", SortPriority: "20"},
 
-		{Name: "class", NeedsValue: true, SortPriority: "30"},
-		{Name: "style", NeedsValue: true, SortPriority: "31"},
+		{Name: "class", NeedsValue: true, SortPriority: "30", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "style", NeedsValue: true, SortPriority: "31", ArgumentPlaceholder: "", NeedsArgument: false},
 
-		{Name: "ref", NeedsValue: true, SortPriority: "40"},
-		{Name: "key", NeedsValue: true, SortPriority: "41"},
-		{Name: "slot", NeedsValue: true, SortPriority: "42"},
-		{Name: "context", NeedsValue: true, SortPriority: "43"},
+		{Name: "ref", NeedsValue: true, SortPriority: "40", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "key", NeedsValue: true, SortPriority: "41", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "slot", NeedsValue: true, SortPriority: "42", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "context", NeedsValue: true, SortPriority: "43", ArgumentPlaceholder: "", NeedsArgument: false},
 		{Name: "timeline", NeedsValue: false, NeedsArgument: true, ArgumentPlaceholder: "hidden", SortPriority: "44"},
 
-		{Name: "format", NeedsValue: true, SortPriority: "50"},
-		{Name: "format-decimal", NeedsValue: true, SortPriority: "51"},
-		{Name: "format-money", NeedsValue: true, SortPriority: "52"},
-		{Name: "format-date", NeedsValue: true, SortPriority: "53"},
-		{Name: "format-decimal-precision", NeedsValue: true, SortPriority: "54"},
-		{Name: "format-money-symbol", NeedsValue: true, SortPriority: "55"},
-		{Name: "format-date-layout", NeedsValue: true, SortPriority: "56"},
+		{Name: "format", NeedsValue: true, SortPriority: "50", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "format-decimal", NeedsValue: true, SortPriority: "51", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "format-money", NeedsValue: true, SortPriority: "52", ArgumentPlaceholder: "", NeedsArgument: false},
+		{Name: "format-date", NeedsValue: true, SortPriority: "53", ArgumentPlaceholder: "", NeedsArgument: false},
+		{
+			Name:                "format-decimal-precision",
+			NeedsValue:          true,
+			SortPriority:        "54",
+			ArgumentPlaceholder: "",
+			NeedsArgument:       false,
+		},
+		{
+			Name:                "format-money-symbol",
+			NeedsValue:          true,
+			SortPriority:        "55",
+			ArgumentPlaceholder: "",
+			NeedsArgument:       false,
+		},
+		{
+			Name:                "format-date-layout",
+			NeedsValue:          true,
+			SortPriority:        "56",
+			ArgumentPlaceholder: "",
+			NeedsArgument:       false,
+		},
 
-		{Name: "scaffold", NeedsValue: false, SortPriority: "90"},
+		{Name: "scaffold", NeedsValue: false, SortPriority: "90", ArgumentPlaceholder: "", NeedsArgument: false},
 	}
 )
 
@@ -352,7 +370,9 @@ func (d *document) resolveBaseAnnotation(ctx context.Context, position protocol.
 		return nil
 	}
 
-	return &ast_domain.GoGeneratorAnnotation{ResolvedType: resolvedType}
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = resolvedType
+	return &annotation
 }
 
 // getCompletionContext returns the analysis context for completion at the given position.

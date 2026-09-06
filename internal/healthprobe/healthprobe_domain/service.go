@@ -78,11 +78,12 @@ func (s *service) CheckLiveness(ctx context.Context) healthprobe_dto.Status {
 func (s *service) CheckReadiness(ctx context.Context) healthprobe_dto.Status {
 	if s.shuttingDown.Load() {
 		return healthprobe_dto.Status{
-			Name:      s.applicationName,
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   "Application is shutting down",
-			Timestamp: s.clock.Now(),
-			Duration:  "0s",
+			Name:         s.applicationName,
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      "Application is shutting down",
+			Timestamp:    s.clock.Now(),
+			Duration:     "0s",
+			Dependencies: nil,
 		}
 	}
 	return s.checkAll(ctx, healthprobe_dto.CheckTypeReadiness, "Readiness")
@@ -193,6 +194,7 @@ func NewService(registry Registry, checkTimeout time.Duration, applicationName s
 		checkTimeout:    checkTimeout,
 		applicationName: applicationName,
 		clock:           clock.RealClock(),
+		shuttingDown:    atomic.Bool{},
 	}
 
 	for _, opt := range opts {

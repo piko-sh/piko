@@ -45,6 +45,9 @@ func (m *mockTaskStoreBatch) CreateTasks(_ context.Context, tasks []*Task) error
 	return m.createTasksErr
 }
 func (m *mockTaskStoreBatch) UpdateTask(_ context.Context, _ *Task) error { return nil }
+func (m *mockTaskStoreBatch) GetTasksByID(_ context.Context, _ []string) ([]*Task, error) {
+	return nil, nil
+}
 func (m *mockTaskStoreBatch) FetchAndMarkDueTasks(_ context.Context, _ TaskPriority, _ int) ([]*Task, error) {
 	return nil, nil
 }
@@ -108,6 +111,9 @@ func (m *mockTaskDispatcherBatch) Dispatch(_ context.Context, task *Task) error 
 	m.dispatchedTasks = append(m.dispatchedTasks, task)
 	m.mu.Unlock()
 	return nil
+}
+func (m *mockTaskDispatcherBatch) DispatchIfRequired(ctx context.Context, task *Task, _ DispatchRequirement) error {
+	return m.Dispatch(ctx, task)
 }
 func (m *mockTaskDispatcherBatch) DispatchDelayed(_ context.Context, task *Task, _ time.Time) error {
 	m.dispatchDelayedCalled.Add(1)
@@ -302,9 +308,7 @@ func TestDispatchSingleTask_ScheduledTask(t *testing.T) {
 func TestDispatchPersistedTasks_NilDispatcher(t *testing.T) {
 	t.Parallel()
 
-	service := &orchestratorService{
-		taskDispatcher: nil,
-	}
+	service := &orchestratorService{}
 
 	tasks := []*Task{{ID: "task-1"}}
 	service.dispatchPersistedTasks(context.Background(), tasks)

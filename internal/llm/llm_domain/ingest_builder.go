@@ -62,8 +62,12 @@ type IngestBuilder struct {
 // Returns *IngestBuilder which is configured and ready for use.
 func NewIngestBuilder(service *service, namespace string) *IngestBuilder {
 	return &IngestBuilder{
-		service:   service,
-		namespace: namespace,
+		service:             service,
+		namespace:           namespace,
+		loader:              nil,
+		splitter:            nil,
+		transforms:          nil,
+		postSplitTransforms: nil,
 	}
 }
 

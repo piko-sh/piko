@@ -43,8 +43,8 @@ type LocalProviderFactory interface {
 	//
 	// Takes key (*crypto_dto.SecureBytes) which provides the encryption key material in
 	// secure memory (e.g., 32 bytes for AES-256).
-	// Takes keyID (string) which identifies this ephemeral key (usually
-	// "ephemeral-data-key").
+	// Takes keyID (string) which identifies the ephemeral encryption key, usually
+	// "ephemeral-data-key".
 	//
 	// Returns EncryptionProvider which is configured with the provided key.
 	// Returns error when the provider cannot be created.

@@ -99,12 +99,10 @@ func TestMemoryCache_ConcurrentAccess(t *testing.T) {
 
 	const readers = 50
 	var wg sync.WaitGroup
-	wg.Add(readers)
 	missCount := 0
 	var mu sync.Mutex
 	for range readers {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if _, err := cache.Get(ctx, key); err != nil {
 				mu.Lock()
 				if assert.ErrorIs(t, err, coordinator_domain.ErrCacheMiss) {
@@ -112,7 +110,7 @@ func TestMemoryCache_ConcurrentAccess(t *testing.T) {
 				}
 				mu.Unlock()
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	assert.Equal(t, readers, missCount, "all reads before Set should be cache misses")
@@ -120,11 +118,9 @@ func TestMemoryCache_ConcurrentAccess(t *testing.T) {
 	stored := &annotator_dto.ProjectAnnotationResult{}
 	require.NoError(t, cache.Set(ctx, key, stored))
 
-	wg.Add(readers)
 	hitCount := 0
 	for range readers {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			cached, err := cache.Get(ctx, key)
 			if assert.NoError(t, err) {
 				assert.Same(t, stored, cached)
@@ -132,7 +128,7 @@ func TestMemoryCache_ConcurrentAccess(t *testing.T) {
 				hitCount++
 				mu.Unlock()
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	assert.Equal(t, readers, hitCount, "all reads after Set should be cache hits")

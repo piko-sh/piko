@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	protocol "github.com/politepixels/golang-language-server"
@@ -111,10 +112,12 @@ func (c *Child) openNewOverlay(ctx context.Context, owner uint64, uri protocol.D
 		return fmt.Errorf("opening overlay %s: %w", uri, ErrOverlayLimit)
 	}
 	state := &overlayState{
-		content:  bytes.Clone(content),
-		version:  1,
-		analysed: make(chan struct{}),
-		owners:   map[uint64]struct{}{owner: {}},
+		content:          bytes.Clone(content),
+		version:          1,
+		analysed:         make(chan struct{}),
+		owners:           map[uint64]struct{}{owner: {}},
+		analysedOnce:     sync.Once{},
+		didOpenSucceeded: false,
 	}
 	c.overlays[uri] = state
 

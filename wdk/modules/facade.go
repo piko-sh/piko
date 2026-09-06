@@ -104,6 +104,10 @@ var (
 
 	// ErrFrozen is returned when a frozen provider rejects an unpinned ref.
 	ErrFrozen = modules_domain.ErrFrozen
+
+	// ErrUnpinnedModuleRef is returned when LoadModule is given a ref without a pin and the
+	// interpreter has not opted in to unpinned loads.
+	ErrUnpinnedModuleRef = modules_domain.ErrUnpinnedModuleRef
 )
 
 // ParseModuleRef parses a "path[@version][#pin]" string.

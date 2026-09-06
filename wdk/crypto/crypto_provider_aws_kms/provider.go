@@ -241,6 +241,9 @@ func (p *Provider) GetKeyInfo(ctx context.Context, keyID string) (*crypto.KeyInf
 			"account_id":  aws.ToString(meta.AWSAccountId),
 			"key_manager": string(meta.KeyManager),
 		},
+		RotatedAt:      nil,
+		ExpirationDate: nil,
+		DeletionDate:   nil,
 	}, nil
 }
 
@@ -254,6 +257,8 @@ func (p *Provider) HealthCheck(ctx context.Context) error {
 
 	encryptResp, err := p.Encrypt(ctx, &crypto.EncryptRequest{
 		Plaintext: plaintext,
+		Context:   nil,
+		KeyID:     "",
 	})
 	if err != nil {
 		return fmt.Errorf("health check encryption failed: %w", err)
@@ -261,6 +266,8 @@ func (p *Provider) HealthCheck(ctx context.Context) error {
 
 	decryptResp, err := p.Decrypt(ctx, &crypto.DecryptRequest{
 		Ciphertext: encryptResp.Ciphertext,
+		Context:    nil,
+		KeyID:      "",
 	})
 	if err != nil {
 		return fmt.Errorf("health check decryption failed: %w", err)

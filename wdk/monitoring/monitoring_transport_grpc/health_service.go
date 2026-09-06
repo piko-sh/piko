@@ -47,12 +47,14 @@ type HealthService struct {
 //
 // Takes healthProbe (monitoring_domain.HealthProbeService) which provides detailed health
 // checks. May be nil for basic health reporting.
+// Takes opts (...HealthServiceOption) which configure the gRPC health service.
 //
 // Returns *HealthService which is the configured service ready for use.
 func NewHealthService(healthProbe monitoring_domain.HealthProbeService, opts ...HealthServiceOption) *HealthService {
 	s := &HealthService{
-		healthProbe: healthProbe,
-		clock:       clock.RealClock(),
+		healthProbe:                      healthProbe,
+		clock:                            clock.RealClock(),
+		UnimplementedHealthServiceServer: pb.UnimplementedHealthServiceServer{},
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -69,11 +71,12 @@ func (s *HealthService) GetHealth(ctx context.Context, _ *pb.GetHealthRequest) (
 
 	if s.healthProbe == nil {
 		simpleStatus := &pb.HealthStatus{
-			Name:        "piko",
-			State:       "HEALTHY",
-			Message:     "Health probe not configured",
-			TimestampMs: now.UnixMilli(),
-			Duration:    "0s",
+			Name:         "piko",
+			State:        "HEALTHY",
+			Message:      "Health probe not configured",
+			TimestampMs:  now.UnixMilli(),
+			Duration:     "0s",
+			Dependencies: nil,
 		}
 		return &pb.GetHealthResponse{
 			Liveness:    simpleStatus,
@@ -117,11 +120,12 @@ func (s *HealthService) WatchHealth(request *pb.WatchHealthRequest, stream pb.He
 
 			if s.healthProbe == nil {
 				simpleStatus := &pb.HealthStatus{
-					Name:        "piko",
-					State:       "HEALTHY",
-					Message:     "Health probe not configured",
-					TimestampMs: now.UnixMilli(),
-					Duration:    "0s",
+					Name:         "piko",
+					State:        "HEALTHY",
+					Message:      "Health probe not configured",
+					TimestampMs:  now.UnixMilli(),
+					Duration:     "0s",
+					Dependencies: nil,
 				}
 				liveness = simpleStatus
 				readiness = simpleStatus

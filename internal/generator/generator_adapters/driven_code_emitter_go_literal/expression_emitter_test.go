@@ -88,7 +88,7 @@ func TestEmit_LiteralExpressions(t *testing.T) {
 		},
 		{
 			name:       "boolean false",
-			expression: &ast_domain.BooleanLiteral{Value: false},
+			expression: &ast_domain.BooleanLiteral{},
 			wantType:   "Ident",
 			wantValue:  "false",
 		},
@@ -358,10 +358,8 @@ func TestEmit_Identifier_UnresolvedVariable(t *testing.T) {
 	ee := newExpressionEmitter(mockEmitter, binaryEmitter, stringConv)
 
 	identifier := &ast_domain.Identifier{
-		Name: "undefinedVar",
-		GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-			BaseCodeGenVarName: nil,
-		},
+		Name:          "undefinedVar",
+		GoAnnotations: &ast_domain.GoGeneratorAnnotation{},
 	}
 
 	result, statements, diagnostics := ee.emit(identifier)

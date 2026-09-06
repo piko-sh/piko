@@ -100,12 +100,17 @@ func (fe *FieldExtractor[V]) compareFieldDirect(value V, fieldPath string, opera
 //
 // Returns uintptr which is a unique identifier for the type.
 func typeKey(t reflect.Type) uintptr {
-	if id, ok := typeIDMap.Load(t); ok {
-		return id.(uintptr)
+	if loaded, found := typeIDMap.Load(t); found {
+		if identifier, isIdentifier := loaded.(uintptr); isIdentifier {
+			return identifier
+		}
 	}
-	id := uintptr(typeIDCounter.Add(1))
-	actual, _ := typeIDMap.LoadOrStore(t, id)
-	return actual.(uintptr)
+	identifier := uintptr(typeIDCounter.Add(1))
+	stored, _ := typeIDMap.LoadOrStore(t, identifier)
+	if storedIdentifier, isIdentifier := stored.(uintptr); isIdentifier {
+		return storedIdentifier
+	}
+	return identifier
 }
 
 // compareExtractedValue compares an extracted value against a target using the given

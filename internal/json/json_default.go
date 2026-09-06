@@ -36,7 +36,7 @@ func init() {
 	ValidString = stdValidString
 	Pretouch = stdPretouch
 	ConfigStd = &stdAPI{escapeHTML: true}
-	ConfigDefault = &stdAPI{escapeHTML: false}
+	ConfigDefault = &stdAPI{}
 }
 
 // stdMarshalString serialises v into a JSON string using the stdlib encoder.

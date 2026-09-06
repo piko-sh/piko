@@ -89,16 +89,16 @@ func BuildBuildDetailRows(build *pb.BuildInfo) []DetailRow {
 		return nil
 	}
 	return []DetailRow{
-		{Label: "Version", Value: build.GetVersion()},
-		{Label: "Commit", Value: build.GetCommit()},
-		{Label: "Go Version", Value: build.GetGoVersion()},
-		{Label: "OS", Value: build.GetOs()},
-		{Label: "Arch", Value: build.GetArch()},
-		{Label: "Build Time", Value: build.GetBuildTime()},
-		{Label: "Module", Value: build.GetModulePath()},
-		{Label: "Module Version", Value: build.GetModuleVersion()},
-		{Label: "VCS Modified", Value: strconv.FormatBool(build.GetVcsModified())},
-		{Label: "VCS Time", Value: build.GetVcsTime()},
+		NewDetailRow("Version", build.GetVersion()),
+		NewDetailRow("Commit", build.GetCommit()),
+		NewDetailRow("Go Version", build.GetGoVersion()),
+		NewDetailRow("OS", build.GetOs()),
+		NewDetailRow("Arch", build.GetArch()),
+		NewDetailRow("Build Time", build.GetBuildTime()),
+		NewDetailRow("Module", build.GetModulePath()),
+		NewDetailRow("Module Version", build.GetModuleVersion()),
+		NewDetailRow("VCS Modified", strconv.FormatBool(build.GetVcsModified())),
+		NewDetailRow("VCS Time", build.GetVcsTime()),
 	}
 }
 
@@ -115,9 +115,9 @@ func BuildRuntimeDetailRows(runtime *pb.RuntimeInfo) []DetailRow {
 		return nil
 	}
 	return []DetailRow{
-		{Label: "GOGC", Value: runtime.GetGogc()},
-		{Label: "GOMEMLIMIT", Value: runtime.GetGomemlimit()},
-		{Label: "Compiler", Value: runtime.GetCompiler()},
+		NewDetailRow("GOGC", runtime.GetGogc()),
+		NewDetailRow("GOMEMLIMIT", runtime.GetGomemlimit()),
+		NewDetailRow("Compiler", runtime.GetCompiler()),
 	}
 }
 
@@ -135,28 +135,28 @@ func BuildMemoryDetailRows(memory *pb.MemoryInfo) []DetailRow {
 		return nil
 	}
 	return []DetailRow{
-		{Label: "Alloc", Value: FormatBytes(memory.GetAlloc())},
-		{Label: "Total Alloc", Value: FormatBytes(memory.GetTotalAlloc())},
-		{Label: "Sys", Value: FormatBytes(memory.GetSys())},
-		{Label: "Heap Alloc", Value: FormatBytes(memory.GetHeapAlloc())},
-		{Label: "Heap Sys", Value: FormatBytes(memory.GetHeapSys())},
-		{Label: "Heap Idle", Value: FormatBytes(memory.GetHeapIdle())},
-		{Label: "Heap In Use", Value: FormatBytes(memory.GetHeapInuse())},
-		{Label: "Heap Objects", Value: strconv.FormatUint(memory.GetHeapObjects(), 10)},
-		{Label: "Heap Released", Value: FormatBytes(memory.GetHeapReleased())},
-		{Label: "Stack In Use", Value: FormatBytes(memory.GetStackInuse())},
-		{Label: "Stack Sys", Value: FormatBytes(memory.GetStackSys())},
-		{Label: "MSpan In Use", Value: FormatBytes(memory.GetMspanInuse())},
-		{Label: "MSpan Sys", Value: FormatBytes(memory.GetMspanSys())},
-		{Label: "MCache In Use", Value: FormatBytes(memory.GetMcacheInuse())},
-		{Label: "MCache Sys", Value: FormatBytes(memory.GetMcacheSys())},
-		{Label: "GC Sys", Value: FormatBytes(memory.GetGcSys())},
-		{Label: "Other Sys", Value: FormatBytes(memory.GetOtherSys())},
-		{Label: "BuckHash Sys", Value: FormatBytes(memory.GetBuckhashSys())},
-		{Label: "Lookups", Value: strconv.FormatUint(memory.GetLookups(), 10)},
-		{Label: "Mallocs", Value: strconv.FormatUint(memory.GetMallocs(), 10)},
-		{Label: "Frees", Value: strconv.FormatUint(memory.GetFrees(), 10)},
-		{Label: "Live Objects", Value: strconv.FormatUint(memory.GetLiveObjects(), 10)},
+		NewDetailRow("Alloc", FormatBytes(memory.GetAlloc())),
+		NewDetailRow("Total Alloc", FormatBytes(memory.GetTotalAlloc())),
+		NewDetailRow("Sys", FormatBytes(memory.GetSys())),
+		NewDetailRow("Heap Alloc", FormatBytes(memory.GetHeapAlloc())),
+		NewDetailRow("Heap Sys", FormatBytes(memory.GetHeapSys())),
+		NewDetailRow("Heap Idle", FormatBytes(memory.GetHeapIdle())),
+		NewDetailRow("Heap In Use", FormatBytes(memory.GetHeapInuse())),
+		NewDetailRow("Heap Objects", strconv.FormatUint(memory.GetHeapObjects(), 10)),
+		NewDetailRow("Heap Released", FormatBytes(memory.GetHeapReleased())),
+		NewDetailRow("Stack In Use", FormatBytes(memory.GetStackInuse())),
+		NewDetailRow("Stack Sys", FormatBytes(memory.GetStackSys())),
+		NewDetailRow("MSpan In Use", FormatBytes(memory.GetMspanInuse())),
+		NewDetailRow("MSpan Sys", FormatBytes(memory.GetMspanSys())),
+		NewDetailRow("MCache In Use", FormatBytes(memory.GetMcacheInuse())),
+		NewDetailRow("MCache Sys", FormatBytes(memory.GetMcacheSys())),
+		NewDetailRow("GC Sys", FormatBytes(memory.GetGcSys())),
+		NewDetailRow("Other Sys", FormatBytes(memory.GetOtherSys())),
+		NewDetailRow("BuckHash Sys", FormatBytes(memory.GetBuckhashSys())),
+		NewDetailRow("Lookups", strconv.FormatUint(memory.GetLookups(), 10)),
+		NewDetailRow("Mallocs", strconv.FormatUint(memory.GetMallocs(), 10)),
+		NewDetailRow("Frees", strconv.FormatUint(memory.GetFrees(), 10)),
+		NewDetailRow("Live Objects", strconv.FormatUint(memory.GetLiveObjects(), 10)),
 	}
 }
 
@@ -179,20 +179,20 @@ func BuildGCDetailRows(gc *pb.GCInfo) []DetailRow {
 		lastGC = time.Unix(0, lastGcNs)
 	}
 	rows := []DetailRow{
-		{Label: "Cycles", Value: strconv.FormatUint(uint64(gc.GetNumGc()), 10)},
-		{Label: "Forced Cycles", Value: strconv.FormatUint(uint64(gc.GetNumForcedGc()), 10)},
-		{Label: "Last Pause", Value: FormatNanosAsDuration(safeconv.Uint64ToInt64(gc.GetLastPauseNs()))},
-		{Label: "Total Pause", Value: FormatNanosAsDuration(safeconv.Uint64ToInt64(gc.GetPauseTotalNs()))},
-		{Label: "CPU Fraction", Value: FormatGCCPUFraction(gc.GetGcCpuFraction())},
-		{Label: "Next GC", Value: FormatBytes(gc.GetNextGc())},
-		{Label: "Last GC", Value: FormatDetailTime(lastGC)},
+		NewDetailRow("Cycles", strconv.FormatUint(uint64(gc.GetNumGc()), 10)),
+		NewDetailRow("Forced Cycles", strconv.FormatUint(uint64(gc.GetNumForcedGc()), 10)),
+		NewDetailRow("Last Pause", FormatNanosAsDuration(safeconv.Uint64ToInt64(gc.GetLastPauseNs()))),
+		NewDetailRow("Total Pause", FormatNanosAsDuration(safeconv.Uint64ToInt64(gc.GetPauseTotalNs()))),
+		NewDetailRow("CPU Fraction", FormatGCCPUFraction(gc.GetGcCpuFraction())),
+		NewDetailRow("Next GC", FormatBytes(gc.GetNextGc())),
+		NewDetailRow("Last GC", FormatDetailTime(lastGC)),
 	}
 	if pauses := gc.GetRecentPauses(); len(pauses) > 0 {
 		parts := make([]string, len(pauses))
 		for i, nanoseconds := range pauses {
 			parts[i] = FormatNanosAsDuration(safeconv.Uint64ToInt64(nanoseconds))
 		}
-		rows = append(rows, DetailRow{Label: "Recent Pauses", Value: strings.Join(parts, ", ")})
+		rows = append(rows, NewDetailRow("Recent Pauses", strings.Join(parts, ", ")))
 	}
 	return rows
 }
@@ -211,21 +211,21 @@ func BuildProcessDetailRows(process *pb.ProcessInfo) []DetailRow {
 		return nil
 	}
 	return []DetailRow{
-		{Label: "PID", Value: strconv.FormatInt(int64(process.GetPid()), 10)},
-		{Label: "PPID", Value: strconv.FormatInt(int64(process.GetPpid()), 10)},
-		{Label: "UID", Value: strconv.FormatInt(int64(process.GetUid()), 10)},
-		{Label: "GID", Value: strconv.FormatInt(int64(process.GetGid()), 10)},
-		{Label: "Threads", Value: strconv.FormatInt(int64(process.GetThreadCount()), 10)},
-		{Label: "File Descriptors", Value: strconv.FormatInt(int64(process.GetFdCount()), 10)},
-		{Label: "Max Open Files (Soft)", Value: strconv.FormatInt(process.GetMaxOpenFilesSoft(), 10)},
-		{Label: "Max Open Files (Hard)", Value: strconv.FormatInt(process.GetMaxOpenFilesHard(), 10)},
-		{Label: "RSS", Value: FormatBytes(process.GetRss())},
-		{Label: "I/O Read Bytes", Value: FormatBytes(process.GetIoReadBytes())},
-		{Label: "I/O Write Bytes", Value: FormatBytes(process.GetIoWriteBytes())},
-		{Label: "I/O Read Total", Value: FormatBytes(process.GetIoRchar())},
-		{Label: "I/O Write Total", Value: FormatBytes(process.GetIoWchar())},
-		{Label: "Hostname", Value: process.GetHostname()},
-		{Label: "Executable", Value: process.GetExecutable()},
-		{Label: "CWD", Value: process.GetCwd()},
+		NewDetailRow("PID", strconv.FormatInt(int64(process.GetPid()), 10)),
+		NewDetailRow("PPID", strconv.FormatInt(int64(process.GetPpid()), 10)),
+		NewDetailRow("UID", strconv.FormatInt(int64(process.GetUid()), 10)),
+		NewDetailRow("GID", strconv.FormatInt(int64(process.GetGid()), 10)),
+		NewDetailRow("Threads", strconv.FormatInt(int64(process.GetThreadCount()), 10)),
+		NewDetailRow("File Descriptors", strconv.FormatInt(int64(process.GetFdCount()), 10)),
+		NewDetailRow("Max Open Files (Soft)", strconv.FormatInt(process.GetMaxOpenFilesSoft(), 10)),
+		NewDetailRow("Max Open Files (Hard)", strconv.FormatInt(process.GetMaxOpenFilesHard(), 10)),
+		NewDetailRow("RSS", FormatBytes(process.GetRss())),
+		NewDetailRow("I/O Read Bytes", FormatBytes(process.GetIoReadBytes())),
+		NewDetailRow("I/O Write Bytes", FormatBytes(process.GetIoWriteBytes())),
+		NewDetailRow("I/O Read Total", FormatBytes(process.GetIoRchar())),
+		NewDetailRow("I/O Write Total", FormatBytes(process.GetIoWchar())),
+		NewDetailRow("Hostname", process.GetHostname()),
+		NewDetailRow("Executable", process.GetExecutable()),
+		NewDetailRow("CWD", process.GetCwd()),
 	}
 }

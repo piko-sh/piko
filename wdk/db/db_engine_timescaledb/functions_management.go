@@ -399,12 +399,10 @@ func registerChunkLifecycle(b *db_engine_postgres.FunctionCatalogueBuilder) {
 		b.Args(db_engine_postgres.Arg{Name: "chunks", Type: arrayOf(regclassType())}, db_engine_postgres.Arg{Name: "concurrently", Type: b.Boolean}),
 		voidType(),
 	)
-	b.Add("merge_chunks_concurrently", &querier_dto.FunctionSignature{
-		Arguments:         b.Args(db_engine_postgres.Arg{Name: "chunks", Type: arrayOf(regclassType())}),
-		ReturnType:        voidType(),
-		IsVariadic:        true,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	b.Add("merge_chunks_concurrently", querier_dto.NewFunctionSignature(b.Args(db_engine_postgres.Arg{
+		Name: "chunks",
+		Type: arrayOf(regclassType()),
+	}), voidType(), querier_dto.FunctionNullableNeverNull, querier_dto.WithVariadic(0)))
 	b.NeverNull("split_chunk",
 		b.Args(db_engine_postgres.Arg{Name: paramNameChunk, Type: regclassType()}, db_engine_postgres.Arg{Name: "split_at", Type: b.Timestamptz}),
 		voidType(),

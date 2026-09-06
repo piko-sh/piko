@@ -22,7 +22,7 @@ import (
 	goast "go/ast"
 	"go/token"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 )
 
 const (

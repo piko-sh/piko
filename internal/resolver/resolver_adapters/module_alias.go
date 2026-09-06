@@ -125,7 +125,7 @@ func findModuleNameForPath(filePath string) (string, error) {
 		return "", fmt.Errorf("no go.mod found in '%s' or any parent directory", directory)
 	}
 
-	moduleName, err := readModuleName(goModPath, nil)
+	moduleName, err := ReadModuleName(context.Background(), goModPath, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to read module name from '%s': %w", goModPath, err)
 	}

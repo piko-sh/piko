@@ -68,9 +68,7 @@ func TestStartCapture_CreatesAllProfileFiles(t *testing.T) {
 func TestStartCapture_FailsWithEmptyOutputDir(t *testing.T) {
 	t.Parallel()
 
-	cleanup, err := StartCapture(Config{
-		OutputDir: "",
-	})
+	cleanup, err := StartCapture(Config{})
 
 	assert.Error(t, err)
 	assert.Nil(t, cleanup)

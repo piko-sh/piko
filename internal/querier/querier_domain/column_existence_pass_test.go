@@ -51,7 +51,7 @@ func runColumnExistencePass(
 	expression querier_dto.Expression,
 	prior []querier_dto.SourceError,
 ) []querier_dto.SourceError {
-	pass := &columnExistencePass{catalogue: nil}
+	pass := &columnExistencePass{}
 	return pass.Analyse(&diagnosticContext{
 		Query:               &querier_dto.AnalysedQuery{Line: 1},
 		RawAnalysis:         &querier_dto.RawQueryAnalysis{OutputColumns: []querier_dto.RawOutputColumn{{Expression: expression}}},

@@ -378,30 +378,31 @@ func (s *DiskSnapshot[K, V]) recordSaveMetrics(ctx context.Context, startTime ti
 // consume all entries promptly or break out of the loop to release.
 func (s *DiskSnapshot[K, V]) Load(ctx context.Context) iter.Seq2[wal_domain.Entry[K, V], error] {
 	return func(yield func(wal_domain.Entry[K, V], error) bool) {
+		var zero wal_domain.Entry[K, V]
 		startTime := s.clock.Now()
 		s.mu.Lock()
 		defer s.mu.Unlock()
 
 		header, data, err := s.readSnapshotFile()
 		if err != nil {
-			yield(wal_domain.Entry[K, V]{}, err)
+			yield(zero, err)
 			return
 		}
 
 		entryCount, flags, err := s.parseHeader(header)
 		if err != nil {
-			yield(wal_domain.Entry[K, V]{}, err)
+			yield(zero, err)
 			return
 		}
 
 		if err := s.validateDataCRC(header, data); err != nil {
-			yield(wal_domain.Entry[K, V]{}, err)
+			yield(zero, err)
 			return
 		}
 
 		data, err = s.decompressData(data, flags)
 		if err != nil {
-			yield(wal_domain.Entry[K, V]{}, err)
+			yield(zero, err)
 			return
 		}
 
@@ -427,16 +428,17 @@ func (s *DiskSnapshot[K, V]) yieldEntries(
 ) int {
 	reader := bytes.NewReader(data)
 	var count int
+	var zero wal_domain.Entry[K, V]
 
 	for range entryCount {
 		if ctx.Err() != nil {
-			yield(wal_domain.Entry[K, V]{}, ctx.Err())
+			yield(zero, cancellationError(ctx))
 			return count
 		}
 
 		entry, done, err := s.readSnapshotEntry(reader)
 		if err != nil {
-			yield(wal_domain.Entry[K, V]{}, err)
+			yield(zero, err)
 			return count
 		}
 		if done {
@@ -730,7 +732,10 @@ func NewDiskSnapshot[K comparable, V any](
 		config:  config,
 		sandbox: sandbox,
 
-		clock: clock.RealClock(),
+		clock:   clock.RealClock(),
+		encoder: nil,
+		decoder: nil,
+		mu:      sync.Mutex{},
 	}
 
 	for _, opt := range opts {
@@ -757,6 +762,7 @@ func createSnapshotSandbox(directory string) (safedisk.Sandbox, error) {
 	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
 		Enabled:      true,
 		AllowedPaths: []string{directory},
+		CWD:          "",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating sandbox factory: %w", err)

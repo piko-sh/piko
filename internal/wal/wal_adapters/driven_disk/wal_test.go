@@ -370,7 +370,7 @@ func TestNewDiskWAL_InvalidConfig(t *testing.T) {
 	}{
 		{
 			name:   "empty directory",
-			config: wal_domain.Config{Dir: ""},
+			config: wal_domain.Config{},
 		},
 		{
 			name:   "invalid compression level",
@@ -1665,20 +1665,18 @@ func TestDiskWAL_FatalError_DoesNotBlock(t *testing.T) {
 
 	const numWriters = 50
 	var wg sync.WaitGroup
-	wg.Add(numWriters)
+
+	for range numWriters {
+		wg.Go(func() {
+			_ = wal.Append(ctx, entry)
+		})
+	}
 
 	done := make(chan struct{})
 	go func() {
 		wg.Wait()
 		close(done)
 	}()
-
-	for range numWriters {
-		go func() {
-			defer wg.Done()
-			_ = wal.Append(ctx, entry)
-		}()
-	}
 
 	select {
 	case <-done:
@@ -1722,4 +1720,53 @@ func TestDiskWAL_FatalError_CloseStillWorks(t *testing.T) {
 
 	err = wal.Close()
 	assert.NoError(t, err)
+}
+
+func TestDiskWAL_RecoveryAndAppendReportTheCancellationCause(t *testing.T) {
+	cause := errors.New("shutdown requested")
+	cancelled, cancel := context.WithCancelCause(context.Background())
+	cancel(cause)
+	entry := wal_domain.Entry[string, testValue]{}
+	entry.Operation = wal_domain.OpSet
+	entry.Key = "key1"
+
+	testCases := []struct {
+		run  func(t *testing.T) error
+		name string
+	}{
+		{
+			name: "recovering the log",
+			run: func(t *testing.T) error {
+				wal, _ := newTestWAL(t)
+				require.NoError(t, wal.Append(context.Background(), entry))
+				_, err := collectEntries(wal.Recover(cancelled))
+				return err
+			},
+		},
+		{
+			name: "appending to the log",
+			run: func(t *testing.T) error {
+				wal, _ := newTestWAL(t)
+				return wal.Append(cancelled, entry)
+			},
+		},
+		{
+			name: "loading a snapshot",
+			run: func(t *testing.T) error {
+				snapshot, _ := newTestSnapshot(t, false)
+				require.NoError(t, snapshot.Save(context.Background(), []wal_domain.Entry[string, testValue]{entry}))
+				_, err := collectEntries(snapshot.Load(cancelled))
+				return err
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := testCase.run(t)
+
+			assert.ErrorIs(t, err, cause)
+			assert.ErrorIs(t, err, context.Canceled)
+		})
+	}
 }

@@ -29,7 +29,8 @@ import (
 // rows show metadata (trace ID, service, name, duration, status) plus selected
 // attributes; otherwise an overview is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *TracesPanel) DetailView(width, height int) string {
@@ -55,24 +56,24 @@ func (p *TracesPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing the span and its attributes.
 func spanDetailBody(s *Span) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Trace ID", Value: s.TraceID},
-		{Label: "Span ID", Value: s.SpanID},
-		{Label: "Service", Value: s.Service},
-		{Label: "Operation", Value: s.Name},
-		{Label: "Duration", Value: inspector.FormatDuration(s.Duration)},
-		{Label: "Started", Value: inspector.FormatDetailTime(s.StartTime)},
+		inspector.NewDetailRow("Trace ID", s.TraceID),
+		inspector.NewDetailRow("Span ID", s.SpanID),
+		inspector.NewDetailRow("Service", s.Service),
+		inspector.NewDetailRow("Operation", s.Name),
+		inspector.NewDetailRow("Duration", inspector.FormatDuration(s.Duration)),
+		inspector.NewDetailRow("Started", inspector.FormatDetailTime(s.StartTime)),
 	}
 	if s.ParentID != "" {
-		rows = append(rows, inspector.DetailRow{Label: "Parent", Value: s.ParentID})
+		rows = append(rows, inspector.NewDetailRow("Parent", s.ParentID))
 	}
 	if s.StatusMessage != "" {
-		rows = append(rows, inspector.DetailRow{Label: "Status", Value: s.StatusMessage})
+		rows = append(rows, inspector.NewDetailRow("Status", s.StatusMessage))
 	}
 	if len(s.Children) > 0 {
-		rows = append(rows, inspector.DetailRow{Label: "Children", Value: fmt.Sprintf(FormatPercentInt, len(s.Children))})
+		rows = append(rows, inspector.NewDetailRow("Children", fmt.Sprintf(FormatPercentInt, len(s.Children))))
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Span", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Span", rows)}
 	if len(s.Attributes) > 0 {
 		attrRows := make([]inspector.DetailRow, 0, len(s.Attributes))
 		keys := make([]string, 0, len(s.Attributes))
@@ -81,9 +82,9 @@ func spanDetailBody(s *Span) inspector.DetailBody {
 		}
 		slices.Sort(keys)
 		for _, k := range keys {
-			attrRows = append(attrRows, inspector.DetailRow{Label: k, Value: s.Attributes[k]})
+			attrRows = append(attrRows, inspector.NewDetailRow(k, s.Attributes[k]))
 		}
-		sections = append(sections, inspector.DetailSection{Heading: "Attributes", Rows: attrRows})
+		sections = append(sections, inspector.NewDetailSection("Attributes", attrRows))
 	}
 
 	return inspector.DetailBody{
@@ -106,18 +107,19 @@ func (p *TracesPanel) tracesOverviewDetailBody() inspector.DetailBody {
 	p.stateMutex.RUnlock()
 
 	rows := []inspector.DetailRow{
-		{Label: "Spans", Value: fmt.Sprintf(FormatPercentInt, len(p.Items()))},
-		{Label: "Filter", Value: tracesFilterLabel(errorsOnly)},
+		inspector.NewDetailRow("Spans", fmt.Sprintf(FormatPercentInt, len(p.Items()))),
+		inspector.NewDetailRow("Filter", tracesFilterLabel(errorsOnly)),
 	}
 	if !last.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last refresh", Value: inspector.FormatDetailTime(last)})
+		rows = append(rows, inspector.NewDetailRow("Last refresh", inspector.FormatDetailTime(last)))
 	}
 	if err != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: err.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", err.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    "Traces overview",
-		Sections: []inspector.DetailSection{{Heading: "Status", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status", rows)},
+		Subtitle: "",
 	}
 }
 

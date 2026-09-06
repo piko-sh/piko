@@ -122,8 +122,10 @@ func (h *PublicDownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 // Returns error when the file cannot be found.
 func (h *PublicDownloadHandler) statFile(ctx context.Context, provider, repository, key string) (*storage_domain.ObjectInfo, error) {
 	return h.storageService.StatObject(ctx, provider, storage_dto.GetParams{
-		Repository: repository,
-		Key:        key,
+		Repository:      repository,
+		Key:             key,
+		ByteRange:       nil,
+		TransformConfig: nil,
 	})
 }
 
@@ -136,8 +138,10 @@ func (h *PublicDownloadHandler) statFile(ctx context.Context, provider, reposito
 func (h *PublicDownloadHandler) streamFile(ctx context.Context, w http.ResponseWriter, provider, repository, key string) {
 	ctx, l := logger_domain.From(ctx, log)
 	reader, err := h.storageService.GetObject(ctx, provider, storage_dto.GetParams{
-		Repository: repository,
-		Key:        key,
+		Repository:      repository,
+		Key:             key,
+		ByteRange:       nil,
+		TransformConfig: nil,
 	})
 	if err != nil {
 		l.Error("Failed to retrieve file", logger_domain.Error(err))

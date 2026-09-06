@@ -28,12 +28,12 @@ import (
 // in-memory map, GOPROXY fetch, OCI registry, signed asset store - so the rest of piko
 // stays agnostic.
 //
-// Resolve is consulted by the piko loader before any bytecode is dispatched. Hosts
+// Resolve is consulted by the module loader before any bytecode is dispatched. Hosts
 // implement gating, signature verification, approval workflow, and offline-mode policy
 // here.
 //
-// Implementations MUST be safe for concurrent use by multiple goroutines: piko spawns
-// goroutines for parallel module-graph resolution.
+// Implementations MUST be safe for concurrent use by multiple goroutines because the
+// loader may resolve parts of the module graph in parallel.
 //
 // Resolve returns ErrModuleNotFound for unknown refs, ErrIntegrityMismatch when a found
 // bundle fails the host's own integrity check, ErrCapabilityDenied when host policy
@@ -112,4 +112,10 @@ var (
 	// ErrFrozen indicates a provider operating in frozen mode (no fetch, lockfile-only) was
 	// asked to resolve a ref absent from its lockfile.
 	ErrFrozen = errors.New("modules_domain: frozen provider rejects unpinned ref")
+
+	// ErrUnpinnedModuleRef indicates LoadModule was given a ref without a pin while the
+	// service requires one. Distinct from ErrIntegrityMismatch so hosts can tell "nothing to
+	// verify against" from "verified and wrong"; interactive hosts opt in to unpinned loads
+	// with the pipit provider's WithUnpinnedModuleLoads option.
+	ErrUnpinnedModuleRef = errors.New("modules_domain: module ref carries no pin")
 )

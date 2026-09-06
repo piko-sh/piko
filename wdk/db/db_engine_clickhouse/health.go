@@ -127,6 +127,7 @@ func checkPing(ctx context.Context, database *sql.DB) db.DatabaseHealthDiagnosti
 			Name:    "clickhouse.connectivity",
 			State:   healthStateUnhealthy,
 			Message: fmt.Sprintf("ping failed: %s", err.Error()),
+			Value:   "",
 		}
 	}
 	return db.DatabaseHealthDiagnostic{
@@ -157,6 +158,7 @@ func checkActiveParts(ctx context.Context, database *sql.DB) db.DatabaseHealthDi
 			Name:    "clickhouse.active_parts",
 			State:   healthStateUnhealthy,
 			Message: fmt.Sprintf("query failed: %s", err.Error()),
+			Value:   "",
 		}
 	}
 	state, message := classifyActiveParts(count)
@@ -248,12 +250,14 @@ func countSystemTableDiagnostic(ctx context.Context, database *sql.DB, spec coun
 				Name:    spec.name,
 				State:   healthStateHealthy,
 				Message: spec.absentMessage,
+				Value:   "",
 			}
 		}
 		return db.DatabaseHealthDiagnostic{
 			Name:    spec.name,
 			State:   healthStateUnhealthy,
 			Message: fmt.Sprintf("query failed: %s", err.Error()),
+			Value:   "",
 		}
 	}
 	state, message := spec.classify(count)

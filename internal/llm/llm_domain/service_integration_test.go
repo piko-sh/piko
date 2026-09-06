@@ -88,6 +88,78 @@ func TestService_AddDocuments_Success(t *testing.T) {
 	assert.Equal(t, "doc2", mockVS.bulkStoreCalls[0][1].ID)
 }
 
+func TestService_AddDocuments_CreatesNamespace(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		createErr       error
+		name            string
+		wantErrText     string
+		reportedDim     int
+		documentCount   int
+		wantDimension   int
+		wantStoredBatch int
+	}{
+		{
+			name:            "uses the dimension reported by the provider",
+			reportedDim:     768,
+			documentCount:   2,
+			wantDimension:   768,
+			wantStoredBatch: 1,
+		},
+		{
+			name:            "detects the dimension from the first batch when the provider does not know it",
+			reportedDim:     0,
+			documentCount:   25,
+			wantDimension:   3,
+			wantStoredBatch: 2,
+		},
+		{
+			name:          "reports a namespace creation failure",
+			reportedDim:   0,
+			documentCount: 1,
+			createErr:     errors.New("namespace rejected"),
+			wantDimension: 3,
+			wantErrText:   "creating vector namespace",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			service, ok := NewService("").(*service)
+			require.True(t, ok)
+
+			mockEmbedding := NewMockEmbeddingProvider()
+			mockEmbedding.EmbeddingDimensionsFunc = func() int { return testCase.reportedDim }
+			require.NoError(t, service.RegisterEmbeddingProvider(context.Background(), "default", mockEmbedding))
+			require.NoError(t, service.SetDefaultEmbeddingProvider("default"))
+
+			mockVS := &mockVectorStore{createNamespaceErr: testCase.createErr}
+			service.SetVectorStore(mockVS)
+
+			docs := make([]Document, testCase.documentCount)
+			for i := range docs {
+				docs[i] = Document{ID: fmt.Sprintf("doc%d", i), Content: "content"}
+			}
+
+			err := service.AddDocuments(context.Background(), "ns", docs)
+
+			require.Len(t, mockVS.createNamespaceCalls, 1)
+			assert.Equal(t, testCase.wantDimension, mockVS.createNamespaceCalls[0].Dimension)
+			if testCase.wantErrText != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), testCase.wantErrText)
+				assert.Empty(t, mockVS.bulkStoreCalls)
+				return
+			}
+			require.NoError(t, err)
+			assert.Len(t, mockVS.bulkStoreCalls, testCase.wantStoredBatch)
+		})
+	}
+}
+
 func TestService_AddDocuments_EmbeddingError(t *testing.T) {
 	service, ok := NewService("").(*service)
 	if !ok {
@@ -405,10 +477,7 @@ func TestTokenBucketConfig(t *testing.T) {
 }
 
 func TestRequestBucketConfig_ZeroValues(t *testing.T) {
-	config := &rateLimitConfig{
-		requestsPerMinute: 0,
-		tokensPerMinute:   0,
-	}
+	config := &rateLimitConfig{}
 
 	bucketConfig := requestBucketConfig(config)
 
@@ -417,10 +486,7 @@ func TestRequestBucketConfig_ZeroValues(t *testing.T) {
 }
 
 func TestTokenBucketConfig_ZeroValues(t *testing.T) {
-	config := &rateLimitConfig{
-		requestsPerMinute: 0,
-		tokensPerMinute:   0,
-	}
+	config := &rateLimitConfig{}
 
 	bucketConfig := tokenBucketConfig(config)
 

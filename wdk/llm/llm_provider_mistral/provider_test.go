@@ -698,3 +698,76 @@ func TestMistralProvider_CapabilityMethods(t *testing.T) {
 	assert.Equal(t, false, p.SupportsParallelToolCalls())
 	assert.Equal(t, true, p.SupportsMessageName())
 }
+
+func TestConvertEmbedResponse(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		input     *mistralEmbedResponse
+		wantUsage *llm_dto.EmbeddingUsage
+		name      string
+		wantModel string
+		wantData  []llm_dto.Embedding
+	}{
+		{
+			name: "converts vectors and usage",
+			input: &mistralEmbedResponse{
+				Usage: &mistralUsage{PromptTokens: 4, CompletionTokens: 0, TotalTokens: 4},
+				ID:    "embed-1",
+				Model: "mistral-embed",
+				Data: []mistralEmbedData{
+					{Embedding: []float64{0.5, -0.25}, Index: 1},
+					{Embedding: []float64{1}, Index: 0},
+				},
+			},
+			wantModel: "mistral-embed",
+			wantData: []llm_dto.Embedding{
+				llm_dto.NewFloat32Embedding(1, []float32{0.5, -0.25}),
+				llm_dto.NewFloat32Embedding(0, []float32{1}),
+			},
+			wantUsage: llm_dto.NewEmbeddingUsage(4, 4),
+		},
+		{
+			name: "leaves usage nil when the response has none",
+			input: &mistralEmbedResponse{
+				Usage: nil,
+				ID:    "",
+				Model: "mistral-embed",
+				Data:  []mistralEmbedData{},
+			},
+			wantModel: "mistral-embed",
+			wantData:  []llm_dto.Embedding{},
+			wantUsage: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			response := convertEmbedResponse(testCase.input)
+			require.NotNil(t, response)
+			assert.Equal(t, testCase.wantModel, response.Model)
+			assert.Equal(t, testCase.wantData, response.Embeddings)
+			assert.Equal(t, testCase.wantUsage, response.Usage)
+		})
+	}
+}
+
+func TestMistralProvider_ReturnsPanicsAsErrors(t *testing.T) {
+	t.Parallel()
+
+	p := newTestProvider(t)
+
+	_, err := p.Complete(t.Context(), nil)
+	require.Error(t, err, "completion")
+	assert.Contains(t, err.Error(), "panic in llm.mistralProvider.Complete")
+
+	_, err = p.Stream(t.Context(), nil)
+	require.Error(t, err, "stream")
+	assert.Contains(t, err.Error(), "panic in llm.mistralProvider.Stream")
+
+	_, err = p.Embed(t.Context(), nil)
+	require.Error(t, err, "embedding")
+	assert.Contains(t, err.Error(), "panic in llm.mistralProvider.Embed")
+}

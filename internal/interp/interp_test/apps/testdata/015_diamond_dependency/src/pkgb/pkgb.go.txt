@@ -1,7 +1,0 @@
-package pkgb
-
-import "testpkg/pkgd"
-
-func FromB() string {
-	return pkgd.Hello() + "-d"
-}

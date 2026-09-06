@@ -27,9 +27,9 @@ import (
 	goast "go/ast"
 	"strings"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
@@ -69,7 +69,7 @@ func (p *propParser) collectProps(typeExpr goast.Expr, importerPackagePath, impo
 		}
 		propName, propInfo, err := p.parseFieldAsProp(field)
 		if err != nil {
-			p.ctx.addDiagnostic(ast_domain.Error, err.Error(), field.Name, ast_domain.Location{Line: 0, Column: 0, Offset: 0}, nil, annotator_dto.CodePropDefinitionError)
+			p.ctx.addDiagnostic(ast_domain.Error, err.Error(), field.Name, ast_domain.Location{}, nil, annotator_dto.CodePropDefinitionError)
 			continue
 		}
 		if _, exists := p.validProps[propName]; exists {
@@ -82,7 +82,7 @@ func (p *propParser) collectProps(typeExpr goast.Expr, importerPackagePath, impo
 				ast_domain.Error,
 				message,
 				field.Name,
-				ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+				ast_domain.Location{},
 				nil,
 				annotator_dto.CodePropDefinitionError,
 			)
@@ -138,14 +138,8 @@ func (p *propParser) parseFieldAsProp(field *inspector_dto.Field) (string, valid
 	tag := inspector_dto.ParseStructTag(field.RawTag)
 	destTypeExpr := goastutil.TypeStringToAST(field.TypeString)
 
-	result := propParseResult{
-		propName:       p.parsePropName(field, tag),
-		defaultValue:   nil,
-		factoryFunc:    "",
-		queryParamName: "",
-		isRequired:     false,
-		shouldCoerce:   false,
-	}
+	result := propParseResult{}
+	result.propName = p.parsePropName(field, tag)
 
 	if err := p.parsePropDefaults(field, tag, &result); err != nil {
 		return "", validPropInfo{}, err
@@ -238,7 +232,7 @@ func (p *propParser) parseQueryTag(field *inspector_dto.Field, tag map[string]st
 			ast_domain.Error,
 			fmt.Sprintf("Prop '%s' has empty query tag. Use query:\"param_name\" with an explicit parameter name.", field.Name),
 			field.Name,
-			ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+			ast_domain.Location{},
 			nil,
 			annotator_dto.CodeQueryPropError,
 		)
@@ -262,7 +256,7 @@ func (p *propParser) validateQueryType(field *inspector_dto.Field, queryParam st
 			fmt.Sprintf("Prop '%s' uses query:%q but has non-string type '%s'. Query parameters are strings - consider adding coerce:\"\" tag.",
 				field.Name, queryParam, field.TypeString),
 			field.Name,
-			ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+			ast_domain.Location{},
 			nil,
 			annotator_dto.CodeQueryPropError,
 		)
@@ -274,7 +268,7 @@ func (p *propParser) validateQueryType(field *inspector_dto.Field, queryParam st
 			fmt.Sprintf("Prop '%s' uses query:%q but has type '%s'. Query binding is not supported for slice or map types.",
 				field.Name, queryParam, field.TypeString),
 			field.Name,
-			ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+			ast_domain.Location{},
 			nil,
 			annotator_dto.CodeQueryPropError,
 		)

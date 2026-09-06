@@ -631,7 +631,7 @@ func TestPKCCompletion_EmptyPKCFile(t *testing.T) {
 		URI:     "file:///test.pkc",
 	}
 
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 	result, err := document.GetCompletions(context.Background(), position)
 	require.NoError(t, err)
 	require.NotNil(t, result)

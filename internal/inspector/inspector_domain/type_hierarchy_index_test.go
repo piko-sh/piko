@@ -323,7 +323,7 @@ func TestTypeHierarchyIndex(t *testing.T) {
 
 	t.Run("should handle TypeData with nil Packages", func(t *testing.T) {
 		t.Parallel()
-		index := NewTypeHierarchyIndex(&inspector_dto.TypeData{Packages: nil})
+		index := NewTypeHierarchyIndex(&inspector_dto.TypeData{})
 		assert.Empty(t, index.GetSupertypes("pkg/a", "Anything"))
 	})
 

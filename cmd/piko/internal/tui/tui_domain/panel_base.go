@@ -84,16 +84,10 @@ type BasePanel struct {
 // Returns BasePanel which is initialised with default values for dimensions, cursor
 // position, and focus state.
 func NewBasePanel(id, title string) BasePanel {
-	return BasePanel{
-		id:           id,
-		title:        title,
-		keyBindings:  nil,
-		width:        0,
-		height:       0,
-		cursor:       0,
-		scrollOffset: 0,
-		focused:      false,
-	}
+	panel := BasePanel{}
+	panel.id = id
+	panel.title = title
+	return panel
 }
 
 // SetTitleSuffix replaces the dim suffix appended to the panel title in RenderFrame. Pass

@@ -84,7 +84,7 @@ func (m AffineMatrix) compose(fn AffineMatrix) AffineMatrix {
 //
 // Returns ok == false if the value cannot be parsed.
 func ParseCSSTransform(value string) (AffineMatrix, bool) {
-	result := AffineMatrix{a: 1, d: 1}
+	result := AffineMatrix{a: 1, d: 1, b: 0, c: 0, e: 0, f: 0}
 	value = strings.TrimSpace(value)
 	if value == "" || value == "none" {
 		return result, true
@@ -197,7 +197,7 @@ func parseTranslate(parts []string) (AffineMatrix, bool) {
 	if len(parts) >= 2 {
 		ty = parseLength(parts[1])
 	}
-	return AffineMatrix{a: 1, d: 1, e: tx, f: ty}, true
+	return AffineMatrix{a: 1, d: 1, e: tx, f: ty, b: 0, c: 0}, true
 }
 
 // parseTranslateX parses a CSS translateX(tx) function.
@@ -210,7 +210,7 @@ func parseTranslateX(parts []string) (AffineMatrix, bool) {
 	if len(parts) < 1 {
 		return AffineMatrix{}, false
 	}
-	return AffineMatrix{a: 1, d: 1, e: parseLength(parts[0])}, true
+	return AffineMatrix{a: 1, d: 1, e: parseLength(parts[0]), b: 0, c: 0, f: 0}, true
 }
 
 // parseTranslateY parses a CSS translateY(ty) function.
@@ -223,7 +223,7 @@ func parseTranslateY(parts []string) (AffineMatrix, bool) {
 	if len(parts) < 1 {
 		return AffineMatrix{}, false
 	}
-	return AffineMatrix{a: 1, d: 1, f: parseLength(parts[0])}, true
+	return AffineMatrix{a: 1, d: 1, f: parseLength(parts[0]), b: 0, c: 0, e: 0}, true
 }
 
 // parseScale parses a CSS scale(sx[, sy]) function.
@@ -241,7 +241,7 @@ func parseScale(parts []string) (AffineMatrix, bool) {
 	if len(parts) >= 2 {
 		sy = parseNumber(parts[1])
 	}
-	return AffineMatrix{a: sx, d: sy}, true
+	return AffineMatrix{a: sx, d: sy, b: 0, c: 0, e: 0, f: 0}, true
 }
 
 // parseScaleX parses a CSS scaleX(sx) function.
@@ -254,7 +254,7 @@ func parseScaleX(parts []string) (AffineMatrix, bool) {
 	if len(parts) < 1 {
 		return AffineMatrix{}, false
 	}
-	return AffineMatrix{a: parseNumber(parts[0]), d: 1}, true
+	return AffineMatrix{a: parseNumber(parts[0]), d: 1, b: 0, c: 0, e: 0, f: 0}, true
 }
 
 // parseScaleY parses a CSS scaleY(sy) function.
@@ -267,7 +267,7 @@ func parseScaleY(parts []string) (AffineMatrix, bool) {
 	if len(parts) < 1 {
 		return AffineMatrix{}, false
 	}
-	return AffineMatrix{a: 1, d: parseNumber(parts[0])}, true
+	return AffineMatrix{a: 1, d: parseNumber(parts[0]), b: 0, c: 0, e: 0, f: 0}, true
 }
 
 // parseRotate parses a CSS rotate(angle) function.
@@ -283,7 +283,7 @@ func parseRotate(parts []string) (AffineMatrix, bool) {
 	angle := parseAngle(parts[0])
 	cosA := math.Cos(angle)
 	sinA := math.Sin(angle)
-	return AffineMatrix{a: cosA, b: sinA, c: -sinA, d: cosA}, true
+	return AffineMatrix{a: cosA, b: sinA, c: -sinA, d: cosA, e: 0, f: 0}, true
 }
 
 // parseSkewX parses a CSS skewX(angle) function.
@@ -296,7 +296,7 @@ func parseSkewX(parts []string) (AffineMatrix, bool) {
 	if len(parts) < 1 {
 		return AffineMatrix{}, false
 	}
-	return AffineMatrix{a: 1, c: math.Tan(parseAngle(parts[0])), d: 1}, true
+	return AffineMatrix{a: 1, c: math.Tan(parseAngle(parts[0])), d: 1, b: 0, e: 0, f: 0}, true
 }
 
 // parseSkewY parses a CSS skewY(angle) function.
@@ -309,7 +309,7 @@ func parseSkewY(parts []string) (AffineMatrix, bool) {
 	if len(parts) < 1 {
 		return AffineMatrix{}, false
 	}
-	return AffineMatrix{a: 1, b: math.Tan(parseAngle(parts[0])), d: 1}, true
+	return AffineMatrix{a: 1, b: math.Tan(parseAngle(parts[0])), d: 1, c: 0, e: 0, f: 0}, true
 }
 
 // parseMatrix parses a CSS matrix(a, b, c, d, e, f) function.

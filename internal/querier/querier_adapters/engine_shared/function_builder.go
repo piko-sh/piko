@@ -68,7 +68,11 @@ func NewCatalogueBuilder() *CatalogueBuilder {
 func (*CatalogueBuilder) Args(arguments ...Arg) []querier_dto.FunctionArgument {
 	result := make([]querier_dto.FunctionArgument, 0, len(arguments))
 	for index := range arguments {
-		result = append(result, querier_dto.FunctionArgument{Name: arguments[index].Name, Type: arguments[index].Type})
+		result = append(result, querier_dto.FunctionArgument{
+			Name:       arguments[index].Name,
+			Type:       arguments[index].Type,
+			IsOptional: false,
+		})
 	}
 	return result
 }
@@ -98,11 +102,11 @@ func (b *CatalogueBuilder) Add(name string, signature *querier_dto.FunctionSigna
 //
 // Returns *querier_dto.FunctionSignature which is the registered signature.
 func (b *CatalogueBuilder) NullOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) *querier_dto.FunctionSignature {
-	return b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		NullableBehaviour: querier_dto.FunctionNullableReturnsNullOnNull,
-	})
+	return b.Add(name, querier_dto.NewFunctionSignature(
+		arguments,
+		returnType,
+		querier_dto.FunctionNullableReturnsNullOnNull,
+	))
 }
 
 // NeverNull registers a function that never returns NULL.
@@ -114,11 +118,7 @@ func (b *CatalogueBuilder) NullOnNull(name string, arguments []querier_dto.Funct
 //
 // Returns *querier_dto.FunctionSignature which is the registered signature.
 func (b *CatalogueBuilder) NeverNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) *querier_dto.FunctionSignature {
-	return b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	return b.Add(name, querier_dto.NewFunctionSignature(arguments, returnType, querier_dto.FunctionNullableNeverNull))
 }
 
 // CalledOnNull registers a function that is invoked even with NULL arguments; the result
@@ -131,11 +131,11 @@ func (b *CatalogueBuilder) NeverNull(name string, arguments []querier_dto.Functi
 //
 // Returns *querier_dto.FunctionSignature which is the registered signature.
 func (b *CatalogueBuilder) CalledOnNull(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) *querier_dto.FunctionSignature {
-	return b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
+	return b.Add(name, querier_dto.NewFunctionSignature(
+		arguments,
+		returnType,
+		querier_dto.FunctionNullableCalledOnNull,
+	))
 }
 
 // ModifiesData registers a built-in that may modify database state.
@@ -152,11 +152,11 @@ func (b *CatalogueBuilder) CalledOnNull(name string, arguments []querier_dto.Fun
 //
 // Returns *querier_dto.FunctionSignature which is the registered signature.
 func (b *CatalogueBuilder) ModifiesData(name string, arguments []querier_dto.FunctionArgument, returnType querier_dto.SQLType) *querier_dto.FunctionSignature {
-	signature := b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         arguments,
-		ReturnType:        returnType,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	signature := b.Add(name, querier_dto.NewFunctionSignature(
+		arguments,
+		returnType,
+		querier_dto.FunctionNullableNeverNull,
+	))
 	signature.DataAccess = querier_dto.DataAccessModifiesData
 	return signature
 }

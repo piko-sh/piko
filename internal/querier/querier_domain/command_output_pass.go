@@ -56,8 +56,11 @@ func (*commandOutputPass) Analyse(context *diagnosticContext) []querier_dto.Sour
 					"query %q uses command %q but produces no output columns",
 					context.Query.Name, commandName(context.Query.Command),
 				),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeCommandOutputMismatch,
+				Severity:   querier_dto.SeverityWarning,
+				Code:       querier_dto.CodeCommandOutputMismatch,
+				Suggestion: "",
+				EndLine:    0,
+				EndColumn:  0,
 			})
 		}
 
@@ -72,8 +75,11 @@ func (*commandOutputPass) Analyse(context *diagnosticContext) []querier_dto.Sour
 					"query %q uses command %q but produces %d output columns",
 					context.Query.Name, commandName(context.Query.Command), len(context.Query.OutputColumns),
 				),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeCommandOutputMismatch,
+				Severity:   querier_dto.SeverityWarning,
+				Code:       querier_dto.CodeCommandOutputMismatch,
+				Suggestion: "",
+				EndLine:    0,
+				EndColumn:  0,
 			})
 		}
 	}
@@ -114,8 +120,11 @@ func conflictDoNothingReturningDiagnostic(context *diagnosticContext) *querier_d
 				"(row, false, nil), use command \"exec\"/\"execrows\", or handle errors.Is with that sentinel.",
 			context.Query.Name, commandName(context.Query.Command),
 		),
-		Severity: querier_dto.SeverityWarning,
-		Code:     querier_dto.CodeConflictDoNothingReturning,
+		Severity:   querier_dto.SeverityWarning,
+		Code:       querier_dto.CodeConflictDoNothingReturning,
+		Suggestion: "",
+		EndLine:    0,
+		EndColumn:  0,
 	}
 }
 
@@ -139,8 +148,11 @@ func optionalMisuseDiagnostic(context *diagnosticContext) *querier_dto.SourceErr
 			"query %q sets optional: true but %s. Remove optional or use a static command:one.",
 			context.Query.Name, reason,
 		),
-		Severity: querier_dto.SeverityError,
-		Code:     querier_dto.CodeOptionalNonOneCommand,
+		Severity:   querier_dto.SeverityError,
+		Code:       querier_dto.CodeOptionalNonOneCommand,
+		Suggestion: "",
+		EndLine:    0,
+		EndColumn:  0,
 	}
 }
 

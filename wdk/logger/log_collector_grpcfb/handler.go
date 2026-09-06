@@ -193,6 +193,8 @@ type rateLimiter struct {
 func newRateLimiter(rate, burst float64, clk clock.Clock) *rateLimiter {
 	return &rateLimiter{
 		clock: clk, last: time.Time{}, rate: rate, burst: burst, tokens: burst, dropped: 0,
+		warnedOnce: false,
+		mu:         sync.Mutex{},
 	}
 }
 
@@ -324,6 +326,10 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		Level:       r.Level.String(),
 		Message:     r.Message,
 		TimestampMs: r.Time.UnixMilli(),
+		Logger:      "",
+		TraceID:     "",
+		SpanID:      "",
+		Fields:      nil,
 	}
 	fields, extracted := h.collectFields(&r, &line)
 	line.Fields = fields
@@ -468,12 +474,19 @@ func (h *Handler) WithGroup(name string) slog.Handler {
 func New(client *telemetry_grpcfb.Client) *Handler {
 	realClock := clock.RealClock()
 	return &Handler{
-		client:      client,
-		minLevel:    slog.LevelInfo,
-		emitErrors:  true,
-		limiter:     newRateLimiter(defaultLogRate, defaultLogBurst, realClock),
-		clock:       realClock,
-		breadcrumbs: newBreadcrumbRing(breadcrumbRingCap),
+		client:       client,
+		minLevel:     slog.LevelInfo,
+		emitErrors:   true,
+		limiter:      newRateLimiter(defaultLogRate, defaultLogBurst, realClock),
+		clock:        realClock,
+		breadcrumbs:  newBreadcrumbRing(breadcrumbRingCap),
+		group:        "",
+		release:      "",
+		environment:  "",
+		attrs:        nil,
+		owns:         false,
+		emitUserID:   false,
+		emitClientIP: false,
 	}
 }
 
@@ -804,13 +817,19 @@ func Dial(target string, config telemetry_grpcfb.Config, dialOpts ...grpc.DialOp
 	}
 	realClock := clock.RealClock()
 	return &Handler{
-		client:      client,
-		minLevel:    slog.LevelInfo,
-		owns:        true,
-		emitErrors:  true,
-		limiter:     newRateLimiter(defaultLogRate, defaultLogBurst, realClock),
-		clock:       realClock,
-		breadcrumbs: newBreadcrumbRing(breadcrumbRingCap),
+		client:       client,
+		minLevel:     slog.LevelInfo,
+		owns:         true,
+		emitErrors:   true,
+		limiter:      newRateLimiter(defaultLogRate, defaultLogBurst, realClock),
+		clock:        realClock,
+		breadcrumbs:  newBreadcrumbRing(breadcrumbRingCap),
+		group:        "",
+		release:      "",
+		environment:  "",
+		attrs:        nil,
+		emitUserID:   false,
+		emitClientIP: false,
 	}, nil
 }
 

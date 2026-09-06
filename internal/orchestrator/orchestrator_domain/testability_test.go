@@ -91,13 +91,36 @@ func Test_calculateRetryBackoff(t *testing.T) {
 			expectedMinimum: 1 * time.Second,
 			expectedMaximum: 1 * time.Second,
 		},
+		{
+			name:            "attempt 4 is capped at the maximum backoff",
+			attempt:         4,
+			randFunction:    nil,
+			expectedMinimum: 30 * time.Minute,
+			expectedMaximum: 30 * time.Minute,
+		},
+		{
+			name:            "attempt large enough to overflow is capped at the maximum backoff",
+			attempt:         40,
+			randFunction:    nil,
+			expectedMinimum: 30 * time.Minute,
+			expectedMaximum: 30 * time.Minute,
+		},
+		{
+			name:    "capped backoff still adds jitter",
+			attempt: 25,
+			randFunction: func(n int) int {
+				return 250
+			},
+			expectedMinimum: 30*time.Minute + 250*time.Millisecond,
+			expectedMaximum: 30*time.Minute + 250*time.Millisecond,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := calculateRetryBackoff(tc.attempt, tc.randFunction)
+			result := calculateRetryBackoff(tc.attempt, 30*time.Minute, tc.randFunction)
 
 			if result < tc.expectedMinimum {
 				t.Errorf("expected backoff >= %v, got %v", tc.expectedMinimum, result)
@@ -309,11 +332,8 @@ func Test_determineLivenessState(t *testing.T) {
 		input           healthCheckInput
 	}{
 		{
-			name: "healthy when running",
-			input: healthCheckInput{
-				IsStopped:    false,
-				TaskStoreNil: false,
-			},
+			name:            "healthy when running",
+			input:           healthCheckInput{},
 			expectedState:   healthprobe_dto.StateHealthy,
 			expectedMessage: "Orchestrator service is running",
 		},
@@ -390,11 +410,8 @@ func Test_determineReadinessState(t *testing.T) {
 			expectedMessage: "Orchestrator ready with 1 executor(s)",
 		},
 		{
-			name: "degraded with no executors",
-			input: healthCheckInput{
-				IsStopped:     false,
-				ExecutorCount: 0,
-			},
+			name:            "degraded with no executors",
+			input:           healthCheckInput{},
 			expectedState:   healthprobe_dto.StateDegraded,
 			expectedMessage: "Orchestrator running but no executors registered",
 		},

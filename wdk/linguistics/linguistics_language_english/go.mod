@@ -10,6 +10,6 @@ require (
 
 require (
 	github.com/kljensen/snowball v0.10.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	piko.sh/piko v0.0.0 // indirect
 )

@@ -761,7 +761,7 @@ func parseFloatValue(value string) float64 {
 	if err != nil {
 		return 0
 	}
-	return result
+	return finiteOrZero(result)
 }
 
 // parseIntValue parses a string as an int, returning zero on failure.

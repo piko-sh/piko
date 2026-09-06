@@ -19,12 +19,18 @@
 package pikotest_domain_test
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/pikotest/pikotest_domain"
+	"piko.sh/piko/internal/templater/templater_dto"
 )
 
 func TestNewRequest_Defaults(t *testing.T) {
@@ -211,4 +217,52 @@ func TestRequestBuilder_Chaining(t *testing.T) {
 
 	request := builder.Build(context.Background())
 	require.NotNil(t, request)
+}
+
+func TestRequestBuilder_BrokenTranslationsRenderLiterallyAndAreReported(t *testing.T) {
+	t.Parallel()
+
+	broken := map[string]map[string]string{"en": {"greeting": "Hello ${name"}}
+
+	testCases := []struct {
+		name       string
+		build      func(ctx context.Context) *templater_dto.RequestData
+		translate  func(request *templater_dto.RequestData) string
+		wantSource string
+	}{
+		{
+			name: "global translations through Build",
+			build: func(ctx context.Context) *templater_dto.RequestData {
+				return pikotest_domain.NewRequest("GET", "/").WithGlobalTranslations(broken).Build(ctx)
+			},
+			translate:  func(request *templater_dto.RequestData) string { return request.T("greeting").String() },
+			wantSource: "pikotest global translations",
+		},
+		{
+			name: "local translations through BuildHTTPRequest",
+			build: func(ctx context.Context) *templater_dto.RequestData {
+				_, request := pikotest_domain.NewRequest("GET", "/").WithLocalTranslations(broken).BuildHTTPRequest(ctx)
+				return request
+			},
+			translate:  func(request *templater_dto.RequestData) string { return request.LT("greeting").String() },
+			wantSource: "pikotest local translations",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			logOutput := new(bytes.Buffer)
+			ctx := logger_domain.WithLogger(context.Background(),
+				logger_domain.New(slog.New(slog.NewTextHandler(logOutput, nil)), "pikotest-test"))
+
+			request := tc.build(ctx)
+
+			assert.Equal(t, "Hello ${name", tc.translate(request))
+			assert.Equal(t, 1, strings.Count(logOutput.String(), "could not be parsed"))
+			assert.Contains(t, logOutput.String(), tc.wantSource)
+			assert.Contains(t, logOutput.String(), "en:greeting: Unterminated expression")
+		})
+	}
 }

@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 

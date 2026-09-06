@@ -112,8 +112,10 @@ type SymbolTable struct {
 // Returns *SymbolTable which is the newly created symbol table.
 func NewSymbolTable(parent *SymbolTable) *SymbolTable {
 	return &SymbolTable{
-		parent:  parent,
-		symbols: make(map[string]Symbol, initialSymbolCapacity),
+		parent:      parent,
+		symbols:     make(map[string]Symbol, initialSymbolCapacity),
+		cachedNames: nil,
+		namesCached: false,
 	}
 }
 
@@ -266,6 +268,7 @@ func NewRootAnalysisContext(diagnostics *[]*ast_domain.Diagnostic, goPackagePath
 		CurrentGoSourcePath:      goSourcePath,
 		SFCSourcePath:            sfcSourcePath,
 		Logger:                   log,
+		KnownNonNilExpressions:   nil,
 	}
 }
 
@@ -376,9 +379,10 @@ func (ac *AnalysisContext) SetLocalTranslationKeys(localKeys map[string]struct{}
 // Returns *AnalysisContext which is the same context, enabling method chaining.
 func (ac *AnalysisContext) WithSymbol(name string, typeExpression goast.Expr) *AnalysisContext {
 	ac.Symbols.Define(Symbol{
-		Name:           name,
-		CodeGenVarName: name,
-		TypeInfo:       newSimpleTypeInfo(typeExpression),
+		Name:                name,
+		CodeGenVarName:      name,
+		TypeInfo:            newSimpleTypeInfo(typeExpression),
+		SourceInvocationKey: "",
 	})
 	return ac
 }
@@ -404,6 +408,7 @@ func (ac *AnalysisContext) WithTypedSymbol(symbol Symbol) *AnalysisContext {
 // Takes location (ast_domain.Location) which specifies where the issue occurred.
 // Takes path (string) which sets a custom source path. If empty, uses the default path
 // from the context.
+// Takes code (string) which identifies the diagnostic category.
 func (ac *AnalysisContext) addDiagnosticWithPath(sev ast_domain.Severity, message, expression string, location ast_domain.Location, path, code string) {
 	sourcePath := ac.SFCSourcePath
 	if path != "" {
@@ -421,6 +426,7 @@ func (ac *AnalysisContext) addDiagnosticWithPath(sev ast_domain.Severity, messag
 // Takes location (ast_domain.Location) which specifies the source location.
 // Takes annotations (*ast_domain.GoGeneratorAnnotation) which provides optional source
 // path override.
+// Takes code (string) which identifies the diagnostic category.
 func (ac *AnalysisContext) addDiagnostic(severity ast_domain.Severity, message, expression string, location ast_domain.Location, annotations *ast_domain.GoGeneratorAnnotation, code string) {
 	sourcePath := ac.SFCSourcePath
 	if annotations != nil && annotations.OriginalSourcePath != nil {
@@ -437,6 +443,7 @@ func (ac *AnalysisContext) addDiagnostic(severity ast_domain.Severity, message, 
 // Takes location (ast_domain.Location) which specifies where the diagnostic occurs.
 // Takes annotations (*ast_domain.GoGeneratorAnnotation) which provides the original
 // source path if available.
+// Takes code (string) which identifies the diagnostic category.
 func (ac *AnalysisContext) addDiagnosticForExpression(
 	severity ast_domain.Severity, message string, expression ast_domain.Expression,
 	location ast_domain.Location, annotations *ast_domain.GoGeneratorAnnotation, code string,
@@ -501,6 +508,7 @@ func defineGlobalSymbols(ctx *AnalysisContext, typeResolver *TypeResolver) {
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 
 	ctx.Symbols.Define(Symbol{Name: "T", CodeGenVarName: "r.T", TypeInfo: translationFuncTypeInfo, SourceInvocationKey: ""})
@@ -601,6 +609,7 @@ func defineAndValidateLocalFunctions(ctx *AnalysisContext, virtualComponent *ann
 					IsExportedPackageSymbol: true,
 					InitialPackagePath:      "",
 					InitialFilePath:         "",
+					UnderlyingTypeString:    "",
 				},
 				SourceInvocationKey: "",
 			})
@@ -645,6 +654,7 @@ func defineExportedTypeNames(ctx *AnalysisContext, virtualComponent *annotator_d
 					IsExportedPackageSymbol: true,
 					InitialPackagePath:      "",
 					InitialFilePath:         "",
+					UnderlyingTypeString:    "",
 				},
 				SourceInvocationKey: "",
 			})
@@ -758,6 +768,7 @@ func defineExportedSymbol(ctx *AnalysisContext, symbolName string, typeExpr goas
 			IsExportedPackageSymbol: true,
 			InitialPackagePath:      "",
 			InitialFilePath:         "",
+			UnderlyingTypeString:    "",
 		},
 		SourceInvocationKey: "",
 	})
@@ -773,18 +784,12 @@ func defineExportedSymbol(ctx *AnalysisContext, symbolName string, typeExpr goas
 // Returns *ast_domain.ResolvedTypeInfo which is map[string]interface{} as a fallback
 // type.
 func inferDataType(_ *TypeResolver, _ *annotator_dto.VirtualComponent) *ast_domain.ResolvedTypeInfo {
-	return &ast_domain.ResolvedTypeInfo{
-		TypeExpression: &goast.MapType{
-			Key:   goast.NewIdent("string"),
-			Value: goast.NewIdent("interface{}"),
-		},
-		PackageAlias:            "",
-		CanonicalPackagePath:    "",
-		IsSynthetic:             false,
-		IsExportedPackageSymbol: false,
-		InitialPackagePath:      "",
-		InitialFilePath:         "",
+	info := ast_domain.ResolvedTypeInfo{}
+	info.TypeExpression = &goast.MapType{
+		Key:   goast.NewIdent("string"),
+		Value: goast.NewIdent("interface{}"),
 	}
+	return &info
 }
 
 // populateContext sets up the symbol table for a component's scope.

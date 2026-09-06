@@ -20,7 +20,10 @@
 
 package daemon_domain
 
-import "context"
+import (
+	"context"
+)
 
-// checkHostConfiguration is a no-op on Windows as sysctl settings do not apply.
+// checkHostConfiguration is a no-op outside Linux because the recommended sysctl settings
+// are Linux kernel parameters.
 func checkHostConfiguration(_ context.Context) {}

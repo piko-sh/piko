@@ -41,6 +41,8 @@ type FocusManager struct {
 func NewFocusManager() *FocusManager {
 	return &FocusManager{
 		visibleIDs: make(map[string]struct{}),
+		activeID:   "",
+		panels:     nil,
 	}
 }
 

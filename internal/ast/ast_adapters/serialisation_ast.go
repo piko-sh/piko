@@ -906,8 +906,13 @@ func (d *decoder) unpackTemplateAST(ctx context.Context, fb *ast_schema_gen.Temp
 	}
 
 	ast := &ast_domain.TemplateAST{
-		SourcePath: new(mem.String(fb.SourcePath())),
-		Tidied:     fb.Tidied(),
+		SourcePath:        new(mem.String(fb.SourcePath())),
+		Tidied:            fb.Tidied(),
+		ExpiresAtUnixNano: nil,
+		Metadata:          nil,
+		RootNodes:         nil,
+		Diagnostics:       nil,
+		SourceSize:        0,
 	}
 
 	var err error
@@ -950,6 +955,9 @@ func (d *decoder) unpackTemplateNodeVector(ctx context.Context, length int, acce
 	if length == 0 {
 		return nil, nil
 	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
+	}
 	result := make([]*ast_domain.TemplateNode, length)
 	var nodeFB ast_schema_gen.TemplateNodeFB
 	for i := range length {
@@ -976,6 +984,9 @@ func (d *decoder) unpackDirectWriters(ctx context.Context, fb *ast_schema_gen.Te
 	length := fb.AttributeWritersLength()
 	if length == 0 {
 		return nil, nil
+	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
 	}
 	result := make([]*ast_domain.DirectWriter, length)
 	for i := range length {
@@ -1130,16 +1141,7 @@ func (d *decoder) unpackTemplateNode(ctx context.Context, fb *ast_schema_gen.Tem
 		return nil, nil
 	}
 
-	node := &ast_domain.TemplateNode{
-		NodeType:           ast_domain.NodeType(fb.NodeType()),
-		TagName:            mem.String(fb.TagName()),
-		TextContent:        mem.String(fb.TextContent()),
-		InnerHTML:          mem.String(fb.InnerHtml()),
-		IsContentEditable:  fb.IsContentEditable(),
-		PreserveWhitespace: fb.PreserveWhitespace(),
-		PreferredFormat:    ast_domain.FormatHint(fb.PreferredFormat()),
-		PrerenderedHTML:    fb.PrerenderedHtmlBytes(),
-	}
+	node := newDecodedTemplateNode(fb)
 
 	if err := d.unpackTemplateNodeRanges(fb, node); err != nil {
 		return nil, fmt.Errorf("unpacking template node ranges: %w", err)
@@ -1167,9 +1169,12 @@ func (d *decoder) unpackTemplateNode(ctx context.Context, fb *ast_schema_gen.Tem
 //
 // Returns *ast_domain.DirectWriter which is the reconstructed domain object.
 // Returns error when deserialisation fails.
-func (*decoder) unpackDirectWriter(ctx context.Context, fb *ast_schema_gen.DirectWriterFB) (*ast_domain.DirectWriter, error) {
+func (d *decoder) unpackDirectWriter(ctx context.Context, fb *ast_schema_gen.DirectWriterFB) (*ast_domain.DirectWriter, error) {
 	if fb == nil || fb.PartsLength() == 0 {
 		return nil, nil
+	}
+	if err := d.reserveElements(fb.PartsLength()); err != nil {
+		return nil, err
 	}
 
 	dw := ast_domain.GetDirectWriter()
@@ -1207,6 +1212,27 @@ func (*decoder) unpackDirectWriter(ctx context.Context, fb *ast_schema_gen.Direc
 	return dw, nil
 }
 
+// unpackEventModifiers reads the event modifier names of a directive.
+//
+// Takes fb (*ast_schema_gen.DirectiveFB) which is the FlatBuffer directive to read.
+//
+// Returns []string which holds the modifiers, or nil when there are none.
+// Returns error when the modifier count exceeds what the payload can hold.
+func (d *decoder) unpackEventModifiers(fb *ast_schema_gen.DirectiveFB) ([]string, error) {
+	length := fb.EventModifiersLength()
+	if length == 0 {
+		return nil, nil
+	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
+	}
+	modifiers := make([]string, length)
+	for i := range length {
+		modifiers[i] = mem.String(fb.EventModifiers(i))
+	}
+	return modifiers, nil
+}
+
 // unpackDirective converts a FlatBuffer directive into a domain directive.
 //
 // Takes fb (*ast_schema_gen.DirectiveFB) which is the FlatBuffer directive to convert.
@@ -1227,22 +1253,13 @@ func (d *decoder) unpackDirective(fb *ast_schema_gen.DirectiveFB) (*ast_domain.D
 		goType = ast_domain.DirectiveType(fbTypeVal)
 	}
 
-	directive := &ast_domain.Directive{
-		Type:          goType,
-		Arg:           mem.String(fb.Argument()),
-		Modifier:      mem.String(fb.Modifier()),
-		RawExpression: mem.String(fb.RawExpression()),
-		IsStaticEvent: fb.IsStaticEvent(),
-	}
-
-	if n := fb.EventModifiersLength(); n > 0 {
-		directive.EventModifiers = make([]string, n)
-		for i := range n {
-			directive.EventModifiers[i] = mem.String(fb.EventModifiers(i))
-		}
-	}
+	directive := newDecodedDirective(fb, goType)
 
 	var err error
+	directive.EventModifiers, err = d.unpackEventModifiers(fb)
+	if err != nil {
+		return nil, err
+	}
 	directive.Expression, err = d.unpackExpressionNode(fb.Expression(&d.expressionNodeFB))
 	if err != nil {
 		return nil, err
@@ -1323,8 +1340,13 @@ func (d *decoder) unpackDynamicAttribute(fb *ast_schema_gen.DynamicAttributeFB) 
 	}
 
 	attr := ast_domain.DynamicAttribute{
-		Name:          mem.String(fb.Name()),
-		RawExpression: mem.String(fb.RawExpression()),
+		Name:           mem.String(fb.Name()),
+		RawExpression:  mem.String(fb.RawExpression()),
+		Expression:     nil,
+		GoAnnotations:  nil,
+		Location:       ast_domain.Location{},
+		NameLocation:   ast_domain.Location{},
+		AttributeRange: ast_domain.Range{},
 	}
 
 	var err error
@@ -1372,6 +1394,9 @@ func (d *decoder) unpackTextPart(fb *ast_schema_gen.TextPartFB) (ast_domain.Text
 		IsLiteral:     fb.IsLiteral(),
 		Literal:       mem.String(fb.Literal()),
 		RawExpression: mem.String(fb.RawExpression()),
+		Expression:    nil,
+		GoAnnotations: nil,
+		Location:      ast_domain.Location{},
 	}
 
 	var err error

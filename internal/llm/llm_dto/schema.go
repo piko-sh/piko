@@ -167,7 +167,7 @@ func (s JSONSchema) DeepCopy() JSONSchema {
 //
 // Returns *ResponseFormat which is set up for JSON object output.
 func ResponseFormatJSON() *ResponseFormat {
-	return &ResponseFormat{Type: ResponseFormatJSONObject}
+	return &ResponseFormat{Type: ResponseFormatJSONObject, JSONSchema: nil}
 }
 
 // ResponseFormatStructured returns a ResponseFormat with a JSON schema.
@@ -180,9 +180,10 @@ func ResponseFormatStructured(name string, schema JSONSchema) *ResponseFormat {
 	return &ResponseFormat{
 		Type: ResponseFormatJSONSchema,
 		JSONSchema: &JSONSchemaDefinition{
-			Name:   name,
-			Schema: schema,
-			Strict: new(true),
+			Name:        name,
+			Schema:      schema,
+			Strict:      new(true),
+			Description: nil,
 		},
 	}
 }
@@ -191,28 +192,36 @@ func ResponseFormatStructured(name string, schema JSONSchema) *ResponseFormat {
 //
 // Returns JSONSchema which is set up to validate string values.
 func StringSchema() JSONSchema {
-	return JSONSchema{Type: "string"}
+	schema := JSONSchema{}
+	schema.Type = "string"
+	return schema
 }
 
 // IntegerSchema returns a JSONSchema configured for integer values.
 //
 // Returns JSONSchema which describes an integer type for JSON validation.
 func IntegerSchema() JSONSchema {
-	return JSONSchema{Type: "integer"}
+	schema := JSONSchema{}
+	schema.Type = "integer"
+	return schema
 }
 
 // NumberSchema returns a JSON schema for a number type.
 //
 // Returns JSONSchema which is set up for number values.
 func NumberSchema() JSONSchema {
-	return JSONSchema{Type: "number"}
+	schema := JSONSchema{}
+	schema.Type = "number"
+	return schema
 }
 
 // BooleanSchema returns a JSON schema for a boolean type.
 //
 // Returns JSONSchema which is set up to validate boolean values.
 func BooleanSchema() JSONSchema {
-	return JSONSchema{Type: "boolean"}
+	schema := JSONSchema{}
+	schema.Type = "boolean"
+	return schema
 }
 
 // ArraySchema returns a JSONSchema for an array with the given item type.
@@ -221,10 +230,10 @@ func BooleanSchema() JSONSchema {
 //
 // Returns JSONSchema which is set up for array values.
 func ArraySchema(items JSONSchema) JSONSchema {
-	return JSONSchema{
-		Type:  "array",
-		Items: &items,
-	}
+	schema := JSONSchema{}
+	schema.Type = "array"
+	schema.Items = &items
+	return schema
 }
 
 // ObjectSchema returns a JSONSchema for an object with the given properties.
@@ -234,12 +243,12 @@ func ArraySchema(items JSONSchema) JSONSchema {
 //
 // Returns JSONSchema set up for object values with additional properties disabled.
 func ObjectSchema(properties map[string]*JSONSchema, required []string) JSONSchema {
-	return JSONSchema{
-		Type:                 "object",
-		Properties:           properties,
-		Required:             required,
-		AdditionalProperties: new(false),
-	}
+	schema := JSONSchema{}
+	schema.Type = "object"
+	schema.Properties = properties
+	schema.Required = required
+	schema.AdditionalProperties = new(false)
+	return schema
 }
 
 // EnumSchema returns a JSONSchema for a string enum.
@@ -252,10 +261,10 @@ func EnumSchema(values ...string) JSONSchema {
 	for i, v := range values {
 		enumVals[i] = v
 	}
-	return JSONSchema{
-		Type: "string",
-		Enum: enumVals,
-	}
+	schema := JSONSchema{}
+	schema.Type = "string"
+	schema.Enum = enumVals
+	return schema
 }
 
 // NullableSchema returns a schema that allows null values.
@@ -264,12 +273,29 @@ func EnumSchema(values ...string) JSONSchema {
 //
 // Returns JSONSchema which allows the base type or null.
 func NullableSchema(schema JSONSchema) JSONSchema {
-	return JSONSchema{
-		AnyOf: []*JSONSchema{
-			&schema,
-			{Type: "null"},
+	jsonSchema := JSONSchema{}
+	jsonSchema.AnyOf = []*JSONSchema{
+		&schema,
+		{
+			Type:                 "null",
+			Description:          nil,
+			Properties:           nil,
+			Required:             nil,
+			Items:                nil,
+			Enum:                 nil,
+			AdditionalProperties: nil,
+			Minimum:              nil,
+			Maximum:              nil,
+			MinLength:            nil,
+			MaxLength:            nil,
+			MinItems:             nil,
+			MaxItems:             nil,
+			Pattern:              nil,
+			Default:              nil,
+			AnyOf:                nil,
 		},
 	}
+	return jsonSchema
 }
 
 // copyPtr returns a pointer to a copy of the value, or nil if the input is nil.

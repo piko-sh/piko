@@ -117,15 +117,17 @@ type jsonType struct {
 	Fields []jsonField `json:"fields"`
 }
 
-// MarshalJSON serialises an ActionManifest to JSON bytes.
+// marshalManifestJSON serialises an ActionManifest to JSON bytes.
 //
 // Takes manifest (*typegen_dto.ActionManifest) which is the manifest to serialise.
 //
 // Returns []byte which contains the indented JSON representation.
 // Returns error when JSON marshalling fails.
-func MarshalJSON(manifest *typegen_dto.ActionManifest) ([]byte, error) {
+func marshalManifestJSON(manifest *typegen_dto.ActionManifest) ([]byte, error) {
 	jm := jsonManifest{
 		GeneratedAt: manifest.GeneratedAt.Unix(),
+		Actions:     nil,
+		Types:       nil,
 	}
 
 	jm.Actions = make([]jsonAction, len(manifest.Actions))
@@ -138,6 +140,7 @@ func MarshalJSON(manifest *typegen_dto.ActionManifest) ([]byte, error) {
 			Method:         manifest.Actions[i].Method,
 			ReturnType:     manifest.Actions[i].ReturnType,
 			Documentation:  manifest.Actions[i].Documentation,
+			Params:         nil,
 		}
 		ja.Params = make([]jsonParam, len(manifest.Actions[i].Params))
 		for j := range manifest.Actions[i].Params {
@@ -157,6 +160,7 @@ func MarshalJSON(manifest *typegen_dto.ActionManifest) ([]byte, error) {
 		jt := jsonType{
 			Name:        t.Name,
 			PackagePath: t.PackagePath,
+			Fields:      nil,
 		}
 		jt.Fields = make([]jsonField, len(t.Fields))
 		for j, f := range t.Fields {
@@ -175,13 +179,13 @@ func MarshalJSON(manifest *typegen_dto.ActionManifest) ([]byte, error) {
 	return json.MarshalIndent(jm, "", "  ")
 }
 
-// UnmarshalJSON deserialises JSON bytes to an ActionManifest.
+// unmarshalManifestJSON deserialises JSON bytes to an ActionManifest.
 //
 // Takes data ([]byte) which contains the JSON-encoded manifest.
 //
 // Returns *typegen_dto.ActionManifest which is the deserialised manifest.
 // Returns error when the JSON data is malformed or cannot be parsed.
-func UnmarshalJSON(data []byte) (*typegen_dto.ActionManifest, error) {
+func unmarshalManifestJSON(data []byte) (*typegen_dto.ActionManifest, error) {
 	var jm jsonManifest
 	if err := json.Unmarshal(data, &jm); err != nil {
 		return nil, fmt.Errorf("deserialising action manifest JSON: %w", err)
@@ -200,6 +204,7 @@ func UnmarshalJSON(data []byte) (*typegen_dto.ActionManifest, error) {
 			Method:         jm.Actions[i].Method,
 			ReturnType:     jm.Actions[i].ReturnType,
 			Documentation:  jm.Actions[i].Documentation,
+			Params:         nil,
 		}
 		a.Params = make([]typegen_dto.ActionParam, len(jm.Actions[i].Params))
 		for j := range jm.Actions[i].Params {
@@ -219,6 +224,7 @@ func UnmarshalJSON(data []byte) (*typegen_dto.ActionManifest, error) {
 		t := typegen_dto.ActionType{
 			Name:        jt.Name,
 			PackagePath: jt.PackagePath,
+			Fields:      nil,
 		}
 		t.Fields = make([]typegen_dto.ActionField, len(jt.Fields))
 		for j, jf := range jt.Fields {

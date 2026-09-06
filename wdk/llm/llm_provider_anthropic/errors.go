@@ -44,6 +44,7 @@ func wrapError(err error) error {
 			StatusCode: apiErr.StatusCode,
 			Message:    err.Error(),
 			Err:        err,
+			RetryAfter: 0,
 		}
 		if apiErr.Response != nil {
 			providerErr.RetryAfter = llm_domain.ParseRetryAfter(

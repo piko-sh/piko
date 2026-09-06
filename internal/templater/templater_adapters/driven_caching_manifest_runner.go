@@ -30,6 +30,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
@@ -64,6 +65,9 @@ const (
 	// backgroundCacheWriteConcurrency caps in-flight backgroundCacheWrite goroutines so a
 	// cache-miss storm does not spawn one goroutine plus one AST clone per request.
 	backgroundCacheWriteConcurrency = 8
+
+	// backgroundCacheWriteTimeout bounds one background cache write.
+	backgroundCacheWriteTimeout = 10 * time.Second
 )
 
 var (
@@ -200,6 +204,7 @@ func (c *CachingManifestRunner) runWithCache(
 	defer reqData.Release()
 
 	policy := pageEntry.GetCachePolicy(reqData)
+	ttl := time.Duration(policy.MaxAgeSeconds) * time.Second
 
 	if !policy.Enabled || policy.NoStore {
 		l.Trace("Caching disabled for this page, bypassing",
@@ -222,13 +227,13 @@ func (c *CachingManifestRunner) runWithCache(
 				logger_domain.Error(err),
 				logger_domain.String(logFieldCacheKey, cacheKey))
 			_ = c.cache.Delete(ctx, cacheKey)
-			return c.handleCacheMiss(ctx, pageDef, request, missFunction, cacheKey, pageEntry)
+			return c.handleCacheMiss(ctx, pageDef, request, missFunction, cacheKey, ttl)
 		}
 
 		return cachedEntry.AST.DeepClone(), metadata, pageEntry.GetStyling(), nil
 	}
 
-	return c.processCacheMiss(ctx, err, pageDef, request, missFunction, cacheKey, pageEntry)
+	return c.processCacheMiss(ctx, err, pageDef, request, missFunction, cacheKey, ttl)
 }
 
 // processCacheMiss handles cache miss cases, telling apart expected misses from errors.
@@ -238,7 +243,8 @@ func (c *CachingManifestRunner) runWithCache(
 // Takes request (*http.Request) which provides the incoming HTTP request.
 // Takes missFunction (missFunction) which creates fresh content on cache miss.
 // Takes cacheKey (string) which identifies the cache entry.
-// Takes pageEntry (templater_domain.PageEntryView) which provides page metadata.
+// Takes ttl (time.Duration) which is how long a fresh entry stays cached, resolved from
+// the page's cache policy while the request is live.
 //
 // Returns *ast_domain.TemplateAST which is the parsed template tree.
 // Returns templater_dto.InternalMetadata which contains rendering metadata.
@@ -251,7 +257,7 @@ func (c *CachingManifestRunner) processCacheMiss(
 	request *http.Request,
 	missFunction missFunction,
 	cacheKey string,
-	pageEntry templater_domain.PageEntryView,
+	ttl time.Duration,
 ) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -262,7 +268,7 @@ func (c *CachingManifestRunner) processCacheMiss(
 		return missFunction(ctx, pageDef, request)
 	}
 
-	return c.handleCacheMiss(ctx, pageDef, request, missFunction, cacheKey, pageEntry)
+	return c.handleCacheMiss(ctx, pageDef, request, missFunction, cacheKey, ttl)
 }
 
 // handleCacheMiss creates, encodes, and caches a new entry when the cache does not
@@ -272,7 +278,7 @@ func (c *CachingManifestRunner) processCacheMiss(
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes missFunction (missFunction) which creates fresh content when called.
 // Takes cacheKey (string) which identifies the cache entry.
-// Takes pageEntry (templater_domain.PageEntryView) which provides cache policy settings.
+// Takes ttl (time.Duration) which is how long the new entry stays cached.
 //
 // Returns *ast_domain.TemplateAST which contains the newly created AST.
 // Returns templater_dto.InternalMetadata which contains the page metadata.
@@ -280,15 +286,16 @@ func (c *CachingManifestRunner) processCacheMiss(
 // Returns error when the wrapped runner fails to create content.
 //
 // Concurrent goroutine is started to write the entry to the cache in the background. The
-// goroutine uses its own context with a 10-second timeout so the write can finish even if
-// the request context is cancelled.
+// goroutine runs under daemon_dto.DetachRequestContext with its own 10-second timeout, so
+// the write can finish after the request and never reads the request or its pooled
+// carrier.
 func (c *CachingManifestRunner) handleCacheMiss(
 	ctx context.Context,
 	pageDef templater_dto.PageDefinition,
 	request *http.Request,
 	missFunction missFunction,
 	cacheKey string,
-	pageEntry templater_domain.PageEntryView,
+	ttl time.Duration,
 ) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -315,11 +322,11 @@ func (c *CachingManifestRunner) handleCacheMiss(
 	select {
 	case backgroundCacheWriteSem <- struct{}{}:
 		clonedForCache := freshAST.DeepClone()
-		bgCtx := context.WithoutCancel(ctx)
+		backgroundCtx := daemon_dto.DetachRequestContext(ctx)
 		go func() {
 			defer func() { <-backgroundCacheWriteSem }()
-			defer goroutine.RecoverPanic(bgCtx, "templater.backgroundCacheWrite")
-			c.backgroundCacheWrite(bgCtx, request, cacheKey, pageEntry, clonedForCache, metadataBytes)
+			defer goroutine.RecoverPanic(backgroundCtx, "templater.backgroundCacheWrite")
+			c.backgroundCacheWrite(backgroundCtx, cacheKey, ttl, clonedForCache, metadataBytes)
 		}()
 	default:
 		l.Trace("backgroundCacheWrite shedding due to saturated semaphore",
@@ -332,55 +339,39 @@ func (c *CachingManifestRunner) handleCacheMiss(
 // backgroundCacheWrite stores the cloned AST entry in the cache in a background goroutine
 // with its own timeout context.
 //
-// Takes ctx (context.Context) which provides the parent context for
-// cancellation-independent background work.
-// Takes request (*http.Request) which is re-parsed for cache policy.
 // Takes cacheKey (string) which identifies the cache entry.
-// Takes pageEntry (templater_domain.PageEntryView) which provides TTL policy.
+// Takes ttl (time.Duration) which is how long the entry stays cached.
 // Takes clonedAST (*ast_domain.TemplateAST) which is the AST to cache.
 // Takes metadataBytes ([]byte) which is the serialised metadata.
 func (c *CachingManifestRunner) backgroundCacheWrite(
 	ctx context.Context,
-	request *http.Request,
 	cacheKey string,
-	pageEntry templater_domain.PageEntryView,
+	ttl time.Duration,
 	clonedAST *ast_domain.TemplateAST,
 	metadataBytes []byte,
 ) {
-	bgCtx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), 10*time.Second,
-		errors.New("background cache operation exceeded 10s timeout"))
+	ctx, cancel := context.WithTimeoutCause(ctx, backgroundCacheWriteTimeout,
+		errors.New("background cache operation exceeded its timeout"))
 	defer cancel()
 
-	bgCtx, bgL := logger_domain.From(bgCtx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
-	bgL.Trace("Starting background cache write",
+	l.Trace("Starting background cache write",
 		logger_domain.String(logFieldCacheKey, cacheKey))
-
-	reqData, err := templater_domain.ParseRequestData(request, "")
-	if err != nil {
-		bgL.Error("Failed to parse request data for cache policy in background",
-			logger_domain.Error(err),
-			logger_domain.String(logFieldCacheKey, cacheKey))
-		return
-	}
-	defer reqData.Release()
-
-	policy := pageEntry.GetCachePolicy(reqData)
-	ttl := time.Duration(policy.MaxAgeSeconds) * time.Second
 
 	entryToCache := &ast_domain.CachedASTEntry{
 		AST:      clonedAST,
 		Metadata: string(metadataBytes),
 	}
 
-	if err := c.cache.SetWithTTL(bgCtx, cacheKey, entryToCache, ttl); err != nil {
-		bgL.Error("Failed to write to AST cache in background",
+	if err := c.cache.SetWithTTL(ctx, cacheKey, entryToCache, ttl); err != nil {
+		l.Error("Failed to write to AST cache in background",
 			logger_domain.Error(err),
 			logger_domain.String(logFieldCacheKey, cacheKey))
-	} else {
-		bgL.Trace("Background cache write successful",
-			logger_domain.String(logFieldCacheKey, cacheKey))
+		return
 	}
+	l.Trace("Background cache write successful",
+		logger_domain.String(logFieldCacheKey, cacheKey))
 }
 
 // NewCachingManifestRunner creates a new caching decorator.

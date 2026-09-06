@@ -26,9 +26,9 @@ import (
 	"fmt"
 	goast "go/ast"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 )
 
 var (
@@ -181,6 +181,7 @@ var (
 // validateStringCoercionArgs checks that arguments to the string() function can be
 // converted to strings.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds the argument
@@ -199,6 +200,7 @@ func validateStringCoercionArgs(
 
 // validateIntCoercionArgs validates arguments to the int() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains argument
@@ -218,6 +220,7 @@ func validateIntCoercionArgs(
 
 // validateInt64CoercionArgs validates arguments to the int64() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument annotations.
@@ -236,6 +239,7 @@ func validateInt64CoercionArgs(
 
 // validateInt32CoercionArgs validates arguments to the int32() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to validate.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
@@ -255,6 +259,7 @@ func validateInt32CoercionArgs(
 
 // validateInt16CoercionArgs validates arguments to the int16() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds argument annotations.
@@ -272,6 +277,7 @@ func validateInt16CoercionArgs(
 
 // validateFloatCoercionArgs validates arguments to the float() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to validate.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
@@ -291,6 +297,7 @@ func validateFloatCoercionArgs(
 
 // validateFloat64CoercionArgs validates arguments to the float64() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
@@ -310,6 +317,7 @@ func validateFloat64CoercionArgs(
 
 // validateFloat32CoercionArgs checks the arguments for a float32 type conversion call.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds the argument
@@ -328,6 +336,7 @@ func validateFloat32CoercionArgs(
 
 // validateBoolCoercionArgs validates arguments to the bool() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument annotations.
@@ -345,6 +354,7 @@ func validateBoolCoercionArgs(
 
 // validateDecimalCoercionArgs validates arguments to the decimal() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
@@ -364,6 +374,7 @@ func validateDecimalCoercionArgs(
 
 // validateBigIntCoercionArgs validates arguments to the bigint() coercion function.
 //
+// Takes tr (*TypeResolver) which resolves argument types during validation.
 // Takes analysisContext (*AnalysisContext) which provides the analysis state.
 // Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument annotations.
@@ -547,6 +558,7 @@ func getDecimalReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 }
 
@@ -562,6 +574,7 @@ func getBigIntReturnType(_ context.Context, _ *TypeResolver, _ *AnalysisContext,
 		IsExportedPackageSymbol: false,
 		InitialPackagePath:      "",
 		InitialFilePath:         "",
+		UnderlyingTypeString:    "",
 	}
 }
 

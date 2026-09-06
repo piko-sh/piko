@@ -40,15 +40,9 @@ func BuildProviderDetailSections(response *pb.DescribeProviderResponse) []Detail
 	for _, s := range pbSections {
 		rows := make([]DetailRow, 0, len(s.GetEntries()))
 		for _, e := range s.GetEntries() {
-			rows = append(rows, DetailRow{
-				Label: e.GetKey(),
-				Value: e.GetValue(),
-			})
+			rows = append(rows, NewDetailRow(e.GetKey(), e.GetValue()))
 		}
-		sections = append(sections, DetailSection{
-			Heading: s.GetTitle(),
-			Rows:    rows,
-		})
+		sections = append(sections, NewDetailSection(s.GetTitle(), rows))
 	}
 
 	return sections

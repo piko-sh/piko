@@ -209,7 +209,7 @@ func TestAppendHealthLines(t *testing.T) {
 		t.Parallel()
 
 		lines := []string{"line1"}
-		info := StartupBannerInfo{HealthProbeURL: ""}
+		info := StartupBannerInfo{}
 
 		result := appendHealthLines(lines, info)
 		assert.Len(t, result, 1, "expected 1 line")
@@ -252,10 +252,7 @@ func TestAppendExposedFootnote(t *testing.T) {
 		t.Parallel()
 
 		lines := []string{"line1"}
-		info := StartupBannerInfo{
-			ServerExposed: false,
-			HealthExposed: false,
-		}
+		info := StartupBannerInfo{}
 
 		result := appendExposedFootnote(lines, info)
 		assert.Len(t, result, 1, "expected 1 line")

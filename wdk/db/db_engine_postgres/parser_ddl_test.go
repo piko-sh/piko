@@ -1943,3 +1943,66 @@ func TestApplyDDL_NonDDL(t *testing.T) {
 
 	assert.Nil(t, mutation, "non-DDL statement should return nil mutation")
 }
+
+func TestApplyDDL_CreateTableMultiWordColumnTypes(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		columnType string
+		wantEngine string
+		wantLength int
+		hasLength  bool
+	}{
+		{name: "bit varying with a length", columnType: "bit varying(5)", wantEngine: "varbit", wantLength: 5, hasLength: true},
+		{name: "bit varying without a length", columnType: "BIT VARYING", wantEngine: "varbit"},
+		{name: "bit with a length", columnType: "bit(3)", wantEngine: "bit", wantLength: 3, hasLength: true},
+		{name: "plain bit", columnType: "bit", wantEngine: "bit"},
+		{name: "character varying", columnType: "character varying(10)", wantEngine: "varchar", wantLength: 10, hasLength: true},
+		{name: "double precision", columnType: "double precision", wantEngine: "float8"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation := applyDDL(t, "CREATE TABLE t (value "+testCase.columnType+" NOT NULL, other int)")
+
+			require.Len(t, mutation.Columns, 2)
+			column := mutation.Columns[0]
+			assert.Equal(t, testCase.wantEngine, column.SQLType.EngineName)
+			assert.False(t, column.Nullable)
+			if testCase.hasLength {
+				require.NotNil(t, column.SQLType.Length)
+				assert.Equal(t, testCase.wantLength, *column.SQLType.Length)
+			}
+			assert.Equal(t, "other", mutation.Columns[1].Name)
+		})
+	}
+}
+
+func TestApplyDDL_CreateTableSecondaryColumnConstraints(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		sql  string
+	}{
+		{name: "collation", sql: `CREATE TABLE t (name text COLLATE "C" NOT NULL, other int)`},
+		{name: "named constraint", sql: "CREATE TABLE t (name text CONSTRAINT name_present NOT NULL, other int)"},
+		{name: "foreign key reference", sql: "CREATE TABLE t (name text NOT NULL REFERENCES s.u (id) ON DELETE CASCADE, other int)"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			mutation := applyDDL(t, testCase.sql)
+
+			require.Len(t, mutation.Columns, 2)
+			assert.Equal(t, "name", mutation.Columns[0].Name)
+			assert.False(t, mutation.Columns[0].Nullable)
+			assert.Equal(t, "other", mutation.Columns[1].Name)
+		})
+	}
+}

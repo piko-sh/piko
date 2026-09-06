@@ -265,56 +265,6 @@ func TestSetDevWidgetHTML_GetDevWidgetHTML(t *testing.T) {
 	assert.Empty(t, GetDevWidgetHTML())
 }
 
-func TestGetMimeType(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		fileExt  string
-		expected string
-	}{
-		{name: "javascript", fileExt: ".js", expected: "application/javascript; charset=utf-8"},
-		{name: "css", fileExt: ".css", expected: "text/css; charset=utf-8"},
-		{name: "html", fileExt: ".html", expected: "text/html; charset=utf-8"},
-		{name: "svg", fileExt: ".svg", expected: "image/svg+xml"},
-		{name: "png", fileExt: ".png", expected: "image/png"},
-		{name: "jpg", fileExt: ".jpg", expected: "image/jpeg"},
-		{name: "jpeg", fileExt: ".jpeg", expected: "image/jpeg"},
-		{name: "webp", fileExt: ".webp", expected: "image/webp"},
-		{name: "unknown extension", fileExt: ".xyz", expected: "application/octet-stream"},
-		{name: "uppercase js", fileExt: ".JS", expected: "application/javascript; charset=utf-8"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			assert.Equal(t, tt.expected, getMimeType(tt.fileExt))
-		})
-	}
-}
-
-func TestGetEncodingFromPath(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		path     string
-		expected string
-	}{
-		{name: "brotli", path: "file.js.br", expected: "br"},
-		{name: "gzip", path: "file.js.gz", expected: "gzip"},
-		{name: "uncompressed", path: "file.js", expected: ""},
-		{name: "no extension", path: "file", expected: ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			assert.Equal(t, tt.expected, getEncodingFromPath(tt.path))
-		})
-	}
-}
-
 func TestFrontendModule_DevModule(t *testing.T) {
 	t.Parallel()
 

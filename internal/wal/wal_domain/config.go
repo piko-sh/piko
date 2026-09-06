@@ -206,16 +206,17 @@ func (c Config) WithDefaults() Config {
 // Returns Config which contains the initialised configuration.
 func DefaultConfig(directory string) Config {
 	return Config{
-		Dir:               directory,
-		SyncMode:          DefaultSyncMode,
-		BatchSyncInterval: DefaultBatchSyncInterval,
-		BatchSyncCount:    DefaultBatchSyncCount,
-		SnapshotThreshold: DefaultSnapshotThreshold,
-		MaxWALSize:        DefaultMaxWALSize,
-		EnableCompression: true,
-		CompressionLevel:  DefaultCompressionLevel,
-		WALFileName:       "data.wal",
-		SnapshotFileName:  "snapshot.piko",
+		Dir:                  directory,
+		SyncMode:             DefaultSyncMode,
+		BatchSyncInterval:    DefaultBatchSyncInterval,
+		BatchSyncCount:       DefaultBatchSyncCount,
+		SnapshotThreshold:    DefaultSnapshotThreshold,
+		MaxWALSize:           DefaultMaxWALSize,
+		EnableCompression:    true,
+		CompressionLevel:     DefaultCompressionLevel,
+		WALFileName:          "data.wal",
+		SnapshotFileName:     "snapshot.piko",
+		DisableAlignedWrites: false,
 	}
 }
 

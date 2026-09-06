@@ -243,6 +243,8 @@ func (c *Collector) OnEnd(s sdktrace.ReadOnlySpan) {
 		Status:     statusToString(s.Status().Code),
 		StartMs:    s.StartTime().UnixMilli(),
 		DurationUs: s.EndTime().Sub(s.StartTime()).Microseconds(),
+		ParentID:   "",
+		Attributes: nil,
 	}
 	if parent := s.Parent(); parent.HasSpanID() {
 		span.ParentID = parent.SpanID().String()
@@ -399,6 +401,11 @@ func New(client *telemetry_grpcfb.Client, opts ...Option) *Collector {
 		redact:          defaultRedactAttribute,
 		maxAttributes:   defaultMaxAttributes,
 		maxAttrValueLen: defaultMaxAttrValueLen,
+		filter:          nil,
+		panics:          atomic.Int64{},
+		filtered:        atomic.Int64{},
+		panicReportOnce: sync.Once{},
+		ownsClient:      false,
 	}
 	for _, opt := range opts {
 		if opt != nil {

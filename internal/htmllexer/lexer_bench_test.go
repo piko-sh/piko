@@ -186,3 +186,30 @@ func BenchmarkLex_ScriptBody_ValueType(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkPositionAt_SingleLine(b *testing.B) {
+	element := `<span class="b" :title="item.name">text</span>`
+	benchmarkPositionLookups(b, []byte(strings.Repeat(element, (1<<20)/len(element))))
+}
+
+func BenchmarkPositionAt_MultiLine(b *testing.B) {
+	element := "<span class=\"b\" :title=\"item.name\">text</span>\n"
+	benchmarkPositionLookups(b, []byte(strings.Repeat(element, (1<<20)/len(element))))
+}
+
+func benchmarkPositionLookups(b *testing.B, data []byte) {
+	b.Helper()
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		lexer := NewLexer(data)
+		for lexer.Next() != ErrorToken {
+			if valueStart := lexer.AttrValStart(); valueStart >= 0 {
+				lexer.PositionAt(valueStart)
+			}
+			lexer.PositionAt(lexer.TokenEnd())
+		}
+	}
+}

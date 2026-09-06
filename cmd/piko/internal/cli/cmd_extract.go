@@ -19,54 +19,22 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"slices"
 	"strings"
+
+	"piko.sh/piko/internal/annotator/annotator_domain"
+	"piko.sh/piko/wdk/interp/interp_piko_symbols"
+	"pipit.sh/pipit"
+	"pipit.sh/pipit/sdk/extract"
 )
 
-// parseStatus discriminates between successful parse, help request, and error so each
-// subcommand can map them to the right process exit code.
-type parseStatus int
-
-const (
-	// parseOK means parsing completed successfully and the command should run.
-	parseOK parseStatus = iota
-
-	// parseHelp means the user asked for help and the command should exit with status 0
-	// without running.
-	parseHelp
-
-	// parseError means parsing failed; the caller should exit with a non-zero status.
-	parseError
-)
-const (
-
-	// errFlagRequiresValueFmt is the format string used when a required flag value is
-	// missing from the command line.
-	errFlagRequiresValueFmt = "%s requires a value\n"
-)
-
-// extractSubcommandHandler is the contract implemented by every `piko extract`
-// subcommand: parse its own flags, do its job, and return a process exit code.
-type extractSubcommandHandler func(arguments []string, stdout, stderr io.Writer) int
-
-var (
-	// extractSubcommands maps the subcommand name to its handler. Adding a new subcommand is
-	// a matter of implementing a handler with the extractSubcommandHandler signature and
-	// registering it here.
-	extractSubcommands = map[string]extractSubcommandHandler{
-		"generate": runExtractGenerate,
-		"discover": runExtractDiscover,
-		"init":     runExtractInit,
-		"check":    runExtractCheck,
-	}
-)
-
-// RunExtract runs the `piko extract` command, dispatching to the named subcommand. With
-// no arguments it prints the help and exits 0 so users can discover the available
-// subcommands.
+// RunExtract runs the `piko extract` command, which generates and checks the symbol
+// tables the interpreter (dev-i) uses to import native Go packages.
 //
 // Takes arguments ([]string) which contains the command-line arguments following
 // "extract".
@@ -76,8 +44,10 @@ func RunExtract(arguments []string) int {
 	return RunExtractWithIO(arguments, os.Stdout, os.Stderr)
 }
 
-// RunExtractWithIO runs the `piko extract` command with explicit output writers, which
-// makes it straightforward to test and embed the dispatcher in other contexts.
+// RunExtractWithIO runs the `piko extract` command with explicit output writers.
+//
+// The command itself is pipit's; piko supplies its own name, manifest defaults, the .pk
+// source scanner and the packages it already ships tables for.
 //
 // Takes arguments ([]string) which contains the command-line arguments following
 // "extract".
@@ -86,77 +56,75 @@ func RunExtract(arguments []string) int {
 //
 // Returns int which is the exit code: 0 on success, 1 on error.
 func RunExtractWithIO(arguments []string, stdout, stderr io.Writer) int {
-	if len(arguments) == 0 {
-		extractUsage(stdout)
-		return 0
-	}
-
-	if arguments[0] == "-h" || arguments[0] == "--help" {
-		extractUsage(stdout)
-		return 0
-	}
-
-	handler, ok := extractSubcommands[arguments[0]]
-	if !ok {
-		_, _ = fmt.Fprintf(stderr, "Unknown subcommand: %s\n\n", arguments[0])
-		extractUsage(stderr)
-		return 1
-	}
-	return handler(arguments[1:], stdout, stderr)
+	return extract.RunCommand(context.Background(), arguments, stdout, stderr, pikoExtractConfig())
 }
 
-// extractUsage writes the usage information for the extract command and lists the
-// available subcommands in a stable order.
+// pikoExtractConfig adapts pipit's extract command to piko projects.
 //
-// Takes w (io.Writer) which receives the usage text.
-func extractUsage(w io.Writer) {
-	var builder strings.Builder
-	builder.WriteString(`Usage: piko extract <subcommand> [flags]
-
-Work with the symbol registry that the interpreter (dev-i) uses to
-resolve external package imports.
-
-Subcommands:
-`)
-
-	names := make([]string, 0, len(extractSubcommands))
-	for name := range extractSubcommands {
-		names = append(names, name)
+// Returns extract.Config which scans the conventional .pk directories and treats the
+// standard library and piko's runtime API as already provided.
+func pikoExtractConfig() extract.Config {
+	return extract.Config{
+		AlreadyProvided:     providedSymbolPaths,
+		ToolName:            "piko extract",
+		DefaultManifest:     "piko-symbols.yaml",
+		InitPackage:         "piko_symbols",
+		InitDirectory:       "internal/piko_symbols",
+		SourceDirs:          []string{"pages", "partials", "components", "emails", "pdfs", "pk", "actions"},
+		Scanners:            []extract.SourceScanner{pkScanner{}},
+		IgnoreProjectModule: false,
 	}
-	slices.Sort(names)
-
-	for _, name := range names {
-		builder.WriteString("  ")
-		builder.WriteString(name)
-		builder.WriteString("    ")
-		builder.WriteString(extractSubcommandSummary(name))
-		builder.WriteString("\n")
-	}
-
-	builder.WriteString(`
-Run "piko extract <subcommand> --help" for details on any subcommand.
-`)
-
-	_, _ = fmt.Fprint(w, builder.String())
 }
 
-// extractSubcommandSummary returns a one-line summary for use in the parent `piko
-// extract` help output.
+// pkScanner reads the Go imports of a .pk component's script block.
+type pkScanner struct{}
+
+// Match reports whether name is a .pk component file.
 //
-// Takes name (string) which is the subcommand name.
+// Takes name (string) which is the file's base name.
 //
-// Returns string describing the subcommand briefly.
-func extractSubcommandSummary(name string) string {
-	switch name {
-	case "generate":
-		return "Generate reflect-based symbol files from piko-symbols.yaml"
-	case "discover":
-		return "Walk the project and report packages that need registering"
-	case "init":
-		return "Create a piko-symbols.yaml by discovering project imports"
-	case "check":
-		return "Verify piko-symbols.yaml against the current project imports"
-	default:
-		return ""
+// Returns bool which is true for names ending in .pk.
+func (pkScanner) Match(name string) bool {
+	return strings.HasSuffix(name, ".pk")
+}
+
+// Imports parses a .pk file and returns the imports of its Go script block.
+//
+// Takes path (string) which is the root-relative path to the .pk file.
+// Takes data ([]byte) which is the file content.
+//
+// Returns []string which contains the Go import paths, or nil when there is no script.
+// Returns error when the file cannot be parsed.
+func (pkScanner) Imports(ctx context.Context, path string, data []byte) ([]string, error) {
+	_, sources, parseErr := annotator_domain.ParsePK(ctx, data, path)
+	if parseErr != nil && !annotator_domain.IsParseSoftError(parseErr) {
+		return nil, fmt.Errorf("parsing %s: %w", path, parseErr)
 	}
+	if sources.ScriptSource == "" {
+		return nil, nil
+	}
+
+	imports, err := extract.ParseGoImports(path, []byte(sources.ScriptSource))
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(imports, isComponentImport), nil
+}
+
+// providedSymbolPaths lists the import paths for which piko already ships symbol tables,
+// covering the vendored standard library and piko's own runtime API.
+//
+// Returns []string which are the import paths, in no particular order.
+func providedSymbolPaths() []string {
+	return slices.Concat(pipit.StandardLibraryPaths(), slices.Collect(maps.Keys(interp_piko_symbols.Symbols)))
+}
+
+// isComponentImport reports whether an import path names a .pk component rather than a Go
+// package.
+//
+// Takes importPath (string) which is the import path to check.
+//
+// Returns bool which is true when the path ends in .pk.
+func isComponentImport(importPath string) bool {
+	return strings.HasSuffix(importPath, ".pk")
 }

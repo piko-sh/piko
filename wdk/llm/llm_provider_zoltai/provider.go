@@ -99,8 +99,12 @@ var (
 //
 // Returns *llm_dto.CompletionResponse which contains a random fortune.
 // Returns error which is always nil.
-func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.zoltaiProvider.Complete")
+func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (result *llm_dto.CompletionResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.zoltaiProvider.Complete", recovered)
+		}
+	}()
 
 	completeCount.Add(ctx, 1)
 
@@ -117,6 +121,8 @@ func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 		PromptTokens:     len(request.Messages) * estimatedTokensPerMessage,
 		CompletionTokens: len(words),
 		TotalTokens:      len(request.Messages)*estimatedTokensPerMessage + len(words),
+		EstimatedCost:    nil,
+		CachedTokens:     0,
 	}
 
 	if len(request.Tools) > 0 {
@@ -134,13 +140,21 @@ func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 			{
 				Index: 0,
 				Message: llm_dto.Message{
-					Role:    llm_dto.RoleAssistant,
-					Content: content,
+					Role:         llm_dto.RoleAssistant,
+					Content:      content,
+					Name:         nil,
+					ToolCallID:   nil,
+					ContentParts: nil,
+					ToolCalls:    nil,
 				},
 				FinishReason: llm_dto.FinishReasonStop,
 			},
 		},
-		Usage: usage,
+		Usage:        usage,
+		FallbackInfo: nil,
+		ID:           "",
+		Sources:      nil,
+		Created:      0,
 	}, nil
 }
 
@@ -152,8 +166,12 @@ func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 //
 // Returns *llm_dto.EmbeddingResponse which contains the fake embeddings.
 // Returns error which is always nil.
-func (p *zoltaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.zoltaiProvider.Embed")
+func (p *zoltaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (result *llm_dto.EmbeddingResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.zoltaiProvider.Embed", recovered)
+		}
+	}()
 
 	embedCount.Add(ctx, 1)
 
@@ -171,22 +189,12 @@ func (p *zoltaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 	totalTokens := 0
 
 	for i, text := range request.Input {
-		vec := hashToVector(text, dim)
-		embeddings[i] = llm_dto.Embedding{
-			Index:  i,
-			Vector: vec,
-		}
+		embeddings[i] = llm_dto.NewFloat32Embedding(i, hashToVector(text, dim))
 		totalTokens += len(strings.Fields(text))
 	}
 
-	return &llm_dto.EmbeddingResponse{
-		Model:      model,
-		Embeddings: embeddings,
-		Usage: &llm_dto.EmbeddingUsage{
-			PromptTokens: totalTokens,
-			TotalTokens:  totalTokens,
-		},
-	}, nil
+	usage := llm_dto.NewEmbeddingUsage(totalTokens, totalTokens)
+	return llm_dto.NewEmbeddingResponse(model, embeddings, usage), nil
 }
 
 // ListModels returns the single Zoltai model.
@@ -196,10 +204,16 @@ func (p *zoltaiProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 func (p *zoltaiProvider) ListModels(_ context.Context) ([]llm_dto.ModelInfo, error) {
 	return []llm_dto.ModelInfo{
 		{
-			ID:                p.config.DefaultModel,
-			Name:              p.config.DefaultModel,
-			Provider:          "zoltai",
-			SupportsStreaming: true,
+			ID:                       p.config.DefaultModel,
+			Name:                     p.config.DefaultModel,
+			Provider:                 "zoltai",
+			SupportsStreaming:        true,
+			Created:                  0,
+			ContextWindow:            0,
+			MaxOutputTokens:          0,
+			SupportsTools:            false,
+			SupportsStructuredOutput: false,
+			SupportsVision:           false,
 		},
 	}, nil
 }
@@ -211,9 +225,16 @@ func (p *zoltaiProvider) ListModels(_ context.Context) ([]llm_dto.ModelInfo, err
 func (p *zoltaiProvider) ListEmbeddingModels(_ context.Context) ([]llm_dto.ModelInfo, error) {
 	return []llm_dto.ModelInfo{
 		{
-			ID:       p.config.DefaultEmbeddingModel,
-			Name:     p.config.DefaultEmbeddingModel,
-			Provider: "zoltai",
+			ID:                       p.config.DefaultEmbeddingModel,
+			Name:                     p.config.DefaultEmbeddingModel,
+			Provider:                 "zoltai",
+			Created:                  0,
+			ContextWindow:            0,
+			MaxOutputTokens:          0,
+			SupportsStreaming:        false,
+			SupportsTools:            false,
+			SupportsStructuredOutput: false,
+			SupportsVision:           false,
 		},
 	}, nil
 }
@@ -362,11 +383,19 @@ func (*zoltaiProvider) completeWithToolCall(model string, tool llm_dto.ToolDefin
 							},
 						},
 					},
+					Name:         nil,
+					ToolCallID:   nil,
+					Content:      "",
+					ContentParts: nil,
 				},
 				FinishReason: llm_dto.FinishReasonToolCalls,
 			},
 		},
-		Usage: usage,
+		Usage:        usage,
+		FallbackInfo: nil,
+		ID:           "",
+		Sources:      nil,
+		Created:      0,
 	}
 }
 
@@ -418,10 +447,12 @@ func newProvider(config Config) (*zoltaiProvider, error) {
 	s := safeconv.Int64ToUint64(seedNano)
 	closeContext, closeCancel := context.WithCancelCause(context.Background())
 	return &zoltaiProvider{
-		randomSource: rand.New(rand.NewPCG(s, s>>1|1)), //nolint:gosec // not cryptographic
-		config:       config,
-		closeContext: closeContext,
-		closeCancel:  closeCancel,
+		randomSource:    rand.New(rand.NewPCG(s, s>>1|1)), //nolint:gosec // not cryptographic
+		config:          config,
+		closeContext:    closeContext,
+		closeCancel:     closeCancel,
+		streamWaitGroup: sync.WaitGroup{},
+		closeOnce:       sync.Once{},
 	}, nil
 }
 

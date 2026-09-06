@@ -41,31 +41,15 @@ func newDaemonTestBuilder() *daemonTestBuilder {
 }
 
 func defaultTestDeps() DaemonServiceDeps {
-	return DaemonServiceDeps{
-		DaemonConfig:        defaultTestDaemonConfig(),
-		Server:              nil,
-		FinalRouter:         nil,
-		HealthServer:        nil,
-		HealthRouter:        nil,
-		OrchestratorService: nil,
-		CoordinatorService:  nil,
-		SEOService:          nil,
-		SignalNotifier:      nil,
-		DrainSignaller:      nil,
-	}
+	deps := DaemonServiceDeps{}
+	deps.DaemonConfig = defaultTestDaemonConfig()
+	return deps
 }
 
 func defaultTestDaemonConfig() DaemonConfig {
-	return DaemonConfig{
-		NetworkPort:         "8080",
-		NetworkAutoNextPort: false,
-		HealthEnabled:       false,
-		HealthPort:          "",
-		HealthBindAddress:   "",
-		HealthAutoNextPort:  false,
-		HealthLivePath:      "",
-		HealthReadyPath:     "",
-	}
+	config := DaemonConfig{}
+	config.NetworkPort = "8080"
+	return config
 }
 
 func (b *daemonTestBuilder) WithPort(port string) *daemonTestBuilder {

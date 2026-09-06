@@ -240,9 +240,22 @@ func NewBatcher[T any](config BatcherConfig, sendFunc BatchSendFunc[T]) (*Batche
 				return new(make([]T, 0, batchSize))
 			},
 		},
-		stopCh:  make(chan struct{}),
-		doneCh:  make(chan struct{}),
-		flushCh: make(chan struct{}, 1),
+		stopCh:               make(chan struct{}),
+		doneCh:               make(chan struct{}),
+		flushCh:              make(chan struct{}, 1),
+		circuitBreaker:       nil,
+		circuitBreakerConfig: nil,
+		clock:                nil,
+		lastFlushErr:         nil,
+		buffer:               nil,
+		droppedCount:         0,
+		addCount:             0,
+		drainedCount:         0,
+		closeOnce:            sync.Once{},
+		mu:                   sync.Mutex{},
+		flushMu:              sync.Mutex{},
+		stopped:              atomic.Bool{},
+		started:              atomic.Bool{},
 	}
 	b.buffer = make([]T, 0, b.batchSize)
 	b.circuitBreakerConfig = config.CircuitBreaker

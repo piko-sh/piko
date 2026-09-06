@@ -20,6 +20,7 @@ package daemon_adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-chi/chi/v5"
@@ -28,6 +29,12 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/security/security_adapters"
 	"piko.sh/piko/internal/security/security_domain"
+)
+
+var (
+	// errRateLimitServiceMissing is returned when rate limiting is enabled without a rate
+	// limit service to enforce it.
+	errRateLimitServiceMissing = errors.New("rate limiting is enabled but no rate limit service is available")
 )
 
 // setupRealIP adds the RealIP middleware that extracts the client IP and creates a
@@ -58,19 +65,26 @@ func (*HTTPRouterBuilder) setupRealIP(r chi.Router, routerConfig *daemon_domain.
 // Takes routerConfig (*daemon_domain.RouterConfig) which provides rate limit settings.
 // Takes rateLimitService (security_domain.RateLimitService) which handles rate limit
 // checks.
+//
+// Returns error when rate limiting is enabled but no rate limit service is supplied, so a
+// configured limit is never silently left unenforced.
 func (*HTTPRouterBuilder) setupRateLimiting(
 	r chi.Router,
 	routerConfig *daemon_domain.RouterConfig,
 	rateLimitService security_domain.RateLimitService,
-) {
+) error {
 	if !routerConfig.RateLimit.Enabled {
-		return
+		return nil
+	}
+	if rateLimitService == nil {
+		return errRateLimitServiceMissing
 	}
 	rateLimitMiddleware := newRateLimitMiddleware(
 		routerConfig.RateLimit,
 		rateLimitService,
 	)
 	r.Use(rateLimitMiddleware.Handler)
+	return nil
 }
 
 // setupAuthGuard installs the authentication guard, unless doing so would lock everyone

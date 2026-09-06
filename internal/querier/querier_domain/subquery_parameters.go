@@ -50,7 +50,7 @@ type parameterIdentity struct {
 //
 // Returns parameterIdentity which uniquely identifies the reference.
 func identityOf(reference querier_dto.RawParameterReference) parameterIdentity {
-	identity := parameterIdentity{number: reference.Number, name: reference.Name}
+	identity := parameterIdentity{number: reference.Number, name: reference.Name, tableAlias: "", columnName: ""}
 	if reference.ColumnReference != nil {
 		identity.tableAlias = reference.ColumnReference.TableAlias
 		identity.columnName = reference.ColumnReference.ColumnName
@@ -244,11 +244,11 @@ func collectDirectSubqueries(raw *querier_dto.RawQueryAnalysis) []*querier_dto.R
 		if len(definition.ParameterReferences) == 0 {
 			continue
 		}
-		subqueries = append(subqueries, &querier_dto.RawQueryAnalysis{
-			FromTables:          definition.FromTables,
-			JoinClauses:         definition.JoinClauses,
-			ParameterReferences: definition.ParameterReferences,
-		})
+		cteQuery := &querier_dto.RawQueryAnalysis{}
+		cteQuery.FromTables = definition.FromTables
+		cteQuery.JoinClauses = definition.JoinClauses
+		cteQuery.ParameterReferences = definition.ParameterReferences
+		subqueries = append(subqueries, cteQuery)
 	}
 	return subqueries
 }

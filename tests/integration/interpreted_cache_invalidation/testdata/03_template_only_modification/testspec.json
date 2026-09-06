@@ -18,8 +18,7 @@
       "expectTier2Miss": true,
       "expectTier1Hit": true,
       "expectFastPath": true,
-      "expectChange": true,
-      "delayBeforeRenderMs": 10
+      "expectChange": true
     },
     {
       "stage": 2,
@@ -28,8 +27,7 @@
       "expectTier2Miss": true,
       "expectTier1Hit": true,
       "expectFastPath": true,
-      "expectChange": true,
-      "delayBeforeRenderMs": 10
+      "expectChange": true
     }
   ]
 }

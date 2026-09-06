@@ -282,10 +282,8 @@ func TestClientScriptExports_HasExport(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "nil functions map returns false",
-			exports: &ClientScriptExports{
-				ExportedFunctions: nil,
-			},
+			name:     "nil functions map returns false",
+			exports:  &ClientScriptExports{},
 			lookup:   "anything",
 			expected: false,
 		},
@@ -345,9 +343,7 @@ func TestClientScriptExports_ExportNames(t *testing.T) {
 	t.Run("nil functions map returns nil", func(t *testing.T) {
 		t.Parallel()
 
-		exports := &ClientScriptExports{
-			ExportedFunctions: nil,
-		}
+		exports := &ClientScriptExports{}
 		result := exports.ExportNames()
 
 		assert.Nil(t, result)

@@ -278,15 +278,25 @@ func NewNotificationDispatcher(
 			InitialDelay:  config.InitialDelay,
 			MaxDelay:      config.MaxDelay,
 			BackoffFactor: config.BackoffFactor,
+			JitterFunc:    nil,
 		},
 		cbConfig: circuitBreakerConfig{
 			maxConsecutiveFailures: config.CircuitBreakerThreshold,
 			interval:               config.CircuitBreakerInterval,
 			timeout:                config.CircuitBreakerTimeout,
 		},
-		shutdownChan: make(chan struct{}),
-		flushChan:    make(chan struct{}, 1),
-		shutdownName: "notification-dispatcher",
+		shutdownChan:    make(chan struct{}),
+		flushChan:       make(chan struct{}, 1),
+		shutdownName:    "notification-dispatcher",
+		startTime:       time.Time{},
+		wg:              sync.WaitGroup{},
+		totalProcessed:  atomic.Int64{},
+		totalSuccessful: atomic.Int64{},
+		totalFailed:     atomic.Int64{},
+		totalRetries:    atomic.Int64{},
+		mu:              sync.RWMutex{},
+		retryMutex:      sync.Mutex{},
+		isRunning:       false,
 	}
 }
 
@@ -510,6 +520,9 @@ func (d *NotificationDispatcher) GetProcessingStats(ctx context.Context) (Dispat
 		TotalSuccessful:     d.totalSuccessful.Load(),
 		TotalFailed:         d.totalFailed.Load(),
 		TotalRetries:        d.totalRetries.Load(),
+		RetryQueueSize:      0,
+		DeadLetterCount:     0,
+		Uptime:              0,
 	}
 
 	d.retryMutex.Lock()
@@ -637,10 +650,13 @@ func (d *NotificationDispatcher) processBatch(ctx context.Context, batch []*noti
 		d.totalProcessed.Add(1)
 
 		qn := &queuedNotification{
-			params:          params,
-			targetProviders: params.Providers,
-			attempt:         1,
-			firstAttempt:    d.clock.Now(),
+			params:            params,
+			targetProviders:   params.Providers,
+			attempt:           1,
+			firstAttempt:      d.clock.Now(),
+			nextRetryTime:     time.Time{},
+			failedProviders:   nil,
+			pendingRetryAfter: 0,
 		}
 
 		if len(qn.targetProviders) == 0 {
@@ -816,6 +832,7 @@ func (d *NotificationDispatcher) sendToDeadLetter(ctx context.Context, qn *queue
 		TotalAttempts: qn.attempt,
 		FirstAttempt:  qn.firstAttempt,
 		LastAttempt:   d.clock.Now(),
+		OriginalError: "",
 	}
 
 	if err := d.deadLetterQueue.Add(ctx, entry); err != nil {

@@ -380,9 +380,7 @@ func TestAddPartialEntry(t *testing.T) {
 			Result: &annotator_dto.AnnotationResult{},
 		}
 
-		vc := &annotator_dto.VirtualComponent{
-			IsPublic: false,
-		}
+		vc := &annotator_dto.VirtualComponent{}
 
 		builder.addPartialEntry(manifest, artefact, vc, "internal/helper.pk")
 

@@ -24,7 +24,7 @@ import (
 	"go/token"
 	"strconv"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_adapters/emitter_shared"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
@@ -166,10 +166,11 @@ func buildFieldAppends(strategy *sqlStrategy, query *querier_dto.AnalysedQuery) 
 // separator handling, VALUES tuple writing, and field appends.
 //
 // Takes strategy (*sqlStrategy) which provides the SQL dialect for placeholder style
-// selection. Takes paramsCount (int) which is the number of parameters per row.
+// selection.
+// Takes paramsCount (int) which is the number of parameters per row.
 // Takes valuesTuple (string) which holds the positional placeholder tuple, or empty for
-// numbered params. Takes fieldAppends ([]ast.Stmt) which contains the append statements
-// for each field.
+// numbered params.
+// Takes fieldAppends ([]ast.Stmt) which contains the append statements for each field.
 //
 // Returns []ast.Stmt which is the complete inner loop body.
 func buildInnerLoopBody(strategy *sqlStrategy, paramsCount int, valuesTuple string, fieldAppends []ast.Stmt) []ast.Stmt {
@@ -418,8 +419,9 @@ func (*sqlBatchHandler) BuildCopyFromParamsStruct(
 // params: "(?, ?, ?)" For numbered params this returns empty because actual numbered
 // tuples are generated at runtime by pikoBatchNumberedTuple.
 //
-// Takes count (int) which is the number of columns per row. Takes numbered (bool) which
-// indicates whether the engine uses numbered ($N) placeholders.
+// Takes count (int) which is the number of columns per row.
+// Takes numbered (bool) which indicates whether the engine uses numbered ($N)
+// placeholders.
 //
 // Returns string which is the placeholder tuple, or empty for numbered params.
 func buildValuesTuple(count int, numbered bool) string {

@@ -56,6 +56,7 @@ func NewFSLoader(fsys fs.FS, patterns ...string) *FSLoader {
 	return &FSLoader{
 		fsys:     fsys,
 		patterns: patterns,
+		source:   "",
 	}
 }
 
@@ -172,6 +173,7 @@ func NewRecursiveFSLoader(fsys fs.FS, patterns ...string) *RecursiveFSLoader {
 	return &RecursiveFSLoader{
 		fsys:     fsys,
 		patterns: patterns,
+		source:   "",
 	}
 }
 

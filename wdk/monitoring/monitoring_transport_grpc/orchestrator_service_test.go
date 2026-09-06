@@ -121,7 +121,7 @@ func TestOrchestratorInspectorService_ListRecentTasks(t *testing.T) {
 					{ID: "task-1"},
 				},
 			},
-			request:       &pb.ListRecentTasksRequest{Limit: 0},
+			request:       &pb.ListRecentTasksRequest{},
 			expectedCount: 1,
 			expectError:   false,
 		},

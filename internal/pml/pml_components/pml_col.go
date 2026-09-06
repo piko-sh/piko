@@ -56,9 +56,7 @@ const (
 //
 // Returns *Column which is ready to be configured and added to a row.
 func NewColumn() *Column {
-	return &Column{
-		BaseComponent: BaseComponent{},
-	}
+	return &Column{}
 }
 
 // TagName returns the HTML tag name for this column element.
@@ -419,6 +417,8 @@ func (*Column) calculateWidth(styles *pml_domain.StyleManager, ctx *pml_domain.T
 // getDivStyles builds the CSS style map for the outer column div element.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style values.
+// Takes ctx (*pml_domain.TransformationContext) which provides inherited layout settings
+// for the PML transformation.
 //
 // Returns map[string]string which contains the CSS property-value pairs for the div.
 func (c *Column) getDivStyles(styles *pml_domain.StyleManager, ctx *pml_domain.TransformationContext) map[string]string {

@@ -310,9 +310,18 @@ func (w *workspace) UpdateDocument(uri protocol.DocumentURI, content []byte, ver
 		existing.dirty = true
 	} else {
 		w.documents[uri] = &document{
-			URI:     uri,
-			Content: content,
-			dirty:   true,
+			URI:              uri,
+			Content:          content,
+			dirty:            true,
+			Resolver:         nil,
+			TypeInspector:    nil,
+			AnalysisMap:      nil,
+			ProjectResult:    nil,
+			AnnotationResult: nil,
+			SFCResult:        nil,
+			pkcMeta:          nil,
+			sfcOnce:          sync.Once{},
+			pkcOnce:          sync.Once{},
 		}
 	}
 	w.mu.Unlock()
@@ -427,50 +436,6 @@ func (w *workspace) GetDocumentForCompletion(ctx context.Context, uri protocol.D
 	return w.RunAnalysisForURI(ctx, uri)
 }
 
-// symbolTarget holds details of a symbol to search for in the codebase.
-type symbolTarget struct {
-	// sourcePath is the file path where the symbol is defined.
-	sourcePath string
-
-	// name is the identifier of the target symbol.
-	name string
-
-	// defLocation is the line and column where the symbol is defined.
-	defLocation ast_domain.Location
-}
-
-// FindAllReferences searches for all references to a symbol across all open documents in
-// the workspace.
-//
-// Takes uri (protocol.DocumentURI) which identifies the document containing the symbol.
-// Takes position (protocol.Position) which specifies the position of the symbol.
-//
-// Returns []protocol.Location which contains all reference locations found.
-// Returns error when the symbol lookup fails.
-func (w *workspace) FindAllReferences(ctx context.Context, uri protocol.DocumentURI, position protocol.Position) ([]protocol.Location, error) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	l.Debug("Finding all references across workspace", logger_domain.String(keyURI, uri.Filename()))
-
-	target, err := w.identifyTargetSymbol(ctx, uri, position)
-	if err != nil || target == nil {
-		return []protocol.Location{}, nil
-	}
-
-	l.Debug("Target symbol identified",
-		logger_domain.String("name", target.name),
-		logger_domain.String("sourcePath", target.sourcePath),
-		logger_domain.Int("defLine", target.defLocation.Line),
-		logger_domain.Int("defCol", target.defLocation.Column))
-
-	allLocations := w.searchAllDocuments(target)
-
-	l.Debug("Workspace reference search complete",
-		logger_domain.Int("totalReferences", len(allLocations)))
-
-	return allLocations, nil
-}
-
 // spawnTracked starts a goroutine that increments the workspace WaitGroup, wraps
 // operation in goroutine.RecoverPanic so a single panic cannot crash the LSP server, and
 // decrements the WaitGroup on exit.
@@ -501,6 +466,8 @@ func (w *workspace) spawnTracked(ctx context.Context, component string, operatio
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of entry points.
+// Takes gen (uint64) which identifies the analysis generation so superseded results can
+// be discarded.
 //
 // Returns *document which contains the analysis result for the URI.
 // Returns error when the build fails or is cancelled.
@@ -577,6 +544,8 @@ func (w *workspace) runFullAnalysis(
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
 // Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of entry points.
+// Takes gen (uint64) which identifies the analysis generation so superseded results can
+// be discarded.
 //
 // Returns *document which contains the analysis result for the URI, or nil if the scoped
 // build could not proceed (caller should fall back to full build).
@@ -700,6 +669,10 @@ func (w *workspace) resolveAffectedEntryPoints(
 // atomicity, goroutine A could read the cache, goroutine B could read the same cache,
 // then B's write would overwrite A's merged result.
 //
+// Takes uri (protocol.DocumentURI) which identifies the document whose scoped analysis is
+// being committed.
+// Takes gen (uint64) which identifies the analysis generation so superseded results can
+// be discarded.
 // Takes targetedResult (*annotator_dto.ProjectAnnotationResult) which contains results
 // for the subset of components that were re-annotated.
 // Takes affectedRelPaths ([]string) which are the transitive dependents to invalidate.
@@ -923,84 +896,6 @@ func (w *workspace) getConn() jsonrpc2.Conn {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	return w.conn
-}
-
-// identifyTargetSymbol finds the symbol at the given position and returns its target
-// info.
-//
-// Takes uri (protocol.DocumentURI) which specifies the document location.
-// Takes position (protocol.Position) which specifies the position within the document.
-//
-// Returns *symbolTarget which contains the symbol's definition location, source path, and
-// name.
-// Returns error when the document analysis fails.
-func (w *workspace) identifyTargetSymbol(ctx context.Context, uri protocol.DocumentURI, position protocol.Position) (*symbolTarget, error) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	document, err := w.RunAnalysisForURI(ctx, uri)
-	if err != nil || document == nil {
-		l.Debug("Failed to get document for reference search", logger_domain.Error(err))
-		if err != nil {
-			return nil, fmt.Errorf("analysing document for reference search: %w", err)
-		}
-		return nil, nil
-	}
-
-	if document.AnnotationResult == nil || document.AnnotationResult.AnnotatedAST == nil {
-		return nil, nil
-	}
-
-	targetExpr, _ := findExpressionAtPosition(ctx, document.AnnotationResult.AnnotatedAST, position, uri.Filename())
-	if targetExpr == nil {
-		return nil, nil
-	}
-
-	targetAnn := targetExpr.GetGoAnnotation()
-	if targetAnn == nil || targetAnn.Symbol == nil {
-		return nil, nil
-	}
-
-	defLocation := targetAnn.Symbol.ReferenceLocation
-	if defLocation.IsSynthetic() {
-		return nil, nil
-	}
-
-	var sourcePath string
-	if targetAnn.OriginalSourcePath != nil {
-		sourcePath = *targetAnn.OriginalSourcePath
-	}
-
-	return &symbolTarget{
-		defLocation: defLocation,
-		sourcePath:  sourcePath,
-		name:        targetAnn.Symbol.Name,
-	}, nil
-}
-
-// searchAllDocuments searches all open documents for references to the target symbol.
-//
-// Takes target (*symbolTarget) which specifies the symbol to search for.
-//
-// Returns []protocol.Location which contains all locations where the target symbol is
-// found across documents.
-//
-// Safe for concurrent use. Takes a read lock while copying the document list, then
-// searches each document without holding the lock.
-func (w *workspace) searchAllDocuments(target *symbolTarget) []protocol.Location {
-	w.mu.RLock()
-	documentsToSearch := make([]*document, 0, len(w.documents))
-	for _, d := range w.documents {
-		documentsToSearch = append(documentsToSearch, d)
-	}
-	w.mu.RUnlock()
-
-	var allLocations []protocol.Location
-	for _, searchDoc := range documentsToSearch {
-		locations := searchDoc.findReferencesToSymbol(target.defLocation, target.sourcePath)
-		allLocations = append(allLocations, locations...)
-	}
-
-	return allLocations
 }
 
 // runAnalysisForGeneration analyses uri on behalf of a specific content generation.
@@ -1381,6 +1276,8 @@ func (w *workspace) copyActionProviders() map[string]annotator_domain.ActionInfo
 // Takes uri (protocol.DocumentURI) which identifies the document that failed.
 // Takes moduleCtx (*ModuleContext) which provides the resolver for the document's module.
 // Takes analysisErr (error) which is the analysis error, if any.
+// Takes gen (uint64) which identifies the analysis generation so superseded results can
+// be discarded.
 //
 // Returns *document which is a fallback document with cached content.
 // Returns error which is always nil.
@@ -1411,12 +1308,10 @@ func (w *workspace) handleNilProjectResult(
 	}
 
 	content, _ := w.docCache.Get(uri)
-	errorDoc := &document{
-		URI:      uri,
-		Content:  content,
-		Resolver: moduleCtx.Resolver,
-		dirty:    false,
-	}
+	errorDoc := &document{}
+	errorDoc.URI = uri
+	errorDoc.Content = content
+	errorDoc.Resolver = moduleCtx.Resolver
 
 	if !w.commitAnalysedDocument(uri, errorDoc, gen) {
 		l.Trace("Discarding superseded nil-result document (newer edit arrived mid-build)",
@@ -1460,6 +1355,10 @@ func (w *workspace) createDocumentFromResult(
 		TypeInspector:    typeQuerier,
 		Resolver:         moduleCtx.Resolver,
 		dirty:            false,
+		SFCResult:        nil,
+		pkcMeta:          nil,
+		sfcOnce:          sync.Once{},
+		pkcOnce:          sync.Once{},
 	}
 }
 
@@ -1675,7 +1574,7 @@ func (w *workspace) publishErrorDiagnostic(ctx context.Context, uri protocol.Doc
 
 	errorDiagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 1},
 		},
 		Severity: protocol.DiagnosticSeverityError,
@@ -1732,6 +1631,17 @@ func newWorkspace(deps workspaceDeps, rootURI protocol.DocumentURI) *workspace {
 		requestedGeneration:  make(map[protocol.DocumentURI]uint64),
 		inFlight:             make(map[protocol.DocumentURI]analysisOwner),
 		reverseDependencyMap: make(map[string][]string),
+		goplsDiagnostics:     nil,
+		cachedModuleCtx:      nil,
+		goplsOverlays:        nil,
+		cachedProjectResult:  nil,
+		analysisCounter:      0,
+		goroutineWG:          sync.WaitGroup{},
+		spawnMu:              sync.Mutex{},
+		closing:              false,
+		hasInitialBuild:      false,
+		mu:                   sync.RWMutex{},
+		goplsDiagnosticsMu:   sync.Mutex{},
 	}
 }
 

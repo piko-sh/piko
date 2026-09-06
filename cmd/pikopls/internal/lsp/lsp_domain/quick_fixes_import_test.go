@@ -73,7 +73,7 @@ func TestGenerateAddImportFix(t *testing.T) {
 
 			diagnostic := protocol.Diagnostic{
 				Range: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: 0, Character: 5},
 				},
 				Data: tc.data,
@@ -114,7 +114,7 @@ func Render() {}
 
 	diagnostic := protocol.Diagnostic{
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 0, Character: 5},
 		},
 		Data: map[string]any{

@@ -774,7 +774,7 @@ func TestHandler_ExemptPath_BypassesRateLimit(t *testing.T) {
 
 	mockService := &security_domain.MockRateLimitService{
 		CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
-			return ratelimiter_dto.Result{Allowed: false}, nil
+			return ratelimiter_dto.Result{}, nil
 		},
 	}
 	config := security_dto.RateLimitValues{
@@ -1366,9 +1366,7 @@ func TestNullSeparator_Value(t *testing.T) {
 func TestNewCacheMiddleware_SetsDefaultStreamCompressionLevel(t *testing.T) {
 	t.Parallel()
 
-	config := CacheMiddlewareConfig{
-		StreamCompressionLevel: 0,
-	}
+	config := CacheMiddlewareConfig{}
 	manifest := &templater_domain.MockManifestStoreView{}
 	registry := &registry_domain.MockRegistryService{}
 

@@ -543,15 +543,7 @@ func findTermFrequency(postings []PostingInfo, documentID uint32) (float64, uint
 // Returns TermScoreDetail which has zero values for all score fields and Found set to
 // false.
 func createNotFoundTermDetail(term string) TermScoreDetail {
-	return TermScoreDetail{
-		Term:        term,
-		Found:       false,
-		TF:          0,
-		IDF:         0.0,
-		BaseScore:   0.0,
-		FieldID:     0,
-		FieldName:   "",
-		FieldWeight: 0.0,
-		FinalScore:  0.0,
-	}
+	detail := TermScoreDetail{}
+	detail.Term = term
+	return detail
 }

@@ -133,10 +133,9 @@ func ExtractFontDescriptor(rawFont []byte) (*FontDescriptorInfo, error) {
 		return nil, errors.New("font_tables: missing or too short head table")
 	}
 
-	info := &FontDescriptorInfo{
-		UnitsPerEm: int(binary.BigEndian.Uint16(headData[headUnitsPerEmOffset:headUnitsPerEmEnd])),
-		BBox:       readHeadBBox(headData),
-	}
+	info := &FontDescriptorInfo{}
+	info.UnitsPerEm = int(binary.BigEndian.Uint16(headData[headUnitsPerEmOffset:headUnitsPerEmEnd]))
+	info.BBox = readHeadBBox(headData)
 
 	populateOS2Metrics(tables, info)
 	populateItalicAngle(tables, info)
@@ -528,6 +527,7 @@ func (b *lineBuilder) writeString(text string) {
 // writeFormatted appends a formatted string to the output.
 //
 // Takes format (string) which holds the format specifier.
+// Takes arguments (...any) which supplies the values substituted into the format string.
 func (b *lineBuilder) writeFormatted(format string, arguments ...any) {
 	b.data = fmt.Appendf(b.data, format, arguments...)
 }

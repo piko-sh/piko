@@ -114,11 +114,9 @@ func TestMockTaskStore_ConcurrentAccess(t *testing.T) {
 	now := time.Now()
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			_ = m.CreateTask(ctx, task)
 			_ = m.CreateTasks(ctx, []*Task{task})
@@ -140,7 +138,7 @@ func TestMockTaskStore_ConcurrentAccess(t *testing.T) {
 			_, _ = m.CleanupOldResolvedReceipts(ctx, now)
 			_, _ = m.TimeoutStaleReceipts(ctx, now)
 			_, _ = m.ListFailedTasks(ctx)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -1123,5 +1121,39 @@ func TestMockTaskStore_ListFailedTasks(t *testing.T) {
 
 		_, err := m.ListFailedTasks(context.Background())
 		assert.ErrorIs(t, err, expected)
+	})
+}
+
+func TestMockTaskStore_GetTasksByID(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil GetTasksByIDFunc returns zero values", func(t *testing.T) {
+		t.Parallel()
+
+		m := &MockTaskStore{}
+		tasks, err := m.GetTasksByID(context.Background(), []string{"a"})
+
+		require.NoError(t, err)
+		assert.Nil(t, tasks)
+		assert.Equal(t, int64(1), m.GetTasksByIDCallCount.Load())
+	})
+
+	t.Run("delegates to GetTasksByIDFunc", func(t *testing.T) {
+		t.Parallel()
+
+		want := []*Task{{ID: "a"}}
+		var capturedIDs []string
+		m := &MockTaskStore{
+			GetTasksByIDFunc: func(_ context.Context, ids []string) ([]*Task, error) {
+				capturedIDs = ids
+				return want, nil
+			},
+		}
+
+		got, err := m.GetTasksByID(context.Background(), []string{"a", "b"})
+
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+		assert.Equal(t, []string{"a", "b"}, capturedIDs)
 	})
 }

@@ -516,6 +516,8 @@ func (*onDemandVariantGeneratorImpl) renameBlobToFinal(
 // Takes profile (*ParsedImageProfile) which provides format settings.
 // Takes finalHash ([]byte) which contains the content hash.
 // Takes byteCount (int64) which specifies the file size in bytes.
+// Takes sourceContentHash (string) which identifies the source content from which the
+// variant was generated.
 //
 // Returns registry_dto.Variant which contains the complete variant metadata.
 // Returns error when the variant transform cannot be fingerprinted, so an
@@ -559,6 +561,9 @@ func (g *onDemandVariantGeneratorImpl) buildVariantRecord(
 		Kind:             registry_dto.KindDerived,
 		Transform:        transform,
 		InputFingerprint: inputFingerprint,
+		SRIHash:          "",
+		BuildRelease:     "",
+		BuildHash:        "",
 	}, nil
 }
 

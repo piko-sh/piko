@@ -54,13 +54,6 @@ func (*InterpreterAdapter) Interpret(_ context.Context, _ *wasm_dto.InterpretReq
 	return nil, errors.New("interpreter not available in non-WASM builds")
 }
 
-// WithSymbolLoader is a no-op in non-WASM builds.
-//
-// Returns InterpreterAdapterOption which has no effect on the adapter.
-func WithSymbolLoader(_ wasm_domain.SymbolLoaderPort) InterpreterAdapterOption {
-	return func(_ *InterpreterAdapter) {}
-}
-
 // WithInterpreterFactory is a no-op in non-WASM builds.
 //
 // Returns InterpreterAdapterOption which has no effect.

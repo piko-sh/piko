@@ -188,12 +188,12 @@ func resolvePositionedBox(ctx context.Context, box *LayoutBox, containingBlock *
 	contentWidth := resolvePositionedHorizontal(box, &positionedContext)
 	contentHeight := resolvePositionedVertical(box, &positionedContext)
 
-	positionedInput := layoutInput{
-		AvailableWidth: contentWidth,
-		FontMetrics:    input.FontMetrics,
-		Cache:          input.Cache,
-		Edges:          positionedContext.edges,
-	}
+	positionedInput := newLayoutInput(
+		input,
+		contentWidth,
+		0,
+		positionedContext.edges,
+	)
 
 	childResult, childHeight := layoutPositionedChildren(ctx, box, positionedInput, &positionedContext)
 	if childHeight >= 0 {

@@ -89,17 +89,18 @@ type inspectorOverviewArgs struct {
 // Returns inspector.DetailBody ready to pass to RenderDetailBody.
 func inspectorOverviewBody(args inspectorOverviewArgs) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: args.itemLabel, Value: formatInt(args.itemCount)},
+		inspector.NewDetailRow(args.itemLabel, formatInt(args.itemCount)),
 	}
 	if !args.lastRefresh.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last refresh", Value: args.lastRefresh.Format(time.RFC3339)})
+		rows = append(rows, inspector.NewDetailRow("Last refresh", args.lastRefresh.Format(time.RFC3339)))
 	}
 	if args.err != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: args.err.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", args.err.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    args.title,
-		Sections: []inspector.DetailSection{{Heading: "Status", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status", rows)},
+		Subtitle: "",
 	}
 }
 

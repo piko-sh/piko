@@ -551,7 +551,7 @@ func (fe *forEmitter) generateLoopItemCode(
 		return fe.generateHoistedLoopBody(ctx, originalNode, parentSliceExpr)
 	}
 
-	emitCtx := newNodeEmissionContext(ctx, nodeEmissionParams{
+	emitCtx := newNodeEmissionContext(nodeEmissionParams{
 		Node:                  tempNode,
 		ParentSliceExpression: parentSliceExpr,
 		Index:                 0,
@@ -560,7 +560,7 @@ func (fe *forEmitter) generateLoopItemCode(
 		PartialScopeID:        fe.currentPartialScopeID,
 		MainComponentScope:    fe.currentMainComponentScope,
 	})
-	statements, _, diagnostics := fe.astBuilder.emitNode(emitCtx)
+	statements, _, diagnostics := fe.astBuilder.emitNode(ctx, emitCtx)
 	return statements, diagnostics
 }
 
@@ -706,9 +706,11 @@ func (*forEmitter) buildMapKeyExtraction(mapGoExpr goast.Expr, keyType goast.Exp
 // Returns *forEmitter which is the configured loop emitter ready for use.
 func newForEmitter(emitter *emitter, expressionEmitter ExpressionEmitter, astBuilder AstBuilder) *forEmitter {
 	return &forEmitter{
-		emitter:           emitter,
-		expressionEmitter: expressionEmitter,
-		astBuilder:        astBuilder,
+		emitter:                   emitter,
+		expressionEmitter:         expressionEmitter,
+		astBuilder:                astBuilder,
+		currentPartialScopeID:     "",
+		currentMainComponentScope: "",
 	}
 }
 

@@ -430,9 +430,7 @@ func TestGetPrimaryRoutePattern(t *testing.T) {
 				partials: map[string]*PageEntry{},
 				emails: map[string]*PageEntry{
 					"emails/welcome.pk": {
-						ManifestPageEntry: generator_dto.ManifestPageEntry{
-							RoutePatterns: nil,
-						},
+						ManifestPageEntry: generator_dto.ManifestPageEntry{},
 					},
 				},
 			},

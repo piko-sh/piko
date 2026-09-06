@@ -91,9 +91,12 @@ func (wm *WatermarkConfig) applyDefaults() {
 // behind page content. The watermark uses Helvetica (Type1) so no font embedding is
 // required.
 //
+// Takes wm (*WatermarkConfig) which specifies the watermark text, placement, and
+// appearance.
 // Takes fontResourceName (string) which is the Helvetica resource name (e.g. "FW").
 // Takes gsName (string) which is the ExtGState resource name for opacity.
-// Takes pageWidth, pageHeight (float64) which are the page dimensions.
+// Takes pageWidth (float64) which is the page width in points.
+// Takes pageHeight (float64) which is the page height in points.
 //
 // Returns the content stream operators as a string.
 func buildWatermarkStream(

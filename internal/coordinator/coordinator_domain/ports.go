@@ -197,8 +197,7 @@ type IntrospectionCachePort interface {
 }
 
 // FileHashCachePort is the driven port for caching file content hashes keyed by
-// modification time. It implements coordinator_domain.FileHashCachePort and
-// collection_domain.HybridPersistencePort.
+// modification time.
 //
 // This provides a persistent cache to optimise the coordinator's hash calculation logic,
 // implementing a "stat-then-read" optimisation that reduces disk I/O.

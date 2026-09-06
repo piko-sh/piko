@@ -21,6 +21,7 @@ package email_domain
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
 )
@@ -54,9 +55,9 @@ func (*service) ProbeName() string {
 // REGISTERED columns.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: "name"},
-		{Header: "TYPE", Key: "type"},
-		{Header: "REGISTERED", Key: "registered"},
+		{Header: "NAME", Key: "name", WideOnly: false},
+		{Header: "TYPE", Key: "type", WideOnly: false},
+		{Header: "REGISTERED", Key: "registered", WideOnly: false},
 	}
 }
 
@@ -124,7 +125,13 @@ func findProviderInfo(infos []provider_domain.ProviderInfo, name string) provide
 			return info
 		}
 	}
-	return provider_domain.ProviderInfo{Name: name}
+	return provider_domain.ProviderInfo{
+		Name:         name,
+		Capabilities: nil,
+		RegisteredAt: time.Time{},
+		ProviderType: "",
+		IsDefault:    false,
+	}
 }
 
 // buildOverviewSection creates the overview section for a provider detail view.

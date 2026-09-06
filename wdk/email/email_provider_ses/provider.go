@@ -322,10 +322,12 @@ func (p *SESProvider) sendBulkEmails(ctx context.Context, emails []*email_dto.Se
 				logger.String("subject", emailMessage.Subject))
 
 			emailError := &email_domain.EmailError{
-				Email:       *emailMessage,
-				Error:       err,
-				Attempt:     1,
-				LastAttempt: time.Now(),
+				Email:        *emailMessage,
+				Error:        err,
+				Attempt:      1,
+				LastAttempt:  time.Now(),
+				FirstAttempt: time.Time{},
+				NextRetry:    time.Time{},
 			}
 
 			if multiError == nil {
@@ -384,6 +386,7 @@ func NewSESProvider(ctx context.Context, arguments SESProviderArgs, opts ...Prov
 	defaultConfig := email_domain.ProviderRateLimitConfig{
 		CallsPerSecond: defaultCallsPerSecond,
 		Burst:          defaultBurst,
+		Clock:          nil,
 	}
 	rateLimiter := email_domain.ApplyProviderOptions(defaultConfig, opts...)
 

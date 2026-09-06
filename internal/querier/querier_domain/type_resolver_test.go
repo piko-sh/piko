@@ -1846,7 +1846,7 @@ func TestResolveLikeParameterType(t *testing.T) {
 		raw := querier_dto.RawParameterReference{
 			Number:          1,
 			Context:         querier_dto.ParameterContextLike,
-			ColumnReference: &querier_dto.ColumnReference{ColumnName: ""},
+			ColumnReference: &querier_dto.ColumnReference{},
 		}
 		sqlType, nullable, err := resolver.resolveLikeParameterType(raw, setupTypeResolverScope())
 		require.NoError(t, err)
@@ -2486,7 +2486,7 @@ func TestInferExpressionName_UnwrapsCastAndCoalesce(t *testing.T) {
 		t.Parallel()
 		coalesce := &querier_dto.CoalesceExpression{
 			Arguments: []querier_dto.Expression{
-				&querier_dto.FunctionCallExpression{FunctionName: ""},
+				&querier_dto.FunctionCallExpression{},
 				columnRef,
 			},
 		}

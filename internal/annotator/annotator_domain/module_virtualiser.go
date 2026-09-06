@@ -169,6 +169,8 @@ func (mv *ModuleVirtualiser) Virtualise(
 			ComponentsByGoPath: make(map[string]*annotator_dto.VirtualComponent, len(graph.Components)),
 			ComponentsByHash:   make(map[string]*annotator_dto.VirtualComponent, len(graph.Components)),
 			Graph:              graph,
+			ActionManifest:     nil,
+			Diagnostics:        nil,
 		},
 	}
 
@@ -211,10 +213,14 @@ func (vc *virtualisationContext) injectDefaultBoilerplateFuncs(ctx context.Conte
 				MiddlewaresFuncName:        "",
 				CachePolicyFuncName:        "",
 				SupportedLocalesFuncName:   "",
-				ScriptStartLocation:        ast_domain.Location{Line: 0, Column: 0, Offset: 0},
+				ScriptStartLocation:        ast_domain.Location{},
 				HasMiddleware:              false,
 				HasCachePolicy:             false,
 				HasSupportedLocales:        false,
+				AuthPolicyFuncName:         "",
+				PreviewFuncName:            "",
+				HasAuthPolicy:              false,
+				HasPreview:                 false,
 			}
 		}
 
@@ -414,6 +420,7 @@ func (vc *virtualisationContext) buildVirtualComponent(
 		ErrorStatusCodeMax:     meta.errorStatusCodeMax[parsedComp.SourcePath],
 		IsCatchAllError:        meta.isCatchAllError[parsedComp.SourcePath],
 		VirtualInstances:       meta.virtualInstances[parsedComp.SourcePath],
+		PikoAliasToHash:        nil,
 	}
 }
 

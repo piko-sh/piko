@@ -145,7 +145,8 @@ func Gauge(config GaugeConfig) string {
 // gaugePercent returns the consumed fraction. Caps at 1.0 for rendering purposes;
 // saturated values are still surfaced via Severity.
 //
-// Takes used (float64) and limit (float64) which describe the consumption.
+// Takes used (float64) which is the consumed amount.
+// Takes limit (float64) which is the maximum available amount.
 //
 // Returns float64 in [0, 1].
 func gaugePercent(used, limit float64) float64 {
@@ -184,7 +185,9 @@ func severityFromPercent(percent float64) Severity {
 
 // gaugeText returns the trailing "Used / Max P%" string.
 //
-// Takes used (float64), limit (float64), percent (float64).
+// Takes used (float64) which is the consumed amount.
+// Takes limit (float64) which is the maximum available amount.
+// Takes percent (float64) which is the percentage of capacity consumed.
 //
 // Returns string which is the formatted text.
 func gaugeText(used, limit, percent float64) string {

@@ -25,7 +25,7 @@ import (
 	"go/token"
 	"strconv"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 )
 
 const (

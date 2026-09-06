@@ -37,11 +37,7 @@ func TestMockTokenBucketStore_TryTake(t *testing.T) {
 	t.Run("nil TryTakeFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockTokenBucketStore{
-			TryTakeFunc:      nil,
-			WaitDurationFunc: nil,
-			DeleteBucketFunc: nil,
-		}
+		mock := &MockTokenBucketStore{}
 
 		ctx := context.Background()
 		config := &ratelimiter_dto.TokenBucketConfig{Rate: 10.0, Burst: 20}
@@ -138,11 +134,7 @@ func TestMockTokenBucketStore_WaitDuration(t *testing.T) {
 	t.Run("nil WaitDurationFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockTokenBucketStore{
-			TryTakeFunc:      nil,
-			WaitDurationFunc: nil,
-			DeleteBucketFunc: nil,
-		}
+		mock := &MockTokenBucketStore{}
 
 		ctx := context.Background()
 		config := &ratelimiter_dto.TokenBucketConfig{Rate: 10.0, Burst: 20}
@@ -239,11 +231,7 @@ func TestMockTokenBucketStore_DeleteBucket(t *testing.T) {
 	t.Run("nil DeleteBucketFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockTokenBucketStore{
-			TryTakeFunc:      nil,
-			WaitDurationFunc: nil,
-			DeleteBucketFunc: nil,
-		}
+		mock := &MockTokenBucketStore{}
 
 		ctx := context.Background()
 		err := mock.DeleteBucket(ctx, "key-to-delete")
@@ -325,11 +313,7 @@ func TestMockTokenBucketStore_DeleteBucket_PassesArguments(t *testing.T) {
 func TestMockTokenBucketStore_CallCountsAreIndependent(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockTokenBucketStore{
-		TryTakeFunc:      nil,
-		WaitDurationFunc: nil,
-		DeleteBucketFunc: nil,
-	}
+	mock := &MockTokenBucketStore{}
 
 	ctx := context.Background()
 	config := &ratelimiter_dto.TokenBucketConfig{Rate: 1.0, Burst: 1}
@@ -373,32 +357,24 @@ func TestMockTokenBucketStore_ZeroValueIsUsable(t *testing.T) {
 func TestMockTokenBucketStore_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockTokenBucketStore{
-		TryTakeFunc:      nil,
-		WaitDurationFunc: nil,
-		DeleteBucketFunc: nil,
-	}
+	mock := &MockTokenBucketStore{}
 
 	ctx := context.Background()
 	config := &ratelimiter_dto.TokenBucketConfig{Rate: 10.0, Burst: 20}
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 3)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = mock.TryTake(ctx, "concurrent", 1.0, config)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.WaitDuration(ctx, "concurrent", 1.0, config)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_ = mock.DeleteBucket(ctx, "concurrent")
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -411,11 +387,7 @@ func TestMockTokenBucketStore_ConcurrentAccess(t *testing.T) {
 func TestMockTokenBucketStore_ImplementsTokenBucketStorePort(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockTokenBucketStore{
-		TryTakeFunc:      nil,
-		WaitDurationFunc: nil,
-		DeleteBucketFunc: nil,
-	}
+	mock := &MockTokenBucketStore{}
 
 	var _ TokenBucketStorePort = mock
 }

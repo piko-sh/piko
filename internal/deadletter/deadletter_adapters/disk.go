@@ -472,8 +472,11 @@ func NewDiskDeadLetterQueue[T any](filePath string, opts ...DiskDeadLetterOption
 	fileName := filepath.Base(filePath)
 
 	d := &DiskDeadLetterQueue[T]{
-		fileName: fileName,
-		maxBytes: defaultMaxDLQBytes,
+		fileName:       fileName,
+		maxBytes:       defaultMaxDLQBytes,
+		sandboxFactory: nil,
+		sandbox:        nil,
+		mu:             sync.Mutex{},
 	}
 
 	for _, opt := range opts {

@@ -53,7 +53,8 @@ type Service interface {
 	// RegisterProvider adds a new storage provider to the service.
 	//
 	// Takes ctx (context.Context) for cancellation and logging propagation.
-	// Takes name (string) which identifies the provider (e.g. "s3", "gcs", "disk").
+	// Takes name (string) which identifies the storage backend, such as "s3", "gcs", or
+	// "disk".
 	// Takes provider (StorageProviderPort) which implements the storage operations.
 	//
 	// Returns error when the provider cannot be registered.

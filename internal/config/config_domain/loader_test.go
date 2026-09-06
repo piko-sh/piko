@@ -430,7 +430,7 @@ func TestLoad(t *testing.T) {
 			name:   "features: strict mode succeeds when disabled",
 			target: &strictModeConfig{},
 			files:  map[string]string{"config.yaml": "knownField: hello\nunknownField: world"},
-			opts:   LoaderOptions{StrictFile: false},
+			opts:   LoaderOptions{},
 			want:   &strictModeConfig{KnownField: "hello"},
 		},
 		{
@@ -496,7 +496,7 @@ func TestLoad(t *testing.T) {
 		{
 			name:   "features: noinit keeps pointer nil",
 			target: &noInitConfig{},
-			want:   &noInitConfig{Nested: nil},
+			want:   &noInitConfig{},
 		},
 		{
 			name:   "features: default init creates struct",

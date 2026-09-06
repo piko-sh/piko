@@ -114,6 +114,9 @@ var (
 // Takes fsReader (FSReaderPort) which provides file system access.
 // Takes diagnosticCode (string) which is assigned to generated diagnostics.
 // Takes importDiagnosticCode (string) which is assigned to @import failures.
+// Takes sharedParseCache (*parseCache) which provides parsed stylesheets shared across
+// inliner instances.
+// Takes limits (Limits) which sets the resource limits for CSS import processing.
 //
 // Returns *Inliner which is ready to use.
 func GetInliner(
@@ -308,6 +311,8 @@ func (i *Inliner) parseOrLoadCSS(cssContent, containingPath string) (css_ast.AST
 //
 // Takes tree (css_ast.AST) which is the parsed CSS to process.
 // Takes containingPath (string) which is the file path of the CSS being processed.
+// Takes cssContent (string) which contains the stylesheet text whose imports are
+// processed.
 // Takes startLocation (ast.Location) which marks where processing began.
 // Takes pathStack ([]string) which tracks visited paths to detect cycles.
 //
@@ -443,6 +448,8 @@ func isExternalImportPath(path string) bool {
 //
 // Takes tree (css_ast.AST) which is the CSS abstract syntax tree to process.
 // Takes containingPath (string) which is the file path of the stylesheet.
+// Takes cssContent (string) which contains the stylesheet text whose imports are
+// processed.
 // Takes startLocation (ast.Location) which marks the import's source position.
 // Takes pathStack ([]string) which tracks visited paths to detect cycles.
 //

@@ -60,67 +60,67 @@ var (
 	// descriptors.
 	builtinTypeMap = map[string]querier_dto.SQLType{
 		// Signed integer types
-		"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "tinyint"},
-		"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "smallint"},
-		"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "mediumint"},
-		"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
-		"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int"},
-		"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
+		"tinyint":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "tinyint"),
+		"smallint":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "smallint"),
+		"mediumint": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "mediumint"),
+		"int":       querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int"),
+		"integer":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int"),
+		"bigint":    querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "bigint"),
 		// Unsigned integer types
-		"tinyint unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "tinyint unsigned"},
-		"smallint unsigned":  {Category: querier_dto.TypeCategoryInteger, EngineName: "smallint unsigned"},
-		"mediumint unsigned": {Category: querier_dto.TypeCategoryInteger, EngineName: "mediumint unsigned"},
-		"int unsigned":       {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
-		"integer unsigned":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int unsigned"},
-		"bigint unsigned":    {Category: querier_dto.TypeCategoryInteger, EngineName: "bigint unsigned"},
+		"tinyint unsigned":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "tinyint unsigned"),
+		"smallint unsigned":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "smallint unsigned"),
+		"mediumint unsigned": querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "mediumint unsigned"),
+		"int unsigned":       querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int unsigned"),
+		"integer unsigned":   querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "int unsigned"),
+		"bigint unsigned":    querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "bigint unsigned"),
 		// Float types
-		"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float"},
-		"double":           {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
-		"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
-		"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
+		"float":            querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "float"),
+		"double":           querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "double"),
+		"double precision": querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "double"),
+		"real":             querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, "double"),
 		// Decimal types
-		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-		"dec":     {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
-		"fixed":   {Category: querier_dto.TypeCategoryDecimal, EngineName: "decimal"},
+		"decimal": querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "decimal"),
+		"dec":     querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "decimal"),
+		"numeric": querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "decimal"),
+		"fixed":   querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, "decimal"),
 		// Boolean
-		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
-		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "tinyint"},
+		"boolean": querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "tinyint"),
+		"bool":    querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, "tinyint"),
 		// Text types
-		"char":       {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-		"varchar":    {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-		"tinytext":   {Category: querier_dto.TypeCategoryText, EngineName: "tinytext"},
-		"text":       {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-		"mediumtext": {Category: querier_dto.TypeCategoryText, EngineName: "mediumtext"},
-		"longtext":   {Category: querier_dto.TypeCategoryText, EngineName: "longtext"},
+		"char":       querier_dto.NewSQLType(querier_dto.TypeCategoryText, "char"),
+		"varchar":    querier_dto.NewSQLType(querier_dto.TypeCategoryText, "varchar"),
+		"tinytext":   querier_dto.NewSQLType(querier_dto.TypeCategoryText, "tinytext"),
+		"text":       querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"),
+		"mediumtext": querier_dto.NewSQLType(querier_dto.TypeCategoryText, "mediumtext"),
+		"longtext":   querier_dto.NewSQLType(querier_dto.TypeCategoryText, "longtext"),
 		// Binary types
-		"binary":     {Category: querier_dto.TypeCategoryBytea, EngineName: "binary"},
-		"varbinary":  {Category: querier_dto.TypeCategoryBytea, EngineName: "varbinary"},
-		"tinyblob":   {Category: querier_dto.TypeCategoryBytea, EngineName: "tinyblob"},
-		"blob":       {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
-		"mediumblob": {Category: querier_dto.TypeCategoryBytea, EngineName: "mediumblob"},
-		"longblob":   {Category: querier_dto.TypeCategoryBytea, EngineName: "longblob"},
+		"binary":     querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "binary"),
+		"varbinary":  querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "varbinary"),
+		"tinyblob":   querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "tinyblob"),
+		"blob":       querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "blob"),
+		"mediumblob": querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "mediumblob"),
+		"longblob":   querier_dto.NewSQLType(querier_dto.TypeCategoryBytea, "longblob"),
 		// Temporal types
-		"date":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
-		"time":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
-		"datetime":  {Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
-		"timestamp": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
-		"year":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "year"},
+		"date":      querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "date"),
+		"time":      querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "time"),
+		"datetime":  querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "datetime"),
+		"timestamp": querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "timestamp"),
+		"year":      querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "year"),
 		// JSON
-		"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+		"json": querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, "json"),
 		// Geometric types
-		"geometry":           {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometry"},
-		"point":              {Category: querier_dto.TypeCategoryGeometric, EngineName: "point"},
-		"linestring":         {Category: querier_dto.TypeCategoryGeometric, EngineName: "linestring"},
-		"polygon":            {Category: querier_dto.TypeCategoryGeometric, EngineName: "polygon"},
-		"multipoint":         {Category: querier_dto.TypeCategoryGeometric, EngineName: "multipoint"},
-		"multilinestring":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "multilinestring"},
-		"multipolygon":       {Category: querier_dto.TypeCategoryGeometric, EngineName: "multipolygon"},
-		"geometrycollection": {Category: querier_dto.TypeCategoryGeometric, EngineName: "geometrycollection"},
+		"geometry":           querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "geometry"),
+		"point":              querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "point"),
+		"linestring":         querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "linestring"),
+		"polygon":            querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "polygon"),
+		"multipoint":         querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "multipoint"),
+		"multilinestring":    querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "multilinestring"),
+		"multipolygon":       querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "multipolygon"),
+		"geometrycollection": querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, "geometrycollection"),
 		// Other types
-		"enum": {Category: querier_dto.TypeCategoryEnum, EngineName: "enum"},
-		"set":  {Category: querier_dto.TypeCategoryText, EngineName: "set"},
-		"bit":  {Category: querier_dto.TypeCategoryInteger, EngineName: "bit"},
+		"enum": querier_dto.NewSQLType(querier_dto.TypeCategoryEnum, "enum"),
+		"set":  querier_dto.NewSQLType(querier_dto.TypeCategoryText, "set"),
+		"bit":  querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, "bit"),
 	}
 
 	// multiWordTypes lists MySQL type names whose canonical form contains more than one
@@ -173,7 +173,7 @@ func normaliseTypeName(
 	}
 
 	if lowered == "" {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text")
 	}
 
 	if _, exists := multiWordTypes[lowered]; exists {
@@ -198,7 +198,7 @@ func normaliseTypeName(
 		}
 	}
 
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: lowered}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, lowered)
 }
 
 // applyModifiers sets precision, scale, or length on the given SQLType based on the type

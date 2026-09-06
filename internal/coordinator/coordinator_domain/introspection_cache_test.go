@@ -36,7 +36,7 @@ func TestMatchesScriptHashes_NilEntry(t *testing.T) {
 
 func TestMatchesScriptHashes_NilHashes(t *testing.T) {
 	t.Parallel()
-	e := &IntrospectionCacheEntry{ScriptHashes: nil}
+	e := &IntrospectionCacheEntry{}
 	assert.False(t, e.MatchesScriptHashes(map[string]string{"a": "b"}))
 }
 

@@ -105,13 +105,11 @@ func TestMockSEOService_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = mock.GenerateArtefacts(context.Background(), &seo_dto.ProjectView{})
-		}()
+		})
 	}
 
 	wg.Wait()

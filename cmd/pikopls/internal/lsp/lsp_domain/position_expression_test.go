@@ -37,17 +37,17 @@ func TestCalculateExpressionRange(t *testing.T) {
 		{
 			name:             "simple identifier at start",
 			baseLocation:     ast_domain.Location{Line: 1, Column: 1},
-			relativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			relativeLocation: ast_domain.Location{},
 			sourceLen:        5,
 			expected: protocol.Range{
-				Start: protocol.Position{Line: 0, Character: 0},
+				Start: protocol.Position{},
 				End:   protocol.Position{Line: 0, Character: 5},
 			},
 		},
 		{
 			name:             "identifier with offset",
 			baseLocation:     ast_domain.Location{Line: 5, Column: 10},
-			relativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			relativeLocation: ast_domain.Location{},
 			sourceLen:        3,
 			expected: protocol.Range{
 				Start: protocol.Position{Line: 4, Character: 9},
@@ -195,7 +195,7 @@ func TestVisitExpressionTree(t *testing.T) {
 	t.Run("index expression", func(t *testing.T) {
 		expression := &ast_domain.IndexExpression{
 			Base:  &ast_domain.Identifier{Name: "arr"},
-			Index: &ast_domain.IntegerLiteral{Value: 0},
+			Index: &ast_domain.IntegerLiteral{},
 		}
 		var visited []string
 		visitExpressionTree(expression, func(e ast_domain.Expression) {
@@ -582,7 +582,7 @@ func TestIsPositionInAttributeValue(t *testing.T) {
 			name:     "synthetic range",
 			position: protocol.Position{Line: 0, Character: 10},
 			attributeRange: ast_domain.Range{
-				Start: ast_domain.Location{Line: 0, Column: 0},
+				Start: ast_domain.Location{},
 				End:   ast_domain.Location{Line: 1, Column: 20},
 			},
 			expected: false,
@@ -618,14 +618,14 @@ func TestCheckDirectiveAtPos(t *testing.T) {
 		{
 			name:      "nil directive",
 			directive: nil,
-			position:  protocol.Position{Line: 0, Character: 0},
+			position:  protocol.Position{},
 			expectOK:  false,
 		},
 		{
 			name: "synthetic range",
 			directive: &ast_domain.Directive{
 				AttributeRange: ast_domain.Range{
-					Start: ast_domain.Location{Line: 0, Column: 0},
+					Start: ast_domain.Location{},
 					End:   ast_domain.Location{Line: 1, Column: 10},
 				},
 			},
@@ -687,7 +687,7 @@ func TestFindExprInDynamicAttrs(t *testing.T) {
 		{
 			name:      "empty attrs",
 			attrs:     nil,
-			position:  protocol.Position{Line: 0, Character: 0},
+			position:  protocol.Position{},
 			expectNil: true,
 		},
 		{
@@ -744,7 +744,7 @@ func TestFindExprInStaticAttrs(t *testing.T) {
 		{
 			name:      "empty attrs",
 			attrs:     nil,
-			position:  protocol.Position{Line: 0, Character: 0},
+			position:  protocol.Position{},
 			expectNil: true,
 		},
 		{
@@ -809,7 +809,7 @@ func TestFindExprInRichText(t *testing.T) {
 		{
 			name:      "empty parts",
 			parts:     nil,
-			position:  protocol.Position{Line: 0, Character: 0},
+			position:  protocol.Position{},
 			expectNil: true,
 		},
 		{
@@ -1133,7 +1133,7 @@ func TestFindExprInPassedProps(t *testing.T) {
 						PassedProps: map[string]ast_domain.PropValue{
 							"name": {
 								Expression:   &ast_domain.Identifier{Name: "val"},
-								NameLocation: ast_domain.Location{Line: 0, Column: 0},
+								NameLocation: ast_domain.Location{},
 								Location:     ast_domain.Location{Line: 1, Column: 5},
 							},
 						},
@@ -1363,7 +1363,7 @@ func TestVisitForInExprChildrenWithContext(t *testing.T) {
 			baseLocation := ast_domain.Location{Line: 1, Column: 1}
 			result := &expressionFindResult{
 				bestRange: protocol.Range{
-					Start: protocol.Position{Line: 0, Character: 0},
+					Start: protocol.Position{},
 					End:   protocol.Position{Line: maxRangeValue, Character: maxRangeValue},
 				},
 			}

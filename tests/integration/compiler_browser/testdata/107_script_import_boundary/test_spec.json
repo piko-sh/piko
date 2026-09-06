@@ -1,0 +1,17 @@
+[
+  {
+    "action": "checkText",
+    "selector": "import-boundary-component >>> p.first",
+    "expected": "alpha-beta"
+  },
+  {
+    "action": "checkText",
+    "selector": "import-boundary-component >>> p.second",
+    "expected": "one-fourteen-pad"
+  },
+  {
+    "action": "checkText",
+    "selector": "import-boundary-component >>> p.third",
+    "expected": "importedName"
+  }
+]

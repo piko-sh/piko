@@ -19,10 +19,15 @@
 package layouter_domain
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 func TestDetermineBoxType(t *testing.T) {
@@ -606,4 +611,190 @@ func TestBoxTreeBuilder_CounterOperations(t *testing.T) {
 		result := b.resolveCountersFunc("missing")
 		assert.Equal(t, "0", result)
 	})
+}
+
+func TestBuildBoxTree_ClampsTableSpans(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		colspan     string
+		rowspan     string
+		limits      layouter_dto.LayoutLimits
+		wantColspan int
+		wantRowspan int
+	}{
+		{name: "spans within the limits", colspan: "3", rowspan: "2", wantColspan: 3, wantRowspan: 2},
+		{name: "spans clamped to the HTML maxima", colspan: "1000000", rowspan: "9999999", wantColspan: 1000, wantRowspan: 65534},
+		{
+			name:        "spans clamped to configured limits",
+			colspan:     "50",
+			rowspan:     "50",
+			limits:      layouter_dto.LayoutLimits{MaxColspan: 10, MaxRowspan: 20},
+			wantColspan: 10,
+			wantRowspan: 20,
+		},
+		{name: "invalid spans default to one", colspan: "abc", rowspan: "-4", wantColspan: 1, wantRowspan: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cellNode := &ast_domain.TemplateNode{
+				NodeType: ast_domain.NodeElement,
+				TagName:  "td",
+				Attributes: []ast_domain.HTMLAttribute{
+					{Name: "colspan", Value: tt.colspan},
+					{Name: "rowspan", Value: tt.rowspan},
+				},
+			}
+			rowNode := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "tr", Children: []*ast_domain.TemplateNode{cellNode}}
+			tableNode := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "table", Children: []*ast_domain.TemplateNode{rowNode}}
+			styleMap := StyleMap{
+				tableNode: styleWithDisplay(DisplayTable),
+				rowNode:   styleWithDisplay(DisplayTableRow),
+				cellNode:  styleWithDisplay(DisplayTableCell),
+			}
+
+			root, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{tableNode}}, styleMap, nil, nil, NewLimitTracker(tt.limits)))
+			require.NoError(t, err)
+
+			cell := findBoxOfType(root, BoxTableCell)
+			require.NotNil(t, cell)
+			assert.Equal(t, tt.wantColspan, cell.Colspan)
+			assert.Equal(t, tt.wantRowspan, cell.Rowspan)
+		})
+	}
+}
+
+func TestBuildBoxTree_EnforcesStructuralLimits(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		wantErr error
+		tree    *ast_domain.TemplateAST
+		name    string
+		limits  layouter_dto.LayoutLimits
+	}{
+		{
+			name:    "too many boxes",
+			tree:    &ast_domain.TemplateAST{RootNodes: siblingDivs(20)},
+			limits:  layouter_dto.LayoutLimits{MaxBoxNodes: 10},
+			wantErr: layouter_dto.ErrTooManyBoxes,
+		},
+		{
+			name:    "nesting too deep",
+			tree:    &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{nestedDivs(30)}},
+			limits:  layouter_dto.LayoutLimits{MaxNestingDepth: 16},
+			wantErr: layouter_dto.ErrNestingTooDeep,
+		},
+		{
+			name:   "nesting at the limit",
+			tree:   &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{nestedDivs(16)}},
+			limits: layouter_dto.LayoutLimits{MaxNestingDepth: 16},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(tt.tree, StyleMap{}, nil, nil, NewLimitTracker(tt.limits)))
+			if tt.wantErr != nil {
+				assert.ErrorIs(t, err, tt.wantErr)
+				assert.Nil(t, root)
+				return
+			}
+			require.NoError(t, err)
+			assert.NotNil(t, root)
+		})
+	}
+}
+
+func TestBuildBoxTree_DisplayContentsCountsTowardDepth(t *testing.T) {
+	t.Parallel()
+
+	outer := nestedDivs(20)
+	styleMap := StyleMap{}
+	for node := outer; node != nil; node = firstChild(node) {
+		styleMap[node] = styleWithDisplay(DisplayContents)
+	}
+
+	_, err := BuildBoxTree(context.Background(), newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{outer}}, styleMap, nil, nil, NewLimitTracker(layouter_dto.LayoutLimits{MaxNestingDepth: 8})))
+
+	assert.ErrorIs(t, err, layouter_dto.ErrNestingTooDeep)
+}
+
+func TestBuildBoxTree_CancelledContext(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	cancel(errors.New("stopped by test"))
+
+	_, err := BuildBoxTree(ctx, newTestBoxTreeInput(&ast_domain.TemplateAST{RootNodes: siblingDivs(3)}, StyleMap{}, nil, nil, nil))
+
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func styleWithDisplay(display DisplayType) *ComputedStyle {
+	style := DefaultComputedStyle()
+	style.Display = display
+	return &style
+}
+
+func siblingDivs(count int) []*ast_domain.TemplateNode {
+	nodes := make([]*ast_domain.TemplateNode, 0, count)
+	for range count {
+		nodes = append(nodes, &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "div"})
+	}
+	return nodes
+}
+
+func nestedDivs(depth int) *ast_domain.TemplateNode {
+	root := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "div"}
+	current := root
+	for range depth - 1 {
+		child := &ast_domain.TemplateNode{NodeType: ast_domain.NodeElement, TagName: "div"}
+		current.Children = []*ast_domain.TemplateNode{child}
+		current = child
+	}
+	return root
+}
+
+func firstChild(node *ast_domain.TemplateNode) *ast_domain.TemplateNode {
+	if len(node.Children) == 0 {
+		return nil
+	}
+	return node.Children[0]
+}
+
+func findBoxOfType(box *LayoutBox, boxType BoxType) *LayoutBox {
+	if box.Type == boxType {
+		return box
+	}
+	for _, child := range box.Children {
+		if found := findBoxOfType(child, boxType); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+func newTestBoxTreeInput(
+	tree *ast_domain.TemplateAST,
+	styles StyleMap,
+	pseudoStyles PseudoStyleMap,
+	imageResolver ImageResolverPort,
+	limits *LimitTracker,
+) BoxTreeInput {
+	return BoxTreeInput{
+		Tree:           tree,
+		Styles:         styles,
+		PseudoStyles:   pseudoStyles,
+		ImageResolver:  imageResolver,
+		Limits:         limits,
+		ViewportWidth:  595,
+		ViewportHeight: 842,
+	}
 }

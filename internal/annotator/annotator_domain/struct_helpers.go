@@ -35,47 +35,10 @@ import (
 // Returns *ast_domain.TemplateNode which is a fragment node containing the given
 // children.
 func newFragmentNode(children []*ast_domain.TemplateNode) *ast_domain.TemplateNode {
-	return &ast_domain.TemplateNode{
-		Key:                nil,
-		DirKey:             nil,
-		DirHTML:            nil,
-		GoAnnotations:      nil,
-		RuntimeAnnotations: nil,
-		AttributeWriters:   nil,
-		TextContentWriter:  nil,
-		CustomEvents:       nil,
-		OnEvents:           nil,
-		Binds:              nil,
-		DirContext:         nil,
-		DirElse:            nil,
-		DirText:            nil,
-		DirStyle:           nil,
-		DirClass:           nil,
-		DirIf:              nil,
-		DirElseIf:          nil,
-		DirFor:             nil,
-		DirShow:            nil,
-		DirRef:             nil,
-		DirModel:           nil,
-		DirScaffold:        nil,
-		TagName:            "",
-		TextContent:        "",
-		InnerHTML:          "",
-		Children:           children,
-		RichText:           nil,
-		Attributes:         nil,
-		Diagnostics:        nil,
-		DynamicAttributes:  nil,
-		Directives:         nil,
-		Location:           ast_domain.Location{},
-		NodeRange:          ast_domain.Range{},
-		OpeningTagRange:    ast_domain.Range{},
-		ClosingTagRange:    ast_domain.Range{},
-		NodeType:           ast_domain.NodeFragment,
-		PreferredFormat:    ast_domain.FormatAuto,
-		IsPooled:           false,
-		IsContentEditable:  false,
-	}
+	node := ast_domain.TemplateNode{}
+	node.Children = children
+	node.NodeType = ast_domain.NodeFragment
+	return &node
 }
 
 // newAnnotationWithType creates a new GoGeneratorAnnotation with the given resolved type.
@@ -100,34 +63,10 @@ func newAnnotationWithType(resolvedType *ast_domain.ResolvedTypeInfo) *ast_domai
 // Returns *ast_domain.GoGeneratorAnnotation which holds the type and stringability
 // settings.
 func newAnnotationWithTypeAndStringability(resolvedType *ast_domain.ResolvedTypeInfo, stringability int) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resolvedType,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      nil,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = resolvedType
+	annotation.Stringability = stringability
+	return &annotation
 }
 
 // newAnnotationFull creates a new GoGeneratorAnnotation with common fields set.
@@ -140,32 +79,9 @@ func newAnnotationWithTypeAndStringability(resolvedType *ast_domain.ResolvedType
 // Returns *ast_domain.GoGeneratorAnnotation which is an annotation with the given fields
 // set.
 func newAnnotationFull(resolvedType *ast_domain.ResolvedTypeInfo, sourcePath *string, stringability int) *ast_domain.GoGeneratorAnnotation {
-	return &ast_domain.GoGeneratorAnnotation{
-		EffectiveKeyExpression:  nil,
-		DynamicCollectionInfo:   nil,
-		StaticCollectionLiteral: nil,
-		ParentTypeName:          nil,
-		BaseCodeGenVarName:      nil,
-		GeneratedSourcePath:     nil,
-		DynamicAttributeOrigins: nil,
-		ResolvedType:            resolvedType,
-		Symbol:                  nil,
-		PartialInfo:             nil,
-		PropDataSource:          nil,
-		OriginalSourcePath:      sourcePath,
-		OriginalPackageAlias:    nil,
-		FieldTag:                nil,
-		SourceInvocationKey:     nil,
-		StaticCollectionData:    nil,
-		Srcset:                  nil,
-		Stringability:           stringability,
-		IsStatic:                false,
-		NeedsCSRF:               false,
-		NeedsRuntimeSafetyCheck: false,
-		IsStructurallyStatic:    false,
-		IsPointerToStringable:   false,
-		IsCollectionCall:        false,
-		IsHybridCollection:      false,
-		IsMapAccess:             false,
-	}
+	annotation := ast_domain.GoGeneratorAnnotation{}
+	annotation.ResolvedType = resolvedType
+	annotation.OriginalSourcePath = sourcePath
+	annotation.Stringability = stringability
+	return &annotation
 }

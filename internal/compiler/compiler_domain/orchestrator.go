@@ -222,8 +222,11 @@ func WithOrchestratorCSSPreProcessor(p CSSPreProcessorPort) OrchestratorOption {
 // Returns CompilerService which is the configured orchestrator ready for use.
 func NewCompilerOrchestrator(inputReader InputReaderPort, transformSteps []TransformationPort, opts ...OrchestratorOption) CompilerService {
 	o := &compilerOrchestrator{
-		inputReader:    inputReader,
-		transformSteps: transformSteps,
+		inputReader:     inputReader,
+		transformSteps:  transformSteps,
+		sfcCompiler:     nil,
+		moduleName:      "",
+		cssPreProcessor: nil,
 	}
 	for _, opt := range opts {
 		opt(o)

@@ -95,28 +95,25 @@ func (d *TimingDetector) Analyse(ctx context.Context, submission *spamdetect_dto
 	}
 
 	if submission == nil {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	if submission.FormLoadedAt.IsZero() || submission.FormSubmittedAt.IsZero() {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	duration := submission.FormSubmittedAt.Sub(submission.FormLoadedAt)
 	if duration < 0 || duration > maxPlausibleFormDuration {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	if duration >= d.minDuration {
-		return &spamdetect_dto.DetectorResult{Score: 0}, nil
+		return spamdetect_dto.NewCleanDetectorResult(), nil
 	}
 
 	if duration < instantSubmissionThreshold {
-		return &spamdetect_dto.DetectorResult{
-			Score:   1.0,
-			IsSpam:  true,
-			Reasons: []string{fmt.Sprintf("form submitted in %s (under %s)", duration, instantSubmissionThreshold)},
-		}, nil
+		return spamdetect_dto.NewReasonDetectorResult(1.0, true,
+			[]string{fmt.Sprintf("form submitted in %s (under %s)", duration, instantSubmissionThreshold)}), nil
 	}
 
 	score := 1.0 - float64(duration)/float64(d.minDuration)
@@ -124,11 +121,8 @@ func (d *TimingDetector) Analyse(ctx context.Context, submission *spamdetect_dto
 		score = 0
 	}
 
-	return &spamdetect_dto.DetectorResult{
-		Score:   score,
-		IsSpam:  score >= detectorSpamThreshold,
-		Reasons: []string{fmt.Sprintf("form submitted in %s (minimum expected %s)", duration, d.minDuration)},
-	}, nil
+	return spamdetect_dto.NewReasonDetectorResult(score, score >= detectorSpamThreshold,
+		[]string{fmt.Sprintf("form submitted in %s (minimum expected %s)", duration, d.minDuration)}), nil
 }
 
 // HealthCheck always succeeds because the detector has no external dependencies.

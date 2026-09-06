@@ -25,7 +25,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -88,17 +87,8 @@ func NewHarness(opts ...HarnessOption) *Harness {
 		opt(&options)
 	}
 
-	h := &Harness{
-		setupErr:      nil,
-		browser:       nil,
-		serverCommand: nil,
-		serverURL:     "",
-		tempDir:       "",
-		opts:          options,
-		serverPort:    0,
-		setupOnce:     sync.Once{},
-		mu:            sync.Mutex{},
-	}
+	h := &Harness{}
+	h.opts = options
 
 	globalMu.Lock()
 	globalHarness = h
@@ -236,7 +226,10 @@ func (h *Harness) doSetup() error {
 	}
 
 	browserOpts := browser_provider_chromedp.BrowserOptions{
-		Headless: h.opts.headless,
+		Headless:         h.opts.headless,
+		ChromePath:       "",
+		ChromeFlags:      nil,
+		IgnoreCertErrors: false,
 	}
 	h.browser, err = browser_provider_chromedp.NewBrowser(browserOpts)
 	if err != nil {
@@ -296,7 +289,7 @@ func (h *Harness) startServer(projectDir string) error {
 	h.serverCommand = exec.Command(execPath, commandArgs[1:]...) //nolint:gosec // test harness, developer-controlled path
 	h.serverCommand.Dir = projectDir
 
-	h.serverCommand.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	configureServerProcessGroup(h.serverCommand)
 
 	env := append(os.Environ(),
 		"PIKO_E2E_MODE=true",
@@ -322,12 +315,7 @@ func (h *Harness) startServer(projectDir string) error {
 // stopServer stops the server process and all its child processes.
 func (h *Harness) stopServer() {
 	if h.serverCommand != nil && h.serverCommand.Process != nil {
-		pgid, err := syscall.Getpgid(h.serverCommand.Process.Pid)
-		if err == nil {
-			_ = syscall.Kill(-pgid, syscall.SIGKILL)
-		} else {
-			_ = h.serverCommand.Process.Kill()
-		}
+		_ = killServerProcessTree(h.serverCommand)
 		_, _ = h.serverCommand.Process.Wait()
 	}
 }

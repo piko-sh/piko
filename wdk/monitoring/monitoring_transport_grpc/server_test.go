@@ -67,9 +67,7 @@ func TestWithAddress(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := ServerConfig{
-				Address: "",
-			}
+			config := ServerConfig{}
 			opt := WithAddress(tt.address)
 			opt(&config)
 
@@ -81,17 +79,7 @@ func TestWithAddress(t *testing.T) {
 func TestNewServer_DefaultConfig(t *testing.T) {
 	t.Parallel()
 
-	deps := monitoring_domain.MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := monitoring_domain.MonitoringDeps{}
 
 	server := NewServer(deps, nil)
 
@@ -103,17 +91,7 @@ func TestNewServer_DefaultConfig(t *testing.T) {
 func TestNewServer_WithOptions(t *testing.T) {
 	t.Parallel()
 
-	deps := monitoring_domain.MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := monitoring_domain.MonitoringDeps{}
 
 	server := NewServer(deps, nil, WithAddress("127.0.0.1:5555"))
 
@@ -129,17 +107,7 @@ func TestNewServer_WithRegistrar(t *testing.T) {
 		registrarCalled = true
 	}
 
-	deps := monitoring_domain.MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := monitoring_domain.MonitoringDeps{}
 
 	server := NewServer(deps, registrar)
 
@@ -150,17 +118,7 @@ func TestNewServer_WithRegistrar(t *testing.T) {
 func TestNewServer_NilRegistrar(t *testing.T) {
 	t.Parallel()
 
-	deps := monitoring_domain.MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := monitoring_domain.MonitoringDeps{}
 
 	server := NewServer(deps, nil)
 
@@ -197,17 +155,7 @@ func TestServer_Address(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			deps := monitoring_domain.MonitoringDeps{
-				OrchestratorInspector: nil,
-				RegistryInspector:     nil,
-				DispatcherInspector:   nil,
-				RateLimiterInspector:  nil,
-				TelemetryProvider:     nil,
-				SystemStatsProvider:   nil,
-				ResourceProvider:      nil,
-				HealthProbeService:    nil,
-				ProviderInfoInspector: nil,
-			}
+			deps := monitoring_domain.MonitoringDeps{}
 
 			server := NewServer(deps, nil, WithAddress(tt.address))
 
@@ -219,17 +167,7 @@ func TestServer_Address(t *testing.T) {
 func TestServer_StartAndStop(t *testing.T) {
 	t.Parallel()
 
-	deps := monitoring_domain.MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := monitoring_domain.MonitoringDeps{}
 
 	server := NewServer(deps, nil, WithAddress("127.0.0.1:0"))
 
@@ -251,17 +189,7 @@ func TestServer_StartAndStop(t *testing.T) {
 func TestServer_StartFailsOnBadAddress(t *testing.T) {
 	t.Parallel()
 
-	deps := monitoring_domain.MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := monitoring_domain.MonitoringDeps{}
 
 	server := NewServer(deps, nil, WithAddress("invalid-address-no-port"))
 
@@ -275,17 +203,7 @@ func TestServer_StartFailsOnBadAddress(t *testing.T) {
 func TestServer_Stop(t *testing.T) {
 	t.Parallel()
 
-	deps := monitoring_domain.MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := monitoring_domain.MonitoringDeps{}
 
 	server := NewServer(deps, nil, WithAddress("127.0.0.1:0"))
 

@@ -21,6 +21,7 @@ package bootstrap
 // This file contains LLM service related container methods.
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -117,18 +118,18 @@ func (c *Container) GetLLMService() (llm_domain.Service, error) {
 // It creates the service and registers any providers that were added via AddLLMProvider.
 // Any errors are stored in c.llmErr rather than returned.
 func (c *Container) createDefaultLLMService() {
-	_, l := logger_domain.From(c.GetAppContext(), log)
+	ctx, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default LLMService...")
 
 	s := llm_domain.NewService(c.llmDefaultProvider)
 
-	if err := c.registerLLMProviders(s, l); err != nil {
+	if err := c.registerLLMProviders(ctx, s); err != nil {
 		c.llmErr = err
 		return
 	}
 
-	c.registerStandaloneEmbeddingProviders(s, l)
-	c.configureLLMDefaults(s, l)
+	c.registerStandaloneEmbeddingProviders(ctx, s)
+	c.configureLLMDefaults(ctx, s)
 
 	if err := c.configureLLMCache(s); err != nil {
 		l.Warn("Failed to configure LLM cache, caching disabled",
@@ -151,21 +152,18 @@ func (c *Container) createDefaultLLMService() {
 // support embeddings.
 //
 // Takes s (llm_domain.Service) which is the service to register providers with.
-// Takes l (logger_domain.Logger) which provides structured logging.
 //
 // Returns error when a provider fails to register.
-func (c *Container) registerLLMProviders(s llm_domain.Service, l logger_domain.Logger) error {
+func (c *Container) registerLLMProviders(ctx context.Context, s llm_domain.Service) error {
+	ctx, l := logger_domain.From(ctx, log)
+
 	for name, provider := range c.llmProviders {
-		if err := s.RegisterProvider(c.GetAppContext(), name, provider); err != nil {
-			l.Error("Failed to register LLM provider",
-				logger_domain.String(fieldProvider, name),
-				logger_domain.Error(err),
-			)
-			return fmt.Errorf("registering LLM provider: %w", err)
+		if err := s.RegisterProvider(ctx, name, provider); err != nil {
+			return fmt.Errorf("registering LLM provider %q: %w", name, err)
 		}
 
 		if ep, ok := provider.(llm_domain.EmbeddingProviderPort); ok {
-			if err := s.RegisterEmbeddingProvider(c.GetAppContext(), name, ep); err != nil {
+			if err := s.RegisterEmbeddingProvider(ctx, name, ep); err != nil {
 				l.Warn("Failed to auto-register embedding provider",
 					logger_domain.String(fieldProvider, name),
 					logger_domain.Error(err),
@@ -180,10 +178,11 @@ func (c *Container) registerLLMProviders(s llm_domain.Service, l logger_domain.L
 // were added via AddEmbeddingProvider.
 //
 // Takes s (llm_domain.Service) which is the service to register with.
-// Takes l (logger_domain.Logger) which provides structured logging.
-func (c *Container) registerStandaloneEmbeddingProviders(s llm_domain.Service, l logger_domain.Logger) {
+func (c *Container) registerStandaloneEmbeddingProviders(ctx context.Context, s llm_domain.Service) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	for name, provider := range c.llmEmbeddingProviders {
-		if err := s.RegisterEmbeddingProvider(c.GetAppContext(), name, provider); err != nil {
+		if err := s.RegisterEmbeddingProvider(ctx, name, provider); err != nil {
 			l.Warn("Failed to register standalone embedding provider",
 				logger_domain.String(fieldProvider, name),
 				logger_domain.Error(err),
@@ -195,10 +194,11 @@ func (c *Container) registerStandaloneEmbeddingProviders(s llm_domain.Service, l
 // configureLLMDefaults sets the default LLM and embedding providers on the service.
 //
 // Takes s (llm_domain.Service) which is the service to configure.
-// Takes l (logger_domain.Logger) which provides structured logging.
-func (c *Container) configureLLMDefaults(s llm_domain.Service, l logger_domain.Logger) {
+func (c *Container) configureLLMDefaults(ctx context.Context, s llm_domain.Service) {
+	ctx, l := logger_domain.From(ctx, log)
+
 	if c.llmDefaultProvider != "" && len(c.llmProviders) > 0 {
-		if err := s.SetDefaultProvider(c.GetAppContext(), c.llmDefaultProvider); err != nil {
+		if err := s.SetDefaultProvider(ctx, c.llmDefaultProvider); err != nil {
 			l.Warn("Failed to set default LLM provider (provider may not exist)",
 				logger_domain.String(fieldProvider, c.llmDefaultProvider),
 				logger_domain.Error(err),
@@ -206,15 +206,16 @@ func (c *Container) configureLLMDefaults(s llm_domain.Service, l logger_domain.L
 		}
 	}
 
-	c.configureDefaultEmbeddingProvider(s, l)
+	c.configureDefaultEmbeddingProvider(ctx, s)
 }
 
 // configureDefaultEmbeddingProvider sets the default embedding provider, either from an
 // explicit setting or by auto-detecting from the default LLM provider.
 //
 // Takes s (llm_domain.Service) which is the service to configure.
-// Takes l (logger_domain.Logger) which provides structured logging.
-func (c *Container) configureDefaultEmbeddingProvider(s llm_domain.Service, l logger_domain.Logger) {
+func (c *Container) configureDefaultEmbeddingProvider(ctx context.Context, s llm_domain.Service) {
+	_, l := logger_domain.From(ctx, log)
+
 	if c.llmDefaultEmbeddingProvider != "" {
 		if err := s.SetDefaultEmbeddingProvider(c.llmDefaultEmbeddingProvider); err != nil {
 			l.Warn("Failed to set default embedding provider",
@@ -260,6 +261,8 @@ func (c *Container) configureLLMCache(s llm_domain.Service) error {
 		CacheService:   cacheService,
 		Namespace:      "llm:cache",
 		MaximumEntries: 10000,
+		Clock:          nil,
+		Provider:       "",
 	})
 	if err != nil {
 		return fmt.Errorf("creating LLM cache store: %w", err)
@@ -288,7 +291,10 @@ func (c *Container) configureLLMBudget(s llm_domain.Service) error {
 	}
 
 	budgetStore, err := llm_adapters_budget.New(c.GetAppContext(), llm_adapters_budget.Config{
-		CacheService: cacheService,
+		CacheService:   cacheService,
+		Clock:          nil,
+		Namespace:      "",
+		MaximumEntries: 0,
 	})
 	if err != nil {
 		return fmt.Errorf("creating LLM budget store: %w", err)

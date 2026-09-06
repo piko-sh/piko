@@ -377,7 +377,7 @@ func TestResolveFieldOnType(t *testing.T) {
 					WithTypeInspector(&mockTypeInspector{}).
 					Build()
 			},
-			baseType:  &ast_domain.ResolvedTypeInfo{TypeExpression: nil},
+			baseType:  &ast_domain.ResolvedTypeInfo{},
 			fieldName: "Field",
 			wantNil:   true,
 		},

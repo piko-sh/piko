@@ -20,6 +20,10 @@ package layouter_domain
 
 import (
 	"context"
+	"fmt"
+	"math"
+
+	"piko.sh/piko/internal/layouter/layouter_dto"
 )
 
 const (
@@ -27,6 +31,11 @@ const (
 	// to a page index, so floating-point error in cumulative page heights does not push a
 	// boundary-aligned box one page too early.
 	pageBoundaryEpsilon = 1e-6
+
+	// maxPageIndex caps the page index derived from a Y position, so an absurd offset (for
+	// example a margin of 1e308pt) saturates instead of overflowing the integer conversion.
+	// Any index this large breaches the page limit and fails pagination.
+	maxPageIndex = math.MaxInt32
 )
 
 // PageGeometry provides page content-area heights, supporting a distinct first-page
@@ -53,7 +62,7 @@ type PageGeometry struct {
 //
 // Returns PageGeometry which holds the uniform page geometry.
 func UniformPageGeometry(height float64) PageGeometry {
-	return PageGeometry{DefaultHeight: height}
+	return PageGeometry{DefaultHeight: height, FirstPageHeight: 0}
 }
 
 // PageStart returns the cumulative Y coordinate at which the given page index begins.
@@ -96,14 +105,18 @@ func (g PageGeometry) pageEnd(index int) float64 {
 //
 // Returns int which holds the zero-based page index.
 func (g PageGeometry) pageForY(y float64) int {
-	if y < 0 {
+	if !(y >= 0) {
 		return 0
 	}
 	firstH := g.heightForPage(0)
 	if y < firstH {
 		return 0
 	}
-	return 1 + int((y-firstH)/g.DefaultHeight+pageBoundaryEpsilon)
+	pagesAfterFirst := (y-firstH)/g.DefaultHeight + pageBoundaryEpsilon
+	if !(pagesAfterFirst < maxPageIndex) {
+		return maxPageIndex
+	}
+	return 1 + int(pagesAfterFirst)
 }
 
 // Paginate walks the box tree and assigns PageIndex to each box based on which page it
@@ -121,50 +134,47 @@ func (g PageGeometry) pageForY(y float64) int {
 // Takes root (*LayoutBox) which is the root of the laid-out box tree with absolute Y
 // coordinates.
 // Takes geometry (PageGeometry) which provides the page content-area height(s) in points.
+// Takes limits (*LimitTracker) which enforces the page and box limits (cloned headers,
+// footers and fixed elements count as boxes), or nil for the defaults.
 //
 // Returns int which is the maximum page index assigned (zero-based).
-func Paginate(ctx context.Context, root *LayoutBox, geometry PageGeometry) int {
-	if geometry.DefaultHeight <= 0 {
-		return 0
+// Returns error when ctx is cancelled or the document needs more pages or boxes than the
+// limits allow.
+func Paginate(ctx context.Context, root *LayoutBox, geometry PageGeometry, limits *LimitTracker) (int, error) {
+	if !(geometry.DefaultHeight > 0) || math.IsInf(geometry.DefaultHeight, 1) {
+		return 0, nil
 	}
+	limits = trackerOrDefault(limits)
 	state := &paginationState{
-		geometry: geometry,
+		geometry:     geometry,
+		limits:       limits,
+		offset:       0,
+		maxPage:      0,
+		maxPages:     limits.Limits().MaxPages,
+		headerHeight: 0,
+		footerHeight: 0,
 	}
 
-	var headerBox, footerBox *LayoutBox
-	for _, child := range root.Children {
-		switch layoutRole(child) {
-		case "header":
-			headerBox = child
-		case "footer":
-			footerBox = child
-		}
-	}
-	if headerBox != nil {
-		state.headerHeight = headerBox.MarginBoxHeight()
-	}
-	if footerBox != nil {
-		state.footerHeight = footerBox.MarginBoxHeight()
-	}
-	if headerBox != nil || footerBox != nil {
-		filtered := make([]*LayoutBox, 0, len(root.Children))
-		for _, child := range root.Children {
-			if child != headerBox && child != footerBox {
-				filtered = append(filtered, child)
-			}
-		}
-		root.Children = filtered
-	}
+	headerBox, footerBox := extractLayoutRoleBoxes(root, state)
 
 	paginateBox(ctx, root, state)
 	cloneFixedElements(root, state)
 	cloneLayoutRoleElements(root, state, headerBox, footerBox)
 
-	return state.maxPage
+	if err := ctx.Err(); err != nil {
+		return 0, fmt.Errorf("pagination cancelled: %w", err)
+	}
+	if err := limits.Err(); err != nil {
+		return 0, fmt.Errorf("pagination stopped: %w", err)
+	}
+	return state.maxPage, nil
 }
 
 // paginationState holds the mutable state accumulated during pagination of the box tree.
 type paginationState struct {
+	// limits enforces the page and box limits and records the first breach.
+	limits *LimitTracker
+
 	// geometry holds the page content-area heights.
 	geometry PageGeometry
 
@@ -174,6 +184,9 @@ type paginationState struct {
 
 	// maxPage holds the highest page index assigned so far.
 	maxPage int
+
+	// maxPages holds the number of pages pagination may produce.
+	maxPages int
 
 	// headerHeight holds the margin-box height of the data-layout-role header, or 0 when no
 	// header exists.
@@ -205,7 +218,7 @@ func (s *paginationState) contentEnd(page int) float64 {
 }
 
 // advanceToPage advances the offset so that effectiveY lands at the content start of the
-// target page.
+// target page, recording a breach when the new page lies beyond the page limit.
 //
 // Takes page (int) which specifies the current page index.
 // Takes effectiveY (float64) which specifies the current effective Y coordinate.
@@ -214,18 +227,75 @@ func (s *paginationState) contentEnd(page int) float64 {
 // Returns float64 which holds the updated effective Y coordinate.
 func (s *paginationState) advanceToPage(page int, effectiveY float64) (int, float64) {
 	page++
+	s.withinPageLimit(page)
 	newStart := s.contentStart(page)
 	s.offset += newStart - effectiveY
 	return page, newStart
 }
 
-// trackPage updates maxPage if page exceeds it.
+// trackPage updates maxPage if page exceeds it, recording a breach when the page lies
+// beyond the page limit.
 //
 // Takes page (int) which specifies the page index to track.
-func (s *paginationState) trackPage(page int) {
+//
+// Returns bool which is false when the page breaches the page limit.
+func (s *paginationState) trackPage(page int) bool {
+	if !s.withinPageLimit(page) {
+		return false
+	}
 	if page > s.maxPage {
 		s.maxPage = page
 	}
+	return true
+}
+
+// withinPageLimit reports whether page lies within the page limit, recording a breach
+// when it does not.
+//
+// Takes page (int) which specifies the zero-based page index to check.
+//
+// Returns bool which is false when the page breaches the page limit.
+func (s *paginationState) withinPageLimit(page int) bool {
+	if page >= s.maxPages {
+		s.limits.fail(fmt.Errorf("document needs more than %d pages: %w", s.maxPages, layouter_dto.ErrTooManyPages))
+		return false
+	}
+	return true
+}
+
+// appendPageClone clones a box subtree onto the given page and appends the clone, unless
+// the box limit is exhausted.
+//
+// Takes clones ([]*LayoutBox) which holds the clones made so far.
+// Takes original (*LayoutBox) which is the subtree to clone.
+// Takes size (int) which is the number of boxes in the subtree.
+// Takes page (int) which is the page the clone is placed on.
+// Takes offset (float64) which is the PageYOffset assigned to the clone.
+//
+// Returns []*LayoutBox which holds the clones including the new one.
+func (s *paginationState) appendPageClone(
+	clones []*LayoutBox, original *LayoutBox, size, page int, offset float64,
+) []*LayoutBox {
+	clone := s.cloneForPage(original, size)
+	if clone == nil {
+		return clones
+	}
+	assignPageRecursive(clone, page, offset)
+	return append(clones, clone)
+}
+
+// cloneForPage deep-clones a box subtree for repetition on another page, counting the
+// cloned boxes against the box limit.
+//
+// Takes original (*LayoutBox) which is the subtree to clone.
+// Takes size (int) which is the number of boxes in the subtree.
+//
+// Returns *LayoutBox which is the clone, or nil when the box limit is exhausted.
+func (s *paginationState) cloneForPage(original *LayoutBox, size int) *LayoutBox {
+	if !s.limits.addBoxes(size) {
+		return nil
+	}
+	return cloneBoxSubtree(original)
 }
 
 // paginateBox assigns page indices and Y offsets to a single box and recurses into its
@@ -235,7 +305,7 @@ func (s *paginationState) trackPage(page int) {
 // Takes box (*LayoutBox) which is the box to paginate.
 // Takes state (*paginationState) which holds the accumulated pagination state.
 func paginateBox(ctx context.Context, box *LayoutBox, state *paginationState) {
-	if ctx.Err() != nil {
+	if ctx.Err() != nil || state.limits.failed() {
 		return
 	}
 
@@ -248,7 +318,9 @@ func paginateBox(ctx context.Context, box *LayoutBox, state *paginationState) {
 
 	box.PageIndex = page
 	box.PageYOffset = state.offset
-	state.trackPage(page)
+	if !state.trackPage(page) {
+		return
+	}
 
 	if isTextBlock(box) {
 		paginateTextBlock(ctx, box, state)
@@ -271,7 +343,8 @@ func paginateBox(ctx context.Context, box *LayoutBox, state *paginationState) {
 // block containers: split between children by pushing overflowing children to the next
 // page.
 //
-// A child is pushed only when:
+// A child whose page lies beyond the page limit records the breach and is left in place,
+// since pagination stops at the breach. Otherwise a child is pushed only when:
 //
 //	(1) its bottom exceeds the page content end,
 //	(2) its top is past the page content start (avoids infinite
@@ -283,6 +356,9 @@ func paginateBox(ctx context.Context, box *LayoutBox, state *paginationState) {
 func applyChildOverflow(child *LayoutBox, state *paginationState) {
 	effectiveY := child.ContentY + state.offset
 	page := max(state.geometry.pageForY(effectiveY), 0)
+	if !state.withinPageLimit(page) {
+		return
+	}
 	bottom := effectiveY + child.MarginBoxHeight()
 	contentEnd := state.contentEnd(page)
 
@@ -452,6 +528,8 @@ func isTextBlock(box *LayoutBox) bool {
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the text block whose children are separated.
+// Takes state (*paginationState) which tracks page geometry, offsets, and pagination
+// limits.
 //
 // Returns []*LayoutBox which holds the text-run lines for orphans/widows processing.
 func collectTextLines(ctx context.Context, box *LayoutBox, state *paginationState) []*LayoutBox {
@@ -489,6 +567,8 @@ func findTextSplitIndex(lines []*LayoutBox, state *paginationState, contentEnd f
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes lines ([]*LayoutBox) which holds the text-run lines to paginate.
+// Takes state (*paginationState) which tracks page geometry, offsets, and pagination
+// limits.
 func paginateAllLines(ctx context.Context, lines []*LayoutBox, state *paginationState) {
 	for _, line := range lines {
 		paginateBox(ctx, line, state)
@@ -509,6 +589,8 @@ func paginateAllLines(ctx context.Context, lines []*LayoutBox, state *pagination
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the text block to paginate.
+// Takes state (*paginationState) which tracks page geometry, offsets, and pagination
+// limits.
 func paginateTextBlock(ctx context.Context, box *LayoutBox, state *paginationState) {
 	lines := collectTextLines(ctx, box, state)
 	if len(lines) == 0 {
@@ -575,6 +657,8 @@ func adjustSplitForOrphansWidows(
 // Takes box (*LayoutBox) which is the parent text block.
 // Takes state (*paginationState) which holds the pagination state.
 // Takes lines ([]*LayoutBox) which holds the text-run lines to paginate.
+// Takes splitIndex (int) which identifies the first line to move to the next page, or is
+// negative to move the whole block.
 func paginateSplitLines(
 	ctx context.Context, box *LayoutBox, state *paginationState, lines []*LayoutBox, splitIndex int,
 ) {
@@ -692,6 +776,8 @@ func adjustTfootSourceOffset(box *LayoutBox, tg *tableGroups, state *paginationS
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes box (*LayoutBox) which is the table box to paginate.
+// Takes state (*paginationState) which tracks page geometry, offsets, and pagination
+// limits.
 func paginateTable(ctx context.Context, box *LayoutBox, state *paginationState) {
 	tg := findTableGroups(box)
 	if tg == nil {
@@ -747,6 +833,8 @@ func assignRowGroupPage(rg *LayoutBox, state *paginationState) {
 // Takes tg (*tableGroups) which holds the extracted thead/tfoot.
 // Takes lastPage (int) which specifies the most recent page index.
 // Takes headers ([]*LayoutBox) which holds previously cloned thead boxes.
+// Takes footers ([]*LayoutBox) which contains the table footer boxes repeated during
+// pagination.
 //
 // Returns updatedLastPage (int) which holds the updated last page index.
 // Returns updatedHeaders ([]*LayoutBox) which holds the extended cloned thead slice.
@@ -808,11 +896,15 @@ func computeRowPage(row *LayoutBox, state *paginationState, tfootHeight float64)
 func cloneTfootRange(
 	tg *tableGroups, state *paginationState, lastPage, rowPage int, footers []*LayoutBox,
 ) []*LayoutBox {
-	if tg.tfoot == nil {
+	if tg.tfoot == nil || !state.withinPageLimit(rowPage) {
 		return footers
 	}
+	size := countBoxes(tg.tfoot)
 	for p := lastPage; p < rowPage; p++ {
-		cloned := cloneBoxSubtree(tg.tfoot)
+		cloned := state.cloneForPage(tg.tfoot, size)
+		if cloned == nil {
+			return footers
+		}
 		footY := state.contentEnd(p) - tg.tfootHeight
 		assignPageRecursive(cloned, p, footY-tg.tfootRefY)
 		footers = append(footers, cloned)
@@ -834,11 +926,15 @@ func cloneTfootRange(
 func cloneTheadRange(
 	tg *tableGroups, state *paginationState, lastPage, rowPage int, headers []*LayoutBox,
 ) []*LayoutBox {
-	if tg.thead == nil {
+	if tg.thead == nil || !state.withinPageLimit(rowPage) {
 		return headers
 	}
+	size := countBoxes(tg.thead)
 	for p := lastPage + 1; p <= rowPage; p++ {
-		cloned := cloneBoxSubtree(tg.thead)
+		cloned := state.cloneForPage(tg.thead, size)
+		if cloned == nil {
+			return headers
+		}
 		pageTop := state.contentStart(p)
 		assignPageRecursive(cloned, p, pageTop-tg.thead.ContentY)
 		headers = append(headers, cloned)
@@ -914,11 +1010,15 @@ func cloneFixedElements(root *LayoutBox, state *paginationState) {
 
 	var clones []*LayoutBox
 	for _, fb := range fixedBoxes {
+		size := countBoxes(fb)
 		for p := 0; p <= state.maxPage; p++ {
 			if p == fb.PageIndex {
 				continue
 			}
-			clone := cloneBoxSubtree(fb)
+			clone := state.cloneForPage(fb, size)
+			if clone == nil {
+				return
+			}
 
 			cloneOffset := fb.PageYOffset + state.geometry.PageStart(p) - state.geometry.PageStart(fb.PageIndex)
 			assignPageRecursive(clone, p, cloneOffset)
@@ -959,6 +1059,8 @@ func cloneLayoutRoleElements(root *LayoutBox, state *paginationState, headerBox,
 	}
 
 	var roleClones []*LayoutBox
+	headerSize := countBoxes(headerBox)
+	footerSize := countBoxes(footerBox)
 
 	if headerBox != nil {
 		assignPageRecursive(headerBox, 0, 0)
@@ -972,19 +1074,14 @@ func cloneLayoutRoleElements(root *LayoutBox, state *paginationState, headerBox,
 		root.Children = append(root.Children, footerBox)
 	}
 
-	for p := 1; p <= state.maxPage; p++ {
+	for p := 1; p <= state.maxPage && !state.limits.failed(); p++ {
 		if headerBox != nil {
-			clone := cloneBoxSubtree(headerBox)
 			headerOffset := state.geometry.PageStart(p) - headerBox.ContentY
-			assignPageRecursive(clone, p, headerOffset)
-			roleClones = append(roleClones, clone)
+			roleClones = state.appendPageClone(roleClones, headerBox, headerSize, p, headerOffset)
 		}
 		if footerBox != nil {
-			clone := cloneBoxSubtree(footerBox)
-			footerY := state.geometry.pageEnd(p) - state.footerHeight
-			footerOffset := footerY - footerBox.ContentY
-			assignPageRecursive(clone, p, footerOffset)
-			roleClones = append(roleClones, clone)
+			footerOffset := state.geometry.pageEnd(p) - state.footerHeight - footerBox.ContentY
+			roleClones = state.appendPageClone(roleClones, footerBox, footerSize, p, footerOffset)
 		}
 	}
 
@@ -1023,4 +1120,56 @@ func assignPageRecursive(box *LayoutBox, page int, offset float64) {
 	for _, child := range box.Children {
 		assignPageRecursive(child, page, offset)
 	}
+}
+
+// countBoxes returns the number of boxes in a subtree, including its root.
+//
+// Takes box (*LayoutBox) which is the root of the subtree, or nil.
+//
+// Returns int which is the subtree size, or zero for nil.
+func countBoxes(box *LayoutBox) int {
+	if box == nil {
+		return 0
+	}
+	count := 1
+	for _, child := range box.Children {
+		count += countBoxes(child)
+	}
+	return count
+}
+
+// extractLayoutRoleBoxes finds the data-layout-role header and footer among the root's
+// children, records their heights on the state and removes them from the root so they can
+// be re-inserted on every page once pagination is complete.
+//
+// Takes root (*LayoutBox) which is the root box whose children are scanned.
+// Takes state (*paginationState) which receives the header and footer heights.
+//
+// Returns headerBox (*LayoutBox) which is the header box, or nil when absent.
+// Returns footerBox (*LayoutBox) which is the footer box, or nil when absent.
+func extractLayoutRoleBoxes(root *LayoutBox, state *paginationState) (headerBox, footerBox *LayoutBox) {
+	for _, child := range root.Children {
+		switch layoutRole(child) {
+		case "header":
+			headerBox = child
+		case "footer":
+			footerBox = child
+		}
+	}
+	if headerBox != nil {
+		state.headerHeight = headerBox.MarginBoxHeight()
+	}
+	if footerBox != nil {
+		state.footerHeight = footerBox.MarginBoxHeight()
+	}
+	if headerBox != nil || footerBox != nil {
+		filtered := make([]*LayoutBox, 0, len(root.Children))
+		for _, child := range root.Children {
+			if child != headerBox && child != footerBox {
+				filtered = append(filtered, child)
+			}
+		}
+		root.Children = filtered
+	}
+	return headerBox, footerBox
 }

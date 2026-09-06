@@ -575,7 +575,7 @@ func newMockTSA(t *testing.T, creds testCredentials) *httptest.Server {
 
 		_ = oidData
 		resp := tsaResp{
-			Status: statusInfo{Status: 0},
+			Status: statusInfo{},
 			Token:  asn1.RawValue{FullBytes: tokenDER},
 		}
 		respDER, _ := asn1.Marshal(resp)

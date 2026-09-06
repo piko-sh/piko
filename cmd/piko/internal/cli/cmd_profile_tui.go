@@ -520,19 +520,19 @@ func newProfileTUIModel(
 		phaseMap[p] = phasePending
 	}
 
-	return profileTUIModel{
-		targetURL:        targetURL,
-		phases:           phases,
-		phaseStatus:      phaseMap,
-		phaseDurSecs:     phaseDurSecs,
-		rpsHistory:       tui_domain.NewHistoryRing(tuiHistorySize),
-		latencyHistory:   tui_domain.NewHistoryRing(tuiHistorySize),
-		goroutineHistory: tui_domain.NewHistoryRing(tuiHistorySize),
-		metricsCh:        metricsCh,
-		goroutineCh:      goroutineCh,
-		phaseCh:          phaseCh,
-		doneCh:           doneCh,
-	}
+	model := profileTUIModel{}
+	model.targetURL = targetURL
+	model.phases = phases
+	model.phaseStatus = phaseMap
+	model.phaseDurSecs = phaseDurSecs
+	model.rpsHistory = tui_domain.NewHistoryRing(tuiHistorySize)
+	model.latencyHistory = tui_domain.NewHistoryRing(tuiHistorySize)
+	model.goroutineHistory = tui_domain.NewHistoryRing(tuiHistorySize)
+	model.metricsCh = metricsCh
+	model.goroutineCh = goroutineCh
+	model.phaseCh = phaseCh
+	model.doneCh = doneCh
+	return model
 }
 
 // tickProfileTUI returns a command that fires after 200ms.
@@ -642,6 +642,7 @@ func runProfilePipeline(ctx context.Context, params profilePipelineParams) {
 		stderr:       io.Discard,
 		metricsCh:    params.metricsCh,
 		phaseCh:      params.phaseCh,
+		interrupt:    nil,
 	})
 
 	params.doneCh <- profileDoneMessage{err: err}

@@ -261,3 +261,42 @@ func TestContinuousAggregate_RegularMaterializedViewUnaffected(t *testing.T) {
 	require.NotNil(t, mutation)
 	assert.Empty(t, mutation.EngineSpecific["TIMESCALE_CONTINUOUS_AGGREGATE"])
 }
+
+func TestContinuousAggregate_BareReloptionKeysMeanTrue(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name               string
+		withBody           string
+		wantMaterialisedOn string
+	}{
+		{name: "bare continuous key", withBody: "(timescaledb.continuous)", wantMaterialisedOn: ""},
+		{
+			name:               "bare continuous and materialised-only keys",
+			withBody:           "(timescaledb.continuous, timescaledb.materialized_only)",
+			wantMaterialisedOn: "true",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			sql := "CREATE MATERIALIZED VIEW hourly WITH " + testCase.withBody +
+				" AS SELECT time_bucket('1 hour', ts) AS bucket, count(*) FROM events GROUP BY bucket"
+			engine := db_engine_timescaledb.NewTimescaleDBEngine()
+			statements, err := engine.ParseStatements(sql)
+			require.NoError(t, err)
+			require.Len(t, statements, 1)
+
+			mutation, err := engine.ApplyDDL(context.Background(), statements[0])
+
+			require.NoError(t, err)
+			require.NotNil(t, mutation)
+			assert.Equal(t, querier_dto.MutationCreateView, mutation.Kind)
+			assert.Equal(t, "true", mutation.EngineSpecific["TIMESCALE_CONTINUOUS_AGGREGATE"])
+			assert.Equal(t, "true", mutation.EngineSpecific["TIMESCALE_CONTINUOUS_FLAG"])
+			assert.Equal(t, testCase.wantMaterialisedOn, mutation.EngineSpecific["TIMESCALE_MATERIALIZED_ONLY"])
+		})
+	}
+}

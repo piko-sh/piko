@@ -283,3 +283,51 @@ func TestPositionColumns(t *testing.T) {
 		})
 	}
 }
+
+func TestFitColumnHeight(t *testing.T) {
+	t.Parallel()
+
+	fragmentOfHeight := func(height float64) *Fragment {
+		return newFragment(&LayoutBox{}, 0, 0, 100, height)
+	}
+
+	tests := []struct {
+		name          string
+		heights       []float64
+		startHeight   float64
+		columnCount   int
+		wantMinHeight float64
+	}{
+		{name: "already fits", heights: []float64{10, 10, 10, 10}, startHeight: 20, columnCount: 2, wantMinHeight: 20},
+		{name: "small growth", heights: []float64{10, 15, 10}, startHeight: 17, columnCount: 2, wantMinHeight: 25},
+		{name: "very tall child", heights: []float64{1, 1e9, 1}, startHeight: 5e8, columnCount: 2, wantMinHeight: 1e9},
+		{name: "absurdly tall child", heights: []float64{1, 1e30, 1}, startHeight: 5e29, columnCount: 2, wantMinHeight: 1e30},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			children := make([]*Fragment, 0, len(tt.heights))
+			for _, height := range tt.heights {
+				children = append(children, fragmentOfHeight(height))
+			}
+
+			height, columns := fitColumnHeight(children, tt.startHeight, tt.columnCount)
+
+			assert.LessOrEqual(t, len(columns), tt.columnCount)
+			assert.GreaterOrEqual(t, height, tt.wantMinHeight)
+			assert.Equal(t, len(fragmentIntoColumns(children, height)), len(columns))
+		})
+	}
+}
+
+func TestFitColumnHeight_NonPositiveHeightIsReturned(t *testing.T) {
+	t.Parallel()
+
+	children := []*Fragment{newFragment(&LayoutBox{}, 0, 0, 10, 10)}
+
+	height, columns := fitColumnHeight(children, 0, 2)
+
+	assert.Zero(t, height)
+	assert.Empty(t, columns)
+}

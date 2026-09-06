@@ -716,7 +716,7 @@ func redactDictStringFields(dict *pdfparse.Dict, patterns []*regexp.Regexp, keys
 		if redacted == original {
 			continue
 		}
-		dict.Set(key, pdfparse.Object{Type: obj.Type, Value: redacted})
+		dict.Set(key, pdfparse.Object{Type: obj.Type, Value: redacted, StreamData: nil})
 		changed = true
 	}
 	return changed

@@ -192,7 +192,9 @@ func (ls *lifecycleService) buildFileEventContext(ctx context.Context, event lif
 //
 // In interpreted mode with an initialised orchestrator, this triggers a targeted rebuild
 // that only re-annotates and regenerates the changed component and its transitive
-// dependents. Otherwise it falls back to a full coordinator rebuild.
+// dependents. A change to a user Go package instead invalidates the interpreter's
+// compiled user packages and requests a full rebuild. Otherwise it falls back to a full
+// coordinator rebuild.
 //
 // Takes fec (fileEventContext) which provides the file event details and logging context.
 // Takes initialSeed (bool) which indicates whether this is the initial file discovery
@@ -212,6 +214,11 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 	}
 
 	if initialSeed {
+		return
+	}
+
+	if ls.interpretedOrchestrator != nil && isGoSourceFile(fec.relPath) {
+		ls.handleUserPackageChange(ctx, fec.relPath)
 		return
 	}
 
@@ -244,14 +251,19 @@ func (ls *lifecycleService) handleCoreSourceChange(fec fileEventContext, initial
 	}
 }
 
-// isRemovalEvent reports whether a file event type represents the disappearance of a file
-// (a removal, or a rename away that the watcher could not resolve to a create).
+// handleUserPackageChange responds to an edit of a user-written Go package in interpreted
+// mode. The interpreter keeps every compiled package registered for the life of its pool,
+// so the orchestrator is told to rebuild with a fresh pool and a full rebuild is
+// requested.
 //
-// Takes eventType (lifecycle_dto.FileEventType) which is the event type to classify.
-//
-// Returns bool which is true for remove and rename events.
-func isRemovalEvent(eventType lifecycle_dto.FileEventType) bool {
-	return eventType == lifecycle_dto.FileEventTypeRemove || eventType == lifecycle_dto.FileEventTypeRename
+// Takes relPath (string) which is the project-relative path of the changed Go file.
+func (ls *lifecycleService) handleUserPackageChange(ctx context.Context, relPath string) {
+	ctx, l := logger_domain.From(ctx, log)
+	l.Internal("User Go package changed, rebuilding with a fresh interpreter",
+		logger_domain.String(fieldPath, relPath))
+
+	ls.interpretedOrchestrator.InvalidateUserPackages()
+	ls.RequestRebuild(ctx, fmt.Sprintf("user-package-change:%s", relPath))
 }
 
 // handlePageRemoval cleans up after a removed or renamed-away .pk page.
@@ -477,13 +489,12 @@ func (ls *lifecycleService) addEntryPointIfNotExists(ctx context.Context, entryP
 	_, l := logger_domain.From(ctx, log)
 	l.Trace("New component file created, adding to entry points.",
 		logger_domain.String(fieldPath, entryPointPath))
-	ls.entryPoints = append(ls.entryPoints, annotator_dto.EntryPoint{
-		Path:              entryPointPath,
-		IsPage:            compType.isPage,
-		IsEmail:           compType.isEmail,
-		IsPublic:          compType.isPage,
-		VirtualPageSource: nil,
-	})
+	entryPoint := annotator_dto.EntryPoint{}
+	entryPoint.Path = entryPointPath
+	entryPoint.IsPage = compType.isPage
+	entryPoint.IsEmail = compType.isEmail
+	entryPoint.IsPublic = compType.isPage
+	ls.entryPoints = append(ls.entryPoints, entryPoint)
 }
 
 // removeEntryPoint removes an entry point by its path.
@@ -658,4 +669,23 @@ func (ls *lifecycleService) filterEntryPointsByPaths(relPaths []string) []annota
 		}
 	}
 	return filtered
+}
+
+// isGoSourceFile reports whether a project-relative path names a Go source file.
+//
+// Takes relPath (string) which is the path to classify.
+//
+// Returns bool which is true for files with a .go extension.
+func isGoSourceFile(relPath string) bool {
+	return strings.EqualFold(filepath.Ext(relPath), ".go")
+}
+
+// isRemovalEvent reports whether a file event type represents the disappearance of a file
+// (a removal, or a rename away that the watcher could not resolve to a create).
+//
+// Takes eventType (lifecycle_dto.FileEventType) which is the event type to classify.
+//
+// Returns bool which is true for remove and rename events.
+func isRemovalEvent(eventType lifecycle_dto.FileEventType) bool {
+	return eventType == lifecycle_dto.FileEventTypeRemove || eventType == lifecycle_dto.FileEventTypeRename
 }

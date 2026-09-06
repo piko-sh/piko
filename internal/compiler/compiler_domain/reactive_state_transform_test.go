@@ -35,7 +35,7 @@ func TestBuildInstanceFunctionBody_PreservesOriginalOrder(t *testing.T) {
 		Decls: []js_ast.Decl{
 			{
 				Binding: js_ast.Binding{
-					Data: &js_ast.BIdentifier{Ref: ast.Ref{}},
+					Data: &js_ast.BIdentifier{},
 				},
 				ValueOrNil: js_ast.Expr{Data: &js_ast.EObject{}},
 			},
@@ -46,7 +46,7 @@ func TestBuildInstanceFunctionBody_PreservesOriginalOrder(t *testing.T) {
 		Decls: []js_ast.Decl{
 			{
 				Binding: js_ast.Binding{
-					Data: &js_ast.BIdentifier{Ref: ast.Ref{}},
+					Data: &js_ast.BIdentifier{},
 				},
 				ValueOrNil: js_ast.Expr{Data: &js_ast.ECall{}},
 			},
@@ -377,7 +377,7 @@ func TestIsFunctionExpression(t *testing.T) {
 		},
 		{
 			name:       "nil data returns false",
-			expression: js_ast.Expr{Data: nil},
+			expression: js_ast.Expr{},
 			expected:   false,
 		},
 	}
@@ -413,7 +413,7 @@ func TestGuessTypeFromExpression(t *testing.T) {
 		},
 		{
 			name:       "EBoolean false returns boolean",
-			expression: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}},
+			expression: js_ast.Expr{Data: &js_ast.EBoolean{}},
 			expected:   "boolean",
 		},
 		{
@@ -458,7 +458,7 @@ func TestGuessTypeFromExpression(t *testing.T) {
 		},
 		{
 			name:       "nil data returns any",
-			expression: js_ast.Expr{Data: nil},
+			expression: js_ast.Expr{},
 			expected:   "any",
 		},
 	}
@@ -489,7 +489,7 @@ func TestExpressionToJSString(t *testing.T) {
 		},
 		{
 			name:       "number zero",
-			expression: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+			expression: js_ast.Expr{Data: &js_ast.ENumber{}},
 			expected:   "0",
 		},
 		{
@@ -509,7 +509,7 @@ func TestExpressionToJSString(t *testing.T) {
 		},
 		{
 			name:       "boolean false",
-			expression: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}},
+			expression: js_ast.Expr{Data: &js_ast.EBoolean{}},
 			expected:   "false",
 		},
 		{
@@ -544,7 +544,7 @@ func TestExpressionToJSString(t *testing.T) {
 		},
 		{
 			name:       "nil data returns null",
-			expression: js_ast.Expr{Data: nil},
+			expression: js_ast.Expr{},
 			expected:   "null",
 		},
 	}
@@ -634,7 +634,7 @@ func TestParseStateObjectLiteral(t *testing.T) {
 						Properties: []js_ast.Property{
 							{
 								Key:        js_ast.Expr{Data: &js_ast.EString{Value: helpers.StringToUTF16("count")}},
-								ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+								ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{}},
 							},
 						},
 					}},
@@ -868,11 +868,7 @@ func TestExtractFunctionFromSFunction(t *testing.T) {
 
 	t.Run("returns nil for function with no name", func(t *testing.T) {
 		tree, _ := mustParseJS(t, `const x = 1;`)
-		node := &js_ast.SFunction{
-			Fn: js_ast.Fn{
-				Name: nil,
-			},
-		}
+		node := &js_ast.SFunction{}
 		definition := extractFunctionFromSFunction(tree, node, js_ast.Stmt{Data: node})
 		assert.Nil(t, definition)
 	})
@@ -1435,7 +1431,7 @@ func TestBuildInstanceFunctionAST(t *testing.T) {
 			Properties: []js_ast.Property{
 				{
 					Key:        js_ast.Expr{Data: &js_ast.EString{Value: helpers.StringToUTF16("count")}},
-					ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+					ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{}},
 				},
 			},
 		}
@@ -1567,8 +1563,8 @@ func TestResolveBindingName(t *testing.T) {
 
 func TestResolveRefName(t *testing.T) {
 	t.Run("returns empty for nil symbols table", func(t *testing.T) {
-		tree := &js_ast.AST{Symbols: nil}
-		name := resolveRefName(tree, ast.Ref{InnerIndex: 0})
+		tree := &js_ast.AST{}
+		name := resolveRefName(tree, ast.Ref{})
 		assert.Equal(t, "", name)
 	})
 

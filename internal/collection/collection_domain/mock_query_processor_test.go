@@ -100,13 +100,11 @@ func TestMockQueryProcessor_ConcurrentAccess(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, _ = m.Search(context.Background(), "q", nil, nil, search_dto.SearchConfig{})
-		}()
+		})
 	}
 
 	wg.Wait()

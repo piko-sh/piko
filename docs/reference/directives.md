@@ -322,7 +322,23 @@ Names a Go import alias that supplies the module-content collection backing this
 
 ```html
 <template p-collection="docs" p-collection-source="docs_pkg">
+  <piko:content />
+</template>
+
+<script type="application/x-go">
+package main
+
+import docs_pkg "github.com/example/site-docs/content"
+</script>
 ```
+
+Piko matches the value against imports in the page's Go script block:
+
+- A named import matches only by its name. `import docs_pkg "github.com/example/site-docs/content"` matches `docs_pkg`, not `content`.
+- An unnamed import matches by the last element of its path. Piko skips a trailing major-version element, so `import "github.com/example/docs/v2"` matches `docs`.
+- Blank (`_`) and dot (`.`) imports never match.
+
+A value that matches no import fails the build with diagnostic `T155`, reported at the `<template>` tag. Piko does not fall back to the page's local content when source resolution fails.
 
 The accessors that consume this attribute are `HasCollectionSource()` and `GetCollectionSource()` on `*sfcparser.ParseResult`. See [`internal/sfcparser/dto.go`](https://github.com/piko-sh/piko/blob/master/internal/sfcparser/dto.go).
 

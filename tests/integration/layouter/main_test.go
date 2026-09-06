@@ -200,7 +200,13 @@ func runTestInSubprocess(t *testing.T, testName string) {
 	}
 	command.WaitDelay = 10 * time.Second
 
-	environment := append(os.Environ(), subprocessEnvVar+"=1")
+	temporaryDirectory, err := os.MkdirTemp("", "piko-layouter-run-")
+	if err != nil {
+		t.Fatalf("creating subprocess temporary directory: %v", err)
+	}
+	defer func() { _ = os.RemoveAll(temporaryDirectory) }()
+
+	environment := append(os.Environ(), subprocessEnvVar+"=1", "TMPDIR="+temporaryDirectory)
 	if interactive {
 		environment = append(environment, "PIKO_E2E_INTERACTIVE=1")
 	}
@@ -211,8 +217,6 @@ func runTestInSubprocess(t *testing.T, testName string) {
 
 	output, err := command.CombinedOutput()
 
-	cleanupOrphanedBrowserTempDirs()
-
 	t.Log(string(output))
 
 	if err != nil {
@@ -220,20 +224,5 @@ func runTestInSubprocess(t *testing.T, testName string) {
 			t.Fatalf("subprocess test timed out after %v: %v", subprocessTimeout, err)
 		}
 		t.Fatalf("subprocess test failed: %v", err)
-	}
-}
-
-func cleanupOrphanedBrowserTempDirs() {
-	parentDirectory := ""
-	if browser != nil {
-		parentDirectory = browser.UserDataDir()
-	}
-
-	entries, _ := filepath.Glob(filepath.Join(os.TempDir(), "piko-chromedp-*"))
-	for _, entry := range entries {
-		if entry == parentDirectory {
-			continue
-		}
-		_ = os.RemoveAll(entry)
 	}
 }

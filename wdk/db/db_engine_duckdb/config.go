@@ -19,6 +19,7 @@
 package db_engine_duckdb
 
 import (
+	"piko.sh/piko/internal/querier/querier_adapters/migration_sql"
 	"piko.sh/piko/wdk/db"
 )
 
@@ -30,7 +31,9 @@ import (
 // Returns db.EngineConfig which carries the DuckDB driver name and a fresh DuckDBEngine.
 func DuckDB() db.EngineConfig {
 	return db.EngineConfig{
-		DriverName: "duckdb",
-		Engine:     NewDuckDBEngine(),
+		DriverName:       "duckdb",
+		Engine:           NewDuckDBEngine(),
+		CatalogueFactory: nil,
+		MigrationDialect: migration_sql.DialectConfig{},
 	}
 }

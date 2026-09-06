@@ -27,8 +27,8 @@ import (
 
 func TestIsUnresponsivePageError(t *testing.T) {
 	testCases := []struct {
-		name string
 		err  error
+		name string
 		want bool
 	}{
 		{
@@ -102,8 +102,8 @@ func TestTruncateRunes(t *testing.T) {
 	cases := []struct {
 		name     string
 		input    string
-		maxRunes int
 		want     string
+		maxRunes int
 	}{
 		{name: "ascii fits", input: "hello", maxRunes: 10, want: "hello"},
 		{name: "ascii truncates", input: "hello world", maxRunes: 5, want: "hello..."},

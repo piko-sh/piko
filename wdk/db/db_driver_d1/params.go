@@ -28,12 +28,12 @@ import (
 )
 
 var (
-	// errNullParamUnsupported reports that a nil bound parameter was supplied.
+	// ErrNullParamUnsupported reports that a nil bound parameter was supplied.
 	//
 	// The D1 HTTP API binds parameters through a JSON array of strings, which cannot carry a
 	// JSON null, so a genuine SQL NULL cannot be transmitted as a bound parameter. Callers
 	// can match this with errors.Is and encode NULL directly in the statement text instead.
-	errNullParamUnsupported = errors.New(
+	ErrNullParamUnsupported = errors.New(
 		"db_driver_d1: NULL bound parameters are not supported by the D1 string wire format",
 	)
 )
@@ -44,7 +44,7 @@ var (
 // Takes args ([]driver.NamedValue) which are the named parameter values to convert.
 //
 // Returns []string which contains the stringified parameters.
-// Returns error which wraps errNullParamUnsupported when any value is nil.
+// Returns error which wraps ErrNullParamUnsupported when any value is nil.
 func stringifyNamedParams(args []driver.NamedValue) ([]string, error) {
 	result := make([]string, len(args))
 	for i, arg := range args {
@@ -64,23 +64,25 @@ func stringifyNamedParams(args []driver.NamedValue) ([]string, error) {
 // rendered as a string. Each supported type maps to a stable, reversible textual form. A
 // string is passed through unchanged. int64 and float64 use their canonical decimal
 // forms. A bool maps to "1" or "0", matching SQLite's integer boolean storage. A []byte
-// is base64-encoded with standard padding. A time.Time is rendered as
+// is base64-encoded with standard padding, so it is stored as base64 TEXT rather than as
+// a BLOB and reads back as that text; values stored as genuine BLOBs (for example through
+// a hex literal or by a Worker binding) read back as []byte. A time.Time is rendered as
 // v.UTC().Format(time.RFC3339Nano), preserving sub-second precision and normalising to
 // UTC so reads can round-trip, matching SQLite's text date handling.
 //
 // The string-only wire format cannot carry a JSON null, so a nil value cannot be
 // transmitted as a genuine SQL NULL. Rather than silently substituting the empty string
 // (which SQLite would store as empty text, corrupting IS NULL and COALESCE semantics), a
-// nil value returns errNullParamUnsupported. Callers that require true NULL semantics
+// nil value returns ErrNullParamUnsupported. Callers that require true NULL semantics
 // must encode it directly in the SQL statement text rather than as a bound parameter.
 //
 // Takes value (any) which is the value to convert.
 //
 // Returns string which is the stringified representation.
-// Returns error which is errNullParamUnsupported when value is nil.
+// Returns error which is ErrNullParamUnsupported when value is nil.
 func stringifyValue(value any) (string, error) {
 	if value == nil {
-		return "", errNullParamUnsupported
+		return "", ErrNullParamUnsupported
 	}
 
 	switch v := value.(type) {

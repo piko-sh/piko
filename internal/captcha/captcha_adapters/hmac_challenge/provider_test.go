@@ -151,9 +151,7 @@ func TestProvider_VerifyTamperedToken(t *testing.T) {
 func TestProvider_VerifyEmptyToken(t *testing.T) {
 	p := newTestProvider(t)
 
-	response, err := p.Verify(t.Context(), &captcha_dto.VerifyRequest{
-		Token: "",
-	})
+	response, err := p.Verify(t.Context(), &captcha_dto.VerifyRequest{})
 	require.NoError(t, err)
 	assert.False(t, response.Success)
 	assert.Contains(t, response.ErrorCodes, "missing-input-response")

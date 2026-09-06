@@ -157,10 +157,10 @@ type NATSProvider struct {
 func NewNATSProvider(config Config) (*NATSProvider, error) {
 	wmLogger := events.NewWatermillLoggerAdapter(log)
 
-	return &NATSProvider{
-		config: config,
-		logger: wmLogger,
-	}, nil
+	provider := NATSProvider{}
+	provider.config = config
+	provider.logger = wmLogger
+	return &provider, nil
 }
 
 // Start initialises the NATS connection, creates publisher/subscriber, and starts the
@@ -557,14 +557,17 @@ func DefaultConfig() Config {
 		AckWaitTimeout:   defaultTimeoutSeconds * time.Second,
 		CloseTimeout:     defaultTimeoutSeconds * time.Second,
 		JetStream: JetStreamConfig{
-			Disabled:       false,
-			AutoProvision:  true,
-			TrackMessageID: false,
-			AckAsync:       false,
-			DurablePrefix:  "piko",
+			Disabled:         false,
+			AutoProvision:    true,
+			TrackMessageID:   false,
+			AckAsync:         false,
+			DurablePrefix:    "piko",
+			SubscribeOptions: nil,
+			PublishOptions:   nil,
 		},
 		RouterConfig: events.RouterConfig{
 			CloseTimeout: defaultTimeoutSeconds,
 		},
+		NATSOptions: nil,
 	}
 }

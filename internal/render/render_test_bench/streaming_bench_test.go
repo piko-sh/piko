@@ -43,9 +43,7 @@ func BenchmarkStreaming_TTFB(b *testing.B) {
 		b.Run(size.String(), func(b *testing.B) {
 			ast := BuildMixedAST(size.NodeCount() / 10)
 			metadata := &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{
-					Title: "TTFB Test",
-				},
+				Title:      "TTFB Test",
 				CustomTags: []string{"my-card", "another-component"},
 			}
 
@@ -94,11 +92,9 @@ func BenchmarkStreaming_FullVsFragment(b *testing.B) {
 
 	ast := BuildMixedAST(10)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title:       "Streaming Test",
-			Description: "Testing streaming performance",
-		},
-		CustomTags: []string{"my-card", "another-component"},
+		Title:       "Streaming Test",
+		Description: "Testing streaming performance",
+		CustomTags:  []string{"my-card", "another-component"},
 	}
 
 	WarmUpOrchestrator(orchestrator, ast)
@@ -187,9 +183,7 @@ func BenchmarkStreaming_OutputSize(b *testing.B) {
 			ast := BuildMixedAST(scale)
 			nodeCount := CountNodes(ast)
 			metadata := &templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{
-					Title: "Output Size Test",
-				},
+				Title:      "Output Size Test",
 				CustomTags: []string{"my-card", "another-component"},
 			}
 
@@ -277,9 +271,7 @@ func BenchmarkStreaming_BufferedVsDirect(b *testing.B) {
 
 	ast := BuildMixedAST(10)
 	metadata := &templater_dto.InternalMetadata{
-		Metadata: templater_dto.Metadata{
-			Title: "Buffer Test",
-		},
+		Title:      "Buffer Test",
 		CustomTags: []string{"my-card", "another-component"},
 	}
 

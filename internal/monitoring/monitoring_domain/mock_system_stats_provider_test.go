@@ -115,15 +115,13 @@ func TestMockSystemStatsProvider_ConcurrentAccess(t *testing.T) {
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 
 			result := mock.GetStats()
 			assert.Equal(t, int32(100), result.NumGoroutines)
-		}()
+		})
 	}
 
 	wg.Wait()

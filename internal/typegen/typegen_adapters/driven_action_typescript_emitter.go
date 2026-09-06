@@ -27,8 +27,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/jsident"
 )
 
@@ -264,6 +264,8 @@ func (e *ActionTypeScriptEmitter) EmitTypeScript(_ context.Context, specs []anno
 // Takes b (*strings.Builder) which receives the generated TypeScript output.
 // Takes names (actionTSTypeNames) which supplies the declared TypeScript names.
 // Takes typeSpecs ([]*annotator_dto.TypeSpec) which are the types to declare.
+// Takes emitted (map[string]struct{}) which tracks interface names already emitted to
+// prevent duplicates.
 //
 // Returns error when a field has a Go type that has no TypeScript equivalent.
 func (e *ActionTypeScriptEmitter) emitInterfaces(
@@ -699,6 +701,8 @@ func actionTSExtractFunctionName(actionName, tsFunctionName, namespace string) s
 // declared under.
 //
 // Takes specs ([]annotator_dto.ActionSpec) which are the actions to name.
+// Takes used (map[string]struct{}) which tracks names already allocated to avoid
+// generated identifier collisions.
 //
 // Returns []string which are the function names, one per spec, in the same order.
 func actionTSAssignFunctionNames(specs []annotator_dto.ActionSpec, used map[string]struct{}) []string {
@@ -731,6 +735,8 @@ func actionTSModuleScope() map[string]struct{} {
 // order.
 // Takes responseTypes ([]*annotator_dto.TypeSpec) which are the response types, in output
 // order.
+// Takes used (map[string]struct{}) which tracks names already allocated to avoid
+// generated identifier collisions.
 //
 // Returns actionTSTypeNames which maps each declarable Go type name to its TypeScript
 // name.

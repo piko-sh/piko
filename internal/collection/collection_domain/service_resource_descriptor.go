@@ -56,8 +56,8 @@ func (*collectionService) ProbeName() string {
 // Returns []provider_domain.ColumnDefinition which describes the NAME and TYPE columns.
 func (*collectionService) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: "name"},
-		{Header: "TYPE", Key: "type"},
+		{Header: "NAME", Key: "name", WideOnly: false},
+		{Header: "TYPE", Key: "type", WideOnly: false},
 	}
 }
 

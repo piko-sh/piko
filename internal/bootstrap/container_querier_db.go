@@ -528,9 +528,12 @@ func (*databaseService) livenessForInstance(
 			replicaMessage = fmt.Sprintf("ping failed: %v", pingError)
 		}
 		replicaDependencies = append(replicaDependencies, &healthprobe_dto.Status{
-			Name:    fmt.Sprintf("replica-%d", replicaIndex),
-			State:   replicaState,
-			Message: replicaMessage,
+			Name:         fmt.Sprintf("replica-%d", replicaIndex),
+			State:        replicaState,
+			Message:      replicaMessage,
+			Timestamp:    time.Time{},
+			Duration:     "",
+			Dependencies: nil,
 		})
 		instanceState = aggregateState(instanceState, replicaState)
 	}
@@ -540,6 +543,8 @@ func (*databaseService) livenessForInstance(
 		State:        instanceState,
 		Message:      message,
 		Dependencies: replicaDependencies,
+		Timestamp:    time.Time{},
+		Duration:     "",
 	}
 }
 
@@ -601,6 +606,8 @@ func (s *databaseService) checkReadiness(ctx context.Context, startTime time.Tim
 // including its primary and all replicas.
 //
 // Takes name (string) which identifies the database instance.
+// Takes instance (*databaseInstance) which provides the database connections whose
+// readiness is checked.
 //
 // Returns *healthprobe_dto.Status which indicates the readiness state of the database
 // instance.
@@ -633,6 +640,8 @@ func (*databaseService) buildInstanceReadiness(
 		State:        overallState,
 		Message:      message,
 		Dependencies: dependencies,
+		Timestamp:    time.Time{},
+		Duration:     "",
 	}
 }
 
@@ -641,6 +650,8 @@ func (*databaseService) buildInstanceReadiness(
 //
 // Takes name (string) which identifies the connection.
 // Takes database (*sql.DB) which is the database connection to check.
+// Takes checker (DatabaseHealthChecker) which provides database health checks and
+// diagnostic information.
 //
 // Returns *healthprobe_dto.Status which indicates the readiness state of the connection.
 func buildConnectionReadiness(
@@ -654,9 +665,12 @@ func buildConnectionReadiness(
 
 	if pingError := pingConnection(ctx, database); pingError != nil {
 		return &healthprobe_dto.Status{
-			Name:    name,
-			State:   healthprobe_dto.StateUnhealthy,
-			Message: fmt.Sprintf("ping failed: %v", pingError),
+			Name:         name,
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      fmt.Sprintf("ping failed: %v", pingError),
+			Timestamp:    time.Time{},
+			Duration:     "",
+			Dependencies: nil,
 		}
 	}
 
@@ -679,6 +693,8 @@ func buildConnectionReadiness(
 		State:        connectionState,
 		Message:      message,
 		Dependencies: dependencies,
+		Timestamp:    time.Time{},
+		Duration:     "",
 	}
 }
 
@@ -700,9 +716,12 @@ func buildPoolStatus(database *sql.DB) *healthprobe_dto.Status {
 	}
 
 	return &healthprobe_dto.Status{
-		Name:    "ConnectionPool",
-		State:   state,
-		Message: message,
+		Name:         "ConnectionPool",
+		State:        state,
+		Message:      message,
+		Timestamp:    time.Time{},
+		Duration:     "",
+		Dependencies: nil,
 	}
 }
 
@@ -738,6 +757,8 @@ func poolUtilisationState(stats sql.DBStats) (healthprobe_dto.State, string) {
 // DatabaseHealthDiagnostic into a healthprobe_dto.Status.
 //
 // Takes database (*sql.DB) which is the database connection to diagnose.
+// Takes checker (DatabaseHealthChecker) which provides database health checks and
+// diagnostic information.
 //
 // Returns []*healthprobe_dto.Status which holds the translated diagnostic results.
 func translateDiagnostics(
@@ -756,9 +777,12 @@ func translateDiagnostics(
 		}
 
 		statuses = append(statuses, &healthprobe_dto.Status{
-			Name:    diagnostic.Name,
-			State:   state,
-			Message: message,
+			Name:         diagnostic.Name,
+			State:        state,
+			Message:      message,
+			Timestamp:    time.Time{},
+			Duration:     "",
+			Dependencies: nil,
 		})
 	}
 
@@ -1093,12 +1117,16 @@ func (c *Container) openDatabaseInstance(
 	}
 
 	instance := &databaseInstance{
-		db:              database,
-		reader:          database,
-		writer:          database,
-		driverName:      resolveDriverName(reg),
-		replicaCount:    len(reg.Replicas),
-		externallyOwned: reg.DB != nil,
+		db:                  database,
+		reader:              database,
+		writer:              database,
+		driverName:          resolveDriverName(reg),
+		replicaCount:        len(reg.Replicas),
+		externallyOwned:     reg.DB != nil,
+		migrator:            nil,
+		seeder:              nil,
+		engineHealthChecker: nil,
+		replicas:            nil,
 	}
 
 	if checker, ok := reg.EngineConfig.Engine.(DatabaseHealthChecker); ok {
@@ -1293,7 +1321,7 @@ func (c *Container) attachReplicas(
 	}
 
 	instance.replicas = replicaConnections
-	instance.reader = &replicaBalancer{pool: balancerPool}
+	instance.reader = &replicaBalancer{pool: balancerPool, counter: atomic.Uint64{}}
 
 	return nil
 }
@@ -1303,6 +1331,8 @@ func (c *Container) attachReplicas(
 //
 // Takes database (*sql.DB) which is the database connection for migrations.
 // Takes name (string) which identifies the database for logging.
+// Takes reg (*DatabaseRegistration) which provides the database registration and
+// migration configuration.
 //
 // Returns querier_domain.MigrationServicePort which is the migration service, or nil when
 // no migration filesystem is configured.
@@ -1382,6 +1412,8 @@ func (*Container) createSeedServiceForInstance(
 //
 // Takes name (string) which identifies the database for logging.
 // Takes driverName (string) which is the database/sql driver name.
+// Takes registration (*DatabaseRegistration) which provides the replica connection
+// configuration.
 //
 // Returns []*sql.DB which holds the opened replica connections.
 // Returns []DBTX which holds the weighted pool for the balancer.

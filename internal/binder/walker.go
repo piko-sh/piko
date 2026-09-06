@@ -227,11 +227,18 @@ func (b *ASTBinder) handleStructIndexExpr(structVal reflect.Value, node *ast_dom
 	strIndex, ok := node.Index.(*ast_domain.StringLiteral)
 	if !ok {
 		return errSetField{
-			err:  fmt.Errorf("struct field access requires a string index, got %T", node.Index),
-			path: fullPath,
+			err:       fmt.Errorf("struct field access requires a string index, got %T", node.Index),
+			path:      fullPath,
+			field:     "",
+			fieldType: "",
 		}
 	}
-	return b.handleIdentifierNode(structVal, &ast_domain.Identifier{Name: strIndex.Value}, valueToSet, fullPath, limits)
+	return b.handleIdentifierNode(structVal, &ast_domain.Identifier{
+		Name:             strIndex.Value,
+		GoAnnotations:    nil,
+		RelativeLocation: ast_domain.Location{},
+		SourceLength:     0,
+	}, valueToSet, fullPath, limits)
 }
 
 // handleChainedIndexExpr handles chained index expressions like fields['key1']['key2'].
@@ -299,9 +306,10 @@ func (b *ASTBinder) resolveAndValidateBaseMap(
 	baseMapVal = dereferenceIndirections(baseMapVal)
 	if baseMapVal.Kind() != reflect.Map {
 		return reflect.Value{}, errSetField{
-			err:   fmt.Errorf("expected map for chained index access, got %s", baseMapVal.Kind()),
-			path:  fullPath,
-			field: "",
+			err:       fmt.Errorf("expected map for chained index access, got %s", baseMapVal.Kind()),
+			path:      fullPath,
+			field:     "",
+			fieldType: "",
 		}
 	}
 
@@ -638,9 +646,10 @@ func getOrCreateIntermediateValue(baseMapVal, innerKey reflect.Value, fullPath s
 	intermediateVal = dereferenceIndirections(intermediateVal)
 	if intermediateVal.Kind() != reflect.Map {
 		return reflect.Value{}, errSetField{
-			err:   fmt.Errorf("intermediate value is not a map, got %s", intermediateVal.Kind()),
-			path:  fullPath,
-			field: "",
+			err:       fmt.Errorf("intermediate value is not a map, got %s", intermediateVal.Kind()),
+			path:      fullPath,
+			field:     "",
+			fieldType: "",
 		}
 	}
 

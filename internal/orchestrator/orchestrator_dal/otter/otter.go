@@ -303,6 +303,20 @@ func (d *DAL) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_do
 	return d.fetchAndMarkDueTasksLocked(ctx, priority, limit)
 }
 
+// GetTasksByID reads the tasks with the given IDs without changing them.
+//
+// Takes ids ([]string) which lists the task IDs to read.
+//
+// Returns []*orchestrator_domain.Task which holds copies of the tasks found.
+// Returns error which is always nil.
+//
+// Safe for concurrent use; holds a read lock during the lookup.
+func (d *DAL) GetTasksByID(ctx context.Context, ids []string) ([]*orchestrator_domain.Task, error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.getTasksByIDLocked(ctx, ids)
+}
+
 // GetWorkflowStatus checks whether all tasks in a workflow are complete.
 //
 // Takes workflowID (string) which identifies the workflow to check.
@@ -836,6 +850,22 @@ func (d *DAL) fetchAndMarkDueTasksLocked(ctx context.Context, priority orchestra
 	return results, nil
 }
 
+// getTasksByIDLocked reads tasks by ID without acquiring the lock. Caller must hold mu.
+//
+// Takes ids ([]string) which lists the task IDs to read.
+//
+// Returns []*orchestrator_domain.Task which holds copies of the tasks found.
+// Returns error which is always nil.
+func (d *DAL) getTasksByIDLocked(ctx context.Context, ids []string) ([]*orchestrator_domain.Task, error) {
+	results := make([]*orchestrator_domain.Task, 0, len(ids))
+	for _, id := range ids {
+		if task, found, _ := d.tasks.GetIfPresent(ctx, id); found {
+			results = append(results, cloneTask(task))
+		}
+	}
+	return results, nil
+}
+
 // getWorkflowStatusLocked checks workflow completion without acquiring the lock. Caller
 // must hold mu.
 //
@@ -1139,11 +1169,13 @@ func (d *DAL) releaseRecoveryLeasesLocked(_ context.Context, nodeID string) (int
 // Returns error when the receipt cannot be created.
 func (d *DAL) createWorkflowReceiptLocked(_ context.Context, id, workflowID, nodeID string) error {
 	r := &receipt{
-		id:         id,
-		workflowID: workflowID,
-		nodeID:     nodeID,
-		status:     receiptPending,
-		createdAt:  time.Now(),
+		id:           id,
+		workflowID:   workflowID,
+		nodeID:       nodeID,
+		status:       receiptPending,
+		createdAt:    time.Now(),
+		resolvedAt:   time.Time{},
+		errorMessage: "",
 	}
 
 	d.receipts[id] = r
@@ -1385,8 +1417,12 @@ func (d *DAL) aggregateWorkflowData() map[string]*workflowAgg {
 		agg, ok := workflows[task.WorkflowID]
 		if !ok {
 			agg = &workflowAgg{
-				createdAt: task.CreatedAt.Unix(),
-				updatedAt: task.UpdatedAt.Unix(),
+				createdAt:     task.CreatedAt.Unix(),
+				updatedAt:     task.UpdatedAt.Unix(),
+				taskCount:     0,
+				completeCount: 0,
+				failedCount:   0,
+				activeCount:   0,
 			}
 			workflows[task.WorkflowID] = agg
 		}
@@ -1447,6 +1483,7 @@ func NewOtterDAL(config Config, opts ...Option) (orchestrator_dal.OrchestratorDA
 		receiptsByNode:     provider_otter.NewTagIndex[string](),
 		ownsCache:          true,
 		mu:                 sync.RWMutex{},
+		tasks:              nil,
 	}
 
 	for _, opt := range opts {
@@ -1459,9 +1496,8 @@ func NewOtterDAL(config Config, opts ...Option) (orchestrator_dal.OrchestratorDA
 			capacity = defaultCacheCapacity
 		}
 
-		cacheOpts := cache_dto.Options[string, *orchestrator_domain.Task]{
-			MaximumEntries: int(capacity),
-		}
+		cacheOpts := cache_dto.Options[string, *orchestrator_domain.Task]{}
+		cacheOpts.MaximumEntries = int(capacity)
 
 		cache, err := provider_otter.OtterProviderFactory(cacheOpts)
 		if err != nil {
@@ -1518,6 +1554,16 @@ func (tx *otterTransactionDAL) UpdateTask(ctx context.Context, task *orchestrato
 // Returns error when the fetch or update fails.
 func (tx *otterTransactionDAL) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
 	return tx.parent.fetchAndMarkDueTasksLocked(ctx, priority, limit)
+}
+
+// GetTasksByID reads the tasks with the given IDs within the current transaction.
+//
+// Takes ids ([]string) which lists the task IDs to read.
+//
+// Returns []*orchestrator_domain.Task which holds copies of the tasks found.
+// Returns error which is always nil.
+func (tx *otterTransactionDAL) GetTasksByID(ctx context.Context, ids []string) ([]*orchestrator_domain.Task, error) {
+	return tx.parent.getTasksByIDLocked(ctx, ids)
 }
 
 // GetWorkflowStatus checks whether all tasks in a workflow are complete within the

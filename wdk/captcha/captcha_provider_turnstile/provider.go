@@ -20,16 +20,12 @@ package captcha_provider_turnstile
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
+	"piko.sh/piko/internal/captcha/captcha_adapters/siteverify"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/captcha/captcha_provider_turnstile/scripts"
 )
 
@@ -37,13 +33,8 @@ const (
 	// verifyURL is the Cloudflare Turnstile server-side verification endpoint.
 	verifyURL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
-	// httpTimeout is the timeout for HTTP requests to the Turnstile API.
-	httpTimeout = 10 * time.Second
-
-	// maxResponseBodySize is the maximum number of bytes read from the Turnstile
-	// verification response. Prevents unbounded memory allocation from a misbehaving
-	// upstream.
-	maxResponseBodySize = 64 * 1024
+	// providerName names Turnstile in verification errors.
+	providerName = "turnstile"
 )
 
 // turnstileVerifyResult represents the JSON response from the Cloudflare Turnstile
@@ -67,8 +58,8 @@ type turnstileVerifyResult struct {
 
 // provider implements captcha_domain.CaptchaProvider using Cloudflare Turnstile.
 type provider struct {
-	// httpClient is the HTTP client used for calls to the Turnstile API.
-	httpClient *http.Client
+	// client posts verification requests to the Turnstile API.
+	client *siteverify.Client
 
 	// config holds the Turnstile site key and secret key.
 	config Config
@@ -81,20 +72,33 @@ var (
 // NewProvider creates a new Cloudflare Turnstile captcha provider.
 //
 // Takes config (Config) which specifies the Turnstile site key and secret key.
+// Takes options (...Option) which override the verification timeout and response size
+// limit.
 //
 // Returns captcha_domain.CaptchaProvider which provides Turnstile-based captcha
 // verification.
 // Returns error when the configuration is invalid.
-func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
+func NewProvider(config Config, options ...Option) (captcha_domain.CaptchaProvider, error) {
+	return newProvider(config, verifyURL, options...)
+}
+
+// newProvider creates a Turnstile provider that verifies tokens against endpoint.
+//
+// Takes config (Config) which specifies the Turnstile site key and secret key.
+// Takes endpoint (string) which is the siteverify URL.
+// Takes options (...Option) which override the verification timeout and response size
+// limit.
+//
+// Returns *provider which is ready for use.
+// Returns error when the configuration is invalid.
+func newProvider(config Config, endpoint string, options ...Option) (*provider, error) {
 	if err := config.validate(); err != nil {
 		return nil, err
 	}
 
 	return &provider{
 		config: config,
-		httpClient: &http.Client{
-			Timeout: httpTimeout,
-		},
+		client: siteverify.NewClient(providerName, endpoint, options...),
 	}, nil
 }
 
@@ -131,10 +135,9 @@ func (p *provider) Verify(ctx context.Context, request *captcha_dto.VerifyReques
 	defer span.End()
 
 	if request == nil || request.Token == "" {
-		return &captcha_dto.VerifyResponse{
-			Success:    false,
-			ErrorCodes: []string{"missing-input-response"},
-		}, nil
+		response := captcha_dto.VerifyResponse{}
+		response.ErrorCodes = []string{"missing-input-response"}
+		return &response, nil
 	}
 
 	turnstileResult, err := p.callVerifyAPI(ctx, request)
@@ -179,6 +182,8 @@ func (*provider) RenderRequirements() *captcha_dto.RenderRequirements {
 		CSPFrameDomains:   []string{"https://challenges.cloudflare.com"},
 		CSPConnectDomains: []string{"https://challenges.cloudflare.com"},
 		ProviderType:      "turnstile",
+		ServerSideToken:   false,
+		Invisible:         false,
 	}
 }
 
@@ -208,45 +213,9 @@ func (p *provider) callVerifyAPI(ctx context.Context, request *captcha_dto.Verif
 		formData.Set("remoteip", request.RemoteIP)
 	}
 
-	encodedForm := formData.Encode()
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, verifyURL, strings.NewReader(encodedForm))
+	result, err := siteverify.Verify[turnstileVerifyResult](ctx, p.client, formData)
 	if err != nil {
-		return nil, fmt.Errorf("creating turnstile request: %w", err)
-	}
-	httpRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	httpResponse, err := p.httpClient.Do(httpRequest)
-	if err != nil {
-		return nil, fmt.Errorf("sending turnstile verification request: %w", err)
-	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, io.LimitReader(httpResponse.Body, maxResponseBodySize))
-		_ = httpResponse.Body.Close()
-	}()
-
-	if httpResponse.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("turnstile verification returned HTTP %d: %w", httpResponse.StatusCode, captcha_dto.ErrProviderUnavailable)
-	}
-
-	contentType := httpResponse.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "application/json") {
-		return nil, fmt.Errorf("turnstile returned unexpected content type %q: %w",
-			contentType, captcha_dto.ErrProviderUnavailable)
-	}
-
-	body, err := io.ReadAll(io.LimitReader(httpResponse.Body, maxResponseBodySize))
-	if err != nil {
-		return nil, fmt.Errorf("reading turnstile response body: %w", err)
-	}
-
-	if int64(len(body)) >= maxResponseBodySize {
-		return nil, fmt.Errorf("turnstile response body exceeded %d byte limit: %w",
-			maxResponseBodySize, captcha_dto.ErrProviderUnavailable)
-	}
-
-	var result turnstileVerifyResult
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("parsing turnstile response: %w", err)
+		return nil, err
 	}
 
 	return &result, nil

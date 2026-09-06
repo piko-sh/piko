@@ -37,6 +37,8 @@ const (
 // forward (tag -> keys) and reverse (key -> tags) mappings using DoMulti for efficiency.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes key (string) which is the cache key to associate with tags.
 // Takes tags ([]string) which contains the tag names to associate with the key.
 //
@@ -68,6 +70,8 @@ func addTagsToKey(ctx context.Context, client valkey.Client, namespace string, k
 // for an efficient union operation on the server side.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes tags ([]string) which specifies the tags to look up.
 //
 // Returns []string which contains the unique keys associated with the tags.
@@ -94,6 +98,8 @@ func getKeysByTags(ctx context.Context, client valkey.Client, namespace string, 
 // themselves. This is an atomic operation within Valkey using DoMulti.
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes tags ([]string) which specifies the tags whose keys should be removed.
 //
 // Returns int which is the number of keys that were invalidated.
@@ -139,6 +145,8 @@ func performTagInvalidation(ctx context.Context, client valkey.Client, namespace
 // leaks when keys are deleted directly via Invalidate().
 //
 // Takes client (valkey.Client) which provides the Valkey connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes key (string) which is the cache key to remove from tag sets.
 //
 // Returns error when fetching tags or removing the key from tag sets fails.

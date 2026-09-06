@@ -21,6 +21,7 @@ package db_catalogue_sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -51,6 +52,37 @@ const (
 	// hiddenStoredColumn marks a generated column whose value is stored on disk in PRAGMA
 	// table_xinfo output.
 	hiddenStoredColumn = 3
+
+	// indexOriginPrimaryKey is the PRAGMA index_list origin reported for the automatic index
+	// that backs a PRIMARY KEY constraint.
+	indexOriginPrimaryKey = "pk"
+
+	// listTablesQuery selects user tables, excluding SQLite's internal sqlite_ tables. The
+	// underscore is escaped because LIKE otherwise treats it as a single-character wildcard
+	// and would also hide user tables such as "sqliteapp".
+	listTablesQuery = `SELECT name FROM sqlite_master
+		WHERE type = 'table' AND name NOT LIKE 'sqlite\_%' ESCAPE '\'
+		ORDER BY name`
+
+	// listViewsQuery selects user views.
+	listViewsQuery = "SELECT name FROM sqlite_master WHERE type = 'view' ORDER BY name"
+
+	// tableColumnsQuery selects every column of a table or view, including hidden generated
+	// columns, through the table-valued form of PRAGMA table_xinfo so the relation name is
+	// bound as a parameter rather than interpolated.
+	tableColumnsQuery = `SELECT cid, name, type, "notnull", dflt_value, pk, hidden
+		FROM pragma_table_xinfo(?)
+		ORDER BY cid`
+
+	// tableIndexesQuery selects every index of a table together with its key columns.
+	//
+	// Joining the table-valued PRAGMA functions in one statement avoids issuing a second
+	// query while the first result set is still open, which would deadlock a pool limited to
+	// one connection. Expression key columns have a NULL name.
+	tableIndexesQuery = `SELECT index_list.name, index_list."unique", index_list.origin, index_info.name
+		FROM pragma_index_list(?) AS index_list
+		LEFT JOIN pragma_index_info(index_list.name) AS index_info
+		ORDER BY index_list.seq, index_info.seqno`
 )
 
 // PragmaIntrospectionProvider implements CatalogueProviderPort by querying a live SQLite
@@ -149,8 +181,7 @@ func (provider *PragmaIntrospectionProvider) BuildCatalogue(
 func (provider *PragmaIntrospectionProvider) listTables(
 	ctx context.Context,
 ) ([]string, error) {
-	return provider.queryStringColumn(ctx,
-		"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+	return provider.queryStringColumn(ctx, listTablesQuery)
 }
 
 // listViews returns the names of user views in the SQLite database.
@@ -160,8 +191,7 @@ func (provider *PragmaIntrospectionProvider) listTables(
 func (provider *PragmaIntrospectionProvider) listViews(
 	ctx context.Context,
 ) ([]string, error) {
-	return provider.queryStringColumn(ctx,
-		"SELECT name FROM sqlite_master WHERE type = 'view' ORDER BY name")
+	return provider.queryStringColumn(ctx, listViewsQuery)
 }
 
 // queryStringColumn runs a single-column text query and collects values into a slice.
@@ -175,14 +205,13 @@ func (provider *PragmaIntrospectionProvider) queryStringColumn(
 	ctx context.Context,
 	query string,
 	args ...any,
-) ([]string, error) {
+) (names []string, err error) {
 	rows, queryError := provider.database.QueryContext(ctx, query, args...)
 	if queryError != nil {
 		return nil, queryError
 	}
-	defer rows.Close()
+	defer closeRows(rows, &err)
 
-	var names []string
 	for rows.Next() {
 		var name string
 		if scanError := rows.Scan(&name); scanError != nil {
@@ -190,7 +219,10 @@ func (provider *PragmaIntrospectionProvider) queryStringColumn(
 		}
 		names = append(names, name)
 	}
-	return names, rows.Err()
+	if rowsError := rows.Err(); rowsError != nil {
+		return nil, rowsError
+	}
+	return names, nil
 }
 
 // introspectTable builds a Table descriptor for the named table.
@@ -214,11 +246,17 @@ func (provider *PragmaIntrospectionProvider) introspectTable(
 	}
 
 	return &querier_dto.Table{
-		Name:       tableName,
-		Schema:     schemaMain,
-		Columns:    columns,
-		PrimaryKey: primaryKeyColumns,
-		Indexes:    indexes,
+		Name:              tableName,
+		Schema:            schemaMain,
+		Columns:           columns,
+		PrimaryKey:        primaryKeyColumns,
+		Indexes:           indexes,
+		Comment:           "",
+		VirtualModuleName: "",
+		Constraints:       nil,
+		Origin:            querier_dto.MigrationOrigin{},
+		IsVirtual:         false,
+		IsWithoutRowID:    false,
 	}, nil
 }
 
@@ -238,9 +276,12 @@ func (provider *PragmaIntrospectionProvider) introspectView(
 	}
 
 	return &querier_dto.View{
-		Name:    viewName,
-		Schema:  "main",
-		Columns: columns,
+		Name:       viewName,
+		Schema:     "main",
+		Columns:    columns,
+		Definition: "",
+		Comment:    "",
+		Origin:     querier_dto.MigrationOrigin{},
 	}, nil
 }
 
@@ -248,60 +289,129 @@ func (provider *PragmaIntrospectionProvider) introspectView(
 //
 // Takes tableName (string) which identifies the table or view to introspect.
 //
-// Returns []querier_dto.Column which describes each column.
-// Returns []string which contains primary key column names in order.
-// Returns error when the PRAGMA query fails.
+// Returns columns ([]querier_dto.Column) which describes each column.
+// Returns primaryKey ([]string) which contains primary key column names in order.
+// Returns err (error) when the PRAGMA query, a scan, or closing the rows fails.
 func (provider *PragmaIntrospectionProvider) introspectColumns(
 	ctx context.Context,
 	tableName string,
-) ([]querier_dto.Column, []string, error) {
-	//nolint:gosec // trusted source (sqlite_master)
-	rows, queryError := provider.database.QueryContext(ctx,
-		fmt.Sprintf("PRAGMA table_xinfo(%s)", quoteIdentifier(tableName)))
+) (columns []querier_dto.Column, primaryKey []string, err error) {
+	rows, queryError := provider.database.QueryContext(ctx, tableColumnsQuery, tableName)
 	if queryError != nil {
 		return nil, nil, queryError
 	}
-	defer rows.Close()
-
-	var columns []querier_dto.Column
+	defer closeRows(rows, &err)
 
 	primaryKeyByPosition := map[int]string{}
 
 	for rows.Next() {
-		var columnID int
-		var name string
-		var typeName string
-		var notNull int
-		var defaultValue sql.NullString
-		var primaryKey int
-		var hidden int
-
-		scanError := rows.Scan(&columnID, &name, &typeName, &notNull, &defaultValue, &primaryKey, &hidden)
+		column, primaryKeyPosition, scanError := provider.scanColumn(rows)
 		if scanError != nil {
 			return nil, nil, scanError
 		}
 
-		sqlType := provider.typeNormaliser.NormaliseTypeName(strings.TrimSpace(typeName))
-
-		isGenerated, generatedKind := classifyGeneratedColumn(hidden)
-
-		column := querier_dto.Column{
-			Name:          name,
-			SQLType:       sqlType,
-			Nullable:      notNull == 0 && primaryKey == 0,
-			HasDefault:    defaultValue.Valid || primaryKey > 0,
-			IsGenerated:   isGenerated,
-			GeneratedKind: generatedKind,
-		}
-
 		columns = append(columns, column)
 
-		if primaryKey > 0 {
-			primaryKeyByPosition[primaryKey] = name
+		if primaryKeyPosition > 0 {
+			primaryKeyByPosition[primaryKeyPosition] = column.Name
 		}
 	}
 
-	return columns, orderedPrimaryKeyColumns(primaryKeyByPosition), rows.Err()
+	if rowsError := rows.Err(); rowsError != nil {
+		return nil, nil, rowsError
+	}
+
+	return columns, orderedPrimaryKeyColumns(primaryKeyByPosition), nil
+}
+
+// scanColumn decodes one PRAGMA table_xinfo row into a column descriptor.
+//
+// Takes rows (*sql.Rows) which is positioned on the row to decode.
+//
+// Returns querier_dto.Column which describes the column.
+// Returns int which is the column's 1-based position within the primary key, or 0 when
+// the column is not part of it.
+// Returns error when the row cannot be scanned.
+func (provider *PragmaIntrospectionProvider) scanColumn(rows *sql.Rows) (querier_dto.Column, int, error) {
+	var columnID int
+	var name string
+	var typeName string
+	var notNull int
+	var defaultValue sql.NullString
+	var primaryKeyPosition int
+	var hidden int
+
+	if scanError := rows.Scan(&columnID, &name, &typeName, &notNull, &defaultValue, &primaryKeyPosition, &hidden); scanError != nil {
+		return querier_dto.Column{}, 0, scanError
+	}
+
+	sqlType := provider.typeNormaliser.NormaliseTypeName(strings.TrimSpace(typeName))
+	column := querier_dto.NewColumn(name, sqlType, notNull == 0 && primaryKeyPosition == 0)
+	column.HasDefault = defaultValue.Valid || primaryKeyPosition > 0
+	column.IsGenerated, column.GeneratedKind = classifyGeneratedColumn(hidden)
+
+	return column, primaryKeyPosition, nil
+}
+
+// introspectIndexes lists indexes defined on the named table.
+//
+// Every index and its key columns are read through one query whose rows are fully
+// consumed before it returns, so no second statement is issued while a result set is
+// open. That matters because the SQLite drivers cap the pool at one connection, where a
+// nested query would wait forever for the connection the outer rows still hold.
+//
+// Takes tableName (string) which identifies the table to introspect.
+//
+// Returns indexes ([]querier_dto.Index) which describes each index and its named key
+// columns, omitting indexes whose keys are all expressions.
+// Returns err (error) when the query, a scan, or closing the rows fails.
+func (provider *PragmaIntrospectionProvider) introspectIndexes(
+	ctx context.Context,
+	tableName string,
+) (indexes []querier_dto.Index, err error) {
+	rows, queryError := provider.database.QueryContext(ctx, tableIndexesQuery, tableName)
+	if queryError != nil {
+		return nil, queryError
+	}
+	defer closeRows(rows, &err)
+
+	positionByName := map[string]int{}
+
+	for rows.Next() {
+		var indexName string
+		var unique int
+		var origin string
+		var columnName sql.NullString
+
+		if scanError := rows.Scan(&indexName, &unique, &origin, &columnName); scanError != nil {
+			return nil, scanError
+		}
+
+		position, seen := positionByName[indexName]
+		if !seen {
+			position = len(indexes)
+			positionByName[indexName] = position
+			indexes = append(indexes, querier_dto.Index{
+				Name:      indexName,
+				Columns:   nil,
+				IsUnique:  unique != 0,
+				IsPrimary: origin == indexOriginPrimaryKey,
+				Origin:    querier_dto.MigrationOrigin{},
+			})
+		}
+
+		if columnName.Valid {
+			indexes[position].Columns = append(indexes[position].Columns, columnName.String)
+		}
+	}
+
+	if rowsError := rows.Err(); rowsError != nil {
+		return nil, rowsError
+	}
+
+	return slices.DeleteFunc(indexes, func(index querier_dto.Index) bool {
+		return len(index.Columns) == 0
+	}), nil
 }
 
 // orderedPrimaryKeyColumns returns the primary-key column names ordered by their 1-based
@@ -326,86 +436,6 @@ func orderedPrimaryKeyColumns(byPosition map[int]string) []string {
 	return ordered
 }
 
-// introspectIndexes lists indexes defined on the named table.
-//
-// Takes tableName (string) which identifies the table to introspect.
-//
-// Returns []querier_dto.Index which describes each index and its columns.
-// Returns error when a PRAGMA query fails.
-func (provider *PragmaIntrospectionProvider) introspectIndexes(
-	ctx context.Context,
-	tableName string,
-) ([]querier_dto.Index, error) {
-	//nolint:gosec // trusted source (sqlite_master)
-	indexRows, queryError := provider.database.QueryContext(ctx,
-		fmt.Sprintf("PRAGMA index_list(%s)", quoteIdentifier(tableName)))
-	if queryError != nil {
-		return nil, queryError
-	}
-	defer indexRows.Close()
-
-	var indexes []querier_dto.Index
-
-	for indexRows.Next() {
-		var sequence int
-		var indexName string
-		var unique int
-		var origin string
-		var partial int
-
-		scanError := indexRows.Scan(&sequence, &indexName, &unique, &origin, &partial)
-		if scanError != nil {
-			return nil, scanError
-		}
-
-		indexColumns, columnError := provider.introspectIndexColumns(ctx, indexName)
-		if columnError != nil {
-			return nil, columnError
-		}
-
-		indexes = append(indexes, querier_dto.Index{
-			Name:     indexName,
-			Columns:  indexColumns,
-			IsUnique: unique != 0,
-		})
-	}
-
-	return indexes, indexRows.Err()
-}
-
-// introspectIndexColumns lists the columns referenced by the named index.
-//
-// Takes indexName (string) which identifies the index to introspect.
-//
-// Returns []string which contains index column names in declaration order.
-// Returns error when the PRAGMA query fails.
-func (provider *PragmaIntrospectionProvider) introspectIndexColumns(
-	ctx context.Context,
-	indexName string,
-) ([]string, error) {
-	//nolint:gosec // trusted source (PRAGMA)
-	rows, queryError := provider.database.QueryContext(ctx,
-		fmt.Sprintf("PRAGMA index_info(%s)", quoteIdentifier(indexName)))
-	if queryError != nil {
-		return nil, queryError
-	}
-	defer rows.Close()
-
-	var columnNames []string
-	for rows.Next() {
-		var rank int
-		var columnID int
-		var name string
-
-		if scanError := rows.Scan(&rank, &columnID, &name); scanError != nil {
-			return nil, scanError
-		}
-		columnNames = append(columnNames, name)
-	}
-
-	return columnNames, rows.Err()
-}
-
 // classifyGeneratedColumn maps a PRAGMA table_xinfo hidden flag to its generated state.
 //
 // SQLite reports hiddenVirtualColumn for a VIRTUAL generated column and
@@ -427,12 +457,13 @@ func classifyGeneratedColumn(hidden int) (bool, querier_dto.GeneratedKind) {
 	}
 }
 
-// quoteIdentifier wraps a SQL identifier in double quotes and escapes inner quotes for
-// safe PRAGMA interpolation.
+// closeRows closes rows and joins any close failure into the caller's named error result.
 //
-// Takes identifier (string) which is the raw identifier to quote.
-//
-// Returns string which is the double-quoted identifier.
-func quoteIdentifier(identifier string) string {
-	return "\"" + strings.ReplaceAll(identifier, "\"", "\"\"") + "\""
+// Takes rows (*sql.Rows) which is the result set to close.
+// Takes err (*error) which is the caller's named error result that receives a close
+// failure.
+func closeRows(rows *sql.Rows, err *error) {
+	if closeError := rows.Close(); closeError != nil {
+		*err = errors.Join(*err, fmt.Errorf("closing rows: %w", closeError))
+	}
 }

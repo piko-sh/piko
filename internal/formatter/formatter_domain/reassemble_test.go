@@ -44,9 +44,7 @@ func TestReassembleSFC_TemplateOnly(t *testing.T) {
 	})
 
 	t.Run("empty template", func(t *testing.T) {
-		sfcResult := &sfcparser.ParseResult{
-			Template: "",
-		}
+		sfcResult := &sfcparser.ParseResult{}
 		formattedTemplate := ""
 
 		result := reassembleSFC(sfcResult, formattedTemplate, nil, nil, nil)

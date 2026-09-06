@@ -19,7 +19,6 @@
 package driven_code_emitter_go_literal
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,7 +29,7 @@ import (
 func TestNewEmitterFactory(t *testing.T) {
 	t.Parallel()
 
-	factory := NewEmitterFactory(context.Background(), nil)
+	factory := NewEmitterFactory(nil)
 
 	require.NotNil(t, factory, "NewEmitterFactory should return non-nil")
 }
@@ -38,7 +37,7 @@ func TestNewEmitterFactory(t *testing.T) {
 func TestEmitterFactory_ImplementsCodeEmitterFactoryPort(t *testing.T) {
 	t.Parallel()
 
-	factory := NewEmitterFactory(context.Background(), nil)
+	factory := NewEmitterFactory(nil)
 
 	var _ generator_domain.CodeEmitterFactoryPort = factory
 	assert.NotNil(t, factory)
@@ -47,7 +46,7 @@ func TestEmitterFactory_ImplementsCodeEmitterFactoryPort(t *testing.T) {
 func TestEmitterFactory_NewEmitter(t *testing.T) {
 	t.Parallel()
 
-	factory := NewEmitterFactory(context.Background(), nil)
+	factory := NewEmitterFactory(nil)
 
 	em := factory.NewEmitter()
 
@@ -59,7 +58,7 @@ func TestEmitterFactory_NewEmitter(t *testing.T) {
 func TestEmitterFactory_NewEmitter_ReturnsNewInstances(t *testing.T) {
 	t.Parallel()
 
-	factory := NewEmitterFactory(context.Background(), nil)
+	factory := NewEmitterFactory(nil)
 
 	emitter1 := factory.NewEmitter()
 	emitter2 := factory.NewEmitter()

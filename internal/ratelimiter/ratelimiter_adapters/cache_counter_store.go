@@ -142,6 +142,7 @@ func (s *CacheCounterStore) IncrementAndGet(ctx context.Context, key string, del
 				WindowStartNano: oldValue.WindowStartNano,
 			},
 			Action: cache_dto.ComputeActionSet,
+			TTL:    0,
 		}
 	})
 

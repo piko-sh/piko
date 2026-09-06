@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
@@ -447,6 +448,52 @@ func TestPageEntry_LinkFuncs_WithIsolatedRegistry(t *testing.T) {
 	assert.NotNil(t, pe.cachePolicyFunc)
 	assert.NotNil(t, pe.middlewareFunc)
 	assert.NotNil(t, pe.supportedLocalesFunc)
+}
+
+func TestPageEntry_LinkFuncsFor_LinksEveryFunctionKind(t *testing.T) {
+	t.Parallel()
+
+	registry := templater_domain.NewIsolatedRegistry()
+	registryKey := "test/pages/members"
+
+	registry.RegisterASTFunc(registryKey, func(_ *templater_dto.RequestData, _ any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*generator_dto.RuntimeDiagnostic) {
+		return &ast_domain.TemplateAST{}, templater_dto.InternalMetadata{}, nil
+	})
+	registry.RegisterAuthPolicyFunc(registryKey, func(_ *templater_dto.RequestData) daemon_dto.AuthPolicy {
+		return daemon_dto.AuthPolicy{Required: true, Roles: []string{"admin"}}
+	})
+	registry.RegisterPreviewFunc(registryKey, func() []templater_dto.PreviewScenario {
+		return []templater_dto.PreviewScenario{{Name: "signed in"}}
+	})
+
+	pe := &PageEntry{registry: registry}
+	pe.PackagePath = "test/pages/unrelated"
+	pe.LinkFuncsFor(registryKey)
+
+	require.NotNil(t, pe.astFunc)
+	require.NotNil(t, pe.authPolicyFunc, "auth policy must be linked or GetAuthPolicy panics")
+	assert.Equal(t, daemon_dto.AuthPolicy{Required: true, Roles: []string{"admin"}}, pe.GetAuthPolicy(nil))
+	require.NotNil(t, pe.previewFunc)
+	assert.Len(t, pe.previewFunc(), 1)
+	assert.NotNil(t, pe.cachePolicyFunc)
+	assert.NotNil(t, pe.middlewareFunc)
+	assert.NotNil(t, pe.supportedLocalesFunc)
+}
+
+func TestPageEntry_LinkFuncs_UsesPackagePath(t *testing.T) {
+	t.Parallel()
+
+	registry := templater_domain.NewIsolatedRegistry()
+	packagePath := "test/pages/account"
+	registry.RegisterAuthPolicyFunc(packagePath, func(_ *templater_dto.RequestData) daemon_dto.AuthPolicy {
+		return daemon_dto.AuthPolicy{Required: true}
+	})
+
+	pe := &PageEntry{registry: registry}
+	pe.PackagePath = packagePath
+	pe.LinkFuncs()
+
+	assert.True(t, pe.GetAuthPolicy(nil).Required)
 }
 
 func TestPageEntry_LinkFuncs_UsesDefaultRegistryWhenNil(t *testing.T) {
@@ -983,9 +1030,7 @@ func TestInterpretedManifestRunner_LookupPageEntry(t *testing.T) {
 func TestInterpretedManifestRunner_TriggerJITCompilation_NilOrchestrator(t *testing.T) {
 	t.Parallel()
 
-	runner := &InterpretedManifestRunner{
-		orchestrator: nil,
-	}
+	runner := &InterpretedManifestRunner{}
 
 	runner.triggerJITCompilation(context.Background(), "pages/test.pk")
 }
@@ -1139,10 +1184,10 @@ func TestMaxDiagnosticSeverity(t *testing.T) {
 func TestPageEntry_logRenderDiagnostics(t *testing.T) {
 	tests := []struct {
 		name            string
-		severity        generator_dto.Severity
 		wantMessage     string
 		wantLevel       string
 		unwantedMessage string
+		severity        generator_dto.Severity
 	}{
 		{name: "warning logs at warn, not error", severity: generator_dto.Warning, wantMessage: "AST function reported diagnostics", wantLevel: "WARN", unwantedMessage: "Error running AST function"},
 		{name: "error logs at error", severity: generator_dto.Error, wantMessage: "Error running AST function", wantLevel: "ERROR", unwantedMessage: "AST function reported diagnostics"},
@@ -1173,4 +1218,57 @@ func TestPageEntry_logRenderDiagnostics(t *testing.T) {
 			assert.Contains(t, output, tt.wantLevel)
 		})
 	}
+}
+
+func TestPageEntry_GetAuthPolicy_FailsClosedWithoutLinkedFunction(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		packagePath   string
+		want          daemon_dto.AuthPolicy
+		register      bool
+		hasAuthPolicy bool
+		wantWarning   bool
+	}{
+		{name: "declared policy with no linked function requires authentication", packagePath: "test/pages/unlinked_policy", hasAuthPolicy: true, want: daemon_dto.AuthPolicy{Required: true}, wantWarning: true},
+		{name: "page without a policy allows access", packagePath: "test/pages/no_policy", hasAuthPolicy: false, want: daemon_dto.AuthPolicy{}},
+		{name: "linked policy is used", packagePath: "test/pages/linked_policy", hasAuthPolicy: true, register: true, want: daemon_dto.AuthPolicy{Roles: []string{"editor"}}},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			registry := templater_domain.NewIsolatedRegistry()
+			if testCase.register {
+				registry.RegisterAuthPolicyFunc(testCase.packagePath, func(_ *templater_dto.RequestData) daemon_dto.AuthPolicy {
+					return daemon_dto.AuthPolicy{Roles: []string{"editor"}}
+				})
+			}
+			pe := &PageEntry{registry: registry}
+			pe.PackagePath = testCase.packagePath
+			pe.HasAuthPolicy = testCase.hasAuthPolicy
+			pe.LinkFuncs()
+
+			assert.Equal(t, testCase.want, pe.GetAuthPolicy(nil))
+			assert.Equal(t, testCase.want, pe.GetAuthPolicy(nil), "repeated calls give the same policy")
+			_, warned := missingAuthPolicyWarnings.Load(testCase.packagePath)
+			assert.Equal(t, testCase.wantWarning, warned)
+		})
+	}
+}
+
+func TestPageEntry_GettersWithoutLinkedFunctions(t *testing.T) {
+	t.Parallel()
+
+	pe := &PageEntry{}
+	assert.NotPanics(t, func() {
+		assert.Equal(t, templater_dto.CachePolicy{}, pe.GetCachePolicy(nil))
+		assert.Nil(t, pe.GetMiddlewares())
+		assert.Nil(t, pe.GetSupportedLocales())
+		assert.Nil(t, pe.GetPreviewScenarios())
+		assert.Equal(t, daemon_dto.AuthPolicy{}, pe.GetAuthPolicy(nil))
+		pe.initialiseCachedStaticMetadata()
+	})
+	assert.Nil(t, pe.GetStaticMetadata().SupportedLocales)
 }

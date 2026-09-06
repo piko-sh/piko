@@ -72,15 +72,13 @@ func TestRegistryCache_Integration(t *testing.T) {
 		var wg sync.WaitGroup
 		const numConcurrentGets = 50
 
-		wg.Add(numConcurrentGets)
 		for range numConcurrentGets {
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				art, err := f.service.GetArtefact(ctx, artefactID)
-				require.NoError(t, err)
-				require.NotNil(t, art)
-				assert.Equal(t, artefactID, art.ID)
-			}()
+				if assert.NoError(t, err) && assert.NotNil(t, art) {
+					assert.Equal(t, artefactID, art.ID)
+				}
+			})
 		}
 		wg.Wait()
 

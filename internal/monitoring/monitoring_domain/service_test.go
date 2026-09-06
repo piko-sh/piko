@@ -135,14 +135,7 @@ func TestWithServiceAddress(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := ServiceConfig{
-				Address:                   "",
-				BindAddress:               "",
-				MaxSpans:                  0,
-				MaxMetrics:                0,
-				MaxMetricAge:              0,
-				MetricsCollectionInterval: 0,
-			}
+			config := ServiceConfig{}
 			opt := WithServiceAddress(tt.address)
 			opt(&config)
 
@@ -180,14 +173,7 @@ func TestWithServiceBindAddress(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := ServiceConfig{
-				Address:                   "",
-				BindAddress:               "",
-				MaxSpans:                  0,
-				MaxMetrics:                0,
-				MaxMetricAge:              0,
-				MetricsCollectionInterval: 0,
-			}
+			config := ServiceConfig{}
 			opt := WithServiceBindAddress(tt.address)
 			opt(&config)
 
@@ -225,14 +211,7 @@ func TestWithServiceMaxSpans(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := ServiceConfig{
-				Address:                   "",
-				BindAddress:               "",
-				MaxSpans:                  0,
-				MaxMetrics:                0,
-				MaxMetricAge:              0,
-				MetricsCollectionInterval: 0,
-			}
+			config := ServiceConfig{}
 			opt := WithServiceMaxSpans(tt.n)
 			opt(&config)
 
@@ -265,14 +244,7 @@ func TestWithServiceMaxMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := ServiceConfig{
-				Address:                   "",
-				BindAddress:               "",
-				MaxSpans:                  0,
-				MaxMetrics:                0,
-				MaxMetricAge:              0,
-				MetricsCollectionInterval: 0,
-			}
+			config := ServiceConfig{}
 			opt := WithServiceMaxMetrics(tt.n)
 			opt(&config)
 
@@ -310,14 +282,7 @@ func TestWithServiceMaxMetricAge(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := ServiceConfig{
-				Address:                   "",
-				BindAddress:               "",
-				MaxSpans:                  0,
-				MaxMetrics:                0,
-				MaxMetricAge:              0,
-				MetricsCollectionInterval: 0,
-			}
+			config := ServiceConfig{}
 			opt := WithServiceMaxMetricAge(tt.d)
 			opt(&config)
 
@@ -355,14 +320,7 @@ func TestWithServiceMetricsInterval(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			config := ServiceConfig{
-				Address:                   "",
-				BindAddress:               "",
-				MaxSpans:                  0,
-				MaxMetrics:                0,
-				MaxMetricAge:              0,
-				MetricsCollectionInterval: 0,
-			}
+			config := ServiceConfig{}
 			opt := WithServiceMetricsInterval(tt.d)
 			opt(&config)
 
@@ -378,17 +336,7 @@ func TestNewService_DefaultConfig(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories)
 
@@ -413,17 +361,7 @@ func TestNewService_WithOptions(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories,
 		WithServiceAddress(":7777"),
@@ -450,17 +388,7 @@ func TestNewService_FullAddressWithoutColon(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories,
 		WithServiceAddress("10.0.0.1:9091"),
@@ -477,17 +405,7 @@ func TestService_SpanProcessor(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories)
 
@@ -502,17 +420,7 @@ func TestService_MetricsReader(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories)
 
@@ -558,17 +466,7 @@ func TestService_Address_BeforeStart(t *testing.T) {
 			metricsAdapter := &mockMetricsCollectorAdapter{}
 			factories := newTestFactories(spanProc, metricsAdapter)
 
-			deps := MonitoringDeps{
-				OrchestratorInspector: nil,
-				RegistryInspector:     nil,
-				DispatcherInspector:   nil,
-				RateLimiterInspector:  nil,
-				TelemetryProvider:     nil,
-				SystemStatsProvider:   nil,
-				ResourceProvider:      nil,
-				HealthProbeService:    nil,
-				ProviderInfoInspector: nil,
-			}
+			deps := MonitoringDeps{}
 
 			service := NewService(deps, factories,
 				WithServiceAddress(tt.address),
@@ -587,17 +485,7 @@ func TestService_SetInspectors(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories)
 
@@ -623,17 +511,7 @@ func TestService_SetProviderInfoInspector(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories)
 
@@ -702,17 +580,7 @@ func TestService_Stop_BeforeStart(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories)
 
@@ -728,17 +596,7 @@ func TestService_StartAndStop_LocalOnly(t *testing.T) {
 	metricsAdapter := &mockMetricsCollectorAdapter{}
 	factories := newTestFactories(spanProc, metricsAdapter)
 
-	deps := MonitoringDeps{
-		OrchestratorInspector: nil,
-		RegistryInspector:     nil,
-		DispatcherInspector:   nil,
-		RateLimiterInspector:  nil,
-		TelemetryProvider:     nil,
-		SystemStatsProvider:   nil,
-		ResourceProvider:      nil,
-		HealthProbeService:    nil,
-		ProviderInfoInspector: nil,
-	}
+	deps := MonitoringDeps{}
 
 	service := NewService(deps, factories,
 		WithServiceAddress(":0"),
@@ -763,4 +621,18 @@ func TestService_StartAndStop_LocalOnly(t *testing.T) {
 
 	service.Stop(context.Background())
 	assert.True(t, metricsAdapter.stopCalled.Load())
+}
+
+func TestDefaultServiceConfig(t *testing.T) {
+	config := DefaultServiceConfig()
+
+	assert.Equal(t, ":9091", config.Address)
+	assert.Equal(t, "127.0.0.1", config.BindAddress, "the monitoring endpoint stays on loopback by default")
+	assert.Equal(t, DefaultMaxSpans, config.MaxSpans)
+	assert.Equal(t, DefaultMaxMetrics, config.MaxMetrics)
+	assert.Equal(t, DefaultMaxMetricAge, config.MaxMetricAge)
+	assert.Equal(t, DefaultMetricsCollectionInterval, config.MetricsCollectionInterval)
+	assert.Nil(t, config.WatchdogConfig)
+	assert.False(t, config.ProfilingEnabled)
+	assert.False(t, config.AutoNextPort)
 }

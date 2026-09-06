@@ -97,7 +97,7 @@ func NewRuntime(client *telemetry_grpcfb.Client, interval time.Duration, opts ..
 	if interval <= 0 {
 		interval = DefaultInterval
 	}
-	r := &Runtime{client: client, clock: clock.RealClock(), interval: interval}
+	r := &Runtime{client: client, clock: clock.RealClock(), interval: interval, ownsClient: false}
 	for _, opt := range opts {
 		if opt != nil {
 			opt(r)

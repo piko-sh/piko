@@ -543,10 +543,12 @@ func (m *mockLoaderPort) Load(_ context.Context) ([]Document, error) {
 }
 
 type mockVectorStore struct {
-	bulkStoreErr   error
-	closeErr       error
-	bulkStoreCalls [][]*llm_dto.VectorDocument
-	closeCalled    bool
+	bulkStoreErr         error
+	closeErr             error
+	createNamespaceErr   error
+	bulkStoreCalls       [][]*llm_dto.VectorDocument
+	createNamespaceCalls []VectorNamespaceConfig
+	closeCalled          bool
 }
 
 func (m *mockVectorStore) Store(_ context.Context, _ string, _ *llm_dto.VectorDocument) error {
@@ -574,8 +576,9 @@ func (m *mockVectorStore) DeleteByFilter(_ context.Context, _ string, _ map[stri
 	return 0, nil
 }
 
-func (m *mockVectorStore) CreateNamespace(_ context.Context, _ string, _ *VectorNamespaceConfig) error {
-	return nil
+func (m *mockVectorStore) CreateNamespace(_ context.Context, _ string, config *VectorNamespaceConfig) error {
+	m.createNamespaceCalls = append(m.createNamespaceCalls, *config)
+	return m.createNamespaceErr
 }
 
 func (m *mockVectorStore) DeleteNamespace(_ context.Context, _ string) error {

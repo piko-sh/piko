@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -215,7 +215,7 @@ func ResolveGoType(
 		chosen = categoryMatch
 	}
 	if chosen == nil {
-		return querier_dto.GoType{Name: "any"}
+		return querier_dto.GoType{Name: "any", Package: ""}
 	}
 	if nullable {
 		return chosen.Nullable

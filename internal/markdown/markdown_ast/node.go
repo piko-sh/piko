@@ -87,6 +87,9 @@ const (
 
 	// KindFencedContainer is a named fenced container.
 	KindFencedContainer
+
+	// KindLineBreak is an inline hard line break.
+	KindLineBreak
 )
 
 // NodeType classifies a node as block-level, inline, or document root.
@@ -268,7 +271,10 @@ type BaseNode struct {
 //
 // Returns BaseNode which is ready for embedding in a concrete node.
 func NewBaseNode(kind NodeKind, nodeType NodeType) BaseNode {
-	return BaseNode{kind: kind, nodeType: nodeType}
+	node := BaseNode{}
+	node.kind = kind
+	node.nodeType = nodeType
+	return node
 }
 
 // SetSelf stores the concrete Node wrapper so AppendChild can use it as the parent. Each

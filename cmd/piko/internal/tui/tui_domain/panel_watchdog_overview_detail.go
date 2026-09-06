@@ -39,7 +39,8 @@ const (
 // event-rate trend chart derived from the panel's local event ring. When no section is
 // selected the high-level budget summary is rendered with the same chart below it.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *WatchdogOverviewPanel) DetailView(width, height int) string {
@@ -105,6 +106,7 @@ func (p *WatchdogOverviewPanel) buildDetailBody() inspector.DetailBody {
 		return inspector.DetailBody{
 			Title:    "Watchdog",
 			Subtitle: "no snapshot yet",
+			Sections: nil,
 		}
 	}
 
@@ -144,23 +146,23 @@ func (p *WatchdogOverviewPanel) buildDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing the budget summary.
 func overviewBudgetDetailBody(status *WatchdogStatus, events []WatchdogEvent, lastErr error, fetched time.Time) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Enabled", Value: yesNo(status.Enabled)},
-		{Label: "Capture", Value: formatGauge(status.CaptureBudget)},
-		{Label: "Warning", Value: formatGauge(status.WarningBudget)},
-		{Label: "Heap", Value: formatGauge(status.HeapBudget)},
-		{Label: "Goroutines", Value: formatGauge(status.Goroutines)},
-		{Label: "Events seen", Value: fmt.Sprintf(FormatPercentInt, len(events))},
+		inspector.NewDetailRow("Enabled", yesNo(status.Enabled)),
+		inspector.NewDetailRow("Capture", formatGauge(status.CaptureBudget)),
+		inspector.NewDetailRow("Warning", formatGauge(status.WarningBudget)),
+		inspector.NewDetailRow("Heap", formatGauge(status.HeapBudget)),
+		inspector.NewDetailRow("Goroutines", formatGauge(status.Goroutines)),
+		inspector.NewDetailRow("Events seen", fmt.Sprintf(FormatPercentInt, len(events))),
 	}
 	if !fetched.IsZero() {
-		rows = append(rows, inspector.DetailRow{Label: "Last fetch", Value: inspector.FormatDetailTime(fetched)})
+		rows = append(rows, inspector.NewDetailRow("Last fetch", inspector.FormatDetailTime(fetched)))
 	}
 	if lastErr != nil {
-		rows = append(rows, inspector.DetailRow{Label: "Error", Value: lastErr.Error()})
+		rows = append(rows, inspector.NewDetailRow("Error", lastErr.Error()))
 	}
 	return inspector.DetailBody{
 		Title:    "Watchdog overview",
 		Subtitle: yesNo(status.Enabled),
-		Sections: []inspector.DetailSection{{Heading: "Budgets", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Budgets", rows)},
 	}
 }
 
@@ -172,18 +174,19 @@ func overviewBudgetDetailBody(status *WatchdogStatus, events []WatchdogEvent, la
 // Returns inspector.DetailBody describing the lifecycle section.
 func overviewLifecycleDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Enabled", Value: yesNo(status.Enabled)},
-		{Label: "Stopped", Value: yesNo(status.Stopped)},
-		{Label: "Started", Value: formatTimeOrDash(status.StartedAt)},
-		{Label: "Warm-up remaining", Value: status.WarmUpRemaining.String()},
-		{Label: "Check interval", Value: status.CheckInterval.String()},
-		{Label: "Cooldown", Value: status.Cooldown.String()},
-		{Label: "Capture window", Value: status.CaptureWindow.String()},
-		{Label: "Profile directory", Value: defaultDash(status.ProfileDirectory)},
+		inspector.NewDetailRow("Enabled", yesNo(status.Enabled)),
+		inspector.NewDetailRow("Stopped", yesNo(status.Stopped)),
+		inspector.NewDetailRow("Started", formatTimeOrDash(status.StartedAt)),
+		inspector.NewDetailRow("Warm-up remaining", status.WarmUpRemaining.String()),
+		inspector.NewDetailRow("Check interval", status.CheckInterval.String()),
+		inspector.NewDetailRow("Cooldown", status.Cooldown.String()),
+		inspector.NewDetailRow("Capture window", status.CaptureWindow.String()),
+		inspector.NewDetailRow("Profile directory", defaultDash(status.ProfileDirectory)),
 	}
 	return inspector.DetailBody{
 		Title:    "Lifecycle",
-		Sections: []inspector.DetailSection{{Heading: "Lifecycle settings", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Lifecycle settings", rows)},
+		Subtitle: "",
 	}
 }
 
@@ -194,16 +197,16 @@ func overviewLifecycleDetailBody(status *WatchdogStatus) inspector.DetailBody {
 // Returns inspector.DetailBody describing the capture-budget section.
 func overviewCaptureDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Capture budget", Value: formatGauge(status.CaptureBudget)},
-		{Label: "Warning budget", Value: formatGauge(status.WarningBudget)},
-		{Label: "Capture window", Value: status.CaptureWindow.String()},
-		{Label: "Cooldown", Value: status.Cooldown.String()},
-		{Label: "Max profiles per type", Value: fmt.Sprintf(FormatPercentInt, status.MaxProfilesPerType)},
+		inspector.NewDetailRow("Capture budget", formatGauge(status.CaptureBudget)),
+		inspector.NewDetailRow("Warning budget", formatGauge(status.WarningBudget)),
+		inspector.NewDetailRow("Capture window", status.CaptureWindow.String()),
+		inspector.NewDetailRow("Cooldown", status.Cooldown.String()),
+		inspector.NewDetailRow("Max profiles per type", fmt.Sprintf(FormatPercentInt, status.MaxProfilesPerType)),
 	}
 	return inspector.DetailBody{
 		Title:    "Capture budget",
 		Subtitle: formatGauge(status.CaptureBudget),
-		Sections: []inspector.DetailSection{{Heading: "Capture limits", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Capture limits", rows)},
 	}
 }
 
@@ -214,12 +217,12 @@ func overviewCaptureDetailBody(status *WatchdogStatus) inspector.DetailBody {
 // Returns inspector.DetailBody describing the heap-budget section.
 func overviewHeapDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Heap budget", Value: formatGauge(status.HeapBudget)},
+		inspector.NewDetailRow("Heap budget", formatGauge(status.HeapBudget)),
 	}
 	return inspector.DetailBody{
 		Title:    "Heap",
 		Subtitle: formatGauge(status.HeapBudget),
-		Sections: []inspector.DetailSection{{Heading: "Heap budget", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Heap budget", rows)},
 	}
 }
 
@@ -230,14 +233,14 @@ func overviewHeapDetailBody(status *WatchdogStatus) inspector.DetailBody {
 // Returns inspector.DetailBody describing the goroutine-guards section.
 func overviewGoroutinesDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Goroutines", Value: formatGauge(status.Goroutines)},
-		{Label: "Baseline", Value: fmt.Sprintf(FormatPercentInt, status.GoroutineBaseline)},
-		{Label: "Safety ceiling", Value: fmt.Sprintf(FormatPercentInt, status.GoroutineSafetyCeiling)},
+		inspector.NewDetailRow("Goroutines", formatGauge(status.Goroutines)),
+		inspector.NewDetailRow("Baseline", fmt.Sprintf(FormatPercentInt, status.GoroutineBaseline)),
+		inspector.NewDetailRow("Safety ceiling", fmt.Sprintf(FormatPercentInt, status.GoroutineSafetyCeiling)),
 	}
 	return inspector.DetailBody{
 		Title:    "Goroutines",
 		Subtitle: formatGauge(status.Goroutines),
-		Sections: []inspector.DetailSection{{Heading: "Goroutine guards", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Goroutine guards", rows)},
 	}
 }
 
@@ -248,12 +251,16 @@ func overviewGoroutinesDetailBody(status *WatchdogStatus) inspector.DetailBody {
 // Returns inspector.DetailBody describing the GC-pressure section.
 func overviewGCDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "FD threshold", Value: fmt.Sprintf("%.0f%%", status.FDPressureThresholdPercent*percentageScale)},
-		{Label: "Scheduler p99", Value: status.SchedulerLatencyP99Threshold.String()},
+		inspector.NewDetailRow(
+			"FD threshold",
+			fmt.Sprintf("%.0f%%", status.FDPressureThresholdPercent*percentageScale),
+		),
+		inspector.NewDetailRow("Scheduler p99", status.SchedulerLatencyP99Threshold.String()),
 	}
 	return inspector.DetailBody{
 		Title:    "GC pressure",
-		Sections: []inspector.DetailSection{{Heading: "Pressure thresholds", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Pressure thresholds", rows)},
+		Subtitle: "",
 	}
 }
 
@@ -264,11 +271,12 @@ func overviewGCDetailBody(status *WatchdogStatus) inspector.DetailBody {
 // Returns inspector.DetailBody describing the file-descriptor section.
 func overviewFDDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Threshold", Value: fmt.Sprintf("%.0f%%", status.FDPressureThresholdPercent*percentageScale)},
+		inspector.NewDetailRow("Threshold", fmt.Sprintf("%.0f%%", status.FDPressureThresholdPercent*percentageScale)),
 	}
 	return inspector.DetailBody{
 		Title:    "File descriptors",
-		Sections: []inspector.DetailSection{{Heading: "FD pressure", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("FD pressure", rows)},
+		Subtitle: "",
 	}
 }
 
@@ -279,11 +287,12 @@ func overviewFDDetailBody(status *WatchdogStatus) inspector.DetailBody {
 // Returns inspector.DetailBody describing the scheduler-latency section.
 func overviewSchedulerDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "p99 threshold", Value: status.SchedulerLatencyP99Threshold.String()},
+		inspector.NewDetailRow("p99 threshold", status.SchedulerLatencyP99Threshold.String()),
 	}
 	return inspector.DetailBody{
 		Title:    "Scheduler latency",
-		Sections: []inspector.DetailSection{{Heading: "Latency", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Latency", rows)},
+		Subtitle: "",
 	}
 }
 
@@ -295,16 +304,16 @@ func overviewSchedulerDetailBody(status *WatchdogStatus) inspector.DetailBody {
 // Returns inspector.DetailBody describing the continuous-profiling section.
 func overviewContinuousDetailBody(status *WatchdogStatus) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Enabled", Value: yesNo(status.ContinuousProfilingEnabled)},
-		{Label: "Interval", Value: status.ContinuousProfilingInterval.String()},
-		{Label: "Retention", Value: fmt.Sprintf("%d profiles", status.ContinuousProfilingRetention)},
+		inspector.NewDetailRow("Enabled", yesNo(status.ContinuousProfilingEnabled)),
+		inspector.NewDetailRow("Interval", status.ContinuousProfilingInterval.String()),
+		inspector.NewDetailRow("Retention", fmt.Sprintf("%d profiles", status.ContinuousProfilingRetention)),
 	}
 	if len(status.ContinuousProfilingTypes) > 0 {
-		rows = append(rows, inspector.DetailRow{Label: "Types", Value: strings.Join(status.ContinuousProfilingTypes, ", ")})
+		rows = append(rows, inspector.NewDetailRow("Types", strings.Join(status.ContinuousProfilingTypes, ", ")))
 	}
 	return inspector.DetailBody{
 		Title:    "Continuous profiling",
 		Subtitle: yesNo(status.ContinuousProfilingEnabled),
-		Sections: []inspector.DetailSection{{Heading: "Configuration", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Configuration", rows)},
 	}
 }

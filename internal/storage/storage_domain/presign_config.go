@@ -212,5 +212,6 @@ func DefaultPresignConfig() PresignConfig {
 		RateLimitPerMinute: DefaultPresignRateLimit,
 		BaseURL:            "",
 		RIDCache:           nil,
+		RateLimiter:        nil,
 	}
 }

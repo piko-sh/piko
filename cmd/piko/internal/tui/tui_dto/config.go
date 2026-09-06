@@ -141,5 +141,7 @@ func DefaultConfig() *Config {
 		HealthEndpoint:     DefaultHealthEndpoint,
 		MonitoringEndpoint: DefaultMonitoringEndpoint,
 		Clock:              clock.RealClock(),
+		PrometheusURL:      "",
+		JaegerURL:          "",
 	}
 }

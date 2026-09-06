@@ -300,10 +300,8 @@ func TestCacheableActionRespectsTheResponseSizeLimit(t *testing.T) {
 	t.Parallel()
 
 	action := &cacheableLimitedAction{
-		limitedAction: limitedAction{
-			limits:   &daemon_domain.ResourceLimits{MaxResponseSize: 32},
-			response: map[string]string{"payload": strings.Repeat("x", 512)},
-		},
+		limits:   &daemon_domain.ResourceLimits{MaxResponseSize: 32},
+		response: map[string]string{"payload": strings.Repeat("x", 512)},
 	}
 
 	responseCache, err := provider_otter.OtterProviderFactory(cache_dto.Options[string, []byte]{

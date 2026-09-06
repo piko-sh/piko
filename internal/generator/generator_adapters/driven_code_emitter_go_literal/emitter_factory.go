@@ -19,8 +19,6 @@
 package driven_code_emitter_go_literal
 
 import (
-	"context"
-
 	"piko.sh/piko/internal/generator/generator_domain"
 )
 
@@ -42,7 +40,7 @@ var (
 // HTML bytes at generation time. May be nil to disable prerendering.
 //
 // Returns *EmitterFactory which is the new factory instance.
-func NewEmitterFactory(_ context.Context, prerenderer generator_domain.StaticPrerenderer) *EmitterFactory {
+func NewEmitterFactory(prerenderer generator_domain.StaticPrerenderer) *EmitterFactory {
 	return &EmitterFactory{
 		prerenderer: prerenderer,
 	}
@@ -53,5 +51,5 @@ func NewEmitterFactory(_ context.Context, prerenderer generator_domain.StaticPre
 //
 // Returns generator_domain.CodeEmitterPort which is the emitter instance.
 func (f *EmitterFactory) NewEmitter() generator_domain.CodeEmitterPort {
-	return NewEmitterWithPrerenderer(context.Background(), f.prerenderer)
+	return NewEmitterWithPrerenderer(f.prerenderer)
 }

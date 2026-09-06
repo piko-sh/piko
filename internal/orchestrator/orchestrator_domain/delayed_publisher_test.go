@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	clockpkg "piko.sh/piko/wdk/clock"
@@ -142,6 +143,23 @@ func TestDelayedTaskPublisher_StartAndStop(t *testing.T) {
 	if publisher.cancel == nil {
 		t.Error("publisher cancel func not set after Start")
 	}
+
+	publisher.Stop()
+
+	select {
+	case <-publisher.loopDone:
+	default:
+		t.Error("Stop returned before the processing loop exited")
+	}
+
+	publisher.Stop()
+}
+
+func TestDelayedTaskPublisher_StopWithoutStart(t *testing.T) {
+	t.Parallel()
+
+	clock := clockpkg.NewMockClock(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
+	publisher := NewDelayedTaskPublisherForTesting(clock, nil)
 
 	publisher.Stop()
 }
@@ -543,5 +561,65 @@ func TestDelayedTaskPublisher_MultipleScheduleWakeSignals(t *testing.T) {
 
 	if publisher.taskHeap.Len() != 10 {
 		t.Errorf("expected 10 tasks in heap, got %d", publisher.taskHeap.Len())
+	}
+}
+
+func TestDelayedTaskPublisher_DropsTaskWhoseDispatchCanNeverSucceed(t *testing.T) {
+	t.Parallel()
+
+	baseTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	clock := clockpkg.NewMockClock(baseTime)
+
+	dispatched := make(chan struct{}, 1)
+	dispatchFunc := func(_ context.Context, _ *Task) error {
+		dispatched <- struct{}{}
+		return fmt.Errorf("dispatching task: %w", ErrDispatcherStopped)
+	}
+
+	publisher := NewDelayedTaskPublisherForTesting(clock, dispatchFunc)
+	t.Cleanup(publisher.Stop)
+	baseline := clock.TimerCount()
+	publisher.Start(t.Context())
+
+	task := &Task{ID: "doomed", ScheduledExecuteAt: baseTime.Add(time.Second)}
+	require.NoError(t, publisher.Schedule(t.Context(), task))
+
+	require.True(t, clock.AwaitTimerSetup(baseline, 10*time.Second), "timer should be armed")
+	clock.Advance(2 * time.Second)
+
+	select {
+	case <-dispatched:
+	case <-time.After(10 * time.Second):
+		require.FailNow(t, "due task was never dispatched")
+	}
+
+	require.Eventually(t, func() bool {
+		return publisher.PendingCount() == 0
+	}, 5*time.Second, 5*time.Millisecond, "a task that can never be dispatched must not stay pending")
+}
+
+func TestIsPermanentDispatchError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		err  error
+		name string
+		want bool
+	}{
+		{name: "duplicate active task", err: fmt.Errorf("persisting: %w", ErrDuplicateTask), want: true},
+		{name: "stopped dispatcher", err: ErrDispatcherStopped, want: true},
+		{name: "work no longer required", err: ErrTaskNotRequired, want: true},
+		{name: "missing task ID", err: fmt.Errorf("validating: %w", errTaskIDRequired), want: true},
+		{name: "missing workflow ID", err: errTaskWorkflowIDRequired, want: true},
+		{name: "missing executor", err: errTaskExecutorRequired, want: true},
+		{name: "full backlog may drain", err: ErrDispatchBacklogFull, want: false},
+		{name: "transient store failure", err: errors.New("connection reset"), want: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, isPermanentDispatchError(tc.err))
+		})
 	}
 }

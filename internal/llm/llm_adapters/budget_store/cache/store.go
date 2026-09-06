@@ -187,12 +187,15 @@ func (s *Store) GetStatus(ctx context.Context, scope string) (*llm_dto.BudgetSta
 	}
 	if !found || data == nil {
 		return &llm_dto.BudgetStatus{
-			Scope:           scope,
-			TotalSpent:      maths.ZeroMoney(llm_dto.CostCurrency),
-			DailySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
-			HourlySpent:     maths.ZeroMoney(llm_dto.CostCurrency),
-			RemainingBudget: maths.ZeroMoney(llm_dto.CostCurrency),
-			LastUpdated:     s.clock.Now(),
+			Scope:            scope,
+			TotalSpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			DailySpent:       maths.ZeroMoney(llm_dto.CostCurrency),
+			HourlySpent:      maths.ZeroMoney(llm_dto.CostCurrency),
+			RemainingBudget:  maths.ZeroMoney(llm_dto.CostCurrency),
+			LastUpdated:      s.clock.Now(),
+			RequestCount:     0,
+			TokenCount:       0,
+			ThresholdReached: false,
 		}, nil
 	}
 
@@ -209,14 +212,15 @@ func (s *Store) GetStatus(ctx context.Context, scope string) (*llm_dto.BudgetSta
 	}
 
 	return &llm_dto.BudgetStatus{
-		Scope:           scope,
-		TotalSpent:      data.TotalSpent,
-		DailySpent:      dailySpent,
-		HourlySpent:     hourlySpent,
-		RemainingBudget: maths.ZeroMoney(llm_dto.CostCurrency),
-		RequestCount:    data.RequestCount,
-		TokenCount:      data.TokenCount,
-		LastUpdated:     data.LastUpdated,
+		Scope:            scope,
+		TotalSpent:       data.TotalSpent,
+		DailySpent:       dailySpent,
+		HourlySpent:      hourlySpent,
+		RemainingBudget:  maths.ZeroMoney(llm_dto.CostCurrency),
+		RequestCount:     data.RequestCount,
+		TokenCount:       data.TokenCount,
+		LastUpdated:      data.LastUpdated,
+		ThresholdReached: false,
 	}, nil
 }
 
@@ -331,12 +335,14 @@ func getOrCreate(old *llm_dto.BudgetData, found bool, now time.Time) *llm_dto.Bu
 		return old
 	}
 	return &llm_dto.BudgetData{
-		TotalSpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-		HourlySpent: maths.ZeroMoney(llm_dto.CostCurrency),
-		DailySpent:  maths.ZeroMoney(llm_dto.CostCurrency),
-		HourStart:   now.Truncate(time.Hour),
-		DayStart:    truncateToDay(now),
-		LastUpdated: now,
+		TotalSpent:   maths.ZeroMoney(llm_dto.CostCurrency),
+		HourlySpent:  maths.ZeroMoney(llm_dto.CostCurrency),
+		DailySpent:   maths.ZeroMoney(llm_dto.CostCurrency),
+		HourStart:    now.Truncate(time.Hour),
+		DayStart:     truncateToDay(now),
+		LastUpdated:  now,
+		RequestCount: 0,
+		TokenCount:   0,
 	}
 }
 

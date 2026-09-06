@@ -115,7 +115,7 @@ func TestKeyAnalyser_AnalyseAndSetEffectiveKey(t *testing.T) {
 		analyser := newKeyAnalyser(nil)
 		ctx := createTestAnalysisContext()
 		collectionExpr := &ast_domain.Identifier{Name: "items"}
-		collectionExpr.GoAnnotations = &ast_domain.GoGeneratorAnnotation{EffectiveKeyExpression: nil, DynamicCollectionInfo: nil, StaticCollectionLiteral: nil, ParentTypeName: nil, BaseCodeGenVarName: nil, GeneratedSourcePath: nil, DynamicAttributeOrigins: nil, ResolvedType: nil, Symbol: nil, PartialInfo: nil, PropDataSource: nil, OriginalSourcePath: nil, OriginalPackageAlias: nil, FieldTag: nil, SourceInvocationKey: nil, StaticCollectionData: nil, Srcset: nil, Stringability: 0, IsStatic: false, NeedsCSRF: false, NeedsRuntimeSafetyCheck: false, IsStructurallyStatic: false, IsPointerToStringable: false, IsCollectionCall: false, IsHybridCollection: false, IsMapAccess: false}
+		collectionExpr.GoAnnotations = &ast_domain.GoGeneratorAnnotation{}
 		node := &ast_domain.TemplateNode{
 			NodeType: ast_domain.NodeElement,
 			TagName:  "div",
@@ -1450,7 +1450,7 @@ func TestKeyAnalyser_appendIndexToKeyParts(t *testing.T) {
 		t.Parallel()
 
 		parts := []ast_domain.TemplateLiteralPart{
-			{IsLiteral: true, Literal: "r.0.", Expression: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
+			{IsLiteral: true, Literal: "r.0.", Expression: nil, RelativeLocation: ast_domain.Location{}},
 		}
 		indexVar := &ast_domain.Identifier{Name: "__pikoLoopIdx"}
 
@@ -1466,7 +1466,7 @@ func TestKeyAnalyser_appendIndexToKeyParts(t *testing.T) {
 		t.Parallel()
 
 		parts := []ast_domain.TemplateLiteralPart{
-			{IsLiteral: true, Literal: "r.0:", Expression: nil, RelativeLocation: ast_domain.Location{Line: 0, Column: 0, Offset: 0}},
+			{IsLiteral: true, Literal: "r.0:", Expression: nil, RelativeLocation: ast_domain.Location{}},
 		}
 		indexVar := &ast_domain.Identifier{Name: "__pikoLoopIdx"}
 

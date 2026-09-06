@@ -217,7 +217,7 @@ func TestSummarise_NilPointerInPath(t *testing.T) {
 		FieldSources: map[string]string{
 			"Inner.Value": sourceEnv,
 		},
-		Target:  &Config{Inner: nil},
+		Target:  &Config{},
 		Context: context.Background(),
 	}
 

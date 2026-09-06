@@ -36,10 +36,7 @@ func TestMockCapabilityService_Register(t *testing.T) {
 	t.Run("nil RegisterFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockCapabilityService{
-			RegisterFunc: nil,
-			ExecuteFunc:  nil,
-		}
+		mock := &MockCapabilityService{}
 
 		err := mock.Register("compress", nil)
 
@@ -98,10 +95,7 @@ func TestMockCapabilityService_Execute(t *testing.T) {
 	t.Run("nil ExecuteFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 
-		mock := &MockCapabilityService{
-			RegisterFunc: nil,
-			ExecuteFunc:  nil,
-		}
+		mock := &MockCapabilityService{}
 
 		reader, err := mock.Execute(context.Background(), "compress", nil, nil)
 
@@ -180,25 +174,19 @@ func TestMockCapabilityService_ZeroValueIsUsable(t *testing.T) {
 func TestMockCapabilityService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	mock := &MockCapabilityService{
-		RegisterFunc: nil,
-		ExecuteFunc:  nil,
-	}
+	mock := &MockCapabilityService{}
 
 	const goroutines = 50
 
 	var wg sync.WaitGroup
-	wg.Add(goroutines * 2)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = mock.Register("concurrent", nil)
-		}()
-		go func() {
-			defer wg.Done()
+		})
+		wg.Go(func() {
 			_, _ = mock.Execute(context.Background(), "concurrent", nil, nil)
-		}()
+		})
 	}
 
 	wg.Wait()

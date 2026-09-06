@@ -64,8 +64,8 @@ func (*service) ProbeName() string {
 // Returns []provider_domain.ColumnDefinition which describes the NAME and TYPE columns.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: "name"},
-		{Header: "TYPE", Key: "type"},
+		{Header: "NAME", Key: "name", WideOnly: false},
+		{Header: "TYPE", Key: "type", WideOnly: false},
 	}
 }
 
@@ -149,8 +149,8 @@ func (*service) ResourceSubResourceName() string {
 // columns.
 func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAMESPACE", Key: "namespace"},
-		{Header: "ENTRIES", Key: "entries"},
+		{Header: "NAMESPACE", Key: "namespace", WideOnly: false},
+		{Header: "ENTRIES", Key: "entries", WideOnly: false},
 	}
 }
 
@@ -198,6 +198,7 @@ func (s *service) ResourceListSubResources(_ context.Context, providerName strin
 				"namespace": n,
 				"entries":   entryCount,
 			},
+			IsDefault: false,
 		}
 	}
 

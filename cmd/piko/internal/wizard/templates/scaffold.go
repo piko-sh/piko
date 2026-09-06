@@ -263,7 +263,7 @@ func createDirs(factory safedisk.Factory, data ScaffoldData) error {
 	}
 
 	if data.EnableInterpreted {
-		dirs = append(dirs, "internal/interpreted")
+		dirs = append(dirs, "internal/piko_symbols")
 	}
 
 	sandbox, err := factory.Create("scaffold-copy", data.DestinationPath, safedisk.ModeReadWrite)
@@ -335,8 +335,8 @@ func createReadmes(factory safedisk.Factory, data ScaffoldData) error {
 	}
 
 	if data.EnableInterpreted {
-		interpretedReadmeDest := filepath.Join(data.DestinationPath, "internal", "interpreted", "README.md")
-		if err := createFromTemplate(factory, interpretedReadmeDest, "readmes/internal_interpreted.md.tmpl", ReadmesFS, data); err != nil {
+		symbolsReadmeDest := filepath.Join(data.DestinationPath, "internal", "piko_symbols", "README.md")
+		if err := createFromTemplate(factory, symbolsReadmeDest, "readmes/internal_piko_symbols.md.tmpl", ReadmesFS, data); err != nil {
 			return err
 		}
 	}
@@ -429,7 +429,7 @@ func createTemplateFiles(factory safedisk.Factory, data ScaffoldData) error {
 			fs           embed.FS
 			destPath     string
 			templateName string
-		}{destPath: "internal/interpreted/provider.go", templateName: "go/provider.go.tmpl", fs: GoTmplFS})
+		}{destPath: "internal/piko_symbols/gen_register.go", templateName: "go/gen_register.go.tmpl", fs: GoTmplFS})
 	}
 
 	for _, t := range templates {

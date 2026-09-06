@@ -1150,7 +1150,7 @@ func TestExtractItemSlug(t *testing.T) {
 		},
 		{
 			name:     "returns empty string when InitialProps is nil",
-			vps:      &annotator_dto.VirtualPageSource{InitialProps: nil},
+			vps:      &annotator_dto.VirtualPageSource{},
 			expected: "",
 		},
 		{
@@ -1819,7 +1819,7 @@ func TestVisitDirectiveExpr(t *testing.T) {
 
 	t.Run("directive with nil expression does not call visit", func(t *testing.T) {
 		t.Parallel()
-		visitDirectiveExpr(&ast_domain.Directive{Expression: nil}, func(_ ast_domain.Expression) {
+		visitDirectiveExpr(&ast_domain.Directive{}, func(_ ast_domain.Expression) {
 			t.Fatal("visit should not be called for nil expression")
 		})
 	})
@@ -2312,7 +2312,7 @@ func TestRewritePackageName(t *testing.T) {
 
 	t.Run("creates package name ident when nil", func(t *testing.T) {
 		t.Parallel()
-		f := &goast.File{Name: nil}
+		f := &goast.File{}
 
 		ar := &astRewriter{
 			ast: f,
@@ -2519,9 +2519,7 @@ func TestDiscoverTemplateUses(t *testing.T) {
 
 		ar := &astRewriter{
 			vc: &annotator_dto.VirtualComponent{
-				Source: &annotator_dto.ParsedComponent{
-					Template: nil,
-				},
+				Source: &annotator_dto.ParsedComponent{},
 			},
 		}
 

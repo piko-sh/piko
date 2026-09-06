@@ -26,9 +26,9 @@ import (
 	"slices"
 	"strings"
 
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -263,10 +263,10 @@ func isPartialInvocationLoopDependent(
 // buildPartialRenderCallBlock builds the statements that call a partial's Render method
 // and handle any errors it returns.
 //
-// Takes reqVar (*goast.Ident) which is the request variable to pass. Takes propsVar
-// (*goast.Ident) which is the props variable to pass. Takes key (string) which names the
-// partial and is used to create variable names. Takes packageName (string) which is the
-// package that contains the Render method.
+// Takes reqVar (*goast.Ident) which is the request variable to pass.
+// Takes propsVar (*goast.Ident) which is the props variable to pass.
+// Takes key (string) which names the partial and is used to create variable names.
+// Takes packageName (string) which is the package that contains the Render method.
 //
 // Returns []goast.Stmt which contains the render call, error handler, and placeholder
 // assignments for data, meta, and error values.

@@ -19,6 +19,8 @@
 package db_engine_duckdb
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -2400,17 +2402,26 @@ func TestAnalyseQuery_IsNullRegistersNoParameter(t *testing.T) {
 	}
 }
 
-func TestAnalyseQuery_DollarParameterOverflowFallsBackToZero(t *testing.T) {
+func TestParseStatements_RejectsOutOfRangeDollarParameters(t *testing.T) {
 	t.Parallel()
 
-	catalogue := buildTestCatalogue()
+	testCases := []struct {
+		name string
+		sql  string
+	}{
+		{name: "number that would overflow an int", sql: `SELECT id FROM users WHERE id = $99999999999999999999999999`},
+		{name: "number above the protocol maximum", sql: `SELECT id FROM users WHERE id = $2147483647`},
+	}
 
-	analysis := analyseQuery(t, catalogue,
-		`SELECT id FROM users WHERE id = $99999999999999999999999999`)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.Len(t, analysis.ParameterReferences, 1)
-	assert.Equal(t, 0, analysis.ParameterReferences[0].Number,
-		"an unparseable $N number should fall back to 0, not overflow to MaxInt64")
+			_, err := NewDuckDBEngine().ParseStatements(testCase.sql)
+
+			require.ErrorIs(t, err, errInvalidParameterNumber)
+		})
+	}
 }
 
 func TestAnalyseQuery_InsertOnConflictTargetPredicateReturning(t *testing.T) {
@@ -2479,4 +2490,131 @@ func TestAnalyseQuery_InsertOrReplaceIgnorePrefix(t *testing.T) {
 			assert.Equal(t, "id", analysis.OutputColumns[0].Name)
 		})
 	}
+}
+
+func TestAnalyseQuery_FlatSetOperationChain(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		operator      string
+		armCount      int
+		wantOperator  querier_dto.CompoundOperator
+		wantParameter bool
+	}{
+		{name: "long UNION ALL chain", operator: " UNION ALL ", wantOperator: querier_dto.CompoundUnionAll, armCount: 10_000},
+		{name: "long UNION chain", operator: " UNION ", wantOperator: querier_dto.CompoundUnion, armCount: 1_000},
+		{name: "INTERSECT chain", operator: " INTERSECT ", wantOperator: querier_dto.CompoundIntersect, armCount: 300},
+		{name: "EXCEPT chain with trailing LIMIT", operator: " EXCEPT ", wantOperator: querier_dto.CompoundExcept, armCount: 300, wantParameter: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			arms := make([]string, testCase.armCount)
+			for index := range arms {
+				arms[index] = "SELECT id FROM users"
+			}
+			sql := strings.Join(arms, testCase.operator)
+			if testCase.wantParameter {
+				sql += " ORDER BY id LIMIT $1"
+			}
+
+			analysis := analyseQuery(t, buildTestCatalogue(), sql)
+
+			require.Len(t, analysis.CompoundBranches, testCase.armCount-1)
+			for _, branch := range analysis.CompoundBranches {
+				assert.Equal(t, testCase.wantOperator, branch.Operator)
+				require.NotNil(t, branch.Query)
+				assert.Empty(t, branch.Query.CompoundBranches)
+				assert.Equal(t, analysis.ParameterReferences, branch.Query.ParameterReferences)
+			}
+			if testCase.wantParameter {
+				require.Len(t, analysis.ParameterReferences, 1)
+				assert.Equal(t, 1, analysis.ParameterReferences[0].Number)
+			}
+		})
+	}
+}
+
+func TestAnalyseQuery_SetOperationArmsKeepTheirOwnStructure(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t, buildTestCatalogue(),
+		`SELECT id FROM users WHERE id = $1 UNION SELECT id FROM users GROUP BY id UNION ALL SELECT 1 FOR UPDATE`)
+
+	require.Len(t, analysis.CompoundBranches, 2)
+	assert.True(t, analysis.HasWhereClause)
+	assert.False(t, analysis.CompoundBranches[0].Query.HasWhereClause)
+	assert.NotEmpty(t, analysis.CompoundBranches[0].Query.GroupByColumns)
+	assert.False(t, analysis.ReadOnly, "a trailing FOR UPDATE applies to the whole chain")
+	assert.False(t, analysis.CompoundBranches[1].Query.ReadOnly)
+}
+
+func TestAnalyseQuery_ManyPlaceholderArgumentsInOneCall(t *testing.T) {
+	t.Parallel()
+
+	const argumentCount = 20_000
+
+	placeholders := make([]string, argumentCount)
+	for index := range placeholders {
+		placeholders[index] = "$" + strconv.Itoa(index+1)
+	}
+	sql := "SELECT concat(" + strings.Join(placeholders, ", ") + ") FROM users"
+
+	analysis := analyseQuery(t, buildTestCatalogue(), sql)
+
+	require.Len(t, analysis.ParameterReferences, argumentCount)
+	for index, parameter := range analysis.ParameterReferences {
+		assert.Equal(t, "concat", parameter.EnclosingFunctionName)
+		assert.Equal(t, index, parameter.ArgumentOrdinal)
+	}
+}
+
+func TestAnalyseQuery_ArgumentOrdinalsAcrossInterleavedCalls(t *testing.T) {
+	t.Parallel()
+
+	analysis := analyseQuery(t, buildTestCatalogue(),
+		`SELECT outer_fn(inner_fn($1, $2), $3, inner_fn($4), $5) FROM users`)
+
+	byNumber := map[int]querier_dto.RawParameterReference{}
+	for _, parameter := range analysis.ParameterReferences {
+		byNumber[parameter.Number] = parameter
+	}
+
+	testCases := []struct {
+		wantName    string
+		number      int
+		wantOrdinal int
+	}{
+		{number: 1, wantName: "inner_fn", wantOrdinal: 0},
+		{number: 2, wantName: "inner_fn", wantOrdinal: 1},
+		{number: 3, wantName: "outer_fn", wantOrdinal: 1},
+		{number: 4, wantName: "inner_fn", wantOrdinal: 0},
+		{number: 5, wantName: "outer_fn", wantOrdinal: 3},
+	}
+
+	for _, testCase := range testCases {
+		parameter, found := byNumber[testCase.number]
+		require.Truef(t, found, "$%d registered", testCase.number)
+		assert.Equalf(t, testCase.wantName, parameter.EnclosingFunctionName, "$%d enclosing function", testCase.number)
+		assert.Equalf(t, testCase.wantOrdinal, parameter.ArgumentOrdinal, "$%d argument ordinal", testCase.number)
+	}
+}
+
+func TestAnalyseQuery_ManyProjectedPlaceholders(t *testing.T) {
+	t.Parallel()
+
+	const placeholderCount = 50_000
+
+	placeholders := make([]string, placeholderCount)
+	for index := range placeholders {
+		placeholders[index] = "$" + strconv.Itoa(index+1)
+	}
+
+	analysis := analyseQuery(t, nil, "SELECT "+strings.Join(placeholders, ", "))
+
+	require.Len(t, analysis.ParameterReferences, placeholderCount)
+	require.Len(t, analysis.OutputColumns, placeholderCount)
 }

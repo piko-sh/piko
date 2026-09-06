@@ -66,11 +66,12 @@ func (p *GoChannelProvider) checkLiveness(startTime time.Time) healthprobe_dto.S
 	}
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     state,
-		Message:   message,
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        state,
+		Message:      message,
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -141,11 +142,12 @@ func (p *GoChannelProvider) checkRouterHealth(startTime time.Time) healthprobe_d
 
 	if p.router == nil {
 		return healthprobe_dto.Status{
-			Name:      "WatermillRouter",
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   "Router is not initialised",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         "WatermillRouter",
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      "Router is not initialised",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
@@ -159,11 +161,12 @@ func (p *GoChannelProvider) checkRouterHealth(startTime time.Time) healthprobe_d
 	}
 
 	return healthprobe_dto.Status{
-		Name:      "WatermillRouter",
-		State:     state,
-		Message:   message,
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         "WatermillRouter",
+		State:        state,
+		Message:      message,
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -182,10 +185,11 @@ func (p *GoChannelProvider) checkPubSubHealth(startTime time.Time) healthprobe_d
 	}
 
 	return healthprobe_dto.Status{
-		Name:      "GoChannelPubSub",
-		State:     state,
-		Message:   message,
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         "GoChannelPubSub",
+		State:        state,
+		Message:      message,
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }

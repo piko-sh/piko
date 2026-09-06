@@ -46,8 +46,12 @@ const (
 // Returns *llm_dto.CompletionResponse which contains the structured output extracted from
 // the tool call result.
 // Returns error when the API request fails or response conversion fails.
-func (p *anthropicProvider) completeWithStructuredOutput(ctx context.Context, request *llm_dto.CompletionRequest, model string) (*llm_dto.CompletionResponse, error) {
-	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.completeWithStructuredOutput")
+func (p *anthropicProvider) completeWithStructuredOutput(ctx context.Context, request *llm_dto.CompletionRequest, model string) (result *llm_dto.CompletionResponse, returnErr error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result, returnErr = nil, goroutine.HandlePanicRecovery(ctx, "llm.anthropicProvider.completeWithStructuredOutput", recovered)
+		}
+	}()
 
 	ctx, l := logger.From(ctx, log)
 
@@ -58,6 +62,7 @@ func (p *anthropicProvider) completeWithStructuredOutput(ctx context.Context, re
 			Name:        structuredOutputToolName,
 			Description: schema.Description,
 			Parameters:  &schema.Schema,
+			Strict:      nil,
 		},
 	}
 
@@ -109,12 +114,20 @@ func (p *anthropicProvider) convertStructuredOutputResponse(message *anthropic.M
 						{
 							Index: 0,
 							Message: llm_dto.Message{
-								Role:    llm_dto.RoleAssistant,
-								Content: string(jsonContent),
+								Role:         llm_dto.RoleAssistant,
+								Content:      string(jsonContent),
+								Name:         nil,
+								ToolCallID:   nil,
+								ContentParts: nil,
+								ToolCalls:    nil,
 							},
 							FinishReason: llm_dto.FinishReasonStop,
 						},
 					},
+					Usage:        nil,
+					FallbackInfo: nil,
+					Sources:      nil,
+					Created:      0,
 				}
 
 				if message.Usage.InputTokens > 0 || message.Usage.OutputTokens > 0 {
@@ -123,6 +136,7 @@ func (p *anthropicProvider) convertStructuredOutputResponse(message *anthropic.M
 						CompletionTokens: int(message.Usage.OutputTokens),
 						TotalTokens:      int(message.Usage.InputTokens + message.Usage.OutputTokens),
 						CachedTokens:     int(message.Usage.CacheReadInputTokens),
+						EstimatedCost:    nil,
 					}
 				}
 

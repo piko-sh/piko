@@ -995,18 +995,14 @@ func TestDiagnoseNonCallableExpression(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "nil resolved type returns false",
-			calleeAnn: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: nil,
-			},
+			name:        "nil resolved type returns false",
+			calleeAnn:   &ast_domain.GoGeneratorAnnotation{},
 			expectError: false,
 		},
 		{
 			name: "nil type expr returns false",
 			calleeAnn: &ast_domain.GoGeneratorAnnotation{
-				ResolvedType: &ast_domain.ResolvedTypeInfo{
-					TypeExpression: nil,
-				},
+				ResolvedType: &ast_domain.ResolvedTypeInfo{},
 			},
 			expectError: false,
 		},
@@ -1222,7 +1218,7 @@ func TestDetermineIterationItemType(t *testing.T) {
 
 		h := newTypeResolverTestHarness()
 		identExpr := &ast_domain.Identifier{Name: "x"}
-		typeInfo := &ast_domain.ResolvedTypeInfo{TypeExpression: nil}
+		typeInfo := &ast_domain.ResolvedTypeInfo{}
 
 		result := h.Resolver.DetermineIterationItemType(context.Background(), h.Context, identExpr, typeInfo)
 
@@ -1381,7 +1377,7 @@ func TestTryInferFromArrayLiteral(t *testing.T) {
 		t.Parallel()
 
 		h := newTypeResolverTestHarness()
-		expression := &ast_domain.ArrayLiteral{Elements: nil}
+		expression := &ast_domain.ArrayLiteral{}
 
 		result := h.Resolver.tryInferFromArrayLiteral(context.Background(), h.Context, expression)
 
@@ -1455,9 +1451,7 @@ func TestInheritPackagePathFromCollection(t *testing.T) {
 			PackageAlias:         "mypkg",
 			CanonicalPackagePath: "",
 		}
-		collInfo := &ast_domain.ResolvedTypeInfo{
-			CanonicalPackagePath: "",
-		}
+		collInfo := &ast_domain.ResolvedTypeInfo{}
 
 		h.Resolver.inheritPackagePathFromCollection(result, goast.NewIdent("Foo"), collInfo)
 
@@ -1496,7 +1490,7 @@ func TestResolvePackageMember(t *testing.T) {
 		h := newTypeResolverTestHarness()
 		prop := &ast_domain.Identifier{Name: "Foo"}
 		member := &ast_domain.MemberExpression{
-			Base:     &ast_domain.Identifier{Name: ""},
+			Base:     &ast_domain.Identifier{},
 			Property: prop,
 		}
 
@@ -1616,10 +1610,7 @@ func TestParseSignatureFromFuncType(t *testing.T) {
 		t.Parallel()
 
 		h := newTypeResolverTestHarness()
-		funcType := &goast.FuncType{
-			Params:  nil,
-			Results: nil,
-		}
+		funcType := &goast.FuncType{}
 
 		result := h.Resolver.parseSignatureFromFuncType(funcType, "pkg")
 		require.NotNil(t, result)
@@ -1732,7 +1723,7 @@ func TestLookupPikoImportAlias(t *testing.T) {
 	t.Run("nil virtual module returns empty", func(t *testing.T) {
 		t.Parallel()
 
-		resolver := &TypeResolver{virtualModule: nil}
+		resolver := &TypeResolver{}
 		result := resolver.lookupPikoImportAlias("test/pkg", "card")
 		assert.Empty(t, result)
 	})
@@ -1749,9 +1740,7 @@ func TestLookupPikoImportAlias(t *testing.T) {
 		t.Parallel()
 
 		h := newTypeResolverTestHarness()
-		h.Resolver.virtualModule.ComponentsByGoPath["test/pkg"] = &annotator_dto.VirtualComponent{
-			PikoAliasToHash: nil,
-		}
+		h.Resolver.virtualModule.ComponentsByGoPath["test/pkg"] = &annotator_dto.VirtualComponent{}
 		result := h.Resolver.lookupPikoImportAlias("test/pkg", "card")
 		assert.Empty(t, result)
 	})

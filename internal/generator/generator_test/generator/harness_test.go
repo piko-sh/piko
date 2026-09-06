@@ -136,7 +136,7 @@ func runTestCase(t *testing.T, tc testCase) {
 
 	componentRegistry := discoverTestComponents(t, absSrcDir, "components")
 
-	annotatorService, _ := annotator_domain.NewAnnotatorService(context.Background(), &annotator_domain.AnnotatorServiceConfig{
+	annotatorService := annotator_domain.NewAnnotatorService(&annotator_domain.AnnotatorServiceConfig{
 		Resolver:            resolver,
 		FSReader:            fsReader,
 		TypeInspector:       annotator_domain.NewTypeInspectorBuilderAdapter(inspectorManager),
@@ -161,7 +161,7 @@ func runTestCase(t *testing.T, tc testCase) {
 	)
 	defer coordinatorService.Shutdown(context.Background())
 	prerenderer := render_domain.NewRenderOrchestrator(nil, nil, nil, nil)
-	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(context.Background(), prerenderer)
+	codeEmitterFactory := generator_adapters_driven_code_emitter_go_literal.NewEmitterFactory(prerenderer)
 	registerEmitter := generator_adapters.NewRegisterEmitter(fsWriter)
 
 	jsTempDir, err := os.MkdirTemp("", "piko-js-test-*")
@@ -175,7 +175,7 @@ func runTestCase(t *testing.T, tc testCase) {
 		BaseDir:        absSrcDir,
 		PagesSourceDir: "pages",
 	}
-	generatorService, err := generator_domain.NewGeneratorService(context.Background(), generatorPaths, "", generator_domain.GeneratorPorts{
+	generatorService, err := generator_domain.NewGeneratorService(generatorPaths, "", generator_domain.GeneratorPorts{
 		FSWriter:           fsWriter,
 		ManifestEmitter:    manifestEmitter,
 		Coordinator:        coordinatorService,
@@ -187,6 +187,7 @@ func runTestCase(t *testing.T, tc testCase) {
 		SEOService:         nil,
 	})
 	require.NoError(t, err)
+	require.NoError(t, generatorService.EnsureDistPackage(context.Background()))
 
 	moduleName := resolver.GetModuleName()
 	require.NotEmpty(t, moduleName, "Resolver failed to detect a module name from go.mod")

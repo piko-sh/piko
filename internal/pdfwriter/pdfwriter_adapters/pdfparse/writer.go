@@ -47,6 +47,7 @@ func NewWriter() *Writer {
 	return &Writer{
 		objects:    make(map[int]Object),
 		nextObjNum: 1,
+		trailer:    Dict{},
 	}
 }
 

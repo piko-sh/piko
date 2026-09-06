@@ -186,7 +186,7 @@ func TestExtractNilGuardsFromCondition(t *testing.T) {
 			name: "non-nil comparison does not extract",
 			expression: &ast_domain.BinaryExpression{
 				Left:     &ast_domain.Identifier{Name: "count"},
-				Right:    &ast_domain.IntegerLiteral{Value: 0},
+				Right:    &ast_domain.IntegerLiteral{},
 				Operator: ast_domain.OpNe,
 			},
 			expected: nil,
@@ -262,9 +262,7 @@ func TestExtractNilGuardsFromCondition(t *testing.T) {
 			name: "bare identifier with nil ResolvedType does not extract",
 			expression: func() ast_domain.Expression {
 				id := &ast_domain.Identifier{Name: "item"}
-				id.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
-					ResolvedType: nil,
-				}
+				id.GoAnnotations = &ast_domain.GoGeneratorAnnotation{}
 				return id
 			}(),
 			expected: nil,
@@ -306,12 +304,12 @@ func TestIsNilLiteral(t *testing.T) {
 		},
 		{
 			name:       "IntegerLiteral zero returns false",
-			expression: &ast_domain.IntegerLiteral{Value: 0},
+			expression: &ast_domain.IntegerLiteral{},
 			expected:   false,
 		},
 		{
 			name:       "BooleanLiteral false returns false",
-			expression: &ast_domain.BooleanLiteral{Value: false},
+			expression: &ast_domain.BooleanLiteral{},
 			expected:   false,
 		},
 	}
@@ -550,7 +548,7 @@ func TestHandleUnaryExpr(t *testing.T) {
 				Operator: ast_domain.OpNot,
 				Right: &ast_domain.BinaryExpression{
 					Left:     &ast_domain.Identifier{Name: "x"},
-					Right:    &ast_domain.IntegerLiteral{Value: 0},
+					Right:    &ast_domain.IntegerLiteral{},
 					Operator: ast_domain.OpEq,
 				},
 			},
@@ -619,9 +617,7 @@ func TestHandleTruthinessCheck(t *testing.T) {
 			name: "annotation with nil ResolvedType does not extract",
 			expression: func() ast_domain.Expression {
 				id := &ast_domain.Identifier{Name: "nilType"}
-				id.GoAnnotations = &ast_domain.GoGeneratorAnnotation{
-					ResolvedType: nil,
-				}
+				id.GoAnnotations = &ast_domain.GoGeneratorAnnotation{}
 				return id
 			}(),
 			expected: nil,

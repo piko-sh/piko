@@ -19,12 +19,18 @@
 package markdown_provider_goldmark
 
 import (
+	"bytes"
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gmast "github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/text"
+	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/markdown/markdown_ast"
+	"piko.sh/piko/internal/markdown/markdown_domain"
 )
 
 func TestParser_Parse_BasicDocument(t *testing.T) {
@@ -73,6 +79,22 @@ func TestParser_Parse_BasicDocument(t *testing.T) {
 		textNode, ok := textChild.(*markdown_ast.Text)
 		require.True(t, ok)
 		assert.Contains(t, string(textNode.Value), "Hello")
+	})
+
+	t.Run("WrappedParagraphKeepsLineBreaks", func(t *testing.T) {
+		doc, _, err := p.Parse(context.Background(), []byte("Hello\nworld,\nagain"))
+
+		require.NoError(t, err)
+		paragraph := doc.FirstChild()
+		require.NotNil(t, paragraph)
+
+		var text []byte
+		for child := paragraph.FirstChild(); child != nil; child = child.NextSibling() {
+			textNode, ok := child.(*markdown_ast.Text)
+			require.True(t, ok)
+			text = append(text, textNode.Value...)
+		}
+		assert.Equal(t, "Hello\nworld,\nagain", string(text))
 	})
 
 	t.Run("FencedCodeBlock", func(t *testing.T) {
@@ -276,4 +298,220 @@ func TestParser_Parse_ParentPointers(t *testing.T) {
 			assert.Equal(t, markdown_ast.KindTableHeader, cell.Parent().Kind())
 		}
 	})
+}
+
+func TestParser_Parse_LineBreaks(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    string
+		wantPath []int
+		want     []string
+	}{
+		{
+			name:  "two trailing spaces produce a hard line break",
+			input: "Hello  \nworld",
+			want:  []string{"text:Hello", "break", "text:world"},
+		},
+		{
+			name:  "a trailing backslash produces a hard line break",
+			input: "Hello\\\nworld",
+			want:  []string{"text:Hello", "break", "text:world"},
+		},
+		{
+			name:  "a plain line ending stays a soft break inside the text",
+			input: "Hello\nworld",
+			want:  []string{"text:Hello\n", "text:world"},
+		},
+		{
+			name:     "a hard line break inside emphasis stays inside the emphasis",
+			input:    "*Hello  \nworld*",
+			wantPath: []int{0},
+			want:     []string{"text:Hello", "break", "text:world"},
+		},
+		{
+			name:  "trailing spaces at the end of a paragraph are not a break",
+			input: "Hello  ",
+			want:  []string{"text:Hello"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc, _, err := NewParser().Parse(context.Background(), []byte(tc.input))
+			require.NoError(t, err)
+
+			container := doc.FirstChild()
+			require.NotNil(t, container)
+			for _, index := range tc.wantPath {
+				container = nthChild(t, container, index)
+			}
+
+			assert.Equal(t, tc.want, describeInlineChildren(container))
+		})
+	}
+}
+
+func TestParser_Parse_HardLineBreakRendersAsBreakElement(t *testing.T) {
+	t.Parallel()
+
+	service := markdown_domain.NewMarkdownService(NewParser(), nil)
+
+	processed, err := service.Process(context.Background(), []byte("---\ntitle: Page\n---\nHello  \nworld"), "page.md")
+
+	require.NoError(t, err)
+	require.Len(t, processed.PageAST.RootNodes, 1)
+	paragraph := processed.PageAST.RootNodes[0]
+	require.Len(t, paragraph.Children, 3)
+	assert.Equal(t, "Hello", paragraph.Children[0].TextContent)
+	assert.Equal(t, ast_domain.NodeElement, paragraph.Children[1].NodeType)
+	assert.Equal(t, "br", paragraph.Children[1].TagName)
+	assert.Equal(t, "world", paragraph.Children[2].TextContent)
+	assert.Equal(t, 2, processed.Metadata.WordCount)
+}
+
+func nthChild(t *testing.T, parent markdown_ast.Node, index int) markdown_ast.Node {
+	t.Helper()
+
+	child := parent.FirstChild()
+	for range index {
+		require.NotNil(t, child)
+		child = child.NextSibling()
+	}
+	require.NotNil(t, child)
+	return child
+}
+
+func describeInlineChildren(parent markdown_ast.Node) []string {
+	var described []string
+	for child := parent.FirstChild(); child != nil; child = child.NextSibling() {
+		switch typed := child.(type) {
+		case *markdown_ast.Text:
+			described = append(described, "text:"+string(typed.Value))
+		case *markdown_ast.LineBreak:
+			described = append(described, "break")
+		default:
+			described = append(described, "other")
+		}
+	}
+	return described
+}
+
+func TestParser_ConvertNode_DepthLimit(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		levels    int
+		wantDepth int
+	}{
+		{name: "nesting within the limit is converted in full", levels: 20, wantDepth: 22},
+		{name: "pathological nesting stops one level past the limit", levels: 10_000, wantDepth: markdown_ast.MaxMarkdownDepth + 1},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := []byte("deep")
+			root := gmast.NewDocument()
+			var parent gmast.Node = root
+			for range tc.levels {
+				quote := gmast.NewBlockquote()
+				parent.AppendChild(parent, quote)
+				parent = quote
+			}
+			parent.AppendChild(parent, gmast.NewTextSegment(text.NewSegment(0, len(source))))
+
+			converted := NewParser().convertNode(root, source, 0)
+
+			assert.Equal(t, tc.wantDepth, chainDepth(converted))
+		})
+	}
+}
+
+func TestParser_Parse_DeepNestingIsReportedByTheMarkdownService(t *testing.T) {
+	t.Parallel()
+
+	input := "---\ntitle: Deep\n---\n" + strings.Repeat(">", markdown_ast.MaxMarkdownDepth+20) + " deep"
+	service := markdown_domain.NewMarkdownService(NewParser(), nil)
+
+	processed, err := service.Process(context.Background(), []byte(input), "deep.md")
+
+	require.NoError(t, err)
+	require.Len(t, processed.Diagnostics, 1)
+	assert.Contains(t, processed.Diagnostics[0].Message, "deeper than")
+}
+
+func chainDepth(node markdown_ast.Node) int {
+	depth := 0
+	for current := node; current != nil; current = current.FirstChild() {
+		depth++
+	}
+	return depth
+}
+
+func TestParser_Parse_FallbackAndRawHTMLNodes(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    string
+		wantPath []int
+		wantKind markdown_ast.NodeKind
+	}{
+		{name: "an unhandled block becomes a text block", input: "a\n\n***\n\nb", wantPath: []int{1}, wantKind: markdown_ast.KindTextBlock},
+		{name: "an unhandled inline becomes a code span", input: "see <https://example.test>", wantPath: []int{0, 1}, wantKind: markdown_ast.KindCodeSpan},
+		{name: "inline HTML keeps its source", input: "a <span>b</span>", wantPath: []int{0, 1}, wantKind: markdown_ast.KindRawHTML},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			doc, _, err := NewParser().Parse(context.Background(), []byte(tc.input))
+			require.NoError(t, err)
+
+			var node markdown_ast.Node = doc
+			for _, index := range tc.wantPath {
+				node = nthChild(t, node, index)
+			}
+
+			assert.Equal(t, tc.wantKind, node.Kind())
+			if rawHTML, ok := node.(*markdown_ast.RawHTML); ok {
+				assert.Equal(t, "<span>", string(bytes.Join(rawHTML.Content, nil)))
+			}
+		})
+	}
+}
+
+func TestParser_Parse_ShortcodeDiagnosticsUseSourcePositions(t *testing.T) {
+	t.Parallel()
+
+	input := "---\ntitle: Page\n---\n# Heading\n\n```piko my-card :title=\"1 +\"\n```\n"
+	service := markdown_domain.NewMarkdownService(NewParser(), nil)
+
+	processed, err := service.Process(context.Background(), []byte(input), "page.md")
+
+	require.NoError(t, err)
+	require.Len(t, processed.Diagnostics, 1)
+	assert.Equal(t, 6, processed.Diagnostics[0].Location.Line)
+	assert.Equal(t, 27, processed.Diagnostics[0].Location.Column)
+	assert.Equal(t, "page.md", processed.Diagnostics[0].SourcePath)
+}
+
+func TestParser_Parse_FencedCodeBlockInfoSegment(t *testing.T) {
+	t.Parallel()
+
+	source := []byte("text\n\n```go title=main.go\nx\n```\n")
+
+	doc, _, err := NewParser().Parse(context.Background(), source)
+	require.NoError(t, err)
+
+	codeBlock, ok := nthChild(t, doc, 1).(*markdown_ast.FencedCodeBlock)
+	require.True(t, ok)
+	assert.Equal(t, "go title=main.go", string(codeBlock.InfoSegment.Value(source)))
 }

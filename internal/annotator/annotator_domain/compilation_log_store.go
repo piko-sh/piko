@@ -25,12 +25,14 @@ package annotator_domain
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"path/filepath"
-	"strings"
 	"sync"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logrotate"
@@ -52,17 +54,18 @@ const (
 // logs both in memory and on disk, and is safe for use by many goroutines at once in a
 // parallel build.
 type CompilationLogStore struct {
-	// sandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil
-	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
+	// sandboxFactory creates the sandbox used to prepare the log directory when no sandbox
+	// is directly injected. When nil, a sandboxing factory restricted to the log directory
+	// is created on demand.
 	sandboxFactory safedisk.Factory
 
-	// sandbox is an optional filesystem sandbox for testing directory creation. When nil, a
-	// real sandbox is created during construction.
+	// sandbox is an optional filesystem sandbox, rooted at the parent of the log directory,
+	// for testing directory creation.
 	sandbox safedisk.Sandbox
 
 	// buffers maps entry point file paths to their in-memory log buffers, giving quick
 	// access to error details when a build fails.
-	buffers map[string]*bytes.Buffer
+	buffers map[string]*sessionBuffer
 
 	// logDir is the folder where log files for each component are saved.
 	logDir string
@@ -78,99 +81,127 @@ type CompilationLogStore struct {
 	// mu protects concurrent access to the maps and slices from parallel build workers.
 	mu sync.RWMutex
 
-	// enabled controls whether log files are written to disk; when false, logs are kept in
-	// memory only.
-	enabled bool
+	// prepareOnce ensures the log directory is prepared at most once.
+	prepareOnce sync.Once
+
+	// fileFailureReported records whether a session log file failure has been logged as a
+	// warning since the last Clear.
+	fileFailureReported atomic.Bool
+
+	// fileLoggingEnabled controls whether log files are written to disk; when false, logs
+	// are kept in memory only.
+	fileLoggingEnabled atomic.Bool
 }
 
 // CompilationLogStoreOption sets options for a CompilationLogStore when it is created.
 type CompilationLogStoreOption func(*CompilationLogStore)
 
-// NewCompilationLogStore creates a new compilation log store.
+// sessionBuffer holds one session's in-memory log. It is safe to read while the session
+// logger writes to it.
+type sessionBuffer struct {
+	// buffer holds the log output.
+	buffer bytes.Buffer
+
+	// mu serialises writes and reads of buffer.
+	mu sync.Mutex
+}
+
+// NewCompilationLogStore creates a new compilation log store. It performs no I/O; call
+// PrepareLogDirectory before the first build to check the log directory.
 //
-// When file logging is enabled, it tries to create the log directory. An uncreatable log
-// directory (a read-only filesystem, the normal state of an embedded single-binary
-// container) downgrades to in-memory-only logging with a warning rather than failing
-// construction: the file log is a debug convenience and must never block a boot.
-//
-// Takes enabled (bool) which controls whether file logging is active.
+// Takes enabled (bool) which controls whether file logging is active. File logging stays
+// off when logDir is empty.
 // Takes logDir (string) which specifies the folder for log files.
 // Takes minLogLevel (slog.Level) which sets the lowest log level to record.
 // Takes opts (...CompilationLogStoreOption) which provides optional settings such as
-// WithLogStoreSandbox for testing.
+// WithLogStoreSandboxFactory.
 //
 // Returns *CompilationLogStore which is the configured log store ready for use.
-// Returns error when an explicitly supplied sandbox fails.
-func NewCompilationLogStore(ctx context.Context, enabled bool, logDir string, minLogLevel slog.Level, opts ...CompilationLogStoreOption) (*CompilationLogStore, error) {
-	ctx, l := logger_domain.From(ctx, log)
-	store := &CompilationLogStore{
-		buffers:     make(map[string]*bytes.Buffer),
-		closers:     make([]io.Closer, 0),
-		enabled:     enabled,
-		logDir:      logDir,
-		minLogLevel: minLogLevel,
-		mu:          sync.RWMutex{},
-	}
+func NewCompilationLogStore(enabled bool, logDir string, minLogLevel slog.Level, opts ...CompilationLogStoreOption) *CompilationLogStore {
+	store := &CompilationLogStore{}
+	store.buffers = make(map[string]*sessionBuffer)
+	store.closers = make([]io.Closer, 0)
+	store.logDir = logDir
+	store.minLogLevel = minLogLevel
+	store.fileLoggingEnabled.Store(enabled && logDir != "")
 
 	for _, opt := range opts {
 		opt(store)
 	}
 
-	if enabled && logDir != "" {
-		if err := store.ensureLogDir(ctx, logDir); err != nil {
-			if store.sandbox != nil {
-				return nil, err
-			}
-			l.Warn("Compilation log directory unavailable; keeping logs in memory only",
-				logger_domain.String("logDir", logDir), logger_domain.Error(err))
-			store.enabled = false
-		}
-	}
+	return store
+}
 
-	return store, nil
+// PrepareLogDirectory creates the log directory through a real filesystem sandbox. It
+// runs once; later calls return immediately.
+//
+// An uncreatable log directory (a read-only filesystem, the normal state of an embedded
+// single-binary container) downgrades the store to in-memory-only logging with a single
+// warning rather than failing, because the file log is a debug convenience and must never
+// block a build.
+func (s *CompilationLogStore) PrepareLogDirectory(ctx context.Context) {
+	s.prepareOnce.Do(func() {
+		if !s.fileLoggingEnabled.Load() {
+			return
+		}
+		if err := s.ensureLogDir(ctx); err != nil {
+			s.fileLoggingEnabled.Store(false)
+			_, l := logger_domain.From(ctx, log)
+			l.Warn("Compilation log directory unavailable; keeping logs in memory only",
+				logger_domain.String("logDir", s.logDir), logger_domain.Error(err))
+		}
+	})
 }
 
 // StartSession creates a new logger for a specific component path. The logger is separate
 // from the main application logger and writes to both an in-memory buffer and, if
 // enabled, a log file.
 //
+// When the log file cannot be opened the session falls back to the in-memory buffer and
+// the failure is logged; the first failure in a build cycle is logged as a warning and
+// later ones at internal level so that a broken log directory cannot flood the log.
+//
 // Takes entryPointPath (string) which identifies the compilation entry point.
 // Takes relativePath (string) which specifies the component's relative path.
 //
 // Returns logger_domain.Logger which is the session logger.
 //
-// Safe for concurrent use; protected by a mutex.
+// Safe for concurrent use; the mutex is held only while registering the session.
 func (s *CompilationLogStore) StartSession(ctx context.Context, entryPointPath string, relativePath string) logger_domain.Logger {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	buffer := new(bytes.Buffer)
-	s.buffers[entryPointPath] = buffer
+	buffer := new(sessionBuffer)
 	bufferHandler := slog.NewJSONHandler(buffer, &slog.HandlerOptions{
 		Level:       s.minLogLevel,
 		AddSource:   true,
 		ReplaceAttr: nil,
 	})
 
-	if !s.enabled {
-		slogLogger := slog.New(bufferHandler)
-		return logger_domain.New(slogLogger, "annotator-session-mem")
+	s.mu.Lock()
+	s.buffers[entryPointPath] = buffer
+	s.mu.Unlock()
+
+	if !s.fileLoggingEnabled.Load() {
+		return logger_domain.New(slog.New(bufferHandler), "annotator-session-mem")
 	}
 
-	safeBaseName := strings.ReplaceAll(relativePath, string(filepath.Separator), "_")
-
-	fileWriter, fileError := logrotate.New(ctx, logrotate.Config{
+	fileWriter, err := logrotate.New(ctx, logrotate.Config{
 		Directory:  s.logDir,
-		Filename:   safeBaseName + ".log",
+		Filename:   sessionLogFileName(relativePath),
 		MaxSize:    maxLogFileSizeMB,
 		MaxBackups: maxLogFileBackups,
 		Compress:   true,
+		Sandbox:    nil,
+		Clock:      nil,
+		MaxAge:     0,
+		LocalTime:  false,
 	})
-	if fileError != nil {
-		slogLogger := slog.New(bufferHandler)
-		return logger_domain.New(slogLogger, "annotator-session-mem")
+	if err != nil {
+		s.reportSessionFileFailure(ctx, relativePath, err)
+		return logger_domain.New(slog.New(bufferHandler), "annotator-session-mem")
 	}
+
+	s.mu.Lock()
 	s.closers = append(s.closers, fileWriter)
+	s.mu.Unlock()
 
 	fileHandler := slog.NewJSONHandler(fileWriter, &slog.HandlerOptions{
 		Level:       s.minLogLevel,
@@ -179,9 +210,7 @@ func (s *CompilationLogStore) StartSession(ctx context.Context, entryPointPath s
 	})
 
 	multiHandler := slog.NewMultiHandler(bufferHandler, fileHandler)
-	slogLogger := slog.New(multiHandler)
-
-	return logger_domain.New(slogLogger, "annotator-session-file")
+	return logger_domain.New(slog.New(multiHandler), "annotator-session-file")
 }
 
 // GetLogs retrieves the complete in-memory log content for a specific file.
@@ -205,76 +234,129 @@ func (s *CompilationLogStore) GetLogs(filePath string) (string, bool) {
 // Clear removes all stored logs and closes any open file handles from the previous build.
 // Call this before a new build starts to ensure a clean state.
 //
-// Safe for concurrent use.
+// Safe for concurrent use; the file handles are closed after the mutex is released.
 func (s *CompilationLogStore) Clear(ctx context.Context) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	closers := s.closers
+	s.buffers = make(map[string]*sessionBuffer)
+	s.closers = make([]io.Closer, 0)
+	s.mu.Unlock()
 
-	_, l := logger_domain.From(ctx, log)
-	for _, closer := range s.closers {
-		if err := closer.Close(); err != nil {
-			l.Warn("closing log file handle during clear", logger_domain.Error(err))
-		}
+	s.fileFailureReported.Store(false)
+
+	if err := closeLogWriters(closers); err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Closing compilation log files during clear failed", logger_domain.Error(err))
 	}
-
-	s.buffers = make(map[string]*bytes.Buffer)
-	s.closers = []io.Closer{}
 }
 
 // Shutdown closes all open log file handles. Call this after a build finishes or fails to
 // flush buffers and free resources.
 //
-// Safe for concurrent use.
+// Safe for concurrent use; the file handles are closed after the mutex is released.
 func (s *CompilationLogStore) Shutdown(ctx context.Context) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	closers := s.closers
+	s.closers = make([]io.Closer, 0)
+	s.mu.Unlock()
 
-	_, l := logger_domain.From(ctx, log)
-	for _, closer := range s.closers {
-		if err := closer.Close(); err != nil {
-			l.Warn("closing log file handle during shutdown", logger_domain.Error(err))
-		}
+	if err := closeLogWriters(closers); err != nil {
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Closing compilation log files during shutdown failed", logger_domain.Error(err))
 	}
-	s.closers = []io.Closer{}
 }
 
-// ensureLogDir creates the log directory using the configured or temporary sandbox.
+// reportSessionFileFailure logs that a session log file could not be opened. The first
+// failure since the last Clear is logged as a warning; later failures are logged at
+// internal level so that a broken log directory does not flood the log.
 //
-// Takes logDir (string) which specifies the directory to create.
+// Takes relativePath (string) which identifies the component whose log file failed.
+// Takes err (error) which is the failure from opening the log file.
+func (s *CompilationLogStore) reportSessionFileFailure(ctx context.Context, relativePath string, err error) {
+	_, l := logger_domain.From(ctx, log)
+	if s.fileFailureReported.CompareAndSwap(false, true) {
+		l.Warn("Compilation log file unavailable; keeping session logs in memory only",
+			logger_domain.String("component", relativePath),
+			logger_domain.String("logDir", s.logDir),
+			logger_domain.Error(err))
+		return
+	}
+	l.Internal("Compilation log file unavailable; keeping session logs in memory only",
+		logger_domain.String("component", relativePath),
+		logger_domain.Error(err))
+}
+
+// ensureLogDir creates the log directory. An injected sandbox, rooted at the directory's
+// parent, is used when present; otherwise a sandbox is created on the log directory
+// itself, which creates the directory and any missing parents.
 //
 // Returns error when the directory cannot be created.
-func (s *CompilationLogStore) ensureLogDir(ctx context.Context, logDir string) error {
-	_, l := logger_domain.From(ctx, log)
-	dirName := filepath.Base(logDir)
-
+func (s *CompilationLogStore) ensureLogDir(ctx context.Context) error {
 	if s.sandbox != nil {
-		if err := s.sandbox.MkdirAll(dirName, logDirPermissions); err != nil {
-			return fmt.Errorf("failed to create compiler debug log directory at '%s': %w", logDir, err)
+		if err := s.sandbox.MkdirAll(filepath.Base(s.logDir), logDirPermissions); err != nil {
+			return fmt.Errorf("creating compiler debug log directory %q: %w", s.logDir, err)
 		}
 		return nil
 	}
 
-	parentDir := filepath.Dir(logDir)
-	var sandbox safedisk.Sandbox
-	var sandboxErr error
-	if s.sandboxFactory != nil {
-		sandbox, sandboxErr = s.sandboxFactory.Create("compilation-log", parentDir, safedisk.ModeReadWrite)
-	} else {
-		sandbox, sandboxErr = safedisk.NewNoOpSandbox(parentDir, safedisk.ModeReadWrite)
+	factory, err := s.logDirectoryFactory()
+	if err != nil {
+		return err
 	}
-	if sandboxErr != nil {
-		return fmt.Errorf("failed to create sandbox for log directory '%s': %w", logDir, sandboxErr)
-	}
-	if err := sandbox.MkdirAll(dirName, logDirPermissions); err != nil {
-		if closeErr := sandbox.Close(); closeErr != nil {
-			l.Warn("closing sandbox after mkdir failure", logger_domain.Error(closeErr))
-		}
-		return fmt.Errorf("failed to create compiler debug log directory at '%s': %w", logDir, err)
+	sandbox, err := factory.Create("compilation-log", s.logDir, safedisk.ModeReadWrite)
+	if err != nil {
+		return fmt.Errorf("creating compiler debug log directory %q: %w", s.logDir, err)
 	}
 	if closeErr := sandbox.Close(); closeErr != nil {
-		l.Warn("closing temporary sandbox", logger_domain.Error(closeErr))
+		_, l := logger_domain.From(ctx, log)
+		l.Warn("Closing compilation log directory sandbox failed", logger_domain.Error(closeErr))
 	}
 	return nil
+}
+
+// logDirectoryFactory returns the injected sandbox factory for preparing the log
+// directory, or otherwise a sandboxing factory restricted to the log directory.
+//
+// Returns safedisk.Factory which creates the log directory sandbox.
+// Returns error when the restricted factory cannot be created.
+func (s *CompilationLogStore) logDirectoryFactory() (safedisk.Factory, error) {
+	if s.sandboxFactory != nil {
+		return s.sandboxFactory, nil
+	}
+	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
+		CWD:          "",
+		AllowedPaths: []string{s.logDir},
+		Enabled:      true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating sandbox factory for compiler debug log directory %q: %w", s.logDir, err)
+	}
+	return factory, nil
+}
+
+// Write appends a log record to the buffer.
+//
+// Takes payload ([]byte) which is the encoded log record.
+//
+// Returns int which is the number of bytes written.
+// Returns error which is always nil; bytes.Buffer grows as needed.
+//
+// Safe for concurrent use.
+func (b *sessionBuffer) Write(payload []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buffer.Write(payload)
+}
+
+// String returns a copy of the log content written so far.
+//
+// Returns string which is the buffered log output.
+//
+// Safe for concurrent use.
+func (b *sessionBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buffer.String()
 }
 
 // WithLogStoreSandbox sets a sandbox for testing log folder creation. The caller must
@@ -299,4 +381,31 @@ func WithLogStoreSandboxFactory(factory safedisk.Factory) CompilationLogStoreOpt
 	return func(s *CompilationLogStore) {
 		s.sandboxFactory = factory
 	}
+}
+
+// sessionLogFileName builds the log file name for a component. The path is escaped so
+// that distinct component paths always map to distinct names by percent-encoding
+// separators and every character outside letters, digits, '-', '_', '.' and '~', which
+// keeps a/b_c.pk and a_b/c.pk apart.
+//
+// Takes relativePath (string) which is the component's path relative to the project.
+//
+// Returns string which is the file name, ending in .log.
+func sessionLogFileName(relativePath string) string {
+	return url.QueryEscape(filepath.ToSlash(relativePath)) + ".log"
+}
+
+// closeLogWriters closes every writer, continuing past failures.
+//
+// Takes closers ([]io.Closer) which are the writers to close.
+//
+// Returns error which joins every close failure, or nil when all writers closed.
+func closeLogWriters(closers []io.Closer) error {
+	var errs []error
+	for _, closer := range closers {
+		if err := closer.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }

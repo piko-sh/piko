@@ -75,9 +75,7 @@ func TestAddUserScriptImports(t *testing.T) {
 
 		importSet := make(map[string]goast.Spec)
 
-		mainComponent := &annotator_dto.VirtualComponent{
-			RewrittenScriptAST: nil,
-		}
+		mainComponent := &annotator_dto.VirtualComponent{}
 
 		addUserScriptImports(importSet, mainComponent)
 
@@ -287,9 +285,7 @@ func TestCopyUserCode(t *testing.T) {
 			Decls: []goast.Decl{},
 		}
 
-		mainComponent := &annotator_dto.VirtualComponent{
-			RewrittenScriptAST: nil,
-		}
+		mainComponent := &annotator_dto.VirtualComponent{}
 
 		require.NoError(t, copyUserCode(fileAST, mainComponent, nil))
 

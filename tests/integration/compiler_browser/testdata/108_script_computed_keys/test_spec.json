@@ -1,0 +1,32 @@
+[
+  {
+    "action": "checkText",
+    "selector": "computed-keys-component >>> p.literal",
+    "expected": "abc|7|pre_abc"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-keys-component >>> p.methods",
+    "expected": "abc|abc"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-keys-component >>> p.proto",
+    "expected": "__proto__|own"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-keys-component >>> p.patterns",
+    "expected": "value-of-abc|value-of-abc|value-of-abc|zero"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-keys-component >>> p.state",
+    "expected": "fromState"
+  },
+  {
+    "action": "checkText",
+    "selector": "computed-keys-component >>> p.rest",
+    "expected": "1|b,c|d"
+  }
+]

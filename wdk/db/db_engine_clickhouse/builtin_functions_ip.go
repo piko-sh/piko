@@ -56,22 +56,14 @@ func registerIPRangeAndDisplayHelpers(b *FunctionCatalogueBuilder) {
 	ipv4 := ipv4Type()
 	ipv6 := ipv6Type()
 	b.Register("IPv4ToIPv6", fixedStringType(ipv6FixedStringBytes), ipv4)
-	ipv4Range := querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "low", SQLType: ipv4},
-			{Name: "high", SQLType: ipv4},
-		},
-	}
-	ipv6Range := querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryStruct,
-		EngineName: "Tuple",
-		StructFields: []querier_dto.StructField{
-			{Name: "low", SQLType: ipv6},
-			{Name: "high", SQLType: ipv6},
-		},
-	}
+	ipv4Range := tupleOf([]querier_dto.StructField{
+		{Name: "low", SQLType: ipv4},
+		{Name: "high", SQLType: ipv4},
+	})
+	ipv6Range := tupleOf([]querier_dto.StructField{
+		{Name: "low", SQLType: ipv6},
+		{Name: "high", SQLType: ipv6},
+	})
 	b.Register("IPv4CIDRToRange", ipv4Range, ipv4, b.uint64Type)
 	b.Register("IPv6CIDRToRange", ipv6Range, ipv6, b.uint64Type)
 	b.Register("IPv4NumToStringClassC", b.textType, b.uint64Type)
@@ -139,7 +131,7 @@ func registerIPSafetyToHelpers(b *FunctionCatalogueBuilder) {
 //
 // Returns querier_dto.SQLType which is the ClickHouse IPv4 network type.
 func ipv4Type() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryNetwork, EngineName: "IPv4"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryNetwork, "IPv4")
 }
 
 // ipv6Type constructs the ClickHouse IPv6 network type.
@@ -149,5 +141,5 @@ func ipv4Type() querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the ClickHouse IPv6 network type.
 func ipv6Type() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryNetwork, EngineName: "IPv6"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryNetwork, "IPv6")
 }

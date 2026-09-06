@@ -72,8 +72,9 @@ type FallbackConfig struct {
 // Returns *FallbackConfig configured with the providers.
 func NewFallbackConfig(providers ...string) *FallbackConfig {
 	return &FallbackConfig{
-		Providers: providers,
-		Triggers:  FallbackOnAll,
+		Providers:    providers,
+		Triggers:     FallbackOnAll,
+		ModelMapping: nil,
 	}
 }
 

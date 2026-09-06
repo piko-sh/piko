@@ -275,16 +275,19 @@ func (ds *daemonService) startMainServer(ctx context.Context) error {
 }
 
 // createTracingHandler wraps the final router to extract distributed trace context from
-// incoming request headers and initialise the per-request PikoRequestCtx carrier. The
-// carrier is acquired from a pool here and released after ServeHTTP returns, so every
-// downstream handler can mutate it via the context pointer without additional
-// context.WithValue calls.
+// incoming request headers and initialise the per-request PikoRequestCtx carrier.
+//
+// The carrier is acquired from a pool here and released once ServeHTTP returns or panics,
+// so every downstream handler can mutate it via the context pointer without additional
+// context.WithValue calls. Work that outlives the request must run under
+// daemon_dto.DetachRequestContext.
 //
 // Returns http.Handler which extracts trace context from request headers, allowing trace
 // propagation from upstream services.
 func (ds *daemonService) createTracingHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pctx := daemon_dto.AcquirePikoRequestCtx()
+		defer daemon_dto.ReleasePikoRequestCtx(pctx)
 		pctx.OtelExtracted = true
 		pctx.DevelopmentMode = ds.daemonConfig.DevelopmentMode
 
@@ -292,8 +295,6 @@ func (ds *daemonService) createTracingHandler() http.Handler {
 		reqCtx = daemon_dto.WithPikoRequestCtx(reqCtx, pctx)
 
 		ds.finalRouter.ServeHTTP(w, r.WithContext(reqCtx))
-
-		daemon_dto.ReleasePikoRequestCtx(pctx)
 	})
 }
 

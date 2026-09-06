@@ -124,5 +124,5 @@ func registerPolygonMetrics(b *FunctionCatalogueBuilder) {
 //
 // Returns querier_dto.SQLType which is the geometric type for that name.
 func geoType(engineName string) querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric, EngineName: engineName}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, engineName)
 }

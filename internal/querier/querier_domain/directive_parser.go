@@ -494,7 +494,14 @@ func (*directiveParser) looksLikeParameterBinding(content string) bool {
 //
 // Returns bool reporting whether the line should be parsed as a directive.
 func (p *directiveParser) looksLikeDirective(content string) bool {
-	lexer := newDirectiveLexer(logicalLine{content: content})
+	lexer := newDirectiveLexer(logicalLine{
+		content:            content,
+		segments:           nil,
+		startLine:          0,
+		endLine:            0,
+		untermStringOffset: 0,
+		untermStringQuote:  0,
+	})
 	first := lexer.peek()
 	if first.kind == tokenEOF {
 		return false
@@ -781,10 +788,19 @@ func resolveParameterCall(
 ) (*callArgs, []querier_dto.SourceError) {
 	if lexer.peek().kind != tokenLParen && prefix.IsNamed && len(spec.Positionals) > 0 && spec.Positionals[0].Name == "name" {
 		return &callArgs{
-			positionals: []parsedPositional{{value: parsedValue{raw: tail}, span: anchorToken.span}},
-			openSpan:    anchorToken.span,
-			closeSpan:   anchorToken.span,
-			closed:      true,
+			positionals: []parsedPositional{{
+				value: parsedValue{
+					raw:      tail,
+					asList:   nil,
+					listSpan: querier_dto.TextSpan{},
+					isList:   false,
+				},
+				span: anchorToken.span,
+			}},
+			openSpan:         anchorToken.span,
+			closeSpan:        anchorToken.span,
+			closed:           true,
+			keywordArguments: nil,
 		}, nil
 	}
 	return parseCallArgs(lexer, errorBuilder, directiveName)

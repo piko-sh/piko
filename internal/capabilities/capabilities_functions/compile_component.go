@@ -35,6 +35,12 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+const (
+	// paramSourcePath is the capability parameter, and the log and span attribute, that
+	// names the component being compiled.
+	paramSourcePath = "sourcePath"
+)
+
 // CompileComponent returns a capability function that compiles a component using the
 // provided compiler service. It requires a 'sourcePath' parameter to identify the
 // component being compiled.
@@ -63,8 +69,8 @@ func CompileComponent(compiler compiler_domain.CompilerService) capabilities_dom
 		if err != nil {
 			return nil, fmt.Errorf("extracting source path for compilation: %w", err)
 		}
-		span.SetAttributes(attribute.String("sourcePath", sourcePath))
-		l = l.With(logger_domain.String("sourcePath", sourcePath))
+		span.SetAttributes(attribute.String(paramSourcePath, sourcePath))
+		l = l.With(logger_domain.String(paramSourcePath, sourcePath))
 
 		inputBytes, err := readInputData(ctx, span, inputData)
 		if err != nil {
@@ -102,7 +108,7 @@ func CompileComponent(compiler compiler_domain.CompilerService) capabilities_dom
 // Returns error when the sourcePath parameter is missing or empty.
 func extractSourcePath(ctx context.Context, params capabilities_domain.CapabilityParams, span trace.Span) (string, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	sourcePath, ok := params["sourcePath"]
+	sourcePath, ok := params[paramSourcePath]
 	if !ok || sourcePath == "" {
 		err := errors.New("compile-component capability requires a 'sourcePath' parameter")
 		l.ReportError(span, err, "Missing required sourcePath parameter")
@@ -185,7 +191,8 @@ func compileSource(
 // Takes span (trace.Span) which records telemetry attributes.
 //
 // Returns string which is the JavaScript content from the entrypoint file.
-// Returns error when the expected entrypoint file is not found in the artefact.
+// Returns error when the artefact reports an error-severity diagnostic, or the expected
+// entrypoint file is not found in the artefact.
 func extractOutput(
 	ctx context.Context,
 	artefact *compiler_dto.CompiledArtefact,
@@ -201,6 +208,10 @@ func extractOutput(
 		attribute.Int("fileCount", len(artefact.Files)),
 	)
 
+	if err := checkArtefactDiagnostics(ctx, artefact, sourcePath, span); err != nil {
+		return "", err
+	}
+
 	outputJS, ok := artefact.Files[artefact.BaseJSPath]
 	if !ok {
 		err := fmt.Errorf("compiled artefact for '%s' did not contain expected entrypoint file '%s'", sourcePath, artefact.BaseJSPath)
@@ -208,6 +219,47 @@ func extractOutput(
 		return "", err
 	}
 	return outputJS, nil
+}
+
+// checkArtefactDiagnostics fails a compilation whose artefact reports an error-severity
+// diagnostic, so a component the compiler could not build never ships, and logs any
+// warning-severity diagnostic so the author sees it.
+//
+// Takes artefact (*compiler_dto.CompiledArtefact) which holds the diagnostics to check.
+// Takes sourcePath (string) which identifies the source for messages.
+// Takes span (trace.Span) which records the failure.
+//
+// Returns error which joins every error-severity diagnostic, or nil when there is none.
+func checkArtefactDiagnostics(
+	ctx context.Context,
+	artefact *compiler_dto.CompiledArtefact,
+	sourcePath string,
+	span trace.Span,
+) error {
+	ctx, l := logger_domain.From(ctx, log)
+	var failures []error
+	for _, diagnostic := range artefact.Diagnostics {
+		switch diagnostic.Severity {
+		case compiler_dto.DiagnosticSeverityError:
+			failures = append(failures, errors.New(diagnostic.Message))
+		case compiler_dto.DiagnosticSeverityWarning:
+			l.Warn("Component compiled with a warning",
+				logger_domain.String(paramSourcePath, sourcePath),
+				logger_domain.String("diagnostic", diagnostic.Message))
+		default:
+			l.Trace("Component compiled with a diagnostic",
+				logger_domain.String(paramSourcePath, sourcePath),
+				logger_domain.String("severity", diagnostic.Severity),
+				logger_domain.String("diagnostic", diagnostic.Message))
+		}
+	}
+	if len(failures) == 0 {
+		return nil
+	}
+
+	err := fmt.Errorf("compiled artefact for '%s' reported %d error(s): %w", sourcePath, len(failures), errors.Join(failures...))
+	l.ReportError(span, err, "Compiled artefact reported errors")
+	return err
 }
 
 // recordSuccess logs and records metrics for a successful compilation.

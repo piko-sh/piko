@@ -57,8 +57,11 @@ func (*sliceCommandValidationPass) Analyse(validationContext *diagnosticContext)
 				"piko.slice cannot be used with :%s command in query %q - batch operations iterate over rows and cannot expand slice parameters",
 				commandName(validationContext.Query.Command), validationContext.Query.Name,
 			),
-			Severity: querier_dto.SeverityError,
-			Code:     querier_dto.CodeSliceBatchCopyFrom,
+			Severity:   querier_dto.SeverityError,
+			Code:       querier_dto.CodeSliceBatchCopyFrom,
+			Suggestion: "",
+			EndLine:    0,
+			EndColumn:  0,
 		})
 	}
 
@@ -71,8 +74,11 @@ func (*sliceCommandValidationPass) Analyse(validationContext *diagnosticContext)
 				"piko.slice cannot be used with piko.dynamic: runtime in query %q - the runtime builder cannot expand slice placeholders",
 				validationContext.Query.Name,
 			),
-			Severity: querier_dto.SeverityError,
-			Code:     querier_dto.CodeSliceDynamicRuntime,
+			Severity:   querier_dto.SeverityError,
+			Code:       querier_dto.CodeSliceDynamicRuntime,
+			Suggestion: "",
+			EndLine:    0,
+			EndColumn:  0,
 		})
 	}
 

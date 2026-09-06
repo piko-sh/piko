@@ -266,9 +266,13 @@ func (ae *attributeEmitter) emitBindAttributes(
 			continue
 		}
 		dynAttr := &ast_domain.DynamicAttribute{
-			Name:          name,
-			Expression:    directive.Expression,
-			GoAnnotations: directive.GoAnnotations,
+			Name:           name,
+			Expression:     directive.Expression,
+			GoAnnotations:  directive.GoAnnotations,
+			RawExpression:  "",
+			Location:       ast_domain.Location{},
+			NameLocation:   ast_domain.Location{},
+			AttributeRange: ast_domain.Range{},
 		}
 		attributeStatements, attributeDiagnostics := ae.emitNonBooleanDynamicAttribute(nodeVar, dynAttr, node.TagName)
 		statements = append(statements, attributeStatements...)

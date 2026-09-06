@@ -107,20 +107,22 @@ func (p *MockProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) hea
 
 	if isClosed {
 		return healthprobe_dto.Status{
-			Name:      p.Name(),
-			State:     healthprobe_dto.StateUnhealthy,
-			Message:   "Mock cache provider is closed",
-			Timestamp: time.Now(),
-			Duration:  time.Since(startTime).String(),
+			Name:         p.Name(),
+			State:        healthprobe_dto.StateUnhealthy,
+			Message:      "Mock cache provider is closed",
+			Timestamp:    time.Now(),
+			Duration:     time.Since(startTime).String(),
+			Dependencies: nil,
 		}
 	}
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   fmt.Sprintf("Mock cache provider operational with %d namespace(s)", namespaceCount),
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      fmt.Sprintf("Mock cache provider operational with %d namespace(s)", namespaceCount),
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 

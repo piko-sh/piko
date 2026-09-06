@@ -84,15 +84,10 @@ func (p *parser) parseAlterPartitionOperation(database, table, operation string,
 	if isPart {
 		target = keywordPart
 	}
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTablePartition,
-		SchemaName: database,
-		TableName:  table,
-		EngineSpecific: map[string]string{
-			engineKeyPartitionOp:     operation,
-			engineKeyPartitionTarget: target,
-		},
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationAlterTablePartition, database, table, querier_dto.WithEngineSpecific(map[string]string{
+		engineKeyPartitionOp:     operation,
+		engineKeyPartitionTarget: target,
+	}))
 	if operation == keywordAttach && p.matchKeyword(kwAll) {
 		mutation.EngineSpecific[engineKeyPartitionExpr] = kwAll
 		if p.matchKeyword(keywordFrom) {

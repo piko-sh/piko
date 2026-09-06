@@ -109,9 +109,18 @@ func (b *catalogueBuilder) attachReturnsTableColumns(
 	}
 
 	signature.ReturnType = querier_dto.SQLType{
-		Category:   querier_dto.TypeCategoryComposite,
-		EngineName: syntheticName,
-		Schema:     schema.Name,
+		Category:     querier_dto.TypeCategoryComposite,
+		EngineName:   syntheticName,
+		Schema:       schema.Name,
+		Precision:    nil,
+		Scale:        nil,
+		Length:       nil,
+		ElementType:  nil,
+		EnumValues:   nil,
+		StructFields: nil,
+		KeyType:      nil,
+		UnionMembers: nil,
+		Nullable:     false,
 	}
 }
 

@@ -520,54 +520,99 @@ func Test_handleTaskEvent_MalformedPayload(t *testing.T) {
 	err := d.handleTaskEvent(ctx, event, 0)
 
 	assert.NoError(t, err, "malformed tasks should be acknowledged to prevent infinite redelivery")
+	assert.Equal(t, int64(1), d.Stats().TasksFailed,
+		"a task message that can never run is counted as failed so idle detection does not wait for it")
 }
 
-func Test_persistOrUpdateTask_Retry(t *testing.T) {
+func Test_persistOrUpdateTask(t *testing.T) {
 	t.Parallel()
 
-	eventBus := newMockEventBus()
-	store := &orchestrator_domain.MockTaskStore{}
-	config := orchestrator_domain.DefaultDispatcherConfig()
-	config.SyncPersistence = true
+	testCases := []struct {
+		name          string
+		status        orchestrator_domain.TaskStatus
+		wantStatus    orchestrator_domain.TaskStatus
+		attempt       int
+		wantCreateHit int64
+		persistTwice  bool
+		wantCreated   bool
+	}{
+		{
+			name:          "retry task is updated to pending without a new record",
+			status:        orchestrator_domain.StatusRetrying,
+			attempt:       1,
+			wantCreated:   false,
+			wantStatus:    orchestrator_domain.StatusPending,
+			wantCreateHit: 0,
+		},
+		{
+			name:          "new task creates its record",
+			status:        orchestrator_domain.StatusPending,
+			wantCreated:   true,
+			wantStatus:    orchestrator_domain.StatusPending,
+			wantCreateHit: 1,
+		},
+		{
+			name:          "task whose record already exists is not created again",
+			status:        orchestrator_domain.StatusPending,
+			persistTwice:  true,
+			wantCreated:   false,
+			wantStatus:    orchestrator_domain.StatusPending,
+			wantCreateHit: 1,
+		},
+	}
 
-	d := newWatermillTaskDispatcher(config, eventBus, store)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	ctx := t.Context()
+			store := &orchestrator_domain.MockTaskStore{}
+			config := orchestrator_domain.DefaultDispatcherConfig()
+			config.SyncPersistence = true
+			d := newWatermillTaskDispatcher(config, newMockEventBus(), store)
 
-	t.Run("retry task updates status to pending", func(t *testing.T) {
+			task := &orchestrator_domain.Task{
+				ID:               "task-1",
+				WorkflowID:       "wf-1",
+				Executor:         "test-executor",
+				Status:           tc.status,
+				Attempt:          tc.attempt,
+				DeduplicationKey: "dedup-key",
+			}
+
+			if tc.persistTwice {
+				_, err := d.persistOrUpdateTask(t.Context(), task)
+				require.NoError(t, err)
+			}
+
+			created, err := d.persistOrUpdateTask(t.Context(), task)
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantCreated, created)
+			assert.Equal(t, tc.wantStatus, task.Status)
+			assert.Equal(t, tc.wantCreateHit, store.CreateTaskWithDedupCallCount.Load())
+		})
+	}
+
+	t.Run("duplicate active task is reported", func(t *testing.T) {
 		t.Parallel()
-		task := &orchestrator_domain.Task{
-			ID:         "retry-task",
-			WorkflowID: "wf-1",
-			Executor:   "test-executor",
-			Status:     orchestrator_domain.StatusRetrying,
-			Attempt:    1,
-		}
-		err := d.persistOrUpdateTask(ctx, task)
-		require.NoError(t, err)
-		assert.Equal(t, orchestrator_domain.StatusPending, task.Status)
-	})
 
-	t.Run("new task with dedup error", func(t *testing.T) {
-		t.Parallel()
-		localStore := &orchestrator_domain.MockTaskStore{
+		store := &orchestrator_domain.MockTaskStore{
 			CreateTaskWithDedupFunc: func(_ context.Context, _ *orchestrator_domain.Task) error {
 				return orchestrator_domain.ErrDuplicateTask
 			},
 		}
-		localD := newWatermillTaskDispatcher(config, eventBus, localStore)
+		config := orchestrator_domain.DefaultDispatcherConfig()
+		d := newWatermillTaskDispatcher(config, newMockEventBus(), store)
 
 		task := &orchestrator_domain.Task{
 			ID:               "new-task",
 			WorkflowID:       "wf-2",
 			Executor:         "test-executor",
 			Status:           orchestrator_domain.StatusPending,
-			Attempt:          0,
 			DeduplicationKey: "dedup-key",
 		}
-		err := localD.persistOrUpdateTask(ctx, task)
-		require.Error(t, err)
-		assert.ErrorIs(t, err, orchestrator_domain.ErrDuplicateTask)
+		created, err := d.persistOrUpdateTask(t.Context(), task)
+		require.ErrorIs(t, err, orchestrator_domain.ErrDuplicateTask)
+		assert.False(t, created)
 	})
 }
 
@@ -716,7 +761,9 @@ func Test_watermillTaskDispatcher_Dispatch_PublishFails(t *testing.T) {
 	}
 	config := orchestrator_domain.DefaultDispatcherConfig()
 
-	d := newWatermillTaskDispatcher(config, eventBus, nil)
+	store := &orchestrator_domain.MockTaskStore{}
+	d := newWatermillTaskDispatcher(config, eventBus, store)
+	startPublishing(t, d)
 	ctx := t.Context()
 
 	task := &orchestrator_domain.Task{
@@ -728,6 +775,14 @@ func Test_watermillTaskDispatcher_Dispatch_PublishFails(t *testing.T) {
 	err := d.Dispatch(ctx, task)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "publishing task")
+	assert.Equal(t, orchestrator_domain.StatusFailed, task.Status,
+		"a task whose message was never published is recorded as failed so its key is freed")
+	assert.Contains(t, task.LastError, assert.AnError.Error())
+	assert.Equal(t, int64(1), store.UpdateTaskCallCount.Load())
+
+	stats := d.Stats()
+	assert.Equal(t, int64(0), stats.TasksDispatched, "an unpublished task is not counted as dispatched")
+	assert.True(t, d.IsIdle())
 }
 
 func Test_handleTaskEvent_ValidTask(t *testing.T) {
@@ -770,6 +825,7 @@ func Test_watermillTaskDispatcher_Dispatch_RetryPath(t *testing.T) {
 	config.SyncPersistence = true
 
 	d := newWatermillTaskDispatcher(config, eventBus, store)
+	startPublishing(t, d)
 	ctx := t.Context()
 
 	task := &orchestrator_domain.Task{

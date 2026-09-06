@@ -366,8 +366,8 @@ type Sandbox interface {
 	// specified directory with a name generated from the pattern (using * as placeholder for
 	// random string).
 	//
-	// Takes directory (string) the relative directory for the temp file. Takes pattern
-	// (string) the filename pattern (e.g., "upload-*.tmp").
+	// Takes directory (string) the relative directory for the temp file.
+	// Takes pattern (string) the filename pattern (e.g., "upload-*.tmp").
 	//
 	// Returns FileHandle the created temporary file. Returns error if creation fails, path
 	// escapes sandbox, or sandbox is read-only.

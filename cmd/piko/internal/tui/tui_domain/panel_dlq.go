@@ -129,6 +129,9 @@ func NewDLQPanel(provider DLQInspector, c clock.Clock) *DLQPanel {
 		entries:           map[string][]DLQEntry{},
 		entryErrors:       map[string]error{},
 		entryCursorByType: map[string]int{},
+		lastRefresh:       time.Time{},
+		err:               nil,
+		entryMode:         false,
 	}
 	p.AssetViewer = NewAssetViewer(AssetViewerConfig[DispatcherSummary]{
 		ID:           "dlq",
@@ -344,7 +347,7 @@ func (p *DLQPanel) handleEntries(msg dlqEntriesMessage) {
 func (p *DLQPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
-			return dlqRefreshMessage{err: errNoDLQInspector}
+			return dlqRefreshMessage{err: errNoDLQInspector, summaries: nil}
 		}
 		ctx, cancel := context.WithTimeoutCause(context.Background(), dlqRefreshTimeout,
 			errors.New("DLQ summary exceeded timeout"))
@@ -384,17 +387,17 @@ func (p *DLQPanel) detailBody() inspector.DetailBody {
 		return p.overviewBody()
 	}
 	rows := []inspector.DetailRow{
-		{Label: "Type", Value: current.Type},
-		{Label: "Queued", Value: fmt.Sprintf(fmtDecimal, current.QueuedItems)},
-		{Label: "Dead-letter", Value: fmt.Sprintf(fmtDecimal, current.DeadLetterCount)},
-		{Label: "Retry queue", Value: fmt.Sprintf(fmtDecimal, current.RetryQueueSize)},
-		{Label: "Processed", Value: fmt.Sprintf(fmtDecimal, current.TotalProcessed)},
-		{Label: "Successful", Value: fmt.Sprintf(fmtDecimal, current.TotalSuccessful)},
-		{Label: "Failed", Value: fmt.Sprintf(fmtDecimal, current.TotalFailed)},
-		{Label: "Retries", Value: fmt.Sprintf(fmtDecimal, current.TotalRetries)},
-		{Label: "Uptime", Value: current.Uptime.Truncate(time.Second).String()},
+		inspector.NewDetailRow("Type", current.Type),
+		inspector.NewDetailRow("Queued", fmt.Sprintf(fmtDecimal, current.QueuedItems)),
+		inspector.NewDetailRow("Dead-letter", fmt.Sprintf(fmtDecimal, current.DeadLetterCount)),
+		inspector.NewDetailRow("Retry queue", fmt.Sprintf(fmtDecimal, current.RetryQueueSize)),
+		inspector.NewDetailRow("Processed", fmt.Sprintf(fmtDecimal, current.TotalProcessed)),
+		inspector.NewDetailRow("Successful", fmt.Sprintf(fmtDecimal, current.TotalSuccessful)),
+		inspector.NewDetailRow("Failed", fmt.Sprintf(fmtDecimal, current.TotalFailed)),
+		inspector.NewDetailRow("Retries", fmt.Sprintf(fmtDecimal, current.TotalRetries)),
+		inspector.NewDetailRow("Uptime", current.Uptime.Truncate(time.Second).String()),
 	}
-	sections := []inspector.DetailSection{{Heading: "Counters", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Counters", rows)}
 
 	p.stateMutex.RLock()
 	entries := p.entries[current.Type]
@@ -405,7 +408,10 @@ func (p *DLQPanel) detailBody() inspector.DetailBody {
 
 	switch {
 	case entriesErr != nil:
-		sections = append(sections, inspector.DetailSection{Heading: "Entries", Rows: []inspector.DetailRow{{Label: "Error", Value: entriesErr.Error()}}})
+		sections = append(sections, inspector.NewDetailSection(
+			"Entries",
+			[]inspector.DetailRow{inspector.NewDetailRow("Error", entriesErr.Error())},
+		))
 	case len(entries) > 0:
 		sections = append(sections, dlqEntriesListSection(entries, entryCursor, entryMode))
 		if entryMode && entryCursor >= 0 && entryCursor < len(entries) {
@@ -448,12 +454,9 @@ func dlqEntriesListSection(entries []DLQEntry, cursor int, entryMode bool) inspe
 			marker = MenuMarker + SingleSpace
 		}
 		summary := fmt.Sprintf("attempts=%d · %s", e.TotalAttempts, oneLineError(e.OriginalError))
-		rows = append(rows, inspector.DetailRow{
-			Label: marker + label,
-			Value: summary,
-		})
+		rows = append(rows, inspector.NewDetailRow(marker+label, summary))
 	}
-	return inspector.DetailSection{Heading: "Recent dead-lettered", Rows: rows}
+	return inspector.NewDetailSection("Recent dead-lettered", rows)
 }
 
 // dlqEntryFocusSection renders the deep-dive section for one DLQ entry: full error
@@ -464,14 +467,14 @@ func dlqEntriesListSection(entries []DLQEntry, cursor int, entryMode bool) inspe
 // Returns inspector.DetailSection ready to append to the body.
 func dlqEntryFocusSection(e DLQEntry) inspector.DetailSection {
 	rows := []inspector.DetailRow{
-		{Label: "ID", Value: e.ID},
-		{Label: "Type", Value: e.Type},
-		{Label: "Attempts", Value: fmt.Sprintf(fmtDecimal, e.TotalAttempts)},
-		{Label: "Added", Value: inspector.FormatDetailTime(e.AddedAt)},
-		{Label: "Last attempt", Value: inspector.FormatDetailTime(e.LastAttempt)},
-		{Label: "Error", Value: e.OriginalError},
+		inspector.NewDetailRow("ID", e.ID),
+		inspector.NewDetailRow("Type", e.Type),
+		inspector.NewDetailRow("Attempts", fmt.Sprintf(fmtDecimal, e.TotalAttempts)),
+		inspector.NewDetailRow("Added", inspector.FormatDetailTime(e.AddedAt)),
+		inspector.NewDetailRow("Last attempt", inspector.FormatDetailTime(e.LastAttempt)),
+		inspector.NewDetailRow("Error", e.OriginalError),
 	}
-	return inspector.DetailSection{Heading: "Selected entry", Rows: rows}
+	return inspector.NewDetailSection("Selected entry", rows)
 }
 
 // oneLineError collapses error messages to a single line so the row summary stays

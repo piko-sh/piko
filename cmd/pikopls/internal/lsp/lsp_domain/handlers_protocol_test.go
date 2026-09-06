@@ -252,7 +252,7 @@ func TestRangeFormatting_EnabledWithDoc_ReturnsEdits(t *testing.T) {
 	params := &protocol.DocumentRangeFormattingParams{
 		TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 10, Character: 0},
 		},
 	}
@@ -280,7 +280,7 @@ func TestRangeFormatting_EnabledNotInCache_ReturnsNil(t *testing.T) {
 	params := &protocol.DocumentRangeFormattingParams{
 		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///missing.pk"},
 		Range: protocol.Range{
-			Start: protocol.Position{Line: 0, Character: 0},
+			Start: protocol.Position{},
 			End:   protocol.Position{Line: 10, Character: 0},
 		},
 	}
@@ -363,10 +363,8 @@ func TestImplementation_WithExistingDocument(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	params := &protocol.ImplementationParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
-			Position:     protocol.Position{Line: 0, Character: 5},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
+		Position:     protocol.Position{Line: 0, Character: 5},
 	}
 
 	locations, err := server.Implementation(context.Background(), params)
@@ -379,13 +377,11 @@ func TestImplementation_WithExistingDocument(t *testing.T) {
 }
 
 func TestImplementation_NilWorkspace_ReturnsEmpty(t *testing.T) {
-	server := &Server{workspace: nil}
+	server := &Server{}
 
 	params := &protocol.ImplementationParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///test.pk"},
-			Position:     protocol.Position{Line: 0, Character: 0},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///test.pk"},
+		Position:     protocol.Position{},
 	}
 
 	locations, err := server.Implementation(context.Background(), params)
@@ -408,10 +404,8 @@ func TestMoniker_WithExistingDocument(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	params := &protocol.MonikerParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
-			Position:     protocol.Position{Line: 0, Character: 5},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
+		Position:     protocol.Position{Line: 0, Character: 5},
 	}
 
 	monikers, err := server.Moniker(context.Background(), params)
@@ -424,13 +418,11 @@ func TestMoniker_WithExistingDocument(t *testing.T) {
 }
 
 func TestMoniker_NilWorkspace_ReturnsEmpty(t *testing.T) {
-	server := &Server{workspace: nil}
+	server := &Server{}
 
 	params := &protocol.MonikerParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: "file:///test.pk"},
-			Position:     protocol.Position{Line: 0, Character: 0},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: "file:///test.pk"},
+		Position:     protocol.Position{},
 	}
 
 	monikers, err := server.Moniker(context.Background(), params)
@@ -455,11 +447,9 @@ func TestRename_WithReferences_GeneratesEdits(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	params := &protocol.RenameParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
-			Position:     protocol.Position{Line: 0, Character: 5},
-		},
-		NewName: "newName",
+		TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
+		Position:     protocol.Position{Line: 0, Character: 5},
+		NewName:      "newName",
 	}
 
 	edit, err := server.Rename(context.Background(), params)
@@ -484,10 +474,8 @@ func TestReferences_ReturnsEmptyForDocWithoutAnnotations(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	params := &protocol.ReferenceParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
-			Position:     protocol.Position{Line: 0, Character: 5},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
+		Position:     protocol.Position{Line: 0, Character: 5},
 	}
 
 	locations, err := server.References(context.Background(), params)
@@ -941,10 +929,8 @@ func TestPrepareRename_DocumentNotDirty_ReturnsResult(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	params := &protocol.PrepareRenameParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
-			Position:     protocol.Position{Line: 0, Character: 5},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
+		Position:     protocol.Position{Line: 0, Character: 5},
 	}
 
 	_, err := server.PrepareRename(context.Background(), params)
@@ -966,10 +952,8 @@ func TestSignatureHelp_FallbackPath_ReturnsResult(t *testing.T) {
 	server := &Server{workspace: ws}
 
 	params := &protocol.SignatureHelpParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
-			Position:     protocol.Position{Line: 0, Character: 5},
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: testURI},
+		Position:     protocol.Position{Line: 0, Character: 5},
 	}
 
 	result, err := server.SignatureHelp(context.Background(), params)

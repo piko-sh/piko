@@ -505,6 +505,8 @@ func (bs *buildService) buildResult(
 		TotalFatalFailed: endStats.TasksFatalFailed - startStats.TasksFatalFailed,
 		TotalRetried:     endStats.TasksRetried - startStats.TasksRetried,
 		Duration:         time.Since(buildStartTime),
+		Failures:         nil,
+		TimedOut:         false,
 	}
 
 	failed := endStats.TasksFailed - startStats.TasksFailed
@@ -521,6 +523,7 @@ func (bs *buildService) buildResult(
 					Error:      f.LastError,
 					Attempt:    f.Attempt,
 					IsFatal:    f.IsFatal,
+					Profile:    "",
 				}
 			}
 		}
@@ -848,6 +851,7 @@ func (bs *buildService) buildExternalSandboxFactory(
 	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
 		Enabled:      true,
 		AllowedPaths: allowedPaths,
+		CWD:          "",
 	})
 	if err != nil {
 		return fmt.Errorf("creating external sandbox factory: %w", err)
@@ -1269,16 +1273,17 @@ func NewBuildService(
 	sandboxFactory safedisk.Factory,
 ) lifecycle_domain.BuilderAdapter {
 	return &buildService{
-		websiteConfig:       websiteConfig,
-		pathsConfig:         pathsConfig,
-		registryService:     registry,
-		orchestratorService: orchestratorService,
-		bridge:              bridge,
-		eventBus:            eventBus,
-		renderer:            renderer,
-		resolver:            resolver,
-		externalComponents:  externalComponents,
-		sandboxFactory:      sandboxFactory,
+		websiteConfig:          websiteConfig,
+		pathsConfig:            pathsConfig,
+		registryService:        registry,
+		orchestratorService:    orchestratorService,
+		bridge:                 bridge,
+		eventBus:               eventBus,
+		renderer:               renderer,
+		resolver:               resolver,
+		externalComponents:     externalComponents,
+		sandboxFactory:         sandboxFactory,
+		externalSandboxFactory: nil,
 	}
 }
 

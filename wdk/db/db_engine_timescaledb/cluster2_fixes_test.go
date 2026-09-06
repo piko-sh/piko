@@ -81,3 +81,30 @@ func TestCreateHypertable_InlineNamedConstraint(t *testing.T) {
 	assert.Equal(t, "timestamptz", mutation.Columns[1].SQLType.EngineName)
 	assert.Equal(t, querier_dto.TypeCategoryTemporal, mutation.Columns[1].SQLType.Category)
 }
+
+func TestApplyDDL_RejectsMalformedTimescaleStatements(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		sql  string
+	}{
+		{name: "a continuous aggregate missing VIEW", sql: `CREATE MATERIALIZED daily WITH (timescaledb.continuous) AS SELECT 1`},
+		{name: "a primary key constraint missing KEY", sql: `CREATE HYPERTABLE readings (ts TIMESTAMPTZ, PRIMARY (ts))`},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := db_engine_timescaledb.NewTimescaleDBEngine()
+			statements, err := engine.ParseStatements(testCase.sql)
+			require.NoError(t, err)
+			require.Len(t, statements, 1)
+
+			_, err = engine.ApplyDDL(context.Background(), statements[0])
+
+			assert.Error(t, err)
+		})
+	}
+}

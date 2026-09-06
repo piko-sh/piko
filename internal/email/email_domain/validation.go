@@ -102,10 +102,12 @@ func validateAndSplitBulk(emails []*email_dto.SendParams, config ServiceConfig) 
 	for i, email := range emails {
 		if email == nil {
 			emailErr := EmailError{
-				Email:       email_dto.SendParams{},
-				Error:       fmt.Errorf("validation failed for email at original index %d: email cannot be nil", i),
-				Attempt:     1,
-				LastAttempt: time.Now(),
+				Email:        email_dto.SendParams{},
+				Error:        fmt.Errorf("validation failed for email at original index %d: email cannot be nil", i),
+				Attempt:      1,
+				LastAttempt:  time.Now(),
+				FirstAttempt: time.Time{},
+				NextRetry:    time.Time{},
 			}
 			validationErrors = append(validationErrors, emailErr)
 			continue
@@ -114,10 +116,12 @@ func validateAndSplitBulk(emails []*email_dto.SendParams, config ServiceConfig) 
 		err := validateSingle(email, config)
 		if err != nil {
 			emailErr := EmailError{
-				Email:       *email,
-				Error:       fmt.Errorf("validation failed for email at original index %d: %w", i, err),
-				Attempt:     1,
-				LastAttempt: time.Now(),
+				Email:        *email,
+				Error:        fmt.Errorf("validation failed for email at original index %d: %w", i, err),
+				Attempt:      1,
+				LastAttempt:  time.Now(),
+				FirstAttempt: time.Time{},
+				NextRetry:    time.Time{},
 			}
 			validationErrors = append(validationErrors, emailErr)
 		} else {

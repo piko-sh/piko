@@ -23,6 +23,8 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -31,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/llm/llm_dto"
+	"piko.sh/piko/internal/security/security_adapters"
 )
 
 func newTestProvider(t *testing.T) *ollamaProvider {
@@ -42,6 +45,16 @@ func newTestProvider(t *testing.T) *ollamaProvider {
 	}
 }
 
+func buildChatRequestForTest(
+	t *testing.T, p *ollamaProvider, request *llm_dto.CompletionRequest, model string,
+) *api.ChatRequest {
+	t.Helper()
+
+	chatRequest, err := p.buildChatRequest(context.Background(), request, model)
+	require.NoError(t, err)
+	return chatRequest
+}
+
 func TestBuildChatRequest_BasicMessage(t *testing.T) {
 	p := newTestProvider(t)
 
@@ -51,7 +64,7 @@ func TestBuildChatRequest_BasicMessage(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	assert.Equal(t, "llama3.2", chatRequest.Model)
 	require.Len(t, chatRequest.Messages, 1)
@@ -70,7 +83,7 @@ func TestBuildChatRequest_SystemMessage(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 2)
 	assert.Equal(t, "system", chatRequest.Messages[0].Role)
@@ -91,7 +104,7 @@ func TestBuildChatRequest_MultipleMessages(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 4)
 	assert.Equal(t, "system", chatRequest.Messages[0].Role)
@@ -111,7 +124,7 @@ func TestBuildChatRequest_WithTemperature(t *testing.T) {
 		Temperature: new(0.7),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, 0.7, chatRequest.Options["temperature"])
@@ -127,7 +140,7 @@ func TestBuildChatRequest_WithMaxTokens(t *testing.T) {
 		MaxTokens: new(256),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, 256, chatRequest.Options["num_predict"])
@@ -143,7 +156,7 @@ func TestBuildChatRequest_WithStopSequences(t *testing.T) {
 		Stop: []string{"END", "STOP"},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, []string{"END", "STOP"}, chatRequest.Options["stop"])
@@ -159,7 +172,7 @@ func TestBuildChatRequest_WithTopP(t *testing.T) {
 		TopP: new(0.9),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, 0.9, chatRequest.Options["top_p"])
@@ -175,7 +188,7 @@ func TestBuildChatRequest_WithSeed(t *testing.T) {
 		Seed: new(int64(42)),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, int64(42), chatRequest.Options["seed"])
@@ -191,7 +204,7 @@ func TestBuildChatRequest_WithFrequencyPenalty(t *testing.T) {
 		FrequencyPenalty: new(0.5),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, 0.5, chatRequest.Options["frequency_penalty"])
@@ -207,7 +220,7 @@ func TestBuildChatRequest_WithPresencePenalty(t *testing.T) {
 		PresencePenalty: new(0.3),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, 0.3, chatRequest.Options["presence_penalty"])
@@ -227,7 +240,7 @@ func TestBuildChatRequest_WithProviderOptions(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, 1, chatRequest.Options["mirostat"])
@@ -248,7 +261,7 @@ func TestBuildChatRequest_ProviderOptionsOverrideKnownOptions(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Options)
 	assert.Equal(t, 0.9, chatRequest.Options["temperature"])
@@ -270,7 +283,7 @@ func TestBuildChatRequest_WithAllOptions(t *testing.T) {
 		PresencePenalty:  new(0.6),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "custom-model")
+	chatRequest := buildChatRequestForTest(t, p, request, "custom-model")
 
 	assert.Equal(t, "custom-model", chatRequest.Model)
 	require.NotNil(t, chatRequest.Options)
@@ -292,7 +305,7 @@ func TestBuildChatRequest_NoOptions(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	assert.Nil(t, chatRequest.Options)
 }
@@ -304,7 +317,7 @@ func TestBuildChatRequest_EmptyMessages(t *testing.T) {
 		Messages: []llm_dto.Message{},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	assert.Empty(t, chatRequest.Messages)
 }
@@ -317,7 +330,7 @@ func TestBuildChatRequest_JSONResponseFormat(t *testing.T) {
 		ResponseFormat: llm_dto.ResponseFormatJSON(),
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.NotNil(t, chatRequest.Format)
 	assert.Equal(t, `"json"`, string(chatRequest.Format))
@@ -330,7 +343,7 @@ func TestBuildChatRequest_NoResponseFormat(t *testing.T) {
 		Messages: []llm_dto.Message{{Role: "user", Content: "test"}},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	assert.Nil(t, chatRequest.Format)
 }
@@ -469,7 +482,7 @@ func TestBuildChatRequest_WithTools(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Tools, 1)
 	assert.Equal(t, "function", chatRequest.Tools[0].Type)
@@ -510,7 +523,7 @@ func TestBuildChatRequest_WithToolCallMessages(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 3)
 
@@ -572,7 +585,7 @@ func TestBuildChatRequest_ContentParts_TextOnly(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 1)
 	assert.Equal(t, "hello world", chatRequest.Messages[0].Content)
@@ -594,7 +607,7 @@ func TestBuildChatRequest_ContentParts_ImageData(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 1)
 	assert.Equal(t, "describe this", chatRequest.Messages[0].Content)
@@ -616,7 +629,7 @@ func TestBuildChatRequest_ContentParts_ImageURL_NoFetcher(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 1)
 	assert.Equal(t, "describe this", chatRequest.Messages[0].Content)
@@ -655,7 +668,7 @@ func TestBuildChatRequest_ContentParts_ImageURL_WithFetcher(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 1)
 	assert.Equal(t, "describe this", chatRequest.Messages[0].Content)
@@ -680,7 +693,7 @@ func TestBuildChatRequest_ContentParts_Mixed(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 1)
 	assert.Equal(t, "firstsecond", chatRequest.Messages[0].Content)
@@ -702,7 +715,7 @@ func TestBuildChatRequest_ContentParts_Priority(t *testing.T) {
 		},
 	}
 
-	chatRequest := p.buildChatRequest(context.Background(), request, "llama3.2")
+	chatRequest := buildChatRequestForTest(t, p, request, "llama3.2")
 
 	require.Len(t, chatRequest.Messages, 1)
 	assert.Equal(t, "this should be used", chatRequest.Messages[0].Content)
@@ -737,4 +750,240 @@ func TestOllamaProvider_CapabilityMethods(t *testing.T) {
 	assert.Equal(t, true, p.SupportsSeed())
 	assert.Equal(t, false, p.SupportsParallelToolCalls())
 	assert.Equal(t, false, p.SupportsMessageName())
+}
+
+func newImageFetchTestProvider(t *testing.T, maxImages int) *ollamaProvider {
+	t.Helper()
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	t.Cleanup(client.CloseIdleConnections)
+
+	return &ollamaProvider{
+		defaultModel:          Model("llama3.2"),
+		defaultEmbeddingModel: Model("all-minilm"),
+		config: Config{
+			ImageFetch: &ImageFetchConfig{MaxImages: maxImages, MaxBytes: 1024},
+		}.WithDefaults(),
+		imageFetcher: client,
+	}
+}
+
+func TestBuildChatRequest_ImageFailuresAreReturned(t *testing.T) {
+	t.Parallel()
+
+	var imageRequests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		imageRequests.Add(1)
+		if r.URL.Path == "/missing.png" {
+			http.Error(w, strings.Repeat("not found ", 1024), http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte("image-bytes"))
+	}))
+	t.Cleanup(server.Close)
+
+	testCases := []struct {
+		wantErr     error
+		name        string
+		wantErrText string
+		parts       []llm_dto.ContentPart
+	}{
+		{
+			name:        "invalid inline base64",
+			parts:       []llm_dto.ContentPart{llm_dto.ImageDataPart("image/png", "not base64!")},
+			wantErrText: "decoding inline image data",
+		},
+		{
+			name:    "inline part without data",
+			parts:   []llm_dto.ContentPart{{Type: llm_dto.ContentPartTypeImageData}},
+			wantErr: errMalformedContentPart,
+		},
+		{
+			name:    "URL part without URL",
+			parts:   []llm_dto.ContentPart{{Type: llm_dto.ContentPartTypeImageURL}},
+			wantErr: errMalformedContentPart,
+		},
+		{
+			name:    "unsupported scheme",
+			parts:   []llm_dto.ContentPart{llm_dto.ImageURLPart("file:///etc/passwd")},
+			wantErr: errUnsupportedImageScheme,
+		},
+		{
+			name:        "unparseable URL",
+			parts:       []llm_dto.ContentPart{llm_dto.ImageURLPart("http://[::1]:namedport/a.png")},
+			wantErrText: "parsing image URL",
+		},
+		{
+			name:        "non-OK status",
+			parts:       []llm_dto.ContentPart{llm_dto.ImageURLPart(server.URL + "/missing.png")},
+			wantErrText: "unexpected HTTP status 404",
+		},
+		{
+			name: "too many image URLs",
+			parts: []llm_dto.ContentPart{
+				llm_dto.ImageURLPart(server.URL + "/one.png"),
+				llm_dto.ImageURLPart(server.URL + "/two.png"),
+				llm_dto.ImageURLPart(server.URL + "/three.png"),
+			},
+			wantErr: errTooManyImages,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			p := newImageFetchTestProvider(t, 2)
+			request := &llm_dto.CompletionRequest{
+				Messages: []llm_dto.Message{{Role: llm_dto.RoleUser, ContentParts: testCase.parts}},
+			}
+
+			chatRequest, err := p.buildChatRequest(t.Context(), request, "llama3.2")
+			assert.Nil(t, chatRequest)
+			require.Error(t, err)
+			if testCase.wantErr != nil {
+				assert.ErrorIs(t, err, testCase.wantErr)
+			}
+			if testCase.wantErrText != "" {
+				assert.Contains(t, err.Error(), testCase.wantErrText)
+			}
+		})
+	}
+}
+
+func TestBuildChatRequest_ImageLimitIsCheckedBeforeFetching(t *testing.T) {
+	t.Parallel()
+
+	var imageRequests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		imageRequests.Add(1)
+		_, _ = w.Write([]byte("image-bytes"))
+	}))
+	t.Cleanup(server.Close)
+
+	p := newImageFetchTestProvider(t, 1)
+	request := &llm_dto.CompletionRequest{
+		Messages: []llm_dto.Message{
+			{Role: llm_dto.RoleUser, ContentParts: []llm_dto.ContentPart{llm_dto.ImageURLPart(server.URL + "/a.png")}},
+			{Role: llm_dto.RoleUser, ContentParts: []llm_dto.ContentPart{llm_dto.ImageURLPart(server.URL + "/b.png")}},
+		},
+	}
+
+	_, err := p.buildChatRequest(t.Context(), request, "llama3.2")
+	require.ErrorIs(t, err, errTooManyImages)
+	assert.Zero(t, imageRequests.Load())
+}
+
+func TestBuildChatRequest_WarnsWhenImageURLsAreSkipped(t *testing.T) {
+	t.Parallel()
+
+	ctx, records := newCaptureContext(t)
+	p := newTestProvider(t)
+	request := &llm_dto.CompletionRequest{
+		Messages: []llm_dto.Message{{
+			Role: llm_dto.RoleUser,
+			ContentParts: []llm_dto.ContentPart{
+				llm_dto.ImageURLPart("https://example.com/a.png"),
+				llm_dto.ImageURLPart("https://example.com/b.png"),
+			},
+		}},
+	}
+
+	chatRequest, err := p.buildChatRequest(ctx, request, "llama3.2")
+	require.NoError(t, err)
+	assert.Empty(t, chatRequest.Messages[0].Images)
+
+	var warned bool
+	for _, record := range records.snapshot() {
+		if strings.Contains(record.message, "image fetching is disabled") {
+			warned = true
+			assert.Equal(t, "2", record.attributes["skipped_image_count"])
+		}
+	}
+	assert.True(t, warned)
+}
+
+func TestNewProvider_ImageFetchRefusesNonPublicAddresses(t *testing.T) {
+	t.Parallel()
+
+	var imageRequests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		imageRequests.Add(1)
+		_, _ = w.Write([]byte("internal-image"))
+	}))
+	t.Cleanup(server.Close)
+
+	p, err := newProvider(Config{Host: server.URL, ImageFetch: &ImageFetchConfig{}})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = p.Close(context.Background())
+	})
+	require.NotNil(t, p.imageFetcher)
+
+	_, err = p.fetchImage(t.Context(), server.URL+"/secret.png")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, security_adapters.ErrNonPublicDestination)
+	assert.Zero(t, imageRequests.Load())
+}
+
+func TestFetchImage_RequiresFetcher(t *testing.T) {
+	t.Parallel()
+
+	_, err := newTestProvider(t).fetchImage(t.Context(), "https://example.com/a.png")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not enabled")
+}
+
+func TestFetchImage_ReportsTimeoutCause(t *testing.T) {
+	t.Parallel()
+
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-release:
+		case <-r.Context().Done():
+		}
+	}))
+	t.Cleanup(func() {
+		close(release)
+		server.Close()
+	})
+
+	p := newImageFetchTestProvider(t, 1)
+	p.config.ImageFetch.Timeout = 50 * time.Millisecond
+
+	_, err := p.fetchImage(t.Context(), server.URL+"/slow.png")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeded 50ms")
+}
+
+func TestConvertDTOToolCalls_LogsInvalidArguments(t *testing.T) {
+	t.Parallel()
+
+	ctx, records := newCaptureContext(t)
+
+	calls := convertDTOToolCalls(ctx, []llm_dto.ToolCall{
+		{ID: "call-1", Type: "function", Function: llm_dto.FunctionCall{Name: "lookup", Arguments: "not json"}},
+	})
+
+	require.Len(t, calls, 1)
+	assert.Equal(t, "lookup", calls[0].Function.Name)
+	assert.Zero(t, calls[0].Function.Arguments.Len())
+
+	var warned bool
+	for _, record := range records.snapshot() {
+		if record.message == "Failed to unmarshal tool call arguments" {
+			warned = true
+			assert.Equal(t, "lookup", record.attributes["function"])
+		}
+	}
+	assert.True(t, warned)
+}
+
+func TestImageFetchSettings_DefaultsWithoutConfig(t *testing.T) {
+	t.Parallel()
+
+	p := &ollamaProvider{}
+
+	assert.Equal(t, ImageFetchConfig{}.withDefaults(), p.imageFetchSettings())
 }

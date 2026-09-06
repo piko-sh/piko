@@ -237,6 +237,9 @@ func (f *FetchOptions) Clone() *FetchOptions {
 		FilterGroup:     f.FilterGroup,
 		Sort:            make([]SortOption, len(f.Sort)),
 		Pagination:      f.Pagination,
+		Cache:           nil,
+		Filters:         nil,
+		Projection:      nil,
 	}
 
 	copy(clone.ExplicitLocales, f.ExplicitLocales)

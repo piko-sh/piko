@@ -164,9 +164,10 @@ func parseWALEntries(data []byte) (any, error) {
 	}
 
 	return walInspectResult{
-		EntryCount: len(entries),
-		FileSize:   len(data),
-		Entries:    entries,
+		EntryCount:         len(entries),
+		FileSize:           len(data),
+		Entries:            entries,
+		OriginalEntryCount: 0,
 	}, nil
 }
 
@@ -184,6 +185,9 @@ func formatRawEntry(raw wal_domain.RawEntry, index int) walInspectEntry {
 		Timestamp: formatNanoTimestamp(raw.Timestamp),
 		SizeBytes: raw.SizeBytes,
 		CRCValid:  raw.CRCValid,
+		Value:     nil,
+		ExpiresAt: "",
+		Tags:      nil,
 	}
 
 	if raw.Operation == wal_domain.OpSet && len(raw.Value) > 0 {

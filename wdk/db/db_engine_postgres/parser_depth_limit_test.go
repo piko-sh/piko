@@ -127,3 +127,35 @@ func buildNestedDerivedTables(depth int) string {
 	}
 	return sb.String()
 }
+
+func TestExpressionNestingPastTheDepthLimitIsReported(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		nesting int
+		wantErr bool
+	}{
+		{name: "nesting within the limit analyses", nesting: 6, wantErr: false},
+		{name: "nesting past the limit is an error", nesting: 64, wantErr: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := NewPostgresEngine(WithMaxParseDepth(8))
+			sql := "SELECT " + strings.Repeat("(", testCase.nesting) + "1" + strings.Repeat(")", testCase.nesting) + " AS x"
+			statements, err := engine.ParseStatements(sql)
+			require.NoError(t, err)
+
+			_, err = engine.AnalyseQuery(nil, statements[0])
+
+			if !testCase.wantErr {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorIs(t, err, errExpressionDepthExceeded)
+		})
+	}
+}

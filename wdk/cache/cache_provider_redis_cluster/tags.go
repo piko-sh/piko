@@ -56,6 +56,8 @@ func clusterHashTag(tag string) string {
 // tags) is stored per-key and may be on different nodes.
 //
 // Takes client (*redis.ClusterClient) which provides the Redis cluster connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes key (string) which is the cache key to link with tags.
 // Takes tags ([]string) which contains the tag names to link with the key.
 //
@@ -85,6 +87,8 @@ func addTagsToKey(ctx context.Context, client *redis.ClusterClient, namespace st
 // getKeysByTags retrieves all unique keys associated with the given tags.
 //
 // Takes client (*redis.ClusterClient) which provides the Redis cluster connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes tags ([]string) which specifies the tags to look up.
 //
 // Returns []string which contains the unique keys associated with the tags.
@@ -123,6 +127,8 @@ func getKeysByTags(ctx context.Context, client *redis.ClusterClient, namespace s
 // themselves. This is an atomic operation within Redis Cluster using a pipeline.
 //
 // Takes client (*redis.ClusterClient) which provides the cluster connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes tags ([]string) which specifies the tags whose keys should be removed.
 //
 // Returns int which is the number of keys that were removed.
@@ -172,6 +178,8 @@ func performTagInvalidation(ctx context.Context, client *redis.ClusterClient, na
 // leaks when keys are deleted directly via Invalidate.
 //
 // Takes client (*redis.ClusterClient) which provides the Redis connection.
+// Takes namespace (string) which isolates cache keys and tag indexes for the configured
+// namespace.
 // Takes key (string) which is the cache key to remove from tag sets.
 //
 // Returns error when getting tags fails or the pipeline fails to run.

@@ -90,7 +90,7 @@ type ToastQueue struct {
 //
 // Returns *ToastQueue ready to receive Push calls.
 func NewToastQueue() *ToastQueue {
-	return &ToastQueue{clock: clock.RealClock()}
+	return &ToastQueue{clock: clock.RealClock(), toasts: nil, mu: sync.RWMutex{}}
 }
 
 // NewToastQueueWithClock creates a queue using an injected clock so tests can advance
@@ -104,7 +104,7 @@ func NewToastQueueWithClock(clk clock.Clock) *ToastQueue {
 	if clk == nil {
 		clk = clock.RealClock()
 	}
-	return &ToastQueue{clock: clk}
+	return &ToastQueue{clock: clk, toasts: nil, mu: sync.RWMutex{}}
 }
 
 // Push appends a toast with a default TTL chosen by kind.

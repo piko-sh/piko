@@ -49,8 +49,6 @@ func main() {
 			os.Exit(cli.RunExtract(os.Args[2:]))
 		case "inspect":
 			os.Exit(cli.RunInspect(os.Args[2:]))
-		case "bytecode":
-			os.Exit(cli.RunBytecode(os.Args[2:]))
 		case "profile":
 			os.Exit(cli.RunProfile(os.Args[2:]))
 		case "generate":
@@ -88,9 +86,8 @@ Getting Started:
 
 Project Commands:
   fmt           Format Piko template files (.pk)
-  extract       Extract Go package symbols for the bytecode interpreter
+  extract       Extract Go package symbols for the pipit interpreter (dev-i)
   inspect       Inspect FlatBuffers binary files
-  bytecode      Inspect and analyse compiled bytecode files
   agents        Configure AI coding tools with Piko knowledge
   profile       Profile a live server under load (CPU, memory, mutex, blocking)
 
@@ -135,9 +132,8 @@ func printUsageCommands() {
   dev           Generate then run the dev server
   dev-i         Generate then run the dev server in interpreted mode
   fmt           Format Piko template files (.pk)
-  extract       Extract Go package symbols for the bytecode interpreter
+  extract       Extract Go package symbols for the pipit interpreter (dev-i)
   inspect       Inspect FlatBuffers binary files (manifest, i18n, collection, search, bytecode)
-  bytecode      Inspect and analyse compiled bytecode files
   agents        Configure AI tools with Piko knowledge (Claude Code, Codex, Cursor, etc.)
   profile       Profile a live server under load (CPU, memory, mutex, blocking)
 
@@ -198,7 +194,7 @@ func printUsageExamples() {
   piko agents install                       # Configure AI tools with Piko knowledge
   piko agents                               # Show available agents subcommands
   piko inspect manifest dist/manifest.bin  # Inspect a manifest binary
-  piko bytecode inspect dist/pages/x/bytecode-y.bin  # Inspect bytecode
+  piko inspect bytecode <dir>/compiled/bytecode-x.bin  # Inspect emitted bytecode
 
   piko profile http://localhost:8080/      # Profile a live server under load
   piko profile http://localhost:8080/ --focus "render"  # Focus on render functions
@@ -217,7 +213,6 @@ func printUsageExamples() {
 For subcommand-specific help:
   piko fmt -h
   piko inspect -h
-  piko bytecode -h
   piko profile -h
   piko get health --help
 

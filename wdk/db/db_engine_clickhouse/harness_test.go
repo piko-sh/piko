@@ -40,19 +40,19 @@ var (
 )
 
 type testSpec struct {
-	Description             string                             `json:"description"`
-	ShouldError             bool                               `json:"shouldError"`
 	ExpectedDiagnosticCount *int                               `json:"expectedDiagnosticCount"`
+	Description             string                             `json:"description"`
 	Diagnostics             []expectedDiagnostic               `json:"diagnostics"`
 	CustomFunctions         []querier_dto.CustomFunctionConfig `json:"customFunctions"`
+	ShouldError             bool                               `json:"shouldError"`
 }
 
 type expectedDiagnostic struct {
+	OnLine          *int   `json:"onLine"`
 	Severity        string `json:"severity"`
 	Code            string `json:"code"`
 	MessageContains string `json:"messageContains"`
 	Filename        string `json:"filename"`
-	OnLine          *int   `json:"onLine"`
 }
 
 type realFileReader struct{}

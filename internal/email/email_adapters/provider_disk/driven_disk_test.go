@@ -37,7 +37,7 @@ func TestNewDiskProvider(t *testing.T) {
 	t.Run("empty outbox path returns error", func(t *testing.T) {
 		t.Parallel()
 
-		provider, err := NewDiskProvider(context.Background(), DiskProviderArgs{OutboxPath: ""})
+		provider, err := NewDiskProvider(context.Background(), DiskProviderArgs{})
 
 		require.Error(t, err)
 		assert.Nil(t, provider)
@@ -163,11 +163,7 @@ func TestGenerateEmailFilename(t *testing.T) {
 func TestValidateSendParams(t *testing.T) {
 	t.Parallel()
 
-	defaultConfig := email_domain.ProviderRateLimitConfig{
-		CallsPerSecond: 0,
-		Burst:          0,
-		Clock:          nil,
-	}
+	defaultConfig := email_domain.ProviderRateLimitConfig{}
 	rateLimiter := email_domain.ApplyProviderOptions(defaultConfig)
 
 	t.Run("no recipients returns ErrRecipientRequired", func(t *testing.T) {
@@ -298,7 +294,7 @@ func TestCheck(t *testing.T) {
 	t.Run("liveness with empty path returns unhealthy", func(t *testing.T) {
 		t.Parallel()
 
-		provider := &DiskProvider{outboxPath: ""}
+		provider := &DiskProvider{}
 
 		status := provider.Check(context.Background(), healthprobe_dto.CheckTypeLiveness)
 

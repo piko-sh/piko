@@ -161,8 +161,11 @@ func (idx *VectorIndex[K]) Clear() {
 // Returns *VectorIndex[K] ready for use.
 func NewVectorIndex[K comparable](dimension int, metric vectormaths.Metric) *VectorIndex[K] {
 	index := &VectorIndex[K]{
-		metric:    metric,
-		dimension: dimension,
+		metric:     metric,
+		dimension:  dimension,
+		graph:      nil,
+		maxVectors: 0,
+		mu:         sync.Mutex{},
 	}
 	if dimension > 0 {
 		index.graph = hnsw.New[K](dimension, metric)

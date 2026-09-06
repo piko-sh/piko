@@ -21,6 +21,7 @@ package wasm_domain
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -347,30 +348,106 @@ func TestMatchesRoute(t *testing.T) {
 	}
 }
 
-func TestPageMatchesURL(t *testing.T) {
+func TestRankRouteCandidatesOrdersBySpecificity(t *testing.T) {
 	t.Parallel()
 
-	t.Run("matches when one pattern matches", func(t *testing.T) {
-		t.Parallel()
-		patterns := map[string]string{
-			"en": "/about",
-			"de": "/ueber-uns",
+	page := func(sourcePath string, patterns ...string) wasm_dto.ManifestPageEntry {
+		routePatterns := make(map[string]string, len(patterns))
+		for i, pattern := range patterns {
+			routePatterns[fmt.Sprintf("locale%d", i)] = pattern
 		}
-		assert.True(t, pageMatchesURL(patterns, "/about"))
-	})
+		return wasm_dto.ManifestPageEntry{RoutePatterns: routePatterns, SourcePath: sourcePath, PackagePath: "mod/" + sourcePath}
+	}
 
-	t.Run("no match when no pattern matches", func(t *testing.T) {
-		t.Parallel()
-		patterns := map[string]string{
-			"en": "/about",
-		}
-		assert.False(t, pageMatchesURL(patterns, "/contact"))
-	})
+	testCases := []struct {
+		name       string
+		pages      map[string]wasm_dto.ManifestPageEntry
+		requestURL string
+		want       []string
+	}{
+		{
+			name: "static route before dynamic route",
+			pages: map[string]wasm_dto.ManifestPageEntry{
+				"a": page("pages/{slug}.pk", "/blog/{slug}"),
+				"b": page("pages/about.pk", "/blog/about"),
+			},
+			requestURL: "/blog/about",
+			want:       []string{"pages/about.pk", "pages/{slug}.pk"},
+		},
+		{
+			name: "dynamic route before catch-all route",
+			pages: map[string]wasm_dto.ManifestPageEntry{
+				"a": page("pages/all.pk", "/docs/{path*}"),
+				"b": page("pages/one.pk", "/docs/{page}"),
+			},
+			requestURL: "/docs/intro",
+			want:       []string{"pages/one.pk", "pages/all.pk"},
+		},
+		{
+			name: "longer catch-all before shorter catch-all",
+			pages: map[string]wasm_dto.ManifestPageEntry{
+				"a": page("pages/root.pk", "/{path*}"),
+				"b": page("pages/docs.pk", "/docs/{path*}"),
+			},
+			requestURL: "/docs/a/b",
+			want:       []string{"pages/docs.pk", "pages/root.pk"},
+		},
+		{
+			name: "equal specificity falls back to lexical order",
+			pages: map[string]wasm_dto.ManifestPageEntry{
+				"a": page("pages/second.pk", "/{b}"),
+				"b": page("pages/first.pk", "/{a}"),
+			},
+			requestURL: "/x",
+			want:       []string{"pages/first.pk", "pages/second.pk"},
+		},
+		{
+			name: "page listed once under its most specific pattern",
+			pages: map[string]wasm_dto.ManifestPageEntry{
+				"a": page("pages/about.pk", "/{slug}", "/about"),
+				"b": page("pages/other.pk", "/{name}"),
+			},
+			requestURL: "/about",
+			want:       []string{"pages/about.pk", "pages/other.pk"},
+		},
+		{
+			name: "no matching route",
+			pages: map[string]wasm_dto.ManifestPageEntry{
+				"a": page("pages/about.pk", "/about"),
+			},
+			requestURL: "/contact",
+			want:       nil,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			manifest := &wasm_dto.GeneratedManifest{Pages: testCase.pages}
+			var got []string
+			for _, candidate := range rankRouteCandidates(manifest, testCase.requestURL) {
+				got = append(got, candidate.page.SourcePath)
+			}
+			assert.Equal(t, testCase.want, got)
+		})
+	}
+}
 
-	t.Run("empty patterns", func(t *testing.T) {
-		t.Parallel()
-		assert.False(t, pageMatchesURL(map[string]string{}, "/any"))
-	})
+func TestRankRouteCandidatesIgnoresMissingManifest(t *testing.T) {
+	t.Parallel()
+	assert.Empty(t, rankRouteCandidates(nil, "/"))
+}
+
+func TestFindPageStyleBlockUsesMostSpecificPage(t *testing.T) {
+	t.Parallel()
+	response := &wasm_dto.GenerateFromSourcesResponse{
+		Manifest: &wasm_dto.GeneratedManifest{Pages: map[string]wasm_dto.ManifestPageEntry{
+			"dynamic": {RoutePatterns: map[string]string{"en": "/{slug}"}, SourcePath: "pages/{slug}.pk", StyleBlock: "dynamic"},
+			"static":  {RoutePatterns: map[string]string{"en": "/about"}, SourcePath: "pages/about.pk", StyleBlock: "static"},
+		}},
+	}
+	for range 20 {
+		assert.Equal(t, "static", findPageStyleBlock(response, "/about"))
+	}
 }
 
 func TestFindArtefactBySourcePath(t *testing.T) {
@@ -481,7 +558,7 @@ func TestLookupPackagePath(t *testing.T) {
 
 	t.Run("returns empty for nil pages", func(t *testing.T) {
 		t.Parallel()
-		manifest := &wasm_dto.GeneratedManifest{Pages: nil}
+		manifest := &wasm_dto.GeneratedManifest{}
 		assert.Empty(t, lookupPackagePath(manifest, "index.pk"))
 	})
 }
@@ -1403,4 +1480,34 @@ func (s *stubRenderPort) RenderFromAST(ctx context.Context, request *wasm_dto.Re
 		return s.renderASTFunc(ctx, request)
 	}
 	return &wasm_dto.RenderFromASTResponse{}, nil
+}
+
+func TestCollectPartialDependencies(t *testing.T) {
+	t.Parallel()
+	artefacts := []wasm_dto.GeneratedArtefact{
+		{Type: wasm_dto.ArtefactTypePartial, Path: "dist/partials/card_1234/generated.go", Content: "package card"},
+		{Type: wasm_dto.ArtefactTypePartial, Path: "dist/partials/card_1234/style.css", Content: ".card{}"},
+		{Type: wasm_dto.ArtefactTypePartial, Path: "generated.go", Content: "package root"},
+		{Type: wasm_dto.ArtefactTypePartial, Path: "dist/other/generated.go", Content: "package other"},
+		{Type: wasm_dto.ArtefactTypePage, Path: "dist/partials/page/generated.go", Content: "package page"},
+	}
+	assert.Equal(t, map[string]string{"mymod/dist/partials/card_1234": "package card"}, collectPartialDependencies(artefacts, "mymod"))
+}
+
+func TestArtefactDirectory(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		path string
+		want string
+	}{
+		{path: "dist/partials/card/generated.go", want: "dist/partials/card"},
+		{path: "generated.go", want: ""},
+		{path: "/generated.go", want: ""},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.path, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, testCase.want, artefactDirectory(testCase.path))
+		})
+	}
 }

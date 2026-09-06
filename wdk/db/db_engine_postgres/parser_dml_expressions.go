@@ -28,12 +28,13 @@ import (
 //
 // Bounds parenthesis-driven recursion. A stack overflow here is a fatal, non-recoverable
 // Go error, so the cap (not the engine's recover guard) is what keeps deeply nested input
-// from crashing the host. On overflow it returns an unknown expression rather than
-// descending further.
+// from crashing the host. On overflow it records errExpressionDepthExceeded, which fails
+// the statement, and returns an unknown expression rather than descending further.
 //
 // Returns querier_dto.Expression which is the parsed expression.
 func (p *parser) parseExpression() querier_dto.Expression {
 	if p.expressionDepth >= p.maxParseDepth {
+		_ = p.recordSyntaxError(errExpressionDepthExceeded)
 		return &querier_dto.UnknownExpression{}
 	}
 	p.expressionDepth++
@@ -193,7 +194,7 @@ func (p *parser) parseComparisonOperator(left querier_dto.Expression) querier_dt
 	operator := p.advance().value
 	if p.matchKeyword("ANY") || p.matchKeyword(keywordALL) || p.matchKeyword("SOME") {
 		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
+			_ = p.requireSkipParenthesised()
 		}
 		return &querier_dto.ComparisonExpression{Operator: operator, Left: left, Right: &querier_dto.UnknownExpression{}}
 	}
@@ -468,7 +469,12 @@ func (p *parser) parseIdentifierExpression() querier_dto.Expression {
 
 	if _, isImplicit := implicitFunctionIdentifiers[upper]; isImplicit {
 		p.advance()
-		return &querier_dto.FunctionCallExpression{FunctionName: strings.ToLower(upper)}
+		return &querier_dto.FunctionCallExpression{
+			FunctionName:     strings.ToLower(upper),
+			FilterExpression: nil,
+			Schema:           "",
+			Arguments:        nil,
+		}
 	}
 
 	return p.parseColumnOrFunctionReference()

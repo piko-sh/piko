@@ -107,7 +107,7 @@ func (g *Graph[K]) searchLayer(entry *node[K], target []float32, candidateCount,
 	candidateItems := g.getPQSlice(candidateCount)
 	resultItems := g.getPQSlice(candidateCount)
 
-	candidates := priorityQueue[K]{items: candidateItems}
+	candidates := priorityQueue[K]{items: candidateItems, max: false}
 	candidates.push(entryItem)
 
 	results := priorityQueue[K]{items: resultItems, max: true}

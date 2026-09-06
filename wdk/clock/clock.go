@@ -255,6 +255,9 @@ func NewMockClock(startTime time.Time) *MockClock {
 		channelTimers:    []*mockChannelTimer{},
 		tickers:          []*mockTicker{},
 		timerSetupSignal: make(chan struct{}),
+		timerSetupCount:  atomic.Int64{},
+		mu:               sync.RWMutex{},
+		signalMu:         sync.Mutex{},
 	}
 }
 

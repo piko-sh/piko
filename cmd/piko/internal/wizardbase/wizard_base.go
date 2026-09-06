@@ -51,7 +51,7 @@ func NewWizardBase() WizardBase {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
-	return WizardBase{Spinner: s}
+	return WizardBase{Spinner: s, Selected: nil, Step: 0, Cursor: 0, Aborted: false}
 }
 
 // HandleAbort sets the Aborted flag and returns a quit command.

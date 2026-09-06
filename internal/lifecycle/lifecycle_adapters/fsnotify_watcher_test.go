@@ -433,6 +433,62 @@ func TestNewFSNotifyWatcher(t *testing.T) {
 	})
 }
 
+func TestFSNotifyWatcher_WatchReadyForImmediateRename(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	pages := filepath.Join(root, "pages")
+	nested := filepath.Join(pages, "news")
+	assets := filepath.Join(root, "assets")
+	require.NoError(t, os.MkdirAll(nested, 0o755))
+	require.NoError(t, os.MkdirAll(assets, 0o755))
+	oldPath := filepath.Join(nested, "main.pk")
+	newPath := filepath.Join(nested, "home.pk")
+	require.NoError(t, os.WriteFile(oldPath, []byte("page"), 0o644))
+
+	watcher, err := NewFSNotifyWatcher(nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, watcher.Close()) })
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	events, err := watcher.Watch(ctx, []string{pages, assets, filepath.Join(root, "partials")}, nil)
+	require.NoError(t, err)
+	fsWatcher, ok := watcher.(*fsNotifyWatcher)
+	require.True(t, ok)
+	require.ElementsMatch(t, []string{pages, nested, assets}, fsWatcher.watcher.WatchList())
+
+	require.NoError(t, os.Rename(oldPath, newPath))
+	timeout := time.NewTimer(3 * time.Second)
+	defer timeout.Stop()
+	var removed, created bool
+	for !removed || !created {
+		select {
+		case event, ok := <-events:
+			require.True(t, ok, "watcher closed before reporting the rename")
+			removed = removed || event.Path == oldPath && event.Type == lifecycle_dto.FileEventTypeRemove
+			created = created || event.Path == newPath && event.Type == lifecycle_dto.FileEventTypeCreate
+		case <-timeout.C:
+			t.Fatalf("rename events missing, removed %v, created %v", removed, created)
+		}
+	}
+}
+
+func TestFSNotifyWatcher_WatchReportsInstallationFailure(t *testing.T) {
+	t.Parallel()
+
+	watcher, err := NewFSNotifyWatcher(nil)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, watcher.Close()) })
+	fsWatcher, ok := watcher.(*fsNotifyWatcher)
+	require.True(t, ok)
+	require.NoError(t, fsWatcher.watcher.Close())
+
+	events, err := watcher.Watch(context.Background(), []string{t.TempDir()}, nil)
+	require.ErrorIs(t, err, fsnotify.ErrClosed)
+	assert.Nil(t, events)
+	assert.Empty(t, fsWatcher.staticDirs)
+}
+
 func TestFSNotifyWatcher_Close(t *testing.T) {
 	t.Parallel()
 

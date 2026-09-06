@@ -219,6 +219,7 @@ func extractFunctionExport(s *js_ast.SFunction, symbols []ast.Symbol, exports *C
 	exports.ExportedFunctions[name] = ExportedFunction{
 		Name:    name,
 		IsAsync: s.Fn.IsAsync,
+		Params:  nil,
 	}
 }
 
@@ -232,6 +233,7 @@ func extractClauseExport(s *js_ast.SExportClause, exports *ClientScriptExports) 
 			exports.ExportedFunctions[item.Alias] = ExportedFunction{
 				Name:    item.Alias,
 				IsAsync: false,
+				Params:  nil,
 			}
 		}
 	}
@@ -254,6 +256,7 @@ func extractDefaultExport(s *js_ast.SExportDefault, symbols []ast.Symbol, export
 	exports.ExportedFunctions[name] = ExportedFunction{
 		Name:    name,
 		IsAsync: fnStmt.Fn.IsAsync,
+		Params:  nil,
 	}
 }
 
@@ -280,6 +283,7 @@ func extractLocalExport(s *js_ast.SLocal, symbols []ast.Symbol, exports *ClientS
 		exports.ExportedFunctions[name] = ExportedFunction{
 			Name:    name,
 			IsAsync: isAsync,
+			Params:  nil,
 		}
 	}
 }

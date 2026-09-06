@@ -21,9 +21,11 @@ package db_engine_duckdb
 import (
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
+	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -41,7 +43,10 @@ type typeNormaliser interface {
 	NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType
 }
 
-// parseCreateTable parses a CREATE TABLE statement into a mutation.
+// parseCreateTable parses a CREATE [OR REPLACE] [TEMP] TABLE statement into a mutation.
+//
+// CREATE OR REPLACE TABLE drops any existing table of the same name before creating the
+// new one, so the mutation is a drop with the create as its follow-up.
 //
 // Takes engine (typeNormaliser) which resolves raw column type names.
 //
@@ -49,11 +54,17 @@ type typeNormaliser interface {
 // columns, primary key, and constraints.
 // Returns error when the table name or body cannot be parsed.
 func (p *parser) parseCreateTable(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
+
+	replaceExisting := p.skipOrReplace()
 
 	p.matchKeyword("TEMP")
 	p.matchKeyword("TEMPORARY")
-	p.mustKeyword(keywordTABLE)
+	if _, err := p.expectKeyword(keywordTABLE); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -62,12 +73,34 @@ func (p *parser) parseCreateTable(engine typeNormaliser) (*querier_dto.Catalogue
 		return nil, err
 	}
 
+	create, createError := p.parseCreateTableDefinition(engine, schema, tableName)
+	if createError != nil || !replaceExisting {
+		return create, createError
+	}
+
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationDropTable,
+		schema,
+		tableName,
+		withAdditionalMutation(create),
+	), nil
+}
+
+// parseCreateTableDefinition parses an AS query or parenthesised column and constraint
+// list following the table name in a CREATE TABLE statement.
+//
+// Takes engine (typeNormaliser) which resolves raw column type names.
+// Takes schema (string) which is the table's schema, or empty for the default.
+// Takes tableName (string) which is the table's name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the table to create.
+// Returns error when the body cannot be parsed.
+func (p *parser) parseCreateTableDefinition(
+	engine typeNormaliser,
+	schema, tableName string,
+) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword(keywordAS) {
-		return &querier_dto.CatalogueMutation{
-			Kind:       querier_dto.MutationCreateTable,
-			SchemaName: schema,
-			TableName:  tableName,
-		}, nil
+		return querier_dto.NewCatalogueMutation(querier_dto.MutationCreateTable, schema, tableName), nil
 	}
 
 	if p.current().kind != tokenLeftParen {
@@ -86,14 +119,14 @@ func (p *parser) parseCreateTable(engine typeNormaliser) (*querier_dto.Catalogue
 
 	p.skipToStatementEnd()
 
-	return &querier_dto.CatalogueMutation{
-		Kind:        querier_dto.MutationCreateTable,
-		SchemaName:  schema,
-		TableName:   tableName,
-		Columns:     columns,
-		PrimaryKey:  primaryKeyColumns,
-		Constraints: constraints,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationCreateTable,
+		schema,
+		tableName,
+		querier_dto.WithColumns(columns),
+		querier_dto.WithPrimaryKey(primaryKeyColumns),
+		querier_dto.WithConstraints(constraints),
+	), nil
 }
 
 // parseCreateTableBody walks the parenthesised column and constraint list of a CREATE
@@ -203,15 +236,14 @@ func (p *parser) parseDuckDBColumnDefinition(engine typeNormaliser) (querier_dto
 
 	sqlType, arrayDimensions := p.parseColumnType(engine)
 
-	column := querier_dto.Column{
-		Name:            name,
-		SQLType:         sqlType,
-		Nullable:        true,
-		IsArray:         arrayDimensions > 0,
-		ArrayDimensions: arrayDimensions,
-	}
+	column := querier_dto.NewColumn(name, sqlType, true)
+	column.IsArray = arrayDimensions > 0
+	column.ArrayDimensions = arrayDimensions
 
-	isPrimaryKey := p.parseColumnConstraints(&column)
+	isPrimaryKey, constraintError := p.parseColumnConstraints(&column)
+	if constraintError != nil {
+		return querier_dto.Column{}, false, constraintError
+	}
 
 	return column, isPrimaryKey, nil
 }
@@ -223,11 +255,15 @@ func (p *parser) parseDuckDBColumnDefinition(engine typeNormaliser) (querier_dto
 // state.
 //
 // Returns bool which is true when a PRIMARY KEY suffix was seen.
-func (p *parser) parseColumnConstraints(column *querier_dto.Column) bool {
+// Returns error when a constraint is malformed.
+func (p *parser) parseColumnConstraints(column *querier_dto.Column) (bool, error) {
 	isPrimaryKey := false
 
 	for !p.atEnd() && p.current().kind != tokenComma && p.current().kind != tokenRightParen {
-		primary, handled := p.parseOneDuckDBColumnConstraint(column)
+		primary, handled, err := p.parseOneDuckDBColumnConstraint(column)
+		if err != nil {
+			return false, err
+		}
 		if primary {
 			isPrimaryKey = true
 		}
@@ -236,7 +272,7 @@ func (p *parser) parseColumnConstraints(column *querier_dto.Column) bool {
 		}
 	}
 
-	return isPrimaryKey
+	return isPrimaryKey, nil
 }
 
 // parseOneDuckDBColumnConstraint consumes one column-level constraint when the current
@@ -246,43 +282,52 @@ func (p *parser) parseColumnConstraints(column *querier_dto.Column) bool {
 //
 // Returns isPrimary (bool) which is true when PRIMARY KEY was seen.
 // Returns handled (bool) which is true when a constraint was consumed.
-func (p *parser) parseOneDuckDBColumnConstraint(column *querier_dto.Column) (isPrimary bool, handled bool) {
+// Returns err (error) when the constraint is malformed.
+func (p *parser) parseOneDuckDBColumnConstraint(column *querier_dto.Column) (isPrimary bool, handled bool, err error) {
 	if p.matchKeyword(keywordPRIMARY) {
 		p.matchKeyword(keywordKEY)
 		column.Nullable = false
 		column.HasDefault = true
-		return true, true
+		return true, true, nil
 	}
 
 	if p.matchKeyword(keywordNOT) {
 		p.matchKeyword(keywordNULL)
 		column.Nullable = false
-		return false, true
+		return false, true, nil
 	}
 
 	if p.matchKeyword(keywordNULL) {
 		column.Nullable = true
-		return false, true
+		return false, true, nil
 	}
 
 	if p.matchKeyword(keywordUNIQUE) {
-		return false, true
+		return false, true, nil
 	}
 
 	if p.matchKeyword(keywordCHECK) {
-		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
-		}
-		return false, true
+		return false, true, p.skipParenthesisedIfPresent()
 	}
 
 	if p.matchKeyword(keywordDEFAULT) {
 		column.HasDefault = true
-		p.skipDuckDBDefaultValue()
-		return false, true
+		return false, true, p.skipDuckDBDefaultValue()
 	}
 
-	return false, p.parseDuckDBSecondaryConstraint(column)
+	handled, err = p.parseDuckDBSecondaryConstraint(column)
+	return false, handled, err
+}
+
+// skipParenthesisedIfPresent consumes a balanced parenthesised group when the current
+// token opens one.
+//
+// Returns error when the group is unbalanced.
+func (p *parser) skipParenthesisedIfPresent() error {
+	if p.current().kind != tokenLeftParen {
+		return nil
+	}
+	return p.skipParenthesised()
 }
 
 // parseDuckDBSecondaryConstraint handles the less common column-level constraints
@@ -291,28 +336,27 @@ func (p *parser) parseOneDuckDBColumnConstraint(column *querier_dto.Column) (isP
 // Takes column (*querier_dto.Column) which is mutated as appropriate.
 //
 // Returns bool which is true when a constraint was consumed.
-func (p *parser) parseDuckDBSecondaryConstraint(column *querier_dto.Column) bool {
+// Returns error when the constraint is malformed.
+func (p *parser) parseDuckDBSecondaryConstraint(column *querier_dto.Column) (bool, error) {
 	if p.matchKeyword("REFERENCES") {
-		p.skipDuckDBForeignKeyClause()
-		return true
+		return true, p.skipDuckDBForeignKeyClause()
 	}
 
 	if p.matchKeyword("GENERATED") {
-		p.parseGeneratedClause(column)
-		return true
+		return true, p.parseGeneratedClause(column)
 	}
 
 	if p.matchKeyword("COLLATE") {
 		p.advance()
-		return true
+		return true, nil
 	}
 
 	if p.matchKeyword(keywordCONSTRAINT) {
 		p.advance()
-		return true
+		return true, nil
 	}
 
-	return false
+	return false, nil
 }
 
 // parseGeneratedClause parses the GENERATED ALWAYS or GENERATED BY DEFAULT clause on a
@@ -320,44 +364,47 @@ func (p *parser) parseDuckDBSecondaryConstraint(column *querier_dto.Column) bool
 //
 // Takes column (*querier_dto.Column) which is mutated when a generated or identity clause
 // is recognised.
-func (p *parser) parseGeneratedClause(column *querier_dto.Column) {
+//
+// Returns error when a parenthesised option or expression is unbalanced.
+func (p *parser) parseGeneratedClause(column *querier_dto.Column) error {
 	if p.matchKeyword("ALWAYS") {
-		p.parseGeneratedAlways(column)
-		return
+		return p.parseGeneratedAlways(column)
 	}
 	if p.matchKeyword(keywordBY) {
 		p.matchKeyword(keywordDEFAULT)
 		p.matchKeyword(keywordAS)
 		p.matchKeyword("IDENTITY")
 		column.HasDefault = true
-		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
-		}
+		return p.skipParenthesisedIfPresent()
 	}
+	return nil
 }
 
 // parseGeneratedAlways parses the body of a GENERATED ALWAYS AS clause, recognising both
 // identity and stored expression variants.
 //
 // Takes column (*querier_dto.Column) which receives the identity or generated state.
-func (p *parser) parseGeneratedAlways(column *querier_dto.Column) {
+//
+// Returns error when a parenthesised option or expression is unbalanced.
+func (p *parser) parseGeneratedAlways(column *querier_dto.Column) error {
 	if !p.matchKeyword(keywordAS) {
-		return
+		return nil
 	}
 	if p.matchKeyword("IDENTITY") {
 		column.HasDefault = true
-		if p.current().kind == tokenLeftParen {
-			p.mustSkipParenthesised()
-		}
-		return
+		return p.skipParenthesisedIfPresent()
 	}
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
-		column.IsGenerated = true
-		column.GeneratedKind = querier_dto.GeneratedKindStored
-		p.matchKeyword("STORED")
-		p.matchKeyword("VIRTUAL")
+	if p.current().kind != tokenLeftParen {
+		return nil
 	}
+	if err := p.skipParenthesised(); err != nil {
+		return err
+	}
+	column.IsGenerated = true
+	column.GeneratedKind = querier_dto.GeneratedKindStored
+	p.matchKeyword("STORED")
+	p.matchKeyword("VIRTUAL")
+	return nil
 }
 
 // parseColumnType reads a column's type, transparently unwrapping a leading SETOF
@@ -385,17 +432,18 @@ func (p *parser) parseColumnType(engine typeNormaliser) (querier_dto.SQLType, in
 // Returns int which is the array dimension count parsed from [] or [N] suffixes.
 func (p *parser) parseColumnTypeInner(engine typeNormaliser) (querier_dto.SQLType, int) {
 	if p.typeDepth >= p.maxParseDepth {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, 0
+		p.recordSyntaxError(fmt.Errorf("%w of %d at position %d", errTypeNestingTooDeep, p.maxParseDepth, p.current().position))
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), 0
 	}
 	p.typeDepth++
 	defer func() { p.typeDepth-- }()
 
 	if p.current().kind != tokenIdentifier {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, 0
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"), 0
 	}
 
 	if p.isDuckDBColumnConstraintKeyword() {
-		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, 0
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "text"), 0
 	}
 
 	firstWord := p.advance().value
@@ -413,7 +461,7 @@ func (p *parser) parseColumnTypeInner(engine typeNormaliser) (querier_dto.SQLTyp
 		p.advance()
 		qualifiedName, qualifiedError := p.parseIdentifierOrKeyword()
 		if qualifiedError != nil {
-			return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: lower}, 0
+			return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, lower), 0
 		}
 		typeSchema = firstWord
 		firstWord = qualifiedName
@@ -442,16 +490,27 @@ func (p *parser) parseColumnTypeInner(engine typeNormaliser) (querier_dto.SQLTyp
 
 // parseArrayDimensions counts consecutive [] or [N] suffixes after a type name.
 //
-// Returns int which is the number of array dimensions consumed.
+// More than maxArrayDimensions suffixes records errTooManyArrayDimensions and the count
+// stops at the cap, so a hostile `[][][]...` suffix cannot build ever-deeper wrapped
+// types.
+//
+// Returns int which is the number of array dimensions consumed, at most
+// maxArrayDimensions.
 func (p *parser) parseArrayDimensions() int {
 	dimensions := 0
 	for p.current().kind == tokenLeftBracket {
+		bracketPosition := p.current().position
 		p.advance()
 		if p.current().kind == tokenNumber {
 			p.advance()
 		}
 		if p.current().kind == tokenRightBracket {
 			p.advance()
+		}
+		if dimensions == maxArrayDimensions {
+			p.recordSyntaxError(fmt.Errorf("%w: more than %d at position %d",
+				errTooManyArrayDimensions, maxArrayDimensions, bracketPosition))
+			continue
 		}
 		dimensions++
 	}
@@ -682,9 +741,12 @@ func (p *parser) parseTableUnique(constraintName string) ([]string, *querier_dto
 		return nil, nil, columnError
 	}
 	return nil, &querier_dto.Constraint{
-		Name:    constraintName,
-		Kind:    querier_dto.ConstraintUnique,
-		Columns: columns,
+		Name:           constraintName,
+		Kind:           querier_dto.ConstraintUnique,
+		Columns:        columns,
+		ForeignTable:   "",
+		ForeignColumns: nil,
+		Origin:         querier_dto.MigrationOrigin{},
 	}, nil
 }
 
@@ -694,14 +756,18 @@ func (p *parser) parseTableUnique(constraintName string) ([]string, *querier_dto
 //
 // Returns []string which is always nil for CHECK constraints.
 // Returns *querier_dto.Constraint which is the CHECK constraint record.
-// Returns error which is always nil currently but kept for symmetry.
+// Returns error when the CHECK expression is unbalanced.
 func (p *parser) parseTableCheck(constraintName string) ([]string, *querier_dto.Constraint, error) {
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+	if err := p.skipParenthesisedIfPresent(); err != nil {
+		return nil, nil, err
 	}
 	return nil, &querier_dto.Constraint{
-		Name: constraintName,
-		Kind: querier_dto.ConstraintCheck,
+		Name:           constraintName,
+		Kind:           querier_dto.ConstraintCheck,
+		ForeignTable:   "",
+		Columns:        nil,
+		ForeignColumns: nil,
+		Origin:         querier_dto.MigrationOrigin{},
 	}, nil
 }
 
@@ -723,13 +789,17 @@ func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier
 		}
 		columns = parsed
 	}
-	foreignTable, foreignColumns := p.parseDuckDBForeignKeyReference()
+	foreignTable, foreignColumns, referenceError := p.parseDuckDBForeignKeyReference()
+	if referenceError != nil {
+		return nil, nil, referenceError
+	}
 	return nil, &querier_dto.Constraint{
 		Name:           constraintName,
 		Kind:           querier_dto.ConstraintForeignKey,
 		Columns:        columns,
 		ForeignTable:   foreignTable,
 		ForeignColumns: foreignColumns,
+		Origin:         querier_dto.MigrationOrigin{},
 	}, nil
 }
 
@@ -739,25 +809,24 @@ func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier
 // Returns string which is the referenced table name, or empty when the reference cannot
 // be parsed.
 // Returns []string which is the referenced column list, or nil when none was given.
-func (p *parser) parseDuckDBForeignKeyReference() (string, []string) {
+// Returns error when the trailing clause is malformed.
+func (p *parser) parseDuckDBForeignKeyReference() (string, []string, error) {
 	if !p.matchKeyword("REFERENCES") {
-		p.skipDuckDBForeignKeyClause()
-		return "", nil
+		return "", nil, p.skipDuckDBForeignKeyClause()
 	}
 	_, tableName, nameError := p.parseSchemaQualifiedName()
 	if nameError != nil {
-		return "", nil
+		return "", nil, nil
 	}
 	var columns []string
 	if p.current().kind == tokenLeftParen {
 		parsed, columnError := p.parseDuckDBColumnList()
 		if columnError != nil {
-			return tableName, nil
+			return tableName, nil, nil
 		}
 		columns = parsed
 	}
-	p.skipDuckDBForeignKeyClause()
-	return tableName, columns
+	return tableName, columns, p.skipDuckDBForeignKeyClause()
 }
 
 // parseDuckDBColumnList parses a parenthesised, comma-separated list of column names with
@@ -799,10 +868,11 @@ func (p *parser) parseDuckDBColumnList() ([]string, error) {
 
 // skipDuckDBDefaultValue advances past the expression following DEFAULT, stopping at a
 // top-level comma or the next constraint keyword.
-func (p *parser) skipDuckDBDefaultValue() {
+//
+// Returns error when a parenthesised default is unbalanced.
+func (p *parser) skipDuckDBDefaultValue() error {
 	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
-		return
+		return p.skipParenthesised()
 	}
 
 	depth := 0
@@ -814,30 +884,35 @@ func (p *parser) skipDuckDBDefaultValue() {
 		}
 		if p.current().kind == tokenRightParen {
 			if depth == 0 {
-				return
+				return nil
 			}
 			depth--
 			p.advance()
 			continue
 		}
 		if depth == 0 && p.current().kind == tokenComma {
-			return
+			return nil
 		}
 		if depth == 0 && p.isDuckDBColumnConstraintKeyword() {
-			return
+			return nil
 		}
 		p.advance()
 	}
+	return nil
 }
 
 // skipDuckDBForeignKeyClause skips the optional REFERENCES tail and trailing
 // ON/MATCH/DEFERRABLE/INITIALLY modifier clauses.
-func (p *parser) skipDuckDBForeignKeyClause() {
+//
+// Returns error when the referenced name or column list is malformed.
+func (p *parser) skipDuckDBForeignKeyClause() error {
 	if p.current().kind == tokenIdentifier && !p.isDuckDBForeignKeyActionKeyword() {
-		p.mustSchemaQualifiedName()
+		if _, _, err := p.parseSchemaQualifiedName(); err != nil {
+			return err
+		}
 	}
-	if p.current().kind == tokenLeftParen {
-		p.mustSkipParenthesised()
+	if err := p.skipParenthesisedIfPresent(); err != nil {
+		return err
 	}
 	for p.matchKeyword(keywordON) || p.matchKeyword("MATCH") || p.matchKeyword(keywordNOT) ||
 		p.matchKeyword("DEFERRABLE") || p.matchKeyword("INITIALLY") {
@@ -846,6 +921,7 @@ func (p *parser) skipDuckDBForeignKeyClause() {
 			p.advance()
 		}
 	}
+	return nil
 }
 
 // isDuckDBForeignKeyActionKeyword reports whether the current token begins (or
@@ -863,8 +939,9 @@ func (p *parser) isDuckDBForeignKeyActionKeyword() bool {
 // Returns *querier_dto.CatalogueMutation which describes the table to drop.
 // Returns error when the table name cannot be parsed.
 func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-	p.mustKeyword(keywordTABLE)
+	if err := p.expectKeywords(keywordDROP, keywordTABLE); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -876,11 +953,7 @@ func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCASCADE)
 	p.matchKeyword(keywordRESTRICT)
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropTable,
-		SchemaName: schema,
-		TableName:  tableName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropTable, schema, tableName), nil
 }
 
 // parseAlterTable parses an ALTER TABLE statement and dispatches to the matching variant
@@ -893,8 +966,9 @@ func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
 // recognised ALTER subcommand follows.
 // Returns error when the target table name or subcommand cannot be parsed.
 func (p *parser) parseAlterTable(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword("ALTER")
-	p.mustKeyword(keywordTABLE)
+	if err := p.expectKeywords("ALTER", keywordTABLE); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -943,12 +1017,12 @@ func (p *parser) parseAlterTableAdd(
 		if constraint != nil {
 			constraints = append(constraints, *constraint)
 		}
-		return &querier_dto.CatalogueMutation{
-			Kind:        querier_dto.MutationAlterTableAddConstraint,
-			SchemaName:  schema,
-			TableName:   tableName,
-			Constraints: constraints,
-		}, nil
+		return querier_dto.NewCatalogueMutation(
+			querier_dto.MutationAlterTableAddConstraint,
+			schema,
+			tableName,
+			querier_dto.WithConstraints(constraints),
+		), nil
 	}
 	p.matchKeyword(keywordCOLUMN)
 	p.skipIfNotExists()
@@ -956,12 +1030,12 @@ func (p *parser) parseAlterTableAdd(
 	if columnError != nil {
 		return nil, columnError
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAddColumn,
-		SchemaName: schema,
-		TableName:  tableName,
-		Columns:    []querier_dto.Column{column},
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableAddColumn,
+		schema,
+		tableName,
+		querier_dto.WithColumns([]querier_dto.Column{column}),
+	), nil
 }
 
 // parseAlterTableDrop parses the body of ALTER TABLE ... DROP ..., for either a column or
@@ -981,12 +1055,12 @@ func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.Cat
 		}
 		p.matchKeyword(keywordCASCADE)
 		p.matchKeyword(keywordRESTRICT)
-		return &querier_dto.CatalogueMutation{
-			Kind:           querier_dto.MutationAlterTableDropConstraint,
-			SchemaName:     schema,
-			TableName:      tableName,
-			ConstraintName: constraintName,
-		}, nil
+		return querier_dto.NewCatalogueMutation(
+			querier_dto.MutationAlterTableDropConstraint,
+			schema,
+			tableName,
+			querier_dto.WithConstraintName(constraintName),
+		), nil
 	}
 	p.matchKeyword(keywordCOLUMN)
 	p.skipIfExists()
@@ -994,12 +1068,12 @@ func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.Cat
 	if nameError != nil {
 		return nil, nameError
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableDropColumn,
-		SchemaName: schema,
-		TableName:  tableName,
-		ColumnName: columnName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableDropColumn,
+		schema,
+		tableName,
+		querier_dto.WithColumnName(columnName),
+	), nil
 }
 
 // parseAlterTableAlterColumn parses ALTER TABLE ... ALTER COLUMN, only extracting the
@@ -1016,12 +1090,12 @@ func (p *parser) parseAlterTableAlterColumn(schema, tableName string) (*querier_
 	if nameError != nil {
 		return nil, nameError
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableAlterColumn,
-		SchemaName: schema,
-		TableName:  tableName,
-		ColumnName: columnName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableAlterColumn,
+		schema,
+		tableName,
+		querier_dto.WithColumnName(columnName),
+	), nil
 }
 
 // parseAlterTableRename parses ALTER TABLE ... RENAME for both the table itself and
@@ -1038,12 +1112,12 @@ func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.C
 		if nameError != nil {
 			return nil, nameError
 		}
-		return &querier_dto.CatalogueMutation{
-			Kind:       querier_dto.MutationAlterTableRenameTable,
-			SchemaName: schema,
-			TableName:  tableName,
-			NewName:    newName,
-		}, nil
+		return querier_dto.NewCatalogueMutation(
+			querier_dto.MutationAlterTableRenameTable,
+			schema,
+			tableName,
+			querier_dto.WithNewName(newName),
+		), nil
 	}
 
 	p.matchKeyword(keywordCOLUMN)
@@ -1051,18 +1125,20 @@ func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.C
 	if oldError != nil {
 		return nil, oldError
 	}
-	p.mustKeyword("TO")
+	if _, err := p.expectKeyword("TO"); err != nil {
+		return nil, err
+	}
 	newName, newError := p.parseIdentifierOrKeyword()
 	if newError != nil {
 		return nil, newError
 	}
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationAlterTableRenameColumn,
-		SchemaName: schema,
-		TableName:  tableName,
-		ColumnName: oldName,
-		NewName:    newName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(
+		querier_dto.MutationAlterTableRenameColumn,
+		schema,
+		tableName,
+		querier_dto.WithColumnName(oldName),
+		querier_dto.WithNewName(newName),
+	), nil
 }
 
 // parseAlterTableSet parses ALTER TABLE ... SET ..., currently only the SET SCHEMA
@@ -1080,12 +1156,12 @@ func (p *parser) parseAlterTableSet(schema, tableName string) (*querier_dto.Cata
 		if schemaError != nil {
 			return nil, schemaError
 		}
-		return &querier_dto.CatalogueMutation{
-			Kind:       querier_dto.MutationAlterTableSetSchema,
-			SchemaName: schema,
-			TableName:  tableName,
-			NewName:    newSchema,
-		}, nil
+		return querier_dto.NewCatalogueMutation(
+			querier_dto.MutationAlterTableSetSchema,
+			schema,
+			tableName,
+			querier_dto.WithNewName(newSchema),
+		), nil
 	}
 	return nil, nil
 }
@@ -1097,14 +1173,18 @@ func (p *parser) parseAlterTableSet(schema, tableName string) (*querier_dto.Cata
 // its analysed query when one is available.
 // Returns error when the view name or column list cannot be parsed.
 func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordCREATE)
+	if _, err := p.expectKeyword(keywordCREATE); err != nil {
+		return nil, err
+	}
 
 	p.skipOrReplace()
 
 	p.matchKeyword("TEMP")
 	p.matchKeyword("TEMPORARY")
 
-	p.mustKeyword("VIEW")
+	if _, err := p.expectKeyword("VIEW"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfNotExists()
 
@@ -1122,11 +1202,7 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 		columnNames = names
 	}
 
-	mutation := &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationCreateView,
-		SchemaName: schema,
-		TableName:  viewName,
-	}
+	mutation := querier_dto.NewCatalogueMutation(querier_dto.MutationCreateView, schema, viewName)
 
 	if p.matchKeyword(keywordAS) {
 		mutation.ViewDefinition = p.analyseViewBody(columnNames)
@@ -1140,17 +1216,44 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 }
 
 // skipOrReplace consumes an optional OR REPLACE prefix.
-func (p *parser) skipOrReplace() {
-	if p.matchKeyword("OR") {
-		p.matchKeyword("REPLACE")
+//
+// Returns bool which is true when OR REPLACE was present.
+func (p *parser) skipOrReplace() bool {
+	if !p.matchKeyword("OR") {
+		return false
 	}
+	p.matchKeyword("REPLACE")
+	return true
+}
+
+// skipTemporary consumes an optional TEMP or TEMPORARY modifier.
+func (p *parser) skipTemporary() {
+	if !p.matchKeyword("TEMP") {
+		p.matchKeyword("TEMPORARY")
+	}
+}
+
+// expectKeywords consumes each keyword in order, failing at the first mismatch.
+//
+// Takes keywords (...string) which are the keywords that must follow, in order.
+//
+// Returns error when a token does not match its expected keyword.
+func (p *parser) expectKeywords(keywords ...string) error {
+	for _, keyword := range keywords {
+		if _, err := p.expectKeyword(keyword); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // analyseViewBody analyses the SELECT body of a CREATE VIEW so the catalogue can store
 // typed columns.
 //
-// Recovers from panics in the inner analyser so a malformed view body (e.g. CREATE VIEW v
-// AS (SELECT ...) or CREATE VIEW v AS VALUES (...)) cannot crash the whole DDL apply.
+// A view body that cannot be analysed (e.g. CREATE VIEW v AS (SELECT ...) or CREATE VIEW
+// v AS VALUES (...)) falls back to the declared column list rather than failing the DDL,
+// so the body runs on its own syntax error sink. Recovery from analyser panics logs the
+// stack once at warn level and applies the fallback.
 //
 // Takes columnNames ([]string) which is the declared view column list overlaid onto the
 // inferred projection when non-empty.
@@ -1167,18 +1270,21 @@ func (p *parser) analyseViewBody(columnNames []string) (result *querier_dto.RawQ
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			result = nil
+
+			log.Warn("duckdb: panic while analysing view body",
+				logger_domain.String("recovered", fmt.Sprintf("%v", recovered)),
+				logger_domain.String("stack", string(debug.Stack())),
+			)
 		}
 	}()
 
-	viewParser := newParser(remainingTokens)
-	viewParser.analysisDepth = p.analysisDepth
-	viewParser.expressionDepth = p.expressionDepth
-	viewParser.maxParseDepth = p.maxParseDepth
+	viewParser := p.newChildParser(remainingTokens)
+	viewParser.syntaxErrors = new(syntaxErrorSink)
 	if !viewParser.isKeyword(keywordSELECT) && !viewParser.isKeyword(keywordWITH) {
 		return nil
 	}
 	viewAnalysis, analyseError := viewParser.analyseSelect()
-	if analyseError != nil || viewAnalysis == nil {
+	if analyseError != nil || viewAnalysis == nil || viewParser.syntaxError() != nil {
 		return nil
 	}
 
@@ -1198,7 +1304,13 @@ func (p *parser) analyseViewBody(columnNames []string) (result *querier_dto.RawQ
 // Takes columnNames ([]string) which is the declared view column list.
 func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
 	for columnIndex, name := range columnNames {
-		column := querier_dto.RawOutputColumn{Name: name}
+		column := querier_dto.RawOutputColumn{
+			Name:       name,
+			Expression: nil,
+			TableAlias: "",
+			ColumnName: "",
+			IsStar:     false,
+		}
 		if columnIndex < len(analysis.OutputColumns) {
 			column.Expression = analysis.OutputColumns[columnIndex].Expression
 			column.ColumnName = analysis.OutputColumns[columnIndex].ColumnName
@@ -1227,11 +1339,7 @@ func columnsFromNames(names []string) []querier_dto.Column {
 
 	columns := make([]querier_dto.Column, len(names))
 	for index, name := range names {
-		columns[index] = querier_dto.Column{
-			Name:     name,
-			SQLType:  querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown},
-			Nullable: true,
-		}
+		columns[index] = querier_dto.NewColumn(name, querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""), true)
 	}
 	return columns
 }
@@ -1241,9 +1349,9 @@ func columnsFromNames(names []string) []querier_dto.Column {
 // Returns *querier_dto.CatalogueMutation which describes the drop.
 // Returns error when the view name cannot be parsed.
 func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
-	p.mustKeyword(keywordDROP)
-
-	p.mustKeyword("VIEW")
+	if err := p.expectKeywords(keywordDROP, "VIEW"); err != nil {
+		return nil, err
+	}
 
 	p.skipIfExists()
 
@@ -1252,162 +1360,17 @@ func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 		return nil, err
 	}
 
-	return &querier_dto.CatalogueMutation{
-		Kind:       querier_dto.MutationDropView,
-		SchemaName: schema,
-		TableName:  viewName,
-	}, nil
+	return querier_dto.NewCatalogueMutation(querier_dto.MutationDropView, schema, viewName), nil
 }
 
-// tryParseCompoundType dispatches struct, map, union, list, and array type parsers when
-// lower names one of those compound forms.
+// withAdditionalMutation queues a follow-up mutation that the catalogue builder applies
+// straight after the primary one, such as the create half of CREATE OR REPLACE TABLE.
 //
-// Takes engine (typeNormaliser) which resolves nested type names.
-// Takes lower (string) which is the candidate compound type keyword lower-cased.
+// Takes next (*querier_dto.CatalogueMutation) which is the follow-up mutation.
 //
-// Returns querier_dto.SQLType which is the parsed compound type when matched, else the
-// zero value.
-// Returns bool which is true when a compound type was parsed.
-func (p *parser) tryParseCompoundType(engine typeNormaliser, lower string) (querier_dto.SQLType, bool) {
-	switch lower {
-	case "struct":
-		return p.parseStructType(engine), true
-	case "map":
-		return p.parseMapType(engine), true
-	case "union":
-		return p.parseUnionType(engine), true
-	case "list", "array":
-		return p.parseListType(engine), true
-	default:
-		return querier_dto.SQLType{}, false
-	}
-}
-
-// parseNamedTypeList parses a parenthesised list of "name type" pairs.
-//
-// Used by struct and union type parsers, which both expect parallel slices of names and
-// SQL types.
-//
-// Takes engine (typeNormaliser) which resolves each field's type.
-//
-// Returns []string which is the parsed field name list.
-// Returns []querier_dto.SQLType which is the parallel field type list.
-func (p *parser) parseNamedTypeList(engine typeNormaliser) ([]string, []querier_dto.SQLType) {
-	p.advance()
-
-	var names []string
-	var types []querier_dto.SQLType
-
-	for !p.atEnd() && p.current().kind != tokenRightParen {
-		name, nameError := p.parseIdentifierOrKeyword()
-		if nameError != nil {
-			break
-		}
-		sqlType, _ := p.parseColumnType(engine)
-		names = append(names, name)
-		types = append(types, sqlType)
-		if p.current().kind == tokenComma {
-			p.advance()
-		}
-	}
-	if p.current().kind == tokenRightParen {
-		p.advance()
-	}
-
-	return names, types
-}
-
-// parseStructType parses a STRUCT(...) compound type into its field list.
-//
-// Takes engine (typeNormaliser) which resolves each field's type.
-//
-// Returns querier_dto.SQLType which is the struct type with its fields populated.
-func (p *parser) parseStructType(engine typeNormaliser) querier_dto.SQLType {
-	names, types := p.parseNamedTypeList(engine)
-
-	fields := make([]querier_dto.StructField, len(names))
-	for index := range names {
-		fields[index] = querier_dto.StructField{
-			Name:    names[index],
-			SQLType: types[index],
-		}
-	}
-
-	return querier_dto.SQLType{
-		Category:     querier_dto.TypeCategoryStruct,
-		EngineName:   "struct",
-		StructFields: fields,
-	}
-}
-
-// parseMapType parses a MAP(key, value) compound type.
-//
-// Takes engine (typeNormaliser) which resolves the key and value types.
-//
-// Returns querier_dto.SQLType which is the map type with both type pointers populated.
-func (p *parser) parseMapType(engine typeNormaliser) querier_dto.SQLType {
-	p.advance()
-
-	keyType, _ := p.parseColumnType(engine)
-
-	if p.current().kind == tokenComma {
-		p.advance()
-	}
-
-	valueType, _ := p.parseColumnType(engine)
-
-	if p.current().kind == tokenRightParen {
-		p.advance()
-	}
-
-	return querier_dto.SQLType{
-		Category:    querier_dto.TypeCategoryMap,
-		EngineName:  "map",
-		KeyType:     &keyType,
-		ElementType: &valueType,
-	}
-}
-
-// parseUnionType parses a UNION(...) compound type into its tagged members.
-//
-// Takes engine (typeNormaliser) which resolves each member's type.
-//
-// Returns querier_dto.SQLType which is the union type with members populated.
-func (p *parser) parseUnionType(engine typeNormaliser) querier_dto.SQLType {
-	names, types := p.parseNamedTypeList(engine)
-
-	members := make([]querier_dto.UnionMember, len(names))
-	for index := range names {
-		members[index] = querier_dto.UnionMember{
-			Tag:     names[index],
-			SQLType: types[index],
-		}
-	}
-
-	return querier_dto.SQLType{
-		Category:     querier_dto.TypeCategoryUnion,
-		EngineName:   "union",
-		UnionMembers: members,
-	}
-}
-
-// parseListType parses a LIST(element) or ARRAY(element) compound type.
-//
-// Takes engine (typeNormaliser) which resolves the element type.
-//
-// Returns querier_dto.SQLType which is the array type with its element type populated.
-func (p *parser) parseListType(engine typeNormaliser) querier_dto.SQLType {
-	p.advance()
-
-	elementType, _ := p.parseColumnType(engine)
-
-	if p.current().kind == tokenRightParen {
-		p.advance()
-	}
-
-	return querier_dto.SQLType{
-		Category:    querier_dto.TypeCategoryArray,
-		EngineName:  "list",
-		ElementType: &elementType,
+// Returns querier_dto.CatalogueMutationOption which appends next to AdditionalMutations.
+func withAdditionalMutation(next *querier_dto.CatalogueMutation) querier_dto.CatalogueMutationOption {
+	return func(mutation *querier_dto.CatalogueMutation) {
+		mutation.AdditionalMutations = append(mutation.AdditionalMutations, next)
 	}
 }

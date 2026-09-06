@@ -52,7 +52,7 @@ Builder method groups:
 | Group | Methods |
 |---|---|
 | Provider / source | `Provider(name)`, `Namespace(ns)`, `FactoryBlueprint(name)`, `MultiLevel(l1, l2)`, `L1Options(any)`, `L2Options(any)`, `L2CircuitBreaker(maxFailures, openTimeout)`, `Options(any)` |
-| Capacity | `MaximumEntries(int)`, `MaximumWeight(uint64)`, `InitialCapacity(int)`, `Weigher(func(K, V) uint32)` |
+| Capacity | `MaximumEntries(int)`, `MaximumWeight(uint64)`, `MaxEntryWeight(uint32)`, `InitialCapacity(int)`, `Weigher(func(K, V) uint32)` |
 | Transformers | `Transformer(name, configs...)`, `Compression()`, `Encryption()`, `EncryptionWithService(any)` |
 | Encoders | `Encoder(AnyEncoder)`, `TypedEncoder(EncoderPort[V])`, `DefaultEncoder(AnyEncoder)` |
 | Time | `Expiration(time.Duration)`, `WriteExpiration(time.Duration)`, `AccessExpiration(time.Duration)`, `ExpiryCalculator(...)`, `RefreshCalculator(...)` |
@@ -60,9 +60,23 @@ Builder method groups:
 | Stats / observability | `StatsRecorder(StatsRecorder)`, `Logger(Logger)` |
 | Other | `Executor(func(operation func()))`, `Clock(Clock)`, `Searchable(*SearchSchema)` |
 
-`Build(ctx)` is the terminus.
+`Build(ctx)` creates the cache and returns any configuration error.
 
 `Expiration` is a convenience for `WriteExpiration` (a fixed TTL applied on creation and updates only). `AccessExpiration` sets a sliding TTL that resets on every access (read, write, compute).
+
+### Multi-level configuration
+
+`MultiLevel(l1, l2)` selects both providers and stores values without builder-level encoding or transformation.
+
+| Setting | Behaviour in a multi-level cache |
+|---|---|
+| `Namespace` | Applies to both levels, keeping keys separate across namespaces in L2. |
+| `MaximumEntries`, `MaximumWeight`, `InitialCapacity` | Apply to L1. |
+| `Weigher` | Calculates entry weights for L1 and the combined cache's admission checks. |
+| `MaxEntryWeight` | Applies to the combined cache. Oversized values reach neither level. |
+| `Provider`, `FactoryBlueprint` | Conflict with `MultiLevel`. `Build` returns an error. |
+| `Transformer`, `Compression`, `Encryption`, `EncryptionWithService` | Unsupported with `MultiLevel`. `Build` returns an error. |
+| `Encoder`, `TypedEncoder`, `DefaultEncoder` | Unsupported with `MultiLevel`. `Build` returns an error. |
 
 ## The `Cache` interface
 

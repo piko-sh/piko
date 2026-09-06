@@ -43,7 +43,7 @@ func TestPrepareTypeHierarchy(t *testing.T) {
 			document: newTestDocumentBuilder().
 				WithURI("file:///test.pk").
 				Build(),
-			position:    protocol.Position{Line: 0, Character: 0},
+			position:    protocol.Position{},
 			expectEmpty: true,
 		},
 		{
@@ -52,7 +52,7 @@ func TestPrepareTypeHierarchy(t *testing.T) {
 				WithURI("file:///test.pk").
 				WithAnnotationResult(&annotator_dto.AnnotationResult{}).
 				Build(),
-			position:    protocol.Position{Line: 0, Character: 0},
+			position:    protocol.Position{},
 			expectEmpty: true,
 		},
 		{
@@ -63,7 +63,7 @@ func TestPrepareTypeHierarchy(t *testing.T) {
 					AnnotatedAST: newTestAnnotatedAST(),
 				}).
 				Build(),
-			position:    protocol.Position{Line: 0, Character: 0},
+			position:    protocol.Position{},
 			expectEmpty: true,
 		},
 		{
@@ -119,7 +119,7 @@ func TestExtractTypeAtPosition(t *testing.T) {
 				node.DirIf = &ast_domain.Directive{
 					Expression: &ast_domain.Identifier{
 						Name:             "visible",
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     7,
 					},
 				}
@@ -140,11 +140,9 @@ func TestExtractTypeAtPosition(t *testing.T) {
 				node.DirIf = &ast_domain.Directive{
 					Expression: &ast_domain.Identifier{
 						Name:             "visible",
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     7,
-						GoAnnotations: &ast_domain.GoGeneratorAnnotation{
-							ResolvedType: nil,
-						},
+						GoAnnotations:    &ast_domain.GoGeneratorAnnotation{},
 					},
 				}
 				return newTestDocumentBuilder().
@@ -164,7 +162,7 @@ func TestExtractTypeAtPosition(t *testing.T) {
 				node.DirIf = &ast_domain.Directive{
 					Expression: &ast_domain.Identifier{
 						Name:             "user",
-						RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+						RelativeLocation: ast_domain.Location{},
 						SourceLength:     4,
 						GoAnnotations:    &ast_domain.GoGeneratorAnnotation{},
 					},
@@ -907,7 +905,7 @@ func TestExtractTypeAtPosition_PositivePath(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "myVar",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     5,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -952,7 +950,7 @@ func TestPrepareTypeHierarchy_ReturnsItem(t *testing.T) {
 	node.DirIf = &ast_domain.Directive{
 		Expression: &ast_domain.Identifier{
 			Name:             "status",
-			RelativeLocation: ast_domain.Location{Line: 0, Column: 0},
+			RelativeLocation: ast_domain.Location{},
 			SourceLength:     6,
 			GoAnnotations: &ast_domain.GoGeneratorAnnotation{
 				ResolvedType: &ast_domain.ResolvedTypeInfo{
@@ -1072,7 +1070,7 @@ func TestBuildTypeHierarchyItem(t *testing.T) {
 			name:        "uses inspector location when type is found",
 			typeName:    "Widget",
 			packagePath: "example.com/pkg",
-			position:    protocol.Position{Line: 0, Character: 0},
+			position:    protocol.Position{},
 			setupDoc: func() *document {
 				return newTestDocumentBuilder().
 					WithURI("file:///test.pk").

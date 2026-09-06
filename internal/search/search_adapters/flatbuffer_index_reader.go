@@ -158,6 +158,7 @@ func (r *FlatBufferIndexReader) GetDocMetadata(documentID uint32) (search_domain
 		FieldLength:        docMeta.FieldLength(),
 		FieldLengthsPacked: docMeta.FieldLengthsPacked(),
 		Route:              mem.String(docMeta.Route()),
+		FieldLengths:       nil,
 	}, nil
 }
 

@@ -44,12 +44,15 @@ const (
 	// decimal256ImpliedPrecision is the precision implied by Decimal256(S).
 	decimal256ImpliedPrecision = 76
 
-	// maxTypeParseDepth caps recursion through the type-name parser when descending into
-	// nested wrappers (Array(Array(Tuple(...))), Nullable(LowCardinality(Array(...))),
-	// etc.). The type-name parser is invoked outside the configurable maxParseDepth path
-	// (type catalogue lookups, NormaliseTypeName) so it keeps its own fixed cap; it is
-	// already safe and need not be configurable.
-	maxTypeParseDepth = 64
+	// defaultMaxTypeParseDepth caps recursion through the type-name parser when descending
+	// into nested wrappers (Array(Array(Tuple(...))), Nullable(LowCardinality(Array(...))),
+	// etc.) when no WithMaxTypeParseDepth option is supplied. The cap keeps adversarial type
+	// names from exhausting the goroutine stack while sitting far above realistic nesting.
+	defaultMaxTypeParseDepth = 64
+
+	// maxTypeNameErrorRunes bounds how much of an offending type name an error message
+	// quotes, so a huge malformed input cannot balloon every diagnostic that reports it.
+	maxTypeNameErrorRunes = 64
 
 	// maxTypeModifierValue bounds a type-modifier integer (FixedString length, Decimal
 	// precision/scale, DateTime64 scale). It is generous enough for any realistic type while
@@ -59,7 +62,7 @@ const (
 
 var (
 	// errTypeDepthExceeded is the sentinel returned when the type-name parser descends past
-	// maxTypeParseDepth nested wrappers.
+	// the configured number of nested wrappers.
 	errTypeDepthExceeded = errors.New("clickhouse: type-name recursion depth exceeded")
 
 	// clickhousePrimitiveTypes maps ClickHouse type names to their structured SQLType.
@@ -73,116 +76,6 @@ var (
 	// layered in.
 	clickhousePrimitiveTypes = map[string]querier_dto.SQLType{}
 )
-
-func init() {
-	registerPrimitiveNumericTypes()
-	registerPrimitiveScalarTypes()
-	registerPrimitiveSpecialisedTypes()
-}
-
-// registerPrimitive lower-cases the type name, stamps it onto the SQLType, and inserts it
-// into the package-level primitives map. The helper is used by the registerPrimitive*
-// group functions so the boilerplate stays out of the registration list itself.
-//
-// Takes name (string), the canonical ClickHouse type spelling.
-// Takes sqlType (querier_dto.SQLType), the structured type without engine name.
-func registerPrimitive(name string, sqlType querier_dto.SQLType) {
-	sqlType.EngineName = name
-	clickhousePrimitiveTypes[strings.ToLower(name)] = sqlType
-}
-
-// registerPrimitiveNumericTypes registers the integer and floating point primitive types.
-//
-// Unsigned integers (UInt8, UInt16, UInt32, UInt64, UInt128, UInt256), signed integers
-// (Int8, Int16, Int32, Int64, Int128, Int256), and floats (Float32, Float64, BFloat16)
-// all map to integer or float categories; the engine's type mapping table picks the
-// Go-side representation.
-func registerPrimitiveNumericTypes() {
-	registerPrimitive("UInt8", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("UInt16", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("UInt32", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("UInt64", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("UInt128", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("UInt256", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-
-	registerPrimitive("Int8", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("Int16", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("Int32", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("Int64", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("Int128", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-	registerPrimitive("Int256", querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger})
-
-	registerPrimitive("Float32", querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat})
-	registerPrimitive("Float64", querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat})
-	registerPrimitive("BFloat16", querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat})
-}
-
-// registerPrimitiveScalarTypes registers booleans, the canonical String type, and Date /
-// DateTime variants. FixedString(N) and DateTime64(N) are not registered here; they
-// require a precision modifier and are handled by parseClickHouseType.
-func registerPrimitiveScalarTypes() {
-	registerPrimitive("Bool", querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean})
-	registerPrimitive("Boolean", querier_dto.SQLType{Category: querier_dto.TypeCategoryBoolean})
-
-	registerPrimitive("String", querier_dto.SQLType{Category: querier_dto.TypeCategoryText})
-
-	registerPrimitive("Date", querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal})
-	registerPrimitive("Date32", querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal})
-	registerPrimitive("DateTime", querier_dto.SQLType{Category: querier_dto.TypeCategoryTemporal})
-}
-
-// registerPrimitiveSpecialisedTypes registers UUID, network address types (IPv4 / IPv6),
-// JSON, the catch-all Dynamic / Nothing types, and the geometric shapes (Point / Ring /
-// Polygon / MultiPolygon). These are domain-specific categories whose Go-side
-// representation is picked by the codegen target.
-func registerPrimitiveSpecialisedTypes() {
-	registerPrimitive("UUID", querier_dto.SQLType{Category: querier_dto.TypeCategoryUUID})
-
-	registerPrimitive("IPv4", querier_dto.SQLType{Category: querier_dto.TypeCategoryNetwork})
-	registerPrimitive("IPv6", querier_dto.SQLType{Category: querier_dto.TypeCategoryNetwork})
-
-	registerPrimitive("JSON", querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON})
-
-	registerPrimitive("Dynamic", querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown})
-	registerPrimitive("Nothing", querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown})
-
-	registerPrimitive("Point", querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric})
-	registerPrimitive("Ring", querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric})
-	registerPrimitive("Polygon", querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric})
-	registerPrimitive("MultiPolygon", querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric})
-	registerPrimitive("LineString", querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric})
-	registerPrimitive("MultiLineString", querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric})
-	registerPrimitive("Geometry", querier_dto.SQLType{Category: querier_dto.TypeCategoryGeometric})
-
-	registerPrimitive("Identifier", querier_dto.SQLType{Category: querier_dto.TypeCategoryText})
-}
-
-// canonicaliseTypeName lowercases the input. ClickHouse is case-insensitive on type-name
-// matches for built-ins, so the catalogue key is the lowercased form.
-//
-// Takes name (string) which is the ClickHouse type-name spelling.
-//
-// Returns string which is the lowercased catalogue key.
-func canonicaliseTypeName(name string) string {
-	return strings.ToLower(name)
-}
-
-// buildTypeCatalogue assembles the ClickHouse built-in type catalogue.
-//
-// Extras supplied via WithExtraTypes are merged after the built-ins so the caller can
-// override the engine's defaults for niche dialects (ClickHouse Cloud or Altinity).
-//
-// Takes extras (map[string]querier_dto.SQLType) which holds type overrides to layer in.
-//
-// Returns *querier_dto.TypeCatalogue which holds the assembled catalogue.
-func buildTypeCatalogue(extras map[string]querier_dto.SQLType) *querier_dto.TypeCatalogue {
-	types := make(map[string]querier_dto.SQLType, len(clickhousePrimitiveTypes)+len(extras))
-	maps.Copy(types, clickhousePrimitiveTypes)
-	for name := range extras {
-		types[strings.ToLower(name)] = extras[name]
-	}
-	return &querier_dto.TypeCatalogue{Types: types}
-}
 
 // typeParseResult carries the structured result of parsing a ClickHouse type-name string.
 // The outer wrappers (Nullable, LowCardinality) are stripped during parsing; the result
@@ -203,66 +96,6 @@ type typeParseResult struct {
 	LowCardinality bool
 }
 
-// normaliseTypeName parses a ClickHouse type-name string into the catalogue's structured
-// SQLType form. Honours the dialect-supplied hook first; falls back to the parser when
-// the hook returns nil.
-//
-// The function discards the Nullable and LowCardinality outer wrappers because
-// EnginePort.NormaliseTypeName has no place to put them; callers that need the wrapper
-// information (the DDL parser when reading a CREATE TABLE column) call
-// parseClickHouseType directly.
-//
-// Takes name (string) which is the ClickHouse type-name spelling.
-// Takes hook (func(string, []int) *querier_dto.SQLType) which is the dialect override
-// consulted before the parser.
-// Takes modifiers (...int) which are the type modifiers passed to the hook.
-//
-// Returns querier_dto.SQLType which is the normalised type, or an Unknown type when the
-// name cannot be parsed.
-func normaliseTypeName(name string, hook func(string, []int) *querier_dto.SQLType, modifiers ...int) querier_dto.SQLType {
-	if hook != nil {
-		if result := hook(name, modifiers); result != nil {
-			return *result
-		}
-	}
-	result, err := parseClickHouseType(name)
-	if err != nil {
-		return querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryUnknown,
-			EngineName: name,
-		}
-	}
-	return result.SQLType
-}
-
-// parseClickHouseType parses a ClickHouse type-name string into a typeParseResult. The
-// parser is recursive-descent over the input characters; ClickHouse type names form a
-// context-free grammar over the alphabet of identifiers, parens, commas, single-quoted
-// literals, integers, and equals signs.
-//
-// Takes input (string) which is the ClickHouse type-name to parse.
-//
-// Returns typeParseResult which holds the parsed structure with wrapper flags.
-// Returns error when the type-name is malformed (unterminated parens, missing comma,
-// unknown wrapper).
-func parseClickHouseType(input string) (typeParseResult, error) {
-	parser := &typeNameParser{input: input}
-	parser.skipWhitespace()
-	result, err := parser.parseType()
-	if err != nil {
-		return typeParseResult{}, err
-	}
-	parser.skipWhitespace()
-	if parser.position < len(parser.input) {
-		return typeParseResult{}, &typeNameParseError{
-			input:    input,
-			position: parser.position,
-			message:  "trailing characters after type",
-		}
-	}
-	return result, nil
-}
-
 // typeNameParser is a small recursive-descent parser over a ClickHouse type-name string.
 //
 // The parser is deliberately lightweight: it does not tokenise via the SQL tokeniser
@@ -278,6 +111,22 @@ type typeNameParser struct {
 
 	// depth is the current recursion depth through nested wrappers.
 	depth int
+
+	// maxDepth is the cap on depth; parseType fails with errTypeDepthExceeded beyond it.
+	maxDepth int
+}
+
+// typeNameParseError is the error returned for malformed type-name strings. Carries the
+// offending position so diagnostics can highlight it.
+type typeNameParseError struct {
+	// input is the type-name string that failed to parse.
+	input string
+
+	// message is the diagnostic describing the failure.
+	message string
+
+	// position is the cursor offset where the failure was detected.
+	position int
 }
 
 // skipWhitespace advances the cursor past any spaces, tabs, and line breaks.
@@ -372,13 +221,13 @@ func (p *typeNameParser) parseIdentifier() string {
 // appropriate wrapper handler or primitive lookup.
 //
 // The depth counter is incremented on entry and decremented on exit so nested wrappers
-// (Array(Array(Tuple(...))) and similar) cannot drive the parser past maxTypeParseDepth
-// recursive frames.
+// (Array(Array(Tuple(...))) and similar) cannot drive the parser past maxDepth recursive
+// frames.
 //
 // Returns typeParseResult which holds the parsed type.
-// Returns error when the type-name is malformed or recursion exceeds maxTypeParseDepth.
+// Returns error when the type-name is malformed or recursion exceeds maxDepth.
 func (p *typeNameParser) parseType() (typeParseResult, error) {
-	if p.depth >= maxTypeParseDepth {
+	if p.depth >= p.maxDepth {
 		return typeParseResult{}, errTypeDepthExceeded
 	}
 	p.depth++
@@ -524,12 +373,7 @@ func (p *typeNameParser) parseObjectType() (typeParseResult, error) {
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close Object")
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryJSON,
-			EngineName: "JSON",
-		},
-	}, nil
+	return newTypeParseResult(querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, "JSON")), nil
 }
 
 // parseNullableWrapper handles Nullable(T). Sets the result's Nullable flag and returns
@@ -594,13 +438,7 @@ func (p *typeNameParser) parseArrayType() (typeParseResult, error) {
 	}
 	element := inner.SQLType
 	element.Nullable = element.Nullable || inner.Nullable
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  "Array",
-			ElementType: &element,
-		},
-	}, nil
+	return newTypeParseResult(arrayOf(element)), nil
 }
 
 // parseTupleType handles the anonymous Tuple(T1, T2, ...) form and the named Tuple(name1
@@ -635,13 +473,7 @@ func (p *typeNameParser) parseTupleType() (typeParseResult, error) {
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close Tuple")
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:     querier_dto.TypeCategoryStruct,
-			EngineName:   "Tuple",
-			StructFields: fields,
-		},
-	}, nil
+	return newTypeParseResult(tupleOf(fields)), nil
 }
 
 // parseTupleField reads one field of a Tuple body.
@@ -689,16 +521,6 @@ func (p *typeNameParser) parseTupleField(anonymousIndex int) (querier_dto.Struct
 	}, nil
 }
 
-// synthesiseAnonymousFieldName returns the conventional name for anonymous tuple fields,
-// such as _1, _2, and _3.
-//
-// Takes index (int) which is the 1-based field position.
-//
-// Returns string which is the synthesised field name.
-func synthesiseAnonymousFieldName(index int) string {
-	return "_" + strconv.Itoa(index)
-}
-
 // parseMapType handles Map(K, V). The K type becomes KeyType, the V type becomes
 // ElementType (matching the existing TypeCategoryMap convention used by duckdb).
 //
@@ -728,14 +550,7 @@ func (p *typeNameParser) parseMapType() (typeParseResult, error) {
 	key.Nullable = key.Nullable || keyType.Nullable
 	value := valueType.SQLType
 	value.Nullable = value.Nullable || valueType.Nullable
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryMap,
-			EngineName:  "Map",
-			KeyType:     &key,
-			ElementType: &value,
-		},
-	}, nil
+	return newTypeParseResult(mapOf(key, value)), nil
 }
 
 // parseNestedType handles Nested(field1 T1, field2 T2, ...). The parser desugars to
@@ -775,18 +590,8 @@ func (p *typeNameParser) parseNestedType() (typeParseResult, error) {
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close Nested")
 	}
-	tuple := querier_dto.SQLType{
-		Category:     querier_dto.TypeCategoryStruct,
-		EngineName:   "Tuple",
-		StructFields: fields,
-	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryArray,
-			EngineName:  "Array",
-			ElementType: &tuple,
-		},
-	}, nil
+	tuple := tupleOf(fields)
+	return newTypeParseResult(arrayOf(tuple)), nil
 }
 
 // parseEnumType handles Enum8('a' = 1, 'b' = 2, ...) and the Enum16 variant. The numeric
@@ -817,13 +622,9 @@ func (p *typeNameParser) parseEnumType(name string) (typeParseResult, error) {
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close " + name)
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryEnum,
-			EngineName: name,
-			EnumValues: values,
-		},
-	}, nil
+	sqlType := querier_dto.NewSQLType(querier_dto.TypeCategoryEnum, name)
+	sqlType.EnumValues = values
+	return newTypeParseResult(sqlType), nil
 }
 
 // parseEnumEntry consumes a single 'value' [ = N ] enum entry from the input cursor.
@@ -888,13 +689,9 @@ func (p *typeNameParser) parseFixedStringType() (typeParseResult, error) {
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close FixedString")
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryText,
-			EngineName: "FixedString",
-			Length:     &length,
-		},
-	}, nil
+	sqlType := querier_dto.NewSQLType(querier_dto.TypeCategoryText, "FixedString")
+	sqlType.Length = &length
+	return newTypeParseResult(sqlType), nil
 }
 
 // parseDecimalType handles Decimal(P, S), Decimal32(S), Decimal64(S), Decimal128(S), and
@@ -944,14 +741,10 @@ func (p *typeNameParser) parseDecimalType(name string) (typeParseResult, error) 
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close " + name)
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryDecimal,
-			EngineName: name,
-			Precision:  precision,
-			Scale:      scale,
-		},
-	}, nil
+	sqlType := querier_dto.NewSQLType(querier_dto.TypeCategoryDecimal, name)
+	sqlType.Precision = precision
+	sqlType.Scale = scale
+	return newTypeParseResult(sqlType), nil
 }
 
 // parseDateTimeType handles DateTime (no modifier) and DateTime('TZ') (with timezone).
@@ -962,12 +755,7 @@ func (p *typeNameParser) parseDecimalType(name string) (typeParseResult, error) 
 // Returns typeParseResult which holds the temporal type.
 // Returns error when the DateTime body is not well-formed.
 func (p *typeNameParser) parseDateTimeType() (typeParseResult, error) {
-	result := typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryTemporal,
-			EngineName: "DateTime",
-		},
-	}
+	result := newTypeParseResult(querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "DateTime"))
 	if p.peek() != '(' {
 		return result, nil
 	}
@@ -1019,13 +807,9 @@ func (p *typeNameParser) parseDateTime64Type() (typeParseResult, error) {
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close DateTime64")
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryTemporal,
-			EngineName: "DateTime64",
-			Precision:  &precision,
-		},
-	}, nil
+	sqlType := querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, "DateTime64")
+	sqlType.Precision = &precision
+	return newTypeParseResult(sqlType), nil
 }
 
 // parseJSONType handles the bare JSON form and the parametrised form.
@@ -1038,12 +822,7 @@ func (p *typeNameParser) parseDateTime64Type() (typeParseResult, error) {
 // Returns typeParseResult which holds the JSON type.
 // Returns error when the parametrised body is not well-formed.
 func (p *typeNameParser) parseJSONType() (typeParseResult, error) {
-	result := typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryJSON,
-			EngineName: "JSON",
-		},
-	}
+	result := newTypeParseResult(querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, "JSON"))
 	if p.peek() != '(' {
 		return result, nil
 	}
@@ -1061,12 +840,7 @@ func (p *typeNameParser) parseJSONType() (typeParseResult, error) {
 // Returns typeParseResult which holds the Dynamic type.
 // Returns error when the parametrised body is not well-formed.
 func (p *typeNameParser) parseDynamicType() (typeParseResult, error) {
-	result := typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryUnknown,
-			EngineName: "Dynamic",
-		},
-	}
+	result := newTypeParseResult(querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "Dynamic"))
 	if p.peek() != '(' {
 		return result, nil
 	}
@@ -1110,13 +884,9 @@ func (p *typeNameParser) parseVariantType() (typeParseResult, error) {
 	if !p.match(')') {
 		return typeParseResult{}, p.errorAt("expected ')' to close Variant")
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:     querier_dto.TypeCategoryUnion,
-			EngineName:   "Variant",
-			UnionMembers: members,
-		},
-	}, nil
+	sqlType := querier_dto.NewSQLType(querier_dto.TypeCategoryUnion, "Variant")
+	sqlType.UnionMembers = members
+	return newTypeParseResult(sqlType), nil
 }
 
 // parseAggregateFunctionType handles `AggregateFunction(name, argType1, ...)` and the
@@ -1179,13 +949,7 @@ func (p *typeNameParser) parseAggregateFunctionType(name string) (typeParseResul
 	innerCopy := innerType.SQLType
 	innerCopy.Nullable = innerCopy.Nullable || innerType.Nullable
 	reconstructedName := name + "(" + aggregateName + ", " + strings.Join(argTypeNames, ", ") + ")"
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:    querier_dto.TypeCategoryAggregateState,
-			EngineName:  reconstructedName,
-			ElementType: &innerCopy,
-		},
-	}, nil
+	return newTypeParseResult(aggregateStateOf(reconstructedName, innerCopy)), nil
 }
 
 // skipBalancedParens consumes a parenthesised body starting at the current cursor
@@ -1231,14 +995,9 @@ func (p *typeNameParser) skipBalancedParens() error {
 func (*typeNameParser) parsePrimitiveByName(identifier string) (typeParseResult, error) {
 	canonical := canonicaliseTypeName(identifier)
 	if sqlType, found := clickhousePrimitiveTypes[canonical]; found {
-		return typeParseResult{SQLType: sqlType}, nil
+		return newTypeParseResult(sqlType), nil
 	}
-	return typeParseResult{
-		SQLType: querier_dto.SQLType{
-			Category:   querier_dto.TypeCategoryUnknown,
-			EngineName: identifier,
-		},
-	}, nil
+	return newTypeParseResult(querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, identifier)), nil
 }
 
 // parseIntegerModifier consumes a non-negative decimal integer and returns its value.
@@ -1287,22 +1046,226 @@ func (p *typeNameParser) errorAt(message string) error {
 	}
 }
 
-// typeNameParseError is the error returned for malformed type-name strings. Carries the
-// offending position so diagnostics can highlight it.
-type typeNameParseError struct {
-	// input is the type-name string that failed to parse.
-	input string
-
-	// message is the diagnostic describing the failure.
-	message string
-
-	// position is the cursor offset where the failure was detected.
-	position int
-}
-
 // Error returns the formatted diagnostic for the parse failure.
+//
+// The offending type name is quoted up to maxTypeNameErrorRunes runes; a longer name is
+// cut on a rune boundary and the message says how long the full name was, so a huge
+// malformed input cannot balloon the diagnostic.
 //
 // Returns string which is the diagnostic including the message, type name, and position.
 func (e *typeNameParseError) Error() string {
-	return "clickhouse: " + e.message + " in type name " + strconv.Quote(e.input) + " at position " + strconv.Itoa(e.position)
+	return "clickhouse: " + e.message + " in type name " + quoteTypeNameForError(e.input) + " at position " + strconv.Itoa(e.position)
+}
+
+func init() {
+	registerPrimitiveNumericTypes()
+	registerPrimitiveScalarTypes()
+	registerPrimitiveSpecialisedTypes()
+}
+
+// registerPrimitive lower-cases the type name, stamps it onto the SQLType, and inserts it
+// into the package-level primitives map. The helper is used by the registerPrimitive*
+// group functions so the boilerplate stays out of the registration list itself.
+//
+// Takes name (string), the canonical ClickHouse type spelling.
+// Takes sqlType (querier_dto.SQLType), the structured type without engine name.
+func registerPrimitive(name string, sqlType querier_dto.SQLType) {
+	sqlType.EngineName = name
+	clickhousePrimitiveTypes[strings.ToLower(name)] = sqlType
+}
+
+// registerPrimitiveNumericTypes registers the integer and floating point primitive types.
+//
+// Unsigned integers (UInt8, UInt16, UInt32, UInt64, UInt128, UInt256), signed integers
+// (Int8, Int16, Int32, Int64, Int128, Int256), and floats (Float32, Float64, BFloat16)
+// all map to integer or float categories; the engine's type mapping table picks the
+// Go-side representation.
+func registerPrimitiveNumericTypes() {
+	registerPrimitive("UInt8", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("UInt16", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("UInt32", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("UInt64", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("UInt128", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("UInt256", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+
+	registerPrimitive("Int8", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("Int16", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("Int32", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("Int64", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("Int128", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+	registerPrimitive("Int256", querier_dto.NewSQLType(querier_dto.TypeCategoryInteger, ""))
+
+	registerPrimitive("Float32", querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, ""))
+	registerPrimitive("Float64", querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, ""))
+	registerPrimitive("BFloat16", querier_dto.NewSQLType(querier_dto.TypeCategoryFloat, ""))
+}
+
+// registerPrimitiveScalarTypes registers booleans, the canonical String type, and Date /
+// DateTime variants. FixedString(N) and DateTime64(N) are not registered here; they
+// require a precision modifier and are handled by parseClickHouseType.
+func registerPrimitiveScalarTypes() {
+	registerPrimitive("Bool", querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, ""))
+	registerPrimitive("Boolean", querier_dto.NewSQLType(querier_dto.TypeCategoryBoolean, ""))
+
+	registerPrimitive("String", querier_dto.NewSQLType(querier_dto.TypeCategoryText, ""))
+
+	registerPrimitive("Date", querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, ""))
+	registerPrimitive("Date32", querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, ""))
+	registerPrimitive("DateTime", querier_dto.NewSQLType(querier_dto.TypeCategoryTemporal, ""))
+}
+
+// registerPrimitiveSpecialisedTypes registers UUID, network address types (IPv4 / IPv6),
+// JSON, the catch-all Dynamic / Nothing types, and the geometric shapes (Point / Ring /
+// Polygon / MultiPolygon). These are domain-specific categories whose Go-side
+// representation is picked by the codegen target.
+func registerPrimitiveSpecialisedTypes() {
+	registerPrimitive("UUID", querier_dto.NewSQLType(querier_dto.TypeCategoryUUID, ""))
+
+	registerPrimitive("IPv4", querier_dto.NewSQLType(querier_dto.TypeCategoryNetwork, ""))
+	registerPrimitive("IPv6", querier_dto.NewSQLType(querier_dto.TypeCategoryNetwork, ""))
+
+	registerPrimitive("JSON", querier_dto.NewSQLType(querier_dto.TypeCategoryJSON, ""))
+
+	registerPrimitive("Dynamic", querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""))
+	registerPrimitive("Nothing", querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, ""))
+
+	registerPrimitive("Point", querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, ""))
+	registerPrimitive("Ring", querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, ""))
+	registerPrimitive("Polygon", querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, ""))
+	registerPrimitive("MultiPolygon", querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, ""))
+	registerPrimitive("LineString", querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, ""))
+	registerPrimitive("MultiLineString", querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, ""))
+	registerPrimitive("Geometry", querier_dto.NewSQLType(querier_dto.TypeCategoryGeometric, ""))
+
+	registerPrimitive("Identifier", querier_dto.NewSQLType(querier_dto.TypeCategoryText, ""))
+}
+
+// canonicaliseTypeName lowercases the input. ClickHouse is case-insensitive on type-name
+// matches for built-ins, so the catalogue key is the lowercased form.
+//
+// Takes name (string) which is the ClickHouse type-name spelling.
+//
+// Returns string which is the lowercased catalogue key.
+func canonicaliseTypeName(name string) string {
+	return strings.ToLower(name)
+}
+
+// buildTypeCatalogue assembles the ClickHouse built-in type catalogue.
+//
+// Extras supplied via WithExtraTypes are merged after the built-ins so the caller can
+// override the engine's defaults for niche dialects (ClickHouse Cloud or Altinity).
+//
+// Takes extras (map[string]querier_dto.SQLType) which holds type overrides to layer in.
+//
+// Returns *querier_dto.TypeCatalogue which holds the assembled catalogue.
+func buildTypeCatalogue(extras map[string]querier_dto.SQLType) *querier_dto.TypeCatalogue {
+	types := make(map[string]querier_dto.SQLType, len(clickhousePrimitiveTypes)+len(extras))
+	maps.Copy(types, clickhousePrimitiveTypes)
+	for name := range extras {
+		types[strings.ToLower(name)] = extras[name]
+	}
+	return &querier_dto.TypeCatalogue{Types: types}
+}
+
+// newTypeParseResult wraps a parsed type in a result that reports no stripped outer
+// wrappers.
+//
+// Takes sqlType (querier_dto.SQLType) which is the parsed type.
+//
+// Returns typeParseResult which carries sqlType with the Nullable and LowCardinality
+// flags unset.
+func newTypeParseResult(sqlType querier_dto.SQLType) typeParseResult {
+	return typeParseResult{
+		SQLType:        sqlType,
+		Nullable:       false,
+		LowCardinality: false,
+	}
+}
+
+// normaliseTypeName parses a ClickHouse type-name string into the catalogue's structured
+// SQLType form. Honours the dialect-supplied hook first; falls back to the parser when
+// the hook returns nil.
+//
+// The function discards the Nullable and LowCardinality outer wrappers because
+// EnginePort.NormaliseTypeName has no place to put them; callers that need the wrapper
+// information (the DDL parser when reading a CREATE TABLE column) call
+// parseClickHouseType directly.
+//
+// Takes name (string) which is the ClickHouse type-name spelling.
+// Takes hook (func(string, []int) *querier_dto.SQLType) which is the dialect override
+// consulted before the parser.
+// Takes maxDepth (int) which caps wrapper nesting in the type name.
+// Takes modifiers (...int) which are the type modifiers passed to the hook.
+//
+// Returns querier_dto.SQLType which is the normalised type, or an Unknown type when the
+// name cannot be parsed.
+func normaliseTypeName(name string, hook func(string, []int) *querier_dto.SQLType, maxDepth int, modifiers ...int) querier_dto.SQLType {
+	if hook != nil {
+		if result := hook(name, modifiers); result != nil {
+			return *result
+		}
+	}
+	result, err := parseClickHouseType(name, maxDepth)
+	if err != nil {
+		return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, name)
+	}
+	return result.SQLType
+}
+
+// parseClickHouseType parses a ClickHouse type-name string into a typeParseResult. The
+// parser is recursive-descent over the input characters; ClickHouse type names form a
+// context-free grammar over the alphabet of identifiers, parens, commas, single-quoted
+// literals, integers, and equals signs.
+//
+// Takes input (string) which is the ClickHouse type-name to parse.
+// Takes maxDepth (int) which caps wrapper nesting; deeper input fails with
+// errTypeDepthExceeded.
+//
+// Returns typeParseResult which holds the parsed structure with wrapper flags.
+// Returns error when the type-name is malformed (unterminated parens, missing comma,
+// unknown wrapper) or nests deeper than maxDepth.
+func parseClickHouseType(input string, maxDepth int) (typeParseResult, error) {
+	parser := &typeNameParser{input: input, position: 0, depth: 0, maxDepth: maxDepth}
+	parser.skipWhitespace()
+	result, err := parser.parseType()
+	if err != nil {
+		return typeParseResult{}, err
+	}
+	parser.skipWhitespace()
+	if parser.position < len(parser.input) {
+		return typeParseResult{}, &typeNameParseError{
+			input:    input,
+			position: parser.position,
+			message:  "trailing characters after type",
+		}
+	}
+	return result, nil
+}
+
+// synthesiseAnonymousFieldName returns the conventional name for anonymous tuple fields,
+// such as _1, _2, and _3.
+//
+// Takes index (int) which is the 1-based field position.
+//
+// Returns string which is the synthesised field name.
+func synthesiseAnonymousFieldName(index int) string {
+	return "_" + strconv.Itoa(index)
+}
+
+// quoteTypeNameForError quotes a type name for an error message, truncating it on a rune
+// boundary after maxTypeNameErrorRunes runes.
+//
+// Takes input (string) which is the type name to quote.
+//
+// Returns string which is the quoted name, followed by a truncation note when the name
+// was cut.
+func quoteTypeNameForError(input string) string {
+	runeCount := 0
+	for byteIndex := range input {
+		if runeCount == maxTypeNameErrorRunes {
+			return strconv.Quote(input[:byteIndex]) + "... (truncated, " + strconv.Itoa(utf8.RuneCountInString(input)) + " runes in total)"
+		}
+		runeCount++
+	}
+	return strconv.Quote(input)
 }

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"unicode"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 )
 
 var (

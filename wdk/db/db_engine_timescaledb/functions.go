@@ -274,7 +274,7 @@ func registerTimescaleDBFunctions(builder *db_engine_postgres.FunctionCatalogueB
 //
 // Returns querier_dto.SQLType which is the opaque unknown-category type.
 func opaqueType(name string) querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: name}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, name)
 }
 
 // tstzRangeType returns the SQLType for PostgreSQL's tstzrange. Unlike the opaque
@@ -284,7 +284,7 @@ func opaqueType(name string) querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the tstzrange range type.
 func tstzRangeType() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryRange, EngineName: typeNameTstzRange}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryRange, typeNameTstzRange)
 }
 
 // arrayOf wraps a base type in an Array(T) shape. Used by histogram which returns an
@@ -294,11 +294,11 @@ func tstzRangeType() querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the array type over element.
 func arrayOf(element querier_dto.SQLType) querier_dto.SQLType {
-	return querier_dto.SQLType{
-		Category:    querier_dto.TypeCategoryArray,
-		EngineName:  element.EngineName + "[]",
-		ElementType: new(element),
-	}
+	sqlType := querier_dto.SQLType{}
+	sqlType.Category = querier_dto.TypeCategoryArray
+	sqlType.EngineName = element.EngineName + "[]"
+	sqlType.ElementType = new(element)
+	return sqlType
 }
 
 // regclassType is the regclass SQLType used for arguments that reference a relation by
@@ -309,7 +309,7 @@ func arrayOf(element querier_dto.SQLType) querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the regclass type with the Text category.
 func regclassType() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "regclass"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "regclass")
 }
 
 // regprocType is the regproc SQLType used for arguments that reference a procedure or
@@ -321,7 +321,7 @@ func regclassType() querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the regproc type with the Text category.
 func regprocType() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "regproc"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "regproc")
 }
 
 // nameType is the name SQLType used for the tablespace and chunk destination arguments on
@@ -331,7 +331,7 @@ func regprocType() querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the name type with the Text category.
 func nameType() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "name"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryText, "name")
 }
 
 // voidType is the void SQLType used for procedures that return no value
@@ -339,7 +339,7 @@ func nameType() querier_dto.SQLType {
 //
 // Returns querier_dto.SQLType which is the void type.
 func voidType() querier_dto.SQLType {
-	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: "void"}
+	return querier_dto.NewSQLType(querier_dto.TypeCategoryUnknown, "void")
 }
 
 // addAggregate registers an aggregate function. NullableBehaviour is CalledOnNull because
@@ -352,12 +352,12 @@ func voidType() querier_dto.SQLType {
 // Takes args ([]querier_dto.FunctionArgument) which are the argument definitions.
 // Takes returnType (querier_dto.SQLType) which is the aggregate result type.
 func addAggregate(b *db_engine_postgres.FunctionCatalogueBuilder, name string, args []querier_dto.FunctionArgument, returnType querier_dto.SQLType) {
-	b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         args,
-		ReturnType:        returnType,
-		IsAggregate:       true,
-		NullableBehaviour: querier_dto.FunctionNullableCalledOnNull,
-	})
+	b.Add(name, querier_dto.NewFunctionSignature(
+		args,
+		returnType,
+		querier_dto.FunctionNullableCalledOnNull,
+		querier_dto.WithAggregate(),
+	))
 }
 
 // addReturnsSet registers a function whose return type is a set of the declared element
@@ -371,12 +371,12 @@ func addAggregate(b *db_engine_postgres.FunctionCatalogueBuilder, name string, a
 //
 // Returns *querier_dto.FunctionSignature which is the registered signature.
 func addReturnsSet(b *db_engine_postgres.FunctionCatalogueBuilder, name string, args []querier_dto.FunctionArgument, returnType querier_dto.SQLType) *querier_dto.FunctionSignature {
-	return b.Add(name, &querier_dto.FunctionSignature{
-		Arguments:         args,
-		ReturnType:        returnType,
-		ReturnsSet:        true,
-		NullableBehaviour: querier_dto.FunctionNullableNeverNull,
-	})
+	return b.Add(name, querier_dto.NewFunctionSignature(
+		args,
+		returnType,
+		querier_dto.FunctionNullableNeverNull,
+		querier_dto.WithReturnsSet(),
+	))
 }
 
 // registerTimeBucketFamily covers time_bucket and its variants across the common

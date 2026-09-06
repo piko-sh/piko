@@ -80,6 +80,31 @@ func TestBuildVariantStatusMap_Comprehensive(t *testing.T) {
 		assert.Equal(t, registry_dto.VariantStatusStale, m["webp"])
 	})
 
+	t.Run("derived variants are judged against their parent's current content", func(t *testing.T) {
+		t.Parallel()
+		derived := func(id, parentID, parentHash string) registry_dto.Variant {
+			return registry_dto.Variant{
+				VariantID: id,
+				Status:    registry_dto.VariantStatusReady,
+				Kind:      registry_dto.KindDerived,
+				Transform: registry_dto.VariantTransform{ParentVariantID: parentID, ParentContentHash: parentHash},
+			}
+		}
+		variants := []registry_dto.Variant{
+			{VariantID: "source", Status: registry_dto.VariantStatusReady, Kind: registry_dto.KindSource, ContentHash: "new"},
+			derived("current", "source", "new"),
+			derived("outdated", "source", "old"),
+			derived("orphaned", "missing", "old"),
+			{VariantID: "unstamped", Status: registry_dto.VariantStatusReady, Kind: registry_dto.KindDerived},
+		}
+		m := buildVariantStatusMap(variants)
+		assert.Equal(t, registry_dto.VariantStatusReady, m["current"])
+		assert.Equal(t, registry_dto.VariantStatusStale, m["outdated"],
+			"a variant finished from the old source after the source changed must be rebuilt")
+		assert.Equal(t, registry_dto.VariantStatusStale, m["orphaned"])
+		assert.Equal(t, registry_dto.VariantStatusReady, m["unstamped"])
+	})
+
 	t.Run("duplicate variant IDs last one wins", func(t *testing.T) {
 		t.Parallel()
 		variants := []registry_dto.Variant{
@@ -193,6 +218,80 @@ func TestFindMissingDependencies(t *testing.T) {
 		assert.Contains(t, missing, "dep2")
 		assert.Contains(t, missing, "dep3")
 	})
+}
+
+func TestProfileNeedsBuild(t *testing.T) {
+	t.Parallel()
+
+	thumbProfile := func(dependsOn ...string) registry_dto.NamedProfile {
+		return registry_dto.NamedProfile{
+			Name: "thumb",
+			Profile: registry_dto.DesiredProfile{
+				CapabilityName: "resize",
+				DependsOn:      registry_dto.DependenciesFromSlice(dependsOn),
+			},
+		}
+	}
+	readySource := registry_dto.Variant{VariantID: "source", Status: registry_dto.VariantStatusReady}
+
+	testCases := []struct {
+		name     string
+		artefact registry_dto.ArtefactMeta
+		want     bool
+	}{
+		{
+			name: "desired profile with ready dependencies and no variant needs building",
+			artefact: registry_dto.ArtefactMeta{
+				DesiredProfiles: []registry_dto.NamedProfile{thumbProfile("source")},
+				ActualVariants:  []registry_dto.Variant{readySource},
+			},
+			want: true,
+		},
+		{
+			name: "profile whose variant is ready is already built",
+			artefact: registry_dto.ArtefactMeta{
+				DesiredProfiles: []registry_dto.NamedProfile{thumbProfile("source")},
+				ActualVariants: []registry_dto.Variant{
+					readySource,
+					{VariantID: "thumb", Status: registry_dto.VariantStatusReady},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "profile whose variant is stale needs building again",
+			artefact: registry_dto.ArtefactMeta{
+				DesiredProfiles: []registry_dto.NamedProfile{thumbProfile("source")},
+				ActualVariants: []registry_dto.Variant{
+					readySource,
+					{VariantID: "thumb", Status: registry_dto.VariantStatusStale},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "profile with a missing dependency cannot be built yet",
+			artefact: registry_dto.ArtefactMeta{
+				DesiredProfiles: []registry_dto.NamedProfile{thumbProfile("source", "medium")},
+				ActualVariants:  []registry_dto.Variant{readySource},
+			},
+			want: false,
+		},
+		{
+			name: "profile no longer desired is not built",
+			artefact: registry_dto.ArtefactMeta{
+				ActualVariants: []registry_dto.Variant{readySource},
+			},
+			want: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, profileNeedsBuild(&tc.artefact, "thumb"))
+		})
+	}
 }
 
 func TestMapPriority(t *testing.T) {

@@ -87,7 +87,7 @@ func TestRenderOrchestrator_GoldenFiles(t *testing.T) {
 
 		ast := fixtures.ComplexPageAST()
 		metadata := templater_dto.InternalMetadata{
-			Metadata:   templater_dto.Metadata{Title: "Golden Test"},
+			Title:      "Golden Test",
 			CustomTags: []string{"my-card", "another-component"},
 		}
 
@@ -108,7 +108,7 @@ func TestRenderOrchestrator_GoldenFiles(t *testing.T) {
 
 		ast := fixtures.MegaComplexPageAST()
 		metadata := templater_dto.InternalMetadata{
-			Metadata:   templater_dto.Metadata{Title: "Mega Complex Test"},
+			Title:      "Mega Complex Test",
 			CustomTags: []string{"my-card", "another-component"},
 		}
 
@@ -131,7 +131,7 @@ func TestRenderOrchestrator_GoldenFiles(t *testing.T) {
 		})
 
 		ast := fixtures.SvgGradientPageAST()
-		metadata := templater_dto.InternalMetadata{Metadata: templater_dto.Metadata{Title: "Gradient Sprite Test"}}
+		metadata := templater_dto.InternalMetadata{Title: "Gradient Sprite Test"}
 
 		var buffer bytes.Buffer
 		err := orchestrator.RenderAST(context.Background(), &buffer, httptest.NewRecorder(), request, render_domain.RenderASTOptions{PageID: "gradient-page", Template: ast, Metadata: &metadata, SiteConfig: &config.WebsiteConfig{}})
@@ -351,7 +351,7 @@ func TestRenderOrchestrator_RobotsMetaTag(t *testing.T) {
 
 	t.Run("emits the tag when a rule is set", func(t *testing.T) {
 		output := renderWith(t, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{RobotsRule: "noindex, nofollow"},
+			RobotsRule: "noindex, nofollow",
 		}, false)
 
 		assert.Contains(t, output, `<meta name="robots" content="noindex, nofollow">`)
@@ -365,7 +365,7 @@ func TestRenderOrchestrator_RobotsMetaTag(t *testing.T) {
 
 	t.Run("emits the tag in a fragment, so soft navigation keeps it", func(t *testing.T) {
 		output := renderWith(t, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{RobotsRule: "noindex"},
+			RobotsRule: "noindex",
 		}, true)
 
 		assert.Contains(t, output, `<meta name="robots" content="noindex">`)
@@ -373,7 +373,7 @@ func TestRenderOrchestrator_RobotsMetaTag(t *testing.T) {
 
 	t.Run("escapes the rule", func(t *testing.T) {
 		output := renderWith(t, templater_dto.InternalMetadata{
-			Metadata: templater_dto.Metadata{RobotsRule: `noindex"><script>alert(1)</script>`},
+			RobotsRule: `noindex"><script>alert(1)</script>`,
 		}, false)
 
 		assert.NotContains(t, output, "<script>alert(1)</script>")

@@ -28,6 +28,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -217,6 +218,10 @@ var (
 	_ templater_domain.ManifestStoreView = (*ManifestStore)(nil)
 
 	_ templater_domain.PageEntryView = (*PageEntry)(nil)
+
+	// missingAuthPolicyWarnings records the package paths already warned about a declared
+	// but unlinked auth policy, so each is logged once.
+	missingAuthPolicyWarnings sync.Map
 )
 
 // ManifestStoreOption is a function type that sets options for a ManifestStore.
@@ -232,7 +237,7 @@ type ManifestStoreOption func(*ManifestStore)
 //   - withRegistry: Inject a custom registry (useful for testing)
 //
 // Takes provider (ManifestProviderPort) which loads the manifest data.
-// Takes opts (ManifestStoreOption) which configures the store behaviour.
+// Takes opts (ManifestStoreOption) which configure the store behaviour.
 //
 // Returns *ManifestStore which contains the linked manifest entries.
 // Returns error when the manifest cannot be loaded from the provider.
@@ -251,6 +256,9 @@ func NewManifestStore(ctx context.Context, provider generator_domain.ManifestPro
 		keys:                    make([]string, 0, len(manifest.Pages)+len(manifest.Partials)+len(manifest.Emails)+len(manifest.Pdfs)),
 		registry:                templater_domain.GetDefaultRegistry(),
 		jsArtefactToPartialName: make(map[string]string, len(manifest.Partials)),
+		rangeErrorPages:         nil,
+		catchAllErrorPages:      nil,
+		baseDir:                 "",
 	}
 
 	for _, opt := range opts {
@@ -266,51 +274,6 @@ func NewManifestStore(ctx context.Context, provider generator_domain.ManifestPro
 	sortKeysByRouteSpecificity(store)
 	warnUnlinkedPages(store)
 	return store, nil
-}
-
-// warnUnlinkedPages checks whether any pages failed to link their AST functions from the
-// runtime registry and logs a diagnostic warning. If the registry is entirely empty it
-// hints at a missing dist import.
-//
-// Takes store (*ManifestStore) which is the manifest store to inspect for unlinked pages.
-func warnUnlinkedPages(store *ManifestStore) {
-	var unlinked []string
-	for key, entry := range store.pages {
-		if entry.astFunc == nil {
-			unlinked = append(unlinked, key)
-		}
-	}
-	if len(unlinked) == 0 {
-		return
-	}
-
-	registry := store.registry
-	if registry == nil {
-		registry = templater_domain.GetDefaultRegistry()
-	}
-
-	if len(registry.List()) == 0 {
-		log.Warn(
-			"No component functions are registered in the runtime registry. "+
-				"This usually means the generated dist package is not imported. "+
-				"Add a blank import to your main.go:  _ \"<module>/dist\"",
-			logger_domain.Int("unlinked_page_count", len(unlinked)),
-		)
-		_, _ = fmt.Fprintf(os.Stderr,
-			"\n⚠ Piko: %d page(s) have no registered AST function because the runtime registry is empty.\n"+
-				"  Add a blank import to your main.go:\n\n"+
-				"      import _ \"<module>/dist\"\n\n"+
-				"  This ensures the generated init() functions run and register your components.\n\n",
-			len(unlinked),
-		)
-	} else {
-		log.Warn(
-			"Some pages could not be linked to their compiled AST functions. "+
-				"The generated code in dist/ may be out of date; try re-running the generator.",
-			logger_domain.Int("unlinked_page_count", len(unlinked)),
-			logger_domain.String("example", unlinked[0]),
-		)
-	}
 }
 
 // FindErrorPage looks up the most specific error page for the given HTTP status code and
@@ -333,31 +296,30 @@ func (s *ManifestStore) FindErrorPage(statusCode int, requestPath string) (templ
 }
 
 // LinkFuncs connects a static manifest entry to the compiled functions that were
-// registered during the application's init phase. Exported so that
-// InterpretedBuildOrchestrator can call it.
+// registered under its package path during the application's init phase.
 func (pe *PageEntry) LinkFuncs() {
+	pe.LinkFuncsFor(pe.PackagePath)
+}
+
+// LinkFuncsFor connects the entry to every function registered under packagePath and
+// rebuilds the cached JS script and static metadata. The compiled manifest store and the
+// interpreted build both link through here, so a newly registered function kind only
+// needs adding once.
+//
+// Takes packagePath (string) which is the registry key the component's functions were
+// registered under.
+func (pe *PageEntry) LinkFuncsFor(packagePath string) {
 	registry := pe.registry
 	if registry == nil {
 		registry = templater_domain.GetDefaultRegistry()
 	}
 
-	pe.astFunc, _ = registry.GetASTFunc(pe.PackagePath)
-	pe.cachePolicyFunc = registry.GetCachePolicyFunc(pe.PackagePath)
-	pe.middlewareFunc = registry.GetMiddlewareFunc(pe.PackagePath)
-	pe.supportedLocalesFunc = registry.GetSupportedLocalesFunc(pe.PackagePath)
-	pe.authPolicyFunc = registry.GetAuthPolicyFunc(pe.PackagePath)
-	pe.previewFunc, _ = registry.GetPreviewFunc(pe.PackagePath)
-	pe.initialiseCachedJSScriptMetas()
-	pe.initialiseCachedStaticMetadata()
-}
-
-// InitialiseCachedMetadata rebuilds the pre-computed JS script metadata and static
-// metadata caches.
-//
-// Call after linking functions from a registry when LinkFuncs is not used (e.g. the JIT
-// interpreted build path). The supportedLocalesFunc must be set before calling because
-// initialiseCachedStaticMetadata invokes it.
-func (pe *PageEntry) InitialiseCachedMetadata() {
+	pe.astFunc, _ = registry.GetASTFunc(packagePath)
+	pe.cachePolicyFunc = registry.GetCachePolicyFunc(packagePath)
+	pe.middlewareFunc = registry.GetMiddlewareFunc(packagePath)
+	pe.supportedLocalesFunc = registry.GetSupportedLocalesFunc(packagePath)
+	pe.authPolicyFunc, _ = registry.GetAuthPolicyFunc(packagePath)
+	pe.previewFunc, _ = registry.GetPreviewFunc(packagePath)
 	pe.initialiseCachedJSScriptMetas()
 	pe.initialiseCachedStaticMetadata()
 }
@@ -380,8 +342,11 @@ func (pe *PageEntry) SetJSArtefactToPartialNameMap(m map[string]string) {
 }
 
 // InitialiseLocalStore builds the pre-computed translation store from LocalTranslations
-// if any are present. This must be called during entry setup for pages and emails that
-// use component-scoped i18n.
+// if any are present.
+//
+// This must be called during entry setup for pages and emails that use component-scoped
+// i18n. Templates that cannot be parsed render as literal text; they are reported as
+// warnings when the component is compiled, so loading stays silent.
 func (pe *PageEntry) InitialiseLocalStore() {
 	if len(pe.LocalTranslations) > 0 {
 		pe.localStore = i18n_domain.NewStoreFromTranslations(pe.LocalTranslations, "")
@@ -528,16 +493,23 @@ func (pe *PageEntry) GetIsPage() bool {
 //
 // Takes r (*templater_dto.RequestData) which provides the request context.
 //
-// Returns templater_dto.CachePolicy which specifies the caching behaviour.
+// Returns templater_dto.CachePolicy which specifies the caching behaviour; caching is
+// disabled when no function is linked.
 func (pe *PageEntry) GetCachePolicy(r *templater_dto.RequestData) templater_dto.CachePolicy {
+	if pe.cachePolicyFunc == nil {
+		return templater_dto.CachePolicy{}
+	}
 	return pe.cachePolicyFunc(r)
 }
 
 // GetMiddlewares executes the compiled Middlewares function for the component.
 //
 // Returns []func(http.Handler) http.Handler which contains the middleware chain for this
-// page entry.
+// page entry, or nil when no function is linked.
 func (pe *PageEntry) GetMiddlewares() []func(http.Handler) http.Handler {
+	if pe.middlewareFunc == nil {
+		return nil
+	}
 	return pe.middlewareFunc()
 }
 
@@ -550,17 +522,32 @@ func (pe *PageEntry) GetHasAuthPolicy() bool {
 
 // GetAuthPolicy executes the compiled AuthPolicy function for the component.
 //
+// It fails closed. When the page declares an auth policy but no function is linked (for
+// example because the generated code is stale), the returned policy requires an
+// authenticated user, and the missing function is logged once per package.
+//
 // Takes r (*templater_dto.RequestData) which provides request details.
 //
 // Returns daemon_dto.AuthPolicy which specifies the auth requirements.
 func (pe *PageEntry) GetAuthPolicy(r *templater_dto.RequestData) daemon_dto.AuthPolicy {
-	return pe.authPolicyFunc(r)
+	if pe.authPolicyFunc != nil {
+		return pe.authPolicyFunc(r)
+	}
+	if !pe.HasAuthPolicy {
+		return daemon_dto.AuthPolicy{}
+	}
+	warnMissingAuthPolicy(r, pe.PackagePath)
+	return daemon_dto.AuthPolicy{Roles: nil, Required: true}
 }
 
 // GetSupportedLocales executes the compiled SupportedLocales function.
 //
-// Returns []string which contains the locale codes supported by this page.
+// Returns []string which contains the locale codes supported by this page, or nil when no
+// function is linked.
 func (pe *PageEntry) GetSupportedLocales() []string {
+	if pe.supportedLocalesFunc == nil {
+		return nil
+	}
 	return pe.supportedLocalesFunc()
 }
 
@@ -738,6 +725,7 @@ func (pe *PageEntry) initialiseCachedJSScriptMetas() {
 		pe.cachedJSScriptMetas[i] = templater_dto.JSScriptMeta{
 			URL:         "/_piko/assets/" + id,
 			PartialName: pe.jsArtefactToPartialName[id],
+			SRIHash:     "",
 		}
 	}
 }
@@ -745,201 +733,12 @@ func (pe *PageEntry) initialiseCachedJSScriptMetas() {
 // initialiseCachedStaticMetadata pre-computes static metadata once during manifest load
 // to avoid per-request struct allocations in ProbePage/ProbePartial.
 func (pe *PageEntry) initialiseCachedStaticMetadata() {
-	pe.cachedStaticMetadata = templater_dto.InternalMetadata{
-		AssetRefs:        pe.AssetRefs,
-		CustomTags:       pe.CustomTags,
-		SupportedLocales: pe.supportedLocalesFunc(),
-		UsesCaptcha:      pe.UsesCaptcha,
-	}
-}
-
-// WithBaseDir sets the project root directory for the manifest store. Used to build full
-// paths from relative paths in runtime diagnostics, making error messages easier to use
-// for IDE navigation.
-//
-// Takes baseDir (string) which specifies the project root directory path.
-//
-// Returns ManifestStoreOption which configures the base directory setting.
-func WithBaseDir(baseDir string) ManifestStoreOption {
-	return func(store *ManifestStore) {
-		store.baseDir = baseDir
-	}
-}
-
-// withRegistry sets a custom function registry, mainly for testing. If not set, the store
-// uses the global default registry.
-//
-// Takes registry (FunctionRegistry) which provides the custom registry to use.
-//
-// Returns ManifestStoreOption which sets the registry on the store.
-func withRegistry(registry templater_domain.FunctionRegistry) ManifestStoreOption {
-	return func(store *ManifestStore) {
-		store.registry = registry
-	}
-}
-
-// processPages loads and links all page entries from the manifest.
-//
-// Takes store (*ManifestStore) which receives the processed page entries.
-// Takes pages (map[string]generator_dto.ManifestPageEntry) which contains the raw
-// manifest page data to process.
-func processPages(store *ManifestStore, pages map[string]generator_dto.ManifestPageEntry) {
-	for key := range pages {
-		pageData := pages[key]
-		entry := &PageEntry{
-			ManifestPageEntry:       pageData,
-			astFunc:                 nil,
-			cachePolicyFunc:         nil,
-			middlewareFunc:          nil,
-			supportedLocalesFunc:    nil,
-			ModTime:                 time.Time{},
-			registry:                store.registry,
-			jsArtefactToPartialName: store.jsArtefactToPartialName,
-			baseDir:                 store.baseDir,
-		}
-		if len(pageData.LocalTranslations) > 0 {
-			entry.localStore = i18n_domain.NewStoreFromTranslations(pageData.LocalTranslations, "")
-		}
-		entry.LinkFuncs()
-		store.pages[key] = entry
-		store.keys = append(store.keys, key)
-	}
-}
-
-// processPartials loads and links all partial entries, adapting them to the PageEntry
-// structure.
-//
-// Partials use single-pattern routing with query-only locale detection. processPartials
-// also builds the jsArtefactToPartialName mapping for frontend function scoping.
-//
-// Takes store (*ManifestStore) which receives the processed partial entries.
-// Takes partials (map[string]generator_dto.ManifestPartialEntry) which provides the raw
-// partial data to process.
-func processPartials(store *ManifestStore, partials map[string]generator_dto.ManifestPartialEntry) {
-	for key, partialData := range partials {
-		if partialData.JSArtefactID != "" {
-			store.jsArtefactToPartialName[partialData.JSArtefactID] = partialData.PartialName
-		}
-
-		entry := &PageEntry{
-			ManifestPageEntry: generator_dto.ManifestPageEntry{
-				PackagePath:              partialData.PackagePath,
-				OriginalSourcePath:       partialData.OriginalSourcePath,
-				RoutePatterns:            map[string]string{"": partialData.PartialSrc},
-				I18nStrategy:             "",
-				StyleBlock:               partialData.StyleBlock,
-				AssetRefs:                nil,
-				CustomTags:               nil,
-				JSArtefactIDs:            partialJSArtefactIDsToSlice(partialData.JSArtefactID),
-				HasCachePolicy:           false,
-				CachePolicyFuncName:      "",
-				HasMiddleware:            false,
-				MiddlewareFuncName:       "",
-				HasSupportedLocales:      false,
-				SupportedLocalesFuncName: "",
-				LocalTranslations:        nil,
-			},
-			astFunc:                 nil,
-			cachePolicyFunc:         nil,
-			middlewareFunc:          nil,
-			supportedLocalesFunc:    nil,
-			ModTime:                 time.Time{},
-			registry:                store.registry,
-			jsArtefactToPartialName: store.jsArtefactToPartialName,
-			baseDir:                 store.baseDir,
-		}
-		entry.LinkFuncs()
-		store.partials[key] = entry
-		store.keys = append(store.keys, key)
-	}
-}
-
-// localisableManifestData holds the fields shared between email and PDF manifest entries,
-// used to avoid duplicating PageEntry construction logic.
-type localisableManifestData struct {
-	// localTranslations holds the per-locale translation key-value pairs.
-	localTranslations i18n_domain.Translations
-
-	// packagePath holds the Go package path for the entry.
-	packagePath string
-
-	// originalSourcePath holds the source file path relative to the project root.
-	originalSourcePath string
-
-	// styleBlock holds the scoped CSS for this entry.
-	styleBlock string
-
-	// hasSupportedLocales indicates whether the entry defines a supported locales function.
-	hasSupportedLocales bool
-
-	// hasPreview indicates whether the entry defines a Preview function.
-	hasPreview bool
-}
-
-// buildLocalisablePageEntry constructs a PageEntry from the common fields of email and
-// PDF manifest entries.
-//
-// Takes store (*ManifestStore) which provides the registry and base directory.
-// Takes data (localisableManifestData) which holds the shared entry fields.
-//
-// Returns *PageEntry which is fully linked and ready for rendering.
-func buildLocalisablePageEntry(store *ManifestStore, data localisableManifestData) *PageEntry {
-	entry := &PageEntry{
-		ManifestPageEntry: generator_dto.ManifestPageEntry{
-			PackagePath:         data.packagePath,
-			OriginalSourcePath:  data.originalSourcePath,
-			StyleBlock:          data.styleBlock,
-			HasSupportedLocales: data.hasSupportedLocales,
-			LocalTranslations:   data.localTranslations,
-			HasPreview:          data.hasPreview,
-		},
-		ModTime:  time.Time{},
-		registry: store.registry,
-		baseDir:  store.baseDir,
-	}
-	entry.LinkFuncs()
-	return entry
-}
-
-// processEmails loads and links all email entries, adapting them to the PageEntry
-// structure.
-//
-// Takes store (*ManifestStore) which receives the processed email entries.
-// Takes emails (map[string]generator_dto.ManifestEmailEntry) which provides the raw email
-// manifest data to process.
-func processEmails(store *ManifestStore, emails map[string]generator_dto.ManifestEmailEntry) {
-	for key, emailData := range emails {
-		entry := buildLocalisablePageEntry(store, localisableManifestData{
-			packagePath:         emailData.PackagePath,
-			originalSourcePath:  emailData.OriginalSourcePath,
-			styleBlock:          emailData.StyleBlock,
-			hasSupportedLocales: emailData.HasSupportedLocales,
-			localTranslations:   emailData.LocalTranslations,
-			hasPreview:          emailData.HasPreview,
-		})
-		store.emails[key] = entry
-		store.keys = append(store.keys, key)
-	}
-}
-
-// processPdfs loads and links all PDF entries, adapting them to the PageEntry structure.
-//
-// Takes store (*ManifestStore) which receives the processed PDF entries.
-// Takes pdfs (map[string]generator_dto.ManifestPdfEntry) which provides the raw PDF
-// manifest data to process.
-func processPdfs(store *ManifestStore, pdfs map[string]generator_dto.ManifestPdfEntry) {
-	for key, pdfData := range pdfs {
-		entry := buildLocalisablePageEntry(store, localisableManifestData{
-			packagePath:         pdfData.PackagePath,
-			originalSourcePath:  pdfData.OriginalSourcePath,
-			styleBlock:          pdfData.StyleBlock,
-			hasSupportedLocales: pdfData.HasSupportedLocales,
-			localTranslations:   pdfData.LocalTranslations,
-			hasPreview:          pdfData.HasPreview,
-		})
-		store.pdfs[key] = entry
-		store.keys = append(store.keys, key)
-	}
+	metadata := templater_dto.InternalMetadata{}
+	metadata.AssetRefs = pe.AssetRefs
+	metadata.CustomTags = pe.CustomTags
+	metadata.SupportedLocales = pe.GetSupportedLocales()
+	metadata.UsesCaptcha = pe.UsesCaptcha
+	pe.cachedStaticMetadata = metadata
 }
 
 // ListPreviewEntries returns all manifest entries that have a Preview function defined,
@@ -1032,6 +831,144 @@ func (s *ManifestStore) findCatchAllErrorPage(requestPath string) (templater_dom
 	return nil, false
 }
 
+// warnUnlinkedPages checks whether any pages failed to link their AST functions from the
+// runtime registry and logs a diagnostic warning. If the registry is entirely empty it
+// hints at a missing dist import.
+//
+// Takes store (*ManifestStore) which is the manifest store to inspect for unlinked pages.
+func warnUnlinkedPages(store *ManifestStore) {
+	var unlinked []string
+	for key, entry := range store.pages {
+		if entry.astFunc == nil {
+			unlinked = append(unlinked, key)
+		}
+	}
+	if len(unlinked) == 0 {
+		return
+	}
+
+	registry := store.registry
+	if registry == nil {
+		registry = templater_domain.GetDefaultRegistry()
+	}
+
+	if len(registry.List()) == 0 {
+		log.Warn(
+			"No component functions are registered in the runtime registry. "+
+				"This usually means the generated dist package is not imported. "+
+				"Add a blank import to your main.go:  _ \"<module>/dist\"",
+			logger_domain.Int("unlinked_page_count", len(unlinked)),
+		)
+		_, _ = fmt.Fprintf(os.Stderr,
+			"\n⚠ Piko: %d page(s) have no registered AST function because the runtime registry is empty.\n"+
+				"  Add a blank import to your main.go:\n\n"+
+				"      import _ \"<module>/dist\"\n\n"+
+				"  This ensures the generated init() functions run and register your components.\n\n",
+			len(unlinked),
+		)
+	} else {
+		log.Warn(
+			"Some pages could not be linked to their compiled AST functions. "+
+				"The generated code in dist/ may be out of date; try re-running the generator.",
+			logger_domain.Int("unlinked_page_count", len(unlinked)),
+			logger_domain.String("example", unlinked[0]),
+		)
+	}
+}
+
+// WithBaseDir sets the project root directory for the manifest store. Used to build full
+// paths from relative paths in runtime diagnostics, making error messages easier to use
+// for IDE navigation.
+//
+// Takes baseDir (string) which specifies the project root directory path.
+//
+// Returns ManifestStoreOption which configures the base directory setting.
+func WithBaseDir(baseDir string) ManifestStoreOption {
+	return func(store *ManifestStore) {
+		store.baseDir = baseDir
+	}
+}
+
+// withRegistry sets a custom function registry, mainly for testing. If not set, the store
+// uses the global default registry.
+//
+// Takes registry (FunctionRegistry) which provides the custom registry to use.
+//
+// Returns ManifestStoreOption which sets the registry on the store.
+func withRegistry(registry templater_domain.FunctionRegistry) ManifestStoreOption {
+	return func(store *ManifestStore) {
+		store.registry = registry
+	}
+}
+
+// processPages loads and links all page entries from the manifest.
+//
+// Takes store (*ManifestStore) which receives the processed page entries.
+// Takes pages (map[string]generator_dto.ManifestPageEntry) which contains the raw
+// manifest page data to process.
+func processPages(store *ManifestStore, pages map[string]generator_dto.ManifestPageEntry) {
+	for key := range pages {
+		entry := NewPageEntry(pages[key])
+		entry.jsArtefactToPartialName = store.jsArtefactToPartialName
+		entry.InitialiseLocalStore()
+		store.linkEntry(entry)
+		store.pages[key] = entry
+		store.keys = append(store.keys, key)
+	}
+}
+
+// processPartials loads and links all partial entries, adapting them to the PageEntry
+// structure.
+//
+// Partials use single-pattern routing with query-only locale detection. processPartials
+// also builds the jsArtefactToPartialName mapping for frontend function scoping.
+//
+// Takes store (*ManifestStore) which receives the processed partial entries.
+// Takes partials (map[string]generator_dto.ManifestPartialEntry) which provides the raw
+// partial data to process.
+func processPartials(store *ManifestStore, partials map[string]generator_dto.ManifestPartialEntry) {
+	for key, partialData := range partials {
+		if partialData.JSArtefactID != "" {
+			store.jsArtefactToPartialName[partialData.JSArtefactID] = partialData.PartialName
+		}
+
+		entry := NewPartialPageEntry(partialData)
+		entry.jsArtefactToPartialName = store.jsArtefactToPartialName
+		store.linkEntry(entry)
+		store.partials[key] = entry
+		store.keys = append(store.keys, key)
+	}
+}
+
+// processEmails loads and links all email entries, adapting them to the PageEntry
+// structure.
+//
+// Takes store (*ManifestStore) which receives the processed email entries.
+// Takes emails (map[string]generator_dto.ManifestEmailEntry) which provides the raw email
+// manifest data to process.
+func processEmails(store *ManifestStore, emails map[string]generator_dto.ManifestEmailEntry) {
+	for key, emailData := range emails {
+		entry := NewEmailPageEntry(emailData)
+		store.linkEntry(entry)
+		store.emails[key] = entry
+		store.keys = append(store.keys, key)
+	}
+}
+
+// processPdfs loads and links all PDF entries, adapting them to the PageEntry structure.
+//
+// Takes store (*ManifestStore) which receives the processed PDF entries.
+// Takes pdfs (map[string]generator_dto.ManifestPdfEntry) which provides the raw PDF
+// manifest data to process.
+func processPdfs(store *ManifestStore, pdfs map[string]generator_dto.ManifestPdfEntry) {
+	for key, pdfData := range pdfs {
+		entry := NewPdfPageEntry(pdfData)
+		store.linkEntry(entry)
+		store.pdfs[key] = entry
+		store.keys = append(store.keys, key)
+	}
+}
+
 // processErrorPages loads and links error page entries from the manifest. Error pages are
 // grouped by status code and sorted by scope specificity (longest scope path first) so
 // the most specific error page is matched.
@@ -1042,19 +979,8 @@ func (s *ManifestStore) findCatchAllErrorPage(requestPath string) (templater_dom
 func processErrorPages(store *ManifestStore, errorPages map[string]generator_dto.ManifestErrorPageEntry) {
 	for key := range errorPages {
 		epData := errorPages[key]
-		entry := &PageEntry{
-			ManifestPageEntry: generator_dto.ManifestPageEntry{
-				PackagePath:        epData.PackagePath,
-				OriginalSourcePath: epData.OriginalSourcePath,
-				StyleBlock:         epData.StyleBlock,
-				JSArtefactIDs:      epData.JSArtefactIDs,
-				CustomTags:         epData.CustomTags,
-				IsE2EOnly:          epData.IsE2EOnly,
-			},
-			registry: store.registry,
-			baseDir:  store.baseDir,
-		}
-		entry.LinkFuncs()
+		entry := NewErrorPageEntry(epData)
+		store.linkEntry(entry)
 
 		baseEntry := &errorPageEntry{
 			scopePath: epData.ScopePath,
@@ -1286,6 +1212,25 @@ func countStaticSegments(pattern string) int {
 	return count
 }
 
+// warnMissingAuthPolicy logs, once per package, that a page declares an auth policy but
+// has no policy function linked and is therefore being served as requiring
+// authentication.
+//
+// Takes r (*templater_dto.RequestData) which supplies the request context, or nil.
+// Takes packagePath (string) which identifies the page's package.
+func warnMissingAuthPolicy(r *templater_dto.RequestData, packagePath string) {
+	if _, alreadyWarned := missingAuthPolicyWarnings.LoadOrStore(packagePath, struct{}{}); alreadyWarned {
+		return
+	}
+	ctx := context.Background()
+	if r != nil {
+		ctx = r.Context()
+	}
+	_, l := logger_domain.From(ctx, log)
+	l.Warn("Page declares an auth policy but no policy function is linked; requiring authentication",
+		logger_domain.String("package_path", packagePath))
+}
+
 // buildErrorAST creates an AST that displays an error message in the browser, showing
 // runtime failures to the user.
 //
@@ -1314,21 +1259,12 @@ func buildErrorAST(err error, filePath string) *ast_domain.TemplateAST {
 		html.EscapeString(err.Error()),
 	)
 
-	return &ast_domain.TemplateAST{
-		SourcePath:        nil,
-		ExpiresAtUnixNano: nil,
-		Metadata:          nil,
-		RootNodes: []*ast_domain.TemplateNode{
-			{
-				NodeType:  ast_domain.NodeElement,
-				TagName:   "div",
-				InnerHTML: errorHTML,
-			},
-		},
-		Diagnostics: nil,
-		SourceSize:  0,
-		Tidied:      false,
-	}
+	node := ast_domain.NewElementNode("div", nil, nil)
+	node.InnerHTML = errorHTML
+
+	t := ast_domain.TemplateAST{}
+	t.RootNodes = []*ast_domain.TemplateNode{node}
+	return &t
 }
 
 // maxDiagnosticSeverity returns the highest severity among the diagnostics, or Debug when

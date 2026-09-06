@@ -207,13 +207,15 @@ func (s *watermillSubscription) closeChannel() {
 // Publish converts an orchestrator Event to a Watermill Message and publishes it.
 //
 // The context's trace information is propagated via message metadata to enable
-// distributed tracing across the pub/sub boundary.
+// distributed tracing across the pub/sub boundary. Messages larger than the payload cap
+// are refused here rather than published, because every subscriber would drop them
+// unread. A task sent that way would be counted as dispatched but never run.
 //
 // Takes topic (string) which specifies the destination topic for the message.
 // Takes event (orchestrator_domain.Event) which contains the event data to publish.
 //
-// Returns error when the bus is closed, message creation fails, or publishing to
-// Watermill fails.
+// Returns error when the bus is closed, message creation fails, the payload exceeds the
+// cap (ErrEventPayloadTooLarge), or publishing to Watermill fails.
 func (b *watermillEventBus) Publish(ctx context.Context, topic string, event orchestrator_domain.Event) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "WatermillEventBus.Publish",
@@ -234,6 +236,12 @@ func (b *watermillEventBus) Publish(ctx context.Context, topic string, event orc
 	if err != nil {
 		WatermillEventBusPublishErrorCount.Add(ctx, 1)
 		return fmt.Errorf("creating message for topic %q: %w", topic, err)
+	}
+
+	if maxPayloadBytes := b.effectiveMaxPayloadBytes(); int64(len(wmMessage.Payload)) > maxPayloadBytes {
+		WatermillEventBusPublishErrorCount.Add(ctx, 1)
+		return fmt.Errorf("publishing to topic %q: payload size %d exceeds limit %d: %w",
+			topic, len(wmMessage.Payload), maxPayloadBytes, ErrEventPayloadTooLarge)
 	}
 
 	l.Trace("Publishing message to Watermill",
@@ -570,7 +578,7 @@ func (b *watermillEventBus) createChannelMessageHandler(
 			logger_domain.String("eventType", string(event.Type)),
 			logger_domain.Int(logKeyPayloadSize, len(event.Payload)))
 
-		b.deliverWithBackpressure(msgCtx, subCtx, msgLog, outputChan, event, wmMessage)
+		b.deliverWithBackpressure(msgCtx, subCtx, outputChan, event, wmMessage)
 
 		return nil
 	}
@@ -582,7 +590,6 @@ func (b *watermillEventBus) createChannelMessageHandler(
 // Takes msgCtx (context.Context) which carries metric and logging scope for this
 // delivery.
 // Takes subCtx (context.Context) which signals subscription cancellation.
-// Takes msgLog (logger_domain.Logger) which is the per-message logger.
 // Takes outputChan (chan orchestrator_domain.Event) which buffers events for the
 // subscription.
 // Takes event (orchestrator_domain.Event) which is the decoded event to deliver.
@@ -590,11 +597,11 @@ func (b *watermillEventBus) createChannelMessageHandler(
 func (b *watermillEventBus) deliverWithBackpressure(
 	msgCtx context.Context,
 	subCtx context.Context,
-	msgLog logger_domain.Logger,
 	outputChan chan orchestrator_domain.Event,
 	event orchestrator_domain.Event,
 	wmMessage *message.Message,
 ) {
+	msgCtx, msgLog := logger_domain.From(msgCtx, log)
 	select {
 	case outputChan <- event:
 		WatermillEventBusReceivedEvents.Add(msgCtx, 1)

@@ -208,6 +208,7 @@ var (
     <piko:type ref="code" speed="30" />
   </piko:at>
 </piko:timeline>`,
+			DocumentsURL: "",
 		},
 		"piko:at": {
 			Name:        "piko:at",
@@ -221,6 +222,7 @@ var (
 			},
 			OptionalAttrs: []pikoAttrDoc{},
 			Example:       `<piko:at time="2.5s"><piko:show ref="title" /></piko:at>`,
+			DocumentsURL:  "",
 		},
 		"piko:show": {
 			Name:        "piko:show",
@@ -230,6 +232,7 @@ var (
 			},
 			OptionalAttrs: []pikoAttrDoc{},
 			Example:       `<piko:show ref="title" />`,
+			DocumentsURL:  "",
 		},
 		"piko:hide": {
 			Name:        "piko:hide",
@@ -239,6 +242,7 @@ var (
 			},
 			OptionalAttrs: []pikoAttrDoc{},
 			Example:       `<piko:hide ref="overlay" />`,
+			DocumentsURL:  "",
 		},
 		"piko:type": {
 			Name: "piko:type",
@@ -251,7 +255,8 @@ var (
 			OptionalAttrs: []pikoAttrDoc{
 				{Name: "speed", Type: "number", Description: "Milliseconds per character (default: 50)"},
 			},
-			Example: `<piko:type ref="command" speed="30" />`,
+			Example:      `<piko:type ref="command" speed="30" />`,
+			DocumentsURL: "",
 		},
 		"piko:typehtml": {
 			Name: "piko:typehtml",
@@ -264,7 +269,8 @@ var (
 			OptionalAttrs: []pikoAttrDoc{
 				{Name: "speed", Type: "number", Description: "Milliseconds per visible character (default: 25)"},
 			},
-			Example: `<piko:typehtml ref="codeBlock" speed="20" />`,
+			Example:      `<piko:typehtml ref="codeBlock" speed="20" />`,
+			DocumentsURL: "",
 		},
 		"piko:addclass": {
 			Name: "piko:addclass",
@@ -277,6 +283,7 @@ var (
 			},
 			OptionalAttrs: []pikoAttrDoc{},
 			Example:       `<piko:addclass ref="tab1" class="active" />`,
+			DocumentsURL:  "",
 		},
 		"piko:removeclass": {
 			Name:        "piko:removeclass",
@@ -287,6 +294,7 @@ var (
 			},
 			OptionalAttrs: []pikoAttrDoc{},
 			Example:       `<piko:removeclass ref="highlight" class="glow" />`,
+			DocumentsURL:  "",
 		},
 		"piko:tooltip": {
 			Name: "piko:tooltip",
@@ -299,7 +307,8 @@ var (
 			OptionalAttrs: []pikoAttrDoc{
 				{Name: "value", Type: attributeTypeString, Description: "The tooltip text to display on hover (empty to clear)"},
 			},
-			Example: `<piko:tooltip ref="editor" value="This is the code editor" />`,
+			Example:      `<piko:tooltip ref="editor" value="This is the code editor" />`,
+			DocumentsURL: "",
 		},
 	}
 )

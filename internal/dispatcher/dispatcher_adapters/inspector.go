@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"piko.sh/piko/internal/dispatcher/dispatcher_domain"
 	"piko.sh/piko/internal/email/email_domain"
@@ -290,6 +291,8 @@ func (i *Inspector) getNotificationDLQEntries(ctx context.Context, limit int) ([
 			TotalAttempts: e.TotalAttempts,
 			FirstAttempt:  e.FirstAttempt,
 			LastAttempt:   e.LastAttempt,
+			AddedAt:       time.Time{},
+			ID:            "",
 		}
 	}
 	return result, nil

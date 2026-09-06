@@ -273,6 +273,8 @@ func (painter *PdfPainter) collectLinkAnnotation(box *layouter_domain.LayoutBox)
 		y1:        pdfBottom,
 		x2:        pdfX + box.BorderBoxWidth(),
 		y2:        pdfTop,
+		uri:       "",
+		dest:      "",
 	}
 
 	if strings.HasPrefix(href, "#") {

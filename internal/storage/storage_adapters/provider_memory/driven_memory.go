@@ -127,11 +127,10 @@ func New(config Config) (*Provider, error) {
 		return nil, fmt.Errorf("memory storage provider byte budget %d is invalid: %w", config.MaxBytes, ErrInvalidMaxBytes)
 	}
 
-	cacheOptions := cache_dto.Options[string, *storedObject]{
-		MaximumWeight: uint64(config.MaxBytes),
-		Weigher: func(key string, value *storedObject) uint32 {
-			return clampWeight(entryFootprint(key, value))
-		},
+	cacheOptions := cache_dto.Options[string, *storedObject]{}
+	cacheOptions.MaximumWeight = uint64(config.MaxBytes)
+	cacheOptions.Weigher = func(key string, value *storedObject) uint32 {
+		return clampWeight(entryFootprint(key, value))
 	}
 
 	cache, err := provider_otter.OtterProviderFactory(cacheOptions)
@@ -460,14 +459,8 @@ func (*Provider) SupportsPresignedURLs() bool {
 // failures are recorded in the result rather than returned.
 func (p *Provider) PutMany(ctx context.Context, params *storage_dto.PutManyParams) (*storage_dto.BatchResult, error) {
 	startTime := time.Now()
-	result := &storage_dto.BatchResult{
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		TotalRequested:  len(params.Objects),
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		ProcessingTime:  0,
-	}
+	result := &storage_dto.BatchResult{}
+	result.TotalRequested = len(params.Objects)
 
 	for _, objectSpec := range params.Objects {
 		if err := ctx.Err(); err != nil {
@@ -516,14 +509,8 @@ func (p *Provider) PutMany(ctx context.Context, params *storage_dto.PutManyParam
 // failures are recorded in the result rather than returned.
 func (p *Provider) RemoveMany(ctx context.Context, params storage_dto.RemoveManyParams) (*storage_dto.BatchResult, error) {
 	startTime := time.Now()
-	result := &storage_dto.BatchResult{
-		SuccessfulKeys:  nil,
-		FailedKeys:      nil,
-		TotalRequested:  len(params.Keys),
-		TotalSuccessful: 0,
-		TotalFailed:     0,
-		ProcessingTime:  0,
-	}
+	result := &storage_dto.BatchResult{}
+	result.TotalRequested = len(params.Keys)
 
 	for _, key := range params.Keys {
 		if err := ctx.Err(); err != nil {

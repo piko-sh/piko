@@ -69,7 +69,8 @@ const (
 //
 // Takes theme (*Theme) which provides title / dim / bold styles. May be nil during tests.
 // Takes body (inspector.DetailBody) which is the structured content.
-// Takes width (int) and height (int) which size the rendered body.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body sized to width x height.
 func RenderDetailBody(theme *Theme, body inspector.DetailBody, width, height int) string {
@@ -180,7 +181,10 @@ func wrapByWidth(s string, maxWidth int) []string {
 // slice and the in-progress current line. Long words that exceed maxWidth on their own
 // are split mid-word so the column never overflows.
 //
-// Takes out ([]string), current (string), word (string), maxWidth (int).
+// Takes out ([]string) which contains the completed lines accumulated so far.
+// Takes current (string) which contains the current unfinished line.
+// Takes word (string) which is the next word to wrap.
+// Takes maxWidth (int) which limits each output line in terminal cells.
 //
 // Returns ([]string, string) updated completed-lines and current in-progress line.
 func wrapAddWord(out []string, current, word string, maxWidth int) ([]string, string) {
@@ -208,7 +212,9 @@ func wrapAddWord(out []string, current, word string, maxWidth int) ([]string, st
 // rune wider than maxWidth is emitted on its own line so the loop always makes progress
 // even when one glyph overflows.
 //
-// Takes out ([]string), word (string), maxWidth (int).
+// Takes out ([]string) which contains the completed lines accumulated so far.
+// Takes word (string) which is the next word to wrap.
+// Takes maxWidth (int) which limits each output line in terminal cells.
 //
 // Returns ([]string, string) updated completed-lines slice and the trailing partial
 // chunk.
@@ -358,7 +364,8 @@ func detailBoldStyle(theme *Theme) lipgloss.Style {
 // Takes body (inspector.DetailBody) which is the structured content.
 // Takes series ([]ChartSeries) which feeds the chart.
 // Takes chartTitle (string) which is rendered above the chart.
-// Takes width (int) and height (int) for the inner content.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with body + chart joined vertically.
 func RenderDetailBodyWithChart(theme *Theme, body inspector.DetailBody, series []ChartSeries, chartTitle string, width, height int) string {
@@ -383,6 +390,9 @@ func RenderDetailBodyWithChart(theme *Theme, body inspector.DetailBody, series [
 		Series: series,
 		Width:  width,
 		Height: chartHeight,
+		Title:  "",
+		XLabel: "",
+		YLabel: "",
 	})
 	chartView := chart.Render()
 

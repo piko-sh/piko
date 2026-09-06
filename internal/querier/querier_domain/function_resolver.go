@@ -194,11 +194,11 @@ func (r *functionResolver) Resolve(
 		if resolved, diagnostic := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
 			return resolved, diagnostic
 		}
-		return nil, &querier_dto.SourceError{
-			Message:  fmt.Sprintf("unknown function %q", name),
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeUnknownFunction,
-		}
+		return nil, new(unlocatedError(
+			querier_dto.CodeUnknownFunction,
+			querier_dto.SeverityWarning,
+			fmt.Sprintf("unknown function %q", name),
+		))
 	}
 
 	bestMatch := r.findBestCandidate(candidates, schema, argumentTypes)
@@ -207,14 +207,10 @@ func (r *functionResolver) Resolve(
 		if resolved, diagnostic := r.tryEngineResolver(name, schema, argumentTypes); resolved != nil {
 			return resolved, diagnostic
 		}
-		return nil, &querier_dto.SourceError{
-			Message: fmt.Sprintf(
-				"no matching overload for function %q with %d arguments",
-				name, len(argumentTypes),
-			),
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeUnknownFunction,
-		}
+		return nil, new(unlocatedError(querier_dto.CodeUnknownFunction, querier_dto.SeverityWarning, fmt.Sprintf(
+			"no matching overload for function %q with %d arguments",
+			name, len(argumentTypes),
+		)))
 	}
 
 	if bestMatch.ReturnType.Category == querier_dto.TypeCategoryUnknown && bestMatch.ReturnType.EngineName == "" {
@@ -312,7 +308,8 @@ func functionArgumentSlot(signature *querier_dto.FunctionSignature, ordinal int)
 // name is sufficient: two arguments sharing both are interchangeable for
 // back-propagation.
 //
-// Takes left (querier_dto.SQLType) and right (querier_dto.SQLType) which are compared.
+// Takes left (querier_dto.SQLType) which is the first SQL type to compare.
+// Takes right (querier_dto.SQLType) which is the second SQL type to compare.
 //
 // Returns bool which is true when the two types match by category and engine name.
 func functionArgumentTypesEqual(left querier_dto.SQLType, right querier_dto.SQLType) bool {
@@ -327,8 +324,8 @@ func functionArgumentTypesEqual(left querier_dto.SQLType, right querier_dto.SQLT
 // Returns schema (string) which is the schema, empty when unqualified.
 // Returns bareName (string) which is the function name without the schema qualifier.
 func splitFunctionName(name string) (schema string, bareName string) {
-	if index := strings.LastIndex(name, "."); index >= 0 {
-		return name[:index], name[index+1:]
+	if before, after, ok := strings.CutLast(name, "."); ok {
+		return before, after
 	}
 	return "", name
 }
@@ -391,15 +388,7 @@ func (r *functionResolver) scoreCandidate(
 	candidate *querier_dto.FunctionSignature,
 	argumentTypes []querier_dto.SQLType,
 ) (totalScore int, exactCount int, viable bool) {
-	minArguments := candidate.MinArguments
-	if minArguments == 0 {
-		minArguments = querier_dto.MinimumArguments(candidate.Arguments)
-	}
-	maxArguments := len(candidate.Arguments)
-	if candidate.IsVariadic && len(candidate.Arguments) > 0 {
-		maxArguments = math.MaxInt
-	}
-	if len(argumentTypes) < minArguments || len(argumentTypes) > maxArguments {
+	if !acceptsArgumentCount(candidate, len(argumentTypes)) {
 		return 0, 0, false
 	}
 
@@ -461,11 +450,11 @@ func (r *functionResolver) tryEngineResolver(
 	var diagnostic *querier_dto.SourceError
 	if dataAccess == querier_dto.DataAccessUnknown {
 		dataAccess = querier_dto.DataAccessReadOnly
-		diagnostic = &querier_dto.SourceError{
-			Message:  fmt.Sprintf("engine resolver returned function %q without a declared data access; defaulting to read-only", name),
-			Severity: querier_dto.SeverityWarning,
-			Code:     querier_dto.CodeFunctionDataAccessUndeclared,
-		}
+		diagnostic = new(unlocatedError(
+			querier_dto.CodeFunctionDataAccessUndeclared,
+			querier_dto.SeverityWarning,
+			fmt.Sprintf("engine resolver returned function %q without a declared data access; defaulting to read-only", name),
+		))
 	}
 	return &functionMatch{
 		returnType:        resolution.ReturnType,
@@ -516,4 +505,27 @@ func (r *functionResolver) scoreArgument(expected querier_dto.SQLType, actual qu
 	}
 
 	return 0
+}
+
+// acceptsArgumentCount reports whether a candidate overload's arity admits a call with
+// argumentCount arguments.
+//
+// A variadic candidate's MinArguments is authoritative, so a zero minimum lets a call
+// such as json_build_object() pass no arguments; a non-variadic candidate with a zero
+// minimum derives it from the arguments' optional flags.
+//
+// Takes candidate (*querier_dto.FunctionSignature) which is the overload to check.
+// Takes argumentCount (int) which is the number of call-site arguments.
+//
+// Returns bool which is true when the count lies within the candidate's arity.
+func acceptsArgumentCount(candidate *querier_dto.FunctionSignature, argumentCount int) bool {
+	minArguments := candidate.MinArguments
+	if minArguments == 0 && !candidate.IsVariadic {
+		minArguments = querier_dto.MinimumArguments(candidate.Arguments)
+	}
+	maxArguments := len(candidate.Arguments)
+	if candidate.IsVariadic && len(candidate.Arguments) > 0 {
+		maxArguments = math.MaxInt
+	}
+	return argumentCount >= minArguments && argumentCount <= maxArguments
 }

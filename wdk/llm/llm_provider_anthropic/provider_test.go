@@ -735,3 +735,21 @@ func TestAnthropicProvider_CapabilityMethods(t *testing.T) {
 	assert.Equal(t, false, p.SupportsParallelToolCalls())
 	assert.Equal(t, false, p.SupportsMessageName())
 }
+
+func TestAnthropicProvider_ReturnsPanicsAsErrors(t *testing.T) {
+	t.Parallel()
+
+	p := newTestProvider(t)
+
+	_, err := p.Complete(t.Context(), nil)
+	require.Error(t, err, "completion")
+	assert.Contains(t, err.Error(), "panic in llm.anthropicProvider.Complete")
+
+	_, err = p.Stream(t.Context(), nil)
+	require.Error(t, err, "stream")
+	assert.Contains(t, err.Error(), "panic in llm.anthropicProvider.Stream")
+
+	_, err = p.completeWithStructuredOutput(t.Context(), nil, "claude")
+	require.Error(t, err, "structured completion")
+	assert.Contains(t, err.Error(), "panic in llm.anthropicProvider.completeWithStructuredOutput")
+}

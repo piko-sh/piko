@@ -78,6 +78,14 @@ type Driver interface {
 	// Returns error when the query fails.
 	FetchDueTasks(ctx context.Context, params FetchDueTasksParams) ([]FetchDueTaskRow, error)
 
+	// GetTasksByID returns the tasks with the given IDs, skipping IDs that do not exist.
+	//
+	// Takes ids ([]string) which lists the task IDs to read.
+	//
+	// Returns []FetchDueTaskRow which holds the tasks found.
+	// Returns error when the query fails.
+	GetTasksByID(ctx context.Context, ids []string) ([]FetchDueTaskRow, error)
+
 	// MarkTasksAsProcessing marks the given task IDs as processing.
 	//
 	// Takes updatedAt (int64) which is the update time in Unix seconds.

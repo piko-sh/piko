@@ -20,11 +20,13 @@ package layouter_domain
 
 import (
 	"context"
+	"fmt"
 	"html"
 	"strconv"
 	"strings"
 
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -59,26 +61,44 @@ const (
 	formTagButton = "button"
 )
 
+// BoxTreeInput holds what BuildBoxTree needs to turn a template into a box tree.
+type BoxTreeInput struct {
+	// Tree is the parsed template to convert into a box tree.
+	Tree *ast_domain.TemplateAST
+
+	// Styles maps template nodes to their computed styles.
+	Styles StyleMap
+
+	// PseudoStyles maps template nodes to their ::before and ::after styles.
+	PseudoStyles PseudoStyleMap
+
+	// ImageResolver resolves image dimensions for replaced elements.
+	ImageResolver ImageResolverPort
+
+	// Limits enforces the box count, nesting depth and table span limits, or nil for the
+	// defaults.
+	Limits *LimitTracker
+
+	// ViewportWidth is the width of the initial containing block in points.
+	ViewportWidth float64
+
+	// ViewportHeight is the height of the initial containing block in points.
+	ViewportHeight float64
+}
+
 // BuildBoxTree constructs a LayoutBox tree from a TemplateAST and its resolved styles.
 // The returned root box represents the initial containing block with the page dimensions.
 //
 // Takes ctx (context.Context) which is the context for the build operation.
-// Takes tree (*ast_domain.TemplateAST) which is the parsed template to convert into a box
-// tree.
-// Takes styleMap (StyleMap) which maps template nodes to their computed styles.
-// Takes imageResolver (ImageResolverPort) which resolves image dimensions for replaced
-// elements.
+// Takes input (BoxTreeInput) which holds the template, its styles, the image resolver,
+// the viewport size and the limit tracker.
 //
 // Returns *LayoutBox which is the root of the constructed box tree.
-// Returns error which is nil on success.
-func BuildBoxTree(
-	ctx context.Context,
-	tree *ast_domain.TemplateAST,
-	styleMap StyleMap,
-	pseudoStyleMap PseudoStyleMap,
-	imageResolver ImageResolverPort,
-	pageWidth, pageHeight float64,
-) (*LayoutBox, error) {
+// Returns error when ctx is cancelled or a layout limit is breached while building.
+func BuildBoxTree(ctx context.Context, input BoxTreeInput) (*LayoutBox, error) {
+	limits := trackerOrDefault(input.Limits)
+	pageWidth, pageHeight := input.ViewportWidth, input.ViewportHeight
+
 	rootStyle := DefaultComputedStyle()
 	rootStyle.Display = DisplayBlock
 	rootStyle.Width = DimensionPt(pageWidth)
@@ -86,21 +106,28 @@ func BuildBoxTree(
 	rootStyle.OverflowX = OverflowHidden
 	rootStyle.OverflowY = OverflowHidden
 
-	rootBox := &LayoutBox{
-		Type:          BoxBlock,
-		Style:         rootStyle,
-		ContentWidth:  pageWidth,
-		ContentHeight: pageHeight,
-	}
+	rootBox := newLayoutBox(BoxBlock, &rootStyle, nil)
+	rootBox.ContentWidth = pageWidth
+	rootBox.ContentHeight = pageHeight
 
 	builder := &boxTreeBuilder{
-		styleMap:       styleMap,
-		pseudoStyleMap: pseudoStyleMap,
-		imageResolver:  imageResolver,
+		styleMap:       input.Styles,
+		pseudoStyleMap: input.PseudoStyles,
+		imageResolver:  input.ImageResolver,
+		counters:       nil,
+		limits:         limits,
+		depth:          0,
 	}
 
-	for _, rootNode := range tree.RootNodes {
+	for _, rootNode := range input.Tree.RootNodes {
 		builder.buildSubtree(ctx, rootNode, rootBox, rootBox, nil)
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("box tree construction cancelled: %w", err)
+	}
+	if err := limits.Err(); err != nil {
+		return nil, fmt.Errorf("box tree construction stopped: %w", err)
 	}
 
 	fixAnonymousBoxes(rootBox)
@@ -123,6 +150,12 @@ type boxTreeBuilder struct {
 	// counters tracks CSS counter values. Each counter name maps to a stack of integer
 	// values; counter-reset pushes, end of element pops.
 	counters map[string][]int
+
+	// limits enforces the box count, nesting depth and table span limits.
+	limits *LimitTracker
+
+	// depth holds the element nesting depth of the node being built.
+	depth int
 }
 
 // buildSubtree recursively converts a template node and its children into LayoutBox nodes
@@ -141,7 +174,7 @@ func (b *boxTreeBuilder) buildSubtree(
 	containingBlock *LayoutBox,
 	transformAncestor *LayoutBox,
 ) {
-	if ctx.Err() != nil {
+	if ctx.Err() != nil || b.limits.failed() {
 		return
 	}
 
@@ -151,7 +184,9 @@ func (b *boxTreeBuilder) buildSubtree(
 
 	switch node.NodeType { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case ast_domain.NodeText:
-		b.buildTextBox(node, parent, containingBlock, transformAncestor)
+		if b.limits.addBoxes(1) {
+			b.buildTextBox(node, parent, containingBlock, transformAncestor)
+		}
 		return
 	case ast_domain.NodeComment, ast_domain.NodeRawHTML:
 		return
@@ -163,6 +198,11 @@ func (b *boxTreeBuilder) buildSubtree(
 		return
 	}
 
+	if !b.limits.addBoxes(1) || !b.enterElement() {
+		return
+	}
+	defer b.leaveElement()
+
 	if style.Display == DisplayContents {
 		for _, child := range node.Children {
 			b.buildSubtree(ctx, child, parent, containingBlock, transformAncestor)
@@ -171,6 +211,26 @@ func (b *boxTreeBuilder) buildSubtree(
 	}
 
 	b.processElementNode(ctx, node, style, parent, containingBlock, transformAncestor)
+}
+
+// enterElement increments the nesting depth for an element about to be built, recording a
+// breach when the depth exceeds MaxNestingDepth.
+//
+// Returns bool which is false when the element nests too deeply and must not be built.
+func (b *boxTreeBuilder) enterElement() bool {
+	maxDepth := b.limits.Limits().MaxNestingDepth
+	if b.depth >= maxDepth {
+		b.limits.fail(fmt.Errorf("element nesting exceeds %d levels: %w", maxDepth, layouter_dto.ErrNestingTooDeep))
+		return false
+	}
+	b.depth++
+	return true
+}
+
+// leaveElement decrements the nesting depth once an element and its descendants have been
+// built.
+func (b *boxTreeBuilder) leaveElement() {
+	b.depth--
 }
 
 // processElementNode handles the creation and population of a LayoutBox for an element
@@ -182,6 +242,8 @@ func (b *boxTreeBuilder) buildSubtree(
 // Takes style (*ComputedStyle) which is the computed style for the node.
 // Takes parent (*LayoutBox) which is the parent box to append to.
 // Takes containingBlock (*LayoutBox) which is the nearest positioned ancestor.
+// Takes transformAncestor (*LayoutBox) which identifies the nearest transformed ancestor
+// for positioning descendants.
 func (b *boxTreeBuilder) processElementNode(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -191,14 +253,10 @@ func (b *boxTreeBuilder) processElementNode(
 	transformAncestor *LayoutBox,
 ) {
 	boxType := determineBoxType(node, style, parent.Type, parent.Style.Display)
-	box := &LayoutBox{
-		SourceNode:        node,
-		Style:             *style,
-		Type:              boxType,
-		Parent:            parent,
-		ContainingBlock:   containingBlock,
-		TransformAncestor: transformAncestor,
-	}
+	box := newLayoutBox(boxType, style, parent)
+	box.SourceNode = node
+	box.ContainingBlock = containingBlock
+	box.TransformAncestor = transformAncestor
 
 	box.Style.Language = inheritLanguage(node, parent)
 
@@ -265,8 +323,9 @@ func (b *boxTreeBuilder) applyBoxTypeSpecificSetup(
 	}
 
 	if boxType == BoxTableCell {
-		box.Colspan = parseIntAttributeOrDefault(node, "colspan", 1)
-		box.Rowspan = parseIntAttributeOrDefault(node, "rowspan", 1)
+		limits := b.limits.Limits()
+		box.Colspan = min(parseIntAttributeOrDefault(node, "colspan", 1), limits.MaxColspan)
+		box.Rowspan = min(parseIntAttributeOrDefault(node, "rowspan", 1), limits.MaxRowspan)
 	}
 }
 
@@ -295,13 +354,9 @@ func (b *boxTreeBuilder) insertPseudoElement(
 		return
 	}
 
-	pseudoBox := &LayoutBox{
-		Style:           *pseudoStyle,
-		Type:            BoxTextRun,
-		Parent:          parent,
-		ContainingBlock: containingBlock,
-		Text:            b.resolveContentValue(pseudoStyle.Content),
-	}
+	pseudoBox := newLayoutBox(BoxTextRun, pseudoStyle, parent)
+	pseudoBox.ContainingBlock = containingBlock
+	pseudoBox.Text = b.resolveContentValue(pseudoStyle.Content)
 	pseudoBox.Style.Display = DisplayInline
 
 	if pseudoType == PseudoBefore {
@@ -490,6 +545,8 @@ func (b *boxTreeBuilder) resolveCountersFunc(args string) string {
 // Takes parent (*LayoutBox) which is the box to append the new text run to.
 // Takes containingBlock (*LayoutBox) which is the nearest positioned ancestor for
 // absolutely-positioned descendants.
+// Takes transformAncestor (*LayoutBox) which identifies the nearest transformed ancestor
+// for positioning descendants.
 func (*boxTreeBuilder) buildTextBox(
 	node *ast_domain.TemplateNode,
 	parent *LayoutBox,
@@ -501,15 +558,11 @@ func (*boxTreeBuilder) buildTextBox(
 		return
 	}
 
-	box := &LayoutBox{
-		SourceNode:        node,
-		Style:             parent.Style,
-		Type:              BoxTextRun,
-		Parent:            parent,
-		ContainingBlock:   containingBlock,
-		TransformAncestor: transformAncestor,
-		Text:              text,
-	}
+	box := newLayoutBox(BoxTextRun, &parent.Style, parent)
+	box.SourceNode = node
+	box.ContainingBlock = containingBlock
+	box.TransformAncestor = transformAncestor
+	box.Text = text
 	box.Style.Display = DisplayInline
 	clearNonInheritedTextRunProperties(&box.Style)
 
@@ -721,23 +774,15 @@ func generateListMarker(listItem *LayoutBox, markerText string) {
 	markerStyle.Display = DisplayInline
 
 	if listItem.Style.ListStylePosition == ListStylePositionOutside {
-		marker := &LayoutBox{
-			Style:  markerStyle,
-			Type:   BoxListMarker,
-			Parent: listItem,
-			Text:   markerText,
-		}
+		marker := newLayoutBox(BoxListMarker, &markerStyle, listItem)
+		marker.Text = markerText
 		listItem.Children = append([]*LayoutBox{marker}, listItem.Children...)
 		return
 	}
 
-	marker := &LayoutBox{
-		Style:        markerStyle,
-		Type:         BoxTextRun,
-		Parent:       listItem,
-		Text:         markerText,
-		IsListMarker: true,
-	}
+	marker := newLayoutBox(BoxTextRun, &markerStyle, listItem)
+	marker.Text = markerText
+	marker.IsListMarker = true
 	listItem.Children = append([]*LayoutBox{marker}, listItem.Children...)
 }
 
@@ -952,12 +997,8 @@ func wrapInAnonymousBlock(children []*LayoutBox, parent *LayoutBox) *LayoutBox {
 	anonymousStyle := parent.Style.InheritedComputedStyle()
 	anonymousStyle.Display = DisplayBlock
 
-	anonymous := &LayoutBox{
-		Style:    anonymousStyle,
-		Type:     BoxAnonymousBlock,
-		Parent:   parent,
-		Children: children,
-	}
+	anonymous := newLayoutBox(BoxAnonymousBlock, &anonymousStyle, parent)
+	anonymous.Children = children
 
 	for _, child := range children {
 		child.Parent = anonymous

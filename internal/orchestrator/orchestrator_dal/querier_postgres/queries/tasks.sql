@@ -30,6 +30,16 @@ ORDER BY
   created_at ASC
 LIMIT $4;
 
+-- piko.query(name: GetTasksByID, command: many)
+-- $1 as piko.param(ids, kind: slice)
+SELECT
+  id, workflow_id, executor, priority,
+  payload, config,
+  result, status, execute_at, attempt, last_error, created_at, updated_at, deduplication_key
+FROM orchestrator_tasks
+WHERE
+  id IN ($1);
+
 -- piko.query(name: CreateTasksBatch, command: batch)
 INSERT INTO orchestrator_tasks (
     id, workflow_id, executor, priority, payload, config, status,

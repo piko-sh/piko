@@ -66,10 +66,14 @@ func ParseArtefactMeta(data []byte) (artefact *registry_dto.ArtefactMeta) {
 // variants, profiles, and computed status.
 func convertArtefactMetaFB(fb *fbs.ArtefactMetaFB) *registry_dto.ArtefactMeta {
 	art := &registry_dto.ArtefactMeta{
-		ID:         mem.String(fb.Id()),
-		SourcePath: mem.String(fb.SourcePath()),
-		CreatedAt:  time.Unix(fb.CreatedAt(), 0),
-		UpdatedAt:  time.Unix(fb.UpdatedAt(), 0),
+		ID:              mem.String(fb.Id()),
+		SourcePath:      mem.String(fb.SourcePath()),
+		CreatedAt:       time.Unix(fb.CreatedAt(), 0),
+		UpdatedAt:       time.Unix(fb.UpdatedAt(), 0),
+		ReleaseID:       "",
+		Status:          "",
+		DesiredProfiles: nil,
+		ActualVariants:  nil,
 	}
 
 	variantCount := fb.VariantsLength()
@@ -122,6 +126,8 @@ func convertVariantFB(fb *fbs.VariantFB) registry_dto.Variant {
 		Producer:         producerFromFB(fb.Producer()),
 		Kind:             kindFromFB(fb.Kind()),
 		Transform:        convertVariantTransformFB(fb),
+		MetadataTags:     registry_dto.Tags{},
+		Chunks:           nil,
 	}
 
 	tagCount := fb.MetadataTagsLength()
@@ -168,6 +174,7 @@ func convertVariantTransformFB(fb *fbs.VariantFB) registry_dto.VariantTransform 
 		ParentContentHash: mem.String(transformFB.ParentContentHash()),
 		CapabilityName:    mem.String(transformFB.CapabilityName()),
 		CapabilityVersion: transformFB.CapabilityVersion(),
+		Params:            registry_dto.ProfileParams{},
 	}
 
 	paramCount := transformFB.ParamsLength()
@@ -198,6 +205,7 @@ func convertVariantChunkFB(fb *fbs.VariantChunkFB) registry_dto.VariantChunk {
 		SequenceNumber:   int(fb.SequenceNumber()),
 		MimeType:         mem.String(fb.MimeType()),
 		CreatedAt:        time.Unix(fb.CreatedAt(), 0),
+		DurationSeconds:  nil,
 	}
 
 	if duration := fb.DurationSeconds(); duration != 0 {
@@ -219,6 +227,9 @@ func convertDesiredProfileFB(fb *fbs.DesiredProfileFB) registry_dto.NamedProfile
 		Profile: registry_dto.DesiredProfile{
 			Priority:       registry_dto.ProfilePriority(mem.String(fb.Priority())),
 			CapabilityName: mem.String(fb.CapabilityName()),
+			Params:         registry_dto.ProfileParams{},
+			ResultingTags:  registry_dto.Tags{},
+			DependsOn:      registry_dto.Dependencies{},
 		},
 	}
 

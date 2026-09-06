@@ -1,0 +1,51 @@
+[
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.order",
+    "expected": "body,dispose c,dispose b,dispose a"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.early-return",
+    "expected": "returned:dispose held"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.loop",
+    "expected": "use one,dispose one,use two,dispose two"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.labelled",
+    "expected": "3:dispose loop"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.errors",
+    "expected": "SuppressedError:dispose failed:body failed"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.nulls",
+    "expected": "skipped"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.not-disposable",
+    "expected": "TypeError"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.async",
+    "expected": "idle"
+  },
+  {
+    "action": "click",
+    "selector": "using-component >>> button"
+  },
+  {
+    "action": "checkText",
+    "selector": "using-component >>> p.async",
+    "expected": "body,sync second,async first"
+  }
+]

@@ -21,6 +21,7 @@ package storage_domain
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"piko.sh/piko/internal/provider/provider_domain"
 )
@@ -66,9 +67,9 @@ func (*service) ProbeName() string {
 // MULTIPART, BATCH, and PRESIGNED columns.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: fieldName},
-		{Header: "TYPE", Key: "type"},
-		{Header: "REGISTERED", Key: "registered"},
+		{Header: "NAME", Key: fieldName, WideOnly: false},
+		{Header: "TYPE", Key: "type", WideOnly: false},
+		{Header: "REGISTERED", Key: "registered", WideOnly: false},
 		{Header: "MULTIPART", Key: "multipart", WideOnly: true},
 		{Header: "BATCH", Key: "batch", WideOnly: true},
 		{Header: "PRESIGNED", Key: "presigned", WideOnly: true},
@@ -153,7 +154,13 @@ func (s *service) findProviderInfo(ctx context.Context, name string) provider_do
 			return p
 		}
 	}
-	return provider_domain.ProviderInfo{Name: name}
+	return provider_domain.ProviderInfo{
+		Name:         name,
+		Capabilities: nil,
+		RegisteredAt: time.Time{},
+		ProviderType: "",
+		IsDefault:    false,
+	}
 }
 
 // appendRepositoriesSection appends a Repositories section to the given sections when the
@@ -204,9 +211,9 @@ func (*service) ResourceSubResourceName() string {
 // CACHE-CONTROL columns.
 func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: fieldName},
-		{Header: "PUBLIC", Key: "public"},
-		{Header: "CACHE-CONTROL", Key: "cache_control"},
+		{Header: "NAME", Key: fieldName, WideOnly: false},
+		{Header: "PUBLIC", Key: "public", WideOnly: false},
+		{Header: "CACHE-CONTROL", Key: "cache_control", WideOnly: false},
 	}
 }
 
@@ -239,6 +246,7 @@ func (s *service) ResourceListSubResources(_ context.Context, _ string) ([]provi
 				"public":        isPublic,
 				"cache_control": repo.CacheControl,
 			},
+			IsDefault: false,
 		}
 	}
 

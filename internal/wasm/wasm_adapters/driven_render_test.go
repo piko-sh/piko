@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 	"piko.sh/piko/internal/wasm/wasm_domain"
@@ -32,9 +33,9 @@ import (
 )
 
 type captureHeadlessRenderer struct {
-	lastOptions wasm_domain.HeadlessRenderOptions
-	html        string
 	err         error
+	html        string
+	lastOptions wasm_domain.HeadlessRenderOptions
 }
 
 func (c *captureHeadlessRenderer) RenderASTToString(_ context.Context, options wasm_domain.HeadlessRenderOptions) (string, error) {
@@ -87,4 +88,80 @@ func TestRenderAdapter_RenderFromAST_NoRendererConfigured(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, response.Success)
 	assert.Contains(t, response.Error, "headless renderer not configured")
+}
+
+func TestRenderAdapterBuildMetadata(t *testing.T) {
+	t.Parallel()
+	adapter := NewRenderAdapter()
+
+	empty := adapter.buildMetadata(nil)
+	require.NotNil(t, empty)
+	assert.Empty(t, empty.AssetRefs)
+
+	metadata := adapter.buildMetadata(&annotator_dto.AnnotationResult{
+		AssetRefs:  []templater_dto.AssetRef{{Kind: "img", Path: "lib/icon.svg"}},
+		CustomTags: []string{"piko-card"},
+	})
+	require.NotNil(t, metadata)
+	assert.Len(t, metadata.AssetRefs, 1)
+	assert.Equal(t, []string{"piko-card"}, metadata.CustomTags)
+}
+
+func TestRenderAdapter_FindEntryPoints(t *testing.T) {
+	t.Parallel()
+
+	sources := map[string]string{
+		"pages/home.pk":    "<template></template>",
+		"pages/about.pk":   "<template></template>",
+		"partials/card.pk": "<template></template>",
+		"main.go":          "package main",
+	}
+	testCases := []struct {
+		name           string
+		preferredEntry string
+		wantPaths      []string
+	}{
+		{
+			name:           "every template is an entry point without a preference",
+			preferredEntry: "",
+			wantPaths:      []string{"playground/pages/home.pk", "playground/pages/about.pk", "playground/partials/card.pk"},
+		},
+		{
+			name:           "a file name selects the matching template",
+			preferredEntry: "about.pk",
+			wantPaths:      []string{"playground/pages/about.pk"},
+		},
+		{
+			name:           "a full source path selects the matching template",
+			preferredEntry: "partials/card.pk",
+			wantPaths:      []string{"playground/partials/card.pk"},
+		},
+		{
+			name:           "an unknown preference selects nothing",
+			preferredEntry: "missing.pk",
+			wantPaths:      []string{},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			entryPoints := NewRenderAdapter().findEntryPoints(sources, "playground", testCase.preferredEntry)
+
+			paths := make([]string, 0, len(entryPoints))
+			for _, entryPoint := range entryPoints {
+				paths = append(paths, entryPoint.Path)
+			}
+			assert.ElementsMatch(t, testCase.wantPaths, paths)
+		})
+	}
+}
+
+func TestNewInMemoryAnnotatorService(t *testing.T) {
+	t.Parallel()
+
+	annotator := NewInMemoryAnnotatorService(map[string]string{"pages/home.pk": "<template></template>"}, "playground", nil)
+
+	assert.NotNil(t, annotator)
 }

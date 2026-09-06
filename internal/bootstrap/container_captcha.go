@@ -199,6 +199,8 @@ func (c *Container) createHMACChallengeProvider() (providerName string, provider
 
 	provider, err = hmac_challenge.NewProvider(hmac_challenge.Config{
 		Secret: secret,
+		Clock:  nil,
+		TTL:    0,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("creating HMAC challenge provider: %w", err)

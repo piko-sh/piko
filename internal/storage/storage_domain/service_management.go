@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"sync/atomic"
 
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
@@ -279,7 +280,14 @@ func (s *service) FlushDispatcher(ctx context.Context) error {
 // for long because the underlying counters will continue to advance.
 func (s *service) GetStats(_ context.Context) *ServiceStats {
 	stats := &ServiceStats{
-		StartTime: s.stats.StartTime,
+		StartTime:            s.stats.StartTime,
+		TotalOperations:      atomic.Int64{},
+		SuccessfulOperations: atomic.Int64{},
+		FailedOperations:     atomic.Int64{},
+		RetryAttempts:        atomic.Int64{},
+		CacheHits:            atomic.Int64{},
+		CacheMisses:          atomic.Int64{},
+		DLQEntries:           atomic.Int64{},
 	}
 	stats.TotalOperations.Store(s.stats.TotalOperations.Load())
 	stats.SuccessfulOperations.Store(s.stats.SuccessfulOperations.Load())

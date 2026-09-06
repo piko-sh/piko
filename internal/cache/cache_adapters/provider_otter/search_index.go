@@ -653,9 +653,14 @@ func (*InvertedIndex[K]) tokeniseDefault(text string) []string {
 // Returns *InvertedIndex[K] which is an empty index ready for use.
 func NewInvertedIndex[K comparable]() *InvertedIndex[K] {
 	return &InvertedIndex[K]{
-		index:      make(map[string]map[K]struct{}),
-		keyTerms:   make(map[K]map[string]struct{}),
-		docLengths: make(map[K]int),
+		index:          make(map[string]map[K]struct{}),
+		keyTerms:       make(map[K]map[string]struct{}),
+		docLengths:     make(map[K]int),
+		analyseFunc:    nil,
+		maxTokens:      0,
+		totalDocuments: 0,
+		totalTerms:     0,
+		mu:             sync.RWMutex{},
 	}
 }
 

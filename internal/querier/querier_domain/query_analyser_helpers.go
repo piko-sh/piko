@@ -120,6 +120,9 @@ func (a *queryAnalyser) assembleQuery(input assembleQueryInput) *querier_dto.Ana
 		ReadOnly:                readOnly,
 		BaseQueryHasWhereClause: input.rawAnalysis.HasWhereClause,
 		Optional:                input.directives.Optional,
+		CountSQL:                "",
+		AllowedColumns:          nil,
+		CountSQLWrapped:         false,
 	}
 
 	if input.directives.DynamicRuntime {
@@ -216,7 +219,6 @@ func (a *queryAnalyser) findTable(schema string, name string) *querier_dto.Table
 //
 // Takes raw (*querier_dto.RawQueryAnalysis) which holds the parsed FROM, JOIN, and
 // derived table references.
-//
 // Takes scope (*scopeChain) which holds the scope chain to populate.
 //
 // Returns []querier_dto.SourceError which holds any warnings produced when tables cannot
@@ -242,11 +244,11 @@ func (a *queryAnalyser) buildScopeChain(
 
 		catalogueTable, resolveError := a.resolveTableReference(tableReference)
 		if resolveError != nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  resolveError.Error(),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeUnknownTable,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeUnknownTable,
+				querier_dto.SeverityWarning,
+				resolveError.Error(),
+			))
 			continue
 		}
 		_ = scope.AddTable(tableReference, querier_dto.JoinInner, catalogueTable)
@@ -266,7 +268,6 @@ func (a *queryAnalyser) buildScopeChain(
 //
 // Takes joinClauses ([]querier_dto.JoinClause) which holds the parsed JOIN clauses from
 // the query.
-//
 // Takes scope (*scopeChain) which holds the scope chain to populate with join table
 // entries.
 //
@@ -291,11 +292,11 @@ func (a *queryAnalyser) resolveJoinClauses(
 
 		catalogueTable, resolveError := a.resolveTableReference(joinClause.Table)
 		if resolveError != nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  resolveError.Error(),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeUnknownTable,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeUnknownTable,
+				querier_dto.SeverityWarning,
+				resolveError.Error(),
+			))
 			continue
 		}
 		_ = scope.AddTable(joinClause.Table, joinClause.Kind, catalogueTable)
@@ -310,7 +311,6 @@ func (a *queryAnalyser) resolveJoinClauses(
 // alias of the table.
 //
 // Returns *querier_dto.Table which holds the matched catalogue table or view.
-//
 // Returns error when the schema or table name cannot be found in the catalogue.
 func (a *queryAnalyser) resolveTableReference(
 	reference querier_dto.TableReference,
@@ -331,9 +331,17 @@ func (a *queryAnalyser) resolveTableReference(
 
 	if view, exists := schema.Views[reference.Name]; exists {
 		return &querier_dto.Table{
-			Name:    view.Name,
-			Schema:  view.Schema,
-			Columns: view.Columns,
+			Name:              view.Name,
+			Schema:            view.Schema,
+			Columns:           view.Columns,
+			Comment:           "",
+			VirtualModuleName: "",
+			PrimaryKey:        nil,
+			Indexes:           nil,
+			Constraints:       nil,
+			Origin:            querier_dto.MigrationOrigin{},
+			IsVirtual:         false,
+			IsWithoutRowID:    false,
 		}, nil
 	}
 
@@ -345,7 +353,6 @@ func (a *queryAnalyser) resolveTableReference(
 //
 // Takes cteDefinitions ([]querier_dto.RawCTEDefinition) which holds the parsed CTE
 // definitions from the query.
-//
 // Takes scope (*scopeChain) which holds the scope chain where resolved CTEs are
 // registered.
 //
@@ -373,7 +380,6 @@ func (a *queryAnalyser) resolveCTEs(
 //
 // Takes cteDefinition (querier_dto.RawCTEDefinition) which holds the parsed CTE
 // definition to resolve.
-//
 // Takes scope (*scopeChain) which holds the parent scope chain where the CTE is
 // registered.
 //
@@ -413,10 +419,8 @@ func (a *queryAnalyser) resolveSingleCTE(
 //
 // Takes fromTables ([]querier_dto.TableReference) which holds the FROM clause tables of
 // the CTE body.
-//
 // Takes parentScope (*scopeChain) which holds the parent scope containing previously
 // resolved CTEs.
-//
 // Takes cteScope (*scopeChain) which holds the child scope to populate.
 //
 // Returns []querier_dto.SourceError which holds any warnings when tables cannot be
@@ -439,11 +443,11 @@ func (a *queryAnalyser) populateCTEScope(
 		}
 		catalogueTable, resolveError := a.resolveTableReference(tableReference)
 		if resolveError != nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  resolveError.Error(),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeUnknownTable,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeUnknownTable,
+				querier_dto.SeverityWarning,
+				resolveError.Error(),
+			))
 			continue
 		}
 		_ = cteScope.AddTable(tableReference, querier_dto.JoinInner, catalogueTable)
@@ -476,7 +480,6 @@ func (*queryAnalyser) outputColumnsToScoped(columns []querier_dto.OutputColumn) 
 //
 // Takes tableValuedFunctions ([]querier_dto.RawTableValuedFunctionReference) which holds
 // the parsed function references.
-//
 // Takes scope (*scopeChain) which holds the scope chain to populate with derived table
 // entries.
 //
@@ -490,11 +493,11 @@ func (a *queryAnalyser) resolveTableValuedFunctions(
 	for _, tvf := range tableValuedFunctions {
 		columns, columnDiagnostic := resolveTableValuedFunctionColumns(a.engine, a.catalogue, tvf)
 		if columns == nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  fmt.Sprintf("%s: unknown table-valued function %q", querier_dto.CodeUnknownTable, tvf.FunctionName),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeUnknownTable,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeUnknownTable,
+				querier_dto.SeverityWarning,
+				fmt.Sprintf("%s: unknown table-valued function %q", querier_dto.CodeUnknownTable, tvf.FunctionName),
+			))
 			continue
 		}
 		if columnDiagnostic != nil {
@@ -584,14 +587,10 @@ func applyTableValuedFunctionAliases(
 	if len(tvf.ColumnDefinitions) <= len(columns) {
 		return nil
 	}
-	return &querier_dto.SourceError{
-		Message: fmt.Sprintf(
-			"%s: table-valued function %q exposes %d columns but %d column aliases were supplied; surplus aliases are ignored",
-			querier_dto.CodeCompoundColumnCount, tvf.FunctionName, len(columns), len(tvf.ColumnDefinitions),
-		),
-		Severity: querier_dto.SeverityWarning,
-		Code:     querier_dto.CodeCompoundColumnCount,
-	}
+	return new(unlocatedError(querier_dto.CodeCompoundColumnCount, querier_dto.SeverityWarning, fmt.Sprintf(
+		"%s: table-valued function %q exposes %d columns but %d column aliases were supplied; surplus aliases are ignored",
+		querier_dto.CodeCompoundColumnCount, tvf.FunctionName, len(columns), len(tvf.ColumnDefinitions),
+	)))
 }
 
 // resolveRawDerivedTables resolves subquery-based derived tables by recursively analysing
@@ -599,7 +598,6 @@ func applyTableValuedFunctionAliases(
 //
 // Takes rawDerivedTables ([]querier_dto.RawDerivedTableReference) which holds the parsed
 // derived table references.
-//
 // Takes scope (*scopeChain) which holds the scope chain to populate with resolved derived
 // tables.
 //
@@ -617,11 +615,11 @@ func (a *queryAnalyser) resolveRawDerivedTables(
 			return diagnostics
 		}
 		if rawDerived.InnerQuery == nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  querier_dto.CodeInternalNilGuard + ": nil derived table query during type resolution",
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeInternalNilGuard,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeInternalNilGuard,
+				querier_dto.SeverityWarning,
+				querier_dto.CodeInternalNilGuard+": nil derived table query during type resolution",
+			))
 			continue
 		}
 
@@ -649,6 +647,7 @@ func (a *queryAnalyser) resolveRawDerivedTables(
 			Alias:    rawDerived.Alias,
 			Columns:  scopedColumns,
 			JoinKind: rawDerived.JoinKind,
+			Source:   0,
 		})
 	}
 
@@ -678,11 +677,11 @@ func (*queryAnalyser) resolveArrayJoinClauses(
 	for _, clause := range clauses {
 		column, _, lookupErr := scope.ResolveColumn("", clause.SourceColumn)
 		if lookupErr != nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  fmt.Sprintf("%s: array join source column %q", querier_dto.CodeUnknownColumn, clause.SourceColumn),
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeUnknownColumn,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeUnknownColumn,
+				querier_dto.SeverityWarning,
+				fmt.Sprintf("%s: array join source column %q", querier_dto.CodeUnknownColumn, clause.SourceColumn),
+			))
 			continue
 		}
 		element := column.SQLType
@@ -701,6 +700,7 @@ func (*queryAnalyser) resolveArrayJoinClauses(
 				Nullable: clause.IsLeft,
 			}},
 			JoinKind: joinKind,
+			Source:   0,
 		})
 	}
 	return diagnostics
@@ -715,7 +715,6 @@ func (*queryAnalyser) resolveArrayJoinClauses(
 // into the branch scope.
 //
 // Takes outerScope (*scopeChain) which holds the enclosing query scope. May be nil.
-//
 // Takes branchScope (*scopeChain) which holds the branch scope to receive the CTE
 // entries.
 func inheritOuterCTEs(outerScope *scopeChain, branchScope *scopeChain) {
@@ -734,10 +733,8 @@ func inheritOuterCTEs(outerScope *scopeChain, branchScope *scopeChain) {
 //
 // Takes branches ([]querier_dto.RawCompoundBranch) which holds the parsed compound query
 // branches.
-//
 // Takes primaryColumns ([]querier_dto.OutputColumn) which holds the primary SELECT
 // columns whose types are promoted in place.
-//
 // Takes outerScope (*scopeChain) which holds the scope chain of the enclosing query so
 // each branch can see CTEs declared at the outer WITH clause. May be nil when no outer
 // CTEs apply.
@@ -757,11 +754,11 @@ func (a *queryAnalyser) resolveCompoundBranches(
 			return diagnostics
 		}
 		if branch.Query == nil {
-			diagnostics = append(diagnostics, querier_dto.SourceError{
-				Message:  querier_dto.CodeInternalNilGuard + ": nil compound branch query during type resolution",
-				Severity: querier_dto.SeverityWarning,
-				Code:     querier_dto.CodeInternalNilGuard,
-			})
+			diagnostics = append(diagnostics, unlocatedError(
+				querier_dto.CodeInternalNilGuard,
+				querier_dto.SeverityWarning,
+				querier_dto.CodeInternalNilGuard+": nil compound branch query during type resolution",
+			))
 			continue
 		}
 
@@ -779,14 +776,14 @@ func (a *queryAnalyser) resolveCompoundBranches(
 
 		if len(branchColumns) != len(primaryColumns) {
 			if len(branchDiagnostics) == 0 {
-				diagnostics = append(diagnostics, querier_dto.SourceError{
-					Message: fmt.Sprintf(
+				diagnostics = append(diagnostics, unlocatedError(
+					querier_dto.CodeCompoundColumnCount,
+					querier_dto.SeverityError,
+					fmt.Sprintf(
 						"compound query branch has %d columns, expected %d to match primary SELECT",
 						len(branchColumns), len(primaryColumns),
 					),
-					Severity: querier_dto.SeverityError,
-					Code:     querier_dto.CodeCompoundColumnCount,
-				})
+				))
 			}
 			continue
 		}
@@ -810,12 +807,10 @@ func (a *queryAnalyser) resolveCompoundBranches(
 //
 // Takes statements ([]querier_dto.ParsedStatement) which holds all parsed statements in
 // the query block.
-//
 // Takes primaryStatement (querier_dto.ParsedStatement) which holds the last statement
 // used for single-statement analysis.
 //
 // Returns *querier_dto.RawQueryAnalysis which holds the raw analysis result.
-//
 // Returns error when the engine fails to analyse the statements.
 func (a *queryAnalyser) analyseStatements(
 	statements []querier_dto.ParsedStatement,
@@ -830,8 +825,29 @@ func (a *queryAnalyser) analyseStatements(
 // blockError constructs a SourceError positioned at the start of a query block.
 //
 // Takes filename (string) which specifies the source file path.
-//
 // Takes line (int) which specifies the line number within the file.
+// Takes code (string) which specifies the diagnostic error code.
+// Takes severity (querier_dto.ErrorSeverity) which specifies the error severity level.
+// Takes message (string) which specifies the human-readable error message.
+//
+// Returns querier_dto.SourceError which holds the constructed source error.
+func blockError(filename string, line int, code string, severity querier_dto.ErrorSeverity, message string) querier_dto.SourceError {
+	return querier_dto.SourceError{
+		Filename:   filename,
+		Line:       line,
+		Column:     1,
+		Message:    message,
+		Severity:   severity,
+		Code:       code,
+		Suggestion: "",
+		EndLine:    0,
+		EndColumn:  0,
+	}
+}
+
+// unlocatedError constructs a SourceError that carries no file location yet, for
+// diagnostics raised during resolution before addFileLocation assigns the query block's
+// position.
 //
 // Takes code (string) which specifies the diagnostic error code.
 //
@@ -840,24 +856,25 @@ func (a *queryAnalyser) analyseStatements(
 // Takes message (string) which specifies the human-readable error message.
 //
 // Returns querier_dto.SourceError which holds the constructed source error.
-func blockError(filename string, line int, code string, severity querier_dto.ErrorSeverity, message string) querier_dto.SourceError {
+func unlocatedError(code string, severity querier_dto.ErrorSeverity, message string) querier_dto.SourceError {
 	return querier_dto.SourceError{
-		Filename: filename,
-		Line:     line,
-		Column:   1,
-		Message:  message,
-		Severity: severity,
-		Code:     code,
+		Filename:   "",
+		Line:       0,
+		Column:     0,
+		Message:    message,
+		Severity:   severity,
+		Code:       code,
+		Suggestion: "",
+		EndLine:    0,
+		EndColumn:  0,
 	}
 }
 
 // addFileLocation fills in missing file location fields on a slice of diagnostics.
 //
 // Takes diagnostics ([]querier_dto.SourceError) which holds the diagnostics to augment.
-//
 // Takes filename (string) which specifies the default filename for diagnostics that lack
 // one.
-//
 // Takes startLine (int) which specifies the default line number for diagnostics that lack
 // one.
 //
@@ -892,14 +909,11 @@ func addFileLocation(
 //
 // Takes directiveBlock (*querier_dto.DirectiveBlock) which holds the parsed embed
 // declarations from the query header (the canonical source of embed metadata).
-//
 // Takes sql (string) which holds the raw SQL text. Kept for backward compatibility with
 // any inline embed markers still present in legacy fixtures; the parsed directive block
 // takes precedence when both forms are present.
-//
 // Takes outputColumns ([]querier_dto.OutputColumn) which holds the resolved output
 // columns to annotate.
-//
 // Takes scope (*scopeChain) which holds the scope chain used to determine outer join
 // status.
 //

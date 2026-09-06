@@ -17,8 +17,7 @@
       "useTargetedRebuild": true,
       "targetedEntryPoints": ["pages/main.pk"],
       "expectTier1Hit": true,
-      "expectFastPath": true,
-      "delayBeforeRenderMs": 10
+      "expectFastPath": true
     }
   ]
 }

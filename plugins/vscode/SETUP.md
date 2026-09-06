@@ -7,7 +7,7 @@ Quick runbook for setting up and testing the Piko LSP extension locally.
 Ensure you have the following installed:
 
 ```bash
-# Check Go version (requires 1.26+)
+# Check Go version (requires 1.27+)
 go version
 
 # Check VS Code is available

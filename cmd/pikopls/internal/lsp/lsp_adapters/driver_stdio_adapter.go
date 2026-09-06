@@ -148,9 +148,10 @@ func (a *stdioAdapter) Run(ctx context.Context, stream io.ReadWriteCloser) error
 		GoplsManager:         a.goplsManager,
 		FormattingEnabled:    a.formattingEnabled,
 		GoplsBridgeEnabled:   a.goplsBridgeEnabled,
+		Clock:                nil,
 	})
 
-	_, conn, client := protocol.NewServer(ctx, pikoServer, loggingStream, slog.Default())
+	conn, client := serveProtocol(ctx, pikoServer, loggingStream, slog.Default())
 	pikoServer.SetClient(client)
 	pikoServer.SetConn(conn)
 
@@ -222,6 +223,7 @@ func NewStdioAdapter(deps StdioAdapterDeps) (lsp_domain.LSPServerPort, error) {
 		goplsManager:         deps.GoplsManager,
 		formattingEnabled:    deps.FormattingEnabled,
 		goplsBridgeEnabled:   deps.GoplsBridgeEnabled,
+		sandboxFactory:       nil,
 	}, nil
 }
 

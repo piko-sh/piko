@@ -25,6 +25,7 @@ import (
 	"html"
 	"strconv"
 	"strings"
+	"time"
 
 	qt "github.com/valyala/quicktemplate"
 	"piko.sh/piko/internal/assetpath"
@@ -253,6 +254,10 @@ func (*RenderOrchestrator) registerDynamicVideoAsset(
 		SourcePath:      src,
 		Status:          registry_dto.VariantStatusPending,
 		DesiredProfiles: desiredProfiles,
+		CreatedAt:       time.Time{},
+		UpdatedAt:       time.Time{},
+		ReleaseID:       "",
+		ActualVariants:  nil,
 	}
 
 	rctx.registeredDynamicAssets[cacheKey] = artefact

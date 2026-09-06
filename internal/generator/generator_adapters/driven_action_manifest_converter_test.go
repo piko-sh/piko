@@ -43,7 +43,7 @@ func TestConvertManifestToSpecs(t *testing.T) {
 		},
 		{
 			name:     "empty actions nil",
-			manifest: &annotator_dto.ActionManifest{Actions: nil},
+			manifest: &annotator_dto.ActionManifest{},
 			wantNil:  true,
 		},
 		{

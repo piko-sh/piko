@@ -32,8 +32,8 @@ func TestNullableParamRecordsNullability(t *testing.T) {
 	require.Len(t, analysis.ParameterReferences, 3)
 
 	type castInfo struct {
-		nullable   bool
 		engineName string
+		nullable   bool
 	}
 	byName := map[string]castInfo{}
 	for index := range analysis.ParameterReferences {

@@ -103,6 +103,7 @@ type queryTypeResolution struct {
 // validate, and assemble the final AnalysedQuery.
 //
 // Takes block (queryBlock) which holds the raw SQL text and line information.
+// Takes filename (string) which identifies the source file for query diagnostics.
 //
 // Returns *querier_dto.AnalysedQuery which holds the fully analysed query, or nil if
 // analysis fails early.

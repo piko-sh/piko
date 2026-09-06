@@ -138,6 +138,21 @@ type field struct {
 	voffset uint16
 }
 
+// newField returns a field spec for a scalar, string or nested-table field, which has no
+// element spec.
+//
+// Takes voffset (uint16) which is the field's vtable byte-offset.
+// Takes kind (fieldKind) which classifies how the verifier walks the field.
+//
+// Returns field which describes the expected vtable field.
+func newField(voffset uint16, kind fieldKind) field {
+	return field{
+		elem:    nil,
+		kind:    kind,
+		voffset: voffset,
+	}
+}
+
 // verifier holds the buffer under inspection and the running table count for one
 // verifyMessage pass.
 type verifier struct {
@@ -427,6 +442,6 @@ func verifyMessage(buf []byte, fields []field) error {
 	if !ok {
 		return errOOB
 	}
-	v := &verifier{buf: buf}
+	v := &verifier{buf: buf, tables: 0}
 	return v.table(uint64(root), fields, 0)
 }

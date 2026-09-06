@@ -139,9 +139,12 @@ func (b *CompletionBuilder) executeToolLoop(ctx context.Context, providerName st
 		round++
 
 		assistantMessage := llm_dto.Message{
-			Role:      llm_dto.RoleAssistant,
-			Content:   response.Content(),
-			ToolCalls: response.ToolCalls(),
+			Role:         llm_dto.RoleAssistant,
+			Content:      response.Content(),
+			ToolCalls:    response.ToolCalls(),
+			Name:         nil,
+			ToolCallID:   nil,
+			ContentParts: nil,
 		}
 		b.request.Messages = append(b.request.Messages, assistantMessage)
 		b.toolLoopMessages = append(b.toolLoopMessages, assistantMessage)

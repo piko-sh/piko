@@ -68,6 +68,15 @@ type TaskStore interface {
 	// Returns error when the fetch or mark operation fails.
 	FetchAndMarkDueTasks(ctx context.Context, priority TaskPriority, limit int) ([]*Task, error)
 
+	// GetTasksByID reads the tasks with the given IDs without changing them. IDs that do not
+	// exist are skipped.
+	//
+	// Takes ids ([]string) which lists the task IDs to read.
+	//
+	// Returns []*Task which holds the tasks found.
+	// Returns error when the read fails.
+	GetTasksByID(ctx context.Context, ids []string) ([]*Task, error)
+
 	// GetWorkflowStatus retrieves the completion state of a workflow.
 	//
 	// Takes workflowID (string) which identifies the workflow to check.

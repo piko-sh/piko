@@ -435,11 +435,12 @@ func TestAnalyseQuery_Select(t *testing.T) {
 			assertions: func(t *testing.T, analysis *querier_dto.RawQueryAnalysis) {
 				assert.True(t, analysis.ReadOnly)
 
-				require.Len(t, analysis.CompoundBranches, 1)
+				require.Len(t, analysis.CompoundBranches, 2)
 				assert.Equal(t, querier_dto.CompoundUnion, analysis.CompoundBranches[0].Operator)
 				require.NotNil(t, analysis.CompoundBranches[0].Query)
-				require.Len(t, analysis.CompoundBranches[0].Query.CompoundBranches, 1)
-				assert.Equal(t, querier_dto.CompoundUnionAll, analysis.CompoundBranches[0].Query.CompoundBranches[0].Operator)
+				assert.Empty(t, analysis.CompoundBranches[0].Query.CompoundBranches)
+				assert.Equal(t, querier_dto.CompoundUnionAll, analysis.CompoundBranches[1].Operator)
+				require.NotNil(t, analysis.CompoundBranches[1].Query)
 			},
 		},
 

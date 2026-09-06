@@ -20,6 +20,7 @@ package db_engine_sqlite
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 
@@ -28,14 +29,86 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// SQLiteDialect holds configuration for a SQLite variant. It currently carries only the
-// parser depth cap, but follows the functional-options shape used by the other engines so
-// future overrides slot in without changing the constructor signature.
+const (
+	// defaultMaxTokensPerStatement bounds the per-statement token stream the parser walks.
+	//
+	// Realistic SQLite statements rarely exceed a few hundred tokens; the 100k headroom
+	// covers generated SQL with large IN lists while still cutting off an adversarial input
+	// that would otherwise drive the analysis and DDL parsers into a very long,
+	// non-cancellable walk. Callers may override it with WithMaxTokensPerStatement.
+	defaultMaxTokensPerStatement = 100_000
+)
+
+var (
+	// errTokenBudgetExceeded is returned when a statement's token stream is longer than the
+	// configured per-statement budget, bounding the work the parser does for a single
+	// statement.
+	errTokenBudgetExceeded = errors.New("sqlite: per-statement token budget exceeded")
+
+	// ddlHandlers dispatches DDL statement kinds to their parser entry points. A kind with
+	// no entry produces no catalogue mutation and is never walked by the parser.
+	ddlHandlers = [statementKindUnknown + 1]ddlHandler{
+		statementKindCreateTable: func(p *parser, engine *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateTable(engine)
+		},
+		statementKindDropTable: func(p *parser, _ *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseDropTable()
+		},
+		statementKindAlterTable: func(p *parser, engine *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseAlterTable(engine)
+		},
+		statementKindCreateView: func(p *parser, _ *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateView()
+		},
+		statementKindDropView: func(p *parser, _ *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseDropView()
+		},
+		statementKindCreateIndex: func(p *parser, _ *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateIndex()
+		},
+		statementKindDropIndex: func(p *parser, _ *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseDropIndex()
+		},
+		statementKindCreateVirtualTable: func(p *parser, engine *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateVirtualTable(engine)
+		},
+		statementKindCreateTrigger: func(p *parser, _ *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateTrigger()
+		},
+		statementKindDropTrigger: func(p *parser, _ *SQLiteEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseDropTrigger()
+		},
+	}
+
+	// queryAnalysers dispatches DML statement kinds to their analysers. A kind with no entry
+	// yields an empty analysis and is never walked by the parser.
+	queryAnalysers = [statementKindUnknown + 1]queryAnalyser{
+		statementKindSelect: (*parser).analyseSelect,
+		statementKindInsert: (*parser).analyseInsert,
+		statementKindUpdate: (*parser).analyseUpdate,
+		statementKindDelete: (*parser).analyseDelete,
+		statementKindValues: (*parser).analyseValues,
+	}
+)
+
+// SQLiteDialect holds configuration for a SQLite variant. It carries the parser limits
+// and follows the functional-options shape used by the other engines so future overrides
+// slot in without changing the constructor signature.
 type SQLiteDialect struct {
 	// MaxParseDepth caps recursion through analysis and expression parsing. Zero selects
 	// defaultMaxParseDepth.
 	MaxParseDepth int
+
+	// MaxTokensPerStatement caps the number of tokens a single statement may contain before
+	// the parser refuses to walk it. Zero selects defaultMaxTokensPerStatement.
+	MaxTokensPerStatement int
 }
+
+// ddlHandler is a function that parses a DDL statement into a catalogue mutation.
+type ddlHandler func(*parser, *SQLiteEngine) (*querier_dto.CatalogueMutation, error)
+
+// queryAnalyser is a function that analyses a DML statement.
+type queryAnalyser func(*parser) (*querier_dto.RawQueryAnalysis, error)
 
 // Option configures a SQLiteDialect.
 type Option func(*SQLiteDialect)
@@ -60,6 +133,27 @@ func WithMaxParseDepth(depth int) Option {
 	}
 }
 
+// WithMaxTokensPerStatement sets the maximum number of tokens a single statement may
+// contain before the parser refuses to walk it.
+//
+// Every statement the engine parses is walked without cancellation, and some nested
+// shapes cost more than linear time, so an unbounded statement lets hostile or runaway
+// input stall the build. The default is high (defaultMaxTokensPerStatement) so realistic
+// queries, including generated ones with large IN lists, are unaffected; lower it to
+// harden against hostile input or raise it for unusually large generated statements.
+//
+// Takes limit (int) which is the maximum token count; values below 1 are ignored so the
+// default remains in force.
+//
+// Returns Option which applies the token budget to a SQLiteDialect.
+func WithMaxTokensPerStatement(limit int) Option {
+	return func(dialect *SQLiteDialect) {
+		if limit > 0 {
+			dialect.MaxTokensPerStatement = limit
+		}
+	}
+}
+
 // resolvedMaxParseDepth returns the effective parser depth cap, falling back to
 // defaultMaxParseDepth when unset.
 //
@@ -69,6 +163,31 @@ func (d SQLiteDialect) resolvedMaxParseDepth() int {
 		return d.MaxParseDepth
 	}
 	return defaultMaxParseDepth
+}
+
+// resolvedMaxTokensPerStatement returns the effective per-statement token budget, falling
+// back to defaultMaxTokensPerStatement when unset.
+//
+// Returns int which is the configured budget, or defaultMaxTokensPerStatement when none
+// was set.
+func (d SQLiteDialect) resolvedMaxTokensPerStatement() int {
+	if d.MaxTokensPerStatement > 0 {
+		return d.MaxTokensPerStatement
+	}
+	return defaultMaxTokensPerStatement
+}
+
+// checkTokenBudget rejects a statement whose token stream exceeds the dialect's budget.
+//
+// Takes tokens ([]token) which is the statement's token stream.
+//
+// Returns error wrapping errTokenBudgetExceeded when the stream is over budget.
+func (d SQLiteDialect) checkTokenBudget(tokens []token) error {
+	limit := d.resolvedMaxTokensPerStatement()
+	if len(tokens) > limit {
+		return fmt.Errorf("%w: %d tokens exceeds the limit of %d", errTokenBudgetExceeded, len(tokens), limit)
+	}
+	return nil
 }
 
 // SQLiteEngine implements the querier EnginePort for SQLite.
@@ -145,18 +264,19 @@ func statementByteLength(statementTokens []token) int {
 
 // ApplyDDL applies a DDL statement to the catalogue for the SQLite dialect.
 //
-// Wraps the per-statement handler with a panic recovery so a malformed statement (e.g. an
-// incomplete multi-action continuation that trips a mustKeyword helper inside the parser)
-// becomes a wrapped error rather than crashing the calling apply loop. Honours ctx.Err()
-// before dispatch so the catalogue build loop can be cancelled by the caller.
+// Syntax errors in the statement are returned as ordinary errors. The handler is also
+// wrapped with a panic recovery, purely as a guard against parser bugs, so an unexpected
+// panic becomes a wrapped error rather than crashing the calling apply loop. Honours
+// ctx.Err() before dispatch so the catalogue build loop can be cancelled by the caller,
+// and rejects a statement over the token budget before the parser walks it.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the parsed DDL statement to
 // apply.
 //
 // Returns *querier_dto.CatalogueMutation which describes the catalogue change, or nil
 // when the statement produces none.
-// Returns error when the statement is malformed, the parser panics, or the context is
-// cancelled.
+// Returns error when the statement is malformed, exceeds the token budget, the parser
+// panics, or the context is cancelled.
 func (engine *SQLiteEngine) ApplyDDL(ctx context.Context, statement querier_dto.ParsedStatement) (mutation *querier_dto.CatalogueMutation, err error) {
 	parsed, ok := statement.Raw.(*parsedStatement)
 	if !ok {
@@ -180,33 +300,21 @@ func (engine *SQLiteEngine) ApplyDDL(ctx context.Context, statement querier_dto.
 		return nil, ctxErr
 	}
 
+	if int(parsed.kind) >= len(ddlHandlers) || ddlHandlers[parsed.kind] == nil {
+		return nil, nil
+	}
+	if budgetErr := engine.dialect.checkTokenBudget(parsed.tokens); budgetErr != nil {
+		return nil, budgetErr
+	}
+
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
-	switch parsed.kind {
-	case statementKindCreateTable:
-		return p.parseCreateTable(engine)
-	case statementKindDropTable:
-		return p.parseDropTable()
-	case statementKindAlterTable:
-		return p.parseAlterTable(engine)
-	case statementKindCreateView:
-		return p.parseCreateView()
-	case statementKindDropView:
-		return p.parseDropView()
-	case statementKindCreateIndex:
-		return p.parseCreateIndex()
-	case statementKindDropIndex:
-		return p.parseDropIndex()
-	case statementKindCreateVirtualTable:
-		return p.parseCreateVirtualTable(engine)
-	case statementKindCreateTrigger:
-		return p.parseCreateTrigger()
-	case statementKindDropTrigger:
-		return p.parseDropTrigger()
-	default:
-		return nil, nil
+	mutation, err = ddlHandlers[parsed.kind](p, engine)
+	if p.syntaxError != nil {
+		return nil, p.syntaxError
 	}
+	return mutation, err
 }
 
 // RewriteSelectAsCount delegates to the shared SELECT-to-COUNT(*) rewriter.
@@ -230,15 +338,17 @@ func (*SQLiteEngine) RewriteSelectAsCount(
 
 // AnalyseQuery performs structural analysis of a DML statement for the SQLite dialect.
 //
-// Wraps the per-statement analyser with a panic recovery so a malformed statement that
-// trips a parser invariant becomes a wrapped error rather than crashing the calling
-// analyser.
+// Syntax errors, including expressions nested past the depth cap, are returned as
+// ordinary errors so the domain reports them as diagnostics. The analyser is also wrapped
+// with a panic recovery, purely as a guard against parser bugs, and a statement over the
+// token budget is rejected before the parser walks it.
 //
 // Takes statement (querier_dto.ParsedStatement) which is the parsed DML statement to
 // analyse.
 //
 // Returns *querier_dto.RawQueryAnalysis which holds the analysed query structure.
-// Returns error when the statement is malformed or the parser panics.
+// Returns error when the statement is malformed, exceeds the token budget, or the parser
+// panics.
 func (engine *SQLiteEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -260,23 +370,21 @@ func (engine *SQLiteEngine) AnalyseQuery(
 		}
 	}()
 
+	if int(parsed.kind) >= len(queryAnalysers) || queryAnalysers[parsed.kind] == nil {
+		return &querier_dto.RawQueryAnalysis{}, nil
+	}
+	if budgetErr := engine.dialect.checkTokenBudget(parsed.tokens); budgetErr != nil {
+		return nil, budgetErr
+	}
+
 	p := newParser(parsed.tokens)
 	p.maxParseDepth = engine.dialect.resolvedMaxParseDepth()
 
-	switch parsed.kind {
-	case statementKindSelect:
-		return p.analyseSelect()
-	case statementKindInsert:
-		return p.analyseInsert()
-	case statementKindUpdate:
-		return p.analyseUpdate()
-	case statementKindDelete:
-		return p.analyseDelete()
-	case statementKindValues:
-		return p.analyseValues()
-	default:
-		return &querier_dto.RawQueryAnalysis{}, nil
+	analysis, err = queryAnalysers[parsed.kind](p)
+	if p.syntaxError != nil {
+		return nil, p.syntaxError
 	}
+	return analysis, err
 }
 
 // BuiltinFunctions returns the SQLite built-in function catalogue.

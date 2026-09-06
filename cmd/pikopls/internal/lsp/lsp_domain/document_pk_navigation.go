@@ -451,9 +451,8 @@ func (d *document) findHandlerDefinition(handlerName string) ([]protocol.Locatio
 	baseLineOffset := clientScript.ContentLocation.Line - 1
 	baseColOffset := clientScript.ContentLocation.Column - 1
 
-	meta := &pkcMetadata{
-		Functions: make(map[string]*pkcFunction),
-	}
+	meta := &pkcMetadata{}
+	meta.Functions = make(map[string]*pkcFunction)
 	extractPKCFunctionsFromAST(&tree, clientScript.Content, baseLineOffset, baseColOffset, meta)
 
 	function, exists := meta.Functions[handlerName]

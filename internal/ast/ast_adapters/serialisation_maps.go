@@ -261,6 +261,9 @@ func (d *decoder) unpackOnEventsMap(fb *ast_schema_gen.TemplateNodeFB) (map[stri
 	if length == 0 {
 		return nil, nil
 	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
+	}
 
 	result := make(map[string][]ast_domain.Directive, length)
 	var entryFB ast_schema_gen.OnEventEntryFB
@@ -292,6 +295,9 @@ func (d *decoder) unpackCustomEventsMap(fb *ast_schema_gen.TemplateNodeFB) (map[
 	if numEvents == 0 {
 		return nil, nil
 	}
+	if err := d.reserveElements(numEvents); err != nil {
+		return nil, err
+	}
 
 	result := make(map[string][]ast_domain.Directive, numEvents)
 	var entFB ast_schema_gen.CustomEventEntryFB
@@ -322,6 +328,9 @@ func (d *decoder) unpackBindsMap(fb *ast_schema_gen.TemplateNodeFB) (map[string]
 	if length == 0 {
 		return nil, nil
 	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
+	}
 
 	result := make(map[string]*ast_domain.Directive, length)
 	var entryFB ast_schema_gen.BindEntryFB
@@ -347,10 +356,13 @@ func (d *decoder) unpackBindsMap(fb *ast_schema_gen.TemplateNodeFB) (map[string]
 // Returns map[string]string which maps attribute keys to their origin values, or nil if
 // no entries exist.
 // Returns error when deserialisation fails.
-func (*decoder) unpackDynamicAttributeOriginsMap(fb *ast_schema_gen.GoGeneratorAnnotationFB) (map[string]string, error) {
+func (d *decoder) unpackDynamicAttributeOriginsMap(fb *ast_schema_gen.GoGeneratorAnnotationFB) (map[string]string, error) {
 	length := fb.DynamicAttributeOriginsLength()
 	if length == 0 {
 		return nil, nil
+	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
 	}
 
 	result := make(map[string]string, length)
@@ -376,6 +388,9 @@ func (*decoder) unpackDynamicAttributeOriginsMap(fb *ast_schema_gen.GoGeneratorA
 func (d *decoder) unpackPropValueMap(length int, getter func(entry *ast_schema_gen.PropValueEntryFB, j int) bool) (map[string]ast_domain.PropValue, error) {
 	if length == 0 {
 		return nil, nil
+	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
 	}
 
 	result := make(map[string]ast_domain.PropValue, length)
@@ -405,6 +420,9 @@ func (d *decoder) unpackObjectLiteralPairs(fb *ast_schema_gen.ObjectLiteralFB) (
 	if length == 0 {
 		return nil, nil
 	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
+	}
 
 	result := make(map[string]ast_domain.Expression, length)
 	var entryFB ast_schema_gen.ObjectPairFB
@@ -428,10 +446,13 @@ func (d *decoder) unpackObjectLiteralPairs(fb *ast_schema_gen.ObjectLiteralFB) (
 //
 // Returns map[string]any which contains the deserialised key-value pairs.
 // Returns error when JSON unmarshalling fails for any data value.
-func (*decoder) unpackDiagnosticDataMap(fb *ast_schema_gen.DiagnosticFB) (map[string]any, error) {
+func (d *decoder) unpackDiagnosticDataMap(fb *ast_schema_gen.DiagnosticFB) (map[string]any, error) {
 	length := fb.DataLength()
 	if length == 0 {
 		return nil, nil
+	}
+	if err := d.reserveElements(length); err != nil {
+		return nil, err
 	}
 
 	result := make(map[string]any, length)

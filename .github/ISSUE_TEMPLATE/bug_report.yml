@@ -59,7 +59,7 @@ body:
     attributes:
       label: Go Version
       description: Output of `go version`
-      placeholder: "go1.26.0 linux/amd64"
+      placeholder: "go1.27.1 linux/amd64"
     validations:
       required: true
 

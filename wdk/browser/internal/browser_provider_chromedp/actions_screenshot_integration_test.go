@@ -20,7 +20,12 @@ package browser_provider_chromedp
 
 import (
 	"bytes"
+	"image/png"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -30,6 +35,13 @@ const (
 	<body style="margin:0;padding:20px;background:#f0f0f0;">
 	<div id="box" style="width:100px;height:100px;background:red;margin:10px;"></div>
 	<div id="content" style="width:200px;height:50px;background:blue;margin:10px;"></div>
+	</body>
+	</html>`
+	testHTMLTallPage = `<!DOCTYPE html>
+	<html>
+	<head><title>Tall Page</title></head>
+	<body style="margin:0;">
+	<div style="height:1600px;background:linear-gradient(red, blue);"></div>
 	</body>
 	</html>`
 )
@@ -48,30 +60,16 @@ func TestScreenshotFormats(t *testing.T) {
 
 		t.Run("captures JPEG screenshot", func(t *testing.T) {
 			data, err := ScreenshotJPEG(ctx, 80)
-			if err != nil {
-				t.Fatalf("ScreenshotJPEG() error = %v", err)
-			}
-			if len(data) == 0 {
-				t.Error("ScreenshotJPEG() returned empty data")
-			}
-
-			if !bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}) {
-				t.Error("ScreenshotJPEG() did not return valid JPEG data")
-			}
+			require.NoError(t, err)
+			assert.True(t, bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}), "expected JPEG data")
 		})
 
 		t.Run("captures WebP screenshot", func(t *testing.T) {
 			data, err := ScreenshotWebP(ctx, 80)
-			if err != nil {
-				t.Fatalf("ScreenshotWebP() error = %v", err)
-			}
-			if len(data) == 0 {
-				t.Error("ScreenshotWebP() returned empty data")
-			}
-
-			if len(data) < 12 || string(data[0:4]) != "RIFF" || string(data[8:12]) != "WEBP" {
-				t.Error("ScreenshotWebP() did not return valid WebP data")
-			}
+			require.NoError(t, err)
+			require.GreaterOrEqual(t, len(data), 12)
+			assert.Equal(t, "RIFF", string(data[0:4]))
+			assert.Equal(t, "WEBP", string(data[8:12]))
 		})
 
 		t.Run("captures screenshot with custom options", func(t *testing.T) {
@@ -80,12 +78,16 @@ func TestScreenshotFormats(t *testing.T) {
 			opts.Quality = 50
 
 			data, err := ScreenshotWithFormat(ctx, opts)
-			if err != nil {
-				t.Fatalf("ScreenshotWithFormat() error = %v", err)
-			}
-			if len(data) == 0 {
-				t.Error("ScreenshotWithFormat() returned empty data")
-			}
+			require.NoError(t, err)
+			assert.NotEmpty(t, data)
+		})
+
+		t.Run("reports the timeout cause when the capture runs out of time", func(t *testing.T) {
+			opts := DefaultScreenshotOptions()
+			opts.Timeout = time.Nanosecond
+
+			_, err := ScreenshotWithFormat(ctx, opts)
+			require.ErrorIs(t, err, errScreenshotTimedOut)
 		})
 	})
 }
@@ -104,28 +106,66 @@ func TestScreenshotRegion(t *testing.T) {
 
 		t.Run("captures region screenshot", func(t *testing.T) {
 			data, err := ScreenshotRegion(ctx, 10, 10, 100, 100)
-			if err != nil {
-				t.Fatalf("ScreenshotRegion() error = %v", err)
-			}
-			if len(data) == 0 {
-				t.Error("ScreenshotRegion() returned empty data")
-			}
-
-			if !bytes.HasPrefix(data, []byte{0x89, 0x50, 0x4E, 0x47}) {
-				t.Error("ScreenshotRegion() did not return valid PNG data")
-			}
+			require.NoError(t, err)
+			requirePNGSize(t, data, 100, 100)
 		})
 
 		t.Run("captures different region", func(t *testing.T) {
 			data, err := ScreenshotRegion(ctx, 0, 0, 200, 150)
-			if err != nil {
-				t.Fatalf("ScreenshotRegion() error = %v", err)
-			}
-			if len(data) == 0 {
-				t.Error("ScreenshotRegion() returned empty data")
+			require.NoError(t, err)
+			requirePNGSize(t, data, 200, 150)
+		})
+
+		t.Run("captures the same region repeatedly on an idle page", func(t *testing.T) {
+			for range 5 {
+				data, err := ScreenshotRegion(ctx, 0, 0, 200, 150, WithCaptureTimeout(20*time.Second))
+				require.NoError(t, err)
+				requirePNGSize(t, data, 200, 150)
 			}
 		})
+
+		t.Run("reports the timeout cause when the capture runs out of time", func(t *testing.T) {
+			_, err := ScreenshotRegion(ctx, 0, 0, 200, 150, WithCaptureTimeout(time.Nanosecond))
+			require.ErrorIs(t, err, errScreenshotTimedOut)
+		})
 	})
+}
+
+func TestScreenshotRegion_WithSeveralPagesInOneBrowser(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	server := newTestServer(testHTMLScreenshot)
+	defer server.Close()
+
+	pool := requireExclusivePool(t)
+	browser, err := pool.Acquire(t.Context())
+	require.NoError(t, err)
+	defer pool.Release(browser)
+
+	first, err := browser.NewIncognitoPage()
+	require.NoError(t, err)
+	defer func() { assert.NoError(t, first.Close()) }()
+
+	firstHelper := NewPageHelper(first.Ctx)
+	defer firstHelper.Close()
+	require.NoError(t, firstHelper.Navigate(server.URL))
+
+	second, err := browser.NewIncognitoPage()
+	require.NoError(t, err)
+	defer func() { assert.NoError(t, second.Close()) }()
+
+	secondHelper := NewPageHelper(second.Ctx)
+	defer secondHelper.Close()
+	require.NoError(t, secondHelper.Navigate(server.URL))
+
+	for _, helper := range []*PageHelper{firstHelper, secondHelper, firstHelper, secondHelper} {
+		data, err := ScreenshotRegion(newActionContext(helper), 0, 0, 120, 80, WithCaptureTimeout(20*time.Second))
+		require.NoError(t, err)
+		requirePNGSize(t, data, 120, 80)
+	}
 }
 
 func TestScreenshotElementWithPadding(t *testing.T) {
@@ -142,22 +182,67 @@ func TestScreenshotElementWithPadding(t *testing.T) {
 
 		t.Run("captures element with padding", func(t *testing.T) {
 			data, err := ScreenshotElementWithPadding(ctx, "#box", 10)
-			if err != nil {
-				t.Fatalf("ScreenshotElementWithPadding() error = %v", err)
-			}
-			if len(data) == 0 {
-				t.Error("ScreenshotElementWithPadding() returned empty data")
-			}
+			require.NoError(t, err)
+			requirePNGSize(t, data, 120, 120)
+		})
 
-			if !bytes.HasPrefix(data, []byte{0x89, 0x50, 0x4E, 0x47}) {
-				t.Error("ScreenshotElementWithPadding() did not return valid PNG data")
-			}
+		t.Run("captures the element again on an idle page", func(t *testing.T) {
+			data, err := ScreenshotElementWithPadding(ctx, "#content", 5, WithCaptureTimeout(20*time.Second))
+			require.NoError(t, err)
+			requirePNGSize(t, data, 210, 60)
 		})
 
 		t.Run("returns error for non-existent element", func(t *testing.T) {
 			_, err := ScreenshotElementWithPadding(ctx, "#nonexistent", 10)
-			if err == nil {
-				t.Error("ScreenshotElementWithPadding() expected error for non-existent element")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "element not found")
+		})
+
+		t.Run("reports the timeout cause when the capture runs out of time", func(t *testing.T) {
+			_, err := ScreenshotElementWithPadding(ctx, "#box", 10, WithCaptureTimeout(time.Nanosecond))
+			require.ErrorIs(t, err, errScreenshotTimedOut)
+		})
+	})
+}
+
+func TestFullPageScreenshots(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	server := newTestServer(testHTMLTallPage)
+	defer server.Close()
+
+	withTestPage(t, server.URL, func(t *testing.T, page *PageHelper) {
+		t.Run("captures the whole page as PNG", func(t *testing.T) {
+			data, err := FullPageScreenshot(page.Ctx())
+			require.NoError(t, err)
+			image, err := png.Decode(bytes.NewReader(data))
+			require.NoError(t, err)
+			assert.GreaterOrEqual(t, image.Bounds().Dy(), 1500)
+		})
+
+		t.Run("captures the whole page as JPEG", func(t *testing.T) {
+			data, err := FullPageScreenshotWithFormat(page.Ctx(), ScreenshotFormatJPEG, 70)
+			require.NoError(t, err)
+			assert.True(t, bytes.HasPrefix(data, []byte{0xFF, 0xD8, 0xFF}), "expected JPEG data")
+		})
+
+		t.Run("captures the page in viewport sized chunks", func(t *testing.T) {
+			chunks, err := FullPageScreenshotChunks(page.Ctx(), 400, 500, ChunkScreenshotOptions{
+				Format:  ScreenshotFormatPNG,
+				Quality: ScreenshotQualityMax,
+				Scale:   1,
+			})
+			require.NoError(t, err)
+			require.GreaterOrEqual(t, len(chunks), 3)
+			for index, chunk := range chunks {
+				assert.Equal(t, index, chunk.Index)
+				image, decodeErr := png.Decode(bytes.NewReader(chunk.Data))
+				require.NoError(t, decodeErr)
+				assert.Equal(t, 400, image.Bounds().Dx())
+				assert.LessOrEqual(t, image.Bounds().Dy(), 500)
 			}
 		})
 	})
@@ -169,49 +254,32 @@ func TestCompareScreenshots(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	t.Run("identical screenshots return 0", func(t *testing.T) {
-		data := []byte{1, 2, 3, 4, 5}
-		diff, err := CompareScreenshots(data, data)
-		if err != nil {
-			t.Fatalf("CompareScreenshots() error = %v", err)
-		}
-		if diff != 0 {
-			t.Errorf("CompareScreenshots() = %v, want 0 for identical", diff)
-		}
-	})
+	testCases := []struct {
+		name     string
+		a        []byte
+		b        []byte
+		expected float64
+	}{
+		{name: "identical screenshots return 0", a: []byte{1, 2, 3, 4, 5}, b: []byte{1, 2, 3, 4, 5}, expected: 0},
+		{name: "different sizes return 1", a: []byte{1, 2, 3}, b: []byte{1, 2, 3, 4, 5}, expected: 1},
+		{name: "empty screenshots return 0", a: []byte{}, b: []byte{}, expected: 0},
+		{name: "partially different returns fraction", a: []byte{1, 2, 3, 4}, b: []byte{1, 2, 0, 0}, expected: 0.5},
+	}
 
-	t.Run("different sizes return 1", func(t *testing.T) {
-		a := []byte{1, 2, 3}
-		b := []byte{1, 2, 3, 4, 5}
-		diff, err := CompareScreenshots(a, b)
-		if err != nil {
-			t.Fatalf("CompareScreenshots() error = %v", err)
-		}
-		if diff != 1.0 {
-			t.Errorf("CompareScreenshots() = %v, want 1.0 for different sizes", diff)
-		}
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			diff, err := CompareScreenshots(tc.a, tc.b)
+			require.NoError(t, err)
+			assert.InDelta(t, tc.expected, diff, 0.001)
+		})
+	}
+}
 
-	t.Run("empty screenshots return 0", func(t *testing.T) {
-		diff, err := CompareScreenshots([]byte{}, []byte{})
-		if err != nil {
-			t.Fatalf("CompareScreenshots() error = %v", err)
-		}
-		if diff != 0 {
-			t.Errorf("CompareScreenshots() = %v, want 0 for empty", diff)
-		}
-	})
+func requirePNGSize(t *testing.T, data []byte, width, height int) {
+	t.Helper()
 
-	t.Run("partially different returns fraction", func(t *testing.T) {
-		a := []byte{1, 2, 3, 4}
-		b := []byte{1, 2, 0, 0}
-		diff, err := CompareScreenshots(a, b)
-		if err != nil {
-			t.Fatalf("CompareScreenshots() error = %v", err)
-		}
-
-		if diff != 0.5 {
-			t.Errorf("CompareScreenshots() = %v, want 0.5", diff)
-		}
-	})
+	image, err := png.Decode(bytes.NewReader(data))
+	require.NoError(t, err, "expected PNG data")
+	assert.Equal(t, width, image.Bounds().Dx())
+	assert.Equal(t, height, image.Bounds().Dy())
 }

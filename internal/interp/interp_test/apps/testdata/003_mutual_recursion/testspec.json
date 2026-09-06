@@ -1,5 +1,0 @@
-{
-  "description": "Mutual recursion across files (isEven/isOdd)",
-  "shouldError": false,
-  "expected": "EOEOEO"
-}

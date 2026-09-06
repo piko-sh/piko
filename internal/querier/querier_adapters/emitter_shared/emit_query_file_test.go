@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"piko.sh/piko/internal/goastutil"
+	"piko.sh/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
@@ -377,7 +377,7 @@ func TestEmitQueryFileSliceParameterEmitsExpansionPreamble(t *testing.T) {
 }
 
 func TestEmitQueryFileAnonymousPlaceholderEngineCollapsesIndices(t *testing.T) {
-	strategy := &indexedStrategy{preservesIndices: false}
+	strategy := &indexedStrategy{}
 	query := &querier_dto.AnalysedQuery{
 		Name:     "GetByEmail",
 		Filename: "users.sql",

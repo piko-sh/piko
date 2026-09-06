@@ -19,8 +19,11 @@
 package daemon_dto
 
 import (
+	"context"
+	"errors"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -173,4 +176,161 @@ func TestPikoRequestCtx_UserAgentClassIsDerivedOnce(t *testing.T) {
 	pctx.UserAgent = "curl/8.0"
 
 	assert.Equal(t, first, pctx.UserAgentClass())
+}
+
+func TestPikoRequestCtx_ResetClearsUnexportedState(t *testing.T) {
+	pctx := &PikoRequestCtx{}
+	pctx.StoreCachedLogger("logger")
+	pctx.detached = true
+
+	pctx.reset()
+
+	assert.Nil(t, pctx.CachedLoggerValue(), "a cached logger is bound to the previous request")
+	assert.False(t, pctx.detached)
+}
+
+func TestPikoRequestCtx_StoreCachedLoggerKeepsTheFirstLogger(t *testing.T) {
+	pctx := AcquirePikoRequestCtx()
+	defer ReleasePikoRequestCtx(pctx)
+
+	const callers = 8
+	stored := make([]any, callers)
+	var waitGroup sync.WaitGroup
+	for caller := range callers {
+		waitGroup.Go(func() {
+			stored[caller] = pctx.StoreCachedLogger(caller)
+		})
+	}
+	waitGroup.Wait()
+
+	winner := pctx.CachedLoggerValue()
+	require.NotNil(t, winner)
+	for caller, value := range stored {
+		assert.Equal(t, winner, value, "caller %d saw a different cached logger", caller)
+	}
+}
+
+func TestPikoRequestCtx_AnalyticsReturnsOwnedCopies(t *testing.T) {
+	pctx := AcquirePikoRequestCtx()
+	defer ReleasePikoRequestCtx(pctx)
+
+	require.True(t, pctx.SetAnalyticsProperty("plan", "pro", 8))
+	pctx.SetAnalyticsAction("checkout.submit")
+	pctx.SetAnalyticsEvent("checkout.completed")
+	pctx.SetAnalyticsRevenue(new(maths.NewMoneyFromString("9.99", "GBP")))
+
+	fields := pctx.Analytics()
+
+	require.True(t, pctx.SetAnalyticsProperty("plan", "team", 8))
+	pctx.SetAnalyticsRevenue(new(maths.NewMoneyFromString("1.00", "GBP")))
+
+	assert.Equal(t, map[string]string{"plan": "pro"}, fields.Properties)
+	assert.Equal(t, "checkout.submit", fields.ActionName)
+	assert.Equal(t, "checkout.completed", fields.EventName)
+	require.NotNil(t, fields.Revenue)
+	assert.NotSame(t, pctx.AnalyticsRevenue, fields.Revenue)
+	assert.Equal(t, "9.99", fields.Revenue.MustNumber())
+}
+
+func TestPikoRequestCtx_AnalyticsWithoutValuesIsEmpty(t *testing.T) {
+	pctx := AcquirePikoRequestCtx()
+	defer ReleasePikoRequestCtx(pctx)
+
+	fields := pctx.Analytics()
+
+	assert.Nil(t, fields.Properties)
+	assert.Nil(t, fields.Revenue)
+	assert.Empty(t, fields.ActionName)
+	assert.Empty(t, fields.EventName)
+}
+
+func TestDetachRequestContext_WithoutCarrierOnlyDropsCancellation(t *testing.T) {
+	type key struct{}
+	parent, cancel := context.WithCancelCause(context.WithValue(context.Background(), key{}, "value"))
+	cancel(errors.New("request finished"))
+
+	detached := DetachRequestContext(parent)
+
+	require.NoError(t, detached.Err())
+	assert.Equal(t, "value", detached.Value(key{}))
+	assert.Nil(t, PikoRequestCtxFromContext(detached))
+}
+
+func TestDetachRequestContext_SnapshotCopiesEveryRequestValue(t *testing.T) {
+	original := &PikoRequestCtx{}
+	fillExportedFields(t, original)
+	original.StoreCachedLogger("request logger")
+	_ = original.UserAgentClass()
+
+	parent, cancel := context.WithCancelCause(WithPikoRequestCtx(context.Background(), original))
+	cancel(errors.New("request finished"))
+	detached := DetachRequestContext(parent)
+
+	require.NoError(t, detached.Err(), "background work must not inherit the request's cancellation")
+	snapshot := PikoRequestCtxFromContext(detached)
+	require.NotNil(t, snapshot)
+	require.NotSame(t, original, snapshot)
+
+	originalValue := reflect.ValueOf(original).Elem()
+	snapshotValue := reflect.ValueOf(snapshot).Elem()
+	for index := range originalValue.NumField() {
+		field := originalValue.Type().Field(index)
+		if !field.IsExported() {
+			continue
+		}
+		if field.Name == "ResponseWriter" {
+			assert.Nil(t, snapshot.ResponseWriter, "the snapshot must not write to a finished response")
+			continue
+		}
+		assert.Equal(t, originalValue.Field(index).Interface(), snapshotValue.Field(index).Interface(),
+			"the snapshot lost %s", field.Name)
+	}
+	assert.Nil(t, snapshot.CachedLoggerValue(), "the request logger is bound to the request context")
+	assert.Equal(t, original.UserAgentClass(), snapshot.UserAgentClass())
+}
+
+func TestDetachRequestContext_SnapshotIsIndependentOfThePooledCarrier(t *testing.T) {
+	original := AcquirePikoRequestCtx()
+	original.ClientIP = "10.0.0.1"
+	original.ErrorPage = &ErrorPageContext{Message: "gone", StatusCode: 410}
+	require.True(t, original.SetAnalyticsProperty("plan", "pro", 8))
+	original.SetAnalyticsRevenue(new(maths.NewMoneyFromString("9.99", "GBP")))
+
+	snapshot := PikoRequestCtxFromContext(DetachRequestContext(WithPikoRequestCtx(context.Background(), original)))
+	require.NotNil(t, snapshot)
+
+	assert.NotSame(t, original.ErrorPage, snapshot.ErrorPage)
+	assert.NotSame(t, original.AnalyticsRevenue, snapshot.AnalyticsRevenue)
+
+	require.True(t, original.SetAnalyticsProperty("plan", "team", 8))
+	ReleasePikoRequestCtx(original)
+
+	assert.Equal(t, "10.0.0.1", snapshot.ClientIP)
+	assert.Equal(t, map[string]string{"plan": "pro"}, snapshot.AnalyticsProperties)
+	assert.Equal(t, "gone", snapshot.ErrorPage.Message)
+	assert.Equal(t, "9.99", snapshot.AnalyticsRevenue.MustNumber())
+}
+
+func TestDetachRequestContext_DetachedContextKeepsItsSnapshot(t *testing.T) {
+	original := AcquirePikoRequestCtx()
+	defer ReleasePikoRequestCtx(original)
+
+	once := DetachRequestContext(WithPikoRequestCtx(context.Background(), original))
+	twice := DetachRequestContext(once)
+
+	assert.Same(t, PikoRequestCtxFromContext(once), PikoRequestCtxFromContext(twice),
+		"a snapshot is never pooled, so it is shared rather than copied again")
+}
+
+func TestReleasePikoRequestCtx_LeavesDetachedSnapshotsAlone(t *testing.T) {
+	original := AcquirePikoRequestCtx()
+	original.ClientIP = "10.0.0.1"
+	snapshot := PikoRequestCtxFromContext(DetachRequestContext(WithPikoRequestCtx(context.Background(), original)))
+	ReleasePikoRequestCtx(original)
+
+	ReleasePikoRequestCtx(snapshot)
+	ReleasePikoRequestCtx(nil)
+
+	assert.Equal(t, "10.0.0.1", snapshot.ClientIP)
+	assert.True(t, snapshot.detached)
 }

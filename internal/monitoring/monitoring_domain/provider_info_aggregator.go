@@ -57,7 +57,9 @@ var (
 // Returns *ProviderInfoAggregator which is ready for descriptor registration.
 func NewProviderInfoAggregator() *ProviderInfoAggregator {
 	return &ProviderInfoAggregator{
-		descriptors: make(map[string]provider_domain.ResourceDescriptor),
+		descriptors:         make(map[string]provider_domain.ResourceDescriptor),
+		probeToResourceType: nil,
+		mu:                  sync.RWMutex{},
 	}
 }
 
@@ -157,8 +159,9 @@ func (a *ProviderInfoAggregator) ListProviders(ctx context.Context, resourceType
 
 	return goroutine.SafeCall1(ctx, "monitoring.provider_info.ListProviders:"+resourceType, func() (*ProviderListResult, error) {
 		return &ProviderListResult{
-			Columns: descriptor.ResourceListColumns(),
-			Rows:    descriptor.ResourceListProviders(ctx),
+			Columns:         descriptor.ResourceListColumns(),
+			Rows:            descriptor.ResourceListProviders(ctx),
+			SubResourceName: "",
 		}, nil
 	})
 }

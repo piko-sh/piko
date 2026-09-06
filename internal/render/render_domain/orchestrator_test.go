@@ -361,7 +361,7 @@ func TestRenderNode_HandlesEmptyTree(t *testing.T) {
 	qw := qt.AcquireWriter(&buffer)
 	defer qt.ReleaseWriter(qw)
 
-	err := ro.renderASTToWriter(&ast_domain.TemplateAST{RootNodes: nil}, qw, rctx)
+	err := ro.renderASTToWriter(&ast_domain.TemplateAST{}, qw, rctx)
 	require.NoError(t, err)
 	assert.Empty(t, buffer.String())
 }
@@ -659,11 +659,9 @@ func TestGetCSRFIfNeeded_CSRFNotNeeded(t *testing.T) {
 	ro := NewTestOrchestratorBuilder().Build()
 
 	node := &ast_domain.TemplateNode{
-		NodeType: ast_domain.NodeElement,
-		TagName:  "form",
-		RuntimeAnnotations: &ast_domain.RuntimeAnnotation{
-			NeedsCSRF: false,
-		},
+		NodeType:           ast_domain.NodeElement,
+		TagName:            "form",
+		RuntimeAnnotations: &ast_domain.RuntimeAnnotation{},
 	}
 
 	result := ro.getCSRFIfNeeded(node, rctx)
@@ -1191,9 +1189,7 @@ func TestCheck_LivenessType(t *testing.T) {
 }
 
 func TestAddTransformPipelineStatus_NilTransforms(t *testing.T) {
-	ro := &RenderOrchestrator{
-		transformSteps: nil,
-	}
+	ro := &RenderOrchestrator{}
 
 	deps := make([]*healthprobe_dto.Status, 0)
 	ro.addTransformPipelineStatus(&deps)
@@ -1652,9 +1648,7 @@ func TestRenderASTToString(t *testing.T) {
 				return NewTestOrchestratorBuilder().Build()
 			},
 			opts: func() RenderASTToStringOptions {
-				return RenderASTToStringOptions{
-					Template: nil,
-				}
+				return RenderASTToStringOptions{}
 			},
 			wantExact: "",
 			useExact:  true,
@@ -1769,11 +1763,9 @@ func TestRenderASTToString(t *testing.T) {
 						},
 					},
 					Metadata: &templater_dto.InternalMetadata{
-						Metadata: templater_dto.Metadata{
-							Title:       "Test",
-							Language:    "en",
-							Description: "A headless page",
-						},
+						Title:       "Test",
+						Language:    "en",
+						Description: "A headless page",
 					},
 					IncludeDocumentWrapper: true,
 				}
@@ -1800,9 +1792,7 @@ func TestRenderASTToString(t *testing.T) {
 						},
 					},
 					Metadata: &templater_dto.InternalMetadata{
-						Metadata: templater_dto.Metadata{
-							RobotsRule: "noindex, nofollow",
-						},
+						RobotsRule: "noindex, nofollow",
 					},
 					IncludeDocumentWrapper: true,
 				}
@@ -1827,9 +1817,7 @@ func TestRenderASTToString(t *testing.T) {
 						},
 					},
 					Metadata: &templater_dto.InternalMetadata{
-						Metadata: templater_dto.Metadata{
-							RobotsRule: `noindex"><script>alert(1)</script>`,
-						},
+						RobotsRule: `noindex"><script>alert(1)</script>`,
 					},
 					IncludeDocumentWrapper: true,
 				}

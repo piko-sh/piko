@@ -84,6 +84,7 @@ type MetricsCollector struct {
 //
 // Takes store (*monitoring_domain.TelemetryStore) where metrics will be stored.
 // Takes interval (time.Duration) for periodic collection.
+// Takes opts (...MetricsCollectorOption) which configure metric collection.
 //
 // Returns *MetricsCollector ready to be used.
 func NewMetricsCollector(store *monitoring_domain.TelemetryStore, interval time.Duration, opts ...MetricsCollectorOption) *MetricsCollector {

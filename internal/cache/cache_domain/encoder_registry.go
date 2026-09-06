@@ -58,6 +58,7 @@ func NewEncodingRegistry(defaultEncoder AnyEncoder) *EncodingRegistry {
 	return &EncodingRegistry{
 		encoders:       make(map[reflect.Type]AnyEncoder),
 		defaultEncoder: defaultEncoder,
+		mu:             sync.RWMutex{},
 	}
 }
 

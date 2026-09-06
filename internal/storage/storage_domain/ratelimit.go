@@ -157,11 +157,7 @@ func WithRateLimit(callsPerSecond float64, burst int) ProviderOption {
 // Returns ProviderOption which sets a provider to have no rate limits.
 func WithUnlimitedRate() ProviderOption {
 	return func(opts *ProviderOptions) {
-		opts.RateLimitConfig = ProviderRateLimitConfig{
-			CallsPerSecond: 0,
-			Burst:          0,
-			Clock:          nil,
-		}
+		opts.RateLimitConfig = ProviderRateLimitConfig{}
 	}
 }
 

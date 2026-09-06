@@ -79,7 +79,7 @@ func NewInMemoryFSReader(files map[string]string) *InMemoryFSReader {
 		normalised := filepath.ToSlash(filepath.Clean(path))
 		byteFiles[normalised] = []byte(content)
 	}
-	return &InMemoryFSReader{files: byteFiles}
+	return &InMemoryFSReader{files: byteFiles, mu: sync.RWMutex{}}
 }
 
 // NewInMemoryFSReaderFromBytes creates an in-memory file reader from a map of file paths
@@ -94,7 +94,7 @@ func NewInMemoryFSReaderFromBytes(files map[string][]byte) *InMemoryFSReader {
 		normalised := filepath.ToSlash(filepath.Clean(path))
 		byteFiles[normalised] = content
 	}
-	return &InMemoryFSReader{files: byteFiles}
+	return &InMemoryFSReader{files: byteFiles, mu: sync.RWMutex{}}
 }
 
 // ReadFile reads the contents of a file from the in-memory file system.
@@ -172,6 +172,7 @@ type InMemoryFSWriter struct {
 func NewInMemoryFSWriter() *InMemoryFSWriter {
 	return &InMemoryFSWriter{
 		written: make(map[string][]byte),
+		mu:      sync.RWMutex{},
 	}
 }
 
@@ -357,6 +358,7 @@ func (e *inMemoryDirEntry) Info() (fs.FileInfo, error) {
 	return &inMemoryFileInfo{
 		name:  e.name,
 		isDir: e.isDir,
+		size:  0,
 	}, nil
 }
 

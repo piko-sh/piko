@@ -52,5 +52,5 @@ var (
 //
 // Returns querier_dto.SQLType which packages the two values together.
 func tvfSQLType(engineName string, category querier_dto.SQLTypeCategory) querier_dto.SQLType {
-	return querier_dto.SQLType{EngineName: engineName, Category: category}
+	return querier_dto.NewSQLType(category, engineName)
 }

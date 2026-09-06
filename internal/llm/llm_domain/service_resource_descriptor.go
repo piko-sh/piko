@@ -64,9 +64,9 @@ func (*service) ProbeName() string {
 // Returns []provider_domain.ColumnDefinition which describes each column.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "NAME", Key: "name"},
-		{Header: "TYPE", Key: "type"},
-		{Header: "DEFAULT MODEL", Key: "default_model"},
+		{Header: "NAME", Key: "name", WideOnly: false},
+		{Header: "TYPE", Key: "type", WideOnly: false},
+		{Header: "DEFAULT MODEL", Key: "default_model", WideOnly: false},
 		{Header: "STREAMING", Key: "streaming", WideOnly: true},
 		{Header: "TOOLS", Key: "tools", WideOnly: true},
 		{Header: "STRUCTURED", Key: "structured", WideOnly: true},
@@ -185,9 +185,9 @@ func (*service) ResourceSubResourceName() string {
 // Returns []provider_domain.ColumnDefinition which describes each column.
 func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
-		{Header: "MODEL", Key: "model"},
-		{Header: "CONTEXT", Key: "context"},
-		{Header: "MAX OUTPUT", Key: "max_output"},
+		{Header: "MODEL", Key: "model", WideOnly: false},
+		{Header: "CONTEXT", Key: "context", WideOnly: false},
+		{Header: "MAX OUTPUT", Key: "max_output", WideOnly: false},
 	}
 }
 
@@ -222,6 +222,7 @@ func (s *service) ResourceListSubResources(ctx context.Context, providerName str
 				"context":    fmt.Sprintf("%d", m.ContextWindow),
 				"max_output": fmt.Sprintf("%d", m.MaxOutputTokens),
 			},
+			IsDefault: false,
 		}
 	}
 

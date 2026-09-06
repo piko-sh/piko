@@ -464,9 +464,9 @@ func TestBuildItemSlug(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		dirParts  []string
 		basename  string
 		wantSlug  string
+		dirParts  []string
 		wantBytes int
 	}{
 		{name: "flat file", dirParts: nil, basename: "post", wantSlug: "post"},

@@ -19,12 +19,14 @@
 package db_engine_timescaledb_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"piko.sh/piko/internal/querier/querier_domain"
+	"piko.sh/piko/wdk/db/db_engine_postgres"
 	"piko.sh/piko/wdk/db/db_engine_timescaledb"
 )
 
@@ -57,4 +59,37 @@ func TestTimescaleDB_FactoryReturnsConfig(t *testing.T) {
 	assert.Equal(t, "postgres", config.DriverName)
 	assert.NotNil(t, config.Engine)
 	assert.NotNil(t, config.MigrationDialect)
+}
+
+func TestNewTimescaleDBEngineAppliesPostgresOptions(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		options []db_engine_postgres.Option
+		wantErr bool
+	}{
+		{name: "default token budget accepts the statement", options: nil, wantErr: false},
+		{name: "tight token budget rejects the statement", options: []db_engine_postgres.Option{db_engine_postgres.WithMaxTokensPerStatement(3)}, wantErr: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			engine := db_engine_timescaledb.NewTimescaleDBEngine(testCase.options...)
+			statements, err := engine.ParseStatements("CREATE HYPERTABLE readings (ts TIMESTAMPTZ NOT NULL, value DOUBLE PRECISION)")
+			require.NoError(t, err)
+
+			_, err = engine.ApplyDDL(context.Background(), statements[0])
+
+			assert.Equal(t, "timescaledb", engine.Dialect())
+			if testCase.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "token budget")
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
 }

@@ -26,28 +26,26 @@ import (
 	"go/token"
 	"maps"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
-	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/templater/templater_adapters"
 	"piko.sh/piko/internal/templater/templater_domain"
+	"piko.sh/piko/wdk/clock"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
-	// debugFilePermission is the permission mode for debug temp files. Only the owner has
-	// read and write access.
-	debugFilePermission = 0600
-
 	// fieldAbsolutePath is the log field name for absolute file paths.
 	fieldAbsolutePath = "absolutePath"
 
@@ -60,17 +58,27 @@ const (
 	// fieldPackagePath is the log field name for Go package paths.
 	fieldPackagePath = "pkg_path"
 
-	// linkedFunctionCount is the number of functions linked to each component.
-	linkedFunctionCount = 4
+	// defaultJITCompileTimeout bounds one JIT compilation when no other limit is configured.
+	// It sits well above any realistic compile so only a wedged compilation reaches it.
+	defaultJITCompileTimeout = 5 * time.Minute
+)
+
+var (
+	// errJITCompileTimeout is the cancellation cause recorded when a JIT compilation exceeds
+	// its time limit.
+	errJITCompileTimeout = errors.New("JIT compilation exceeded its time limit")
+
+	// errNoInterpreterPool reports a build attempted without an interpreter pool.
+	errNoInterpreterPool = errors.New("no interpreter pool is configured")
 )
 
 // InterpretedBuildOrchestrator handles the conversion of build artefacts into a runnable
 // InterpretedManifestRunner. It implements InterpretedBuildOrchestrator and JITCompiler
 // interfaces.
 //
-// This orchestrator uses a pre-warmed interpreter pool for performance. Instead of
-// creating fresh interpreters with New()+Use(), it clones from a golden interpreter with
-// pre-loaded stdlib symbols, then resets and returns after use.
+// This orchestrator uses a pre-warmed interpreter pool for performance. Every interpreter
+// it takes from the pool shares one symbol registry with the pool's golden interpreter,
+// so packages compiled by the initial build stay resolvable for later JIT recompiles.
 //
 // On file save (via MarkDirty), it only marks components as dirty without recompiling. On
 // HTTP request (via JITCompile), it compiles dirty components just-in-time. This improves
@@ -79,20 +87,11 @@ type InterpretedBuildOrchestrator struct {
 	// compileGroup stops repeated JIT compilations for the same path.
 	compileGroup singleflight.Group
 
-	// registryService provides access to the template registry for VFS operations.
-	registryService registry_domain.RegistryService
-
 	// i18nService provides translation and localisation for manifest runners.
 	i18nService i18n_domain.Service
 
 	// cachedManifest holds the manifest from the last build for JIT compilation.
 	cachedManifest *generator_dto.Manifest
-
-	// interpSemaphore limits how many interpreter runs can happen at the same time.
-	interpSemaphore chan struct{}
-
-	// vfsAdapter is the virtual file system adapter for resolving imports.
-	vfsAdapter *templater_adapters.RegistryVFSAdapter
 
 	// progCache maps relative paths to compiled page entries.
 	progCache map[string]*templater_adapters.PageEntry
@@ -104,8 +103,16 @@ type InterpretedBuildOrchestrator struct {
 	// reverseDepsMap maps component paths to the list of components that depend on them.
 	reverseDepsMap map[string][]string
 
-	// interpreterPool holds reusable interpreters for template processing.
+	// interpreterPool holds reusable interpreters for template processing. Replaced by a
+	// fresh pool when user Go packages change; guarded by stateLock.
 	interpreterPool templater_domain.InterpreterPoolPort
+
+	// interpreterProvider builds fresh interpreter pools when user Go packages change, so
+	// they are recompiled into a new symbol registry. Nil disables the refresh.
+	interpreterProvider templater_domain.InterpreterProviderPort
+
+	// clock supplies the time used for compilation metrics.
+	clock clock.Clock
 
 	// artefactByPackagePath maps Go package paths to their generated artefacts.
 	artefactByPackagePath map[string]*generator_dto.GeneratedArtefact
@@ -125,21 +132,36 @@ type InterpretedBuildOrchestrator struct {
 	// moduleName is the Go module path used to resolve imports.
 	moduleName string
 
+	// jitCompileTimeout bounds one JIT compilation.
+	jitCompileTimeout time.Duration
+
+	// freshPoolRequested counts the requests for a fresh interpreter pool made by
+	// InvalidateUserPackages; guarded by stateLock.
+	freshPoolRequested uint64
+
+	// freshPoolBuilt is the highest request count a completed build has satisfied; guarded
+	// by stateLock. The orchestrator reports itself uninitialised while it trails
+	// freshPoolRequested, so the next build runs in full with a fresh pool.
+	freshPoolBuilt uint64
+
 	// stateLock guards access to orchestrator state fields for safe concurrent use.
 	stateLock sync.RWMutex
-
-	// interpLock guards interpreter access during code interpretation and linking.
-	interpLock sync.Mutex
 }
 
 // InterpretedBuildOrchestratorDeps holds the dependencies required to construct an
 // InterpretedBuildOrchestrator.
 type InterpretedBuildOrchestratorDeps struct {
-	// InterpreterPool provides pooled interpreters for template execution.
+	// InterpreterPool provides pooled interpreters for template execution. Its modules must
+	// already be loaded.
 	InterpreterPool templater_domain.InterpreterPoolPort
 
-	// RegistryService provides access to the component registry.
-	RegistryService registry_domain.RegistryService
+	// InterpreterProvider builds a fresh interpreter pool when user Go packages change, so
+	// edited packages are recompiled. Nil keeps the initial pool for the life of the
+	// orchestrator.
+	InterpreterProvider templater_domain.InterpreterProviderPort
+
+	// Clock supplies the time used for compilation metrics. Nil uses the real clock.
+	Clock clock.Clock
 
 	// I18nService provides translation support.
 	I18nService i18n_domain.Service
@@ -158,6 +180,31 @@ type InterpretedBuildOrchestratorDeps struct {
 
 	// ProjectRoot specifies the root directory of the project.
 	ProjectRoot string
+
+	// JITCompileTimeout bounds one JIT compilation; zero or less uses a generous default.
+	JITCompileTimeout time.Duration
+}
+
+// orchestratorBuildState holds the products of a completed full build, installed into the
+// orchestrator in one step.
+type orchestratorBuildState struct {
+	// pool is the interpreter pool the build compiled with.
+	pool templater_domain.InterpreterPoolPort
+
+	// progCache maps relative paths to the linked page entries.
+	progCache map[string]*templater_adapters.PageEntry
+
+	// manifest is the build manifest.
+	manifest *generator_dto.Manifest
+
+	// reverseDepsMap maps component paths to their dependents.
+	reverseDepsMap map[string][]string
+
+	// artefactByPackagePath maps package paths to generated artefacts.
+	artefactByPackagePath map[string]*generator_dto.GeneratedArtefact
+
+	// poolGeneration is the fresh-pool request count the build satisfied.
+	poolGeneration uint64
 }
 
 // NewInterpretedBuildOrchestrator creates a new orchestrator for building interpreted
@@ -166,39 +213,49 @@ type InterpretedBuildOrchestratorDeps struct {
 // Takes deps (InterpretedBuildOrchestratorDeps) which provides all required dependencies
 // for the orchestrator.
 //
-// Returns *InterpretedBuildOrchestrator which is ready for use with a concurrency limit
-// based on runtime.NumCPU.
+// Returns *InterpretedBuildOrchestrator which is ready for use.
 func NewInterpretedBuildOrchestrator(
 	deps InterpretedBuildOrchestratorDeps,
 ) *InterpretedBuildOrchestrator {
-	cpuCount := max(1, runtime.NumCPU())
-
+	jitCompileTimeout := deps.JITCompileTimeout
+	if jitCompileTimeout <= 0 {
+		jitCompileTimeout = defaultJITCompileTimeout
+	}
+	orchestratorClock := deps.Clock
+	if orchestratorClock == nil {
+		orchestratorClock = clock.RealClock()
+	}
 	return &InterpretedBuildOrchestrator{
 		compileGroup:          singleflight.Group{},
-		registryService:       deps.RegistryService,
 		i18nService:           deps.I18nService,
 		cachedManifest:        nil,
-		interpSemaphore:       make(chan struct{}, cpuCount),
-		vfsAdapter:            nil,
 		progCache:             make(map[string]*templater_adapters.PageEntry),
 		dirtyCodeCache:        make(map[string][]byte),
 		reverseDepsMap:        make(map[string][]string),
 		interpreterPool:       deps.InterpreterPool,
+		interpreterProvider:   deps.InterpreterProvider,
+		clock:                 orchestratorClock,
 		artefactByPackagePath: make(map[string]*generator_dto.GeneratedArtefact),
 		sandboxFactory:        deps.SandboxFactory,
 		pathsConfig:           deps.PathsConfig,
 		i18nDefaultLocale:     deps.I18nDefaultLocale,
 		projectRoot:           deps.ProjectRoot,
 		moduleName:            deps.ModuleName,
+		jitCompileTimeout:     jitCompileTimeout,
+		freshPoolRequested:    0,
+		freshPoolBuilt:        0,
 		stateLock:             sync.RWMutex{},
-		interpLock:            sync.Mutex{},
 	}
 }
 
 // BuildRunner creates a new InterpretedManifestRunner from build artefacts. Orchestrates
-// the entire JIT compilation pipeline: creates a VFS adapter, sorts artefacts
-// topologically, creates a fresh interpreter, interprets all artefacts in dependency
-// order, creates a PageEntry cache, and returns a new runner with the populated cache.
+// the entire JIT compilation pipeline by building the manifest, sorting artefacts
+// topologically, compiling all artefacts as one program in a fresh interpreter, creating
+// a PageEntry cache, and returning a new runner with the populated cache.
+//
+// When InvalidateUserPackages has been called since the last build, the program is
+// compiled with a fresh interpreter pool so edited user Go packages are recompiled; the
+// new pool replaces the old one only when the build succeeds.
 //
 // Takes result (*annotator_dto.ProjectAnnotationResult) which provides the annotated
 // project artefacts to compile.
@@ -234,27 +291,31 @@ func (o *InterpretedBuildOrchestrator) BuildRunner(
 		return nil, fmt.Errorf("building manifest: %w", err)
 	}
 
-	vfsAdapter, err := o.createVFSAdapter(ctx, artefacts)
-	if err != nil {
-		return nil, fmt.Errorf("creating VFS adapter: %w", err)
-	}
-
-	l.Internal("[JIT-BUILD] Stage 3/4: Topologically sorting artefacts...")
+	l.Internal("[JIT-BUILD] Stage 1/2: Topologically sorting artefacts...")
 	sortedArtefacts, err := o.topologicallySortArtefacts(artefacts)
 	if err != nil {
 		return nil, fmt.Errorf("sorting artefacts topologically: %w", err)
 	}
 	l.Internal("[JIT-BUILD] Artefacts sorted", logger_domain.Int("count", len(sortedArtefacts)))
 
-	progCache, err := o.interpretArtefacts(ctx, sortedArtefacts, manifest, vfsAdapter)
+	pool, generation, err := o.interpreterPoolForBuild(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("preparing interpreter pool: %w", err)
+	}
+
+	progCache, err := o.interpretArtefacts(ctx, pool, sortedArtefacts, manifest)
 	if err != nil {
 		return nil, fmt.Errorf("interpreting artefacts: %w", err)
 	}
 
-	reverseDepsMap := o.buildReverseDependencyMap(sortedArtefacts)
-	artefactByPackagePath := o.buildArtefactLookupMap(sortedArtefacts)
-
-	o.updateOrchestratorState(vfsAdapter, progCache, manifest, reverseDepsMap, artefactByPackagePath)
+	o.updateOrchestratorState(orchestratorBuildState{
+		progCache:             progCache,
+		manifest:              manifest,
+		reverseDepsMap:        o.buildReverseDependencyMap(sortedArtefacts),
+		artefactByPackagePath: o.buildArtefactLookupMap(sortedArtefacts),
+		pool:                  pool,
+		poolGeneration:        generation,
+	})
 
 	l.Internal("[JIT-BUILD] ========== Interpreted Runner Build Complete ==========",
 		logger_domain.Int("cached_entries", len(progCache)))
@@ -303,8 +364,7 @@ func (o *InterpretedBuildOrchestrator) MarkDirty(
 
 	o.cachedManifest = manifest
 
-	newPathMap := o.updateArtefactLookupAndVFS(ctx, artefacts)
-	o.updateVFSAdapterIfNeeded(ctx, artefacts, newPathMap)
+	o.updateArtefactLookup(artefacts)
 
 	directlyChanged, allDirty := o.markDirectlyChangedComponents(ctx, artefacts)
 	o.propagateDirtyFlags(ctx, directlyChanged, allDirty)
@@ -320,16 +380,34 @@ func (o *InterpretedBuildOrchestrator) MarkDirty(
 // IsInitialised returns true if the orchestrator has completed an initial full build.
 //
 // This is used by the daemon service to distinguish between the initial build (which
-// requires BuildRunner) and subsequent incremental builds (which use MarkDirty).
+// requires BuildRunner) and subsequent incremental builds (which use MarkDirty). It
+// reports false again after InvalidateUserPackages, until a full build has recompiled the
+// user packages.
 //
-// Returns bool which is true when the interpreter pool exists and the program cache is
-// populated.
+// Returns bool which is true when the interpreter pool exists, the program cache is
+// populated and no fresh interpreter pool is pending.
 //
 // Safe for concurrent use. Uses a read lock to access internal state.
 func (o *InterpretedBuildOrchestrator) IsInitialised() bool {
 	o.stateLock.RLock()
 	defer o.stateLock.RUnlock()
-	return o.interpreterPool != nil && len(o.progCache) > 0
+	return o.interpreterPool != nil && len(o.progCache) > 0 && o.freshPoolBuilt == o.freshPoolRequested
+}
+
+// InvalidateUserPackages records that user-written Go packages changed on disk.
+//
+// The interpreter cannot unregister a compiled package, and every interpreter the pool
+// hands out shares one symbol registry, so an edited package would keep resolving to its
+// old compiled form. After this call IsInitialised reports false, so the next build runs
+// BuildRunner, which compiles the whole program, user packages included, with a fresh
+// interpreter pool. Until that build completes, requests keep being served from the
+// current pool.
+//
+// Safe for concurrent use; acquires stateLock.
+func (o *InterpretedBuildOrchestrator) InvalidateUserPackages() {
+	o.stateLock.Lock()
+	defer o.stateLock.Unlock()
+	o.freshPoolRequested++
 }
 
 // GetCachedEntry retrieves a compiled page entry from the cache. Part of the JITCompiler
@@ -363,18 +441,19 @@ func (o *InterpretedBuildOrchestrator) GetAllCachedKeys() []string {
 // JITCompile performs on-demand compilation when a dirty page is requested. It compiles
 // only the specific requested component and its dependencies if needed.
 //
-// The method:
-//  1. Checks if the component is dirty (has code in dirtyCodeCache)
-//  2. If dirty, uses the long-lived interpreter to JIT-compile the new code
-//  3. Updates the PageEntry in progCache with the new function pointers
-//  4. Removes the component from dirtyCodeCache
-//  5. Returns immediately after compiling just ONE component
+// Checks dirtyCodeCache and uses the long-lived interpreter to compile changed code.
+// Updates the PageEntry in progCache with the new function pointers, then removes the
+// component from dirtyCodeCache. Only visited pages pay the compilation cost.
 //
-// This means only visited pages pay the compilation cost.
+// Requests for the same component share one compilation through the singleflight group.
+// It runs on a detached copy of the request context, free of every caller's cancellation
+// and of the pooled request carrier, bounded only by the configured JIT timeout, so one
+// client disconnecting cannot abort the compile for the others; each caller stops waiting
+// when its own ctx ends.
 //
 // Takes relPath (string) which specifies the relative path of the component to compile.
 //
-// Returns error when compilation fails.
+// Returns error when compilation fails or ctx ends before it completes.
 func (o *InterpretedBuildOrchestrator) JITCompile(
 	ctx context.Context,
 	relPath string,
@@ -383,13 +462,24 @@ func (o *InterpretedBuildOrchestrator) JITCompile(
 		logger_domain.String(fieldPath, relPath))
 	defer span.End()
 
-	_, err, _ := o.compileGroup.Do(relPath, func() (any, error) {
-		return nil, o.executeJITCompilation(ctx, relPath)
+	detachedCtx := daemon_dto.DetachRequestContext(ctx)
+	results := o.compileGroup.DoChan(relPath, func() (any, error) {
+		compileCtx, cancel := context.WithTimeoutCause(detachedCtx, o.jitCompileTimeout, errJITCompileTimeout)
+		defer cancel()
+		return nil, goroutine.SafeCall(compileCtx, "lifecycle.JITCompile", func() error {
+			return o.executeJITCompilation(compileCtx, relPath)
+		})
 	})
-	if err != nil {
-		return fmt.Errorf("JIT compiling %q: %w", relPath, err)
+
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("waiting for JIT compilation of %q: %w", relPath, context.Cause(ctx))
+	case result := <-results:
+		if result.Err != nil {
+			return fmt.Errorf("JIT compiling %q: %w", relPath, result.Err)
+		}
+		return nil
 	}
-	return nil
 }
 
 // GetAffectedComponents returns all component paths that transitively depend on the given
@@ -468,8 +558,7 @@ func (o *InterpretedBuildOrchestrator) MarkComponentsDirty(
 
 	o.mergeManifest(manifest)
 
-	newPathMap := o.updateArtefactLookupAndVFS(ctx, artefacts)
-	o.updateVFSAdapterIfNeeded(ctx, artefacts, newPathMap)
+	o.updateArtefactLookup(artefacts)
 
 	o.rebuildReverseDependencyMapFromState()
 
@@ -488,7 +577,8 @@ func (o *InterpretedBuildOrchestrator) MarkComponentsDirty(
 // runs compilation eagerly rather than waiting for an HTTP request to trigger it.
 //
 // Compilation errors for individual components are logged but do not stop the batch; all
-// dirty components are attempted.
+// dirty components are attempted. When ctx ends (for example on shutdown) the batch stops
+// quietly, leaving the remaining components dirty for the next request.
 //
 // Returns error only when a systemic failure prevents all compilation.
 //
@@ -512,7 +602,16 @@ func (o *InterpretedBuildOrchestrator) ProactiveRecompile(ctx context.Context) e
 
 	var compiledCount int
 	for _, relPath := range dirtyPaths {
+		if ctx.Err() != nil {
+			l.Internal("[JIT-PROACTIVE] Context ended, stopping proactive compilation",
+				logger_domain.Int("compiled", compiledCount),
+				logger_domain.Int("total", len(dirtyPaths)))
+			return nil
+		}
 		if err := o.JITCompile(ctx, relPath); err != nil {
+			if ctx.Err() != nil {
+				continue
+			}
 			l.Error("[JIT-PROACTIVE] Failed to compile component",
 				logger_domain.String(fieldPath, relPath),
 				logger_domain.Error(err))
@@ -665,171 +764,117 @@ func (o *InterpretedBuildOrchestrator) buildManifest(
 	return manifest, nil
 }
 
-// createVFSAdapter creates and configures the VFS adapter for import resolution.
+// interpreterPoolForBuild returns a fresh pool with loaded modules if
+// InvalidateUserPackages has been called since the last build, or the current pool
+// otherwise.
 //
-// Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated code
-// artefacts to include in the virtual filesystem.
+// Returns templater_domain.InterpreterPoolPort which is the pool to compile with.
+// Returns uint64 which is the fresh-pool request count the build satisfies.
+// Returns error when no pool is configured or a fresh pool's modules fail to load.
 //
-// Returns *templater_adapters.RegistryVFSAdapter which provides the configured virtual
-// filesystem for the interpreter.
-// Returns error when the path resolution fails or the adapter cannot be created.
-func (o *InterpretedBuildOrchestrator) createVFSAdapter(
-	ctx context.Context,
-	artefacts []*generator_dto.GeneratedArtefact,
-) (*templater_adapters.RegistryVFSAdapter, error) {
+// Safe for concurrent use; reads state under a read lock and builds any fresh pool
+// without holding it.
+func (o *InterpretedBuildOrchestrator) interpreterPoolForBuild(ctx context.Context) (templater_domain.InterpreterPoolPort, uint64, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	l.Internal("[JIT-BUILD] Stage 1/4: Creating VFS adapter...")
-	virtualGoPath := filepath.Join(o.projectRoot, ".piko-gopath")
-	virtualGoPath, err := filepath.Abs(virtualGoPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute path for virtual GOPATH: %w", err)
+
+	o.stateLock.RLock()
+	pool := o.interpreterPool
+	requested := o.freshPoolRequested
+	freshNeeded := requested != o.freshPoolBuilt
+	o.stateLock.RUnlock()
+
+	if !freshNeeded || o.interpreterProvider == nil {
+		if freshNeeded {
+			l.Warn("User Go packages changed but no interpreter provider is configured; restart to pick up the changes")
+		}
+		if pool == nil {
+			return nil, 0, errNoInterpreterPool
+		}
+		return pool, requested, nil
 	}
 
-	virtualGoRoot := getGOROOT()
-	var projectSandbox safedisk.Sandbox
-	if o.sandboxFactory != nil {
-		projectSandbox, err = o.sandboxFactory.Create("interp-project-source", o.projectRoot, safedisk.ModeReadOnly)
-	} else {
-		projectSandbox, err = safedisk.NewSandbox(o.projectRoot, safedisk.ModeReadOnly)
+	l.Internal("[JIT-BUILD] User Go packages changed, building a fresh interpreter pool")
+	fresh := o.interpreterProvider.NewInterpreterPool()
+	if err := fresh.LoadModules(ctx); err != nil {
+		return nil, 0, fmt.Errorf("loading modules into a fresh interpreter pool: %w", err)
 	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to create project sandbox: %w", err)
-	}
-	vfsAdapter, err := templater_adapters.NewRegistryVFSAdapter(
-		ctx,
-		o.registryService,
-		virtualGoPath, virtualGoRoot,
-		o.moduleName, projectSandbox,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create VFS adapter: %w", err)
-	}
-
-	l.Internal("[JIT-BUILD] Stage 2/4: Building VFS map...")
-	newPathMap := o.buildVFSPathMap(ctx, artefacts)
-	l.Internal("[JIT-BUILD] VFS map built", logger_domain.Int("total_mappings", len(newPathMap)))
-
-	vfsAdapter.UpdateMap(newPathMap)
-	if err := vfsAdapter.UpdateFreshArtefacts(artefacts, o.projectRoot); err != nil {
-		return nil, fmt.Errorf("failed to update VFS fresh artefacts cache: %w", err)
-	}
-
-	return vfsAdapter, nil
+	return fresh, requested, nil
 }
 
-// buildVFSPathMap builds a map from canonical package paths to relative artefact paths.
+// interpretArtefacts compiles all artefacts as a single program and builds the program
+// cache.
 //
-// Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated
-// artefacts to map.
+// It collects all generated source code, calls CompileAndExecute to compile and run the
+// init functions, then links the registered functions to page entries.
 //
-// Returns map[string]string which maps canonical Go package paths to their relative file
-// paths from the project root.
-func (o *InterpretedBuildOrchestrator) buildVFSPathMap(
-	ctx context.Context,
-	artefacts []*generator_dto.GeneratedArtefact,
-) map[string]string {
-	ctx, l := logger_domain.From(ctx, log)
-	newPathMap := make(map[string]string)
-	for _, artefact := range artefacts {
-		component, _ := generator_domain.GetMainComponent(artefact.Result)
-		if component == nil {
-			continue
-		}
-
-		relativePath, err := filepath.Rel(o.projectRoot, component.Source.SourcePath)
-		if err != nil {
-			l.Error("Failed to compute relative path for VFS map",
-				logger_domain.String(fieldAbsolutePath, component.Source.SourcePath),
-				logger_domain.String(fieldProjectRoot, o.projectRoot),
-				logger_domain.Error(err))
-			continue
-		}
-		relativePath = filepath.ToSlash(relativePath)
-
-		newPathMap[component.CanonicalGoPackagePath] = relativePath
-		l.Trace("[JIT-BUILD] Added VFS mapping",
-			logger_domain.String("canonical_path", component.CanonicalGoPackagePath),
-			logger_domain.String("artefact_id", relativePath))
-	}
-	return newPathMap
-}
-
-// interpretArtefacts interprets all artefacts and builds the program cache.
-//
+// Takes pool (templater_domain.InterpreterPoolPort) which provides the interpreter.
 // Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the artefacts
-// to interpret in dependency order.
+// to compile in dependency order.
 // Takes manifest (*generator_dto.Manifest) which contains the build manifest.
-// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides the virtual
-// filesystem for source code access.
 //
 // Returns map[string]*templater_adapters.PageEntry which maps relative paths to their
-// interpreted page entries.
-// Returns error when the interpreter cannot be obtained from the pool or when any
-// artefact fails to interpret.
+// linked page entries.
+// Returns error when the interpreter cannot be obtained from the pool, or when
+// compilation or linking fails.
 func (o *InterpretedBuildOrchestrator) interpretArtefacts(
 	ctx context.Context,
+	pool templater_domain.InterpreterPoolPort,
 	sortedArtefacts []*generator_dto.GeneratedArtefact,
 	manifest *generator_dto.Manifest,
-	vfsAdapter *templater_adapters.RegistryVFSAdapter,
 ) (map[string]*templater_adapters.PageEntry, error) {
 	ctx, l := logger_domain.From(ctx, log)
-	l.Internal("[JIT-BUILD] Stage 4/4: Getting interpreter from pool and interpreting artefacts...")
+	l.Internal("[JIT-BUILD] Stage 2/2: Compiling all artefacts in a fresh interpreter...")
 
-	freshInterpreter, err := o.getInterpreterFromPool()
+	interpreter, err := getInterpreterFromPool(pool)
 	if err != nil {
 		return nil, fmt.Errorf("getting interpreter from pool: %w", err)
 	}
-
-	if batchInterp, ok := freshInterpreter.(templater_domain.BatchInterpreterPort); ok {
-		return o.interpretArtefactsBatch(ctx, batchInterp, sortedArtefacts, manifest)
-	}
-
-	defer o.returnInterpreterToPool(ctx, freshInterpreter)
-	return o.interpretArtefactsIncremental(ctx, freshInterpreter, sortedArtefacts, manifest, vfsAdapter)
-}
-
-// interpretArtefactsBatch compiles all artefacts as a single program using the batch
-// compilation path.
-//
-// This collects all generated source code, calls CompileAndExecute to compile and run
-// init functions, then links the registered functions to page entries.
-//
-// Takes ctx (context.Context) which carries the logger and deadline.
-// Takes batchInterp (templater_domain.BatchInterpreterPort) which executes the batch
-// compilation.
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts to
-// compile, in dependency order.
-//
-// Returns map[string]*PageEntry which maps relative paths to their linked page entries.
-// Returns error when batch compilation or linking fails.
-func (o *InterpretedBuildOrchestrator) interpretArtefactsBatch(
-	ctx context.Context,
-	batchInterp templater_domain.BatchInterpreterPort,
-	sortedArtefacts []*generator_dto.GeneratedArtefact,
-	manifest *generator_dto.Manifest,
-) (map[string]*templater_adapters.PageEntry, error) {
-	ctx, l := logger_domain.From(ctx, log)
-	l.Internal("[JIT-BUILD] Using batch compilation path")
 
 	packages, components := o.collectArtefactSources(ctx, sortedArtefacts)
 	if len(packages) == 0 {
 		return make(map[string]*templater_adapters.PageEntry), nil
 	}
 
-	o.discoverUserPackages(ctx, packages, batchInterp)
+	o.discoverUserPackages(ctx, packages, interpreter)
 
 	l.Internal("[JIT-BUILD] Compiling all packages in batch",
 		logger_domain.Int("package_count", len(packages)))
 
-	if err := batchInterp.CompileAndExecute(ctx, o.moduleName, packages); err != nil {
+	if err := o.compileAndExecute(ctx, interpreter, packages); err != nil {
 		return nil, fmt.Errorf("batch compilation failed: %w", err)
 	}
 
 	l.Internal("[JIT-BUILD] Batch compilation complete, linking functions from registry")
 
 	return o.linkAllArtefacts(ctx, components, manifest)
+}
+
+// compileAndExecute compiles packages as one program in the interpreter and runs their
+// init functions, recording the interpreted-mode compilation metrics.
+//
+// Takes interpreter (templater_domain.InterpreterPort) which compiles and runs the
+// program.
+// Takes packages (map[string]map[string]string) which maps relative package paths to
+// filename-to-source maps.
+//
+// Returns error when compilation or init execution fails.
+func (o *InterpretedBuildOrchestrator) compileAndExecute(
+	ctx context.Context,
+	interpreter templater_domain.InterpreterPort,
+	packages map[string]map[string]string,
+) error {
+	templater_adapters.InterpretedManifestRunnerCompilationCount.Add(ctx, 1)
+	startTime := o.clock.Now()
+	defer func() {
+		elapsed := o.clock.Now().Sub(startTime)
+		templater_adapters.InterpretedManifestRunnerCompilationDuration.Record(ctx, float64(elapsed)/float64(time.Millisecond))
+	}()
+
+	if err := interpreter.CompileAndExecute(ctx, o.moduleName, packages); err != nil {
+		templater_adapters.InterpretedManifestRunnerCompilationErrorCount.Add(ctx, 1)
+		return err
+	}
+	return nil
 }
 
 // collectArtefactSources collects generated source code from all artefacts into the
@@ -890,14 +935,14 @@ func (o *InterpretedBuildOrchestrator) collectArtefactSources(
 //
 // Takes packages (map[string]map[string]string) which is the mutable map to populate with
 // discovered package sources.
-// Takes batchInterpreter (templater_domain.BatchInterpreterPort) which checks whether a
-// package is already registered.
+// Takes interpreter (templater_domain.InterpreterPort) which checks whether a package is
+// already registered.
 func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 	ctx context.Context,
 	packages map[string]map[string]string,
-	batchInterpreter templater_domain.BatchInterpreterPort,
+	interpreter templater_domain.InterpreterPort,
 ) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	var sandbox safedisk.Sandbox
 	var sandboxErr error
@@ -921,7 +966,7 @@ func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 
 		for _, importPath := range pending {
 			discovered := o.resolveImportedPackage(
-				importPath, modulePrefix, packages, sandbox, batchInterpreter, l,
+				ctx, importPath, modulePrefix, packages, sandbox, interpreter,
 			)
 			nextPending = append(nextPending, discovered...)
 		}
@@ -943,21 +988,21 @@ func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 // discovered sources.
 // Takes sandbox (safedisk.Sandbox) which provides safe filesystem access for reading user
 // source files.
-// Takes batchInterpreter (templater_domain.BatchInterpreterPort) which checks whether a
-// package is already registered.
-// Takes l (logger_domain.Logger) which logs discovery progress.
+// Takes interpreter (templater_domain.InterpreterPort) which checks whether a package is
+// already registered.
 //
 // Returns []string containing any transitive local import paths discovered in the
 // resolved package.
 func (o *InterpretedBuildOrchestrator) resolveImportedPackage(
+	ctx context.Context,
 	importPath string,
 	modulePrefix string,
 	packages map[string]map[string]string,
 	sandbox safedisk.Sandbox,
-	batchInterpreter templater_domain.BatchInterpreterPort,
-	l logger_domain.Logger,
+	interpreter templater_domain.InterpreterPort,
 ) []string {
-	if batchInterpreter.HasRegisteredPackage(importPath) {
+	ctx, l := logger_domain.From(ctx, log)
+	if interpreter.HasRegisteredPackage(importPath) {
 		return nil
 	}
 
@@ -967,7 +1012,7 @@ func (o *InterpretedBuildOrchestrator) resolveImportedPackage(
 		return nil
 	}
 
-	goFiles := o.readUserGoFiles(sandbox, relativeDirectory, l)
+	goFiles := o.readUserGoFiles(ctx, sandbox, relativeDirectory)
 	if len(goFiles) == 0 {
 		return nil
 	}
@@ -1010,53 +1055,21 @@ func (*InterpretedBuildOrchestrator) collectLocalImports(
 	return localImports
 }
 
-// parseLocalImportPaths extracts import paths from Go source code that match the given
-// module prefix.
-//
-// Uses go/parser with ImportsOnly for efficiency, since only the import block is parsed,
-// not function bodies. All import styles (standard, aliased, blank, dot) are handled
-// because the path is always extracted from importSpec.Path.Value.
-//
-// Takes source (string) which is the Go source code to parse.
-// Takes modulePrefix (string) which filters imports to only those belonging to the
-// current module.
-//
-// Returns []string containing the matching import paths.
-func parseLocalImportPaths(source string, modulePrefix string) []string {
-	fileSet := token.NewFileSet()
-
-	file, err := parser.ParseFile(fileSet, "", source, parser.ImportsOnly)
-	if err != nil {
-		return nil
-	}
-
-	var result []string
-
-	for _, spec := range file.Imports {
-		importPath := strings.Trim(spec.Path.Value, `"`)
-		if strings.HasPrefix(importPath, modulePrefix) {
-			result = append(result, importPath)
-		}
-	}
-
-	return result
-}
-
 // readUserGoFiles reads all non-test .go files from a directory using the provided
 // sandbox.
 //
 // Takes sandbox (safedisk.Sandbox) which provides safe filesystem access scoped to the
 // project root.
 // Takes relDir (string) which is the relative directory path to read Go files from.
-// Takes l (logger_domain.Logger) which logs read errors.
 //
 // Returns map[string]string mapping filenames to their source content, or nil when the
 // directory cannot be read.
 func (*InterpretedBuildOrchestrator) readUserGoFiles(
+	ctx context.Context,
 	sandbox safedisk.Sandbox,
 	relDir string,
-	l logger_domain.Logger,
 ) map[string]string {
+	_, l := logger_domain.From(ctx, log)
 	entries, readErr := sandbox.ReadDir(relDir)
 	if readErr != nil {
 		return nil
@@ -1113,126 +1126,6 @@ func (o *InterpretedBuildOrchestrator) linkAllArtefacts(
 	}
 
 	return progCache, nil
-}
-
-// interpretArtefactsIncremental evaluates artefacts one-by-one using the incremental
-// Eval() path with VFS-based import resolution.
-//
-// Takes freshInterpreter (templater_domain.InterpreterPort) which executes the generated
-// code for each artefact.
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts to
-// evaluate, in dependency order.
-// Takes manifest (*generator_dto.Manifest) which provides build metadata for page entry
-// creation.
-// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides the virtual
-// filesystem for import resolution.
-//
-// Returns map[string]*PageEntry which maps relative paths to their interpreted page
-// entries.
-// Returns error when interpretation fails for any artefact.
-func (o *InterpretedBuildOrchestrator) interpretArtefactsIncremental(
-	ctx context.Context,
-	freshInterpreter templater_domain.InterpreterPort,
-	sortedArtefacts []*generator_dto.GeneratedArtefact,
-	manifest *generator_dto.Manifest,
-	vfsAdapter *templater_adapters.RegistryVFSAdapter,
-) (map[string]*templater_adapters.PageEntry, error) {
-	ctx, l := logger_domain.From(ctx, log)
-
-	buildCtx := vfsAdapter.GetBuildContext()
-	freshInterpreter.SetBuildContext(buildCtx)
-	freshInterpreter.SetSourcecodeFilesystem(vfsAdapter)
-	l.Internal("[JIT-BUILD] Pre-warmed interpreter retrieved from pool and configured with VFS",
-		logger_domain.String("gopath", buildCtx.GOPATH))
-
-	progCache := make(map[string]*templater_adapters.PageEntry)
-	for _, artefact := range sortedArtefacts {
-		entries, relPath, err := o.interpretSingleArtefact(ctx, freshInterpreter, artefact, manifest)
-		if err != nil {
-			return nil, fmt.Errorf("interpreting artefact %q: %w", relPath, err)
-		}
-		maps.Copy(progCache, entries)
-	}
-
-	return progCache, nil
-}
-
-// getInterpreterFromPool retrieves a pre-warmed interpreter from the pool.
-//
-// Returns templater_domain.InterpreterPort which is a ready-to-use interpreter instance.
-// Returns error when the pool returns an invalid type.
-func (o *InterpretedBuildOrchestrator) getInterpreterFromPool() (templater_domain.InterpreterPort, error) {
-	interp, err := o.interpreterPool.Get()
-	if err != nil {
-		return nil, fmt.Errorf("retrieving interpreter from pool: %w", err)
-	}
-	return interp, nil
-}
-
-// returnInterpreterToPool resets and returns the interpreter to the pool.
-//
-// Takes ctx (context.Context) which carries the logger.
-// Takes interpreter (templater_domain.InterpreterPort) which is the interpreter to reset
-// and return to the pool.
-func (o *InterpretedBuildOrchestrator) returnInterpreterToPool(ctx context.Context, interpreter templater_domain.InterpreterPort) {
-	ctx, l := logger_domain.From(ctx, log)
-	l.Internal("[JIT-BUILD] Resetting and returning interpreter to pool")
-	interpreter.Reset()
-	o.interpreterPool.Put(interpreter)
-}
-
-// interpretSingleArtefact interprets a single artefact and returns its PageEntry.
-//
-// Takes interpreter (templater_domain.InterpreterPort) which executes the generated code.
-// Takes artefact (*generator_dto.GeneratedArtefact) which contains the generated content
-// to interpret.
-// Takes manifest (*generator_dto.Manifest) which provides build metadata.
-//
-// Returns map[string]*templater_adapters.PageEntry which contains one entry per virtual
-// instance for collection-backed pages (keyed by instance.ManifestKey) and a single entry
-// keyed by the relative path otherwise. Nil when no main component exists.
-// Returns string which is the relative path to the artefact.
-// Returns error when interpretation or linking fails.
-func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
-	ctx context.Context,
-	interpreter templater_domain.InterpreterPort,
-	artefact *generator_dto.GeneratedArtefact,
-	manifest *generator_dto.Manifest,
-) (map[string]*templater_adapters.PageEntry, string, error) {
-	ctx, l := logger_domain.From(ctx, log)
-	component, _ := generator_domain.GetMainComponent(artefact.Result)
-	if component == nil {
-		return nil, "", nil
-	}
-
-	relativePath, err := filepath.Rel(o.projectRoot, component.Source.SourcePath)
-	if err != nil {
-		l.Error("Failed to compute relative path",
-			logger_domain.String(fieldAbsolutePath, component.Source.SourcePath),
-			logger_domain.String(fieldProjectRoot, o.projectRoot),
-			logger_domain.Error(err))
-		return nil, "", nil
-	}
-	relativePath = filepath.ToSlash(relativePath)
-
-	pikoPath := filepath.ToSlash(filepath.Join(o.moduleName, relativePath))
-	l.Trace("[JIT-INTERP] Interpreting and linking artefact",
-		logger_domain.String("artefact_id", relativePath),
-		logger_domain.String("piko_path", pikoPath),
-		logger_domain.String(fieldPackagePath, component.CanonicalGoPackagePath))
-
-	entries, err := o.interpretAndLink(ctx, interpreter, string(artefact.Content), manifest, component, relativePath)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to interpret and link %s: %w", pikoPath, err)
-	}
-
-	l.Trace("[JIT-BUILD] Successfully cached entry",
-		logger_domain.String("cache_key", relativePath),
-		logger_domain.String("piko_path", pikoPath),
-		logger_domain.String("fs_path", component.Source.SourcePath),
-		logger_domain.Int("entry_count", len(entries)))
-
-	return entries, relativePath, nil
 }
 
 // buildReverseDependencyMap creates a map from import paths to the components that depend
@@ -1316,31 +1209,19 @@ func (*InterpretedBuildOrchestrator) buildArtefactLookupMap(
 
 // updateOrchestratorState updates the orchestrator's internal state after a build.
 //
-// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides virtual
-// filesystem access for templates.
-// Takes progCache (map[string]*templater_adapters.PageEntry) which contains cached page
-// entries by path.
-// Takes manifest (*generator_dto.Manifest) which holds the build manifest.
-// Takes reverseDepsMap (map[string][]string) which maps paths to their dependents.
-// Takes artefactByPackagePath (map[string]*generator_dto.GeneratedArtefact) which maps
-// package paths to generated artefacts.
+// Takes state (orchestratorBuildState) which holds the products of the completed build.
 //
 // Safe for concurrent use; acquires stateLock before updating fields.
-func (o *InterpretedBuildOrchestrator) updateOrchestratorState(
-	vfsAdapter *templater_adapters.RegistryVFSAdapter,
-	progCache map[string]*templater_adapters.PageEntry,
-	manifest *generator_dto.Manifest,
-	reverseDepsMap map[string][]string,
-	artefactByPackagePath map[string]*generator_dto.GeneratedArtefact,
-) {
+func (o *InterpretedBuildOrchestrator) updateOrchestratorState(state orchestratorBuildState) {
 	o.stateLock.Lock()
 	defer o.stateLock.Unlock()
-	o.vfsAdapter = vfsAdapter
-	o.progCache = progCache
-	o.cachedManifest = manifest
-	o.reverseDepsMap = reverseDepsMap
-	o.artefactByPackagePath = artefactByPackagePath
+	o.progCache = state.progCache
+	o.cachedManifest = state.manifest
+	o.reverseDepsMap = state.reverseDepsMap
+	o.artefactByPackagePath = state.artefactByPackagePath
 	o.dirtyCodeCache = make(map[string][]byte)
+	o.interpreterPool = state.pool
+	o.freshPoolBuilt = max(o.freshPoolBuilt, state.poolGeneration)
 }
 
 // extractMarkDirtyArtefacts gets artefacts from the annotation result for the MarkDirty
@@ -1378,70 +1259,18 @@ func (*InterpretedBuildOrchestrator) extractMarkDirtyArtefacts(
 	return artefacts, nil
 }
 
-// updateArtefactLookupAndVFS updates the artefact lookup map and builds the VFS path map.
-// Must be called with stateLock held.
+// updateArtefactLookup registers the artefacts in the package-path lookup map. Must be
+// called with stateLock held.
 //
-// Takes ctx (context.Context) which carries the logger.
 // Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated
 // artefacts to register.
-//
-// Returns map[string]string which maps canonical package paths to relative file paths.
-func (o *InterpretedBuildOrchestrator) updateArtefactLookupAndVFS(
-	ctx context.Context,
-	artefacts []*generator_dto.GeneratedArtefact,
-) map[string]string {
-	ctx, l := logger_domain.From(ctx, log)
-	newPathMap := make(map[string]string)
+func (o *InterpretedBuildOrchestrator) updateArtefactLookup(artefacts []*generator_dto.GeneratedArtefact) {
 	for _, artefact := range artefacts {
 		component, _ := generator_domain.GetMainComponent(artefact.Result)
 		if component == nil {
 			continue
 		}
-
 		o.artefactByPackagePath[component.CanonicalGoPackagePath] = artefact
-
-		relativePath, err := filepath.Rel(o.projectRoot, component.Source.SourcePath)
-		if err != nil {
-			l.Error("[JIT-MARK-DIRTY] Failed to compute relative path for VFS map",
-				logger_domain.String(fieldAbsolutePath, component.Source.SourcePath),
-				logger_domain.String(fieldProjectRoot, o.projectRoot),
-				logger_domain.Error(err))
-			continue
-		}
-		relativePath = filepath.ToSlash(relativePath)
-		newPathMap[component.CanonicalGoPackagePath] = relativePath
-	}
-	return newPathMap
-}
-
-// updateVFSAdapterIfNeeded updates the VFS adapter with new path mappings and artefacts.
-// Must be called with stateLock held.
-//
-// Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the newly created
-// artefacts to add to the VFS cache.
-// Takes newPathMap (map[string]string) which provides the path mappings to update in the
-// VFS adapter.
-func (o *InterpretedBuildOrchestrator) updateVFSAdapterIfNeeded(
-	ctx context.Context,
-	artefacts []*generator_dto.GeneratedArtefact,
-	newPathMap map[string]string,
-) {
-	ctx, l := logger_domain.From(ctx, log)
-	if o.vfsAdapter == nil {
-		return
-	}
-
-	o.vfsAdapter.UpdateMap(newPathMap)
-	l.Internal("[JIT-MARK-DIRTY] Updated VFS path mappings",
-		logger_domain.Int("new_mappings", len(newPathMap)))
-
-	if err := o.vfsAdapter.UpdateFreshArtefacts(artefacts, o.projectRoot); err != nil {
-		l.Warn("[JIT-MARK-DIRTY] Failed to update VFS fresh artefacts cache",
-			logger_domain.Error(err))
-	} else {
-		l.Internal("[JIT-MARK-DIRTY] VFS adapter updated with new artefacts",
-			logger_domain.Int("artefact_count", len(artefacts)))
 	}
 }
 
@@ -1580,4 +1409,50 @@ func (o *InterpretedBuildOrchestrator) mergeManifest(newManifest *generator_dto.
 	maps.Copy(o.cachedManifest.Partials, newManifest.Partials)
 	maps.Copy(o.cachedManifest.Emails, newManifest.Emails)
 	maps.Copy(o.cachedManifest.ErrorPages, newManifest.ErrorPages)
+}
+
+// getInterpreterFromPool retrieves a pre-warmed interpreter from a pool.
+//
+// Takes pool (templater_domain.InterpreterPoolPort) which provides the interpreter.
+//
+// Returns templater_domain.InterpreterPort which is a ready-to-use interpreter instance.
+// Returns error when the pool cannot provide an interpreter.
+func getInterpreterFromPool(pool templater_domain.InterpreterPoolPort) (templater_domain.InterpreterPort, error) {
+	interpreter, err := pool.Get()
+	if err != nil {
+		return nil, fmt.Errorf("retrieving interpreter from pool: %w", err)
+	}
+	return interpreter, nil
+}
+
+// parseLocalImportPaths extracts import paths from Go source code that match the given
+// module prefix.
+//
+// Uses go/parser with ImportsOnly for efficiency, since only the import block is parsed,
+// not function bodies. All import styles (standard, aliased, blank, dot) are handled
+// because the path is always extracted from importSpec.Path.Value.
+//
+// Takes source (string) which is the Go source code to parse.
+// Takes modulePrefix (string) which filters imports to only those belonging to the
+// current module.
+//
+// Returns []string containing the matching import paths.
+func parseLocalImportPaths(source string, modulePrefix string) []string {
+	fileSet := token.NewFileSet()
+
+	file, err := parser.ParseFile(fileSet, "", source, parser.ImportsOnly)
+	if err != nil {
+		return nil
+	}
+
+	var result []string
+
+	for _, spec := range file.Imports {
+		importPath := strings.Trim(spec.Path.Value, `"`)
+		if strings.HasPrefix(importPath, modulePrefix) {
+			result = append(result, importPath)
+		}
+	}
+
+	return result
 }

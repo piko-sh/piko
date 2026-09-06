@@ -78,6 +78,14 @@ func (m *MockTaskDispatcher) Dispatch(ctx context.Context, task *Task) error {
 	return nil
 }
 
+func (m *MockTaskDispatcher) DispatchIfRequired(ctx context.Context, task *Task, required DispatchRequirement) error {
+	stillRequired, err := required(ctx)
+	if err == nil && !stillRequired {
+		return ErrTaskNotRequired
+	}
+	return m.Dispatch(ctx, task)
+}
+
 func (m *MockTaskDispatcher) DispatchDelayed(ctx context.Context, task *Task, executeAt time.Time) error {
 	m.mu.Lock()
 	m.DispatchDelayedCalls = append(m.DispatchDelayedCalls, mockDelayedCall{

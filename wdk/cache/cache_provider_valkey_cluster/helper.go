@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"golang.org/x/sync/singleflight"
 	"piko.sh/piko/wdk/cache"
@@ -118,6 +119,8 @@ func createNamespaceGeneric[K comparable, V any](p *ValkeyClusterProvider, names
 		allowUnsafeFLUSHDB:     p.config.AllowUnsafeFLUSHDB,
 		schema:                 options.SearchSchema,
 		indexName:              indexName,
+		indexMu:                sync.Mutex{},
+		indexCreated:           false,
 	}
 
 	p.caches[namespace] = adapter

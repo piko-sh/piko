@@ -146,6 +146,8 @@ func (p *FSProvider) Stat(_ context.Context, params storage_dto.GetParams) (*sto
 		Size:         fileInfo.Size(),
 		LastModified: fileInfo.ModTime(),
 		ContentType:  mimeTypeFromExtension(filePath),
+		Metadata:     nil,
+		ETag:         "",
 	}, nil
 }
 

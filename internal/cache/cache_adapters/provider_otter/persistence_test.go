@@ -360,10 +360,8 @@ func TestPersistenceConfig_Validate(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name: "disabled is always valid",
-			config: PersistenceConfig[string, testArticle]{
-				Enabled: false,
-			},
+			name:      "disabled is always valid",
+			config:    PersistenceConfig[string, testArticle]{},
 			expectErr: false,
 		},
 		{
@@ -399,10 +397,8 @@ func TestPersistenceConfig_Validate(t *testing.T) {
 		{
 			name: "invalid wal config",
 			config: PersistenceConfig[string, testArticle]{
-				Enabled: true,
-				WALConfig: wal_domain.Config{
-					Dir: "",
-				},
+				Enabled:    true,
+				WALConfig:  wal_domain.Config{},
 				KeyCodec:   stringKeyCodec{},
 				ValueCodec: jsonArticleCodec{},
 			},

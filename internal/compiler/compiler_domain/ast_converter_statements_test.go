@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	parsejs "github.com/tdewolff/parse/v2/js"
 	"piko.sh/piko/internal/esbuild/ast"
+	"piko.sh/piko/internal/esbuild/helpers"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/esbuild/logger"
 )
@@ -36,7 +37,7 @@ func TestConvertStatement(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		result, err := converter.convertStatement(js_ast.Stmt{Data: nil})
+		result, err := converter.convertStatement(js_ast.Stmt{})
 		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
@@ -83,9 +84,7 @@ func TestConvertSReturn(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		s := &js_ast.SReturn{
-			ValueOrNil: js_ast.Expr{Data: nil},
-		}
+		s := &js_ast.SReturn{}
 
 		result, err := converter.convertSReturn(s)
 		require.NoError(t, err)
@@ -126,7 +125,7 @@ func TestConvertSBlock(t *testing.T) {
 				{Data: &js_ast.SEmpty{}},
 				{Data: &js_ast.SDebugger{}},
 			},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			CloseBraceLoc: logger.Loc{},
 		}
 
 		result, err := converter.convertSBlock(s)
@@ -147,7 +146,7 @@ func TestConvertSBlock(t *testing.T) {
 				{Data: nil},
 				{Data: &js_ast.SEmpty{}},
 			},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			CloseBraceLoc: logger.Loc{},
 		}
 
 		result, err := converter.convertSBlock(s)
@@ -170,7 +169,7 @@ func TestConvertSIf(t *testing.T) {
 		s := &js_ast.SIf{
 			Test:    js_ast.Expr{Data: &js_ast.EBoolean{Value: true}},
 			Yes:     js_ast.Stmt{Data: &js_ast.SEmpty{}},
-			NoOrNil: js_ast.Stmt{Data: nil},
+			NoOrNil: js_ast.Stmt{},
 		}
 
 		result, err := converter.convertSIf(s)
@@ -187,7 +186,7 @@ func TestConvertSIf(t *testing.T) {
 		converter := NewASTConverter(nil, nil, nil)
 
 		s := &js_ast.SIf{
-			Test:    js_ast.Expr{Data: &js_ast.EBoolean{Value: false}},
+			Test:    js_ast.Expr{Data: &js_ast.EBoolean{}},
 			Yes:     js_ast.Stmt{Data: &js_ast.SEmpty{}},
 			NoOrNil: js_ast.Stmt{Data: &js_ast.SDebugger{}},
 		}
@@ -234,7 +233,7 @@ func TestConvertSDoWhile(t *testing.T) {
 
 		s := &js_ast.SDoWhile{
 			Body: js_ast.Stmt{Data: &js_ast.SBreak{}},
-			Test: js_ast.Expr{Data: &js_ast.EBoolean{Value: false}},
+			Test: js_ast.Expr{Data: &js_ast.EBoolean{}},
 		}
 
 		result, err := converter.convertSDoWhile(s)
@@ -260,7 +259,7 @@ func TestConvertSLabel(t *testing.T) {
 
 		s := &js_ast.SLabel{
 			Stmt: js_ast.Stmt{Data: &js_ast.SBreak{}},
-			Name: ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}},
+			Name: ast.LocRef{},
 		}
 
 		result, err := converter.convertSLabel(s)
@@ -278,7 +277,7 @@ func TestConvertSLabel(t *testing.T) {
 
 		s := &js_ast.SLabel{
 			Stmt: js_ast.Stmt{Data: &js_ast.SBreak{}},
-			Name: ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{Start: 0}},
+			Name: ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{}},
 		}
 
 		result, err := converter.convertSLabel(s)
@@ -336,9 +335,14 @@ func TestGetLocalTokenType(t *testing.T) {
 			expected: parsejs.VarToken,
 		},
 		{
-			name:     "using defaults to var",
+			name:     "using binds as const",
 			kind:     js_ast.LocalUsing,
-			expected: parsejs.VarToken,
+			expected: parsejs.ConstToken,
+		},
+		{
+			name:     "await using binds as const",
+			kind:     js_ast.LocalAwaitUsing,
+			expected: parsejs.ConstToken,
 		},
 	}
 
@@ -392,7 +396,7 @@ func TestConvertSLocal(t *testing.T) {
 			Decls: []js_ast.Decl{
 				{
 					Binding:    binding,
-					ValueOrNil: js_ast.Expr{Data: nil},
+					ValueOrNil: js_ast.Expr{},
 				},
 			},
 			Kind:     js_ast.LocalLet,
@@ -418,7 +422,8 @@ func TestConvertForInit(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		result := converter.convertForInit(js_ast.Stmt{Data: nil})
+		result, err := converter.convertForInit(js_ast.Stmt{})
+		require.NoError(t, err)
 		assert.Nil(t, result)
 	})
 
@@ -432,14 +437,15 @@ func TestConvertForInit(t *testing.T) {
 			Decls: []js_ast.Decl{
 				{
 					Binding:    binding,
-					ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+					ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{}},
 				},
 			},
 			Kind:     js_ast.LocalLet,
 			IsExport: false,
 		}}
 
-		result := converter.convertForInit(initStmt)
+		result, err := converter.convertForInit(initStmt)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 
 		_, ok := result.(*parsejs.VarDecl)
@@ -456,21 +462,37 @@ func TestConvertForInit(t *testing.T) {
 			Value: js_ast.Expr{Data: &js_ast.EBinary{
 				Op:    js_ast.BinOpAssign,
 				Left:  js_ast.Expr{Data: identifier},
-				Right: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+				Right: js_ast.Expr{Data: &js_ast.ENumber{}},
 			}},
 		}}
 
-		result := converter.convertForInit(initStmt)
+		result, err := converter.convertForInit(initStmt)
+		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
 
-	t.Run("unsupported init type returns nil", func(t *testing.T) {
+	t.Run("unsupported init type is an error", func(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
 		initStmt := js_ast.Stmt{Data: &js_ast.SBreak{}}
 
-		result := converter.convertForInit(initStmt)
+		result, err := converter.convertForInit(initStmt)
+		require.ErrorIs(t, err, errUnsupportedExpression)
+		assert.Nil(t, result)
+	})
+
+	t.Run("declaration that cannot be converted is an error", func(t *testing.T) {
+		t.Parallel()
+		converter := NewASTConverter(nil, nil, nil)
+
+		initStmt := js_ast.Stmt{Data: &js_ast.SLocal{
+			Kind:  js_ast.LocalConst,
+			Decls: []js_ast.Decl{{Binding: js_ast.Binding{Data: &js_ast.BMissing{}}}},
+		}}
+
+		result, err := converter.convertForInit(initStmt)
+		require.ErrorIs(t, err, errUnsupportedExpression)
 		assert.Nil(t, result)
 	})
 }
@@ -484,7 +506,7 @@ func TestConvertForBody(t *testing.T) {
 
 		bodyStmt := js_ast.Stmt{Data: &js_ast.SBlock{
 			Stmts:         []js_ast.Stmt{{Data: &js_ast.SEmpty{}}},
-			CloseBraceLoc: logger.Loc{Start: 0},
+			CloseBraceLoc: logger.Loc{},
 		}}
 
 		result, err := converter.convertForBody(bodyStmt)
@@ -509,7 +531,7 @@ func TestConvertForBody(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		bodyStmt := js_ast.Stmt{Data: nil}
+		bodyStmt := js_ast.Stmt{}
 
 		result, err := converter.convertForBody(bodyStmt)
 		require.NoError(t, err)
@@ -530,14 +552,14 @@ func TestConvertSFor(t *testing.T) {
 			InitOrNil: js_ast.Stmt{Data: &js_ast.SLocal{
 				Decls: []js_ast.Decl{{
 					Binding:    binding,
-					ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 0}},
+					ValueOrNil: js_ast.Expr{Data: &js_ast.ENumber{}},
 				}},
 				Kind:     js_ast.LocalLet,
 				IsExport: false,
 			}},
 			TestOrNil:   js_ast.Expr{Data: &js_ast.EBoolean{Value: true}},
 			UpdateOrNil: js_ast.Expr{Data: &js_ast.ENumber{Value: 1}},
-			Body:        js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}},
+			Body:        js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}},
 		}
 
 		result, err := converter.convertSFor(s)
@@ -556,10 +578,10 @@ func TestConvertSFor(t *testing.T) {
 		converter := NewASTConverter(nil, nil, nil)
 
 		s := &js_ast.SFor{
-			InitOrNil:   js_ast.Stmt{Data: nil},
-			TestOrNil:   js_ast.Expr{Data: nil},
-			UpdateOrNil: js_ast.Expr{Data: nil},
-			Body:        js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}},
+			InitOrNil:   js_ast.Stmt{},
+			TestOrNil:   js_ast.Expr{},
+			UpdateOrNil: js_ast.Expr{},
+			Body:        js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}},
 		}
 
 		result, err := converter.convertSFor(s)
@@ -588,13 +610,13 @@ func TestConvertSForIn(t *testing.T) {
 			Init: js_ast.Stmt{Data: &js_ast.SLocal{
 				Decls: []js_ast.Decl{{
 					Binding:    binding,
-					ValueOrNil: js_ast.Expr{Data: nil},
+					ValueOrNil: js_ast.Expr{},
 				}},
 				Kind:     js_ast.LocalConst,
 				IsExport: false,
 			}},
 			Value: js_ast.Expr{Data: valIdent},
-			Body:  js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}},
+			Body:  js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}},
 		}
 
 		result, err := converter.convertSForIn(s)
@@ -622,14 +644,14 @@ func TestConvertSForOf(t *testing.T) {
 			Init: js_ast.Stmt{Data: &js_ast.SLocal{
 				Decls: []js_ast.Decl{{
 					Binding:    binding,
-					ValueOrNil: js_ast.Expr{Data: nil},
+					ValueOrNil: js_ast.Expr{},
 				}},
 				Kind:     js_ast.LocalConst,
 				IsExport: false,
 			}},
 			Value: js_ast.Expr{Data: valIdent},
-			Body:  js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}},
-			Await: logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
+			Body:  js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}},
+			Await: logger.Range{},
 		}
 
 		result, err := converter.convertSForOf(s)
@@ -654,14 +676,14 @@ func TestConvertSForOf(t *testing.T) {
 			Init: js_ast.Stmt{Data: &js_ast.SLocal{
 				Decls: []js_ast.Decl{{
 					Binding:    binding,
-					ValueOrNil: js_ast.Expr{Data: nil},
+					ValueOrNil: js_ast.Expr{},
 				}},
 				Kind:     js_ast.LocalConst,
 				IsExport: false,
 			}},
 			Value: js_ast.Expr{Data: valIdent},
-			Body:  js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}},
-			Await: logger.Range{Loc: logger.Loc{Start: 0}, Len: 5},
+			Body:  js_ast.Stmt{Data: &js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}},
+			Await: logger.Range{Loc: logger.Loc{}, Len: 5},
 		}
 
 		result, err := converter.convertSForOf(s)
@@ -686,13 +708,13 @@ func TestConvertSTry(t *testing.T) {
 		s := &js_ast.STry{
 			Catch: &js_ast.Catch{
 				BindingOrNil: catchBinding,
-				Block:        js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-				Loc:          logger.Loc{Start: 0},
-				BlockLoc:     logger.Loc{Start: 0},
+				Block:        js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+				Loc:          logger.Loc{},
+				BlockLoc:     logger.Loc{},
 			},
 			Finally:  nil,
-			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-			BlockLoc: logger.Loc{Start: 0},
+			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+			BlockLoc: logger.Loc{},
 		}
 
 		result, err := converter.convertSTry(s)
@@ -712,14 +734,14 @@ func TestConvertSTry(t *testing.T) {
 
 		s := &js_ast.STry{
 			Catch: &js_ast.Catch{
-				BindingOrNil: js_ast.Binding{Data: nil},
-				Block:        js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-				Loc:          logger.Loc{Start: 0},
-				BlockLoc:     logger.Loc{Start: 0},
+				BindingOrNil: js_ast.Binding{},
+				Block:        js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+				Loc:          logger.Loc{},
+				BlockLoc:     logger.Loc{},
 			},
 			Finally:  nil,
-			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-			BlockLoc: logger.Loc{Start: 0},
+			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+			BlockLoc: logger.Loc{},
 		}
 
 		result, err := converter.convertSTry(s)
@@ -739,11 +761,11 @@ func TestConvertSTry(t *testing.T) {
 		s := &js_ast.STry{
 			Catch: nil,
 			Finally: &js_ast.Finally{
-				Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-				Loc:   logger.Loc{Start: 0},
+				Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+				Loc:   logger.Loc{},
 			},
-			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-			BlockLoc: logger.Loc{Start: 0},
+			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+			BlockLoc: logger.Loc{},
 		}
 
 		result, err := converter.convertSTry(s)
@@ -765,16 +787,16 @@ func TestConvertSTry(t *testing.T) {
 		s := &js_ast.STry{
 			Catch: &js_ast.Catch{
 				BindingOrNil: catchBinding,
-				Block:        js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-				Loc:          logger.Loc{Start: 0},
-				BlockLoc:     logger.Loc{Start: 0},
+				Block:        js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+				Loc:          logger.Loc{},
+				BlockLoc:     logger.Loc{},
 			},
 			Finally: &js_ast.Finally{
-				Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-				Loc:   logger.Loc{Start: 0},
+				Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+				Loc:   logger.Loc{},
 			},
-			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}},
-			BlockLoc: logger.Loc{Start: 0},
+			Block:    js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}},
+			BlockLoc: logger.Loc{},
 		}
 
 		result, err := converter.convertSTry(s)
@@ -804,14 +826,14 @@ func TestConvertSSwitch(t *testing.T) {
 					Body: []js_ast.Stmt{
 						{Data: &js_ast.SBreak{}},
 					},
-					Loc: logger.Loc{Start: 0},
+					Loc: logger.Loc{},
 				},
 				{
-					ValueOrNil: js_ast.Expr{Data: nil},
+					ValueOrNil: js_ast.Expr{},
 					Body: []js_ast.Stmt{
 						{Data: &js_ast.SBreak{}},
 					},
-					Loc: logger.Loc{Start: 0},
+					Loc: logger.Loc{},
 				},
 			},
 		}
@@ -840,9 +862,9 @@ func TestConvertSFunction(t *testing.T) {
 			Fn: js_ast.Fn{
 				Name:         nameRef,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      false,
 				IsGenerator:  false,
 			},
@@ -867,9 +889,9 @@ func TestConvertSFunction(t *testing.T) {
 			Fn: js_ast.Fn{
 				Name:         nil,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      false,
 				IsGenerator:  false,
 			},
@@ -893,14 +915,14 @@ func TestConvertSFunction(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{}
 		s := &js_ast.SFunction{
 			Fn: js_ast.Fn{
 				Name:         nameRef,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      false,
 				IsGenerator:  false,
 			},
@@ -931,11 +953,11 @@ func TestConvertSClass(t *testing.T) {
 			Class: js_ast.Class{
 				Decorators:    nil,
 				Name:          nameRef,
-				ExtendsOrNil:  js_ast.Expr{Data: nil},
+				ExtendsOrNil:  js_ast.Expr{},
 				Properties:    []js_ast.Property{},
-				ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-				BodyLoc:       logger.Loc{Start: 0},
-				CloseBraceLoc: logger.Loc{Start: 0},
+				ClassKeyword:  logger.Range{},
+				BodyLoc:       logger.Loc{},
+				CloseBraceLoc: logger.Loc{},
 			},
 			IsExport: false,
 		}
@@ -958,11 +980,11 @@ func TestConvertSClass(t *testing.T) {
 			Class: js_ast.Class{
 				Decorators:    nil,
 				Name:          nil,
-				ExtendsOrNil:  js_ast.Expr{Data: nil},
+				ExtendsOrNil:  js_ast.Expr{},
 				Properties:    []js_ast.Property{},
-				ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-				BodyLoc:       logger.Loc{Start: 0},
-				CloseBraceLoc: logger.Loc{Start: 0},
+				ClassKeyword:  logger.Range{},
+				BodyLoc:       logger.Loc{},
+				CloseBraceLoc: logger.Loc{},
 			},
 			IsExport: false,
 		}
@@ -984,16 +1006,16 @@ func TestConvertSClass(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{}
 		s := &js_ast.SClass{
 			Class: js_ast.Class{
 				Decorators:    nil,
 				Name:          nameRef,
-				ExtendsOrNil:  js_ast.Expr{Data: nil},
+				ExtendsOrNil:  js_ast.Expr{},
 				Properties:    []js_ast.Property{},
-				ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-				BodyLoc:       logger.Loc{Start: 0},
-				CloseBraceLoc: logger.Loc{Start: 0},
+				ClassKeyword:  logger.Range{},
+				BodyLoc:       logger.Loc{},
+				CloseBraceLoc: logger.Loc{},
 			},
 			IsExport: false,
 		}
@@ -1022,15 +1044,9 @@ func TestConvertSImport(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, records, nil)
 
-		defaultRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}}
-		s := &js_ast.SImport{
-			DefaultName:       defaultRef,
-			Items:             nil,
-			StarNameLoc:       nil,
-			NamespaceRef:      ast.Ref{InnerIndex: 0},
-			ImportRecordIndex: 0,
-			IsSingleLine:      false,
-		}
+		defaultRef := &ast.LocRef{}
+		s := &js_ast.SImport{}
+		s.DefaultName = defaultRef
 
 		result, err := converter.convertSImport(s)
 		require.NoError(t, err)
@@ -1046,20 +1062,14 @@ func TestConvertSImport(t *testing.T) {
 			{
 				Alias:        "foo",
 				OriginalName: "foo",
-				AliasLoc:     logger.Loc{Start: 0},
-				Name:         ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}},
+				AliasLoc:     logger.Loc{},
+				Name:         ast.LocRef{},
 			},
 		}
 		converter := NewASTConverter(nil, records, nil)
 
-		s := &js_ast.SImport{
-			DefaultName:       nil,
-			Items:             &items,
-			StarNameLoc:       nil,
-			NamespaceRef:      ast.Ref{InnerIndex: 0},
-			ImportRecordIndex: 0,
-			IsSingleLine:      false,
-		}
+		s := &js_ast.SImport{}
+		s.Items = &items
 
 		result, err := converter.convertSImport(s)
 		require.NoError(t, err)
@@ -1073,14 +1083,7 @@ func TestConvertSImport(t *testing.T) {
 		}
 		converter := NewASTConverter(nil, records, nil)
 
-		s := &js_ast.SImport{
-			DefaultName:       nil,
-			Items:             nil,
-			StarNameLoc:       nil,
-			NamespaceRef:      ast.Ref{InnerIndex: 0},
-			ImportRecordIndex: 0,
-			IsSingleLine:      false,
-		}
+		s := &js_ast.SImport{}
 
 		result, err := converter.convertSImport(s)
 		require.NoError(t, err)
@@ -1095,9 +1098,7 @@ func TestGetDefaultImportName(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		s := &js_ast.SImport{
-			DefaultName: nil,
-		}
+		s := &js_ast.SImport{}
 
 		result := converter.getDefaultImportName(s)
 		assert.Nil(t, result)
@@ -1108,7 +1109,7 @@ func TestGetDefaultImportName(t *testing.T) {
 		converter := NewASTConverter(nil, nil, nil)
 
 		s := &js_ast.SImport{
-			DefaultName: &ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{Start: 0}},
+			DefaultName: &ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{}},
 		}
 
 		result := converter.getDefaultImportName(s)
@@ -1123,7 +1124,7 @@ func TestGetDefaultImportName(t *testing.T) {
 		converter := NewASTConverter(symbols, nil, nil)
 
 		s := &js_ast.SImport{
-			DefaultName: &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}},
+			DefaultName: &ast.LocRef{},
 		}
 
 		result := converter.getDefaultImportName(s)
@@ -1142,7 +1143,7 @@ func TestGetModulePath(t *testing.T) {
 		}
 		converter := NewASTConverter(nil, records, nil)
 
-		s := &js_ast.SImport{ImportRecordIndex: 0}
+		s := &js_ast.SImport{}
 
 		result := converter.getModulePath(s)
 		assert.Contains(t, result, "mymod")
@@ -1152,7 +1153,7 @@ func TestGetModulePath(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		s := &js_ast.SImport{ImportRecordIndex: 0}
+		s := &js_ast.SImport{}
 
 		result := converter.getModulePath(s)
 		assert.Contains(t, result, "unknown")
@@ -1168,6 +1169,80 @@ func TestGetModulePath(t *testing.T) {
 		result := converter.getModulePath(s)
 		assert.Contains(t, result, "unknown")
 	})
+
+	t.Run("path is escaped and followed by its attributes clause", func(t *testing.T) {
+		t.Parallel()
+		records := []ast.ImportRecord{{
+			Path: logger.Path{Text: `./odd"name.json`},
+			AssertOrWith: &ast.ImportAssertOrWith{
+				Keyword: ast.WithKeyword,
+				Entries: []ast.AssertOrWithEntry{{Key: helpers.StringToUTF16("type"), Value: helpers.StringToUTF16("json")}},
+			},
+		}}
+		converter := NewASTConverter(nil, records, nil)
+
+		result := converter.getModulePath(&js_ast.SImport{})
+		assert.Equal(t, `"./odd\"name.json" with { type: "json" }`, result)
+	})
+}
+
+func TestImportAttributesClause(t *testing.T) {
+	t.Parallel()
+
+	entry := func(key, value string, preferQuotedKey bool) ast.AssertOrWithEntry {
+		return ast.AssertOrWithEntry{
+			Key:             helpers.StringToUTF16(key),
+			Value:           helpers.StringToUTF16(value),
+			PreferQuotedKey: preferQuotedKey,
+		}
+	}
+
+	testCases := []struct {
+		attributes *ast.ImportAssertOrWith
+		name       string
+		want       string
+	}{
+		{name: "no clause", attributes: nil, want: ""},
+		{
+			name:       "with keyword",
+			attributes: &ast.ImportAssertOrWith{Keyword: ast.WithKeyword, Entries: []ast.AssertOrWithEntry{entry("type", "json", false)}},
+			want:       ` with { type: "json" }`,
+		},
+		{
+			name:       "assert keyword",
+			attributes: &ast.ImportAssertOrWith{Keyword: ast.AssertKeyword, Entries: []ast.AssertOrWithEntry{entry("type", "json", false)}},
+			want:       ` assert { type: "json" }`,
+		},
+		{
+			name:       "quoted key as written",
+			attributes: &ast.ImportAssertOrWith{Keyword: ast.WithKeyword, Entries: []ast.AssertOrWithEntry{entry("type", "json", true)}},
+			want:       ` with { "type": "json" }`,
+		},
+		{
+			name:       "key that is not an identifier",
+			attributes: &ast.ImportAssertOrWith{Keyword: ast.WithKeyword, Entries: []ast.AssertOrWithEntry{entry("data-kind", "x", false)}},
+			want:       ` with { "data-kind": "x" }`,
+		},
+		{
+			name: "several entries with an escaped value",
+			attributes: &ast.ImportAssertOrWith{Keyword: ast.WithKeyword, Entries: []ast.AssertOrWithEntry{
+				entry("type", "json", false),
+				entry("note", `say "hi"`, false),
+			}},
+			want: ` with { type: "json", note: "say \"hi\"" }`,
+		},
+		{
+			name:       "empty clause",
+			attributes: &ast.ImportAssertOrWith{Keyword: ast.WithKeyword},
+			want:       ` with { }`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tc.want, importAttributesClause(tc.attributes))
+		})
+	}
 }
 
 func TestBuildNamespaceImport(t *testing.T) {
@@ -1198,9 +1273,7 @@ func TestBuildNamespaceImport(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		s := &js_ast.SImport{
-			NamespaceRef: ast.Ref{InnerIndex: 0},
-		}
+		s := &js_ast.SImport{}
 
 		result, err := converter.buildNamespaceImport(s, "\"mod\"")
 		require.NoError(t, err)
@@ -1221,7 +1294,7 @@ func TestBuildImportList(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		s := &js_ast.SImport{Items: nil}
+		s := &js_ast.SImport{}
 
 		result := converter.buildImportList(s)
 		assert.Nil(t, result)
@@ -1235,8 +1308,8 @@ func TestBuildImportList(t *testing.T) {
 			{
 				Alias:        "add",
 				OriginalName: "addNumbers",
-				AliasLoc:     logger.Loc{Start: 0},
-				Name:         ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}},
+				AliasLoc:     logger.Loc{},
+				Name:         ast.LocRef{},
 			},
 		}
 		s := &js_ast.SImport{Items: &items}
@@ -1258,8 +1331,8 @@ func TestBuildImportList(t *testing.T) {
 			{
 				Alias:        "resolvedName",
 				OriginalName: "",
-				AliasLoc:     logger.Loc{Start: 0},
-				Name:         ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}},
+				AliasLoc:     logger.Loc{},
+				Name:         ast.LocRef{},
 			},
 		}
 		s := &js_ast.SImport{Items: &items}
@@ -1277,8 +1350,8 @@ func TestBuildImportList(t *testing.T) {
 			{
 				Alias:        "",
 				OriginalName: "",
-				AliasLoc:     logger.Loc{Start: 0},
-				Name:         ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{Start: 0}},
+				AliasLoc:     logger.Loc{},
+				Name:         ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{}},
 			},
 		}
 		s := &js_ast.SImport{Items: &items}
@@ -1296,8 +1369,8 @@ func TestBuildImportList(t *testing.T) {
 			{
 				Alias:        "foo",
 				OriginalName: "foo",
-				AliasLoc:     logger.Loc{Start: 0},
-				Name:         ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}},
+				AliasLoc:     logger.Loc{},
+				Name:         ast.LocRef{},
 			},
 		}
 		s := &js_ast.SImport{Items: &items}
@@ -1317,7 +1390,7 @@ func TestConvertSExportDefault(t *testing.T) {
 
 		s := &js_ast.SExportDefault{
 			Value:       js_ast.Stmt{Data: &js_ast.SEmpty{}},
-			DefaultName: ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}},
+			DefaultName: ast.LocRef{},
 		}
 
 		result, err := converter.convertSExportDefault(s)
@@ -1341,16 +1414,16 @@ func TestConvertExportDefaultClass(t *testing.T) {
 		parentIdent := registry.MakeIdentifier("Parent")
 		converter := NewASTConverter(symbols, nil, registry)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{}
 		v := &js_ast.SClass{
 			Class: js_ast.Class{
 				Decorators:    nil,
 				Name:          nameRef,
 				ExtendsOrNil:  js_ast.Expr{Data: parentIdent},
 				Properties:    []js_ast.Property{},
-				ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-				BodyLoc:       logger.Loc{Start: 0},
-				CloseBraceLoc: logger.Loc{Start: 0},
+				ClassKeyword:  logger.Range{},
+				BodyLoc:       logger.Loc{},
+				CloseBraceLoc: logger.Loc{},
 			},
 			IsExport: false,
 		}
@@ -1377,11 +1450,11 @@ func TestConvertExportDefaultClass(t *testing.T) {
 			Class: js_ast.Class{
 				Decorators:    nil,
 				Name:          nil,
-				ExtendsOrNil:  js_ast.Expr{Data: nil},
+				ExtendsOrNil:  js_ast.Expr{},
 				Properties:    []js_ast.Property{},
-				ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-				BodyLoc:       logger.Loc{Start: 0},
-				CloseBraceLoc: logger.Loc{Start: 0},
+				ClassKeyword:  logger.Range{},
+				BodyLoc:       logger.Loc{},
+				CloseBraceLoc: logger.Loc{},
 			},
 			IsExport: false,
 		}
@@ -1402,16 +1475,16 @@ func TestConvertExportDefaultClass(t *testing.T) {
 		t.Parallel()
 		converter := NewASTConverter(nil, nil, nil)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 999}, Loc: logger.Loc{}}
 		v := &js_ast.SClass{
 			Class: js_ast.Class{
 				Decorators:    nil,
 				Name:          nameRef,
-				ExtendsOrNil:  js_ast.Expr{Data: nil},
+				ExtendsOrNil:  js_ast.Expr{},
 				Properties:    []js_ast.Property{},
-				ClassKeyword:  logger.Range{Loc: logger.Loc{Start: 0}, Len: 0},
-				BodyLoc:       logger.Loc{Start: 0},
-				CloseBraceLoc: logger.Loc{Start: 0},
+				ClassKeyword:  logger.Range{},
+				BodyLoc:       logger.Loc{},
+				CloseBraceLoc: logger.Loc{},
 			},
 			IsExport: false,
 		}
@@ -1439,14 +1512,14 @@ func TestConvertExportDefaultFunction(t *testing.T) {
 		}
 		converter := NewASTConverter(symbols, nil, nil)
 
-		nameRef := &ast.LocRef{Ref: ast.Ref{InnerIndex: 0}, Loc: logger.Loc{Start: 0}}
+		nameRef := &ast.LocRef{}
 		v := &js_ast.SFunction{
 			Fn: js_ast.Fn{
 				Name:         nameRef,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      true,
 				IsGenerator:  true,
 			},
@@ -1476,9 +1549,9 @@ func TestConvertExportDefaultFunction(t *testing.T) {
 			Fn: js_ast.Fn{
 				Name:         nil,
 				Args:         []js_ast.Arg{},
-				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{Start: 0}}, Loc: logger.Loc{Start: 0}},
+				Body:         js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{}, CloseBraceLoc: logger.Loc{}}, Loc: logger.Loc{}},
 				ArgumentsRef: ast.Ref{},
-				OpenParenLoc: logger.Loc{Start: 0},
+				OpenParenLoc: logger.Loc{},
 				IsAsync:      false,
 				IsGenerator:  false,
 			},
@@ -1518,4 +1591,72 @@ func TestConvertExportDefaultExpr(t *testing.T) {
 		assert.True(t, exportStmt.Default)
 		require.NotNil(t, exportStmt.Decl)
 	})
+}
+
+func TestConvertStatementContainers_PropagateErrors(t *testing.T) {
+	t.Parallel()
+
+	failing := js_ast.Stmt{Data: &js_ast.SLocal{
+		Kind:  js_ast.LocalConst,
+		Decls: []js_ast.Decl{{Binding: js_ast.Binding{Data: &js_ast.BMissing{}}}},
+	}}
+	emptyBody := js_ast.Stmt{Data: &js_ast.SBlock{}}
+
+	testCases := []struct {
+		convert func(converter *ASTConverter) error
+		name    string
+	}{
+		{
+			name: "block",
+			convert: func(converter *ASTConverter) error {
+				_, err := converter.convertSBlock(&js_ast.SBlock{Stmts: []js_ast.Stmt{failing}})
+				return err
+			},
+		},
+		{
+			name: "function body",
+			convert: func(converter *ASTConverter) error {
+				_, err := converter.convertFunctionBody(js_ast.FnBody{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{failing}}})
+				return err
+			},
+		},
+		{
+			name: "class static block",
+			convert: func(converter *ASTConverter) error {
+				_, err := converter.convertClassStaticBlock(js_ast.Property{
+					Kind:             js_ast.PropertyClassStaticBlock,
+					ClassStaticBlock: &js_ast.ClassStaticBlock{Block: js_ast.SBlock{Stmts: []js_ast.Stmt{failing}}},
+				})
+				return err
+			},
+		},
+		{
+			name: "for loop initialiser",
+			convert: func(converter *ASTConverter) error {
+				_, err := converter.convertSFor(&js_ast.SFor{InitOrNil: failing, Body: emptyBody})
+				return err
+			},
+		},
+		{
+			name: "for-in declaration",
+			convert: func(converter *ASTConverter) error {
+				_, err := converter.convertSForIn(&js_ast.SForIn{Init: failing, Value: js_ast.Expr{Data: &js_ast.ENull{}}, Body: emptyBody})
+				return err
+			},
+		},
+		{
+			name: "for-of declaration",
+			convert: func(converter *ASTConverter) error {
+				_, err := converter.convertSForOf(&js_ast.SForOf{Init: failing, Value: js_ast.Expr{Data: &js_ast.ENull{}}, Body: emptyBody})
+				return err
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := tc.convert(NewASTConverter(nil, nil, nil))
+			require.ErrorIs(t, err, errUnsupportedExpression)
+		})
+	}
 }

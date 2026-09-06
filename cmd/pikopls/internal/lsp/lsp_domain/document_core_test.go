@@ -112,7 +112,6 @@ let name = "World"
 
 	const goroutines = 100
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	results := make([]*struct {
 		result any
@@ -120,10 +119,9 @@ let name = "World"
 
 	for i := range goroutines {
 		results[i] = &struct{ result any }{}
-		go func(index int) {
-			defer wg.Done()
-			results[index].result = document.getSFCResult()
-		}(i)
+		wg.Go(func() {
+			results[i].result = document.getSFCResult()
+		})
 	}
 
 	wg.Wait()
@@ -148,13 +146,11 @@ func TestDocument_GetSFCResult_ParsesOnce(t *testing.T) {
 
 	const goroutines = 50
 	var wg sync.WaitGroup
-	wg.Add(goroutines)
 
 	for range goroutines {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_ = document.getSFCResult()
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -171,7 +167,7 @@ func TestDocument_IsPositionInClientScript_NoSFC(t *testing.T) {
 		URI:     "file:///test.pk",
 	}
 
-	position := protocol.Position{Line: 0, Character: 0}
+	position := protocol.Position{}
 	result := document.isPositionInClientScript(position)
 
 	if result {

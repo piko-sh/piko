@@ -69,16 +69,25 @@ func checkMySQLDatabaseSize(ctx context.Context, database *sql.DB) []db.Database
 	).Scan(&sizeBytes)
 	if err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "database_size", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "database_size",
+			Value:   "",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
 		}}
 	}
 	if !sizeBytes.Valid {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "database_size", Value: "0 B",
+			Name:    "database_size",
+			Value:   "0 B",
+			State:   "",
+			Message: "",
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "database_size", Value: formatBytes(int64(sizeBytes.Float64)),
+		Name:    "database_size",
+		Value:   formatBytes(int64(sizeBytes.Float64)),
+		State:   "",
+		Message: "",
 	}}
 }
 
@@ -92,11 +101,17 @@ func checkMySQLThreadsConnected(ctx context.Context, database *sql.DB) []db.Data
 	err := database.QueryRowContext(ctx, "SHOW GLOBAL STATUS LIKE 'Threads_connected'").Scan(&variableName, &value)
 	if err != nil {
 		return []db.DatabaseHealthDiagnostic{{
-			Name: "threads_connected", State: "UNHEALTHY", Message: fmt.Sprintf("query failed: %v", err),
+			Name:    "threads_connected",
+			Value:   "",
+			State:   "UNHEALTHY",
+			Message: fmt.Sprintf("query failed: %v", err),
 		}}
 	}
 	return []db.DatabaseHealthDiagnostic{{
-		Name: "threads_connected", Value: value,
+		Name:    "threads_connected",
+		Value:   value,
+		State:   "",
+		Message: "",
 	}}
 }
 
@@ -118,6 +133,7 @@ func checkMySQLReplicationLag(ctx context.Context, database *sql.DB) []db.Databa
 	if err != nil {
 		return []db.DatabaseHealthDiagnostic{{
 			Name:    "replication_lag",
+			Value:   "",
 			State:   "UNKNOWN",
 			Message: fmt.Sprintf("replica status query failed: %v", err),
 		}}

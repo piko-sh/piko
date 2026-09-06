@@ -1,0 +1,7 @@
+[
+  {
+    "action": "checkText",
+    "selector": "import-attributes-component >>> p.json",
+    "expected": "hello|3"
+  }
+]

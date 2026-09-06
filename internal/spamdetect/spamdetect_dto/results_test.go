@@ -82,3 +82,41 @@ func TestSubmissionRecord_ZeroValue(t *testing.T) {
 	assert.Empty(t, record.SubmissionID)
 	assert.False(t, record.IsSpam)
 }
+
+func TestNewCleanDetectorResult(t *testing.T) {
+	t.Parallel()
+	result := NewCleanDetectorResult()
+	assert.NotNil(t, result)
+	assert.InDelta(t, 0.0, result.Score, 0.0001)
+	assert.False(t, result.IsSpam)
+	assert.Nil(t, result.FieldScores)
+	assert.Nil(t, result.FieldReasons)
+	assert.Nil(t, result.Reasons)
+	assert.NoError(t, result.Error)
+	assert.Empty(t, result.Detector)
+	assert.Equal(t, time.Duration(0), result.Duration)
+}
+
+func TestNewFieldDetectorResult(t *testing.T) {
+	t.Parallel()
+	scores := map[string]float64{"message": 0.75}
+	reasons := map[string][]string{"message": {"matched"}}
+	result := NewFieldDetectorResult(0.75, true, scores, reasons)
+	assert.InDelta(t, 0.75, result.Score, 0.0001)
+	assert.True(t, result.IsSpam)
+	assert.Equal(t, scores, result.FieldScores)
+	assert.Equal(t, reasons, result.FieldReasons)
+	assert.Nil(t, result.Reasons)
+	assert.NoError(t, result.Error)
+}
+
+func TestNewReasonDetectorResult(t *testing.T) {
+	t.Parallel()
+	result := NewReasonDetectorResult(1.0, true, []string{"honeypot field was filled"})
+	assert.InDelta(t, 1.0, result.Score, 0.0001)
+	assert.True(t, result.IsSpam)
+	assert.Equal(t, []string{"honeypot field was filled"}, result.Reasons)
+	assert.Nil(t, result.FieldScores)
+	assert.Nil(t, result.FieldReasons)
+	assert.NoError(t, result.Error)
+}

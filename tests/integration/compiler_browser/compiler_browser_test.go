@@ -194,10 +194,13 @@ func TestCompiler_Functional(t *testing.T) {
 					requestedPath := strings.TrimPrefix(r.URL.Path, "/")
 					testFilePath := filepath.Join(testDir, requestedPath)
 					if content, err := os.ReadFile(testFilePath); err == nil {
-						if strings.HasSuffix(requestedPath, ".js") {
+						switch {
+						case strings.HasSuffix(requestedPath, ".js"):
 							w.Header().Set("Content-Type", "application/javascript")
-						} else if strings.HasSuffix(requestedPath, ".css") {
+						case strings.HasSuffix(requestedPath, ".css"):
 							w.Header().Set("Content-Type", "text/css")
+						case strings.HasSuffix(requestedPath, ".json"):
+							w.Header().Set("Content-Type", "application/json")
 						}
 						_, _ = fmt.Fprint(w, string(content))
 					} else {
@@ -253,26 +256,24 @@ func TestCompiler_Functional(t *testing.T) {
 			))
 			require.NoError(t, err)
 
+			require.Truef(t, hasShadowRoot, "component <%s> has no shadow root; its script failed to load or define the element", artefact.TagName)
+
 			goldenRenderedPath := filepath.Join(testDir, "golden.rendered.html")
 			if _, statErr := os.Stat(goldenRenderedPath); statErr == nil || *update {
-				if hasShadowRoot {
-					var actualRenderedHTML string
-					err = chromedp.Run(ctx, chromedp.Evaluate(
-						fmt.Sprintf(`document.querySelector('%s').shadowRoot.innerHTML`, artefact.TagName),
-						&actualRenderedHTML,
-					))
-					require.NoError(t, err)
+				var actualRenderedHTML string
+				err = chromedp.Run(ctx, chromedp.Evaluate(
+					fmt.Sprintf(`document.querySelector('%s').shadowRoot.innerHTML`, artefact.TagName),
+					&actualRenderedHTML,
+				))
+				require.NoError(t, err)
 
-					if *update {
-						t.Logf("Updating golden rendered HTML file for %s", testName)
-						require.NoError(t, os.WriteFile(goldenRenderedPath, []byte(actualRenderedHTML), 0644))
-					} else {
-						expectedRenderedHTML, err := os.ReadFile(goldenRenderedPath)
-						require.NoError(t, err, "failed to read golden.rendered.html")
-						assert.Equal(t, string(expectedRenderedHTML), actualRenderedHTML, "Initial rendered HTML does not match golden.rendered.html")
-					}
+				if *update {
+					t.Logf("Updating golden rendered HTML file for %s", testName)
+					require.NoError(t, os.WriteFile(goldenRenderedPath, []byte(actualRenderedHTML), 0644))
 				} else {
-					t.Logf("Component <%s> does not use shadow DOM, skipping rendered HTML validation", artefact.TagName)
+					expectedRenderedHTML, err := os.ReadFile(goldenRenderedPath)
+					require.NoError(t, err, "failed to read golden.rendered.html")
+					assert.Equal(t, string(expectedRenderedHTML), actualRenderedHTML, "Initial rendered HTML does not match golden.rendered.html")
 				}
 			}
 
@@ -285,22 +286,6 @@ func TestCompiler_Functional(t *testing.T) {
 			require.NoError(t, err)
 			var specs []TestSpec
 			require.NoError(t, json.Unmarshal(specContent, &specs))
-
-			actionsRequiringShadowRoot := map[string]bool{
-				"click": true, "checkText": true, "checkValue": true, "setValue": true,
-				"checkComputedStyle": true, "checkAttribute": true, "checkFocus": true,
-			}
-			needsShadowRoot := false
-			for _, spec := range specs {
-				if actionsRequiringShadowRoot[spec.Action] {
-					needsShadowRoot = true
-					break
-				}
-			}
-			if !hasShadowRoot && needsShadowRoot {
-				t.Skipf("Component <%s> has test specs requiring shadow root but no shadow root available", artefact.TagName)
-				return
-			}
 
 			for i, step := range specs {
 				stepMessage := fmt.Sprintf("step %d: %s on '%s'", i+1, step.Action, step.Selector)

@@ -131,10 +131,11 @@ func (p *Page) ScreenshotWebP(quality int) []byte {
 // Takes y (float64) which is the distance from the top edge in pixels.
 // Takes width (float64) which is the width of the area in pixels.
 // Takes height (float64) which is the height of the area in pixels.
+// Takes opts (...ScreenshotOption) which adjust the capture, such as its timeout.
 //
 // Returns []byte which contains the screenshot image data.
-func (p *Page) ScreenshotRegion(x, y, width, height float64) []byte {
-	buffer, err := browser_provider_chromedp.ScreenshotRegion(p.actionCtx(), x, y, width, height)
+func (p *Page) ScreenshotRegion(x, y, width, height float64, opts ...ScreenshotOption) []byte {
+	buffer, err := browser_provider_chromedp.ScreenshotRegion(p.actionCtx(), x, y, width, height, opts...)
 	if err != nil {
 		p.t.Fatalf("ScreenshotRegion(%.0f, %.0f, %.0f, %.0f) failed: %v", x, y, width, height, err)
 	}
@@ -146,10 +147,11 @@ func (p *Page) ScreenshotRegion(x, y, width, height float64) []byte {
 //
 // Takes selector (string) which identifies the element to capture.
 // Takes padding (float64) which specifies the extra space around the element.
+// Takes opts (...ScreenshotOption) which adjust the capture, such as its timeout.
 //
 // Returns []byte which contains the screenshot image data.
-func (p *Page) ScreenshotElementWithPadding(selector string, padding float64) []byte {
-	buffer, err := browser_provider_chromedp.ScreenshotElementWithPadding(p.actionCtx(), selector, padding)
+func (p *Page) ScreenshotElementWithPadding(selector string, padding float64, opts ...ScreenshotOption) []byte {
+	buffer, err := browser_provider_chromedp.ScreenshotElementWithPadding(p.actionCtx(), selector, padding, opts...)
 	if err != nil {
 		p.t.Fatalf("ScreenshotElementWithPadding(%q, %.0f) failed: %v", selector, padding, err)
 	}

@@ -1471,14 +1471,12 @@ func TestGetDocumentColors_GuardClauses(t *testing.T) {
 	}{
 		{
 			name:     "nil AnnotationResult",
-			document: &document{AnnotationResult: nil},
+			document: &document{},
 		},
 		{
 			name: "nil EntryPointStyleBlocks",
 			document: &document{
-				AnnotationResult: &annotator_dto.AnnotationResult{
-					EntryPointStyleBlocks: nil,
-				},
+				AnnotationResult: &annotator_dto.AnnotationResult{},
 			},
 		},
 		{

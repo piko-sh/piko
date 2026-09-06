@@ -726,9 +726,7 @@ func TestParseProtoHealthStatus(t *testing.T) {
 	t.Run("empty duration is zero", func(t *testing.T) {
 		t.Parallel()
 
-		got := parseProtoHealthStatus(&pb.HealthStatus{
-			Duration: "",
-		})
+		got := parseProtoHealthStatus(&pb.HealthStatus{})
 
 		if got.Duration != 0 {
 			t.Errorf("Duration: got %v, want 0", got.Duration)

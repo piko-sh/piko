@@ -19,9 +19,13 @@
 package bootstrap
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"piko.sh/piko/internal/querier/querier_dto"
 )
 
 func TestIsErrorPage(t *testing.T) {
@@ -84,6 +88,51 @@ func TestIsErrorPage(t *testing.T) {
 			assert.Equal(t, tt.wantMin, result.rangeMin, "rangeMin mismatch for %q", tt.filename)
 			assert.Equal(t, tt.wantMax, result.rangeMax, "rangeMax mismatch for %q", tt.filename)
 			assert.Equal(t, tt.wantCatch, result.isCatchAll, "isCatchAll mismatch for %q", tt.filename)
+		})
+	}
+}
+
+func TestCheckSQLDiagnostics(t *testing.T) {
+	t.Parallel()
+
+	warning := querier_dto.SourceError{}
+	warning.Filename = "queries/users.sql"
+	warning.Message = "unused parameter"
+	warning.Severity = querier_dto.SeverityWarning
+	failure := querier_dto.SourceError{}
+	failure.Filename = "queries/users.sql"
+	failure.Line = 7
+	failure.Message = "unknown column"
+	failure.Severity = querier_dto.SeverityError
+
+	testCases := []struct {
+		name        string
+		wantErrText string
+		diagnostics []querier_dto.SourceError
+		wantErr     bool
+	}{
+		{name: "no diagnostics"},
+		{name: "warnings are logged, not fatal", diagnostics: []querier_dto.SourceError{warning}},
+		{
+			name:        "an error stops generation",
+			diagnostics: []querier_dto.SourceError{warning, failure},
+			wantErr:     true,
+			wantErrText: `SQL generation error in "main": queries/users.sql:7: unknown column`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := checkSQLDiagnostics(context.Background(), "main", tc.diagnostics)
+
+			if !tc.wantErr {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Equal(t, tc.wantErrText, err.Error())
 		})
 	}
 }

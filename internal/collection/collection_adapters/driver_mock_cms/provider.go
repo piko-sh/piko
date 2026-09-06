@@ -74,11 +74,12 @@ func (p *MockCMSProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) 
 	startTime := time.Now()
 
 	return healthprobe_dto.Status{
-		Name:      p.Name(),
-		State:     healthprobe_dto.StateHealthy,
-		Message:   "Mock CMS provider operational",
-		Timestamp: time.Now(),
-		Duration:  time.Since(startTime).String(),
+		Name:         p.Name(),
+		State:        healthprobe_dto.StateHealthy,
+		Message:      "Mock CMS provider operational",
+		Timestamp:    time.Now(),
+		Duration:     time.Since(startTime).String(),
+		Dependencies: nil,
 	}
 }
 
@@ -174,6 +175,7 @@ func (p *MockCMSProvider) GenerateRuntimeFetcher(
 		CacheStrategy: cacheStrategy,
 		CacheTTL:      cacheTTL,
 		RetryConfig:   collection_dto.DefaultRetryConfig(),
+		FallbackFunc:  nil,
 	}, nil
 }
 

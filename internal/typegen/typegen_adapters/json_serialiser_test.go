@@ -91,7 +91,7 @@ func TestMarshalJSON(t *testing.T) {
 		t.Parallel()
 		manifest := newTestManifest()
 
-		data, err := MarshalJSON(manifest)
+		data, err := marshalManifestJSON(manifest)
 		require.NoError(t, err)
 
 		output := string(data)
@@ -108,7 +108,7 @@ func TestMarshalJSON(t *testing.T) {
 		t.Parallel()
 		manifest := &typegen_dto.ActionManifest{}
 
-		data, err := MarshalJSON(manifest)
+		data, err := marshalManifestJSON(manifest)
 		require.NoError(t, err)
 
 		output := string(data)
@@ -119,7 +119,7 @@ func TestMarshalJSON(t *testing.T) {
 
 func TestUnmarshalJSON_InvalidJSON(t *testing.T) {
 	t.Parallel()
-	_, err := UnmarshalJSON([]byte("{{invalid"))
+	_, err := unmarshalManifestJSON([]byte("{{invalid"))
 	assert.Error(t, err)
 }
 
@@ -127,10 +127,10 @@ func TestJSON_Roundtrip(t *testing.T) {
 	t.Parallel()
 	original := newTestManifest()
 
-	data, err := MarshalJSON(original)
+	data, err := marshalManifestJSON(original)
 	require.NoError(t, err)
 
-	restored, err := UnmarshalJSON(data)
+	restored, err := unmarshalManifestJSON(data)
 	require.NoError(t, err)
 
 	assert.Equal(t, original.GeneratedAt.Unix(), restored.GeneratedAt.Unix())

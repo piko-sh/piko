@@ -1,5 +1,0 @@
-package pkgd
-
-func Hello() string {
-	return "hello"
-}

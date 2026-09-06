@@ -57,6 +57,7 @@ type RepositoryRegistry struct {
 func NewRepositoryRegistry() *RepositoryRegistry {
 	return &RepositoryRegistry{
 		repositories: make(map[string]*RepositoryConfig),
+		mu:           sync.RWMutex{},
 	}
 }
 

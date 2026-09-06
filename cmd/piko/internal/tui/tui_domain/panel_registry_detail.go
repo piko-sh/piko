@@ -21,6 +21,7 @@ package tui_domain
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
@@ -29,7 +30,8 @@ import (
 // Resource rows show the resource's kind, status, ID, and metadata; kind-summary rows
 // show the breakdown by status; otherwise the registry overview is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body.
 func (p *RegistryPanel) DetailView(width, height int) string {
@@ -68,15 +70,12 @@ func (p *RegistryPanel) overviewDetailBody() inspector.DetailBody {
 		for _, c := range counts {
 			total += c
 		}
-		rows = append(rows, inspector.DetailRow{
-			Label: kind,
-			Value: fmt.Sprintf(FormatPercentInt, total),
-		})
+		rows = append(rows, inspector.NewDetailRow(kind, fmt.Sprintf(FormatPercentInt, total)))
 	}
 	return inspector.DetailBody{
 		Title:    "Registry overview",
 		Subtitle: fmt.Sprintf("%d kinds", len(p.kinds)),
-		Sections: []inspector.DetailSection{{Heading: "Counts", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Counts", rows)},
 	}
 }
 
@@ -87,36 +86,27 @@ func (p *RegistryPanel) overviewDetailBody() inspector.DetailBody {
 // Returns inspector.DetailBody describing the resource and its metadata.
 func resourceDetailBody(r *Resource) inspector.DetailBody {
 	rows := []inspector.DetailRow{
-		{Label: "Kind", Value: r.Kind},
-		{Label: "ID", Value: r.ID},
-		{Label: "Name", Value: r.Name},
-		{Label: "Status", Value: r.StatusText},
-		{Label: "Created", Value: inspector.FormatDetailTime(r.CreatedAt)},
-		{Label: "Updated", Value: inspector.FormatDetailTime(r.UpdatedAt)},
+		inspector.NewDetailRow("Kind", r.Kind),
+		inspector.NewDetailRow("ID", r.ID),
+		inspector.NewDetailRow("Name", r.Name),
+		inspector.NewDetailRow("Status", r.StatusText),
+		inspector.NewDetailRow("Created", inspector.FormatDetailTime(r.CreatedAt)),
+		inspector.NewDetailRow("Updated", inspector.FormatDetailTime(r.UpdatedAt)),
 	}
 	if len(r.Children) > 0 {
-		rows = append(rows, inspector.DetailRow{
-			Label: "Children",
-			Value: fmt.Sprintf(FormatPercentInt, len(r.Children)),
-		})
+		rows = append(rows, inspector.NewDetailRow("Children", fmt.Sprintf(FormatPercentInt, len(r.Children))))
 	}
 
-	sections := []inspector.DetailSection{{Heading: "Resource", Rows: rows}}
+	sections := []inspector.DetailSection{inspector.NewDetailSection("Resource", rows)}
 	if len(r.Metadata) > 0 {
 		metaRows := make([]inspector.DetailRow, 0, len(r.Metadata))
 		for k, v := range r.Metadata {
-			metaRows = append(metaRows, inspector.DetailRow{Label: k, Value: v})
+			metaRows = append(metaRows, inspector.NewDetailRow(k, v))
 		}
 		slices.SortFunc(metaRows, func(a, b inspector.DetailRow) int {
-			if a.Label < b.Label {
-				return -1
-			}
-			if a.Label > b.Label {
-				return 1
-			}
-			return 0
+			return strings.Compare(a.Label, b.Label)
 		})
-		sections = append(sections, inspector.DetailSection{Heading: "Metadata", Rows: metaRows})
+		sections = append(sections, inspector.NewDetailSection("Metadata", metaRows))
 	}
 
 	return inspector.DetailBody{
@@ -141,17 +131,17 @@ func kindDetailBody(kind string, counts map[ResourceStatus]int) inspector.Detail
 	total := healthy + degraded + unhealthy + pending + unknown
 
 	rows := []inspector.DetailRow{
-		{Label: "Total", Value: fmt.Sprintf(FormatPercentInt, total)},
-		{Label: "Healthy", Value: fmt.Sprintf(FormatPercentInt, healthy)},
-		{Label: "Degraded", Value: fmt.Sprintf(FormatPercentInt, degraded)},
-		{Label: "Unhealthy", Value: fmt.Sprintf(FormatPercentInt, unhealthy)},
-		{Label: "Pending", Value: fmt.Sprintf(FormatPercentInt, pending)},
-		{Label: "Unknown", Value: fmt.Sprintf(FormatPercentInt, unknown)},
+		inspector.NewDetailRow("Total", fmt.Sprintf(FormatPercentInt, total)),
+		inspector.NewDetailRow("Healthy", fmt.Sprintf(FormatPercentInt, healthy)),
+		inspector.NewDetailRow("Degraded", fmt.Sprintf(FormatPercentInt, degraded)),
+		inspector.NewDetailRow("Unhealthy", fmt.Sprintf(FormatPercentInt, unhealthy)),
+		inspector.NewDetailRow("Pending", fmt.Sprintf(FormatPercentInt, pending)),
+		inspector.NewDetailRow("Unknown", fmt.Sprintf(FormatPercentInt, unknown)),
 	}
 	return inspector.DetailBody{
 		Title:    kind,
 		Subtitle: fmt.Sprintf("%d total", total),
-		Sections: []inspector.DetailSection{{Heading: "Status breakdown", Rows: rows}},
+		Sections: []inspector.DetailSection{inspector.NewDetailSection("Status breakdown", rows)},
 	}
 }
 

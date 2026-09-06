@@ -165,8 +165,9 @@ func (w *Watchdog) ListEvents(_ context.Context, limit int, since time.Time, eve
 // Safe for concurrent use; spawns a lifecycle goroutine when registration succeeds.
 func (w *Watchdog) SubscribeEvents(ctx context.Context, since time.Time) (<-chan WatchdogEventInfo, func()) {
 	sub := &watchdogEventSubscriber{
-		ch:   make(chan WatchdogEventInfo, eventSubscriberBuffer),
-		done: make(chan struct{}),
+		ch:        make(chan WatchdogEventInfo, eventSubscriberBuffer),
+		done:      make(chan struct{}),
+		closeOnce: sync.Once{},
 	}
 
 	if err := w.registerSubscriber(sub, since); err != nil {

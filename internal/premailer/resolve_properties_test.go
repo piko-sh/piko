@@ -496,3 +496,41 @@ func TestResolvePropertiesSkipStyleExtraction(t *testing.T) {
 	styleNode := ast_domain.MustQuery(tree, "style")
 	assert.NotNil(t, styleNode, "style tag should be preserved when SkipStyleExtraction is true")
 }
+
+func TestResolveProperties_TruncatedInlineFunctionsPassThrough(t *testing.T) {
+	t.Parallel()
+
+	declarations := []string{
+		"background-image: url(",
+		"background: url(",
+		"background: linear-gradient(",
+		"list-style: url(",
+		"clip-path: polygon(",
+		"mask-image: radial-gradient(",
+	}
+	for _, declaration := range declarations {
+		t.Run(declaration, func(t *testing.T) {
+			t.Parallel()
+
+			node := &ast_domain.TemplateNode{
+				NodeType:   ast_domain.NodeElement,
+				TagName:    "div",
+				Attributes: []ast_domain.HTMLAttribute{{Name: "style", Value: declaration}},
+			}
+			tree := &ast_domain.TemplateAST{RootNodes: []*ast_domain.TemplateNode{node}}
+			pm := New(tree,
+				WithExpandShorthands(true),
+				WithSkipEmailValidation(true),
+				WithSkipHTMLAttributeMapping(true),
+				WithSkipStyleExtraction(true),
+				WithResolvePseudoElements(true),
+			)
+
+			assert.NotPanics(t, func() {
+				resolved, err := pm.ResolveProperties()
+				require.NoError(t, err)
+				assert.NotNil(t, resolved)
+			})
+		})
+	}
+}

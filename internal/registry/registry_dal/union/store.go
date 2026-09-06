@@ -533,6 +533,7 @@ func (s *Store) deltaActions(ctx context.Context, actions []registry_dto.AtomicA
 			Type:       registry_dto.ActionTypeUpsertArtefact,
 			ArtefactID: action.ArtefactID,
 			Artefact:   delta,
+			GCHints:    nil,
 		})
 	}
 	return out, nil

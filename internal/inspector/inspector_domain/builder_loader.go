@@ -195,6 +195,8 @@ func getLoadPatterns(moduleName string, overlay map[string][]byte) []string {
 //
 // Takes loadedPackages ([]*packages.Package) which contains the root packages to check
 // (including their transitive dependency graph).
+// Takes tolerateTypeErrors (bool) which allows type-checking errors to be omitted from
+// the aggregated failure.
 //
 // Returns error when one or more packages contain errors.
 func aggregatePackageErrors(ctx context.Context, loadedPackages []*packages.Package, tolerateTypeErrors bool) error {

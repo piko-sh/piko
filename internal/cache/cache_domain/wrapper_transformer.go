@@ -660,7 +660,7 @@ func (w *transformerWrapper[K, V]) ComputeWithTTL(ctx context.Context, key K, co
 			oldValue, err = w.unwrapAndDecode(ctx, oldBytes)
 			if err != nil {
 				l.Error("ComputeWithTTL: failed to decode old value", logger_domain.Error(err))
-				return cache_dto.ComputeResult[[]byte]{Action: cache_dto.ComputeActionNoop}
+				return cache_dto.ComputeResult[[]byte]{Action: cache_dto.ComputeActionNoop, Value: nil, TTL: 0}
 			}
 		}
 
@@ -670,13 +670,14 @@ func (w *transformerWrapper[K, V]) ComputeWithTTL(ctx context.Context, key K, co
 			return cache_dto.ComputeResult[[]byte]{
 				Action: result.Action,
 				TTL:    result.TTL,
+				Value:  nil,
 			}
 		}
 
 		newBytes, err := w.encodeAndTransform(ctx, result.Value)
 		if err != nil {
 			l.Error("ComputeWithTTL: failed to encode new value", logger_domain.Error(err))
-			return cache_dto.ComputeResult[[]byte]{Action: cache_dto.ComputeActionNoop}
+			return cache_dto.ComputeResult[[]byte]{Action: cache_dto.ComputeActionNoop, Value: nil, TTL: 0}
 		}
 
 		return cache_dto.ComputeResult[[]byte]{
@@ -799,16 +800,16 @@ func (w *transformerWrapper[K, V]) BulkRefresh(ctx context.Context, keys []K, bu
 // result.
 func (w *transformerWrapper[K, V]) processRefreshResult(ctx context.Context, byteResult cache_dto.LoadResult[[]byte], resultChan chan<- cache_dto.LoadResult[V]) {
 	if byteResult.Err != nil {
-		resultChan <- cache_dto.LoadResult[V]{Err: byteResult.Err}
+		resultChan <- cache_dto.LoadResult[V]{Err: byteResult.Err, Value: *new(V)}
 		return
 	}
 
 	value, err := w.unwrapAndDecode(ctx, byteResult.Value)
 	if err != nil {
-		resultChan <- cache_dto.LoadResult[V]{Err: err}
+		resultChan <- cache_dto.LoadResult[V]{Err: err, Value: *new(V)}
 		return
 	}
-	resultChan <- cache_dto.LoadResult[V]{Value: value}
+	resultChan <- cache_dto.LoadResult[V]{Value: value, Err: nil}
 }
 
 // Refresh asynchronously reloads the value for a key.

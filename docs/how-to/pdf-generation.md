@@ -336,6 +336,58 @@ builder.Transformations(registry, pdf.TransformConfig{
 
 Page indices are zero-based. Redaction runs after the render and burns the fill colour over the content. The original text is no longer recoverable from the PDF.
 
+## Limit the work of a render
+
+To cap the size of reports containing user-supplied HTML, set limits on the render builder. This example allows up to 256 KiB of raw HTML, 50 pages, and 25 million pixels per embedded image.
+
+```go
+import (
+    "errors"
+
+    "piko.sh/piko"
+    "piko.sh/piko/wdk/pdf"
+)
+
+result, err := builder.
+    Template("report").
+    Props(reportProps).
+    WithLayoutLimits(pdf.LayoutLimits{
+        MaxRawHTMLBytes: 256 << 10,
+        MaxPages:        50,
+    }).
+    WithMaxImagePixels(25_000_000).
+    Do(ctx)
+if errors.Is(err, pdf.ErrLayoutLimitExceeded) {
+    return piko.NewError("the report is too large to render", err)
+}
+if err != nil {
+    return err
+}
+```
+
+Leave fields at zero to inherit the service limits. To apply your limits across the application, pass `piko.WithPdfLayoutLimits(piko.PdfLayoutLimits{...})` and `piko.WithPdfMaxImagePixels(pixels)` to `piko.New`. See the [PDF API reference](../reference/pdf-api.md#limits) for defaults and errors.
+
+## Render outside the server
+
+To render from a test or CLI tool, generate the project manifest first with `piko generate`. Create the service with `pdf.NewServiceFromManifest`, then call `Load` before rendering.
+
+```go
+service, err := pdf.NewServiceFromManifest("dist/manifest.bin")
+if err != nil {
+    return err
+}
+if err := service.Load(ctx); err != nil {
+    return err
+}
+
+result, err := service.NewRender().
+    Template("pdfs/invoice.pk").
+    Props(invoiceProps).
+    Do(ctx)
+```
+
+Check the render error before using `result`. Rendering before a successful `Load` returns `pdf.ErrManifestNotLoaded`. Call `Load` again after rebuilding the manifest.
+
 ## Debugging PDF layout
 
 - Render the same template as HTML first. If the HTML layout is wrong, the PDF layout is too.

@@ -63,9 +63,7 @@ func TestOpenAIProvider_BuildDelta(t *testing.T) {
 
 	t.Run("handles empty delta", func(t *testing.T) {
 		state := &streamState{}
-		choice := &openai.ChatCompletionChunkChoice{
-			Delta: openai.ChatCompletionChunkChoiceDelta{},
-		}
+		choice := &openai.ChatCompletionChunkChoice{}
 
 		delta := p.buildDelta(choice, state)
 
@@ -393,7 +391,7 @@ func TestOpenAIProvider_AccumulateToolCall(t *testing.T) {
 			{ID: "call_1", Type: "function"},
 		}
 
-		delta := llm_dto.ToolCallDelta{Index: 0}
+		delta := llm_dto.ToolCallDelta{}
 
 		p.accumulateToolCall(&toolCalls, delta)
 

@@ -234,12 +234,17 @@ func NewEncoding(alphabet string) (*Encoding, error) {
 	}
 
 	e := &Encoding{
-		reverseMap: reverseMap,
-		alphabet:   runes,
-		zeroString: string(runes[0]),
-		base:       len(runes),
-		zeroRune:   runes[0],
-		isASCII:    isASCII,
+		reverseMap:      reverseMap,
+		alphabet:        runes,
+		zeroString:      string(runes[0]),
+		base:            len(runes),
+		zeroRune:        runes[0],
+		isASCII:         isASCII,
+		fastPath:        nil,
+		alphabetBytes:   nil,
+		reverseByteMap:  [asciiLookupSize]int{},
+		zeroByte:        0,
+		hasReverseBytes: false,
 	}
 
 	if isASCII {

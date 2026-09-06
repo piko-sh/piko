@@ -96,19 +96,19 @@ func TestInternalsAnalyser_AnalyseInternalExpressions_Directives(t *testing.T) {
 
 			ctx.Symbols.Define(Symbol{
 				Name:     "title",
-				TypeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				TypeInfo: &ast_domain.ResolvedTypeInfo{},
 			})
 			ctx.Symbols.Define(Symbol{
 				Name:     "content",
-				TypeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				TypeInfo: &ast_domain.ResolvedTypeInfo{},
 			})
 			ctx.Symbols.Define(Symbol{
 				Name:     "text",
-				TypeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				TypeInfo: &ast_domain.ResolvedTypeInfo{},
 			})
 			ctx.Symbols.Define(Symbol{
 				Name:     "html",
-				TypeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				TypeInfo: &ast_domain.ResolvedTypeInfo{},
 			})
 			analyser := newInternalsAnalyser(resolver)
 
@@ -208,11 +208,11 @@ func TestInternalsAnalyser_AnalyseInternalExpressions_RichText(t *testing.T) {
 
 			ctx.Symbols.Define(Symbol{
 				Name:     "username",
-				TypeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				TypeInfo: &ast_domain.ResolvedTypeInfo{},
 			})
 			ctx.Symbols.Define(Symbol{
 				Name:     "count",
-				TypeInfo: &ast_domain.ResolvedTypeInfo{TypeExpression: nil, PackageAlias: "", CanonicalPackagePath: "", IsSynthetic: false, IsExportedPackageSymbol: false, InitialPackagePath: "", InitialFilePath: ""},
+				TypeInfo: &ast_domain.ResolvedTypeInfo{},
 			})
 
 			analyser := newInternalsAnalyser(resolver)
@@ -269,8 +269,5 @@ func TestInternalsAnalyser_AnalyseInternalExpressions_NilNode(t *testing.T) {
 func createMockTypeResolver(t *testing.T) *TypeResolver {
 	t.Helper()
 
-	return &TypeResolver{
-
-		inspector: nil,
-	}
+	return &TypeResolver{}
 }

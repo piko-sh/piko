@@ -70,10 +70,13 @@ func NewBuildPanel(provider SystemProvider, c clock.Clock) *BuildPanel {
 		c = clock.RealClock()
 	}
 	p := &BuildPanel{
-		BasePanel:  NewBasePanel("build", titleBuild),
-		clock:      c,
-		provider:   provider,
-		stateMutex: sync.RWMutex{},
+		BasePanel:   NewBasePanel("build", titleBuild),
+		clock:       c,
+		provider:    provider,
+		stateMutex:  sync.RWMutex{},
+		lastRefresh: time.Time{},
+		err:         nil,
+		stats:       nil,
 	}
 	p.SetKeyMap([]KeyBinding{
 		{Key: "r", Description: "Refresh"},
@@ -125,7 +128,8 @@ func (p *BuildPanel) View(width, height int) string {
 // DetailView renders the right-pane body, a denser key/value table than the centre
 // summary so users can copy values out of the detail.
 //
-// Takes width (int) and height (int) which are the inner detail-pane dimensions.
+// Takes width (int) which sets the available width in terminal cells.
+// Takes height (int) which sets the available height in terminal rows.
 //
 // Returns string with the rendered body sized to width x height.
 func (p *BuildPanel) DetailView(width, height int) string {
@@ -191,34 +195,39 @@ func (p *BuildPanel) renderBody(stats *SystemStats, err error) string {
 func (*BuildPanel) buildDetailBody(stats *SystemStats, err error) inspector.DetailBody {
 	if err != nil {
 		return inspector.DetailBody{
-			Title:    titleBuild,
-			Sections: []inspector.DetailSection{{Heading: "Error", Rows: []inspector.DetailRow{{Label: "Reason", Value: err.Error()}}}},
+			Title: titleBuild,
+			Sections: []inspector.DetailSection{inspector.NewDetailSection(
+				"Error",
+				[]inspector.DetailRow{inspector.NewDetailRow("Reason", err.Error())},
+			)},
+			Subtitle: "",
 		}
 	}
 	if stats == nil {
 		return inspector.DetailBody{
 			Title:    titleBuild,
 			Subtitle: "no data yet",
+			Sections: nil,
 		}
 	}
 	return inspector.DetailBody{
 		Title:    "Build & Runtime",
 		Subtitle: stats.Build.Version,
 		Sections: []inspector.DetailSection{
-			{Heading: titleBuild, Rows: []inspector.DetailRow{
-				{Label: "Version", Value: stats.Build.Version},
-				{Label: "Commit", Value: stats.Build.Commit},
-				{Label: "Built", Value: stats.Build.BuildTime},
-				{Label: "Go", Value: stats.Build.GoVersion},
-				{Label: "OS", Value: stats.Build.OS},
-				{Label: "Arch", Value: stats.Build.Arch},
-			}},
-			{Heading: "Runtime", Rows: []inspector.DetailRow{
-				{Label: "GOGC", Value: stats.Runtime.GOGC},
-				{Label: "GOMEMLIMIT", Value: stats.Runtime.GOMEMLIMIT},
-				{Label: "GOMAXPROCS", Value: formatInt(stats.GOMAXPROCS)},
-				{Label: "NumCPU", Value: formatInt(stats.NumCPU)},
-			}},
+			inspector.NewDetailSection(titleBuild, []inspector.DetailRow{
+				inspector.NewDetailRow("Version", stats.Build.Version),
+				inspector.NewDetailRow("Commit", stats.Build.Commit),
+				inspector.NewDetailRow("Built", stats.Build.BuildTime),
+				inspector.NewDetailRow("Go", stats.Build.GoVersion),
+				inspector.NewDetailRow("OS", stats.Build.OS),
+				inspector.NewDetailRow("Arch", stats.Build.Arch),
+			}),
+			inspector.NewDetailSection("Runtime", []inspector.DetailRow{
+				inspector.NewDetailRow("GOGC", stats.Runtime.GOGC),
+				inspector.NewDetailRow("GOMEMLIMIT", stats.Runtime.GOMEMLIMIT),
+				inspector.NewDetailRow("GOMAXPROCS", formatInt(stats.GOMAXPROCS)),
+				inspector.NewDetailRow("NumCPU", formatInt(stats.NumCPU)),
+			}),
 		},
 	}
 }

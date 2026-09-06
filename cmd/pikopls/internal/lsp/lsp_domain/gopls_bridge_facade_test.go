@@ -50,7 +50,7 @@ func TestApplyGoplsInitOptions(t *testing.T) {
 	t.Run("goBridge=true overrides a disabled default", func(t *testing.T) {
 		t.Parallel()
 
-		server := &Server{goplsBridgeEnabled: false}
+		server := &Server{}
 		server.applyGoplsInitOptions(&protocol.InitializeParams{
 			InitializationOptions: map[string]any{"goBridge": true},
 		})

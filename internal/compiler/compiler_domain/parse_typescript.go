@@ -56,7 +56,8 @@ func NewTypeScriptParser() *TypeScriptParser {
 // Returns *js_ast.AST which is the parsed abstract syntax tree.
 // Returns error when parsing fails due to a fatal lexer panic.
 func (*TypeScriptParser) ParseTypeScript(source string, filename string) (*js_ast.AST, error) {
-	return parseTypeScript(source, filename, false)
+	options := parserOptions()
+	return parseTypeScript(source, filename, false, &options)
 }
 
 // ParseTypeScriptStrict parses TypeScript code and treats deferred parser errors as
@@ -70,7 +71,8 @@ func (*TypeScriptParser) ParseTypeScript(source string, filename string) (*js_as
 // Returns *js_ast.AST which is the parsed abstract syntax tree.
 // Returns error when parsing fails or the parser logged any errors.
 func (*TypeScriptParser) ParseTypeScriptStrict(source string, filename string) (*js_ast.AST, error) {
-	return parseTypeScript(source, filename, true)
+	options := parserOptions()
+	return parseTypeScript(source, filename, true, &options)
 }
 
 // parserOptions creates parser settings for TypeScript parsing.
@@ -80,6 +82,24 @@ func parserOptions() js_parser.Options {
 	return js_parser.OptionsFromConfig(&config.Options{
 		TS: config.TSOptions{
 			Parse: true,
+		},
+	})
+}
+
+// importPreservingParserOptions creates parser settings that keep every import statement.
+//
+// TypeScript parsing normally removes an import whose bindings the script never uses.
+// Preserving them keeps each statement's location, including imports used only by the
+// template.
+//
+// Returns js_parser.Options which holds the parser settings.
+func importPreservingParserOptions() js_parser.Options {
+	return js_parser.OptionsFromConfig(&config.Options{
+		TS: config.TSOptions{
+			Parse: true,
+			Config: config.TSConfig{
+				ImportsNotUsedAsValues: config.TSImportsNotUsedAsValues_Preserve,
+			},
 		},
 	})
 }
@@ -94,10 +114,11 @@ func parserOptions() js_parser.Options {
 // Takes filename (string) which identifies the file for error messages.
 // Takes strict (bool) which enables strict mode where deferred parser errors cause
 // failure.
+// Takes options (*js_parser.Options) which holds the parser settings.
 //
 // Returns *js_ast.AST which is the parsed abstract syntax tree.
 // Returns error when parsing fails or, in strict mode, when the parser logged any errors.
-func parseTypeScript(source string, filename string, strict bool) (*js_ast.AST, error) {
+func parseTypeScript(source string, filename string, strict bool, options *js_parser.Options) (*js_ast.AST, error) {
 	parseLog := logger.NewDeferLog(logger.DeferLogAll, nil)
 
 	result, ok := js_parser.Parse(
@@ -109,7 +130,7 @@ func parseTypeScript(source string, filename string, strict bool) (*js_ast.AST, 
 			Contents:       source,
 			IdentifierName: filename,
 		},
-		parserOptions(),
+		*options,
 	)
 
 	if !ok {

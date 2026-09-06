@@ -151,7 +151,7 @@ func TestSearch_EmptyQuery(t *testing.T) {
 		context.Background(),
 		"test-collection",
 		nil,
-		SearchConfig{Query: ""},
+		SearchConfig{},
 		"fast",
 	)
 

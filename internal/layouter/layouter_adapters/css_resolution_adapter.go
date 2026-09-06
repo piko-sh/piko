@@ -60,6 +60,10 @@ const (
 // matching, and cascade resolution to the premailer, then converting the resolved
 // property maps into ComputedStyle values.
 type CSSResolutionAdapter struct {
+	// limits enforces the layout limits while resolving style values, or nil for the
+	// defaults.
+	limits *layouter_domain.LimitTracker
+
 	// rootFontSize is the root font size in points used for rem unit resolution.
 	rootFontSize float64
 
@@ -83,7 +87,7 @@ func NewCSSResolutionAdapter(rootFontSize float64) *CSSResolutionAdapter {
 	if rootFontSize <= 0 {
 		rootFontSize = defaultRootFontSize
 	}
-	return &CSSResolutionAdapter{rootFontSize: rootFontSize}
+	return &CSSResolutionAdapter{rootFontSize: rootFontSize, viewportWidth: 0, viewportHeight: 0, limits: nil}
 }
 
 // SetViewportDimensions configures the viewport dimensions used for resolving vw, vh,
@@ -95,6 +99,14 @@ func NewCSSResolutionAdapter(rootFontSize float64) *CSSResolutionAdapter {
 func (a *CSSResolutionAdapter) SetViewportDimensions(width, height float64) {
 	a.viewportWidth = width
 	a.viewportHeight = height
+}
+
+// SetLimitTracker configures the tracker that enforces the layout limits while style
+// values such as repeat() counts and grid track lists are resolved.
+//
+// Takes limits (*layouter_domain.LimitTracker) which records the first limit breach.
+func (a *CSSResolutionAdapter) SetLimitTracker(limits *layouter_domain.LimitTracker) {
+	a.limits = limits
 }
 
 // ResolveStyles resolves CSS styles for every node in the AST by delegating CSS parsing
@@ -214,6 +226,7 @@ func (a *CSSResolutionAdapter) resolveSubtree(
 		ContainingBlockWidth: containingBlockWidth,
 		ViewportWidth:        a.viewportWidth,
 		ViewportHeight:       a.viewportHeight,
+		Limits:               a.limits,
 	}
 
 	properties := buildNodeProperties(node, resolved.Elements[node], parentMap)

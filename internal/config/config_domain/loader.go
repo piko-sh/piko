@@ -502,6 +502,8 @@ func (l *Loader) validateConfig(ptr any, _ *LoadContext) error {
 // configuration loading process.
 //
 // Takes ptr (any) which is the configuration struct to populate.
+// Takes opts (LoaderOptions) which configure the file reader and value resolvers used
+// when loading configuration.
 //
 // Returns *LoadContext which contains metadata about the loaded configuration.
 // Returns error when loading fails.

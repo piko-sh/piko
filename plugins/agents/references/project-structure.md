@@ -50,7 +50,7 @@ my-app/
 Optional, only when the wizard's "interpreted mode" toggle is on:
 
 ```text
-├── internal/interpreted/provider.go   # Yaegi symbol provider
+├── internal/piko_symbols/gen_register.go   # Native symbol table (empty until `piko extract generate`)
 └── .air.interpreted.toml
 ```
 
