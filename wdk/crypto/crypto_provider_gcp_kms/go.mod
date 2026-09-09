@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/crypto/crypto_provider_gcp_kms
 
-go 1.26.0
+go 1.27.0
 
 require (
 	cloud.google.com/go/kms v1.33.0

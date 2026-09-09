@@ -287,13 +287,12 @@ func findXRefOffset(data []byte) (int64, error) {
 	searchLen := min(len(data), xrefSearchWindow)
 	tail := data[len(data)-searchLen:]
 
-	idx := bytes.LastIndex(tail, []byte("startxref"))
-	if idx < 0 {
+	_, afterKeyword, found := bytes.CutLast(tail, []byte("startxref"))
+	if !found {
 		return 0, errors.New("startxref not found")
 	}
 
-	pos := idx + len("startxref")
-	numStr := strings.TrimSpace(string(tail[pos:]))
+	numStr := strings.TrimSpace(string(afterKeyword))
 
 	if eofIdx := strings.Index(numStr, "%%EOF"); eofIdx >= 0 {
 		numStr = strings.TrimSpace(numStr[:eofIdx])

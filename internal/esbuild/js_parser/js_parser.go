@@ -13742,13 +13742,13 @@ func (p *parser) visitExprInOut(expr js_ast.Expr, in exprIn) (js_ast.Expr, exprO
 		}
 
 		return p.handleIdentifier(expr.Loc, e, identifierOpts{
-				assignTarget:            in.assignTarget,
-				isCallTarget:            isCallTarget,
-				isDeleteTarget:          isDeleteTarget,
-				wasOriginallyIdentifier: true,
-			}), exprOut{
-				methodCallMustBeReplacedWithUndefined: methodCallMustBeReplacedWithUndefined,
-			}
+			assignTarget:            in.assignTarget,
+			isCallTarget:            isCallTarget,
+			isDeleteTarget:          isDeleteTarget,
+			wasOriginallyIdentifier: true,
+		}), exprOut{
+			methodCallMustBeReplacedWithUndefined: methodCallMustBeReplacedWithUndefined,
+		}
 
 	case *js_ast.EJSXElement:
 		propsLoc := expr.Loc

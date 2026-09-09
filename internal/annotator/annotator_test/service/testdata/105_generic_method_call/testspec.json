@@ -1,0 +1,23 @@
+{
+  "description": "Validates that a generic method call with an explicit type argument resolves through the whole document pipeline, with the type parameter substituted into the result type.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "assertNodes": [
+    {
+      "select": "p",
+      "description": "Asserts the generic method call resolves to its instantiated result type.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Store.Zero[string]()",
+        "resolvedTypeIs": "string"
+      }
+    },
+    {
+      "select": "span",
+      "description": "Asserts a plain field access on the same receiver is unaffected.",
+      "assertOnInterpolation": {
+        "rawExpression": "state.Store.Label",
+        "resolvedTypeIs": "string"
+      }
+    }
+  ]
+}

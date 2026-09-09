@@ -1,0 +1,32 @@
+{
+  "description": "Generic methods on a non-generic receiver are extracted by the AST-only lite builder with their type parameter names and constraints",
+  "moduleName": "testcase_lite_08",
+  "shouldError": false,
+  "assertions": [
+    {
+      "description": "Store has the Fetch generic method",
+      "select": "packages.testcase_lite_08.named_types.Store.methods.0.name",
+      "expect": "Fetch"
+    },
+    {
+      "description": "Fetch records its type parameter name",
+      "select": "packages.testcase_lite_08.named_types.Store.methods.0.signature.type_param_names.0",
+      "expect": "T"
+    },
+    {
+      "description": "Fetch records its type parameter constraint",
+      "select": "packages.testcase_lite_08.named_types.Store.methods.0.signature.type_param_constraints.0",
+      "expect": "any"
+    },
+    {
+      "description": "Pair records its second type parameter name",
+      "select": "packages.testcase_lite_08.named_types.Store.methods.1.signature.type_param_names.1",
+      "expect": "V"
+    },
+    {
+      "description": "Pair records the comparable constraint on its first type parameter",
+      "select": "packages.testcase_lite_08.named_types.Store.methods.1.signature.type_param_constraints.0",
+      "expect": "comparable"
+    }
+  ]
+}

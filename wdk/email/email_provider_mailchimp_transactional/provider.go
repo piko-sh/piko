@@ -577,7 +577,7 @@ func (p *MailchimpTransactionalProvider) doSendRequest(ctx context.Context, requ
 		return nil, fmt.Errorf("failed to send HTTP request: %w", err)
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, httpResp.Body)
+		_, _ = io.CopyN(io.Discard, httpResp.Body, maxMailchimpResponseBytes)
 		_ = httpResp.Body.Close()
 	}()
 

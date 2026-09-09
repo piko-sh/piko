@@ -48,6 +48,19 @@ func (em *emitter) computeRelativePath(absPath string) string {
 	return relPath
 }
 
+// lineDirectivePath chooses the path form written into a line directive.
+//
+// Takes absPath (string) which is the absolute source file path.
+//
+// Returns string which is the path to write into the directive.
+func (em *emitter) lineDirectivePath(absPath string) string {
+	if em.config.EnableDwarfLineDirectives {
+		return filepath.ToSlash(absPath)
+	}
+
+	return em.computeRelativePath(absPath)
+}
+
 // sourceMappingStmt creates a line directive statement for the given template node.
 //
 // When EnableDwarfLineDirectives is true, it emits "//line file:line" which the Go
@@ -65,9 +78,9 @@ func (em *emitter) sourceMappingStmt(node *ast_domain.TemplateNode) goast.Stmt {
 	}
 
 	absPath := *node.GoAnnotations.OriginalSourcePath
-	relPath := em.computeRelativePath(absPath)
+	directivePath := em.lineDirectivePath(absPath)
 
-	lineDirective := em.formatLineDirective(relPath, node.Location.Line, 0)
+	lineDirective := em.formatLineDirective(directivePath, node.Location.Line, 0)
 
 	return &goast.ExprStmt{
 		X: &goast.BasicLit{
@@ -100,9 +113,9 @@ func (em *emitter) directiveMappingStmt(node *ast_domain.TemplateNode, dir *ast_
 	}
 
 	absPath := *node.GoAnnotations.OriginalSourcePath
-	relPath := em.computeRelativePath(absPath)
+	directivePath := em.lineDirectivePath(absPath)
 
-	lineDirective := em.formatLineDirective(relPath, loc.Line, loc.Column)
+	lineDirective := em.formatLineDirective(directivePath, loc.Line, loc.Column)
 
 	return &goast.ExprStmt{
 		X: &goast.BasicLit{

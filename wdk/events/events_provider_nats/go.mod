@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/events/events_provider_nats
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.2

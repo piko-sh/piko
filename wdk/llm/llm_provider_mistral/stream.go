@@ -160,7 +160,7 @@ func classifyStreamErrorResponse(response *http.Response) error {
 	}
 	baseErr := fmt.Errorf("mistral API error (status %d): %s", response.StatusCode, detail)
 	providerErr := newProviderError(response, fmt.Sprintf("mistral API error: %s", detail), baseErr)
-	drainAndClose(response)
+	_ = response.Body.Close()
 	if response.StatusCode >= http.StatusBadRequest && response.StatusCode < http.StatusInternalServerError {
 		return safeerror.NewError("mistral stream rejected", providerErr)
 	}
@@ -241,7 +241,7 @@ type mistralDelta struct {
 func (p *mistralProvider) processStream(ctx context.Context, response *http.Response, events chan<- llm_dto.StreamEvent) {
 	defer p.streamWaitGroup.Done()
 	defer close(events)
-	defer drainAndClose(response)
+	defer func() { _ = response.Body.Close() }()
 	defer goroutine.RecoverPanic(ctx, "llm.mistralProcessStream")
 	start := time.Now()
 

@@ -598,7 +598,7 @@ func (p *ExpressionParser) parseIndexExpression(ctx context.Context, base Expres
 		return base, []*Diagnostic{diagnostic}
 	}
 
-	index, diagnostics := p.parseExpressionWithPrecedence(ctx, 0)
+	indices, diagnostics := p.parseIndexElements(ctx, bracketLocation)
 	if len(diagnostics) > 0 {
 		return base, diagnostics
 	}
@@ -614,14 +614,76 @@ func (p *ExpressionParser) parseIndexExpression(ctx context.Context, base Expres
 	closingBracket := p.currentToken
 	closingVal := p.tokenValue()
 	p.advanceLexerToken()
+
+	var allIndices []Expression
+	if len(indices) > 1 {
+		allIndices = indices
+	}
+
 	return &IndexExpression{
 		Base:             base,
-		Index:            index,
+		Index:            indices[0],
+		Indices:          allIndices,
 		GoAnnotations:    nil,
 		Optional:         isOptional,
 		RelativeLocation: base.GetRelativeLocation(),
 		SourceLength:     closingBracket.Location.Offset + len(closingVal) - base.GetRelativeLocation().Offset,
 	}, nil
+}
+
+// parseIndexElements parses the comma separated contents of an index expression.
+//
+// Takes bracketLocation (Location) which is the position of the opening bracket, used for
+// diagnostics.
+//
+// Returns []Expression which holds the parsed elements in source order.
+// Returns []*Diagnostic which is non-empty when parsing failed.
+func (p *ExpressionParser) parseIndexElements(ctx context.Context, bracketLocation Location) ([]Expression, []*Diagnostic) {
+	indices := make([]Expression, 0, 2)
+
+	for {
+		if diagnostic := p.rejectCompositeTypeArgument(bracketLocation); diagnostic != nil {
+			return nil, []*Diagnostic{diagnostic}
+		}
+
+		element, diagnostics := p.parseExpressionWithPrecedence(ctx, 0)
+		if len(diagnostics) > 0 {
+			return nil, diagnostics
+		}
+		indices = append(indices, element)
+
+		if p.currentToken.Type != tokenComma {
+			return indices, nil
+		}
+		p.advanceLexerToken()
+
+		if p.currentToken.Type == tokenRBracket || p.currentToken.Type == tokenEOF {
+			diagnostic := NewDiagnosticWithCode(
+				Error,
+				"Trailing comma in type argument list: expected another type argument",
+				"", CodeIncompleteConstruct, bracketLocation, p.sourcePath,
+			)
+			return nil, []*Diagnostic{diagnostic}
+		}
+	}
+}
+
+// rejectCompositeTypeArgument diagnoses an index element that begins with a bracket.
+//
+// Takes bracketLocation (Location) which is the position of the opening bracket.
+//
+// Returns *Diagnostic which is non-nil when the element cannot be parsed.
+func (p *ExpressionParser) rejectCompositeTypeArgument(bracketLocation Location) *Diagnostic {
+	if p.currentToken.Type != tokenLBracket {
+		return nil
+	}
+
+	return NewDiagnosticWithCode(
+		Error,
+		"Composite type arguments such as '[]T' are not supported in template expressions. "+
+			"Declare a named type in the script block and use that instead.",
+		p.tokenValue(), CodeUnexpectedToken, bracketLocation, p.sourcePath,
+	)
 }
 
 // parseForLoopVarSyntax parses for loop variable declarations.

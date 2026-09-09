@@ -1,6 +1,6 @@
 module testcase_47_non_generic_field_in_slotted_content
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

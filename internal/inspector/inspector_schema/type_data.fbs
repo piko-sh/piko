@@ -42,6 +42,8 @@ table FunctionSignature {
   params:[string];
   results:[string];
   param_names:[string];
+  type_param_names:[string];
+  type_param_constraints:[string];
 }
 
 table CompositePart {

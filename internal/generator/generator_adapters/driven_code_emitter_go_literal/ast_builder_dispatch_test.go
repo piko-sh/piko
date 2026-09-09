@@ -120,7 +120,7 @@ func TestAstBuilder_EmitNode_Dispatch(t *testing.T) {
 			t.Parallel()
 
 			em := requireEmitter(t)
-			em.resetState(context.Background())
+			em.resetState()
 			em.ctx = NewEmitterContext()
 
 			ctx := context.Background()
@@ -154,7 +154,7 @@ func TestAstBuilder_PrepareNodeForEmission(t *testing.T) {
 		t.Parallel()
 
 		em := requireEmitter(t)
-		em.resetState(context.Background())
+		em.resetState()
 		em.config = EmitterConfig{IsPage: true}
 
 		node := &ast_domain.TemplateNode{
@@ -183,7 +183,7 @@ func TestAstBuilder_EmitContentTag(t *testing.T) {
 	t.Parallel()
 
 	em := requireEmitter(t)
-	em.resetState(context.Background())
+	em.resetState()
 	em.ctx = NewEmitterContext()
 	em.config = EmitterConfig{}
 

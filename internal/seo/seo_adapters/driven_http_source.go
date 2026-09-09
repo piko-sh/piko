@@ -128,7 +128,7 @@ func (a *HTTPSourceAdapter) FetchURLs(ctx context.Context, sourceURL string) ([]
 			return nil, fmt.Errorf("executing HTTP request: %w", err)
 		}
 		defer func() {
-			_, _ = io.Copy(io.Discard, response.Body)
+			a.drainBoundedBody(response.Body)
 			_ = response.Body.Close()
 		}()
 
@@ -148,6 +148,17 @@ func (a *HTTPSourceAdapter) FetchURLs(ctx context.Context, sourceURL string) ([]
 
 		return urls, nil
 	})
+}
+
+// drainBoundedBody discards up to the adapter's response byte budget.
+//
+// Takes body (io.Reader) which is the response body to drain.
+func (a *HTTPSourceAdapter) drainBoundedBody(body io.Reader) {
+	maxBytes := a.maxResponseBytes
+	if maxBytes <= 0 {
+		maxBytes = defaultMaxSitemapResponseBytes
+	}
+	_, _ = io.CopyN(io.Discard, body, maxBytes)
 }
 
 // readBoundedBody reads the response body up to the configured maximum size. Bodies that

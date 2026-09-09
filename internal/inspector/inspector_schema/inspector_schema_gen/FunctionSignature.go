@@ -92,8 +92,42 @@ func (rcv *FunctionSignature) ParamNamesLength() int {
 	return 0
 }
 
+func (rcv *FunctionSignature) TypeParamNames(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+	}
+	return nil
+}
+
+func (rcv *FunctionSignature) TypeParamNamesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *FunctionSignature) TypeParamConstraints(j int) []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
+	}
+	return nil
+}
+
+func (rcv *FunctionSignature) TypeParamConstraintsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func FunctionSignatureStart(builder *flatbuffers.Builder) {
-	builder.StartObject(3)
+	builder.StartObject(5)
 }
 func FunctionSignatureAddParams(builder *flatbuffers.Builder, params flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(params), 0)
@@ -111,6 +145,18 @@ func FunctionSignatureAddParamNames(builder *flatbuffers.Builder, paramNames fla
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(paramNames), 0)
 }
 func FunctionSignatureStartParamNamesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func FunctionSignatureAddTypeParamNames(builder *flatbuffers.Builder, typeParamNames flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(typeParamNames), 0)
+}
+func FunctionSignatureStartTypeParamNamesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func FunctionSignatureAddTypeParamConstraints(builder *flatbuffers.Builder, typeParamConstraints flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(typeParamConstraints), 0)
+}
+func FunctionSignatureStartTypeParamConstraintsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func FunctionSignatureEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

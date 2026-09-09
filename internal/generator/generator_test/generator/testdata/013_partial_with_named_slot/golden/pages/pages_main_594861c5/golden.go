@@ -151,7 +151,7 @@ func init() {
 	staticNode_1_child_0.NodeType = pikoruntime.NodeElement
 	staticNode_1_child_0.TagName = "div"
 	staticNode_1_child_0.Attributes = make([]pikoruntime.HTMLAttribute, 0, 2)
-	staticNode_1_child_0.Attributes = append(staticNode_1_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_main_594861c5 partials_layout_ee037d9a"})
+	staticNode_1_child_0.Attributes = append(staticNode_1_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_layout_ee037d9a pages_main_594861c5"})
 	staticNode_1_child_0.Attributes = append(staticNode_1_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:0:1:0"})
 	staticNode_1_child_0.Children = make([]*pikoruntime.TemplateNode, 0, 2)
 	staticNode_1_child_0_child_0 = &pikoruntime.TemplateNode{}
@@ -195,7 +195,7 @@ func init() {
 	staticNode_2_child_0.NodeType = pikoruntime.NodeElement
 	staticNode_2_child_0.TagName = "article"
 	staticNode_2_child_0.Attributes = make([]pikoruntime.HTMLAttribute, 0, 2)
-	staticNode_2_child_0.Attributes = append(staticNode_2_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_main_594861c5 partials_layout_ee037d9a"})
+	staticNode_2_child_0.Attributes = append(staticNode_2_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_layout_ee037d9a pages_main_594861c5"})
 	staticNode_2_child_0.Attributes = append(staticNode_2_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:1:0"})
 	staticNode_2_child_0.Children = make([]*pikoruntime.TemplateNode, 0, 2)
 	staticNode_2_child_0_child_0 = &pikoruntime.TemplateNode{}
@@ -235,7 +235,7 @@ func init() {
 	staticNode_3_child_0.NodeType = pikoruntime.NodeElement
 	staticNode_3_child_0.TagName = "p"
 	staticNode_3_child_0.Attributes = make([]pikoruntime.HTMLAttribute, 0, 2)
-	staticNode_3_child_0.Attributes = append(staticNode_3_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_main_594861c5 partials_layout_ee037d9a"})
+	staticNode_3_child_0.Attributes = append(staticNode_3_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_layout_ee037d9a pages_main_594861c5"})
 	staticNode_3_child_0.Attributes = append(staticNode_3_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:2:0"})
 	staticNode_3_child_0.Children = make([]*pikoruntime.TemplateNode, 0, 1)
 	staticNode_3_child_0_child_0 = &pikoruntime.TemplateNode{}

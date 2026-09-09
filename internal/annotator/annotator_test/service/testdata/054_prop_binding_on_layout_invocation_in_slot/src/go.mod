@@ -1,6 +1,6 @@
 module testcase_54_prop_binding_on_layout_invocation_in_slot
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

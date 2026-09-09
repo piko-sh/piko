@@ -25,11 +25,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"piko.sh/piko/internal/inspector/inspector_adapters"
 	"piko.sh/piko/internal/inspector/inspector_domain"
-	"piko.sh/piko/internal/wasm/wasm_data"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -61,8 +62,13 @@ func run() error {
 	fmt.Println("Generating stdlib type data...")
 	fmt.Printf("Output: %s\n", *outputPath)
 
-	packages := wasm_data.DefaultStdlibPackages
+	packages := slices.Clone(inspector_domain.StdlibPackages)
 	if *customPackages != "" {
+		for _, extra := range strings.Split(*customPackages, ",") {
+			if trimmed := strings.TrimSpace(extra); trimmed != "" {
+				packages = append(packages, trimmed)
+			}
+		}
 		fmt.Printf("Custom packages: %s\n", *customPackages)
 	}
 

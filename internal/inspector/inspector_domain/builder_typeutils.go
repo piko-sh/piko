@@ -265,6 +265,10 @@ func substNamed(named *types.Named, smap map[*types.TypeParam]types.Type) types.
 // Returns types.Type which is the original signature if nothing changed, or a new
 // signature with the substituted parameter and result types.
 func substSignature(sig *types.Signature, smap map[*types.TypeParam]types.Type) types.Type {
+	if sig.TypeParams().Len() > 0 {
+		return sig
+	}
+
 	newParams, paramsChanged := substTuple(sig.Params(), smap)
 	newResults, resultsChanged := substTuple(sig.Results(), smap)
 

@@ -335,9 +335,6 @@ func (b *astBuilder) emitAllRootNodes(
 
 // newAstBuilder creates and wires an astBuilder with all its parts.
 //
-// Used for testing when an astBuilder is needed without pool management. Production code
-// should use getAstBuilder which gets builders from pools.
-//
 // Uses a two-pass setup to break circular dependencies: first it creates all parts, then
 // it wires them together by passing interfaces.
 //

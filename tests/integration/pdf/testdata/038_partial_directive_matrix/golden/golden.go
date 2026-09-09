@@ -3372,8 +3372,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 								Type: layouter_domain.BoxBlock,
 								Style: withStyle(func(s *layouter_domain.ComputedStyle) {
 									s.CustomProperties = map[string]string{
-										"--probe-size":   "18px",
 										"--probe-colour": "#2563eb",
+										"--probe-size":   "18px",
 									}
 									s.FontFamily = "Helvetica"
 									s.Colour = layouter_domain.NewRGBA(0.12156862745098039, 0.1607843137254902, 0.21568627450980393, 1)
@@ -3406,8 +3406,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 										Type: layouter_domain.BoxBlock,
 										Style: withStyle(func(s *layouter_domain.ComputedStyle) {
 											s.CustomProperties = map[string]string{
-												"--probe-size":   "18px",
 												"--probe-colour": "#2563eb",
+												"--probe-size":   "18px",
 											}
 											s.FontFamily = "Helvetica"
 											s.Colour = layouter_domain.NewRGBA(0.1450980392156863, 0.38823529411764707, 0.9215686274509803, 1)
@@ -3431,8 +3431,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 												Type: layouter_domain.BoxTextRun,
 												Style: withStyle(func(s *layouter_domain.ComputedStyle) {
 													s.CustomProperties = map[string]string{
-														"--probe-size":   "18px",
 														"--probe-colour": "#2563eb",
+														"--probe-size":   "18px",
 													}
 													s.FontFamily = "Helvetica"
 													s.Colour = layouter_domain.NewRGBA(0.1450980392156863, 0.38823529411764707, 0.9215686274509803, 1)
@@ -3453,8 +3453,8 @@ var GeneratedLayoutBox = func() *layouter_domain.LayoutBox {
 										Type: layouter_domain.BoxBlock,
 										Style: withStyle(func(s *layouter_domain.ComputedStyle) {
 											s.CustomProperties = map[string]string{
-												"--probe-size":   "18px",
 												"--probe-colour": "#2563eb",
+												"--probe-size":   "18px",
 											}
 											s.FontFamily = "Helvetica"
 											s.BorderTopColour = layouter_domain.NewRGBA(0.1450980392156863, 0.38823529411764707, 0.9215686274509803, 1)

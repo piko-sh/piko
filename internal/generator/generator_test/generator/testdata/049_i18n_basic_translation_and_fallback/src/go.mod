@@ -1,6 +1,6 @@
 module testcase_049_i18n_basic_translation_and_fallback
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

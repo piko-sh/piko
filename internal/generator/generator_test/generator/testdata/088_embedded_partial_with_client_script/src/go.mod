@@ -1,6 +1,6 @@
 module testcase_088_embedded_partial_with_client_script
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

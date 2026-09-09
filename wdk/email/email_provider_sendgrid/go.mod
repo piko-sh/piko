@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/email/email_provider_sendgrid
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/sendgrid/sendgrid-go v3.16.1+incompatible

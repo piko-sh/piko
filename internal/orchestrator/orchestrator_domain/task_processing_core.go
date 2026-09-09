@@ -991,6 +991,7 @@ func (c *TaskProcessingCore) recoveryParams() (time.Duration, int) {
 // Takes taskID (string) which identifies the task to send heartbeats for.
 // Takes stopCh (<-chan struct{}) which signals when to stop sending heartbeats.
 func (c *TaskProcessingCore) runHeartbeat(ctx context.Context, taskID string, stopCh <-chan struct{}) {
+	ctx = goroutine.Label(ctx, "orchestrator.runHeartbeat", "task_id", taskID)
 	ctx, l := logger_domain.From(ctx, log)
 	ticker := c.Clock.NewTicker(c.Config.HeartbeatInterval)
 	defer ticker.Stop()

@@ -401,8 +401,12 @@ type IndexExpression struct {
 	// Base is the expression being indexed.
 	Base Expression
 
-	// Index is the type argument expression inside the brackets.
+	// Index is the first index or type argument expression inside the brackets.
 	Index Expression
+
+	// Indices holds every index or type argument when the brackets contain more than one, as
+	// in a generic instantiation such as Pair[K, V].
+	Indices []Expression
 
 	// GoAnnotations holds code generation hints for this expression.
 	GoAnnotations *GoGeneratorAnnotation
@@ -430,7 +434,16 @@ func (ie *IndexExpression) String() string {
 	} else {
 		_ = builder.WriteByte('[')
 	}
-	builder.WriteString(ie.Index.String())
+	if len(ie.Indices) > 1 {
+		for position, index := range ie.Indices {
+			if position > 0 {
+				builder.WriteString(", ")
+			}
+			builder.WriteString(index.String())
+		}
+	} else {
+		builder.WriteString(ie.Index.String())
+	}
 	_ = builder.WriteByte(']')
 	return builder.String()
 }
@@ -448,9 +461,18 @@ func (ie *IndexExpression) GetSourceLength() int { return ie.SourceLength }
 //
 // Returns Expression which is a new IndexExpression with transformed identifiers.
 func (ie *IndexExpression) TransformIdentifiers(f func(string) string) Expression {
+	var transformedIndices []Expression
+	if len(ie.Indices) > 0 {
+		transformedIndices = make([]Expression, len(ie.Indices))
+		for position, index := range ie.Indices {
+			transformedIndices[position] = index.TransformIdentifiers(f)
+		}
+	}
+
 	return &IndexExpression{
 		Base:             ie.Base.TransformIdentifiers(f),
 		Index:            ie.Index.TransformIdentifiers(f),
+		Indices:          transformedIndices,
 		Optional:         ie.Optional,
 		GoAnnotations:    ie.GoAnnotations,
 		RelativeLocation: ie.RelativeLocation,
@@ -465,9 +487,18 @@ func (ie *IndexExpression) Clone() Expression {
 	if ie == nil {
 		return nil
 	}
+	var clonedIndices []Expression
+	if len(ie.Indices) > 0 {
+		clonedIndices = make([]Expression, len(ie.Indices))
+		for position, index := range ie.Indices {
+			clonedIndices[position] = index.Clone()
+		}
+	}
+
 	return &IndexExpression{
 		Base:             ie.Base.Clone(),
 		Index:            ie.Index.Clone(),
+		Indices:          clonedIndices,
 		Optional:         ie.Optional,
 		GoAnnotations:    ie.GoAnnotations.Clone(),
 		RelativeLocation: ie.RelativeLocation,

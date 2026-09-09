@@ -55,10 +55,10 @@ func TestRender_ReturnsTestView(t *testing.T) {
 
 	buildAST := func(_ *templater_dto.RequestData, _ any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*pikotest_dto.RuntimeDiagnostic) {
 		return &ast_domain.TemplateAST{
-				RootNodes: []*ast_domain.TemplateNode{h1},
-			}, templater_dto.InternalMetadata{
-				Metadata: templater_dto.Metadata{Title: "Test Page"},
-			}, nil
+			RootNodes: []*ast_domain.TemplateNode{h1},
+		}, templater_dto.InternalMetadata{
+			Metadata: templater_dto.Metadata{Title: "Test Page"},
+		}, nil
 	}
 
 	tester := pikotest_domain.NewComponentTester(t, buildAST)

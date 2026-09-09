@@ -1,6 +1,6 @@
 module testcase_061_external_module_components
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/example/layout-primitives v0.0.0

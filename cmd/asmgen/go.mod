@@ -1,6 +1,6 @@
 module piko.sh/piko/cmd/asmgen
 
-go 1.26.0
+go 1.27.0
 
 require (
 	piko.sh/asmgen v0.1.0

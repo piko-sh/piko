@@ -418,6 +418,78 @@ func TestFlatBufferRoundTrip_ParamNames(t *testing.T) {
 	assert.Equal(t, []string{"name"}, unpacked3.ParamNames, "ParamNames lost when multiple methods packed")
 }
 
+func TestFlatBufferRoundTrip_TypeParams(t *testing.T) {
+	t.Parallel()
+
+	sig := inspector_dto.FunctionSignature{
+		Params:               []string{"K", "V"},
+		ParamNames:           []string{"key", "value"},
+		Results:              []string{"map[K]V"},
+		TypeParamNames:       []string{"K", "V"},
+		TypeParamConstraints: []string{"comparable", "any"},
+	}
+
+	b := flatbuffers.NewBuilder(256)
+	offset := packFunctionSignature(b, &sig)
+	b.Finish(offset)
+
+	fb := inspector_schema_gen.GetRootAsFunctionSignature(b.FinishedBytes(), 0)
+	require.NotNil(t, fb)
+
+	unpacked := unpackFunctionSignature(fb)
+	assert.Equal(t, []string{"K", "V"}, unpacked.Params)
+	assert.Equal(t, []string{"map[K]V"}, unpacked.Results)
+	assert.Equal(t, []string{"key", "value"}, unpacked.ParamNames)
+	assert.Equal(t, []string{"K", "V"}, unpacked.TypeParamNames,
+		"Type parameter names must survive the FlatBuffer round trip")
+	assert.Equal(t, []string{"comparable", "any"}, unpacked.TypeParamConstraints,
+		"Type parameter constraints must survive the FlatBuffer round trip")
+
+	assert.Equal(t, "func[K comparable, V any](K, V) map[K]V", unpacked.ToSignatureString(),
+		"A generic signature must render its type parameter list")
+
+	method := &inspector_dto.Method{
+		Name:                 "Convert",
+		TypeString:           "map[K]V",
+		UnderlyingTypeString: "map[K]V",
+		Signature:            sig,
+		DeclaringPackagePath: "example.com/foo",
+		DeclaringTypeName:    "Processor",
+		DefinitionFilePath:   "foo.go",
+		DefinitionLine:       10,
+		DefinitionColumn:     1,
+	}
+
+	nested := flatbuffers.NewBuilder(512)
+	methodOffset := packMethod(nested, method)
+	nested.Finish(methodOffset)
+
+	fbMethod := inspector_schema_gen.GetRootAsMethod(nested.FinishedBytes(), 0)
+	require.NotNil(t, fbMethod)
+
+	var fbSig inspector_schema_gen.FunctionSignature
+	nestedSig := fbMethod.Signature(&fbSig)
+	require.NotNil(t, nestedSig)
+
+	unpackedNested := unpackFunctionSignature(nestedSig)
+	assert.Equal(t, []string{"K", "V"}, unpackedNested.TypeParamNames,
+		"Type parameter names lost when nested inside Method")
+	assert.Equal(t, []string{"comparable", "any"}, unpackedNested.TypeParamConstraints,
+		"Type parameter constraints lost when nested inside Method")
+}
+
+func TestFunctionSignatureNonGenericRendersUnchanged(t *testing.T) {
+	t.Parallel()
+
+	sig := inspector_dto.FunctionSignature{
+		Params:  []string{"string"},
+		Results: []string{"error"},
+	}
+
+	assert.Equal(t, "func(string) error", sig.ToSignatureString())
+	assert.Empty(t, sig.TypeParamList())
+}
+
 func TestFlatBufferRoundTrip_EmptyTypeData(t *testing.T) {
 	original := &inspector_dto.TypeData{}
 

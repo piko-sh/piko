@@ -1,6 +1,6 @@
 module github.com/example/composite-widgets
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/example/ui-components v0.0.0

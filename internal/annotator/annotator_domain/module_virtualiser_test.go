@@ -363,7 +363,7 @@ func Other() string {
 			"Package-qualified call 'card.FormatPrice(100)' should still be rewritten to hashed name")
 	})
 
-	t.Run("should rewrite struct field access when local shadows import alias", func(t *testing.T) {
+	t.Run("should not rewrite struct field access when local shadows import alias", func(t *testing.T) {
 		h := newVirtualiserTestHarness(t, moduleName, baseDir)
 		mainPath := filepath.Join(baseDir, "pages", "main.pk")
 		cardPath := filepath.Join(baseDir, "partials", "card.pk")
@@ -410,8 +410,70 @@ func Other() string {
 		assert.Contains(t, mainSource, cardHash+".FormatPrice(100)",
 			"Package-qualified call in Other() should be rewritten")
 
-		assert.Contains(t, mainSource, cardHash+".Field",
-			"Shadowed field access is also rewritten (warning emitted)")
+		assert.NotContains(t, mainSource, cardHash+".Field",
+			"Shadowed local variable must not be rewritten to the hashed package name")
+
+		assert.Contains(t, mainSource, "card.Field",
+			"Access through the shadowing local variable should be left untouched")
+
+		require.Len(t, result.Diagnostics, 1, "Should emit exactly one diagnostic for shadowed alias")
+		assert.Equal(t, ast_domain.Warning, result.Diagnostics[0].Severity)
+		assert.Contains(t, result.Diagnostics[0].Message, "card")
+		assert.Contains(t, result.Diagnostics[0].Message, "shadows")
+	})
+
+	t.Run("should not rewrite method receiver or type parameter that shadows import alias", func(t *testing.T) {
+		h := newVirtualiserTestHarness(t, moduleName, baseDir)
+		mainPath := filepath.Join(baseDir, "pages", "main.pk")
+		cardPath := filepath.Join(baseDir, "partials", "card.pk")
+
+		h.addComponent(cardPath, `
+package card
+func FormatPrice(price int) string { return "" }
+`)
+
+		mainScriptContent := `
+package main
+import card "partials/card.pk"
+type Renderer struct { width int }
+func (card *Renderer) Draw() int {
+	return card.width
+}
+func Total[card any](values []card) int {
+	return len(values)
+}
+func Other() string {
+	return card.FormatPrice(100)
+}
+`
+		mainPikoImport := annotator_dto.PikoImport{
+			Alias: "card",
+			Path:  "partials/card.pk",
+		}
+		h.addComponent(mainPath, mainScriptContent, mainPikoImport)
+
+		virtualiser := NewModuleVirtualiser(h.resolver, h.pathsConfig)
+		result, err := virtualiser.Virtualise(context.Background(), h.graph, h.originalGoFiles, h.makeEntryPoints())
+		require.NoError(t, err)
+
+		mainHash := buildAliasFromPath(mainPath)
+		mainComp, ok := result.ComponentsByHash[mainHash]
+		require.True(t, ok, "Main virtual component should exist in the result")
+
+		virtualMainGoPath := mainComp.VirtualGoFilePath
+		mainSourceBytes, ok := result.SourceOverlay[virtualMainGoPath]
+		require.True(t, ok, "Generated Go source should exist in the overlay")
+		mainSource := string(mainSourceBytes)
+
+		partialHash := buildAliasFromPath(cardPath)
+
+		assert.Contains(t, mainSource, "return card.width",
+			"Receiver named after the import alias must not be rewritten")
+		assert.NotContains(t, mainSource, partialHash+".width",
+			"Receiver field access must never become a package reference")
+
+		assert.Contains(t, mainSource, partialHash+".FormatPrice(100)",
+			"A function that does not shadow the alias should still be rewritten")
 
 		require.Len(t, result.Diagnostics, 1, "Should emit exactly one diagnostic for shadowed alias")
 		assert.Equal(t, ast_domain.Warning, result.Diagnostics[0].Severity)

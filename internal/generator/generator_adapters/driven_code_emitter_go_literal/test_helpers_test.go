@@ -30,7 +30,7 @@ func requireEmitter(t *testing.T) *emitter {
 	t.Helper()
 	em, ok := NewEmitter(context.Background()).(*emitter)
 	require.True(t, ok, "NewEmitter should return *emitter")
-	em.resetState(context.Background())
+	em.resetState()
 	return em
 }
 

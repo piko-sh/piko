@@ -623,6 +623,8 @@ func (m *CacheMiddleware) generateAndCacheResponse(
 // The buffer is returned to the pool after use. Uses a write limiter to control disk
 // writes.
 func (m *CacheMiddleware) persistArtefactInBackground(parentCtx context.Context, artefactID, sourcePath string, rawHTML *bytes.Buffer) {
+	parentCtx = goroutine.Label(parentCtx, "daemon.persistArtefactInBackground",
+		"artefact_id", artefactID, "path", sourcePath)
 	defer releaseHTMLBuffer(rawHTML)
 	defer goroutine.RecoverPanic(context.WithoutCancel(parentCtx), "daemon.persistArtefactInBackground")
 

@@ -1,6 +1,6 @@
 module testcase_08_member_access_on_non_struct
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

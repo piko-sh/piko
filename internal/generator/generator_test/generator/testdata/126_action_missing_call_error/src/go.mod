@@ -1,6 +1,6 @@
 module testcase_126_action_missing_call_error
 
-go 1.26.0
+go 1.27.0
 
 replace piko.sh/piko => ../../../../../../../
 

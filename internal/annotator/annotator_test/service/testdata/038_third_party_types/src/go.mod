@@ -1,6 +1,6 @@
 module testcase_38_third_party_types
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/google/uuid v1.6.0

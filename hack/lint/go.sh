@@ -86,7 +86,7 @@ parse_args() {
 # Returns:
 #   Exits with code 1 if any tool is missing
 verify_tools() {
-    if ! piko::util::verify_binary "golangci-lint" "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; then
+    if ! piko::util::verify_binary "golangci-lint" "go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2"; then
         exit 1
     fi
     if ! piko::util::verify_binary "jq" "brew install jq OR apt install jq"; then

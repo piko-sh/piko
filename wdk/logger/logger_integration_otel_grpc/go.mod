@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/logger/logger_integration_otel_grpc
 
-go 1.26.0
+go 1.27.0
 
 require (
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.45.0

@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/config/config_resolver_azure
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0

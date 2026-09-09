@@ -1,6 +1,6 @@
 module testcase_178_action_sse_get_alias
 
-go 1.26.0
+go 1.27.0
 
 replace piko.sh/piko => ../../../../../../../
 

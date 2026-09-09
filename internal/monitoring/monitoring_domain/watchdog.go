@@ -107,9 +107,8 @@ const (
 	// triggers a profile capture.
 	defaultRSSThresholdPercent = 0.85
 
-	// defaultGoroutineLeakCheckInterval is the period between goroutine leak profile
-	// evaluations.
-	defaultGoroutineLeakCheckInterval = 5 * time.Minute
+	// defaultGoroutineLeakCheckInterval is the period between leak profile evaluations.
+	defaultGoroutineLeakCheckInterval = 30 * time.Minute
 
 	// defaultFDPressureThresholdPercent is the fraction of the soft FD limit above which the
 	// watchdog emits an FD pressure warning. Set high because FD exhaustion is
@@ -338,8 +337,7 @@ type WatchdogConfig struct {
 
 	// GoroutineLeakCheckInterval is the period between goroutine leak profile evaluations.
 	//
-	// Default: 5 minutes. Only effective when the Go 1.26 goroutineleakprofile experiment is
-	// enabled.
+	// Default: 30 minutes. Only effective when the goroutine leak profile is enabled.
 	GoroutineLeakCheckInterval time.Duration
 
 	// GoroutineThreshold is the goroutine count above which a goroutine profile capture is
@@ -624,8 +622,8 @@ type Watchdog struct {
 	// not spawn duplicate loops or rewrite startup history.
 	started bool
 
-	// goroutineLeakAvailable indicates whether the Go 1.26 goroutine leak profile experiment
-	// is enabled. Set once in Start before the loop goroutine begins.
+	// goroutineLeakAvailable indicates whether the goroutine leak profile is enabled. Set
+	// once in Start before the loop goroutine begins.
 	goroutineLeakAvailable bool
 
 	// heapProfilingDisabled is set in Start when runtime.MemProfileRate is zero; heap-based
@@ -1520,12 +1518,27 @@ func (w *Watchdog) captureAndStoreProfile(ctx context.Context, profileType strin
 		return
 	}
 
-	ctx, l := logger_domain.From(ctx, log)
-
 	profileData, ok := w.collectProfileBytes(ctx, controller, profileType)
 	if !ok {
 		return
 	}
+
+	w.storeCapturedProfile(ctx, profileType, profileData, capCtx)
+}
+
+// storeCapturedProfile writes already captured profile bytes to the profile store and
+// records the sidecar metadata that accompanies them.
+//
+// Takes profileType (string) which identifies the profile being stored.
+// Takes profileData ([]byte) which is the captured, compressed profile.
+// Takes capCtx (captureContext) which describes the firing rule for the sidecar metadata.
+func (w *Watchdog) storeCapturedProfile(
+	ctx context.Context,
+	profileType string,
+	profileData []byte,
+	capCtx captureContext,
+) {
+	ctx, l := logger_domain.From(ctx, log)
 
 	timestamp, err := w.profileStore.write(profileType, profileData)
 	if err != nil {

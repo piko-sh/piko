@@ -63,8 +63,8 @@ const (
 	// within the configured warning horizon.
 	WatchdogEventHeapTrendWarning WatchdogEventType = "heap_trend_warning"
 
-	// WatchdogEventGoroutineLeakDetected is emitted when the Go 1.26 goroutine leak profile
-	// finds unreachable blocked goroutines.
+	// WatchdogEventGoroutineLeakDetected is emitted when the goroutine leak profile finds
+	// unreachable blocked goroutines.
 	WatchdogEventGoroutineLeakDetected WatchdogEventType = "goroutine_leak_detected"
 
 	// WatchdogEventPreDeathSnapshot is emitted when a pre-shutdown diagnostic snapshot is

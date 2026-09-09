@@ -1,6 +1,6 @@
 module testcase_51_prop_binding_scope_in_layout_wrapper
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

@@ -137,6 +137,8 @@ func (a *typeExpressionAnalyser) resolveCallee(ctx context.Context, n *ast_domai
 		}
 	case *ast_domain.MemberExpression:
 		return a.resolveMemberExprCallee(ctx, n, c)
+	case *ast_domain.IndexExpression:
+		return a.resolveGenericCallee(ctx, n, c, argAnns)
 	}
 	return &calleeResolution{
 		Signature:  nil,
@@ -145,6 +147,139 @@ func (a *typeExpressionAnalyser) resolveCallee(ctx context.Context, n *ast_domai
 		MethodInfo: nil,
 		Found:      false,
 	}
+}
+
+// resolveGenericCallee handles a call whose callee carries explicit type arguments, such
+// as store.Fetch[Post]("key").
+//
+// Takes n (*ast_domain.CallExpression) which is the call being resolved.
+// Takes callee (*ast_domain.IndexExpression) which carries the type arguments.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides the argument
+// annotations for the call.
+//
+// Returns *calleeResolution holding the instantiated signature, or the uninstantiated
+// resolution when the callee is not generic or the argument count does not match.
+func (a *typeExpressionAnalyser) resolveGenericCallee(
+	ctx context.Context,
+	n *ast_domain.CallExpression,
+	callee *ast_domain.IndexExpression,
+	argAnns []*ast_domain.GoGeneratorAnnotation,
+) *calleeResolution {
+	baseCall := *n
+	baseCall.Callee = callee.Base
+
+	resolution := a.resolveCallee(ctx, &baseCall, argAnns)
+	if !resolution.Found || resolution.Signature == nil {
+		return resolution
+	}
+
+	instantiated := instantiateSignature(resolution.Signature, typeArgumentStrings(callee))
+	if instantiated == nil {
+		return resolution
+	}
+
+	a.ctx.Logger.Trace("[TR-DEBUG] Instantiated generic callee",
+		logger_domain.String(logKeyExpr, n.String()))
+
+	markTypeInstantiation(callee)
+
+	result := *resolution
+	result.Signature = instantiated
+
+	return &result
+}
+
+// markTypeInstantiation records that an index expression carries type arguments rather
+// than a runtime index.
+//
+// Takes callee (*ast_domain.IndexExpression) which is the instantiated generic callee.
+func markTypeInstantiation(callee *ast_domain.IndexExpression) {
+	annotation := callee.GetGoAnnotation()
+	if annotation == nil {
+		annotation = &ast_domain.GoGeneratorAnnotation{}
+	}
+	annotation.IsTypeInstantiation = true
+	callee.SetGoAnnotation(annotation)
+}
+
+// typeArgumentStrings renders the type arguments of an index expression as type strings.
+//
+// Takes callee (*ast_domain.IndexExpression) which carries the type arguments.
+//
+// Returns []string which holds one type string per argument, in source order.
+func typeArgumentStrings(callee *ast_domain.IndexExpression) []string {
+	indices := callee.Indices
+	if len(indices) == 0 {
+		if callee.Index == nil {
+			return nil
+		}
+		indices = []ast_domain.Expression{callee.Index}
+	}
+
+	arguments := make([]string, 0, len(indices))
+	for _, index := range indices {
+		arguments = append(arguments, index.String())
+	}
+
+	return arguments
+}
+
+// instantiateSignature binds explicit type arguments to a generic signature's declared
+// type parameters and rewrites its parameter and result type strings accordingly.
+//
+// Takes signature (*inspector_dto.FunctionSignature) which is the generic signature.
+// Takes typeArguments ([]string) which are the explicit type arguments.
+//
+// Returns *inspector_dto.FunctionSignature which is the instantiated signature, or nil
+// when the callee declares no type parameters or the argument count does not match.
+func instantiateSignature(
+	signature *inspector_dto.FunctionSignature,
+	typeArguments []string,
+) *inspector_dto.FunctionSignature {
+	if len(signature.TypeParamNames) == 0 || len(typeArguments) != len(signature.TypeParamNames) {
+		return nil
+	}
+
+	substitutions := make(map[string]goast.Expr, len(typeArguments))
+	for position, name := range signature.TypeParamNames {
+		argumentExpr := goastutil.TypeStringToAST(typeArguments[position])
+		if argumentExpr == nil {
+			return nil
+		}
+		substitutions[name] = argumentExpr
+	}
+
+	return &inspector_dto.FunctionSignature{
+		Params:     substituteTypeStrings(signature.Params, substitutions),
+		ParamNames: signature.ParamNames,
+		Results:    substituteTypeStrings(signature.Results, substitutions),
+	}
+}
+
+// substituteTypeStrings rewrites each type string by replacing type parameter identifiers
+// with their bound type arguments.
+//
+// Takes typeStrings ([]string) which are the type strings to rewrite.
+// Takes substitutions (map[string]goast.Expr) which maps type parameter names to
+// arguments.
+//
+// Returns []string which holds the rewritten type strings, or nil when there are none.
+func substituteTypeStrings(typeStrings []string, substitutions map[string]goast.Expr) []string {
+	if len(typeStrings) == 0 {
+		return nil
+	}
+
+	result := make([]string, len(typeStrings))
+	for position, typeString := range typeStrings {
+		expression := goastutil.TypeStringToAST(typeString)
+		if expression == nil {
+			result[position] = typeString
+			continue
+		}
+		result[position] = goastutil.ASTToTypeString(substituteType(expression, substitutions))
+	}
+
+	return result
 }
 
 // resolveIdentifierCallee handles calls where the callee is a simple identifier.

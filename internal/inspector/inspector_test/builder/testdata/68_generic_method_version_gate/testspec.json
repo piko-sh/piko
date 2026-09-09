@@ -1,0 +1,6 @@
+{
+  "description": "Tests that a module declaring a Go version below 1.27 is rejected when it uses a generic method, guarding the language-version gate that governs generic method support.",
+  "moduleName": "testcase_68_generic_method_version_gate",
+  "shouldError": true,
+  "errorContains": "generic method requires go1.27 or later"
+}

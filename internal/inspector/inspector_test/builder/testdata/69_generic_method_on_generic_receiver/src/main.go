@@ -18,11 +18,18 @@
 
 package main
 
-type Processor struct{}
+type Box[T any] struct {
+	Value T
+}
 
-// This is not valid Go. Methods cannot have their own type parameter lists.
-// This should cause a semantic error during the type-checking phase.
-func (p Processor) Process[T any](value T) (T, error) {
-	var zero T
-	return zero, nil
+func (b Box[T]) Get() T {
+	return b.Value
+}
+
+func (b Box[T]) Map[U any](transform func(T) U) Box[U] {
+	return Box[U]{Value: transform(b.Value)}
+}
+
+type StringBox struct {
+	Box[string]
 }

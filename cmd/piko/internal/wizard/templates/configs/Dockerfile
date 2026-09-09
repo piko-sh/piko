@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # BUILD STAGE
-FROM golang:1.26.0 AS build
+FROM golang:1.27.1 AS build
 
 # Pass --build-arg APP_VERSION=<git tag or sha> for a meaningful release id.
 ARG APP_VERSION=""
@@ -41,7 +41,7 @@ RUN VERSION="${APP_VERSION:-$(cat /proc/sys/kernel/random/uuid)}" && \
 # RUNTIME STAGE
 # If using C CGO libs, use: gcr.io/distroless/base:nonroot
 # If using C++ CGO libs (DuckDB), use: gcr.io/distroless/cc:nonroot
-# If unsure and scared, use: golang:1.26.0
+# If unsure and scared, use: golang:1.27.1
 FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /app

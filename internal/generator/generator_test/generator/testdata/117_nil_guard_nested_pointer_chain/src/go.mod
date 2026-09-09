@@ -1,6 +1,6 @@
 module testcase_117_nil_guard_nested_pointer_chain
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

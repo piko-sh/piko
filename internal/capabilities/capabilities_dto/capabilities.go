@@ -80,13 +80,13 @@ var (
 		CapabilityCompressBrotli:      1,
 		CapabilityCompressGzip:        1,
 		CapabilityCompileComponent:    1,
-		CapabilityImageTransform:      1,
+		CapabilityImageTransform:      2,
 		CapabilityMinifyCSS:           1,
 		CapabilityMinifyJS:            1,
 		CapabilityMinifySVG:           1,
 		CapabilityCopyJS:              1,
 		CapabilityVideoTranscode:      1,
-		CapabilityVideoThumbnail:      1,
+		CapabilityVideoThumbnail:      2,
 		CapabilityTranspileTypeScript: 1,
 	}
 )

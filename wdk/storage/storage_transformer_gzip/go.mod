@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/storage/storage_transformer_gzip
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/klauspost/compress v1.19.1

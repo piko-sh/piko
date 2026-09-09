@@ -31,6 +31,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 
 	"github.com/cespare/xxhash/v2"
@@ -100,7 +101,13 @@ func hashDependencyFiles(hasher hash.Hash, baseDir string, factory safedisk.Fact
 //
 // Returns error when writing to the hasher fails.
 func hashEnvironmentVariables(hasher hash.Hash) error {
-	goBuildEnvVars := []string{"CGO_ENABLED", "GOARCH", "GOEXPERIMENT", "GOFLAGS", "GOOS", "GOPROXY"}
+	if _, err := hasher.Write([]byte(runtime.Version())); err != nil {
+		return fmt.Errorf("writing Go runtime version to hasher: %w", err)
+	}
+
+	goBuildEnvVars := []string{
+		"CGO_ENABLED", "GOARCH", "GODEBUG", "GOEXPERIMENT", "GOFLAGS", "GOOS", "GOPROXY", "GOTOOLCHAIN",
+	}
 	for _, key := range goBuildEnvVars {
 		if _, err := hasher.Write([]byte(key)); err != nil {
 			return fmt.Errorf("writing env var key %q to hasher: %w", key, err)

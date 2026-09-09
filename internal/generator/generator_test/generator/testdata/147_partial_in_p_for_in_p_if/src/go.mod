@@ -1,6 +1,6 @@
 module testcase_147_partial_in_p_for_in_p_if
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

@@ -1,8 +1,6 @@
 module piko.sh/piko/wdk/linguistics/linguistics_language_german
 
-go 1.26.0
-
-require piko.sh/piko v0.0.0 // indirect
+go 1.27.0
 
 require (
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_german v0.0.0
@@ -13,4 +11,5 @@ require (
 require (
 	github.com/dchest/stemmer v0.0.0-20161207102402-66719a20c4b5 // indirect
 	golang.org/x/text v0.40.0 // indirect
+	piko.sh/piko v0.0.0 // indirect
 )

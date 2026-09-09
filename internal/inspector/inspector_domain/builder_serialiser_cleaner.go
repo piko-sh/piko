@@ -206,6 +206,10 @@ func cleanAnnotatedSignature(sig *types.Signature, ctx *cleaningContext) *types.
 		return nil
 	}
 
+	if sig.TypeParams().Len() > 0 {
+		return sig
+	}
+
 	paramsChanged := false
 	resultsChanged := false
 

@@ -1,6 +1,6 @@
 module testcase_45_coerce_primitives_to_string
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

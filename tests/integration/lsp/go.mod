@@ -1,6 +1,6 @@
 module piko.sh/piko/tests/integration/lsp
 
-go 1.26.0
+go 1.27.0
 
 replace piko.sh/piko v0.0.0 => ../../..
 

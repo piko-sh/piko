@@ -1,6 +1,6 @@
 module piko.sh/piko/tests/integration/e2e_browser/testdata/039_file_upload_with_sibling/src
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

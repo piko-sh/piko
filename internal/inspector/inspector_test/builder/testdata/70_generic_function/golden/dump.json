@@ -1,0 +1,73 @@
+{
+  "packages": {
+    "testcase_70_generic_function": {
+      "file_imports": {
+        "70_generic_function/src/main.go": {}
+      },
+      "named_types": {},
+      "funcs": {
+        "Keys": {
+          "name": "Keys",
+          "type_string": "func(values map[K]V) []K",
+          "underlying_type_string": "func(values map[K]V) []K",
+          "definition_file_path": "70_generic_function/src/main.go",
+          "signature": {
+            "params": [
+              "map[K]V"
+            ],
+            "param_names": [
+              "values"
+            ],
+            "results": [
+              "[]K"
+            ],
+            "type_param_names": [
+              "K",
+              "V"
+            ],
+            "type_param_constraints": [
+              "comparable",
+              "any"
+            ]
+          },
+          "definition_line": 33,
+          "definition_column": 6
+        },
+        "Map": {
+          "name": "Map",
+          "type_string": "func(items []T, transform func(T) U) []U",
+          "underlying_type_string": "func(items []T, transform func(T) U) []U",
+          "definition_file_path": "70_generic_function/src/main.go",
+          "signature": {
+            "params": [
+              "[]T",
+              "func(T) U"
+            ],
+            "param_names": [
+              "items",
+              "transform"
+            ],
+            "results": [
+              "[]U"
+            ],
+            "type_param_names": [
+              "T",
+              "U"
+            ],
+            "type_param_constraints": [
+              "any",
+              "any"
+            ]
+          },
+          "definition_line": 24,
+          "definition_column": 6
+        }
+      },
+      "path": "testcase_70_generic_function",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "70_generic_function/src/main.go": "testcase_70_generic_function"
+  }
+}

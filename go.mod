@@ -1,11 +1,6 @@
 module piko.sh/piko
 
-go 1.26.0
-
-require (
-	piko.sh/asmgen v0.1.0
-	piko.sh/vectormaths v0.2.0
-)
+go 1.27.0
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.2
@@ -39,6 +34,8 @@ require (
 	golang.org/x/text v0.40.0
 	golang.org/x/tools v0.48.0
 	gopkg.in/yaml.v3 v3.0.1
+	piko.sh/asmgen v0.1.0
+	piko.sh/vectormaths v0.2.0
 )
 
 require (

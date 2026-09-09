@@ -50,15 +50,15 @@ var (
 			name:   "$event",
 			detail: "js.Event",
 			documentation: `**Browser Event Object**
-	
+
 	The native JavaScript event object passed to event handlers.
 	Pass it to your handler function to access event properties.
-	
+
 	**Example:**
 	` + "```html" + `
 	<button p-on:click="handleClick($event)">Click</button>
 	` + "```" + `
-	
+
 	**In your handler:**
 	` + "```typescript" + `
 	function handleClick(event: Event) {
@@ -71,10 +71,10 @@ var (
 			name:   "$form",
 			detail: "pk.FormData",
 			documentation: `**Form Data Handle**
-	
+
 	Collects form data from the closest ancestor <form> element.
 	Returns a FormDataHandle with methods to access the data.
-	
+
 	**Example:**
 	` + "```html" + `
 	<form p-on:submit="handleSubmit($form)">
@@ -82,7 +82,7 @@ var (
 	    <button type="submit">Submit</button>
 	</form>
 	` + "```" + `
-	
+
 	**Methods available:**
 	- ` + "`toObject()`" + ` - Convert to plain object
 	- ` + "`toJSON()`" + ` - Convert to JSON string
@@ -1055,7 +1055,7 @@ func buildMemberCompletionItems(namedType *inspector_dto.Type, prefix string) []
 			continue
 		}
 		detail := method.Signature.ToSignatureString()
-		insertText := method.Name + "($1)$0"
+		insertText := method.Name + methodCallSnippetSuffix(method.Signature)
 		items = append(items, protocol.CompletionItem{
 			Label:            method.Name,
 			Kind:             protocol.CompletionItemKindMethod,
@@ -1070,6 +1070,80 @@ func buildMemberCompletionItems(namedType *inspector_dto.Type, prefix string) []
 	}
 
 	return items
+}
+
+// methodCallSnippetSuffix builds the snippet text that follows a method name in a
+// completion item.
+//
+// Takes signature (inspector_dto.FunctionSignature) which describes the method being
+// completed.
+//
+// Returns string which is the snippet suffix, including placeholders.
+func methodCallSnippetSuffix(signature inspector_dto.FunctionSignature) string {
+	if !requiresExplicitTypeArguments(signature) {
+		return "($1)$0"
+	}
+	return "[$1]($2)$0"
+}
+
+// requiresExplicitTypeArguments reports whether a signature declares a type parameter
+// that cannot be inferred from its value parameters.
+//
+// Takes signature (inspector_dto.FunctionSignature) which is the signature to inspect.
+//
+// Returns bool which is true when the caller must supply type arguments explicitly.
+func requiresExplicitTypeArguments(signature inspector_dto.FunctionSignature) bool {
+	for _, name := range signature.TypeParamNames {
+		if !typeParamAppearsIn(name, signature.Params) {
+			return true
+		}
+	}
+	return false
+}
+
+// typeParamAppearsIn reports whether a type parameter name occurs as a complete
+// identifier in any of the given type strings.
+//
+// Takes name (string) which is the type parameter name to look for.
+// Takes typeStrings ([]string) which are the type strings to search.
+//
+// Returns bool which is true when the name appears as a standalone identifier.
+func typeParamAppearsIn(name string, typeStrings []string) bool {
+	if name == "" {
+		return false
+	}
+
+	for _, typeString := range typeStrings {
+		for offset := 0; ; {
+			index := strings.Index(typeString[offset:], name)
+			if index < 0 {
+				break
+			}
+			start := offset + index
+			end := start + len(name)
+			if !isIdentifierByte(typeString, start-1) && !isIdentifierByte(typeString, end) {
+				return true
+			}
+			offset = end
+		}
+	}
+
+	return false
+}
+
+// isIdentifierByte reports whether the byte at the given index of s is part of a Go
+// identifier. An index outside the string is treated as a separator.
+//
+// Takes s (string) which is the string to inspect.
+// Takes index (int) which is the byte offset to test.
+//
+// Returns bool which is true when the byte continues an identifier.
+func isIdentifierByte(s string, index int) bool {
+	if index < 0 || index >= len(s) {
+		return false
+	}
+	c := s[index]
+	return c == '_' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
 // hasPrefix checks whether s starts with the given prefix.

@@ -148,7 +148,7 @@ func init() {
 	staticNode_2_child_0.NodeType = pikoruntime.NodeElement
 	staticNode_2_child_0.TagName = "section"
 	staticNode_2_child_0.Attributes = make([]pikoruntime.HTMLAttribute, 0, 3)
-	staticNode_2_child_0.Attributes = append(staticNode_2_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_main_594861c5 partials_layout_ee037d9a"})
+	staticNode_2_child_0.Attributes = append(staticNode_2_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_layout_ee037d9a pages_main_594861c5"})
 	staticNode_2_child_0.Attributes = append(staticNode_2_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:1:0"})
 	staticNode_2_child_0.Attributes = append(staticNode_2_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "class", Value: "page-section"})
 	staticNode_2_child_0.Children = make([]*pikoruntime.TemplateNode, 0, 3)

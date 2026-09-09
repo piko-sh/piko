@@ -188,7 +188,6 @@ func postTimestampRequest(ctx context.Context, tsaURL string, reqDER []byte) ([]
 		return nil, fmt.Errorf("sending timestamp request to %s: %w", tsaURL, err)
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 	}()
 

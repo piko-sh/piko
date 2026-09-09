@@ -91,16 +91,6 @@ func decodeBoundedJSON(body io.Reader, target any) error {
 	return json.Unmarshal(data, target)
 }
 
-// drainAndClose drains any remaining bytes from response.Body before closing so that the
-// underlying TCP connection can be reused by the HTTP client.
-//
-// Takes response (*http.Response) which is the response whose body should be drained and
-// closed.
-func drainAndClose(response *http.Response) {
-	_, _ = io.Copy(io.Discard, response.Body)
-	_ = response.Body.Close()
-}
-
 // mistralProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort for Mistral AI.
 type mistralProvider struct {
@@ -444,7 +434,7 @@ func (p *mistralProvider) ListModels(ctx context.Context) ([]llm_dto.ModelInfo, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list mistral models: %w", err)
 	}
-	defer drainAndClose(response)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, classifyMistralAPIError(response, "mistral API error", "mistral request rejected")
@@ -647,7 +637,7 @@ func (p *mistralProvider) doEmbedRequest(
 	if err != nil {
 		return nil, fmt.Errorf("mistral embedding request failed: %w", err)
 	}
-	defer drainAndClose(response)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, classifyMistralAPIError(response, "mistral embedding API error", "mistral embedding request rejected")
@@ -916,7 +906,7 @@ func (p *mistralProvider) doRequest(ctx context.Context, apiReq *mistralRequest)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer drainAndClose(response)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, classifyMistralAPIError(response, "mistral API error", "mistral request rejected")

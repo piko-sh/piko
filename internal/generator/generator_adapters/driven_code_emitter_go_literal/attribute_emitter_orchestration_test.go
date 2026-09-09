@@ -19,7 +19,6 @@
 package driven_code_emitter_go_literal
 
 import (
-	"context"
 	"testing"
 
 	goast "go/ast"
@@ -230,7 +229,7 @@ func TestAttributeEmitter_Emit_Orchestration(t *testing.T) {
 			t.Parallel()
 
 			em := requireEmitter(t)
-			em.resetState(context.Background())
+			em.resetState()
 			em.ctx = NewEmitterContext()
 
 			nodeVar := cachedIdent("node")

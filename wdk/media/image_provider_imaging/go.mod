@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/media/image_provider_imaging
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/HugoSmits86/nativewebp v1.3.0

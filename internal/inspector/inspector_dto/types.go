@@ -97,6 +97,13 @@ type FunctionSignature struct {
 
 	// Results holds the return type strings for the function.
 	Results []string `json:"results"`
+
+	// TypeParamNames holds the declared type parameter names, in declaration order.
+	TypeParamNames []string `json:"type_param_names,omitempty"`
+
+	// TypeParamConstraints holds the constraint type string for each entry in
+	// TypeParamNames, in the same order.
+	TypeParamConstraints []string `json:"type_param_constraints,omitempty"`
 }
 
 // ToSignatureString returns a human-readable string representation of the function
@@ -109,7 +116,28 @@ func (fs FunctionSignature) ToSignatureString() string {
 	if len(fs.Results) > 1 {
 		results = "(" + results + ")"
 	}
-	return fmt.Sprintf("func(%s) %s", params, results)
+	return fmt.Sprintf("func%s(%s) %s", fs.TypeParamList(), params, results)
+}
+
+// TypeParamList renders the declared type parameters in Go source form.
+//
+// Returns string which is the bracketed list such as "[T any, U comparable]", or an empty
+// string when the signature declares no type parameters.
+func (fs FunctionSignature) TypeParamList() string {
+	if len(fs.TypeParamNames) == 0 {
+		return ""
+	}
+
+	parts := make([]string, len(fs.TypeParamNames))
+	for index, name := range fs.TypeParamNames {
+		if index < len(fs.TypeParamConstraints) && fs.TypeParamConstraints[index] != "" {
+			parts[index] = name + " " + fs.TypeParamConstraints[index]
+			continue
+		}
+		parts[index] = name
+	}
+
+	return "[" + strings.Join(parts, ", ") + "]"
 }
 
 // WorkspaceSymbol represents a symbol (type, function, method) in the workspace with its

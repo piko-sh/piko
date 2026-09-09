@@ -1,0 +1,20 @@
+--- PACKAGE: testcase_42_generic_method ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 42_generic_method/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Processor
+    - Defined In:      42_generic_method/src/main.go
+    - TypeString:      main.Processor
+    - Underlying:      struct{}
+    - Stringability:   0
+    - Methods:
+      - func (T) Convert         func[K comparable, V any](K, V) map[K]V
+      - func (T) Process         func[T any](T) (T, error)
+
+[Package-Level Functions]
+  (none)

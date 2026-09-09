@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/email/email_provider_postmark
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/mrz1836/postmark v1.9.2

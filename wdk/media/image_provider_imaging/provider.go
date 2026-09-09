@@ -425,7 +425,7 @@ func (*Provider) encode(img image.Image, output io.Writer, spec media.Transforma
 
 	case "png":
 		encoder := png.Encoder{
-			CompressionLevel: png.DefaultCompression,
+			CompressionLevel: png.BestCompression,
 			BufferPool:       nil,
 		}
 		if err := encoder.Encode(output, img); err != nil {

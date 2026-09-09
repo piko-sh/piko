@@ -1,0 +1,4 @@
+{
+  "description": "Tests that generic top-level functions record their type parameter names and constraints, which were previously erased from the stored signature.",
+  "moduleName": "testcase_70_generic_function"
+}

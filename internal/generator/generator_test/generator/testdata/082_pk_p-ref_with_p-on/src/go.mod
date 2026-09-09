@@ -1,6 +1,6 @@
 module testcase_082_pk_p_ref_with_p_on
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

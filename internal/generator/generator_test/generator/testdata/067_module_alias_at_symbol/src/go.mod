@@ -1,6 +1,6 @@
 module testcase_067_module_alias_at_symbol
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

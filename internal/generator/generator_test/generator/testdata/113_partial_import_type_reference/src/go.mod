@@ -1,6 +1,6 @@
 module testcase_113_partial_import_type_reference
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

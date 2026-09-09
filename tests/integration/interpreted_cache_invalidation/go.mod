@@ -21,15 +21,13 @@
 // interpreter provider.
 module piko.sh/piko/tests/integration/cache_invalidation
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/stretchr/testify v1.11.1
 	piko.sh/piko v0.0.0
 	piko.sh/piko/wdk/interp/interp_provider_piko v0.0.0
 )
-
-require go.uber.org/goleak v1.3.0 // indirect
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.5.2 // indirect
@@ -62,6 +60,7 @@ require (
 	go.opentelemetry.io/otel v1.45.0 // indirect
 	go.opentelemetry.io/otel/metric v1.45.0 // indirect
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/image v0.44.0 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/net v0.57.0 // indirect

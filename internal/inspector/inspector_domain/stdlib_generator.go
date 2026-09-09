@@ -75,6 +75,7 @@ var (
 		"math/rand",
 		"math/rand/v2",
 		"crypto/rand",
+		"uuid",
 	}
 
 	// PikoPackages defines the Piko framework packages to include.
@@ -131,6 +132,8 @@ func GenerateStdlibTypeDataWithPackages(ctx context.Context, stdlibPackages, pik
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode stdlib packages: %w", err)
 	}
+
+	sanitiseTypeDataPaths(typeData)
 
 	if err := validate(typeData); err != nil {
 		return nil, fmt.Errorf("generated stdlib TypeData failed validation: %w", err)

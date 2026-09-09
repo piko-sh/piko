@@ -1,6 +1,6 @@
 module testcase_43_deep_field_resolution_on_slice_element_bug
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

@@ -254,6 +254,10 @@ generate-interp-symbols: ## Generate bytecode interpreter stdlib symbol tables
 generate-interp-piko-symbols: ## Generate bytecode interpreter piko runtime symbol tables
 	@$(HACK_DIR)/generate/interp_piko_symbols.sh
 
+.PHONY: generate-stdlib-bundle
+generate-stdlib-bundle: ## Generate the embedded stdlib type bundle for the wasm playground
+	@$(HACK_DIR)/generate/stdlib-bundle.sh
+
 ##@ Import
 
 .PHONY: import-esbuild-update

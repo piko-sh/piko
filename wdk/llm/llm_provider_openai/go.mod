@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/llm/llm_provider_openai
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/openai/openai-go/v3 v3.50.0

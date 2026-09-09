@@ -1,6 +1,6 @@
 module testcase_157_action_same_package_name_different_paths
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

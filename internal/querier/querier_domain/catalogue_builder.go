@@ -296,15 +296,20 @@ func (b *catalogueBuilder) applyMigrationColumnOverrides(overrides []migrationCo
 			column.SQLTypeOverride = override.SQLType
 		}
 		if override.GoType != "" {
-			lastDot := strings.LastIndex(override.GoType, ".")
+			goType, problem := parseGoTypeOverride(override.GoType)
 			switch {
-			case lastDot < 0:
-				column.GoTypeOverride = &querier_dto.GoType{Name: override.GoType}
-			case lastDot > 0 && lastDot < len(override.GoType)-1:
-				column.GoTypeOverride = &querier_dto.GoType{
-					Package: override.GoType[:lastDot],
-					Name:    override.GoType[lastDot+1:],
-				}
+			case goType != nil && problem != "":
+				diagnostics = append(diagnostics, querier_dto.SourceError{
+					Filename: filename,
+					Line:     1,
+					Column:   1,
+					Message: fmt.Sprintf(
+						"migration go_type override %q for %s.%s is unusable: %s",
+						override.GoType, override.Table, override.Column, problem,
+					),
+				})
+			case goType != nil:
+				column.GoTypeOverride = goType
 			default:
 				diagnostics = append(diagnostics, querier_dto.SourceError{
 					Filename: filename,

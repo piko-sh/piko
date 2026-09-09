@@ -25,6 +25,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -878,7 +879,9 @@ func TestDirectiveMappingStmt(t *testing.T) {
 			lit, litOK := exprStmt.X.(*goast.BasicLit)
 			assert.True(t, litOK, "expected BasicLit, got %T", exprStmt.X)
 			if litOK {
-				assert.Equal(t, "//line pages/main.pk:25:9", lit.Value)
+				assert.Equal(t, "//line /base/pages/main.pk:25:9", lit.Value)
+				assert.True(t, filepath.IsAbs("/base/pages/main.pk"),
+					"A compiler-visible line directive must carry an absolute path")
 			}
 		}
 	})
@@ -897,7 +900,7 @@ func TestDirectiveMappingStmt(t *testing.T) {
 			lit, litOK := exprStmt.X.(*goast.BasicLit)
 			assert.True(t, litOK, "expected BasicLit, got %T", exprStmt.X)
 			if litOK {
-				assert.Equal(t, "//line pages/main.pk:25", lit.Value)
+				assert.Equal(t, "//line /base/pages/main.pk:25", lit.Value)
 			}
 		}
 	})

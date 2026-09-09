@@ -33,7 +33,8 @@ jobs:
 
       - uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
-          version: v2.12.2
+          version: v2.13.2
+          install-mode: goinstall
           args: --timeout=10m
           verify: false
 
@@ -203,6 +204,36 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: go build -ldflags="-s -w" -o /dev/null ./cmd/pikopls
 
+      - name: Build CLI with the safe build tag
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -tags safe -ldflags="-s -w" -o /dev/null ./cmd/piko
+
+  build-wasm:
+    name: Build js/wasm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - name: Build wasm entry point
+        env:
+          GOOS: js
+          GOARCH: wasm
+        run: go build -o /dev/null ./cmd/wasm
+
+      - name: Vet wasm packages
+        env:
+          GOOS: js
+          GOARCH: wasm
+        run: go vet ./internal/wasm/... ./internal/binder/... ./internal/inspector/...
+
   ci-ok:
     name: CI
     if: always()
@@ -217,6 +248,7 @@ jobs:
       - test-vscode
       - test-idea
       - build-verify
+      - build-wasm
     runs-on: ubuntu-latest
     steps:
       - name: Check all jobs passed

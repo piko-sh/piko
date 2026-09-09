@@ -153,7 +153,7 @@ func (h *ExamplesHarness) BuildServer() error {
 		return fmt.Errorf("updating go.mod: %w", err)
 	}
 
-	goWorkContent := fmt.Sprintf("go 1.26.0\n\nuse (\n\t.\n\t%s\n)\n", pikoProjectRoot)
+	goWorkContent := fmt.Sprintf("go 1.27.0\n\nuse (\n\t.\n\t%s\n)\n", pikoProjectRoot)
 	if err := os.WriteFile(filepath.Join(h.TempDir, "go.work"), []byte(goWorkContent), 0644); err != nil {
 		return fmt.Errorf("creating go.work: %w", err)
 	}

@@ -824,16 +824,7 @@ func cleanPath(name string) string {
 // Returns prefix (string) which is the part before the asterisk.
 // Returns suffix (string) which is the part after the asterisk.
 func parsePattern(pattern string) (prefix, suffix string) {
-	if pattern == "" {
-		return "", ""
-	}
-
-	if index := strings.LastIndex(pattern, "*"); index != -1 {
-		prefix = pattern[:index]
-		suffix = pattern[index+1:]
-	} else {
-		prefix = pattern
-	}
+	prefix, suffix, _ = strings.CutLast(pattern, "*")
 
 	return prefix, suffix
 }

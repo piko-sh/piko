@@ -1,9 +1,11 @@
 module piko.sh/piko/wdk/media/image_provider_vips
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/davidbyttow/govips/v2 v2.18.0
+	github.com/stretchr/testify v1.11.1
+	go.uber.org/goleak v1.3.0
 	golang.org/x/image v0.44.0
 	piko.sh/piko v0.0.0
 )
@@ -31,7 +33,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sony/gobreaker/v2 v2.4.0 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/tdewolff/minify/v2 v2.24.15 // indirect
 	github.com/tdewolff/parse/v2 v2.8.15 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

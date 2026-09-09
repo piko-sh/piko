@@ -1,6 +1,6 @@
 module testcase_13_prop_from_embedded_struct
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

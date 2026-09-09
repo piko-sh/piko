@@ -1,6 +1,6 @@
 module testcase_148_partial_in_independent_conditionals
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

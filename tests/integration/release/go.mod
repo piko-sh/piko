@@ -18,7 +18,7 @@
 
 module piko.sh/piko/tests/integration/release
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/fergusstrange/embedded-postgres v1.34.0

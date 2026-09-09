@@ -1,6 +1,6 @@
 module testcase_63_for_loop_wrong_variable_order
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

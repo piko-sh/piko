@@ -1,6 +1,6 @@
 module piko.sh/piko/tests/integration/pdf
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20260804232424-e85f50dbfd32

@@ -66,6 +66,8 @@ var (
 		"sort",
 		"slices",
 		"maps",
+		"container/list",
+		"container/heap",
 		"text/template",
 		"html",
 		"html/template",
@@ -78,6 +80,8 @@ var (
 		"math",
 		"math/rand",
 		"math/rand/v2",
+		"crypto/rand",
+		"uuid",
 	}
 
 	// GetStdlibTypeData returns the pre-generated stdlib TypeData. The data is cached after

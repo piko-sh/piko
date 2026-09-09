@@ -1,6 +1,6 @@
 module testcase_64_error_method_not_on_interface
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

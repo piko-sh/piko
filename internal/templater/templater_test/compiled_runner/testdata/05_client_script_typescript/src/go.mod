@@ -1,6 +1,6 @@
 module testcase_06_client_script_typescript
 
-go 1.26.0
+go 1.27.0
 
 // This replace directive is crucial for the test harness to find your local piko codebase.
 // The path points from this test's 'src' directory up to your project root.

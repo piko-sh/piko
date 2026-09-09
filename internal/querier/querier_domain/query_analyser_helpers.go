@@ -1015,12 +1015,8 @@ func (a *queryAnalyser) applyOverrideToColumn(column *querier_dto.OutputColumn, 
 		column.Nullable = *override.Nullable
 	}
 	if override.GoType != "" {
-		lastDot := strings.LastIndex(override.GoType, ".")
-		if lastDot > 0 && lastDot < len(override.GoType)-1 {
-			column.GoTypeOverride = &querier_dto.GoType{
-				Package: override.GoType[:lastDot],
-				Name:    override.GoType[lastDot+1:],
-			}
+		if goType, problem := parseGoTypeOverride(override.GoType); goType != nil && problem == "" {
+			column.GoTypeOverride = goType
 		}
 	}
 }

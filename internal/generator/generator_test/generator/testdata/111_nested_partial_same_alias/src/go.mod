@@ -1,6 +1,6 @@
 module testcase_111_nested_partial_same_alias
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

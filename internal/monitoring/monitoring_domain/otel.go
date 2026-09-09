@@ -75,7 +75,7 @@ var (
 	watchdogHeapHighWaterBytes metric.Int64Gauge
 
 	// watchdogGoroutineLeakDetectionCount tracks the total number of goroutine leak
-	// detections via the Go 1.26 goroutine leak profile.
+	// detections via the goroutine leak profile.
 	watchdogGoroutineLeakDetectionCount metric.Int64Counter
 
 	// watchdogPreDeathSnapshotCount tracks the total number of pre-death diagnostic
@@ -270,7 +270,7 @@ func init() {
 
 	watchdogGoroutineLeakDetectionCount, err = watchdogMeter.Int64Counter(
 		"watchdog.goroutine_leak_detection_count",
-		metric.WithDescription("Number of goroutine leak detections via the Go 1.26 goroutine leak profile"),
+		metric.WithDescription("Number of goroutine leak detections via the goroutine leak profile"),
 	)
 	if err != nil {
 		otel.Handle(err)

@@ -1,0 +1,14 @@
+--- PACKAGE: testcase_70_generic_function ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 70_generic_function/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  (none)
+
+[Package-Level Functions]
+  - func Keys                 func[K comparable, V any](map[K]V) []K
+  - func Map                  func[T any, U any]([]T, func(T) U) []U

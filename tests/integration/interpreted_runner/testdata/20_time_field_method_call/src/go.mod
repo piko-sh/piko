@@ -1,6 +1,6 @@
 module testcase_20_time_field_method_call
 
-go 1.26.0
+go 1.27.0
 
 replace piko.sh/piko => ../../../../../../
 

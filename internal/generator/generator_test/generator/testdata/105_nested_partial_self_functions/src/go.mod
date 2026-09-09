@@ -1,6 +1,6 @@
 module testcase_105_nested_partial_self_functions
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

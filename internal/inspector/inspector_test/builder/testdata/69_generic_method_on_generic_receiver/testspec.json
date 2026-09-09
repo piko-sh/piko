@@ -1,0 +1,4 @@
+{
+  "description": "Tests a generic method declared on a generic receiver, where the method's own type parameter must survive receiver substitution instead of being rebound or erased.",
+  "moduleName": "testcase_69_generic_method_on_generic_receiver"
+}

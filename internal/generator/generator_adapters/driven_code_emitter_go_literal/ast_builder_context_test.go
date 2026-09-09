@@ -33,7 +33,7 @@ func TestEmitChildren_ContextCancellation(t *testing.T) {
 	t.Parallel()
 
 	em := requireEmitter(t)
-	em.resetState(context.Background())
+	em.resetState()
 	em.ctx = NewEmitterContext()
 
 	ctx, cancel := context.WithCancelCause(context.Background())

@@ -1,0 +1,37 @@
+--- PACKAGE: testcase_69_generic_method_on_generic_receiver ---
+[Package Info]
+  - Name:    main
+
+[File-Scoped Imports]
+  > File: 69_generic_method_on_generic_receiver/src/main.go
+    (no imports in this file)
+
+[Named Types]
+  > type Box
+    - Defined In:      69_generic_method_on_generic_receiver/src/main.go
+    - TypeString:      main.Box[T]
+    - Underlying:      struct{Value T}
+    - Stringability:   0
+    - Type Params:     [T]
+    - Fields:
+      - Value                T
+    - Methods:
+      - func (T) Get             func() T
+      - func (T) Map             func[U any](func(T) U) main.Box[U]
+
+  > type StringBox
+    - Defined In:      69_generic_method_on_generic_receiver/src/main.go
+    - TypeString:      main.StringBox
+    - Underlying:      struct{main.Box[string]}
+    - Stringability:   0
+    - Fields:
+      - Box                  main.Box[string] (embedded)
+        (Canonical Package: testcase_69_generic_method_on_generic_receiver)
+    - Methods:
+      - func (T) Get             func() string
+        (Promoted from: testcase_69_generic_method_on_generic_receiver.Box)
+      - func (T) Map             func[U any](func(string) U) main.Box[U]
+        (Promoted from: testcase_69_generic_method_on_generic_receiver.Box)
+
+[Package-Level Functions]
+  (none)

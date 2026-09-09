@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/db/db_driver_d1
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/cloudflare/cloudflare-go v0.117.0

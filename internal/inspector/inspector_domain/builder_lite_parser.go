@@ -710,11 +710,43 @@ func (e *liteTypeExtractor) writeResultTypes(builder *strings.Builder, results *
 // Returns inspector_dto.FunctionSignature which contains the parameter and result type
 // strings.
 func (e *liteTypeExtractor) extractSignature(ft *ast.FuncType) inspector_dto.FunctionSignature {
+	typeParamNames, typeParamConstraints := e.extractTypeParams(ft.TypeParams)
+
 	return inspector_dto.FunctionSignature{
-		Params:     e.extractFieldListTypeStrings(ft.Params),
-		ParamNames: extractFieldListNames(ft.Params),
-		Results:    e.extractFieldListTypeStrings(ft.Results),
+		Params:               e.extractFieldListTypeStrings(ft.Params),
+		ParamNames:           extractFieldListNames(ft.Params),
+		Results:              e.extractFieldListTypeStrings(ft.Results),
+		TypeParamNames:       typeParamNames,
+		TypeParamConstraints: typeParamConstraints,
 	}
+}
+
+// extractTypeParams gathers the declared type parameter names and constraints from a type
+// parameter list. A single field may declare several names sharing one constraint, as in
+// [K, V any], so each name is recorded with a copy of that constraint.
+//
+// Takes fields (*ast.FieldList) which contains the declared type parameters.
+//
+// Returns []string which holds the type parameter names in declaration order, or nil when
+// none are declared.
+// Returns []string which holds the matching constraint type strings, in the same order.
+func (e *liteTypeExtractor) extractTypeParams(fields *ast.FieldList) ([]string, []string) {
+	if fields == nil || len(fields.List) == 0 {
+		return nil, nil
+	}
+
+	var names []string
+	var constraints []string
+
+	for _, field := range fields.List {
+		constraint, _ := e.resolver.TypeExprToString(field.Type)
+		for _, name := range field.Names {
+			names = append(names, name.Name)
+			constraints = append(constraints, constraint)
+		}
+	}
+
+	return names, constraints
 }
 
 // extractFieldListTypeStrings gathers type strings from a field list. When multiple names
@@ -812,14 +844,19 @@ func (e *liteTypeExtractor) extractReceiverTypeName(recv *ast.FieldList) (string
 //
 // Returns string which is the extracted type name, or empty if not found.
 // Returns bool which is true if the receiver is a pointer type.
-func (*liteTypeExtractor) receiverTypeName(expression ast.Expr) (string, bool) {
+func (e *liteTypeExtractor) receiverTypeName(expression ast.Expr) (string, bool) {
 	switch t := expression.(type) {
 	case *ast.Ident:
 		return t.Name, false
+	case *ast.IndexExpr:
+		name, _ := e.receiverTypeName(t.X)
+		return name, false
+	case *ast.IndexListExpr:
+		name, _ := e.receiverTypeName(t.X)
+		return name, false
 	case *ast.StarExpr:
-		if identifier, ok := t.X.(*ast.Ident); ok {
-			return identifier.Name, true
-		}
+		name, _ := e.receiverTypeName(t.X)
+		return name, name != ""
 	}
 	return "", false
 }

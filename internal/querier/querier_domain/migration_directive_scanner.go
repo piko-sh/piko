@@ -432,14 +432,14 @@ func parseMigrationColumnOverrideLine(line, commentPrefix string) (migrationColu
 	}
 
 	positional := strings.TrimSpace(segments[0])
-	dotIndex := strings.LastIndex(positional, ".")
-	if dotIndex <= 0 || dotIndex >= len(positional)-1 {
+	table, column, found := strings.CutLast(positional, ".")
+	if !found || table == "" || column == "" {
 		return migrationColumnOverride{}, false
 	}
 
 	override := migrationColumnOverride{
-		Table:  strings.ToLower(positional[:dotIndex]),
-		Column: strings.ToLower(positional[dotIndex+1:]),
+		Table:  strings.ToLower(table),
+		Column: strings.ToLower(column),
 	}
 	for _, segment := range segments[1:] {
 		applyMigrationColumnOverrideKeyword(segment, &override)

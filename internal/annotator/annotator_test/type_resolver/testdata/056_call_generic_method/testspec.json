@@ -1,0 +1,23 @@
+[
+  {
+    "description": "Validates a call to a generic method with one explicit type argument, where the type parameter appears only in the result.",
+    "expression": "state.User.Fetch[string](\"key\")",
+    "expectedType": "string",
+    "expectedDiagnostics": 0,
+    "diagnostics": []
+  },
+  {
+    "description": "Validates a call to a generic method with two explicit type arguments, substituted into a composite result type.",
+    "expression": "state.User.Pair[string, int](\"key\", 1)",
+    "expectedType": "map[string]int",
+    "expectedDiagnostics": 0,
+    "diagnostics": []
+  },
+  {
+    "description": "Validates that a non-generic method on the same type is unaffected.",
+    "expression": "state.User.GetFullName()",
+    "expectedType": "string",
+    "expectedDiagnostics": 0,
+    "diagnostics": []
+  }
+]

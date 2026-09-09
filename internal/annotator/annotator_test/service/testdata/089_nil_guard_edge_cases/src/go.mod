@@ -1,6 +1,6 @@
 module testcase_89_nil_guard_edge_cases
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

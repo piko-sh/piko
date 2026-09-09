@@ -1,8 +1,6 @@
 module piko.sh/piko/wdk/linguistics/linguistics_language_dutch
 
-go 1.26.0
-
-require piko.sh/piko v0.0.0 // indirect
+go 1.27.0
 
 require (
 	piko.sh/piko/wdk/linguistics/linguistics_phonetic_dutch v0.0.0
@@ -24,4 +22,5 @@ require (
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
+	piko.sh/piko v0.0.0 // indirect
 )

@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/monitoring/monitoring_api
 
-go 1.26.0
+go 1.27.0
 
 require (
 	google.golang.org/grpc v1.83.0

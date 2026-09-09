@@ -1,6 +1,6 @@
 module testcase_102_dynamic_bindings_in_p_if
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

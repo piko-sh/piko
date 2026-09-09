@@ -20,6 +20,7 @@ package wizard
 
 import (
 	"fmt"
+	goversion "go/version"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -33,7 +34,7 @@ import (
 
 const (
 	// requiredGoVersion is the minimum Go version needed by scaffolded projects.
-	requiredGoVersion = "go1.26"
+	requiredGoVersion = "go1.27"
 
 	// projectNameCharLimit is the maximum number of characters allowed for the project name
 	// input.
@@ -497,12 +498,12 @@ func newInitialModel() *Model {
 //
 // Returns string which is the warning message, or empty if the Go version is sufficient.
 func goVersionWarning() string {
-	version := runtime.Version()
-	if version >= requiredGoVersion {
+	runtimeVersion := runtime.Version()
+	if goversion.Compare(runtimeVersion, requiredGoVersion) >= 0 {
 		return ""
 	}
 	return fmt.Sprintf(
 		"your Go version (%s) is older than the required %s - you may need to upgrade before building",
-		version, requiredGoVersion,
+		runtimeVersion, requiredGoVersion,
 	)
 }

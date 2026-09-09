@@ -83,22 +83,51 @@ func (ar *astRewriter) rewritePackageName() {
 // partials_card_abc123.FormatPrice). This prevents naming clashes when different
 // components in a partial chain use the same alias for different imports.
 //
-// Returns []string which contains alias names that are shadowed by local variable
-// declarations. The caller should emit diagnostic warnings for these.
+// Returns []string which contains alias names that are shadowed by local declarations,
+// sorted for deterministic diagnostics. The caller should emit warnings for these.
 func (ar *astRewriter) rewritePikoImportReferences() []string {
 	if len(ar.pikoAliasToHash) == 0 {
 		return nil
 	}
 
-	shadowedAliases := ar.detectShadowedAliases()
+	fileScopeShadowed := ar.collectFileScopeShadowed()
+	allShadowed := make(map[string]bool, len(fileScopeShadowed))
+	for alias := range fileScopeShadowed {
+		allShadowed[alias] = true
+	}
 
-	goast.Inspect(ar.ast, func(n goast.Node) bool {
-		selectorExpression, ok := n.(*goast.SelectorExpr)
+	for _, declaration := range ar.ast.Decls {
+		scopeShadowed := fileScopeShadowed
+		if functionDeclaration, isFunc := declaration.(*goast.FuncDecl); isFunc {
+			scopeShadowed = ar.collectFunctionScopeShadowed(functionDeclaration, fileScopeShadowed)
+			for alias := range scopeShadowed {
+				allShadowed[alias] = true
+			}
+		}
+		ar.rewriteSelectorsInNode(declaration, scopeShadowed)
+	}
+
+	result := make([]string, 0, len(allShadowed))
+	for alias := range allShadowed {
+		result = append(result, alias)
+	}
+	slices.Sort(result)
+	return result
+}
+
+// rewriteSelectorsInNode rewrites qualified references to Piko import aliases within a
+// single declaration, leaving names bound in the surrounding scope untouched.
+//
+// Takes n (goast.Node) which is the declaration to rewrite in place.
+// Takes shadowed (map[string]bool) which holds alias names bound in this scope.
+func (ar *astRewriter) rewriteSelectorsInNode(n goast.Node, shadowed map[string]bool) {
+	goast.Inspect(n, func(node goast.Node) bool {
+		selectorExpression, ok := node.(*goast.SelectorExpr)
 		if !ok {
 			return true
 		}
 		identifier, isIdent := selectorExpression.X.(*goast.Ident)
-		if !isIdent {
+		if !isIdent || shadowed[identifier.Name] {
 			return true
 		}
 		if hashedName, found := ar.pikoAliasToHash[identifier.Name]; found {
@@ -106,27 +135,65 @@ func (ar *astRewriter) rewritePikoImportReferences() []string {
 		}
 		return true
 	})
-
-	return shadowedAliases
 }
 
-// detectShadowedAliases walks the AST to find any local variable declarations that shadow
-// a Piko import alias.
+// collectFileScopeShadowed finds top-level declarations whose names shadow a Piko import
+// alias for the whole file.
 //
-// Returns []string which contains the names of shadowed aliases.
-func (ar *astRewriter) detectShadowedAliases() []string {
+// Returns map[string]bool which holds the shadowed alias names.
+func (ar *astRewriter) collectFileScopeShadowed() map[string]bool {
 	shadowedSet := make(map[string]bool)
+	for _, declaration := range ar.ast.Decls {
+		switch node := declaration.(type) {
+		case *goast.FuncDecl:
+			if node.Recv == nil {
+				ar.markIdentIfPikoAlias(node.Name, shadowedSet)
+			}
+		case *goast.GenDecl:
+			ar.collectFileScopeShadowedFromGenDecl(node, shadowedSet)
+		}
+	}
+	return shadowedSet
+}
 
-	goast.Inspect(ar.ast, func(n goast.Node) bool {
+// collectFileScopeShadowedFromGenDecl records top-level var, const and type names that
+// shadow a Piko import alias.
+//
+// Takes node (*goast.GenDecl) which is the declaration group to inspect.
+// Takes shadowedSet (map[string]bool) which accumulates shadowed alias names.
+func (ar *astRewriter) collectFileScopeShadowedFromGenDecl(node *goast.GenDecl, shadowedSet map[string]bool) {
+	for _, spec := range node.Specs {
+		switch specNode := spec.(type) {
+		case *goast.ValueSpec:
+			ar.collectShadowedFromValueSpec(specNode, shadowedSet)
+		case *goast.TypeSpec:
+			ar.collectShadowedFromTypeSpec(specNode, shadowedSet)
+		}
+	}
+}
+
+// collectFunctionScopeShadowed finds bindings inside a function that shadow a Piko alias.
+//
+// Takes node (*goast.FuncDecl) which is the function to inspect.
+// Takes fileScopeShadowed (map[string]bool) which holds aliases already shadowed at file
+// scope.
+//
+// Returns map[string]bool which holds the aliases shadowed within the given function.
+func (ar *astRewriter) collectFunctionScopeShadowed(
+	node *goast.FuncDecl,
+	fileScopeShadowed map[string]bool,
+) map[string]bool {
+	shadowedSet := make(map[string]bool, len(fileScopeShadowed))
+	for alias := range fileScopeShadowed {
+		shadowedSet[alias] = true
+	}
+
+	goast.Inspect(node, func(n goast.Node) bool {
 		ar.collectShadowedFromNode(n, shadowedSet)
 		return true
 	})
 
-	result := make([]string, 0, len(shadowedSet))
-	for alias := range shadowedSet {
-		result = append(result, alias)
-	}
-	return result
+	return shadowedSet
 }
 
 // collectShadowedFromNode checks a single AST node for Piko alias shadowing.
@@ -146,6 +213,10 @@ func (ar *astRewriter) collectShadowedFromNode(n goast.Node, shadowedSet map[str
 		ar.collectShadowedFromRangeStmt(node, shadowedSet)
 	case *goast.ForStmt:
 		ar.collectShadowedFromForStmt(node, shadowedSet)
+	case *goast.TypeSpec:
+		ar.collectShadowedFromTypeSpec(node, shadowedSet)
+	case *goast.FuncLit:
+		ar.collectShadowedFromFuncLit(node, shadowedSet)
 	}
 }
 
@@ -172,15 +243,41 @@ func (ar *astRewriter) collectShadowedFromValueSpec(node *goast.ValueSpec, shado
 	}
 }
 
-// collectShadowedFromFuncDecl checks function parameters and named return values for
-// shadowed identifiers.
+// collectShadowedFromFuncDecl checks the receiver, type parameters, parameters and named
+// return values of a function declaration for shadowed identifiers.
 //
 // Takes node (*goast.FuncDecl) which is the function declaration to inspect.
 // Takes shadowedSet (map[string]bool) which accumulates shadowed identifiers.
 func (ar *astRewriter) collectShadowedFromFuncDecl(node *goast.FuncDecl, shadowedSet map[string]bool) {
+	ar.collectShadowedFromFieldList(node.Recv, shadowedSet)
 	if node.Type == nil {
 		return
 	}
+	ar.collectShadowedFromFieldList(node.Type.TypeParams, shadowedSet)
+	ar.collectShadowedFromFieldList(node.Type.Params, shadowedSet)
+	ar.collectShadowedFromFieldList(node.Type.Results, shadowedSet)
+}
+
+// collectShadowedFromTypeSpec checks type declarations (type card struct{}) and their
+// type parameters for shadowed identifiers.
+//
+// Takes node (*goast.TypeSpec) which is the type declaration to inspect.
+// Takes shadowedSet (map[string]bool) which accumulates shadowed identifiers.
+func (ar *astRewriter) collectShadowedFromTypeSpec(node *goast.TypeSpec, shadowedSet map[string]bool) {
+	ar.markIdentIfPikoAlias(node.Name, shadowedSet)
+	ar.collectShadowedFromFieldList(node.TypeParams, shadowedSet)
+}
+
+// collectShadowedFromFuncLit checks function literal parameters and named return values
+// for shadowed identifiers.
+//
+// Takes node (*goast.FuncLit) which is the function literal to inspect.
+// Takes shadowedSet (map[string]bool) which accumulates shadowed identifiers.
+func (ar *astRewriter) collectShadowedFromFuncLit(node *goast.FuncLit, shadowedSet map[string]bool) {
+	if node.Type == nil {
+		return
+	}
+	ar.collectShadowedFromFieldList(node.Type.TypeParams, shadowedSet)
 	ar.collectShadowedFromFieldList(node.Type.Params, shadowedSet)
 	ar.collectShadowedFromFieldList(node.Type.Results, shadowedSet)
 }
@@ -239,6 +336,9 @@ func (ar *astRewriter) markIfPikoAlias(expression goast.Expr, shadowedSet map[st
 // Takes identifier (*goast.Ident) which is the identifier to check.
 // Takes shadowedSet (map[string]bool) which collects shadowed alias names.
 func (ar *astRewriter) markIdentIfPikoAlias(identifier *goast.Ident, shadowedSet map[string]bool) {
+	if identifier == nil {
+		return
+	}
 	if _, isPikoAlias := ar.pikoAliasToHash[identifier.Name]; isPikoAlias {
 		shadowedSet[identifier.Name] = true
 	}

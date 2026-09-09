@@ -108,6 +108,67 @@ func (s *baseEncoder[V]) HandlesType() reflect.Type {
 	return s.handlesType
 }
 
+// liftedEncoder adapts a plain EncoderPort[V] to AnyEncoder.
+type liftedEncoder[V any] struct {
+	// encoder is the typed encoder being adapted.
+	encoder EncoderPort[V]
+
+	// handlesType is the reflect.Type of V, used by the registry to match values.
+	handlesType reflect.Type
+}
+
+// MarshalAny marshals a value after checking it is of type V.
+//
+// Takes value (any) which is the value to marshal.
+//
+// Returns []byte which contains the encoded data.
+// Returns error when the value is not of type V or marshalling fails.
+func (l *liftedEncoder[V]) MarshalAny(value any) ([]byte, error) {
+	typed, ok := value.(V)
+	if !ok {
+		return nil, fmt.Errorf("encoder handles %s, got %T", l.handlesType.String(), value)
+	}
+	return l.encoder.Marshal(typed)
+}
+
+// UnmarshalAny decodes data into a fresh value of type V.
+//
+// Takes data ([]byte) which is the encoded payload.
+//
+// Returns any which is the decoded value of type V.
+// Returns error when unmarshalling fails.
+func (l *liftedEncoder[V]) UnmarshalAny(data []byte) (any, error) {
+	var target V
+	if err := l.encoder.Unmarshal(data, &target); err != nil {
+		return nil, fmt.Errorf("unmarshalling value of type %s: %w", l.handlesType.String(), err)
+	}
+	return target, nil
+}
+
+// HandlesType returns the reflect.Type this encoder operates on.
+//
+// Returns reflect.Type which identifies the type this encoder handles.
+func (l *liftedEncoder[V]) HandlesType() reflect.Type {
+	return l.handlesType
+}
+
+// liftEncoder returns encoder as an AnyEncoder, wrapping it only when it does not already
+// implement one. Wrapping is avoided where possible so that the encoders shipped with the
+// framework keep their identity.
+//
+// Takes encoder (EncoderPort[V]) which is the typed encoder to lift.
+//
+// Returns AnyEncoder which is the type-agnostic form, or nil when encoder is nil.
+func liftEncoder[V any](encoder EncoderPort[V]) AnyEncoder {
+	if encoder == nil {
+		return nil
+	}
+	if anyEncoder, ok := encoder.(AnyEncoder); ok {
+		return anyEncoder
+	}
+	return &liftedEncoder[V]{encoder: encoder, handlesType: reflect.TypeFor[V]()}
+}
+
 // NewEncoder creates a new encoder from marshal/unmarshal function pairs. This is the
 // primary factory function for creating custom encoders.
 //

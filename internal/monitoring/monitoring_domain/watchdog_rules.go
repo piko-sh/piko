@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/wdk/goroutine"
 	"piko.sh/piko/wdk/safeconv"
 )
 
@@ -283,13 +284,12 @@ func (w *Watchdog) evaluateRSS(ctx context.Context, now time.Time, stats *System
 	})
 }
 
-// evaluateGoroutineLeaks checks the Go 1.26 goroutine leak profile for unreachable
-// blocked goroutines. This runs on a slower cadence than other evaluators because it
-// piggybacks on the GC reachability walk.
+// evaluateGoroutineLeaks captures the goroutine leak profile and reports any goroutines
+// the garbage collector found permanently blocked. This runs on a slower cadence than the
+// other evaluators because each capture forces a leak detection collection.
 //
 // Takes now (time.Time) which is the current evaluation timestamp.
 func (w *Watchdog) evaluateGoroutineLeaks(ctx context.Context, now time.Time) {
-	ctx, l := logger_domain.From(ctx, log)
 	if !w.goroutineLeakAvailable {
 		return
 	}
@@ -299,6 +299,34 @@ func (w *Watchdog) evaluateGoroutineLeaks(ctx context.Context, now time.Time) {
 	}
 
 	w.lastGoroutineLeakCheck = now
+
+	controller, ok := w.activeProfilingController(ctx, profileTypeGoroutineLeak)
+	if !ok {
+		return
+	}
+
+	if !w.tryAdmitCapture(now, profileTypeGoroutineLeak) {
+		return
+	}
+
+	w.goSafely(&w.captureWG, func() {
+		defer goroutine.RecoverPanic(ctx, "monitoring.watchdogCapture."+profileTypeGoroutineLeak)
+		w.captureAndReportGoroutineLeaks(ctx, controller)
+	})
+}
+
+// captureAndReportGoroutineLeaks captures the goroutine leak profile, then reports and
+// stores it only when the capture actually found leaked goroutines. A capture that finds
+// nothing is discarded without alerting or writing to disk.
+//
+// Takes controller (ProfilingController) which performs the capture.
+func (w *Watchdog) captureAndReportGoroutineLeaks(ctx context.Context, controller ProfilingController) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	profileData, ok := w.collectProfileBytes(ctx, controller, profileTypeGoroutineLeak)
+	if !ok {
+		return
+	}
 
 	leakProfile := pprof.Lookup(profileTypeGoroutineLeak)
 	if leakProfile == nil {
@@ -310,18 +338,7 @@ func (w *Watchdog) evaluateGoroutineLeaks(ctx context.Context, now time.Time) {
 		return
 	}
 
-	w.mu.Lock()
-	if w.profilingController == nil {
-		w.mu.Unlock()
-		return
-	}
-	w.mu.Unlock()
-
-	if !w.tryAdmitCapture(now, profileTypeGoroutineLeak) {
-		return
-	}
-
-	l.Warn("Goroutine leak detected via Go 1.26 goroutine leak profile",
+	l.Warn("Goroutine leak detected via the Go goroutine leak profile",
 		logger_domain.Int("leaked_goroutine_count", leakCount),
 	)
 
@@ -330,13 +347,13 @@ func (w *Watchdog) evaluateGoroutineLeaks(ctx context.Context, now time.Time) {
 	w.sendNotification(ctx, WatchdogEvent{
 		EventType: WatchdogEventGoroutineLeakDetected,
 		Priority:  WatchdogPriorityHigh,
-		Message:   "Goroutine leak detected via the Go 1.26 goroutine leak profile",
+		Message:   "Goroutine leak detected via the Go goroutine leak profile",
 		Fields: map[string]string{
 			"leaked_goroutine_count": strconv.Itoa(leakCount),
 		},
 	})
 
-	w.triggerCapture(ctx, profileTypeGoroutineLeak, captureContext{
+	w.storeCapturedProfile(ctx, profileTypeGoroutineLeak, profileData, captureContext{
 		Rule:      "goroutineleak",
 		Observed:  safeconv.IntToUint64(leakCount),
 		Threshold: 0,

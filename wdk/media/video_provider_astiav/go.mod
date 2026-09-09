@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/media/video_provider_astiav
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/asticode/go-astiav v0.39.0

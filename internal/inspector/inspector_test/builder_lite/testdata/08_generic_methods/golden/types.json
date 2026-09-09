@@ -1,0 +1,122 @@
+{
+  "packages": {
+    "testcase_lite_08": {
+      "file_imports": {
+        "08_generic_methods/src/main.go": {}
+      },
+      "named_types": {
+        "Store": {
+          "name": "Store",
+          "package_path": "testcase_lite_08",
+          "defined_in_file_path": "08_generic_methods/src/main.go",
+          "type_string": "Store",
+          "underlying_type_string": "struct{...}",
+          "fields": [
+            {
+              "definition_file_path": "08_generic_methods/src/main.go",
+              "pkg_path": "",
+              "underlying_type_string": "string",
+              "name": "Name",
+              "type_string": "string",
+              "raw_tag": "",
+              "definition_line": 24,
+              "definition_column": 2,
+              "is_underlying_primitive": true,
+              "is_internal_type": false,
+              "is_embedded": false,
+              "is_underlying_internal_type": false
+            }
+          ],
+          "methods": [
+            {
+              "name": "Fetch",
+              "type_string": "func(string) T",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_08",
+              "declaring_type_name": "Store",
+              "definition_file_path": "08_generic_methods/src/main.go",
+              "signature": {
+                "params": [
+                  "string"
+                ],
+                "param_names": [
+                  "key"
+                ],
+                "results": [
+                  "T"
+                ],
+                "type_param_names": [
+                  "T"
+                ],
+                "type_param_constraints": [
+                  "any"
+                ]
+              },
+              "definition_line": 28,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Pair",
+              "type_string": "func(K, V) map[K]V",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_08",
+              "declaring_type_name": "Store",
+              "definition_file_path": "08_generic_methods/src/main.go",
+              "signature": {
+                "params": [
+                  "K",
+                  "V"
+                ],
+                "param_names": [
+                  "key",
+                  "value"
+                ],
+                "results": [
+                  "map[K]V"
+                ],
+                "type_param_names": [
+                  "K",
+                  "V"
+                ],
+                "type_param_constraints": [
+                  "comparable",
+                  "any"
+                ]
+              },
+              "definition_line": 34,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Plain",
+              "type_string": "func() string",
+              "underlying_type_string": "",
+              "declaring_pkg_path": "testcase_lite_08",
+              "declaring_type_name": "Store",
+              "definition_file_path": "08_generic_methods/src/main.go",
+              "signature": {
+                "params": null,
+                "results": [
+                  "string"
+                ]
+              },
+              "definition_line": 39,
+              "definition_column": 1,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": null,
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 23,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_lite_08",
+      "name": "main"
+    }
+  },
+  "file_to_package": {}
+}

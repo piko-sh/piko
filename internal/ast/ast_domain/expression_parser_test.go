@@ -1945,3 +1945,80 @@ func TestParseExpressionCached(t *testing.T) {
 		assert.NotSame(t, expression1, expression2)
 	})
 }
+
+func TestParseIndexExpression_TypeArguments(t *testing.T) {
+	t.Parallel()
+
+	t.Run("single type argument keeps the existing single index shape", func(t *testing.T) {
+		t.Parallel()
+
+		parser := NewExpressionParser(context.Background(), `store.Fetch[Post]("key")`, "test")
+		expression, diagnostics := parser.ParseExpression(context.Background())
+
+		require.Empty(t, diagnostics)
+		require.NotNil(t, expression)
+
+		call, ok := expression.(*CallExpression)
+		require.True(t, ok, "Expected a call expression")
+
+		index, ok := call.Callee.(*IndexExpression)
+		require.True(t, ok, "Expected the callee to be an index expression")
+		assert.Nil(t, index.Indices, "A single type argument must leave Indices nil")
+		assert.Equal(t, "Post", index.Index.String())
+		assert.Equal(t, `store.Fetch[Post]("key")`, expression.String())
+	})
+
+	t.Run("multiple type arguments are all captured", func(t *testing.T) {
+		t.Parallel()
+
+		parser := NewExpressionParser(context.Background(), `store.Pair[string, int](k, v)`, "test")
+		expression, diagnostics := parser.ParseExpression(context.Background())
+
+		require.Empty(t, diagnostics)
+
+		call, ok := expression.(*CallExpression)
+		require.True(t, ok)
+
+		index, ok := call.Callee.(*IndexExpression)
+		require.True(t, ok)
+		require.Len(t, index.Indices, 2, "Both type arguments must be captured")
+		assert.Equal(t, "string", index.Indices[0].String())
+		assert.Equal(t, "int", index.Indices[1].String())
+		assert.Equal(t, "string", index.Index.String(), "Index must still hold the first argument")
+		assert.Equal(t, "store.Pair[string, int](k, v)", expression.String())
+	})
+
+	t.Run("ordinary value indexing is unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		parser := NewExpressionParser(context.Background(), "items[0]", "test")
+		expression, diagnostics := parser.ParseExpression(context.Background())
+
+		require.Empty(t, diagnostics)
+
+		index, ok := expression.(*IndexExpression)
+		require.True(t, ok)
+		assert.Nil(t, index.Indices)
+		assert.Equal(t, "items[0]", expression.String())
+	})
+
+	t.Run("composite type argument reports a clear diagnostic", func(t *testing.T) {
+		t.Parallel()
+
+		parser := NewExpressionParser(context.Background(), `store.All[[]Post]()`, "test")
+		_, diagnostics := parser.ParseExpression(context.Background())
+
+		require.NotEmpty(t, diagnostics, "A composite type argument must be reported")
+		assertHasError(t, diagnostics, "Composite type arguments")
+	})
+
+	t.Run("trailing comma reports a clear diagnostic", func(t *testing.T) {
+		t.Parallel()
+
+		parser := NewExpressionParser(context.Background(), "store.Pair[string,]()", "test")
+		_, diagnostics := parser.ParseExpression(context.Background())
+
+		require.NotEmpty(t, diagnostics)
+		assertHasError(t, diagnostics, "Trailing comma")
+	})
+}

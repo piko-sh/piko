@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/llm/llm_provider_ollama
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/ollama/ollama v0.32.5

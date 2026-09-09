@@ -867,19 +867,15 @@ func determineCompositePackagePath(typ types.Type) string {
 // Takes method (*types.Func) which is the method to check.
 // Takes processed (map[string]bool) which tracks methods already processed.
 //
-// Returns bool which is true when the method is unexported, already processed, or has
-// type parameters.
+// Returns bool which is true when the method is unexported or already processed.
 func shouldSkipMethod(method *types.Func, processed map[string]bool) bool {
 	if !method.Exported() || processed[method.Name()] {
 		return true
 	}
 
-	sig, ok := method.Type().(*types.Signature)
-	if !ok || sig.TypeParams().Len() > 0 {
-		return true
-	}
+	_, isSignature := method.Type().(*types.Signature)
 
-	return false
+	return !isSignature
 }
 
 // buildMethodDTO converts a method into a DTO with position data for LSP.
@@ -1033,11 +1029,43 @@ func resolveBuiltinTypePackagePath(typeString string, method *types.Func) string
 // Returns inspector_dto.FunctionSignature which contains the encoded parameters and
 // results.
 func encodeSignature(sig *types.Signature, qualifier types.Qualifier) inspector_dto.FunctionSignature {
+	typeParamNames, typeParamConstraints := encodeTypeParams(sig.TypeParams(), qualifier)
+
 	return inspector_dto.FunctionSignature{
-		Params:     encodeTuple(sig.Params(), sig.Variadic(), qualifier),
-		ParamNames: encodeTupleNames(sig.Params()),
-		Results:    encodeTuple(sig.Results(), false, qualifier),
+		Params:               encodeTuple(sig.Params(), sig.Variadic(), qualifier),
+		ParamNames:           encodeTupleNames(sig.Params()),
+		Results:              encodeTuple(sig.Results(), false, qualifier),
+		TypeParamNames:       typeParamNames,
+		TypeParamConstraints: typeParamConstraints,
 	}
+}
+
+// encodeTypeParams extracts the declared type parameter names and constraints from a
+// signature's type parameter list.
+//
+// Takes typeParams (*types.TypeParamList) which holds the declared type parameters.
+// Takes qualifier (types.Qualifier) which formats package names in constraint strings.
+//
+// Returns []string which holds the type parameter names in declaration order, or nil when
+// the signature declares none.
+// Returns []string which holds the matching constraint type strings, in the same order.
+func encodeTypeParams(typeParams *types.TypeParamList, qualifier types.Qualifier) ([]string, []string) {
+	if typeParams == nil || typeParams.Len() == 0 {
+		return nil, nil
+	}
+
+	names := make([]string, typeParams.Len())
+	constraints := make([]string, typeParams.Len())
+
+	for index := range typeParams.Len() {
+		typeParam := typeParams.At(index)
+		names[index] = typeParam.Obj().Name()
+		if constraint := typeParam.Constraint(); constraint != nil {
+			constraints[index] = encodeTypeName(constraint, qualifier)
+		}
+	}
+
+	return names, constraints
 }
 
 // encodeTupleNames extracts parameter names from a types.Tuple.

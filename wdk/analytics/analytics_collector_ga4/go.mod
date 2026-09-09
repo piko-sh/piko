@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/analytics/analytics_collector_ga4
 
-go 1.26.0
+go 1.27.0
 
 require (
 	go.opentelemetry.io/otel v1.45.0

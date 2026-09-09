@@ -1,6 +1,6 @@
 module testcase_099_partial_external_pkg_import_deep_nesting
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

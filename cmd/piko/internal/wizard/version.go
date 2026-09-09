@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -77,7 +76,6 @@ func resolveLatestVersion() (string, error) {
 		return "", fmt.Errorf("failed to fetch releases: %w", err)
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, response.Body)
 		_ = response.Body.Close()
 	}()
 

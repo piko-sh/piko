@@ -96,16 +96,6 @@ func readAndDrainBody(body io.Reader) ([]byte, error) {
 	return data, nil
 }
 
-// drainAndClose drains any remaining bytes on body and closes it so the HTTP transport
-// can reuse the underlying connection. Errors are silently ignored because callers are
-// typically already on an error path.
-//
-// Takes body (io.ReadCloser) which is the HTTP response body to drain.
-func drainAndClose(body io.ReadCloser) {
-	_, _ = io.Copy(io.Discard, body)
-	_ = body.Close()
-}
-
 var (
 	// ErrProfileBodyTooLarge is returned when an HTTP response from a pprof or
 	// profiler-status endpoint exceeds profileMaxBodyBytes.
@@ -713,7 +703,7 @@ func fetchProfilerStatus(ctx context.Context, profilerRoot string) (*profiler.Se
 	if err != nil {
 		return nil, fmt.Errorf("GET profiler status: %w", err)
 	}
-	defer drainAndClose(response.Body)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode == http.StatusNotFound {
 		return nil, nil
@@ -758,7 +748,7 @@ func fetchProfilerBinary(ctx context.Context, url string, timeout time.Duration)
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", url, err)
 	}
-	defer drainAndClose(response.Body)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET %s returned status %d", url, response.StatusCode)
@@ -869,7 +859,7 @@ func fetchProfile(ctx context.Context, pprofBase, endpoint string, durationSecs 
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", fetchURL, err)
 	}
-	defer drainAndClose(response.Body)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GET %s returned status %d", fetchURL, response.StatusCode)
@@ -1161,7 +1151,7 @@ func fetchGoroutineCount(ctx context.Context, pprofBase string) int {
 	if err != nil {
 		return 0
 	}
-	defer drainAndClose(response.Body)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		return 0
@@ -1203,7 +1193,7 @@ func snapshotGoroutines(ctx context.Context, stdout, stderr io.Writer, pprofBase
 		_, _ = fmt.Fprintf(stderr, "  Warning: could not snapshot goroutines: %v\n", err)
 		return
 	}
-	defer drainAndClose(response.Body)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		_, _ = fmt.Fprintf(stderr, "  Warning: goroutine snapshot returned %d\n", response.StatusCode)

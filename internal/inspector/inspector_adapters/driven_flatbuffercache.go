@@ -562,10 +562,14 @@ func packFunctionSignature(b *flatbuffers.Builder, sig *inspector_dto.FunctionSi
 	paramsOffset := packStringSlice(b, sig.Params)
 	resultsOffset := packStringSlice(b, sig.Results)
 	paramNamesOffset := packStringSlice(b, sig.ParamNames)
+	typeParamNamesOffset := packStringSlice(b, sig.TypeParamNames)
+	typeParamConstraintsOffset := packStringSlice(b, sig.TypeParamConstraints)
 	inspector_schema_gen.FunctionSignatureStart(b)
 	inspector_schema_gen.FunctionSignatureAddParams(b, paramsOffset)
 	inspector_schema_gen.FunctionSignatureAddResults(b, resultsOffset)
 	inspector_schema_gen.FunctionSignatureAddParamNames(b, paramNamesOffset)
+	inspector_schema_gen.FunctionSignatureAddTypeParamNames(b, typeParamNamesOffset)
+	inspector_schema_gen.FunctionSignatureAddTypeParamConstraints(b, typeParamConstraintsOffset)
 	return inspector_schema_gen.FunctionSignatureEnd(b)
 }
 
@@ -638,30 +642,50 @@ func unpackFunctionSignature(fb *inspector_schema_gen.FunctionSignature) inspect
 	paramsLen := fb.ParamsLength()
 	resultsLen := fb.ResultsLength()
 	paramNamesLen := fb.ParamNamesLength()
+	typeParamNamesLen := fb.TypeParamNamesLength()
+	typeParamConstraintsLen := fb.TypeParamConstraintsLength()
 
-	if paramsLen == 0 && resultsLen == 0 && paramNamesLen == 0 {
+	total := paramsLen + resultsLen + paramNamesLen + typeParamNamesLen + typeParamConstraintsLen
+	if total == 0 {
 		return inspector_dto.FunctionSignature{}
 	}
 
-	total := paramsLen + resultsLen + paramNamesLen
 	backing := make([]string, total)
 
+	paramsStart := 0
+	resultsStart := paramsStart + paramsLen
+	paramNamesStart := resultsStart + resultsLen
+	typeParamNamesStart := paramNamesStart + paramNamesLen
+	typeParamConstraintsStart := typeParamNamesStart + typeParamNamesLen
+
 	for i := range paramsLen {
-		backing[i] = mem.String(fb.Params(i))
+		backing[paramsStart+i] = mem.String(fb.Params(i))
 	}
 	for i := range resultsLen {
-		backing[paramsLen+i] = mem.String(fb.Results(i))
+		backing[resultsStart+i] = mem.String(fb.Results(i))
 	}
 	for i := range paramNamesLen {
-		backing[paramsLen+resultsLen+i] = mem.String(fb.ParamNames(i))
+		backing[paramNamesStart+i] = mem.String(fb.ParamNames(i))
+	}
+	for i := range typeParamNamesLen {
+		backing[typeParamNamesStart+i] = mem.String(fb.TypeParamNames(i))
+	}
+	for i := range typeParamConstraintsLen {
+		backing[typeParamConstraintsStart+i] = mem.String(fb.TypeParamConstraints(i))
 	}
 
 	sig := inspector_dto.FunctionSignature{
-		Params:  backing[:paramsLen:paramsLen],
-		Results: backing[paramsLen : paramsLen+resultsLen : paramsLen+resultsLen],
+		Params:  backing[paramsStart : paramsStart+paramsLen : paramsStart+paramsLen],
+		Results: backing[resultsStart : resultsStart+resultsLen : resultsStart+resultsLen],
 	}
 	if paramNamesLen > 0 {
-		sig.ParamNames = backing[paramsLen+resultsLen : paramsLen+resultsLen+paramNamesLen : paramsLen+resultsLen+paramNamesLen]
+		sig.ParamNames = backing[paramNamesStart : paramNamesStart+paramNamesLen : paramNamesStart+paramNamesLen]
+	}
+	if typeParamNamesLen > 0 {
+		sig.TypeParamNames = backing[typeParamNamesStart : typeParamNamesStart+typeParamNamesLen : typeParamNamesStart+typeParamNamesLen]
+	}
+	if typeParamConstraintsLen > 0 {
+		sig.TypeParamConstraints = backing[typeParamConstraintsStart : typeParamConstraintsStart+typeParamConstraintsLen : typeParamConstraintsStart+typeParamConstraintsLen]
 	}
 	return sig
 }

@@ -1,6 +1,6 @@
 module testcase_063_external_module_with_pkg_code
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/example/ui-components v0.0.0

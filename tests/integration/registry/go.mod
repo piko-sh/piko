@@ -20,7 +20,7 @@
 // This module uses mattn/go-sqlite3 (CGO) driver.
 module piko.sh/piko/tests/integration/registry
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.49

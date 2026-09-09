@@ -19,7 +19,7 @@
 // Package email contains integration tests for the full email rendering pipeline.
 module piko.sh/piko/tests/integration/email
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/stretchr/testify v1.11.1

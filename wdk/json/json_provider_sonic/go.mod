@@ -1,9 +1,9 @@
 module piko.sh/piko/wdk/json/json_provider_sonic
 
-go 1.26.0
+go 1.27.0
 
 require (
-	github.com/bytedance/sonic v1.15.2
+	github.com/bytedance/sonic v1.15.3
 	piko.sh/piko v0.0.0
 )
 

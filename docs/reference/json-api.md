@@ -55,13 +55,17 @@ func DefaultConfig() API
 
 ## Provider registration
 
-Custom providers satisfy the `Provider` interface and register during bootstrap. For the Sonic provider:
+Custom providers satisfy the `Provider` interface and are activated explicitly. There is no `init` function, so a blank import does nothing. Call `Activate` from `main` before any JSON work happens:
 
 ```go
-import _ "piko.sh/piko/wdk/json/json_provider_sonic"
+import sonicjson "piko.sh/piko/wdk/json/json_provider_sonic"
+
+func main() {
+    sonicjson.New().Activate()
+}
 ```
 
-The blank import runs the provider's `init` function, which replaces the default. Remove the import to return to `encoding/json`.
+`Activate` replaces the package-level JSON function variables in place. Remove the call to return to `encoding/json`.
 
 ## Pretouch
 

@@ -1,6 +1,6 @@
 module testcase_14_nil_vs_omitted_prop_canonicalisation
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

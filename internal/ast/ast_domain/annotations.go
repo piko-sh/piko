@@ -128,6 +128,9 @@ type GoGeneratorAnnotation struct {
 	// IsMapAccess indicates whether this member expression uses map lookup syntax.
 	IsMapAccess bool
 
+	// IsTypeInstantiation reports whether index brackets carry type arguments.
+	IsTypeInstantiation bool
+
 	// IsFullyPrerenderable indicates this node and its entire subtree can be prerendered to
 	// HTML bytes at generation time. This is true only when: IsStatic is true AND the
 	// subtree contains no piko:svg, piko:img, piko:a, or piko:video tags that require
@@ -314,6 +317,7 @@ func (a *GoGeneratorAnnotation) Clone() *GoGeneratorAnnotation {
 		IsCollectionCall:        a.IsCollectionCall,
 		IsHybridCollection:      a.IsHybridCollection,
 		IsMapAccess:             a.IsMapAccess,
+		IsTypeInstantiation:     a.IsTypeInstantiation,
 		IsFullyPrerenderable:    a.IsFullyPrerenderable,
 	}
 

@@ -19,7 +19,6 @@
 package driven_code_emitter_go_literal
 
 import (
-	"context"
 	"testing"
 
 	goast "go/ast"
@@ -33,7 +32,7 @@ import (
 
 func TestExpressionEmitter_CollectionCall_Static(t *testing.T) {
 	em := requireEmitter(t)
-	em.resetState(context.Background())
+	em.resetState()
 
 	staticLiteral := &goast.CompositeLit{
 		Type: &goast.ArrayType{Elt: cachedIdent("string")},
@@ -63,7 +62,7 @@ func TestExpressionEmitter_CollectionCall_Static(t *testing.T) {
 
 func TestExpressionEmitter_CollectionCall_Dynamic(t *testing.T) {
 	em := requireEmitter(t)
-	em.resetState(context.Background())
+	em.resetState()
 	em.ctx = NewEmitterContext()
 
 	fetcherFunc := &goast.FuncDecl{
@@ -138,7 +137,7 @@ func TestExpressionEmitter_CollectionCall_Dynamic(t *testing.T) {
 
 func TestExpressionEmitter_CollectionCall_MissingData(t *testing.T) {
 	em := requireEmitter(t)
-	em.resetState(context.Background())
+	em.resetState()
 
 	expression := &ast_domain.CallExpression{
 		Callee: &ast_domain.Identifier{Name: "getItems"},
@@ -165,7 +164,7 @@ func TestExpressionEmitter_CollectionCall_MissingData(t *testing.T) {
 
 func TestExpressionEmitter_CollectionCall_NotACollection(t *testing.T) {
 	em := requireEmitter(t)
-	em.resetState(context.Background())
+	em.resetState()
 
 	expression := &ast_domain.CallExpression{
 		Callee: &ast_domain.Identifier{Name: "regularFunction"},

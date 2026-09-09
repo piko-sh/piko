@@ -1,6 +1,6 @@
 module testcase_03_complex_call_context
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

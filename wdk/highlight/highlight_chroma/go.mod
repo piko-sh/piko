@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/highlight/highlight_chroma
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/alecthomas/chroma/v2 v2.27.0

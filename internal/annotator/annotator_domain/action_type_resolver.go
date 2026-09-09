@@ -328,9 +328,7 @@ func extractTypeInfoFromString(
 
 	cleanTypeString := strings.TrimPrefix(typeString, pointerPrefix)
 
-	if index := strings.LastIndex(cleanTypeString, "."); index != -1 {
-		packageAlias := cleanTypeString[:index]
-		typeName := cleanTypeString[index+1:]
+	if packageAlias, typeName, found := strings.CutLast(cleanTypeString, "."); found {
 
 		for packagePath, pkg := range packages {
 			if pkg.Name == packageAlias || strings.HasSuffix(packagePath, "/"+packageAlias) {

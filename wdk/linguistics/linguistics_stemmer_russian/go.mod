@@ -1,6 +1,6 @@
 module piko.sh/piko/wdk/linguistics/linguistics_stemmer_russian
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/kljensen/snowball v0.10.0

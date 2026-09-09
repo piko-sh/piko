@@ -1,6 +1,6 @@
 module testcase_062_transitive_module_dependencies
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/example/composite-widgets v0.0.0

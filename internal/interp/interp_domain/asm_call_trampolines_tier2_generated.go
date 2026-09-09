@@ -847,4 +847,3 @@ func asmCallHandleTestNilJumpTrue(ctx *DispatchContext, instWord uint32) *Dispat
 	tier2DispatchToHandler(ctx, instWord, handleTestNilJumpTrue)
 	return ctx
 }
-

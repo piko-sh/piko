@@ -1,6 +1,6 @@
 module testcase_21_type_alias_and_generics_resolution
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

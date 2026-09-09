@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/goastutil"
 )
 
 // tryEmitOperatorExpression handles operator-based expressions.
@@ -474,15 +475,23 @@ func (ee *expressionEmitter) emitCallExpr(n *ast_domain.CallExpression) (goast.E
 	}
 
 	var calleeGoExpr goast.Expr
-	if identifier, isIdent := n.Callee.(*ast_domain.Identifier); isIdent && builtInFunctionNames[identifier.Name] {
+	var calleeStmts []goast.Stmt
+	var calleeDiags []*ast_domain.Diagnostic
+
+	identifier, isIdent := n.Callee.(*ast_domain.Identifier)
+	genericCallee, isGenericCall := asTypeInstantiation(n.Callee)
+
+	switch {
+	case isIdent && builtInFunctionNames[identifier.Name]:
 		calleeGoExpr = cachedIdent(identifier.Name)
-	} else {
-		var calleeStmts []goast.Stmt
-		var calleeDiags []*ast_domain.Diagnostic
+	case isGenericCall:
+		calleeGoExpr, calleeStmts, calleeDiags = ee.emitGenericCallee(genericCallee)
+	default:
 		calleeGoExpr, calleeStmts, calleeDiags = ee.emit(n.Callee)
-		allStmts = append(allStmts, calleeStmts...)
-		allDiags = append(allDiags, calleeDiags...)
 	}
+
+	allStmts = append(allStmts, calleeStmts...)
+	allDiags = append(allDiags, calleeDiags...)
 
 	goArgs := make([]goast.Expr, len(n.Args))
 	for i, argument := range n.Args {
@@ -499,6 +508,56 @@ func (ee *expressionEmitter) emitCallExpr(n *ast_domain.CallExpression) (goast.E
 	}
 
 	return result, allStmts, allDiags
+}
+
+// asTypeInstantiation reports whether a callee carries type arguments for a generic call
+// rather than a runtime index. The annotator sets the marker, because the two forms are
+// syntactically identical and only type resolution can tell them apart.
+//
+// Takes callee (ast_domain.Expression) which is the callee to inspect.
+//
+// Returns *ast_domain.IndexExpression which is the instantiation, or nil.
+// Returns bool which is true when the callee is a generic instantiation.
+func asTypeInstantiation(callee ast_domain.Expression) (*ast_domain.IndexExpression, bool) {
+	indexExpression, isIndex := callee.(*ast_domain.IndexExpression)
+	if !isIndex {
+		return nil, false
+	}
+	annotation := indexExpression.GetGoAnnotation()
+	if annotation == nil || !annotation.IsTypeInstantiation {
+		return nil, false
+	}
+	return indexExpression, true
+}
+
+// emitGenericCallee emits a generic callee together with its explicit type arguments,
+// producing base[T] or base[K, V].
+//
+// Takes n (*ast_domain.IndexExpression) which is the generic callee.
+//
+// Returns goast.Expr which is the instantiated callee expression.
+// Returns []goast.Stmt which are statements required by the base expression.
+// Returns []*ast_domain.Diagnostic which are diagnostics from the base expression.
+func (ee *expressionEmitter) emitGenericCallee(
+	n *ast_domain.IndexExpression,
+) (goast.Expr, []goast.Stmt, []*ast_domain.Diagnostic) {
+	baseGoExpr, stmts, diags := ee.emit(n.Base)
+
+	indices := n.Indices
+	if len(indices) == 0 {
+		indices = []ast_domain.Expression{n.Index}
+	}
+
+	typeExprs := make([]goast.Expr, 0, len(indices))
+	for _, index := range indices {
+		typeExprs = append(typeExprs, goastutil.TypeStringToAST(index.String()))
+	}
+
+	if len(typeExprs) == 1 {
+		return &goast.IndexExpr{X: baseGoExpr, Index: typeExprs[0]}, stmts, diags
+	}
+
+	return &goast.IndexListExpr{X: baseGoExpr, Indices: typeExprs}, stmts, diags
 }
 
 // emitCoercionCallExpr handles type coercion function calls such as string, int, and

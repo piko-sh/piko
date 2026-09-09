@@ -1,0 +1,93 @@
+{
+  "packages": {
+    "testcase_42_generic_method": {
+      "file_imports": {
+        "42_generic_method/src/main.go": {}
+      },
+      "named_types": {
+        "Processor": {
+          "name": "Processor",
+          "package_path": "testcase_42_generic_method",
+          "defined_in_file_path": "42_generic_method/src/main.go",
+          "type_string": "main.Processor",
+          "underlying_type_string": "struct{}",
+          "fields": [],
+          "methods": [
+            {
+              "name": "Convert",
+              "type_string": "map[K]V",
+              "underlying_type_string": "map[K]V",
+              "declaring_pkg_path": "testcase_42_generic_method",
+              "declaring_type_name": "Processor",
+              "definition_file_path": "42_generic_method/src/main.go",
+              "signature": {
+                "params": [
+                  "K",
+                  "V"
+                ],
+                "param_names": [
+                  "key",
+                  "value"
+                ],
+                "results": [
+                  "map[K]V"
+                ],
+                "type_param_names": [
+                  "K",
+                  "V"
+                ],
+                "type_param_constraints": [
+                  "comparable",
+                  "any"
+                ]
+              },
+              "definition_line": 32,
+              "definition_column": 20,
+              "is_pointer_receiver": false
+            },
+            {
+              "name": "Process",
+              "type_string": "T",
+              "underlying_type_string": "T",
+              "declaring_pkg_path": "testcase_42_generic_method",
+              "declaring_type_name": "Processor",
+              "definition_file_path": "42_generic_method/src/main.go",
+              "signature": {
+                "params": [
+                  "T"
+                ],
+                "param_names": [
+                  "value"
+                ],
+                "results": [
+                  "T",
+                  "error"
+                ],
+                "type_param_names": [
+                  "T"
+                ],
+                "type_param_constraints": [
+                  "any"
+                ]
+              },
+              "definition_line": 25,
+              "definition_column": 20,
+              "is_pointer_receiver": false
+            }
+          ],
+          "type_params": [],
+          "stringability": 0,
+          "is_alias": false,
+          "definition_line": 21,
+          "definition_column": 6
+        }
+      },
+      "funcs": {},
+      "path": "testcase_42_generic_method",
+      "name": "main"
+    }
+  },
+  "file_to_package": {
+    "42_generic_method/src/main.go": "testcase_42_generic_method"
+  }
+}

@@ -198,7 +198,7 @@ func init() {
 	staticNode_4_child_0.NodeType = pikoruntime.NodeElement
 	staticNode_4_child_0.TagName = "input"
 	staticNode_4_child_0.Attributes = make([]pikoruntime.HTMLAttribute, 0, 5)
-	staticNode_4_child_0.Attributes = append(staticNode_4_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_main_594861c5 partials_boxed_form_f1ded90b"})
+	staticNode_4_child_0.Attributes = append(staticNode_4_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_boxed_form_f1ded90b pages_main_594861c5"})
 	staticNode_4_child_0.Attributes = append(staticNode_4_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:3:1:0"})
 	staticNode_4_child_0.Attributes = append(staticNode_4_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "type", Value: "text"})
 	staticNode_4_child_0.Attributes = append(staticNode_4_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "name", Value: "name"})
@@ -231,7 +231,7 @@ func init() {
 	staticNode_5_child_0.NodeType = pikoruntime.NodeElement
 	staticNode_5_child_0.TagName = "input"
 	staticNode_5_child_0.Attributes = make([]pikoruntime.HTMLAttribute, 0, 5)
-	staticNode_5_child_0.Attributes = append(staticNode_5_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "pages_main_594861c5 partials_boxed_form_f1ded90b"})
+	staticNode_5_child_0.Attributes = append(staticNode_5_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "partial", Value: "partials_boxed_form_f1ded90b pages_main_594861c5"})
 	staticNode_5_child_0.Attributes = append(staticNode_5_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "p-key", Value: "r.0:3:1:0"})
 	staticNode_5_child_0.Attributes = append(staticNode_5_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "type", Value: "text"})
 	staticNode_5_child_0.Attributes = append(staticNode_5_child_0.Attributes, pikoruntime.HTMLAttribute{Name: "name", Value: "name"})

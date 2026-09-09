@@ -20,7 +20,7 @@
 // This module uses mattn/go-sqlite3 (CGO) driver.
 module piko.sh/piko/tests/integration/pkc_serving
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/go-chi/chi/v5 v5.3.1

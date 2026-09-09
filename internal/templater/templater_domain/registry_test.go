@@ -449,16 +449,16 @@ func TestIsolatedRegistry_RealUsageScenario(t *testing.T) {
 
 	buildAST := func(r *templater_dto.RequestData, propsData any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, []*generator_dto.RuntimeDiagnostic) {
 		return &ast_domain.TemplateAST{
-				RootNodes: []*ast_domain.TemplateNode{
-					{
-						NodeType:    ast_domain.NodeText,
-						TextContent: "Welcome to " + r.Locale(),
-					},
+			RootNodes: []*ast_domain.TemplateNode{
+				{
+					NodeType:    ast_domain.NodeText,
+					TextContent: "Welcome to " + r.Locale(),
 				},
-			}, templater_dto.InternalMetadata{
-				AssetRefs:  []templater_dto.AssetRef{},
-				CustomTags: []string{},
-			}, nil
+			},
+		}, templater_dto.InternalMetadata{
+			AssetRefs:  []templater_dto.AssetRef{},
+			CustomTags: []string{},
+		}, nil
 	}
 
 	cachePolicy := func(r *templater_dto.RequestData) templater_dto.CachePolicy {

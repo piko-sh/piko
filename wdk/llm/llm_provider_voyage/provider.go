@@ -88,16 +88,6 @@ func decodeBoundedJSON(body io.Reader, target any) error {
 	return json.Unmarshal(data, target)
 }
 
-// drainAndClose drains any remaining bytes from response.Body before closing so that the
-// underlying TCP connection can be reused by the HTTP client.
-//
-// Takes response (*http.Response) which is the response whose body should be drained and
-// closed.
-func drainAndClose(response *http.Response) {
-	_, _ = io.Copy(io.Discard, response.Body)
-	_ = response.Body.Close()
-}
-
 // voyageProvider implements llm_domain.EmbeddingProviderPort for the Voyage AI embedding
 // service.
 type voyageProvider struct {
@@ -274,7 +264,7 @@ func (p *voyageProvider) executeEmbedRequest(ctx context.Context, apiReq *voyage
 	if err != nil {
 		return nil, fmt.Errorf("voyage embedding request failed: %w", err)
 	}
-	defer drainAndClose(response)
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		respBody, readErr := readBoundedBody(response.Body)

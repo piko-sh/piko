@@ -1,6 +1,6 @@
 module testcase_68_error_in_imported_go_file
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

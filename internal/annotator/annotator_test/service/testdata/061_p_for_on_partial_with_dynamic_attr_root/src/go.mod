@@ -1,6 +1,6 @@
 module testcase_61_p_for_on_partial_with_dynamic_attr_root
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

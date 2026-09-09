@@ -18,7 +18,7 @@
 
 module piko.sh/piko/tests/integration/compiler_browser
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/chromedp/chromedp v0.16.0

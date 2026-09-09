@@ -1,0 +1,16 @@
+{
+  "description": "Tests that generic methods, valid from Go 1.27, are extracted with their type parameters and constraints rather than dropped from the type index.",
+  "moduleName": "testcase_42_generic_method",
+  "assertions": [
+    {
+      "select": "packages.testcase_42_generic_method.named_types.Processor.methods.0.name",
+      "expect": "Convert",
+      "description": "Generic method Convert is present in the type index"
+    },
+    {
+      "select": "packages.testcase_42_generic_method.named_types.Processor.methods.1.name",
+      "expect": "Process",
+      "description": "Generic method Process is present in the type index"
+    }
+  ]
+}

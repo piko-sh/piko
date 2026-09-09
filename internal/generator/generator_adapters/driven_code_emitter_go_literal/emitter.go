@@ -241,8 +241,7 @@ func (em *emitter) EmitCode(
 
 	em.registerEmitterImports()
 
-	em.resetState(ctx)
-	defer em.cleanup()
+	em.resetState()
 
 	mainComponent, err := em.validateMainComponent(request.HashedName, result)
 	if err != nil {
@@ -538,16 +537,8 @@ func (em *emitter) addFetcherDeclaration(declaration goast.Decl) {
 }
 
 // resetState clears the emitter and prepares it for new code output.
-func (em *emitter) resetState(ctx context.Context) {
-	em.astBuilder = getAstBuilder(ctx, em)
-}
-
-// cleanup returns all pooled emitters back to their pools.
-func (em *emitter) cleanup() {
-	if em.astBuilder != nil {
-		putAstBuilder(em.astBuilder)
-		em.astBuilder = nil
-	}
+func (em *emitter) resetState() {
+	em.astBuilder = newAstBuilder(em)
 }
 
 // appendStaticDeclarations adds the var() and init() blocks for hoisted static nodes to

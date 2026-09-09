@@ -1,6 +1,6 @@
 module testcase_112_partial_import_const_var
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

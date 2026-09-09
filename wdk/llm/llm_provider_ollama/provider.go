@@ -537,7 +537,6 @@ func (p *ollamaProvider) fetchImage(ctx context.Context, imageURL string) ([]byt
 		return nil, fmt.Errorf("fetching image: %w", err)
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, response.Body)
 		_ = response.Body.Close()
 	}()
 

@@ -20,7 +20,7 @@
 // element positions against the layouter engine's computed positions.
 module piko.sh/piko/tests/integration/layouter
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20260804232424-e85f50dbfd32

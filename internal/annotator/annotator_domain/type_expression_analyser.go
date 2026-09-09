@@ -526,9 +526,20 @@ func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *
 		a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIndexExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 	}
 
+	fallback := newFallbackAnnotation()
+
+	if len(n.Indices) > 1 {
+		a.ctx.addDiagnosticForExpression(
+			ast_domain.Error,
+			"Multiple values in brackets are only valid as type arguments on a generic call",
+			n, a.location.Add(n.RelativeLocation), n.GoAnnotations,
+			annotator_dto.CodeInvalidIndexing,
+		)
+		return fallback
+	}
+
 	baseAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Base, a.location, a.depth+1)
 	indexAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Index, a.location, a.depth+1)
-	fallback := newFallbackAnnotation()
 
 	if a.ctx.Logger.Enabled(logger_domain.LevelTrace) {
 		a.ctx.Logger.Trace("Index base and key resolved",

@@ -23,7 +23,7 @@
 
 module piko.sh/piko/tests/benchmarks/cross_language
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/d5/tengo/v2 v2.17.0

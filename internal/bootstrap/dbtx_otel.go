@@ -473,8 +473,8 @@ func isSQLKeyword(token string) bool {
 // Returns string which is the bare identifier, empty when the token is not one.
 func trimSQLIdentifier(token string) string {
 	token = strings.Trim(token, "`\"'[]();,")
-	if index := strings.LastIndex(token, "."); index >= 0 {
-		token = token[index+1:]
+	if _, unqualified, found := strings.CutLast(token, "."); found {
+		token = unqualified
 	}
 	if strings.ContainsFunc(token, func(character rune) bool { return !isSQLIdentifierRune(character) }) {
 		return ""

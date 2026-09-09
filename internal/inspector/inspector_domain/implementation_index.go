@@ -194,9 +194,10 @@ func isInterfaceType(typeInfo *inspector_dto.Type) bool {
 func extractMethodSigs(methods []*inspector_dto.Method) map[string]string {
 	result := make(map[string]string, len(methods))
 	for _, m := range methods {
-		if m != nil && m.Name != "" {
-			result[m.Name] = m.Signature.ToSignatureString()
+		if m == nil || m.Name == "" || len(m.Signature.TypeParamNames) > 0 {
+			continue
 		}
+		result[m.Name] = m.Signature.ToSignatureString()
 	}
 	return result
 }

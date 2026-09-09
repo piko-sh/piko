@@ -1,6 +1,6 @@
 module piko.sh/piko/cmd/pikopls
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/go-chi/chi/v5 v5.3.1
@@ -20,7 +20,7 @@ require (
 	github.com/andybalholm/brotli v1.2.2 // indirect
 	github.com/bojanz/currency v1.4.4 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
-	github.com/bytedance/sonic v1.15.2 // indirect
+	github.com/bytedance/sonic v1.15.3 // indirect
 	github.com/bytedance/sonic/loader v0.5.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect

@@ -1,6 +1,6 @@
 module testcase_024_partial_with_forwarded_and_self_referential_attrs
 
-go 1.26.0
+go 1.27.0
 
 require piko.sh/piko v0.0.0
 

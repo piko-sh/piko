@@ -434,18 +434,20 @@ func (b *CacheBuilder[K, V]) Encoder(encoder AnyEncoder) *CacheBuilder[K, V] {
 	return b
 }
 
-// TypedEncoder registers a type-specific encoder with compile-time type safety. Verifies
-// that the encoder's type matches the cache's value type V, preventing runtime type
-// errors.
+// TypedEncoder registers a type-specific encoder for the cache's value type V.
 //
-// This is the recommended method for registering encoders as it catches type mismatches
-// at compile time rather than runtime.
+// The compiler checks that the encoder handles V, so a mismatched value type is caught at
+// the call site.
+//
+// A nil encoder is ignored.
 //
 // Takes encoder (EncoderPort[V]) which is the type-safe encoder to register.
 //
 // Returns *CacheBuilder[K, V] for method chaining.
 func (b *CacheBuilder[K, V]) TypedEncoder(encoder EncoderPort[V]) *CacheBuilder[K, V] {
-	b.encoders = append(b.encoders, encoder.(AnyEncoder))
+	if lifted := liftEncoder(encoder); lifted != nil {
+		b.encoders = append(b.encoders, lifted)
+	}
 	return b
 }
 
